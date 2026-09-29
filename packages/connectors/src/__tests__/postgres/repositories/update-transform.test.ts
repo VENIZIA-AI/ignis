@@ -65,7 +65,7 @@ describe('PostgresQueryDialect.transformUpdate - JSON paths', () => {
     const sql = compile(transformed.jsonExpressions.metadata);
 
     expect(sql).toContain('jsonb_set');
-    expect(sql).toBe(`jsonb_set("meta_data", '{tier}', '"gold"'::jsonb, true)`);
+    expect(sql).toBe(`jsonb_set("meta_data", '{"tier"}', '"gold"'::jsonb, true)`);
   });
 
   test('a plain column and a JSON path in one call split across the two buckets', () => {
@@ -79,7 +79,7 @@ describe('PostgresQueryDialect.transformUpdate - JSON paths', () => {
     const transformed = transform({ 'metadata.tier': null });
 
     expect(compile(transformed.jsonExpressions.metadata)).toBe(
-      `jsonb_set("meta_data", '{tier}', 'null'::jsonb, true)`,
+      `jsonb_set("meta_data", '{"tier"}', 'null'::jsonb, true)`,
     );
   });
 });
@@ -94,7 +94,7 @@ describe('PostgresQueryDialect.transformUpdate - two paths on one column', () =>
 
     expect(Object.keys(transformed.jsonExpressions)).toEqual(['metadata']);
     expect(compile(transformed.jsonExpressions.metadata)).toBe(
-      `jsonb_set(jsonb_set("meta_data", '{tier}', '"gold"'::jsonb, true), '{seats}', '3'::jsonb, true)`,
+      `jsonb_set(jsonb_set("meta_data", '{"tier"}', '"gold"'::jsonb, true), '{"seats"}', '3'::jsonb, true)`,
     );
   });
 
@@ -225,7 +225,7 @@ describe('PersistableRepository.updateAll - the transform result reaches set()',
     expect(Object.keys(setArgument).sort()).toEqual(['metadata', 'name']);
     expect(setArgument.name).toBe('updated');
     expect(compile(setArgument.metadata)).toBe(
-      `jsonb_set("meta_data", '{tier}', '"gold"'::jsonb, true)`,
+      `jsonb_set("meta_data", '{"tier"}', '"gold"'::jsonb, true)`,
     );
   });
 });

@@ -6,6 +6,7 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
 import { sql, StringChunk } from 'drizzle-orm';
 import { PostgresQueryOperators } from './query';
+import { toPostgresJsonPathElements } from './internal';
 
 const SORT_KEYWORDS: Record<TConstValue<typeof Sorts>, string> = {
   [Sorts.ASC]: 'ASC',
@@ -39,7 +40,7 @@ export class PostgresFilterBuilder extends FilterBuilder {
 
     // The Drizzle column chunk is qualified or aliased like a plain key. `#>>` yields text, so a
     // numeric operand needs the regex-guarded cast (a non-numeric value stays NULL).
-    const pathSuffix = new StringChunk(` #>> '{${path.join(',')}}'`);
+    const pathSuffix = new StringChunk(` #>> '{${toPostgresJsonPathElements({ path })}}'`);
 
     if (!this.isOperatorObject({ value })) {
       const jsonExtraction = this.jsonNeedsNumericCast({
@@ -90,7 +91,9 @@ export class PostgresFilterBuilder extends FilterBuilder {
 
     return sql.fromList([
       column,
-      new StringChunk(` #> '{${path.join(',')}}' ${SORT_KEYWORDS[direction]}`),
+      new StringChunk(
+        ` #> '{${toPostgresJsonPathElements({ path })}}' ${SORT_KEYWORDS[direction]}`,
+      ),
     ]);
   }
 }

@@ -54,49 +54,49 @@ const testCases: TTestCase[] = [
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Simple field path',
-    expectedSql: `"test_table"."metadata" #> '{field}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{"field"}' ASC`,
   },
   {
     input: 'metadata.nested_field',
     direction: Sorts.DESC,
     shouldPass: true,
     description: 'Underscore in field name',
-    expectedSql: `"test_table"."metadata" #> '{nested_field}' DESC`,
+    expectedSql: `"test_table"."metadata" #> '{"nested_field"}' DESC`,
   },
   {
     input: 'data.items[0]',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index',
-    expectedSql: `"test_table"."data" #> '{items,0}' ASC`,
+    expectedSql: `"test_table"."data" #> '{"items","0"}' ASC`,
   },
   {
     input: 'metadata.items[0].name',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index with nested field',
-    expectedSql: `"test_table"."metadata" #> '{items,0,name}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{"items","0","name"}' ASC`,
   },
   {
     input: 'data.a.b.c.d',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Deep nesting',
-    expectedSql: `"test_table"."data" #> '{a,b,c,d}' ASC`,
+    expectedSql: `"test_table"."data" #> '{"a","b","c","d"}' ASC`,
   },
   {
     input: 'metadata._private',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Starts with underscore',
-    expectedSql: `"test_table"."metadata" #> '{_private}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{"_private"}' ASC`,
   },
   {
     input: 'data.field123',
     direction: Sorts.ASC,
     shouldPass: true,
     description: 'Field with numbers',
-    expectedSql: `"test_table"."data" #> '{field123}' ASC`,
+    expectedSql: `"test_table"."data" #> '{"field123"}' ASC`,
   },
 
   {
@@ -127,7 +127,7 @@ const testCases: TTestCase[] = [
     // Kebab-case is a legal JSON key, allowed on purpose: the component is interpolated inside a
     // quoted `'{...}'` array literal it cannot escape.
     description: 'Hyphen in field name (kebab-case)',
-    expectedSql: `"test_table"."metadata" #> '{field-name}' ASC`,
+    expectedSql: `"test_table"."metadata" #> '{"field-name"}' ASC`,
   },
   {
     input: 'metadata.field name',

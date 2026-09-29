@@ -1,6 +1,7 @@
 import { RelationalUpdateBuilder } from '@/relational/core/repositories/dialect';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
+import { toPostgresJsonPathElements } from './internal';
 
 /**
  * Composes nested JSON path updates as chained `jsonb_set` calls.
@@ -44,7 +45,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
   }
 
   private toPathLiteral(opts: { path: string[] }): SQL {
-    return sql.raw(`'{${opts.path.join(',')}}'`);
+    return sql.raw(`'{${toPostgresJsonPathElements({ path: opts.path })}}'`);
   }
 
   /** The document at `path`: `{}` when missing, NULL when it is a scalar nothing can be set inside. */

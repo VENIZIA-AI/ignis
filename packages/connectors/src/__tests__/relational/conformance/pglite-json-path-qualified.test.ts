@@ -236,14 +236,14 @@ describe('Postgres - a JSON-path key renders a qualified column', () => {
   test('where, text extraction', () => {
     const statement = renderWhere({ 'metadata.tier': 'gold' });
 
-    expect(statement).toContain(`${QUALIFIED_METADATA} #>> '{tier}'`);
+    expect(statement).toContain(`${QUALIFIED_METADATA} #>> '{"tier"}'`);
     expectOnlyQualifiedMetadata(statement);
   });
 
   test('where, text extraction through an operator object', () => {
     const statement = renderWhere({ 'metadata.tier': { like: 'go%' } });
 
-    expect(statement).toContain(`${QUALIFIED_METADATA} #>> '{tier}'`);
+    expect(statement).toContain(`${QUALIFIED_METADATA} #>> '{"tier"}'`);
     expectOnlyQualifiedMetadata(statement);
   });
 
@@ -272,7 +272,7 @@ describe('Postgres - a JSON-path key renders a qualified column', () => {
   test('order by', () => {
     const [statement] = renderOrderBy(['metadata.priority DESC']);
 
-    expect(statement).toContain(`${QUALIFIED_METADATA} #> '{priority}'`);
+    expect(statement).toContain(`${QUALIFIED_METADATA} #> '{"priority"}'`);
     expect(statement).toContain('DESC');
     expectOnlyQualifiedMetadata(statement);
   });
