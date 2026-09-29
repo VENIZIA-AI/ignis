@@ -30,8 +30,12 @@ const UNSAFE: Array<{ label: string; raw: string; escaped: string }> = [
   { label: 'paragraph separator', raw: '\u2029', escaped: '\\u2029' },
 ];
 
-/** Characters a message must never carry raw: C0, DEL, C1, U+2028, U+2029. */
-const UNSAFE_PATTERN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+/** Whether a message still carries a raw C0, DEL, C1, U+2028 or U+2029 character. */
+const hasUnsafeCharacter = (message: string): boolean =>
+  [...message].some(character => {
+    const code = character.charCodeAt(0);
+    return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+  });
 
 const messageOf = (run: () => unknown): string => {
   try {
@@ -43,7 +47,7 @@ const messageOf = (run: () => unknown): string => {
 };
 
 const expectSafe = (opts: { message: string; escaped: string }) => {
-  expect(opts.message).not.toMatch(UNSAFE_PATTERN);
+  expect(hasUnsafeCharacter(opts.message)).toBe(false);
   expect(opts.message).toContain(opts.escaped);
 };
 
