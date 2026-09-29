@@ -45,6 +45,9 @@ process.exit(0);
 /** A binary that never exits must fail its test, not stall the suite. */
 const BINARY_TIMEOUT_MS = 30_000;
 
+/** Compiling the probe takes about a second alone; the limit only bounds a stall. */
+const BUILD_TIMEOUT_MS = 120_000;
+
 let workDirectory: string;
 let binary: string;
 
@@ -80,18 +83,24 @@ describe('optional peers inside a compiled binary', () => {
 
     await writeFile(entry, PROBE);
     try {
-      const built = await Bun.build({
-        entrypoints: [entry],
-        target: 'bun',
-        compile: { outfile: binary },
+      // A child process, not `Bun.build` in this one: a compile that stalls here would block the
+      // thread, and with it the hook's own timeout. The child is killed at the limit instead.
+      const built = Bun.spawnSync({
+        cmd: [process.execPath, 'build', entry, '--compile', '--target=bun', '--outfile', binary],
+        cwd: PACKAGE_ROOT,
+        stdout: 'pipe',
+        stderr: 'pipe',
+        timeout: BUILD_TIMEOUT_MS,
       });
-      if (!built.success) {
-        throw new Error(built.logs.map(log => String(log)).join('\n'));
+      if (built.exitedDueToTimeout || built.exitCode !== 0) {
+        throw new Error(
+          `probe build failed | timed out: ${built.exitedDueToTimeout} | ${built.stderr.toString().slice(0, 500)}`,
+        );
       }
     } finally {
       await rm(entry, { force: true });
     }
-  }, 120_000);
+  }, BUILD_TIMEOUT_MS + 5_000);
 
   afterAll(async () => {
     await rm(workDirectory, { recursive: true, force: true });
