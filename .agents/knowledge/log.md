@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-29 - Postgres JSON paths quote every element
+
+Updated [relational connector](/architecture/relational-connector.md).
+
+- The Postgres path literal in where (`#>>`), order (`#>`) and update (`jsonb_set`) now quotes each
+  element (`'{"a","b"}'`), built by `toPostgresJsonPathElements`. An unquoted `NULL` element is SQL
+  NULL, so a key named `null` could not be filtered, sorted or updated.
+
 ## 2026-09-26 - TWhere<T> types a JSON-path key; TOrderEntry<T> added, opt-in
 
 Updated [filter](/packages/filter.md) and [filter system](/architecture/filter-system.md).

@@ -49,11 +49,11 @@ A column counts as a JSON column when its value can hold JSON: `unknown`, `any`,
 // Data: { "user": { "id": 123, "role": "admin" } }
 
 { where: { 'metadata.user.role': 'admin' } }
-// SQL: "Product"."metadata" #>> '{user,role}' = 'admin'
+// SQL: "Product"."metadata" #>> '{"user","role"}' = 'admin'
 ```
 
 > [!NOTE]
-> The column renders through the same Drizzle column object a plain key uses, so it is qualified with the table (or the query alias, on an included relation) exactly like a plain key would be. Only the path (`'{user,role}'`) is a raw literal.
+> The column renders through the same Drizzle column object a plain key uses, so it is qualified with the table (or the query alias, on an included relation) exactly like a plain key would be. Only the path (`'{"user","role"}'`) is a raw literal.
 
 All standard operators work with a JSON path key:
 
@@ -74,8 +74,8 @@ A JSON `#>>` extraction is text, so a numeric comparison needs a cast or Postgre
 
 ```typescript
 { where: { 'metadata.score': { gt: 50 } } }
-// SQL: CASE WHEN ("Product"."metadata" #>> '{score}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//      THEN ("Product"."metadata" #>> '{score}')::numeric ELSE NULL END > 50
+// SQL: CASE WHEN ("Product"."metadata" #>> '{"score"}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//      THEN ("Product"."metadata" #>> '{"score"}')::numeric ELSE NULL END > 50
 ```
 
 | Operators | Casts to numeric when... |
@@ -101,8 +101,8 @@ The cast applies per operator, not once for the whole object - a mixed object ca
 
 ```typescript
 { where: { 'metadata.score': { not: { gt: 50 } } } }
-// SQL: NOT (CASE WHEN ("Product"."metadata" #>> '{score}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//           THEN ("Product"."metadata" #>> '{score}')::numeric ELSE NULL END > 50)
+// SQL: NOT (CASE WHEN ("Product"."metadata" #>> '{"score"}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//           THEN ("Product"."metadata" #>> '{"score"}')::numeric ELSE NULL END > 50)
 ```
 
 
@@ -110,7 +110,7 @@ The cast applies per operator, not once for the whole object - a mixed object ca
 
 ```typescript
 { order: ['metadata.priority DESC'] }
-// SQL: ORDER BY "Product"."metadata" #> '{priority}' DESC
+// SQL: ORDER BY "Product"."metadata" #> '{"priority"}' DESC
 ```
 
 > [!NOTE]

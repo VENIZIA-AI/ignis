@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-29',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A JSON-Path Segment Named null Now Reaches Its Key on Postgres',
+                  link: '/changelogs/2026-09-29-json-path-null-segment',
+                },
+              ],
+            },
+            {
               text: '2026-09-26',
               collapsed: true,
               items: [

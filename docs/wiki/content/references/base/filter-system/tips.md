@@ -55,7 +55,7 @@ Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avo
 ```typescript
 // Table: Product, column: metadata jsonb
 { where: { 'metadata.nonexistent.field': 'value' } }
-// SQL: "Product"."metadata" #>> '{nonexistent,field}' = 'value'
+// SQL: "Product"."metadata" #>> '{"nonexistent","field"}' = 'value'
 // No rows match (NULL != 'value') - no exception either
 ```
 
@@ -66,7 +66,7 @@ Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avo
 ```typescript
 // Table: Product, column: metadata jsonb
 { order: ['metadata.priority DESC'] }
-// SQL: "Product"."metadata" #> '{priority}' DESC
+// SQL: "Product"."metadata" #> '{"priority"}' DESC
 
 // JSONB comparison order: null < boolean < number < string < array < object
 ```

@@ -300,7 +300,7 @@ is why it is a base rather than a copied skeleton: an engine composing through `
 injectable the moment it forgets `validateJsonPathComponents`.
 
 Each call receives the expression built so far, so two paths on one column nest rather than discard
-each other. For a one-level path `UpdateBuilder` returns `jsonb_set(target, '{a}', '"v"'::jsonb, true)`.
+each other. For a one-level path `UpdateBuilder` returns `jsonb_set(target, '{"a"}', '"v"'::jsonb, true)`.
 `create_missing` creates only the LAST key, so a deeper path sets each level from the inside out
 onto its parent - a missing parent read as `{}`, a scalar parent leaving the document unchanged -
 still in one expression. A scalar root still raises `cannot set path in scalar` on PostgreSQL; SQLite
