@@ -84,7 +84,7 @@ tags: [reference, exports, api]
 
 ## filter
 
-### `@venizia/ignis-filter` (17)
+### `@venizia/ignis-filter` (20)
 
 - `parseOrderEntry` const
 - `QueryOperators` class
@@ -93,9 +93,12 @@ tags: [reference, exports, api]
 - `TFilter` type
 - `TInclusion` type
 - `TIsoTimestamp` type
+- `TJsonColumnKey` type
+- `TJsonPathKey` type
 - `TLimit` type
 - `TOffset` type
 - `TOrderBy` type
+- `TOrderEntry` type
 - `TParsedOrderEntry` type
 - `TQueryOperator` type
 - `TSkip` type
@@ -974,7 +977,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (405)
+### `@venizia/ignis-kernel` (408)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1320,6 +1323,8 @@ tags: [reference, exports, api]
 - `TIsAllowedSecFetchSiteHandler` type
 - `TIsoTimestamp` type
 - `TJOSEStandard` type
+- `TJsonColumnKey` type
+- `TJsonPathKey` type
 - `TJsonResponse` type
 - `TJWKSAlgorithm` type
 - `TJWKSKeyDriver` type
@@ -1337,6 +1342,7 @@ tags: [reference, exports, api]
 - `toEntityId` const
 - `TOffset` type
 - `TOrderBy` type
+- `TOrderEntry` type
 - `TOrigin` type
 - `TParsedOrderEntry` type
 - `TPlannedGrantRow` type
@@ -2042,7 +2048,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1005)
+### `@venizia/ignis` (1008)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2866,6 +2872,8 @@ tags: [reference, exports, api]
 - `TIsolationLevel` type
 - `TIsoTimestamp` type
 - `TJOSEStandard` type
+- `TJsonColumnKey` type
+- `TJsonPathKey` type
 - `TJsonResponse` type
 - `TJWKSAlgorithm` type
 - `TJWKSKeyDriver` type
@@ -2903,6 +2911,7 @@ tags: [reference, exports, api]
 - `TOptions` type
 - `toQueryString` const
 - `TOrderBy` type
+- `TOrderEntry` type
 - `toRelationConfigs` const
 - `TOrigin` type
 - `toTrimmed` const
