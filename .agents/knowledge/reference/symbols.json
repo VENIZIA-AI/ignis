@@ -4871,7 +4871,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/query.ts",
-      "line": 44,
+      "line": 45,
       "signature": "class PostgresQueryOperators extends QueryOperators"
     },
     {
@@ -6612,7 +6612,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 120,
+      "line": 128,
       "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
     },
     {
@@ -6832,7 +6832,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 86,
+      "line": 94,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
     },
     {
@@ -6992,7 +6992,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 67,
+      "line": 75,
       "signature": "type TJsonColumnKey<T> = { [K in keyof T & string]: TIsJsonValue<NonNullable<T[K]>> extends true ? K : never; }[keyof T & string]"
     },
     {
@@ -7002,7 +7002,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 72,
+      "line": 80,
       "signature": "type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnKey<T>}[${string}`"
     },
     {
@@ -7022,7 +7022,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 93,
+      "line": 101,
       "signature": "type TLimit = number | undefined"
     },
     {
@@ -7182,7 +7182,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 96,
+      "line": 104,
       "signature": "type TOffset = number | undefined"
     },
     {
@@ -7222,7 +7222,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 102,
+      "line": 110,
       "signature": "type TOrderBy = string[] | undefined"
     },
     {
@@ -7232,7 +7232,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 117,
+      "line": 125,
       "signature": "type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`"
     },
     {
@@ -7252,7 +7252,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 108,
+      "line": 116,
       "signature": "type TParsedOrderEntry = { field: string; direction: TSortDirection; }"
     },
     {
@@ -7372,7 +7372,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/operators.ts",
-      "line": 143,
+      "line": 149,
       "signature": "type TQueryOperator = TConstValue<typeof QueryOperators>"
     },
     {
@@ -7902,7 +7902,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 99,
+      "line": 107,
       "signature": "type TSkip = number | undefined"
     },
     {
@@ -7922,8 +7922,18 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 105,
+      "line": 113,
       "signature": "type TSortDirection = TConstValue<typeof Sorts>"
+    },
+    {
+      "name": "TSqlFragment",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 24,
+      "signature": "type TSqlFragment = { getSQL(): unknown; }"
     },
     {
       "name": "TStringConstValue",
@@ -8252,7 +8262,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 78,
+      "line": 86,
       "signature": "type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]>; } & { [key in TJsonPathKey<T>]?: unknown; } & { and?: TWhere<T>[]; or?: TWhere<T>[]; }"
     },
     {
@@ -8262,8 +8272,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 21,
-      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; con"
+      "line": 27,
+      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; inS"
     },
     {
       "name": "TWhereValue",
@@ -8272,7 +8282,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 55,
+      "line": 63,
       "signature": "type TWhereValue<V> = TWidenIsoTimestamp<V> | null | TWhereOperators<TWidenIsoTimestamp<V>>"
     },
     {
@@ -11222,7 +11232,7 @@
       "specifier": "@venizia/ignis/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/query.ts",
-      "line": 44,
+      "line": 45,
       "signature": "class PostgresQueryOperators extends QueryOperators"
     },
     {
@@ -13611,7 +13621,7 @@
       "specifier": "@venizia/ignis/sqlite",
       "kind": "class",
       "file": "packages/connectors/src/relational/sqlite/repositories/dialect/query.ts",
-      "line": 27,
+      "line": 28,
       "signature": "class SqliteQueryOperators extends QueryOperators"
     },
     {
@@ -17691,7 +17701,7 @@
       "specifier": "@venizia/ignis-connectors/postgres",
       "kind": "class",
       "file": "packages/connectors/src/relational/postgres/repositories/dialect/query.ts",
-      "line": 44,
+      "line": 45,
       "signature": "class PostgresQueryOperators extends QueryOperators"
     },
     {
@@ -20060,7 +20070,7 @@
       "specifier": "@venizia/ignis-connectors/sqlite",
       "kind": "class",
       "file": "packages/connectors/src/relational/sqlite/repositories/dialect/query.ts",
-      "line": 27,
+      "line": 28,
       "signature": "class SqliteQueryOperators extends QueryOperators"
     },
     {
@@ -21480,7 +21490,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 120,
+      "line": 128,
       "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
     },
     {
@@ -21490,7 +21500,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 86,
+      "line": 94,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
     },
     {
@@ -21510,7 +21520,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 67,
+      "line": 75,
       "signature": "type TJsonColumnKey<T> = { [K in keyof T & string]: TIsJsonValue<NonNullable<T[K]>> extends true ? K : never; }[keyof T & string]"
     },
     {
@@ -21520,7 +21530,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 72,
+      "line": 80,
       "signature": "type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnKey<T>}[${string}`"
     },
     {
@@ -21530,7 +21540,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 93,
+      "line": 101,
       "signature": "type TLimit = number | undefined"
     },
     {
@@ -21540,7 +21550,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 96,
+      "line": 104,
       "signature": "type TOffset = number | undefined"
     },
     {
@@ -21550,7 +21560,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 102,
+      "line": 110,
       "signature": "type TOrderBy = string[] | undefined"
     },
     {
@@ -21560,7 +21570,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 117,
+      "line": 125,
       "signature": "type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`"
     },
     {
@@ -21570,7 +21580,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 108,
+      "line": 116,
       "signature": "type TParsedOrderEntry = { field: string; direction: TSortDirection; }"
     },
     {
@@ -21580,7 +21590,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/operators.ts",
-      "line": 143,
+      "line": 149,
       "signature": "type TQueryOperator = TConstValue<typeof QueryOperators>"
     },
     {
@@ -21590,7 +21600,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 99,
+      "line": 107,
       "signature": "type TSkip = number | undefined"
     },
     {
@@ -21600,8 +21610,18 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 105,
+      "line": 113,
       "signature": "type TSortDirection = TConstValue<typeof Sorts>"
+    },
+    {
+      "name": "TSqlFragment",
+      "package": "@venizia/ignis-filter",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-filter",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 24,
+      "signature": "type TSqlFragment = { getSQL(): unknown; }"
     },
     {
       "name": "TWhere",
@@ -21610,7 +21630,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 78,
+      "line": 86,
       "signature": "type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]>; } & { [key in TJsonPathKey<T>]?: unknown; } & { and?: TWhere<T>[]; or?: TWhere<T>[]; }"
     },
     {
@@ -21620,8 +21640,8 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 21,
-      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; con"
+      "line": 27,
+      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; inS"
     },
     {
       "name": "TWhereValue",
@@ -21630,7 +21650,7 @@
       "specifier": "@venizia/ignis-filter",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 55,
+      "line": 63,
       "signature": "type TWhereValue<V> = TWidenIsoTimestamp<V> | null | TWhereOperators<TWidenIsoTimestamp<V>>"
     },
     {
@@ -32663,7 +32683,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 120,
+      "line": 128,
       "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
     },
     {
@@ -32733,7 +32753,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 86,
+      "line": 94,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
     },
     {
@@ -32873,7 +32893,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 67,
+      "line": 75,
       "signature": "type TJsonColumnKey<T> = { [K in keyof T & string]: TIsJsonValue<NonNullable<T[K]>> extends true ? K : never; }[keyof T & string]"
     },
     {
@@ -32883,7 +32903,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 72,
+      "line": 80,
       "signature": "type TJsonPathKey<T> = `${TJsonColumnKey<T>}.${string}` | `${TJsonColumnKey<T>}[${string}`"
     },
     {
@@ -32903,7 +32923,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 93,
+      "line": 101,
       "signature": "type TLimit = number | undefined"
     },
     {
@@ -32963,7 +32983,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 96,
+      "line": 104,
       "signature": "type TOffset = number | undefined"
     },
     {
@@ -32973,7 +32993,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 102,
+      "line": 110,
       "signature": "type TOrderBy = string[] | undefined"
     },
     {
@@ -32983,7 +33003,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 117,
+      "line": 125,
       "signature": "type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`"
     },
     {
@@ -33003,7 +33023,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 108,
+      "line": 116,
       "signature": "type TParsedOrderEntry = { field: string; direction: TSortDirection; }"
     },
     {
@@ -33033,7 +33053,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/operators.ts",
-      "line": 143,
+      "line": 149,
       "signature": "type TQueryOperator = TConstValue<typeof QueryOperators>"
     },
     {
@@ -33303,7 +33323,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 99,
+      "line": 107,
       "signature": "type TSkip = number | undefined"
     },
     {
@@ -33313,8 +33333,18 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 105,
+      "line": 113,
       "signature": "type TSortDirection = TConstValue<typeof Sorts>"
+    },
+    {
+      "name": "TSqlFragment",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/filter/src/common/types.ts",
+      "line": 24,
+      "signature": "type TSqlFragment = { getSQL(): unknown; }"
     },
     {
       "name": "TSubsetGrantMetadata",
@@ -33343,7 +33373,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 78,
+      "line": 86,
       "signature": "type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]>; } & { [key in TJsonPathKey<T>]?: unknown; } & { and?: TWhere<T>[]; or?: TWhere<T>[]; }"
     },
     {
@@ -33353,8 +33383,8 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 21,
-      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; con"
+      "line": 27,
+      "signature": "type TWhereOperators<V> = { eq?: V; ne?: V; neq?: V; gt?: V; gte?: V; lt?: V; lte?: V; like?: V; nlike?: V; ilike?: V; nilike?: V; is?: V | null; isn?: V | null; regexp?: V; iregexp?: V; in?: V[]; inq?: V[]; nin?: V[]; exists?: boolean; notExists?: boolean; between?: [V, V]; notBetween?: [V, V]; inS"
     },
     {
       "name": "TWhereValue",
@@ -33363,7 +33393,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 55,
+      "line": 63,
       "signature": "type TWhereValue<V> = TWidenIsoTimestamp<V> | null | TWhereOperators<TWidenIsoTimestamp<V>>"
     },
     {
@@ -34413,7 +34443,7 @@
       "specifier": "@venizia/ignis-kernel/repository",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 120,
+      "line": 128,
       "signature": "type TFilter<T = any> = { where?: TWhere<T>; fields?: TFields; include?: TInclusion[]; order?: string[]; limit?: number; offset?: number; skip?: number; }"
     },
     {
@@ -34433,7 +34463,7 @@
       "specifier": "@venizia/ignis-kernel/repository",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 86,
+      "line": 94,
       "signature": "type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean; }"
     },
     {
@@ -34463,7 +34493,7 @@
       "specifier": "@venizia/ignis-kernel/repository",
       "kind": "type",
       "file": "packages/filter/src/common/types.ts",
-      "line": 78,
+      "line": 86,
       "signature": "type TWhere<T = any> = { [key in keyof T]?: TWhereValue<T[key]>; } & { [key in TJsonPathKey<T>]?: unknown; } & { and?: TWhere<T>[]; or?: TWhere<T>[]; }"
     },
     {
