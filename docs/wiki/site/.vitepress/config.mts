@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Filter and Update Errors Quote the Rejected Key on One Line',
+                  link: '/changelogs/2026-09-29-escaped-input-in-filter-errors',
+                },
+                {
                   text: 'A JSON-Path Segment Named null Now Reaches Its Key on Postgres',
                   link: '/changelogs/2026-09-29-json-path-null-segment',
                 },

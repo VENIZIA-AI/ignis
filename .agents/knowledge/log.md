@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-29 - error messages escape the key they quote
+
+Updated [filter system](/architecture/filter-system.md).
+
+- Relational and search messages that quote a request key go through the internal `toSafeEcho`
+  (`connectors/src/common/internal/echo.ts`, not exported); `parseOrderEntry` escapes on top of
+  `JSON.stringify`. C0, DEL, C1, U+2028 and U+2029 become `\uXXXX`, so a key cannot split a log line.
+
 ## 2026-09-29 - Postgres JSON paths quote every element
 
 Updated [relational connector](/architecture/relational-connector.md).
