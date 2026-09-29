@@ -43,6 +43,27 @@ Matches a field against a set of candidate values.
 - `{ nin: 'value' }` (non-array operand) falls back to `!=`.
 - `{ nin: null }` falls back to `!= NULL` (not `IS NOT NULL`) and matches no rows.
 
+## inSql / ninSql - a subquery
+
+To keep the rows whose id appears in another table, pass a Drizzle subquery instead of a list of ids:
+
+```typescript
+import { sql } from 'drizzle-orm';
+
+const taggedRed = sql`SELECT ${tagTable.orderId} FROM ${tagTable} WHERE ${tagTable.label} = ${label}`;
+
+const orders = await orderRepository.find({ filter: { where: { id: { inSql: taggedRed } } } });
+// WHERE "order"."id" in (SELECT "tag"."order_id" FROM "tag" WHERE "tag"."label" = $1)
+```
+
+The database runs one query, with no id list in between and no cap on its size. `inSql` works wherever `where` does: `find`, `findOne`, `count`, update and delete wheres, nested `and`/`or`, and merged with the default filter.
+
+- **Server code only.** The operand must be a Drizzle `SQL` or `SQLWrapper` built in your code, with values bound through `${}`. A string is refused with a 400, and a filter that arrives as JSON over HTTP cannot carry one.
+- **The subquery returns one column.** It is compared with the key's column.
+- **An empty subquery** matches nothing under `inSql` and everything under `ninSql`.
+- **`ninSql` and NULL.** If the subquery returns a NULL, `NOT IN` matches no row, as in SQL. Add `WHERE ... IS NOT NULL` to the subquery when the column can be NULL.
+- **Relational only.** Typesense and Meilisearch refuse both operators with a 400.
+
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and the full `where` operator table

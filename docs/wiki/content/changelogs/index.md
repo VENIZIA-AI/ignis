@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-09-29 | [A Where Can Restrict a Column by a SQL Subquery](./2026-09-29-where-sql-subquery) | Feature |
 | 2026-09-29 | [Filter and Update Errors Quote the Rejected Key on One Line](./2026-09-29-escaped-input-in-filter-errors) | Bug Fix |
 | 2026-09-29 | [A JSON-Path Segment Named null Now Reaches Its Key on Postgres](./2026-09-29-json-path-null-segment) | Bug Fix |
 | 2026-09-26 | [Typed JSON-Path Keys in `TWhere<T>`, and an Opt-In `TOrderEntry<T>`](./2026-09-26-typed-json-path-keys-and-order-entries) | Enhancement |

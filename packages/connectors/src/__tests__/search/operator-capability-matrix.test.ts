@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { sql } from 'drizzle-orm';
 import { QueryOperators, type TWhere } from '@venizia/ignis-filter';
 import { MeilisearchQueryDialect } from '@/search/meilisearch/repositories/dialect/query-dialect';
 import { TypesenseQueryDialect } from '@/search/typesense/repositories/dialect/query-dialect';
@@ -69,6 +70,10 @@ const EXPECTED: Record<string, Record<TEngineName, boolean>> = {
   // been a divergence logged rather than closed.
   [QueryOperators.NOT_BETWEEN]: { Typesense: true, Meilisearch: true },
 
+  // A SQL subquery is relational only.
+  [QueryOperators.IN_SQL]: { Typesense: false, Meilisearch: false },
+  [QueryOperators.NOT_IN_SQL]: { Typesense: false, Meilisearch: false },
+
   [QueryOperators.CONTAINS]: { Typesense: false, Meilisearch: false },
   [QueryOperators.CONTAINED_BY]: { Typesense: false, Meilisearch: false },
   [QueryOperators.OVERLAPS]: { Typesense: false, Meilisearch: false },
@@ -105,6 +110,8 @@ const SAMPLE_OPERAND: Record<string, unknown> = {
   [QueryOperators.NOT_EXISTS]: true,
   [QueryOperators.BETWEEN]: [1, 2],
   [QueryOperators.NOT_BETWEEN]: [1, 2],
+  [QueryOperators.IN_SQL]: sql`SELECT 1`,
+  [QueryOperators.NOT_IN_SQL]: sql`SELECT 1`,
   [QueryOperators.CONTAINS]: ['x'],
   [QueryOperators.CONTAINED_BY]: ['x'],
   [QueryOperators.OVERLAPS]: ['x'],

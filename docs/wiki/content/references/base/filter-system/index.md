@@ -71,6 +71,7 @@ LIMIT 20
 | Comparison | `eq`, `ne`/`neq`, `gt`, `gte`, `lt`, `lte` | `{ age: { gte: 18, lte: 65 } }` |
 | Null / presence | `is`, `isn`, `exists`, `notExists` | `{ deletedAt: null }` or `{ verifiedAt: { exists: true } }` |
 | List | `in`/`inq`, `nin` | `{ status: { inq: ['active', 'pending'] } }` |
+| Subquery (SQL) | `inSql`, `ninSql` | `` { id: { inSql: sql`SELECT ...` } } `` - code only, never from a request |
 | Range | `between`, `notBetween` | `{ score: { between: [40, 60] } }` |
 | Pattern | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` | `{ email: { ilike: '%@company.com' } }` |
 | Logical | `and`, `or`, `not` | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` |
@@ -123,7 +124,7 @@ Each operator family and every long-form topic has its own page:
 | [Quick Reference](./quick-reference) | Every operator, one line each - the fast lookup |
 | [Comparison Operators](./comparison-operators) | `eq`, `ne`/`neq`, `gt`, `gte`, `lt`, `lte` |
 | [Null Operators](./null-operators) | `is`, `isn`, direct `null`, `exists`/`notExists` |
-| [List Operators](./list-operators) | `in`/`inq`, `nin` |
+| [List Operators](./list-operators) | `in`/`inq`, `nin`, and the subquery operators `inSql`/`ninSql` |
 | [Range Operators](./range-operators) | `between`, `notBetween` |
 | [Pattern Matching](./pattern-matching) | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` |
 | [Logical Operators](./logical-operators) | Implicit/explicit `and`, `or`, `not`, empty-group semantics |

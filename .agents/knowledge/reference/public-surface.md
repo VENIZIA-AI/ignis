@@ -84,7 +84,7 @@ tags: [reference, exports, api]
 
 ## filter
 
-### `@venizia/ignis-filter` (20)
+### `@venizia/ignis-filter` (21)
 
 - `parseOrderEntry` const
 - `QueryOperators` class
@@ -103,6 +103,7 @@ tags: [reference, exports, api]
 - `TQueryOperator` type
 - `TSkip` type
 - `TSortDirection` type
+- `TSqlFragment` type
 - `TWhere` type
 - `TWhereOperators` type
 - `TWhereValue` type
@@ -977,7 +978,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (408)
+### `@venizia/ignis-kernel` (409)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1377,6 +1378,7 @@ tags: [reference, exports, api]
 - `TSignUpRequest` type
 - `TSkip` type
 - `TSortDirection` type
+- `TSqlFragment` type
 - `TSubsetGrantMetadata` type
 - `TUpdateData` type
 - `TWhere` type
@@ -2048,7 +2050,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1008)
+### `@venizia/ignis` (1009)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2986,6 +2988,7 @@ tags: [reference, exports, api]
 - `TSkip` type
 - `TSoftDeletableTableSchema` type
 - `TSortDirection` type
+- `TSqlFragment` type
 - `TStringConstValue` type
 - `TSubsetGrantMetadata` type
 - `TTableColumns` type

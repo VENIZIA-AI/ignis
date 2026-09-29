@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-29 - inSql and ninSql take a SQL subquery
+
+Updated [filter system](/architecture/filter-system.md).
+
+- New field operators `inSql`/`ninSql` emit `col IN (<subquery>)` / `NOT IN`. The operand must have a
+  `getSQL()` function (built in code); a string is a 400, and JSON from a request cannot carry one.
+  `buildSubqueryCondition` (relational core dialect `internal/subquery.ts`) serves Postgres and SQLite;
+  the search dialects refuse both as unsupported.
+
 ## 2026-09-29 - error messages escape the key they quote
 
 Updated [filter system](/architecture/filter-system.md).
