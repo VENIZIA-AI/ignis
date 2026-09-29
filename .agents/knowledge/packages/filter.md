@@ -43,7 +43,7 @@ The value is typed `unknown` on purpose, not `TWhereValue<string | number | bool
 first shipped: a typed value made `TWhere<T>` reject a `Record<string, unknown>` where clause for any
 row with a JSON column - the pattern index signature `` `${string}.${string}` `` then checked the
 loose object's `unknown` values against the narrower type, and that shape is common downstream
-(`IMetaLinkRows`, a use case's `Record<string, unknown>[]` conjuncts). Typing the value `unknown`
+(a downstream row shape and `Record<string, unknown>[]` conjuncts). Typing the value `unknown`
 keeps a loose where assignable while still checking the key - the two questions turned out to be
 independent, and only the second one needed a stricter type. The `0 extends 1 & T` any-guard the
 first design needed to keep `TWhere<any>` open is gone with it: an `unknown`-valued pattern index

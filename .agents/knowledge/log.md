@@ -13,7 +13,7 @@ Updated [filter](/packages/filter.md) and [filter system](/architecture/filter-s
 - `TJsonColumnKey<T>` and `TJsonPathKey<T>` let `TWhere<T>` accept `{ 'metadata.a.b': value }` for a
   JSON column with no cast and no `TWhere<any>`. The key is checked; the value is `unknown` on
   purpose - a typed value broke `Record<string, unknown>` where clauses for a row with a JSON column
-  (`IMetaLinkRows` and similar downstream shapes), so only the key check shipped.
+  (downstream row shapes), so only the key check shipped.
 - Known false positive, pinned by a test: a relation-shaped object field type-checks as a JSON
   column, so `'creator.name'` compiles though the runtime rejects it as not a JSON column.
 - `TOrderEntry<T>`, opt-in through `satisfies TOrderEntry<T>[]` - `TFilter<T>.order` stays `string[]`.
