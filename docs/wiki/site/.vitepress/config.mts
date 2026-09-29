@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'A Where Can Restrict a Column by a SQL Subquery',
+                  link: '/changelogs/2026-09-29-where-sql-subquery',
+                },
+                {
                   text: 'Filter and Update Errors Quote the Rejected Key on One Line',
                   link: '/changelogs/2026-09-29-escaped-input-in-filter-errors',
                 },

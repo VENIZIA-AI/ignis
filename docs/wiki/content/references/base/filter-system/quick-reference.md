@@ -46,6 +46,8 @@ Every `where` operator, one line each. For the `filter` shape and the mental mod
 | `in` | `IN` | `{ status: { in: ['active', 'pending'] } }` | Value matches any in the array |
 | `inq` | `IN` | `{ status: { inq: ['active', 'pending'] } }` | Alias for `in` |
 | `nin` | `NOT IN` | `{ status: { nin: ['deleted', 'banned'] } }` | Value matches none in the array |
+| `inSql` | `IN (subquery)` | `` { id: { inSql: sql`SELECT ...` } } `` | Value is among the rows a Drizzle subquery returns - server code only |
+| `ninSql` | `NOT IN (subquery)` | `` { id: { ninSql: sql`SELECT ...` } } `` | Value is among none of them - server code only |
 
 > [!NOTE]
 > An empty array is a hard edge. `{ in: [] }` / `{ inq: [] }` match no rows; `{ nin: [] }` matches every row, because an empty exclusion list excludes nothing.

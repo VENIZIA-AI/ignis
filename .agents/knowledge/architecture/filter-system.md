@@ -22,6 +22,7 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 | Pattern | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` |
 | Null / presence | `is`, `isn`, `exists`, `notExists` |
 | Membership | `in`, `inq`, `nin` |
+| Subquery | `inSql`, `ninSql` - operand is a Drizzle `SQL`/`SQLWrapper` (`TSqlFragment`), never a request value; anything else is a 400; relational only |
 | Range | `between`, `notBetween` |
 | Postgres array | `contains` (`@>`), `containedBy` (`<@`), `overlaps` (`&&`) |
 | Logical | `not`, `and`, `or` |
