@@ -76,6 +76,9 @@ const CAN_EXPRESS: Record<string, boolean> = {
   [QueryOperators.BETWEEN]: true,
   // Rewritten by De Morgan into `< min OR > max` - see compileOperatorClause.
   [QueryOperators.NOT_BETWEEN]: true,
+  // A SQL subquery has no search-engine equivalent.
+  [QueryOperators.IN_SQL]: false,
+  [QueryOperators.NOT_IN_SQL]: false,
 
   // Postgres array-containment semantics; Typesense array fields match by value, which is not the same question.
   [QueryOperators.CONTAINS]: false,
