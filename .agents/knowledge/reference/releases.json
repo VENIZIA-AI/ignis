@@ -4415,6 +4415,17 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-26-typed-json-path-keys-and-order-entries",
+      "file": "2026-09-26-typed-json-path-keys-and-order-entries.md",
+      "date": "2026-09-26",
+      "title": "Typed JSON-Path Keys in TWhere, and an Opt-In TOrderEntry",
+      "packages": [
+        "filter"
+      ],
+      "kind": "Enhancement",
+      "order": 1530
+    },
+    {
       "id": "changelog:2026-09-26-run-in-transaction-and-transaction-double",
       "file": "2026-09-26-run-in-transaction-and-transaction-double.md",
       "date": "2026-09-26",
@@ -4424,7 +4435,7 @@
         "core-server"
       ],
       "kind": "Feature",
-      "order": 1529
+      "order": 1528
     },
     {
       "id": "changelog:2026-09-26-order-entry-parsing-and-sort-expressions",

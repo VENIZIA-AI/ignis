@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Typed JSON-Path Keys in TWhere<T>, and an Opt-In TOrderEntry<T>',
+                  link: '/changelogs/2026-09-26-typed-json-path-keys-and-order-entries',
+                },
+                {
                   text: 'A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests',
                   link: '/changelogs/2026-09-26-run-in-transaction-and-transaction-double',
                 },

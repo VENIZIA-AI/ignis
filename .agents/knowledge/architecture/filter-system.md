@@ -126,6 +126,13 @@ Any `where` key containing `.` or `[` is treated as a JSON path (`isJsonPath`). 
 3. **Where extraction is text, numeric operands need a cast.** Postgres `#>>` yields text; comparing it to a number without a cast produces `operator does not exist: text = integer`. `jsonNeedsNumericCast()` decides this from the operand: true for any numeric comparison (`gt`/`gte`/`lt`/`lte`/`between`/`notBetween` with numbers), and true for `eq`/`ne`/`neq` with a number operand or `in`/`inq`/`nin` with an all-number array. A mixed-type array is *not* cast. It only picks between the two extractions the engine passed in, so `SqliteFilterBuilder` returns `false` and `json_extract` stays cast-free - including under `not`, which routes through the same predicate rather than testing `typeof` itself.
 4. **The column renders through the Drizzle column object, not a hand-quoted name.** `buildJsonWhereCondition`/`buildJsonOrderBy` build one flat `sql.fromList([...])` node - the Drizzle column chunk plus `StringChunk`s for the operator, path and (on Postgres) the cast guard - rather than a nested `sql\`...\`` template, because every nested `SQL` level costs a render pass. The column chunk is qualified with the table - or the query alias, on an included relation - exactly like a plain key. Only the path (`'{a,b}'`, `'$."a"."b"'`) stays raw text, built only from segments `validateJsonPathComponents` already passed. A test asserting the exact rendered SQL string sees the qualifier too.
 
+As of 2026-09-26, one layer up from all three catches typos before the query ever runs:
+`TJsonPathKey<T>` in [filter](/packages/filter.md) type-checks the column part of a JSON-path key
+against `T`'s JSON columns. It stops at the column - the path's own components (`JSON_PATH_PATTERN`
+above) and the value are still runtime-only, and it cannot tell a relation field from a JSON column
+(both are object-shaped at the type level), so `'creator.name'` type-checks and still throws
+`Column 'creator' is not a JSON column` here.
+
 ## mergeFilter and arrays
 
 `mergeFilter({ defaultFilter, userFilter })` composes a model's default filter (soft delete, tenancy, visibility) with the caller's. It merges `where` at the **top key level, never index-wise** - index-wise merging corrupts operator arrays like `inq` and `or`. The rules, as implemented in `mergeWhere()`:
