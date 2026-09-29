@@ -4432,7 +4432,7 @@
       "title": "Filter and Update Errors Quote the Rejected Key on One Line",
       "packages": [],
       "kind": "Bug Fix",
-      "order": 1533
+      "order": 1534
     },
     {
       "id": "changelog:2026-09-26-typed-json-path-keys-and-order-entries",
