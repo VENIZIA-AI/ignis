@@ -4421,7 +4421,7 @@
       "title": "installBffFetch Matches Whole Path Segments, and Can Be Limited to Named Origins",
       "packages": [],
       "kind": "Bug Fix",
-      "order": 1536
+      "order": 1535
     },
     {
       "id": "changelog:2026-09-29-where-sql-subquery",

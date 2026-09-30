@@ -8,6 +8,10 @@ tags: [process, release, ci]
 
 ## Before a chain release
 
+- Pass `--issue <N>` - the release issue - so both commits a release makes (the workflow's
+  `chore(<package>): release v...` and the atlas table refresh) lead with `[#N]` like every other
+  commit. The workflow takes it as its optional `issue` input; `scripts/atlas-releases.ts` reads
+  release subjects with or without that prefix.
 - Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
   workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
   kernel, connectors, core-worker, core-server, atlas), waits for each run, and reads the registry back
