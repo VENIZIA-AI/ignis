@@ -201,3 +201,111 @@ describe('installBffFetch', () => {
     uninstall();
   });
 });
+
+describe('installBffFetch - which requests it claims', () => {
+  test('a matching path on another origin goes to the network, not the BFF', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier, networkCalls } = createCarrier();
+
+    const uninstall = installBffFetch({
+      transport,
+      basePath: '/api',
+      carrier,
+      origin: 'https://app.test',
+    });
+
+    const response = await carrier.fetch('https://api.example.com/api/users');
+
+    expect(await response.text()).toBe('from-network');
+    expect(seen).toHaveLength(0);
+    expect(networkCalls).toHaveLength(1);
+
+    uninstall();
+  });
+
+  test('the page origin still routes to the BFF', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier } = createCarrier();
+
+    const uninstall = installBffFetch({
+      transport,
+      basePath: '/api',
+      carrier,
+      origin: 'https://app.test',
+    });
+
+    await carrier.fetch('https://app.test/api/notes');
+
+    expect(seen).toHaveLength(1);
+
+    uninstall();
+  });
+
+  test('a prefix matches on a segment boundary only', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier, networkCalls } = createCarrier();
+
+    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+
+    await carrier.fetch('https://app.test/apix');
+    await carrier.fetch('https://app.test/api-docs');
+    await carrier.fetch('https://app.test/api');
+    await carrier.fetch('https://app.test/api/notes?limit=5');
+
+    expect(networkCalls.map(call => new URL(call.url).pathname)).toEqual(['/apix', '/api-docs']);
+    expect(seen.map(call => new URL(call.url).pathname)).toEqual(['/api', '/api/notes']);
+
+    uninstall();
+  });
+
+  test('a prefix written with a trailing slash behaves the same', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier, networkCalls } = createCarrier();
+
+    const uninstall = installBffFetch({ transport, basePath: '/api/', carrier });
+
+    await carrier.fetch('https://app.test/api/notes');
+    await carrier.fetch('https://app.test/apix');
+
+    expect(seen).toHaveLength(1);
+    expect(networkCalls).toHaveLength(1);
+
+    uninstall();
+  });
+});
+
+describe('installBffFetch - origin is opt-in', () => {
+  test('without an origin, a matching path on any origin is claimed, as before', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier } = createCarrier();
+
+    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
+
+    await carrier.fetch('https://gateway.example.com/api/orders');
+
+    expect(seen).toHaveLength(1);
+
+    uninstall();
+  });
+
+  test('several origins may be named, each normalised to its origin', async () => {
+    const { transport, seen } = createRecordingTransport();
+    const { carrier, networkCalls } = createCarrier();
+
+    const uninstall = installBffFetch({
+      transport,
+      basePath: '/v1/api',
+      carrier,
+      origin: ['https://app.test', 'https://gateway.example.com/v1/api'],
+    });
+
+    await carrier.fetch('https://app.test/v1/api/a');
+    await carrier.fetch('https://gateway.example.com/v1/api/b');
+    await carrier.fetch('https://elsewhere.example.com/v1/api/c');
+
+    expect(seen.map(call => new URL(call.url).pathname)).toEqual(['/v1/api/a', '/v1/api/b']);
+    expect(networkCalls).toHaveLength(1);
+
+    uninstall();
+  });
+});
