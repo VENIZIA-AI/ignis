@@ -52,8 +52,10 @@ interface IReleaseSubject {
 }
 
 // `chore(kernel): release v0.2.0-21 [prerelease]` - the scope is the directory name under
-// `packages/`, and every release commit in the history carries the mode in brackets.
-const RELEASE_SUBJECT_PATTERN = /^chore\(([a-z0-9-]+)\): release v(\S+) \[[a-z]+\]$/;
+// `packages/`, and every release commit in the history carries the mode in brackets. A release made
+// with `--issue` leads with its issue numbers: `[#80] chore(kernel): release v0.2.1-0 [prerelease]`.
+const RELEASE_SUBJECT_PATTERN =
+  /^(?:\[#\d+\])*\s*chore\(([a-z0-9-]+)\): release v(\S+) \[[a-z]+\]$/;
 
 const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?/;
 const DATE_PREFIX_PATTERN = /^(\d{4}-\d{2}-\d{2})-/;
@@ -291,7 +293,7 @@ export class AtlasReleases {
   private static releasesOf(opts: { repoRoot: string }): Record<string, IReleaseRecord[]> {
     const log = spawnSync(
       'git',
-      ['log', '--format=%H|%ad|%s', '--date=short', '--grep', '^chore(.*): release v'],
+      ['log', '--format=%H|%ad|%s', '--date=short', '--grep', 'chore(.*): release v'],
       { cwd: opts.repoRoot, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
     );
     if (log.status !== 0) {

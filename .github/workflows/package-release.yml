@@ -32,6 +32,11 @@ on:
           - prerelease
         required: true
         default: "patch"
+      issue:
+        type: string
+        description: "Issue number the release commit serves (prefixes it with [#N])"
+        required: false
+        default: ""
 
 # Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-server, core-worker}); per-package dist dirs are in the `case` below. `kernel` sits beside `boot`, not after it. `core-server` (published as `@venizia/ignis`) depends on `kernel` AND `connectors` by version range, so both must be published first or the registry-existence check fails. `core-worker` depends on `kernel` only.
 #
@@ -381,7 +386,13 @@ jobs:
         run: |
           cd $PACKAGE_PATH
           git add package.json
-          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
+          SUBJECT="chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
+          if [ -n "$RELEASE_ISSUE" ]; then
+            SUBJECT="[#$RELEASE_ISSUE] $SUBJECT"
+          fi
+          git commit -m "$SUBJECT"
+        env:
+          RELEASE_ISSUE: ${{ inputs.issue }}
 
       # Separate from the commit above so the run tells you WHICH half failed: a rejected push is a
       # race or a permissions problem, a failed commit is an empty diff or a hook.

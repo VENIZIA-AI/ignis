@@ -13,6 +13,7 @@
  *   bun scripts/release.ts --mode patch         # default is prerelease
  *   bun scripts/release.ts --yes                # skip the confirmation prompt
  *   bun scripts/release.ts kernel --no-atlas    # release the chain without the atlas tail
+ *   bun scripts/release.ts --issue 80           # prefix every release commit with [#80]
  *
  * Atlas closes every chain. Its snapshot carries the generated symbol and release tables, so a
  * chain that ships without it leaves the published tables one release behind and `changes` answers
@@ -325,8 +326,9 @@ const assertPublished = async (opts: {
 const releasePackage = async (opts: {
   state: IPackageState;
   mode: TReleaseMode;
+  issue?: string;
 }): Promise<void> => {
-  const { state, mode } = opts;
+  const { state, mode, issue } = opts;
 
   console.log(`\n▶ ${state.name} (${state.localVersion} -> ${mode})`);
 
@@ -342,6 +344,7 @@ const releasePackage = async (opts: {
       `package=${state.name}`,
       '-f',
       `build_mode=${mode}`,
+      ...(issue ? ['-f', `issue=${issue}`] : []),
     ],
   });
 
@@ -368,7 +371,8 @@ const releasePackage = async (opts: {
  * framework release and atlas's own: the tables are generated FROM release commits, so they are
  * always stale by exactly the chain that just shipped.
  */
-const refreshGeneratedTables = async (): Promise<void> => {
+const refreshGeneratedTables = async (opts: { issue?: string }): Promise<void> => {
+  const subject = 'chore(atlas): refresh the generated tables for the release';
   console.log('\n▶ refreshing the tables atlas ships');
   await run({ command: ['make', 'releases-gen'] });
   await run({ command: ['make', 'symbols-gen'] });
@@ -383,7 +387,7 @@ const refreshGeneratedTables = async (): Promise<void> => {
 
   await run({ command: ['git', 'add', ...TABLE_PATHS] });
   await run({
-    command: ['git', 'commit', '-m', 'chore(atlas): refresh the generated tables for the release'],
+    command: ['git', 'commit', '-m', opts.issue ? `[#${opts.issue}] ${subject}` : subject],
   });
   await run({ command: ['git', 'push', 'origin', BRANCH] });
   console.log('  tables committed and pushed');
@@ -396,8 +400,13 @@ const main = async (): Promise<void> => {
   const skipAtlas = args.includes('--no-atlas');
   const modeIndex = args.indexOf('--mode');
   const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;
+  const issueIndex = args.indexOf('--issue');
+  const issue = issueIndex >= 0 ? args[issueIndex + 1] : undefined;
+  if (issueIndex >= 0 && !/^\d+$/.test(issue ?? '')) {
+    throw new Error(`--issue needs an issue number, got: ${issue ?? 'nothing'}`);
+  }
 
-  const requested = args.filter(arg => !arg.startsWith('--') && arg !== mode);
+  const requested = args.filter(arg => !arg.startsWith('--') && arg !== mode && arg !== issue);
   // Atlas closes any chain that carries a framework package: its snapshot must know what shipped.
   const withAtlasTail =
     !skipAtlas && requested.length > 0 && !requested.includes(ATLAS)
@@ -457,9 +466,9 @@ const main = async (): Promise<void> => {
     // The tables are generated from release commits, so they are refreshed after the framework
     // packages have shipped and before atlas packages them.
     if (state.name === ATLAS && plan.length > 1) {
-      await refreshGeneratedTables();
+      await refreshGeneratedTables({ issue });
     }
-    await releasePackage({ state, mode });
+    await releasePackage({ state, mode, issue });
   }
 
   console.log(`\n✓ Released ${plan.length} package(s).`);

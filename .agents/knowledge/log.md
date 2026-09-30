@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-30 - release commits carry the release issue
+
+Updated [release and publish](/process/release-publish.md).
+
+- `scripts/release.ts --issue <N>` and the workflow's `issue` input prefix both release commits with
+  `[#N]`; the atlas release parser accepts the prefix.
+
 ## 2026-09-30 - installBffFetch: segment-boundary prefixes, opt-in origin
 
 Updated [core-worker](/packages/core-worker.md).

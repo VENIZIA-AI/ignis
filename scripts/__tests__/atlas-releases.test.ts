@@ -36,6 +36,22 @@ describe('AtlasReleases.parseReleaseSubject', () => {
     ).toEqual({ package: 'core-server', version: '0.1.5' });
   });
 
+  test('reads a release subject that carries its issue number', () => {
+    expect(
+      AtlasReleases.parseReleaseSubject({
+        subject: '[#80] chore(kernel): release v0.2.1-0 [prerelease]',
+      }),
+    ).toEqual({ package: 'kernel', version: '0.2.1-0' });
+  });
+
+  test('reads a release subject that carries several issue numbers', () => {
+    expect(
+      AtlasReleases.parseReleaseSubject({
+        subject: '[#80][#81] chore(core-server): release v0.2.1 [patch]',
+      }),
+    ).toEqual({ package: 'core-server', version: '0.2.1' });
+  });
+
   test('ignores a subject that is not a release commit', () => {
     expect(
       AtlasReleases.parseReleaseSubject({ subject: 'feat(atlas): the symbol tool' }),
