@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-09-30',
+              collapsed: true,
+              items: [
+                {
+                  text: 'installBffFetch Matches Whole Path Segments, and Can Be Limited to Named Origins',
+                  link: '/changelogs/2026-09-30-bff-fetch-bridge-matching',
+                },
+              ],
+            },
+            {
               text: '2026-09-29',
               collapsed: true,
               items: [
