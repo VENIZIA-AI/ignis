@@ -18,10 +18,16 @@ export interface IInstallBffFetchOptions {
   /** Anything implementing the transport contract, so an in-process transport works in a test. */
   transport: IBffTransport;
   /**
-   * Path prefixes the BFF owns, matched against the request's PATHNAME. Everything else is passed
-   * to the original `fetch` untouched.
+   * Path prefixes the BFF owns, matched on a segment boundary: `/api` claims `/api` and `/api/...`,
+   * never `/apix`. Everything else is passed to the original `fetch` untouched.
    */
   basePath: string | Array<string>;
+  /**
+   * The origin, or origins, the BFF answers for - the page's own, or an upstream gateway whose
+   * calls the BFF stands in for. A request to any other origin goes to the network whatever its path.
+   * Unset, only the path decides, so a call to ANY origin under `basePath` is claimed.
+   */
+  origin?: string | Array<string>;
   /** Defaults to `globalThis`. */
   carrier?: IFetchCarrier;
 }
@@ -57,9 +63,10 @@ const resolveRequestUrl = (input: RequestInfo | URL): string => {
 };
 
 const toPrefixList = (basePath: string | Array<string>): Array<string> => {
-  const prefixes = (Array.isArray(basePath) ? basePath : [basePath]).filter(
-    prefix => prefix.length > 0,
-  );
+  // Trailing slashes trimmed once, so the boundary test below is one comparison and one prefix check.
+  const prefixes = (Array.isArray(basePath) ? basePath : [basePath])
+    .map(prefix => prefix.replace(/\/+$/, ''))
+    .filter(prefix => prefix.length > 0);
 
   if (prefixes.length === 0) {
     throw getError({
@@ -88,6 +95,14 @@ const toPrefixList = (basePath: string | Array<string>): Array<string> => {
  */
 export const installBffFetch = (opts: IInstallBffFetchOptions): (() => void) => {
   const { transport, basePath } = opts;
+  const origins =
+    opts.origin === undefined
+      ? undefined
+      : new Set(
+          (Array.isArray(opts.origin) ? opts.origin : [opts.origin]).map(
+            value => new URL(value).origin,
+          ),
+        );
   const carrier = opts.carrier ?? (globalThis as unknown as IFetchCarrier);
 
   const prefixes = toPrefixList(basePath);
@@ -103,9 +118,14 @@ export const installBffFetch = (opts: IInstallBffFetchOptions): (() => void) => 
   const networkFetch = previousFetch.bind(carrier) as TFetch;
 
   const bridged = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const { pathname } = new URL(resolveRequestUrl(input));
+    const url = new URL(resolveRequestUrl(input));
+    const { pathname } = url;
+    const isOwnOrigin = origins === undefined || origins.has(url.origin);
+    const isOwnPath = prefixes.some(
+      prefix => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
 
-    if (!prefixes.some(prefix => pathname.startsWith(prefix))) {
+    if (!isOwnOrigin || !isOwnPath) {
       return networkFetch(input, init);
     }
 

@@ -4415,6 +4415,15 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-09-30-bff-fetch-bridge-matching",
+      "file": "2026-09-30-bff-fetch-bridge-matching.md",
+      "date": "2026-09-30",
+      "title": "installBffFetch Matches Whole Path Segments, and Can Be Limited to Named Origins",
+      "packages": [],
+      "kind": "Bug Fix",
+      "order": 1536
+    },
+    {
       "id": "changelog:2026-09-29-where-sql-subquery",
       "file": "2026-09-29-where-sql-subquery.md",
       "date": "2026-09-29",
@@ -4423,7 +4432,7 @@
         "filter"
       ],
       "kind": "Feature",
-      "order": 1535
+      "order": 1534
     },
     {
       "id": "changelog:2026-09-29-json-path-null-segment",

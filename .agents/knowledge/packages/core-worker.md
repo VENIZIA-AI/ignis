@@ -110,6 +110,16 @@ Routes the page's own `fetch` into a transport for anything under `basePath`, an
 call on the network. It returns an uninstall function, and refuses a second install rather than
 stacking bridges.
 
+What it claims:
+
+- **`basePath` matches on a segment boundary.** `/api` claims `/api` and `/api/...`, never `/apix` or
+  `/api-docs`. A trailing slash on the prefix is ignored; `/` alone is refused like an empty prefix.
+- **`origin` is opt-in.** Unset, only the path decides, so a call to ANY origin under `basePath` is
+  claimed - which is what an app relies on when its client calls an upstream gateway by absolute URL
+  and the BFF stands in for it. Set `origin` (one or several; each is normalised to its origin) and a
+  request to any other origin goes to the network whatever its path. Name the origins whenever the page
+  also calls an external API whose paths share the prefix.
+
 This exists because HTTP clients do not take a custom fetcher. A data provider, an SDK or a
 generated client reaches the network through the global `fetch`, so answering that `fetch` is the
 only place an in-browser backend is a drop-in swap rather than a fork of the client. Install it

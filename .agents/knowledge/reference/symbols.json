@@ -34693,7 +34693,7 @@
       "specifier": "@venizia/ignis-worker",
       "kind": "const",
       "file": "packages/core-worker/src/transport/fetch-bridge.ts",
-      "line": 89,
+      "line": 96,
       "signature": "installBffFetch: (opts: IInstallBffFetchOptions) => (() => void)"
     }
   ]

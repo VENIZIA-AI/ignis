@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-09-30 - installBffFetch: segment-boundary prefixes, opt-in origin
+
+Updated [core-worker](/packages/core-worker.md).
+
+- `basePath` matches `prefix` or `prefix/...`, never inside a segment; `/` is refused. New `origin`
+  option (one or several) keeps other origins on the network. Unset stays path-only on purpose: a
+  downstream app calls its upstream gateway by absolute URL and relies on the BFF claiming it.
+
 ## 2026-09-29 - inSql and ninSql take a SQL subquery
 
 Updated [filter system](/architecture/filter-system.md).
