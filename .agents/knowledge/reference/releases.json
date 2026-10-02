@@ -762,6 +762,12 @@
     ],
     "connectors": [
       {
+        "version": "0.2.1-2",
+        "date": "2026-10-02",
+        "sha": "2f5b0c55",
+        "order": 1554
+      },
+      {
         "version": "0.2.1-1",
         "date": "2026-10-02",
         "sha": "9dd503e2",
@@ -1911,6 +1917,12 @@
       }
     ],
     "core-server": [
+      {
+        "version": "0.2.1-2",
+        "date": "2026-10-02",
+        "sha": "3336827a",
+        "order": 1555
+      },
       {
         "version": "0.2.1-1",
         "date": "2026-10-02",
@@ -4172,6 +4184,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.1-1",
+        "date": "2026-10-02",
+        "sha": "a1bf5455",
+        "order": 1553
+      },
+      {
         "version": "0.2.1-0",
         "date": "2026-09-30",
         "sha": "a12b9474",
@@ -4506,7 +4524,7 @@
         "kernel"
       ],
       "kind": "Feature",
-      "order": 9007199254740991
+      "order": 1552
     },
     {
       "id": "changelog:2026-09-30-bff-fetch-bridge-matching",
