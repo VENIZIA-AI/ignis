@@ -1577,7 +1577,7 @@ tags: [reference, exports, api]
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/http` (9)
+### `@venizia/ignis-connectors/http` (11)
 
 - `HttpDataSource` class
 - `HttpRepository` class
@@ -1585,7 +1585,9 @@ tags: [reference, exports, api]
 - `IAuthToken` interface
 - `IHttpDataSourceSettings` interface
 - `IHttpReadResult` interface
+- `IHttpWriteResult` interface
 - `TAuthTokenResolver` type
+- `THttpBody` type
 - `THttpHeaders` type
 - `THttpQuery` type
 

@@ -10932,7 +10932,7 @@
       "specifier": "@venizia/ignis/meilisearch",
       "kind": "class",
       "file": "packages/connectors/src/search/meilisearch/repositories/dialect/query-dialect.ts",
-      "line": 155,
+      "line": 158,
       "signature": "class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryDialect"
     },
     {
@@ -15291,7 +15291,7 @@
       "specifier": "@venizia/ignis/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/typesense/repositories/dialect/query-dialect.ts",
-      "line": 158,
+      "line": 161,
       "signature": "class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDialect"
     },
     {
@@ -17191,7 +17191,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 112,
+      "line": 198,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -17201,8 +17201,8 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 23,
-      "signature": "class HttpRepository<E extends object = AnyType> implements IReadableRepository<E, {}>"
+      "line": 30,
+      "signature": "class HttpRepository<E extends object = AnyType, P extends object = Partial<E>> implements IReadableRepository<E, {}>, IUpdatableRepository<E, P, {}>, IDeletableRepository<E, {}>"
     },
     {
       "name": "HttpResourceEntity",
@@ -17211,7 +17211,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 16,
+      "line": 19,
       "signature": "class HttpResourceEntity extends AbstractEntity"
     },
     {
@@ -17231,7 +17231,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 14,
+      "line": 22,
       "signature": "interface IHttpDataSourceSettings"
     },
     {
@@ -17241,8 +17241,18 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 30,
+      "line": 38,
       "signature": "interface IHttpReadResult<R>"
+    },
+    {
+      "name": "IHttpWriteResult",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 49,
+      "signature": "interface IHttpWriteResult<R>"
     },
     {
       "name": "TAuthTokenResolver",
@@ -17253,6 +17263,16 @@
       "file": "packages/connectors/src/http/common/types.ts",
       "line": 10,
       "signature": "type TAuthTokenResolver = () => IAuthToken | undefined"
+    },
+    {
+      "name": "THttpBody",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 20,
+      "signature": "type THttpBody = string | object"
     },
     {
       "name": "THttpHeaders",
@@ -17271,7 +17291,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 40,
+      "line": 54,
       "signature": "type THttpQuery<E extends object> = { filter?: TFilter<E>; }"
     },
     {
@@ -17401,7 +17421,7 @@
       "specifier": "@venizia/ignis-connectors/meilisearch",
       "kind": "class",
       "file": "packages/connectors/src/search/meilisearch/repositories/dialect/query-dialect.ts",
-      "line": 155,
+      "line": 158,
       "signature": "class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryDialect"
     },
     {
@@ -21340,7 +21360,7 @@
       "specifier": "@venizia/ignis-connectors/typesense",
       "kind": "class",
       "file": "packages/connectors/src/search/typesense/repositories/dialect/query-dialect.ts",
-      "line": 158,
+      "line": 161,
       "signature": "class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDialect"
     },
     {

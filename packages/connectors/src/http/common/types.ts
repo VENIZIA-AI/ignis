@@ -11,6 +11,14 @@ export type TAuthTokenResolver = () => IAuthToken | undefined;
 
 /** Not `Record` alone: header names are case-insensitive, and an object merge appends two spellings. */
 export type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>;
+
+/**
+ * A request body. A plain object or array goes out as JSON; a string, `Blob`, `FormData`,
+ * `URLSearchParams`, `ArrayBuffer` or typed array goes out as it is. Never a stream: the 401 retry
+ * sends the same body twice.
+ */
+export type THttpBody = string | object;
+
 export interface IHttpDataSourceSettings {
   baseUrl: string;
 
@@ -35,6 +43,12 @@ export interface IHttpReadResult<R> {
   total?: number;
   skip?: number;
   dataLength: number;
+}
+
+/** What a write answers: the rows the server returned, and its `x-response-count`. */
+export interface IHttpWriteResult<R> {
+  data: R;
+  count: number;
 }
 
 export type THttpQuery<E extends object> = { filter?: TFilter<E> };

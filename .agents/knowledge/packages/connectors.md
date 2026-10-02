@@ -42,9 +42,23 @@ packaging. A driver reaches a bundle only when the application names its class.
 
 `AbstractDataSource` is engine-neutral (only `configure()` is required), so a request to another
 IGNIS server is a datasource in the same sense Drizzle-over-Postgres is one: same role, different
-transport, same `@venizia/ignis-filter` vocabulary going in. `HttpRepository` implements
-`IReadableRepository` rather than extending `AbstractRepository`, whose twelve abstract members
-would force a read-only resource to stub three writes with throws.
+transport, same `@venizia/ignis-filter` vocabulary going in. `HttpRepository` implements the
+readable, updatable and deletable contracts rather than extending `AbstractRepository`, and has no
+`createAll`: the IGNIS REST contract has no bulk-create route, and a verb that only throws is the
+stub the separate contracts exist to avoid.
+
+Writes map onto the generated CRUD routes - `POST /`, `PATCH /:id`, `PATCH /` with `where` in the
+body, `DELETE /:id`, `DELETE /` with `where` in the body. The bulk `where` goes in the BODY because a
+long `inq` outgrows a URL (the server reads either, refuses both, refuses neither empty). An empty
+bulk `where` is refused client-side, and `force` cannot cross HTTP. The second type parameter is the
+write shape, `Partial<E>` by default, since the server fills ids and defaults.
+
+`request()` takes a body and per-request headers on any method - the escape hatch for a `PUT` or an
+upload. A plain object goes out as JSON; `FormData`, `Blob`, a string or binary goes as is (a typed
+array is copied into a `Blob`, since one on a `SharedArrayBuffer` is refused by `fetch`). The body is
+serialised once, so the 401 retry resends the same bytes; a stream is not accepted for that reason.
+A failed response, read or write, becomes an `ApplicationError` carrying the server's status, its
+`message` appended, and `normalized.code` as the message code.
 
 It targets the IGNIS REST contract and promises nothing about an arbitrary REST API: how a filter
 serialises and which header carries the total are one API's CONVENTIONS, and IGNIS-to-IGNIS is both

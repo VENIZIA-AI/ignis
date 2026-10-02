@@ -6,6 +6,8 @@ import type {
   IAuthToken,
   IHttpDataSourceSettings,
   IHttpReadResult,
+  IHttpWriteResult,
+  THttpBody,
   THttpHeaders,
 } from './common/types';
 
@@ -108,6 +110,90 @@ const toHeaderEntries = (opts: { headers?: THttpHeaders }): Array<[string, strin
   return [...merged.entries()];
 };
 
+/**
+ * The body as `fetch` takes it. Anything `fetch` already sends as a body passes through untouched,
+ * so `FormData` keeps the multipart boundary its own content-type carries; any other object is JSON.
+ * Serialised ONCE, so the 401 retry sends the same bytes.
+ */
+const toRequestBody = (opts: {
+  body?: THttpBody;
+}): { payload: RequestInit['body']; isJson: boolean } => {
+  const { body } = opts;
+
+  if (body === undefined) {
+    return { payload: undefined, isJson: false };
+  }
+
+  const isSentAsIs =
+    typeof body === 'string' ||
+    body instanceof Blob ||
+    body instanceof FormData ||
+    body instanceof URLSearchParams ||
+    body instanceof ArrayBuffer;
+
+  if (isSentAsIs) {
+    return { payload: body, isJson: false };
+  }
+
+  // A typed array may sit on a SharedArrayBuffer, which `fetch` refuses; a Blob copy never does.
+  if (ArrayBuffer.isView(body)) {
+    return {
+      payload: new Blob([new Uint8Array(body.buffer, body.byteOffset, body.byteLength).slice()]),
+      isJson: false,
+    };
+  }
+
+  return { payload: JSON.stringify(body), isJson: true };
+};
+
+/**
+ * The IGNIS error envelope - `{ message, normalized: { code }, requestId }` - read off a failed
+ * response. A body that is not that envelope yields nothing, and the status alone still describes it.
+ */
+const readServerError = async (opts: {
+  response: Response;
+}): Promise<{ message?: string; code?: string; requestId?: string }> => {
+  const text = await opts.response.text().catch(() => '');
+
+  let parsed: unknown;
+  try {
+    parsed = text ? JSON.parse(text) : undefined;
+  } catch {
+    return {};
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return {};
+  }
+
+  const message = Reflect.get(parsed, 'message');
+  const requestId = Reflect.get(parsed, 'requestId');
+  const normalized = Reflect.get(parsed, 'normalized');
+  const code =
+    normalized && typeof normalized === 'object' ? Reflect.get(normalized, 'code') : undefined;
+
+  return {
+    message: typeof message === 'string' ? message : undefined,
+    code: typeof code === 'string' ? code : undefined,
+    requestId: typeof requestId === 'string' ? requestId : undefined,
+  };
+};
+
+/** The connector always sends `x-request-count: false`; a caller header carrying it would contradict that. */
+const assertNoRequestCountHeader = (opts: {
+  entries: Array<[string, string]>;
+  name: string;
+}): void => {
+  const { entries, name } = opts;
+
+  if (entries.some(([headerName]) => headerName === HTTP.Headers.REQUEST_COUNT_DATA)) {
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+      message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
+    });
+  }
+};
+
 /** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
 export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
   override name: string;
@@ -126,12 +212,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const { name = 'http', ...settings } = opts;
 
     const configured = toHeaderEntries({ headers: settings.headers });
-    if (configured.some(([headerName]) => headerName === HTTP.Headers.REQUEST_COUNT_DATA)) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[${name}] ${HTTP.Headers.REQUEST_COUNT_DATA} is owned by HttpDataSource and always sent as false: rows come back bare, the total in Content-Range.`,
-      });
-    }
+    assertNoRequestCountHeader({ entries: configured, name });
 
     this.configuredHeaders = configured;
     this.name = name;
@@ -153,9 +234,22 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return this.settings.authToken ?? this.settings.authTokenResolver?.();
   }
 
-  protected buildHeaders(opts: { token?: IAuthToken }): Headers {
-    const { token } = opts;
+  protected buildHeaders(opts: {
+    token?: IAuthToken;
+    requestHeaders?: Array<[string, string]>;
+    isJsonBody?: boolean;
+  }): Headers {
+    const { token, requestHeaders, isJsonBody } = opts;
     const headers = new Headers(this.configuredHeaders);
+
+    // A request's own headers win over the configured ones; the connector's below win over both.
+    for (const [name, value] of requestHeaders ?? []) {
+      headers.set(name, value);
+    }
+
+    if (isJsonBody && !headers.has(HTTP.Headers.CONTENT_TYPE)) {
+      headers.set(HTTP.Headers.CONTENT_TYPE, 'application/json');
+    }
 
     // Set last: under the envelope a record read answers `{ count, data }`.
     headers.set(HTTP.Headers.REQUEST_COUNT_DATA, 'false');
@@ -201,19 +295,33 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return url.toString();
   }
 
-  /** The raw `Response` - for what is not rows, like an export. Auth and the 401 retry apply. */
+  /**
+   * The raw `Response`, on any method - for what the repository verbs do not cover, like an export
+   * or a PUT to a hand-written route. Auth and the 401 retry apply; the retry resends the same body.
+   */
   async request(opts: {
     paths: Array<string>;
     query?: Record<string, unknown>;
     method?: string;
+    body?: THttpBody;
+    headers?: THttpHeaders;
   }): Promise<Response> {
+    const requestHeaders = toHeaderEntries({ headers: opts.headers });
+    assertNoRequestCountHeader({ entries: requestHeaders, name: this.name });
+
     const url = this.buildUrl(opts);
+    const { payload, isJson } = toRequestBody({ body: opts.body });
 
     const send = () =>
       this.network.getNetworkService().send({
         url,
         method: (opts.method ?? HTTP.Methods.GET) as never,
-        headers: this.buildHeaders({ token: this.resolveAuthToken() }),
+        body: payload,
+        headers: this.buildHeaders({
+          token: this.resolveAuthToken(),
+          requestHeaders,
+          isJsonBody: isJson,
+        }),
       });
 
     let response = await send();
@@ -229,6 +337,22 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return response;
   }
 
+  /** A failed response as an error carrying the server's own status, message and message code. */
+  protected async toResponseError(opts: { response: Response; url: string; verb: string }) {
+    const { response, url, verb } = opts;
+    const server = await readServerError({ response });
+    const described = describeUrl({ url, status: response.status });
+
+    return getError({
+      statusCode: response.status,
+      message: server.message
+        ? `[${this.name}][${verb}] ${response.status} | ${described} | ${server.message}`
+        : `[${this.name}][${verb}] ${response.status} | ${described}`,
+      messageCode: server.code,
+      extra: server.requestId ? { requestId: server.requestId } : undefined,
+    });
+  }
+
   /** Rows plus the total from `Content-Range`, reported absent when the header is. */
   async read<R>(opts: {
     paths: Array<string>;
@@ -238,10 +362,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     const response = await this.request(opts);
 
     if (!response.ok) {
-      throw getError({
-        statusCode: response.status,
-        message: `[${this.name}][read] ${response.status} | ${describeUrl({ url: this.buildUrl(opts), status: response.status })}`,
-      });
+      throw await this.toResponseError({ response, url: this.buildUrl(opts), verb: 'read' });
     }
 
     const body = await response.json();
@@ -256,6 +377,42 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       total: range?.total,
       skip: range?.skip,
       dataLength: Array.isArray(data) ? data.length : 1,
+    };
+  }
+
+  /**
+   * A write, and what it answered: the body as the rows, the count from `x-response-count`. The
+   * connector asks for bare rows, so an IGNIS write answers the row or the rows, never the envelope.
+   */
+  async write<R>(opts: {
+    paths: Array<string>;
+    query?: Record<string, unknown>;
+    method: string;
+    body?: THttpBody;
+    headers?: THttpHeaders;
+  }): Promise<IHttpWriteResult<R>> {
+    const response = await this.request(opts);
+
+    if (!response.ok) {
+      throw await this.toResponseError({ response, url: this.buildUrl(opts), verb: 'write' });
+    }
+
+    // A 204, or a route that answers nothing, has no body to parse.
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
+
+    const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
+    const counted = countHeader === null ? Number.NaN : Number(countHeader);
+
+    return {
+      data,
+      count: Number.isFinite(counted)
+        ? counted
+        : Array.isArray(data)
+          ? data.length
+          : data === null
+            ? 0
+            : 1,
     };
   }
 }

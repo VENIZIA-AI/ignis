@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The HTTP Connector Writes',
+                  link: '/changelogs/2026-10-02-http-connector-writes',
+                },
+              ],
+            },
+            {
               text: '2026-09-30',
               collapsed: true,
               items: [

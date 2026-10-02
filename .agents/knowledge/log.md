@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-02 - the http connector writes
+
+Updated [connectors](/packages/connectors.md).
+
+- `HttpRepository` gains create/updateById/updateAll/updateBy/deleteById/deleteAll/deleteBy over the
+  IGNIS CRUD routes (bulk `where` in the body); no `createAll`, since there is no route. `request()`
+  takes a body and headers on any method; `write()` answers `{ data, count }`; a failed read or
+  write carries the server's message and code.
+
 ## 2026-09-30 - release commits carry the release issue
 
 Updated [release and publish](/process/release-publish.md).
