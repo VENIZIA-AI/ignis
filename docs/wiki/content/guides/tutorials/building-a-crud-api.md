@@ -352,6 +352,8 @@ export * from './todo.controller';
 | GET | `/todos/{id}` | Get todo by ID (findById) |
 | GET | `/todos/find-one` | Find one todo by filter (findOne) |
 | GET | `/todos/count` | Count todos (count) |
+| POST | `/todos/find` | List todos, filter in the body (find) |
+| POST | `/todos/count` | Count todos, where in the body (count) |
 | POST | `/todos` | Create todo (create) |
 | PATCH | `/todos/{id}` | Update todo by ID (updateById) |
 | PATCH | `/todos` | Update multiple todos by filter (updateBy) |

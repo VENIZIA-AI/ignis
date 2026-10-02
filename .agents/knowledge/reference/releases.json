@@ -4494,6 +4494,18 @@
         "connectors"
       ],
       "kind": "Bug Fix",
+      "order": 1550
+    },
+    {
+      "id": "changelog:2026-10-02-body-filter-read-routes",
+      "file": "2026-10-02-body-filter-read-routes.md",
+      "date": "2026-10-02",
+      "title": "Reads Whose Filter Rides in the Body",
+      "packages": [
+        "connectors",
+        "kernel"
+      ],
+      "kind": "Feature",
       "order": 9007199254740991
     },
     {

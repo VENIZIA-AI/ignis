@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-02 - generated controllers read with the filter in a body
+
+Updated [connectors](/packages/connectors.md) and [controller system](/architecture/controller-system.md).
+
+- `POST /find` (body `{ filter }`) and `POST /count` (body `{ where }`) on every generated CRUD
+  controller, sharing `findFiltered`/`countWhere` with their GET twins and riding the `find`/`count`
+  route keys - one enable flag, one auth and authorize rule, one base where for both doors. The http
+  connector moves a read there past a 6,000-character URL.
+
 ## 2026-10-02 - http errors keep the server's normalized.args
 
 Updated [connectors](/packages/connectors.md).
