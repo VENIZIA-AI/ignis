@@ -147,12 +147,18 @@ const toRequestBody = (opts: {
 };
 
 /**
- * The IGNIS error envelope - `{ message, normalized: { code }, requestId }` - read off a failed
+ * The IGNIS error envelope - `{ message, normalized: { code, args }, requestId }` - read off a failed
  * response. A body that is not that envelope yields nothing, and the status alone still describes it.
+ * `args` fill a translated message's placeholders; only a plain object is taken.
  */
 const readServerError = async (opts: {
   response: Response;
-}): Promise<{ message?: string; code?: string; requestId?: string }> => {
+}): Promise<{
+  message?: string;
+  code?: string;
+  args?: Record<string, unknown>;
+  requestId?: string;
+}> => {
   const text = await opts.response.text().catch(() => '');
 
   let parsed: unknown;
@@ -169,12 +175,16 @@ const readServerError = async (opts: {
   const message = Reflect.get(parsed, 'message');
   const requestId = Reflect.get(parsed, 'requestId');
   const normalized = Reflect.get(parsed, 'normalized');
-  const code =
-    normalized && typeof normalized === 'object' ? Reflect.get(normalized, 'code') : undefined;
+  const isNormalizedObject = !!normalized && typeof normalized === 'object';
+  const code = isNormalizedObject ? Reflect.get(normalized, 'code') : undefined;
+  const args = isNormalizedObject ? Reflect.get(normalized, 'args') : undefined;
+  const isArgsRecord =
+    !!args && typeof args === 'object' && Object.getPrototypeOf(args) === Object.prototype;
 
   return {
     message: typeof message === 'string' ? message : undefined,
     code: typeof code === 'string' ? code : undefined,
+    args: isArgsRecord ? { ...args } : undefined,
     requestId: typeof requestId === 'string' ? requestId : undefined,
   };
 };
@@ -349,6 +359,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
         ? `[${this.name}][${verb}] ${response.status} | ${described} | ${server.message}`
         : `[${this.name}][${verb}] ${response.status} | ${described}`,
       messageCode: server.code,
+      messageArgs: server.args,
       extra: server.requestId ? { requestId: server.requestId } : undefined,
     });
   }

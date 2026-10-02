@@ -210,6 +210,45 @@ describe('HttpDataSource.write - rows, count and the server error', () => {
     expect(error.statusCode).toBe(403);
     expect(error.message).toContain('Not allowed to read tickets');
   });
+
+  test('the server normalized.args come through, so a translated message can fill its placeholders', async () => {
+    stubFetch([
+      {
+        status: 409,
+        body: {
+          message: 'A category named Ticket already exists.',
+          normalized: {
+            text: 'A category named %{name} already exists.',
+            code: 'category.duplicate',
+            args: { name: 'Ticket' },
+          },
+        },
+      },
+    ]);
+
+    const write = await captureError(
+      buildDataSource().write({ paths: ['categories'], method: 'POST', body: { name: 'Ticket' } }),
+    );
+    expect(write.normalized.code).toBe('category.duplicate');
+    expect(write.normalized.args).toEqual({ name: 'Ticket' });
+
+    const read = await captureError(buildDataSource().read({ paths: ['categories'] }));
+    expect(read.normalized.args).toEqual({ name: 'Ticket' });
+  });
+
+  test('args that are not a plain object are left out rather than passed through', async () => {
+    stubFetch([
+      {
+        status: 400,
+        body: { message: 'Bad', normalized: { code: 'bad', args: ['not', 'a', 'record'] } },
+      },
+    ]);
+
+    const error = await captureError(buildDataSource().read({ paths: ['tickets'] }));
+
+    expect(error.normalized.code).toBe('bad');
+    expect(error.normalized.args).toEqual({});
+  });
 });
 
 describe('HttpRepository - the write verbs map to the IGNIS CRUD routes', () => {
