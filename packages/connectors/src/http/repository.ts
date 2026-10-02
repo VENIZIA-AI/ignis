@@ -2,14 +2,14 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
-    IDeletableRepository,
-    IReadableRepository,
-    IUpdatableRepository,
-    TCount,
-    TDataWithRange,
-    TFilter,
-    TSchemaType,
-    TWhere,
+  IDeletableRepository,
+  IReadableRepository,
+  IUpdatableRepository,
+  TCount,
+  TDataWithRange,
+  TFilter,
+  TSchemaType,
+  TWhere,
 } from '@venizia/ignis-kernel/repository';
 import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository';
 import type { IHttpWriteResult } from './common/types';
