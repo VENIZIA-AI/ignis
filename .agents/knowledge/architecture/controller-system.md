@@ -80,10 +80,12 @@ The default create and update bodies leave out the keys the entity reports from
 update body never carries `id`; see [kernel](/packages/kernel.md). A factory of your own injects its
 repository through `registerFactoryRepositoryInjection`.
 
-`find` and `count` each have a POST twin (`POST /find` with `{ filter }`, `POST /count` with
-`{ where }`) for a filter that outgrows a URL. The twin rides its GET's route key on purpose: a
-separate key would let a caller who disabled or locked down `find` leave the POST door open. Both
-doors run one shared method (`findFiltered`, `countWhere`), so they cannot answer differently.
+The factory generates NO body-filter twin of `find` or `count`. `POST /find` and `POST /count`
+shipped in `@venizia/ignis@0.2.1-2` and were removed the same day as a security defect: the twin
+called the shared read directly, so a subclass that overrode `find()` or `count()` - where an
+application scopes rows by tenant through a service - changed only the GET, and the POST read every
+row. A body-filter read is written by hand next to its GET and passes the parsed filter to the same
+code. Do not reintroduce a generated twin without routing it through the overridable method.
 
 ## Mounting
 

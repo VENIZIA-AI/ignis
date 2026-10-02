@@ -6,14 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
-## 2026-10-02 - generated controllers read with the filter in a body
+## 2026-10-02 - generated POST /find and POST /count added, then removed
 
-Updated [connectors](/packages/connectors.md) and [controller system](/architecture/controller-system.md).
+Updated [controller system](/architecture/controller-system.md).
 
-- `POST /find` (body `{ filter }`) and `POST /count` (body `{ where }`) on every generated CRUD
-  controller, sharing `findFiltered`/`countWhere` with their GET twins and riding the `find`/`count`
-  route keys - one enable flag, one auth and authorize rule, one base where for both doors. The http
-  connector moves a read there past a 6,000-character URL.
+- `@venizia/ignis@0.2.1-2` gave every generated CRUD controller `POST /find` and `POST /count`. The
+  twins called the shared read directly, so an overridden `find()`/`count()` scoped only the GET and
+  the POST read every row (a cross-tenant read for an app that scopes in its override). Removed in
+  the next release, with the http connector's switch to `POST /find`; `read()` keeps `method` and
+  `body` to reach a list route written by hand.
 
 ## 2026-10-02 - http errors keep the server's normalized.args
 

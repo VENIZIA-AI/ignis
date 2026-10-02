@@ -455,10 +455,6 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'Reads Whose Filter Rides in the Body',
-                  link: '/changelogs/2026-10-02-body-filter-read-routes',
-                },
-                {
                   text: 'HTTP Connector Errors Keep the Server Message Args',
                   link: '/changelogs/2026-10-02-http-connector-error-args',
                 },

@@ -17,7 +17,6 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
-| 2026-10-02 | [Reads Whose Filter Rides in the Body](./2026-10-02-body-filter-read-routes) | Feature |
 | 2026-10-02 | [HTTP Connector Errors Keep the Server Message Args](./2026-10-02-http-connector-error-args) | Bug Fix |
 | 2026-10-02 | [The HTTP Connector Writes](./2026-10-02-http-connector-writes) | Feature |
 | 2026-09-30 | [installBffFetch Matches Whole Path Segments, and Can Be Limited to Named Origins](./2026-09-30-bff-fetch-bridge-matching) | Bug Fix |

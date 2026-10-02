@@ -365,8 +365,8 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
   }
 
   /**
-   * Rows plus the total from `Content-Range`, reported absent when the header is. A read is a GET
-   * unless told otherwise: a filter too long for a URL goes as the body of a POST read route.
+   * Rows plus the total from `Content-Range`, reported absent when the header is. A GET unless told
+   * otherwise: `method` and `body` reach a list route a service wrote to take its filter in a body.
    */
   async read<R>(opts: {
     paths: Array<string>;

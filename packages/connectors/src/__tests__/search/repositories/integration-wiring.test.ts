@@ -158,7 +158,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
   });
 
   describe('3. ControllerFactory.defineCrudController over a search entity/repository', () => {
-    test('constructs without throwing and mounts the six CRUD routes, plus the POST twins of find and count', async () => {
+    test('constructs without throwing and mounts the six CRUD routes', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-3', config: {} });
       const repositoryInstance = new ProductSearchRepository(dataSource);
 
@@ -180,9 +180,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       const distinctRoutes = new Set(
         controller.router.routes.map(route => `${route.method} ${route.path}`),
       );
-      expect(distinctRoutes.size).toBe(8);
-      expect(distinctRoutes.has('POST /find')).toBe(true);
-      expect(distinctRoutes.has('POST /count')).toBe(true);
+      expect(distinctRoutes.size).toBe(6);
     });
   });
 
