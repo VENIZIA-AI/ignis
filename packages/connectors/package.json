@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.2.1-0",
+  "version": "0.2.1-1",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
   "engines": {
