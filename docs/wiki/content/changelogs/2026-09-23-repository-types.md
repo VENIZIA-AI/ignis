@@ -35,7 +35,7 @@ Before, a repository without `model` failed at decoration with `Missing 'model'`
 - **Inheritance:** a bare `@repository()` on a subclass inherits the parent's `type` with its model and datasource.
 - **`getRepositoryMetadata()`** now returns the `TRepositoryMetadata` union, so its `.model` is typed `... | undefined`. Code that passes `.model` on stops compiling. Check `model` or narrow on `type` first.
 
-See [Read another service's API](/references/base/repositories/#read-another-service-s-api).
+See [Read another service's API](/references/base/repositories/#read-and-write-another-service-s-api).
 
 ## `defineCrudController` injects its repository
 
