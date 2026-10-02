@@ -58,7 +58,8 @@ upload. A plain object goes out as JSON; `FormData`, `Blob`, a string or binary 
 array is copied into a `Blob`, since one on a `SharedArrayBuffer` is refused by `fetch`). The body is
 serialised once, so the 401 retry resends the same bytes; a stream is not accepted for that reason.
 A failed response, read or write, becomes an `ApplicationError` carrying the server's status, its
-`message` appended, and `normalized.code` as the message code.
+`message` appended, `normalized.code` as the message code and `normalized.args` (a plain object
+only) as its args - a translated message needs them to fill its placeholders.
 
 It targets the IGNIS REST contract and promises nothing about an arbitrary REST API: how a filter
 serialises and which header carries the total are one API's CONVENTIONS, and IGNIS-to-IGNIS is both
