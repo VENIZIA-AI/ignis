@@ -756,6 +756,12 @@
     ],
     "connectors": [
       {
+        "version": "0.2.1-1",
+        "date": "2026-10-02",
+        "sha": "9dd503e2",
+        "order": 1546
+      },
+      {
         "version": "0.2.1-0",
         "date": "2026-09-30",
         "sha": "e9851000",
@@ -1899,6 +1905,12 @@
       }
     ],
     "core-server": [
+      {
+        "version": "0.2.1-1",
+        "date": "2026-10-02",
+        "sha": "f0ddfab0",
+        "order": 1547
+      },
       {
         "version": "0.2.1-0",
         "date": "2026-09-30",
@@ -4465,7 +4477,7 @@
         "connectors"
       ],
       "kind": "Feature",
-      "order": 1546
+      "order": 1545
     },
     {
       "id": "changelog:2026-09-30-bff-fetch-bridge-matching",
