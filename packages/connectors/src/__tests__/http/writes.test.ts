@@ -211,6 +211,23 @@ describe('HttpDataSource.write - rows, count and the server error', () => {
     expect(error.message).toContain('Not allowed to read tickets');
   });
 
+  test('a read can POST its filter to a list route written to take it in the body', async () => {
+    const attempts = stubFetch([
+      { status: 200, body: [{ id: 'a' }], headers: { 'content-range': 'records 0-0/1' } },
+    ]);
+    const filter = { where: { id: { inq: ['a', 'b'] } } };
+
+    const rs = await buildDataSource().read<Array<{ id: string }>>({
+      paths: ['tickets', 'list', 'find'],
+      method: 'POST',
+      body: { filter },
+    });
+
+    expect(attempts[0]).toMatchObject({ url: `${BASE_URL}/tickets/list/find`, method: 'POST' });
+    expect(JSON.parse(String(attempts[0].body))).toEqual({ filter });
+    expect(rs).toMatchObject({ data: [{ id: 'a' }], total: 1, hasRange: true });
+  });
+
   test('the server normalized.args come through, so a translated message can fill its placeholders', async () => {
     stubFetch([
       {

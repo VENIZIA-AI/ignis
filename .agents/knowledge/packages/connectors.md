@@ -47,10 +47,6 @@ readable, updatable and deletable contracts rather than extending `AbstractRepos
 `createAll`: the IGNIS REST contract has no bulk-create route, and a verb that only throws is the
 stub the separate contracts exist to avoid.
 
-A list read (`find`, `findOne`, `count`, `existsWith`) stays on GET while its URL is at most 6,000
-characters and past that sends `POST /<resource>/find` with the filter in the body. The GET stays
-below the cut on purpose: a server older than the POST route still answers every read it answered.
-
 Writes map onto the generated CRUD routes - `POST /`, `PATCH /:id`, `PATCH /` with `where` in the
 body, `DELETE /:id`, `DELETE /` with `where` in the body. The bulk `where` goes in the BODY because a
 long `inq` outgrows a URL (the server reads either, refuses both, refuses neither empty). An empty

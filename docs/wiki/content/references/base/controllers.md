@@ -665,7 +665,6 @@ class RestPaths {
   static readonly ROOT = '/';
   static readonly COUNT = '/count';
   static readonly FIND_ONE = '/find-one';
-  static readonly FIND = '/find'; // POST only: the filter in the body
 }
 ```
 
@@ -692,9 +691,7 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Count records matching a where condition |
-| `count` | `POST` | `/count` | The same count, the `where` in the body - for one too long for a URL |
 | `find` | `GET` | `/` | Find records with filter, pagination, sorting, and relations |
-| `find` | `POST` | `/find` | The same find, the `filter` in the body - same rows, same `Content-Range` |
 | `findById` | `GET` | `/{id}` | Find a single record by its ID |
 | `findOne` | `GET` | `/find-one` | Find the first record matching a filter |
 | `create` | `POST` | `/` | Create a new record |

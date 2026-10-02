@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1-2",
+        "date": "2026-10-02",
+        "sha": "34a103b4",
+        "order": 1557
+      },
+      {
         "version": "0.1.1-1",
         "date": "2026-10-02",
         "sha": "64cb8e82",
@@ -4513,18 +4519,6 @@
       ],
       "kind": "Bug Fix",
       "order": 1550
-    },
-    {
-      "id": "changelog:2026-10-02-body-filter-read-routes",
-      "file": "2026-10-02-body-filter-read-routes.md",
-      "date": "2026-10-02",
-      "title": "Reads Whose Filter Rides in the Body",
-      "packages": [
-        "connectors",
-        "kernel"
-      ],
-      "kind": "Feature",
-      "order": 1552
     },
     {
       "id": "changelog:2026-09-30-bff-fetch-bridge-matching",

@@ -35,8 +35,6 @@ export class RestPaths {
   static readonly ROOT = '/';
   static readonly COUNT = '/count';
   static readonly FIND_ONE = '/find-one';
-  /** POST only: the find whose filter rides in the body. */
-  static readonly FIND = '/find';
 }
 
 export const commonResponseHeaders: TResponseHeaders = {

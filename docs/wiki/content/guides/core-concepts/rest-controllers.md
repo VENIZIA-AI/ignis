@@ -247,9 +247,7 @@ The `ControllerFactory.defineCrudController` method automatically sets up the fo
 | Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Get the number of records matching a filter. |
-| `count` | `POST` | `/count` | The same count, with the `where` in the body. |
 | `find` | `GET` | `/` | Retrieve all records matching a filter. |
-| `find` | `POST` | `/find` | The same list, with the `filter` in the body. |
 | `findById` | `GET` | `/{id}` | Retrieve a single record by its ID. |
 | `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
 | `create` | `POST` | `/` | Create a new record. |

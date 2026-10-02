@@ -53,7 +53,7 @@ const mountedRoutes = (opts: { router: { routes: Array<{ method: string; path: s
 };
 
 describe('ControllerFactory.defineCrudController - generated routes', () => {
-  test('mounts the eleven CRUD routes, with /count and /find-one ahead of the /:id param route', async () => {
+  test('mounts the nine CRUD routes, with /count and /find-one ahead of the /:id param route', async () => {
     const AccountController = ControllerFactory.defineCrudController({
       entity: CrudFactoryAccount,
       repository: { name: CrudFactoryAccountRepository.name },
@@ -66,9 +66,7 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
       new Set([
         'GET /count',
-        'POST /count',
         'GET /',
-        'POST /find',
         'GET /find-one',
         'GET /:id',
         'POST /',
@@ -84,7 +82,7 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     expect(paths.indexOf('/find-one')).toBeLessThan(paths.indexOf('/:id'));
   });
 
-  test('readonly: true registers only the read routes, their POST twins included', async () => {
+  test('readonly: true registers only the four read routes', async () => {
     const ReadonlyController = ControllerFactory.defineCrudController({
       entity: CrudFactoryAccount,
       repository: { name: CrudFactoryAccountRepository.name },
@@ -99,7 +97,7 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
-      new Set(['GET /count', 'POST /count', 'GET /', 'POST /find', 'GET /find-one', 'GET /:id']),
+      new Set(['GET /count', 'GET /', 'GET /find-one', 'GET /:id']),
     );
   });
 
@@ -119,7 +117,7 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
     await restController.configure();
 
     expect(mountedRoutes({ router: restController.getRouter() })).toEqual(
-      new Set(['GET /count', 'POST /count', 'POST /']),
+      new Set(['GET /count', 'POST /']),
     );
   });
 

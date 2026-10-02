@@ -493,24 +493,6 @@ export class RouteConfigResolver {
         responses: jsonResponse(count.response),
       },
 
-      // The POST twin of COUNT: the same where, in the body, for one that outgrows a URL. It shares
-      // the `count` key, so the same enable flag, authentication and authorization govern both.
-      COUNT_BY_BODY: {
-        method: HTTP.Methods.POST,
-        path: RestPaths.COUNT,
-        description: 'Count records matching a where sent in the body (one too long for a URL)',
-        authenticate: resolveRouteAuth('count'),
-        authorize: resolveRouteAuthorize('count'),
-        request: {
-          body: jsonContent({
-            description: 'The where, as the query would carry it',
-            schema: count.request.query,
-          }),
-          headers: count.request.headers,
-        },
-        responses: jsonResponse(count.response),
-      },
-
       FIND: {
         method: HTTP.Methods.GET,
         path: RestPaths.ROOT,
@@ -518,23 +500,6 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('find'),
         authorize: resolveRouteAuthorize('find'),
         request: find.request,
-        responses: jsonResponse(find.response),
-      },
-
-      // The POST twin of FIND, under the `find` key for the same reason as COUNT_BY_BODY.
-      FIND_BY_BODY: {
-        method: HTTP.Methods.POST,
-        path: RestPaths.FIND,
-        description: 'Find records with a filter sent in the body (one too long for a URL)',
-        authenticate: resolveRouteAuth('find'),
-        authorize: resolveRouteAuthorize('find'),
-        request: {
-          body: jsonContent({
-            description: 'The filter, as the query would carry it',
-            schema: find.request.query,
-          }),
-          headers: find.request.headers,
-        },
         responses: jsonResponse(find.response),
       },
 

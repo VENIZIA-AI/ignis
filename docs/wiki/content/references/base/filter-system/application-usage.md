@@ -56,12 +56,8 @@ This generates every filter-bearing endpoint the resource needs:
 | GET | `/products/{id}` | `filter` (`where` is ignored - the id is the condition) |
 | GET | `/products/find-one` | `filter` |
 | GET | `/products/count` | `where` |
-| POST | `/products/find` | `filter`, in the JSON body |
-| POST | `/products/count` | `where`, in the JSON body |
 
 Set `isStrict.requestSchema: true` to make these query params Zod-required; set `isStrict.path: true` to reject trailing-slash variants of the route. Write endpoints (`POST /`, `PATCH /{id}`, `DELETE /{id}`, ...) come from the same factory call and take no filter.
-
-The two `POST` reads exist because a query string has a length limit: a long `inq` overflows it (a proxy commonly caps a request line near 8 KB, about 165 UUIDs). They answer exactly what their `GET` twins answer and ride the same route key, so `routes.find`/`routes.count` - `enabled`, `authenticate`, `authorize`, request schema - govern both, and `getBaseWhere` scopes both. A hand-written route gets the same by adding a POST twin whose body is `FilterQuerySchema` (it accepts an object as well as a JSON string) and whose handler reads `context.req.valid('json')`.
 
 ## Map a request query string to a parsed filter
 
