@@ -15,6 +15,12 @@ import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository
 import type { IHttpWriteResult } from './common/types';
 import type { HttpDataSource } from './datasource';
 
+/**
+ * Past this a read's filter moves into a POST body. Proxies commonly cap a request line at 8 KB
+ * (measured on a production gateway: 7,364 B passed, 9,764 B got 414), so the cut leaves room for headers.
+ */
+const MAX_GET_URL_LENGTH = 6000;
+
 /** A remote resource has a name but no local schema. */
 export class HttpResourceEntity extends AbstractEntity {
   getSchema<T = unknown>(_opts: { type: TSchemaType }): T {
@@ -85,10 +91,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       return { count: counted };
     }
 
-    const rs = await this.dataSource.read<Array<E>>({
-      paths: [this.resource],
-      query: { filter: { where: opts.where, limit: 1 } },
-    });
+    const rs = await this.readList<Array<E>>({ filter: { where: opts.where, limit: 1 } });
 
     if (!rs.hasRange) {
       throw this.getMissingTotalError({
@@ -102,10 +105,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   }
 
   async existsWith(opts: { where: TWhere<E>; options?: {} }): Promise<boolean> {
-    const rs = await this.dataSource.read<Array<E>>({
-      paths: [this.resource],
-      query: { filter: { where: opts.where, limit: 1 } },
-    });
+    const rs = await this.readList<Array<E>>({ filter: { where: opts.where, limit: 1 } });
 
     return rs.dataLength > 0;
   }
@@ -119,10 +119,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     filter?: TFilter<E>;
     options?: AnyType;
   }): Promise<Array<R> | TDataWithRange<R>> {
-    const rs = await this.dataSource.read<Array<R>>({
-      paths: [this.resource],
-      query: { filter: opts.filter ?? {} },
-    });
+    const rs = await this.readList<Array<R>>({ filter: opts.filter ?? {} });
 
     const data = rs.data ?? [];
 
@@ -153,6 +150,27 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async findOne<R = E>(opts: { filter?: TFilter<E>; options?: {} }): Promise<R | null> {
     const rs = await this.find<R>({ filter: { ...(opts.filter ?? {}), limit: 1 } as TFilter<E> });
     return rs[0] ?? null;
+  }
+
+  /**
+   * A list read: `GET /<resource>?filter=...` while the URL fits, else `POST /<resource>/find` with
+   * the filter in the body - the route every generated IGNIS controller answers with the same rows
+   * and the same Content-Range. Below the limit the GET stays, so a server without the POST route
+   * still answers every read it answered before.
+   */
+  protected readList<R>(opts: { filter: TFilter<E> }) {
+    const query = { filter: opts.filter };
+    const url = this.dataSource.buildUrl({ paths: [this.resource], query });
+
+    if (url.length <= MAX_GET_URL_LENGTH) {
+      return this.dataSource.read<R>({ paths: [this.resource], query });
+    }
+
+    return this.dataSource.read<R>({
+      paths: [this.resource, 'find'],
+      method: HTTP.Methods.POST,
+      body: query,
+    });
   }
 
   async findById<R = E>(opts: {

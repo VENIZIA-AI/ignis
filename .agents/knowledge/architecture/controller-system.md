@@ -80,6 +80,11 @@ The default create and update bodies leave out the keys the entity reports from
 update body never carries `id`; see [kernel](/packages/kernel.md). A factory of your own injects its
 repository through `registerFactoryRepositoryInjection`.
 
+`find` and `count` each have a POST twin (`POST /find` with `{ filter }`, `POST /count` with
+`{ where }`) for a filter that outgrows a URL. The twin rides its GET's route key on purpose: a
+separate key would let a caller who disabled or locked down `find` leave the POST door open. Both
+doors run one shared method (`findFiltered`, `countWhere`), so they cannot answer differently.
+
 ## Mounting
 
 `RestComponent.binding()` scans `controllers.*` bindings, skips anything whose metadata says the

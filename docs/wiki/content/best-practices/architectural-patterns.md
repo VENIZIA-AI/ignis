@@ -440,7 +440,9 @@ const _Controller = ControllerFactory.defineCrudController({
 | Route | Method | Path | Description |
 |-------|--------|------|-------------|
 | `count` | GET | `/count` | Count records matching filter |
+| `count` | POST | `/count` | Count, `where` in the body |
 | `find` | GET | `/` | List records with filter |
+| `find` | POST | `/find` | List, `filter` in the body |
 | `findById` | GET | `/{id}` | Get single record |
 | `findOne` | GET | `/find-one` | Get first matching record |
 | `create` | POST | `/` | Create new record |
