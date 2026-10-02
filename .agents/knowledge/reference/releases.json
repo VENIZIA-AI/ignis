@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1-0",
+        "date": "2026-09-30",
+        "sha": "5f1e0445",
+        "order": 1544
+      },
+      {
         "version": "0.1.0",
         "date": "2026-09-24",
         "sha": "519f1f90",
@@ -4450,6 +4456,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-02-http-connector-writes",
+      "file": "2026-10-02-http-connector-writes.md",
+      "date": "2026-10-02",
+      "title": "The HTTP Connector Writes",
+      "packages": [
+        "connectors"
+      ],
+      "kind": "Feature",
+      "order": 1546
+    },
     {
       "id": "changelog:2026-09-30-bff-fetch-bridge-matching",
       "file": "2026-09-30-bff-fetch-bridge-matching.md",
