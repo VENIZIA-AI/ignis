@@ -154,4 +154,18 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
     expect(caught.message).toContain('Invalid input');
     expect(await notes.count({ where: {} })).toEqual({ count: 0 });
   });
+
+  test('a read whose inq is too long for a URL goes through POST /find and still answers', async () => {
+    const made = await Promise.all(['a', 'b', 'c'].map(title => notes.create({ data: { title } })));
+    const realIds = made.map(note => note.data.id);
+    // 1500 ids, three of them real: a GET URL would run past 10 KB.
+    const ids = [...realIds, ...Array.from({ length: 1497 }, (_, index) => 1_000_000 + index)];
+
+    const rows = await notes.find({ filter: { where: { id: { inq: ids } }, order: ['id ASC'] } });
+    expect(rows.map(row => row.id)).toEqual([...realIds].sort((a, b) => a - b));
+    expect(await notes.count({ where: { id: { inq: ids } } })).toEqual({ count: 3 });
+    expect(await notes.existsWith({ where: { id: { inq: ids } } })).toBe(true);
+
+    await notes.deleteBy({ where: { id: { inq: realIds } } });
+  });
 });

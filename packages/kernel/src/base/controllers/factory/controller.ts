@@ -91,10 +91,16 @@ export class ControllerFactory extends BaseHelper {
         };
 
         // Read routes - always registered (unless explicitly disabled)
+        // Each read whose filter can outgrow a URL also has a POST twin. It rides the same key, so
+        // disabling `find` or `count` closes both doors, never just one.
         if (isEnabled('count')) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,
             handler: async context => this.count({ context }),
+          });
+          this.defineRoute({
+            configs: routeDefinitions.COUNT_BY_BODY,
+            handler: async context => this.countByBody({ context }),
           });
         }
 
@@ -102,6 +108,10 @@ export class ControllerFactory extends BaseHelper {
           this.defineRoute({
             configs: routeDefinitions.FIND,
             handler: async context => this.find({ context }),
+          });
+          this.defineRoute({
+            configs: routeDefinitions.FIND_BY_BODY,
+            handler: async context => this.findByBody({ context }),
           });
         }
 

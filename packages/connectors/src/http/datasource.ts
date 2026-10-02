@@ -364,11 +364,16 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     });
   }
 
-  /** Rows plus the total from `Content-Range`, reported absent when the header is. */
+  /**
+   * Rows plus the total from `Content-Range`, reported absent when the header is. A read is a GET
+   * unless told otherwise: a filter too long for a URL goes as the body of a POST read route.
+   */
   async read<R>(opts: {
     paths: Array<string>;
     query?: Record<string, unknown>;
     shape?: 'list' | 'one';
+    method?: string;
+    body?: THttpBody;
   }): Promise<IHttpReadResult<R>> {
     const response = await this.request(opts);
 

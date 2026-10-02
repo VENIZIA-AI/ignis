@@ -58,11 +58,28 @@ export abstract class ReadableCrudController<
   async count(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('query');
+    return this.countWhere({ context, where, scope: 'count' });
+  }
+
+  /** POST /count - the where in the body, for one too long for a URL. */
+  async countByBody(opts: { context: TRouteContext<RouteEnv> }) {
+    const { context } = opts;
+    const { where } = context.req.valid<{ where: TWhere<TDataObject> }>('json');
+    return this.countWhere({ context, where, scope: 'countByBody' });
+  }
+
+  /** The one count both routes run, so the GET and the POST cannot answer differently. Public for the same TS4094 reason as `getBaseWhere`. */
+  async countWhere(opts: {
+    context: TRouteContext<RouteEnv>;
+    where: TWhere<TDataObject>;
+    scope: string;
+  }) {
+    const { context, where, scope } = opts;
     const baseWhere = await this.getBaseWhere({ context });
     const scopedWhere = baseWhere ? withBaseWhere({ baseWhere, where }) : where;
 
     const rs = await this.measure({
-      scope: 'count',
+      scope,
       args: { where: scopedWhere },
       task: () => this.repository.count({ where: scopedWhere }),
     });
@@ -74,13 +91,30 @@ export abstract class ReadableCrudController<
   async find(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('query');
+    return this.findFiltered({ context, filter, scope: 'find' });
+  }
+
+  /** POST /find - the filter in the body, for one too long for a URL. */
+  async findByBody(opts: { context: TRouteContext<RouteEnv> }) {
+    const { context } = opts;
+    const { filter = {} } = context.req.valid<{ filter?: TFilter<TDataObject> }>('json');
+    return this.findFiltered({ context, filter, scope: 'findByBody' });
+  }
+
+  /** The one list both routes run: same rows, same Content-Range. Public for the same reason as `countWhere`. */
+  async findFiltered(opts: {
+    context: TRouteContext<RouteEnv>;
+    filter: TFilter<TDataObject>;
+    scope: string;
+  }) {
+    const { context, filter, scope } = opts;
     const baseWhere = await this.getBaseWhere({ context });
     const scopedFilter = baseWhere
       ? { ...filter, where: withBaseWhere({ baseWhere, where: filter.where }) }
       : filter;
 
     const rs = await this.measure({
-      scope: 'find',
+      scope,
       args: scopedFilter,
       task: async () => {
         const { data, range } = await this.repository.find({
