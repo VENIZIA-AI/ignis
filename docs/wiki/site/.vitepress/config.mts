@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'HTTP Connector Errors Keep the Server Message Args',
+                  link: '/changelogs/2026-10-02-http-connector-error-args',
+                },
+                {
                   text: 'The HTTP Connector Writes',
                   link: '/changelogs/2026-10-02-http-connector-writes',
                 },

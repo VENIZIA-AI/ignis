@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-02 - http errors keep the server's normalized.args
+
+Updated [connectors](/packages/connectors.md).
+
+- A failed http read or write now carries the envelope's `normalized.args` (plain object only) as
+  the thrown error's args; 0.2.1-1 dropped them, leaving translated placeholders unfilled.
+
 ## 2026-10-02 - the http connector writes
 
 Updated [connectors](/packages/connectors.md).
