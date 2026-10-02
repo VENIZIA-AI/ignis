@@ -197,6 +197,7 @@ await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
 
 - A write sends a partial row by default (`HttpRepository<TRow, TWrite = Partial<TRow>>`), since the server fills ids and defaults.
 - The id is URL-encoded. A bulk `where` travels in the body, so a long id list does not hit the URL limit.
+- A **read** filter travels in the GET query string, so a long `inq` does hit it: about 170 UUIDs fit behind an 8 KB proxy buffer and about 400 behind 16 KB, after which the server or proxy answers 414 or 431, and the error says the URL is too long. There is no body-filter read route yet; split the id list into reads that fit, knowing a split read has no single `total`.
 - An empty bulk `where` is refused before any request, as the server would refuse it; `force` cannot cross HTTP.
 - `shouldReturn: false` answers the count with `data: null`. The count is the server's `x-response-count`.
 - A failed write - or read - throws an `ApplicationError` with the server's status, its message appended, and its message code.
