@@ -17191,7 +17191,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 208,
+      "line": 21,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -17201,8 +17201,8 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 30,
-      "signature": "class HttpRepository<E extends object = AnyType, P extends object = Partial<E>> implements IReadableRepository<E, {}>, IUpdatableRepository<E, P, {}>, IDeletableRepository<E, {}>"
+      "line": 39,
+      "signature": "class HttpRepository<E extends object = AnyType, P extends object = Partial<E>> implements IReadableRepository<E, THttpRepositoryOptions>, IUpdatableRepository<E, P, THttpRepositoryOptions>, IDeletableRepository<E, THttpRepositoryOptions>"
     },
     {
       "name": "HttpResourceEntity",
@@ -17211,8 +17211,18 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 19,
+      "line": 28,
       "signature": "class HttpResourceEntity extends AbstractEntity"
+    },
+    {
+      "name": "HttpResponseReader",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "class",
+      "file": "packages/connectors/src/http/common/readers.ts",
+      "line": 8,
+      "signature": "class HttpResponseReader"
     },
     {
       "name": "IAuthToken",
@@ -17225,13 +17235,23 @@
       "signature": "interface IAuthToken"
     },
     {
+      "name": "IHttpCallOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 35,
+      "signature": "interface IHttpCallOptions"
+    },
+    {
       "name": "IHttpDataSourceSettings",
       "package": "@venizia/ignis-connectors",
       "subpath": "./http",
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 22,
+      "line": 40,
       "signature": "interface IHttpDataSourceSettings"
     },
     {
@@ -17241,8 +17261,18 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 38,
+      "line": 68,
       "signature": "interface IHttpReadResult<R>"
+    },
+    {
+      "name": "IHttpRequestContext",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "interface",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 10,
+      "signature": "interface IHttpRequestContext"
     },
     {
       "name": "IHttpWriteResult",
@@ -17251,7 +17281,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 49,
+      "line": 79,
       "signature": "interface IHttpWriteResult<R>"
     },
     {
@@ -17261,8 +17291,8 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 10,
-      "signature": "type TAuthTokenResolver = () => IAuthToken | undefined"
+      "line": 19,
+      "signature": "type TAuthTokenResolver = (context: IHttpRequestContext) => IAuthToken | undefined"
     },
     {
       "name": "THttpBody",
@@ -17271,7 +17301,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 20,
+      "line": 32,
       "signature": "type THttpBody = string | object"
     },
     {
@@ -17281,8 +17311,18 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 13,
+      "line": 25,
       "signature": "type THttpHeaders = Headers | Array<[string, string]> | Record<string, string>"
+    },
+    {
+      "name": "THttpHeadersResolver",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/common/types.ts",
+      "line": 22,
+      "signature": "type THttpHeadersResolver = (context: IHttpRequestContext) => THttpHeaders | undefined"
     },
     {
       "name": "THttpQuery",
@@ -17291,8 +17331,18 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 54,
+      "line": 84,
       "signature": "type THttpQuery<E extends object> = { filter?: TFilter<E>; }"
+    },
+    {
+      "name": "THttpRepositoryOptions",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/connectors/src/http/repository.ts",
+      "line": 22,
+      "signature": "type THttpRepositoryOptions = NonNullable<Parameters<IReadableRepository['existsWith']>[0]['options']> & IHttpCallOptions"
     },
     {
       "name": "IMeilisearchClientLike",

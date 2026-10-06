@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-06 - the http connector follows the session and keeps the server's errors
+
+Updated [connectors](/packages/connectors.md).
+
+- `HttpDataSource` gains `headersResolver`; it and `authTokenResolver` run on every send,
+  `onUnauthorized` on a 401, all with an `IHttpRequestContext`. Verbs take per-call `headers` and `signal`.
+- Errors honour `errorRootKey` and carry the server's `extra` and 422 issues (`cause`); readers
+  exported as `HttpResponseReader`. Dot ids and path-relative baseUrls refused; error messages name the path only.
+
 ## 2026-10-02 - generated POST /find and POST /count added, then removed
 
 Updated [controller system](/architecture/controller-system.md).

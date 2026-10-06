@@ -1,5 +1,5 @@
 import { expectRejection } from '../rejection.helper';
-import type { THttpHeaders } from '@/http/common/types';
+import type { IHttpRequestContext, THttpHeaders } from '@/http/common/types';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, test } from 'bun:test';
 
@@ -256,6 +256,192 @@ describe('request() answers raw, with auth and retry intact', () => {
   });
 });
 
+describe('headersResolver runs on every send', () => {
+  test('a header the app changed between two requests is the one sent', async () => {
+    const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+    let locale = 'en';
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headersResolver: () => ({ 'x-locale': locale }),
+    });
+
+    await dataSource.read({ paths: ['tickets'] });
+    locale = 'vi';
+    await dataSource.read({ paths: ['tickets'] });
+
+    expect(attempts.map(attempt => attempt.headers['x-locale'])).toEqual(['en', 'vi']);
+  });
+
+  test('the 401 retry re-runs it after the refresh', async () => {
+    const attempts = stubFetch([{ status: 401 }, { status: 200, contentRange: 'items 0-0/1' }]);
+    let merchant = 'before';
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headersResolver: () => ({ 'x-merchant-id': merchant }),
+      onUnauthorized: () => {
+        merchant = 'after';
+        return true;
+      },
+    });
+
+    await dataSource.read({ paths: ['tickets'] });
+
+    expect(attempts.map(attempt => attempt.headers['x-merchant-id'])).toEqual(['before', 'after']);
+  });
+
+  test("it wins over settings.headers, a call's own headers win over it, the connector wins over all", async () => {
+    const attempts = stubFetch([{ status: 200 }]);
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      authToken: { value: 'owned' },
+      headers: { 'x-a': 'configured', 'x-b': 'configured', 'x-c': 'configured' },
+      headersResolver: () => ({ 'X-B': 'resolved', 'x-c': 'resolved', authorization: 'resolved' }),
+    });
+
+    await dataSource.request({ paths: ['tickets'], headers: { 'x-c': 'call' } });
+
+    expect(attempts[0].headers['x-a']).toBe('configured');
+    expect(attempts[0].headers['x-b']).toBe('resolved');
+    expect(attempts[0].headers['x-c']).toBe('call');
+    expect(attempts[0].headers.authorization).toBe('Bearer owned');
+  });
+
+  test('undefined adds nothing', async () => {
+    const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headers: { 'x-tenant': 'acme' },
+      headersResolver: () => undefined,
+    });
+
+    await dataSource.read({ paths: ['tickets'] });
+
+    expect(attempts[0].headers['x-tenant']).toBe('acme');
+  });
+
+  test('x-request-count from it is refused, and nothing is sent', async () => {
+    const attempts = stubFetch([{ status: 200 }]);
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headersResolver: () => ({ 'X-Request-Count': 'true' }),
+    });
+
+    await expectRejection({
+      task: dataSource.request({ paths: ['tickets'] }),
+      message: /x-request-count is owned by HttpDataSource/,
+    });
+    expect(attempts).toHaveLength(0);
+  });
+});
+
+describe('the hooks are told which request they serve', () => {
+  test('all three get the paths, the method and the final URL', async () => {
+    stubFetch([{ status: 401 }, { status: 200 }]);
+    const seen: Array<{ hook: string; context: IHttpRequestContext }> = [];
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      headersResolver: context => {
+        seen.push({ hook: 'headers', context });
+        return undefined;
+      },
+      authTokenResolver: context => {
+        seen.push({ hook: 'token', context });
+        return undefined;
+      },
+      onUnauthorized: context => {
+        seen.push({ hook: 'unauthorized', context });
+        return false;
+      },
+    });
+
+    await dataSource.request({ paths: ['auth', 'sign-in'], method: 'POST', query: { a: 1 } });
+
+    const expected = {
+      paths: ['auth', 'sign-in'],
+      method: 'POST',
+      url: 'https://api.example.com/auth/sign-in?a=1',
+    };
+    expect(seen.map(entry => entry.hook)).toEqual(['token', 'headers', 'unauthorized']);
+    for (const entry of seen) {
+      expect(entry.context).toEqual(expected);
+    }
+  });
+
+  test('a public route gets no token, and declines the refresh', async () => {
+    const attempts = stubFetch([{ status: 401 }, { status: 200 }]);
+    const isPublic = (context: IHttpRequestContext) => context.paths[0] === 'auth';
+    let refreshes = 0;
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      authTokenResolver: context => (isPublic(context) ? undefined : { value: 'session' }),
+      onUnauthorized: context => {
+        if (isPublic(context)) {
+          return false;
+        }
+
+        refreshes += 1;
+        return true;
+      },
+    });
+
+    const response = await dataSource.request({ paths: ['auth', 'sign-in'], method: 'POST' });
+
+    expect(response.status).toBe(401);
+    expect(attempts).toHaveLength(1);
+    expect(attempts[0].headers.authorization).toBeUndefined();
+    expect(refreshes).toBe(0);
+  });
+
+  test('a private route still gets the token', async () => {
+    const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+
+    const dataSource = new HttpDataSource({
+      baseUrl: 'https://api.example.com',
+      authTokenResolver: context =>
+        context.paths[0] === 'auth' ? undefined : { value: 'session' },
+    });
+
+    await dataSource.read({ paths: ['tickets'] });
+
+    expect(attempts[0].headers.authorization).toBe('Bearer session');
+  });
+});
+
+describe('a throwing hook fails the request with its own error', () => {
+  const throwingHooks = {
+    headersResolver: () => {
+      throw new Error('session headers unavailable');
+    },
+    authTokenResolver: () => {
+      throw new Error('session headers unavailable');
+    },
+  };
+
+  for (const [hook, resolver] of Object.entries(throwingHooks)) {
+    test(`${hook}: the error reaches the caller and nothing is sent`, async () => {
+      const attempts = stubFetch([{ status: 200, contentRange: 'items 0-0/1' }]);
+
+      const dataSource = new HttpDataSource({
+        baseUrl: 'https://api.example.com',
+        [hook]: resolver,
+      });
+
+      await expectRejection({
+        task: dataSource.read({ paths: ['tickets'] }),
+        message: 'session headers unavailable',
+      });
+      expect(attempts).toHaveLength(0);
+    });
+  }
+});
+
 describe('Content-Range is read in every shape a server sends', () => {
   const cases: Array<{
     header: string;
@@ -290,7 +476,7 @@ describe('Content-Range is read in every shape a server sends', () => {
   }
 });
 
-describe('a failed read names the URL without carrying all of it', () => {
+describe('a failed read names the path, never the host or the query', () => {
   test('431 says the URL is too long, and the message stays short', async () => {
     stubFetch([{ status: 431 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
@@ -306,19 +492,22 @@ describe('a failed read names the URL without carrying all of it', () => {
 
     await expectRejection({
       task,
-      message: /431 .*\.\.\. \(\d+ chars\) \| The URL is too long for a GET/,
+      message: /431 \| \/tickets \(\d+ chars\) \| The URL is too long for a GET/,
     });
     const error = await task.catch((rejected: Error) => rejected);
     expect((error as Error).message.length).toBeLessThan(500);
   });
 
-  test('any other failure keeps the short URL whole', async () => {
+  test('any other failure names the path alone - a relaying server would leak the rest', async () => {
     stubFetch([{ status: 500 }]);
-    const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
+    const dataSource = new HttpDataSource({ baseUrl: 'https://internal.example.com/v1' });
 
     await expectRejection({
-      task: dataSource.read({ paths: ['tickets'] }),
-      message: /^\[http\]\[read\] 500 \| https:\/\/api\.example\.com\/tickets$/,
+      task: dataSource.read({
+        paths: ['tickets'],
+        query: { filter: { where: { email: 'a@b.c' } } },
+      }),
+      message: /^\[http\]\[read\] 500 \| \/v1\/tickets$/,
     });
   });
 });
@@ -371,7 +560,7 @@ describe('a relative baseUrl resolves against the page or worker that runs it', 
 
   const stubLocation = (opts: { href: string }) => {
     Object.defineProperty(globalThis, 'location', {
-      value: { href: opts.href },
+      value: { href: opts.href, origin: new URL(opts.href).origin },
       configurable: true,
       writable: true,
     });
@@ -427,6 +616,14 @@ describe('a relative baseUrl resolves against the page or worker that runs it', 
     expect(dataSource.buildUrl({ paths: ['products'] })).toBe(
       'https://api.example.com/v1/products',
     );
+  });
+
+  test('a path-relative baseUrl is refused: on a page it would follow the current route', () => {
+    for (const baseUrl of ['api', './api', 'localhost:3000']) {
+      expect(() => new HttpDataSource({ baseUrl })).toThrow(
+        /neither absolute nor a path from the origin/,
+      );
+    }
   });
 
   test("'/api' resolves against the page's origin", () => {

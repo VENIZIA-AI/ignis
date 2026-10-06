@@ -200,7 +200,8 @@ await productRepository.deleteAll({ where: { id: { inq: staleIds } } });
 - A **read** filter travels in the GET query string, so a long `inq` does hit it: about 170 UUIDs fit behind an 8 KB proxy buffer and about 400 behind 16 KB, after which the server or proxy answers 414 or 431, and the error says the URL is too long. The generated routes take no body filter. Split the id list into reads that fit (a split read has no single `total`), or call a `POST` route the other service wrote by hand through `dataSource.read({ paths, method: 'POST', body: { filter } })`.
 - An empty bulk `where` is refused before any request, as the server would refuse it; `force` cannot cross HTTP.
 - `shouldReturn: false` answers the count with `data: null`. The count is the server's `x-response-count`.
-- A failed write - or read - throws an `ApplicationError` with the server's status, its message appended, and its message code.
+- A failed write - or read - throws the `ApplicationError` the server threw: its status, `normalized` code, args and text, and its `extra` with the `requestId` added. The message names the verb, status and path - never the host or the query. A 422's per-field issues (`{ path, message, code }`) are the error's `cause`.
+- An empty, `.` or `..` id is refused before any request: a URL resolves those to the list or the parent route.
 - There is no `createAll`: the IGNIS REST contract has no bulk-create route.
 
 For a route the verbs do not cover - a `PUT`, an upload, an action endpoint - call the datasource:
@@ -218,6 +219,43 @@ const response = await catalogDataSource.request({
 ```
 
 `write` answers `{ data, count }` and throws on a non-2xx; `request` answers the raw `Response`. Both carry the auth token, and the 401 retry resends the same body.
+
+### Settings that follow the session
+
+A browser app's headers and token change while it runs. Give the datasource hooks, not values. `headersResolver` and `authTokenResolver` run on every send, the 401 retry included; `onUnauthorized` runs on a 401. All three are told which request they serve (`{ paths, method, url, signal }`):
+
+```typescript
+new HttpDataSource({
+  baseUrl: '/api',
+  errorRootKey: 'error',
+  headersResolver: () => ({ 'x-locale': session.locale }),
+  authTokenResolver: ({ paths }) => (paths[0] === 'auth' ? undefined : session.token),
+  onUnauthorized: ({ paths }) => (paths[0] === 'auth' ? false : session.refresh()),
+});
+```
+
+| Setting | Meaning |
+|---|---|
+| `baseUrl` | An absolute URL, or a path from the page origin (`/api`). A path-relative one (`api`) is refused: it would follow the current route. |
+| `errorRootKey` | The server's `error.rootKey`. Without it, a wrapped error envelope reads as `core.system_error`. |
+| `headers` | Sent on every request. |
+| `headersResolver` | Headers for this request. Wins over `headers`. |
+| `authToken` / `authTokenResolver` | The token. A fixed `authToken` wins and goes on every request; the resolver answering `undefined` sends none. |
+| `onUnauthorized` | Runs on a 401; `true` retries once, `false` lets it stand. A call whose `signal` aborted meanwhile is not retried. |
+
+One call adds its own headers and an abort signal through `options`, on every verb:
+
+```typescript
+const controller = new AbortController();
+await productRepository.find({ filter, options: { headers: { 'x-trace': id }, signal: controller.signal } });
+```
+
+Header precedence, weakest first: `headers`, `headersResolver`, the call's own, then the connector's (`x-request-count`, `authorization`). A `FormData` body always carries the multipart content-type `fetch` writes, boundary included.
+
+> [!WARNING]
+> Cross-origin, `count()` and `find({ options: { shouldQueryRange: true } })` read `Content-Range`, which a browser hides unless the server lists it in `Access-Control-Expose-Headers` (with `x-response-count` for writes).
+
+The connector's readers are exported for a client that talks to the same server: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })` and `HttpResponseReader.readError({ response, rootKey })`.
 
 ## See also
 

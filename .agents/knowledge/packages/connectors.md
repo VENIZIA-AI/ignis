@@ -90,7 +90,28 @@ neither an array nor the `{ count, data }` envelope throws rather than counting 
 how `existsWith` answered true for an empty result). A header with no readable total (`records 0-24/*`) throws a message naming that header - distinct
 from the no-header one, because the fix is the server's count, not a missing header. A filter travels
 in the GET query string, and a server refuses a URL past ~16 KB with 431 (measured: 350 UUIDs in an
-`inq` pass, 400 do not); the error says so and carries the URL's head and length, not all of it.
+`inq` pass, 400 do not); the error says so and carries the path and the URL's length, never the host or the query.
+
+Headers and the token are decided per send, not per datasource: `headersResolver` and
+`authTokenResolver` run inside `send()`, `onUnauthorized` on a 401, all three with an
+`IHttpRequestContext` (`paths`, `method`, `url`, `signal`). So the 401 retry sends what the session
+holds after the refresh, and a public route can answer no token and no refresh. The `signal` lets a
+hook stop waiting; it must not abort a refresh other calls share. Precedence, weakest first: `settings.headers`, `headersResolver`, the call's own
+headers, the connector's. A resolver throw fails the request; nothing is swallowed. Every verb's
+`options` carries `headers` and `signal` for one call.
+
+A failure is rebuilt as the error the server threw: status, `normalized`, the server's `extra` plus
+`requestId` (a relayed upstream id survives as `upstreamRequestId`), and `details.cause` (a 422's
+field issues) as `cause`. `message` names the path only: a BFF that relays the error must not send an
+internal host or a filter's values to its clients. `errorRootKey` must match the
+server's `error.rootKey` - the connector does not guess, and a wrapped envelope otherwise reads as
+`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`) is
+exported so another client of the same server shares the parsing instead of copying it.
+
+Ids `''`, `.` and `..` are refused: WHATWG URL resolves `.`/`%2e` segments, so encoding cannot save
+them: `deleteById('.')` asks for `/<resource>/`, which a router or proxy that ignores the trailing
+slash serves as the bulk route. A relative `baseUrl` must start with `/` and
+resolves against `location.origin`, never `href`, so it does not follow the SPA route.
 
 `onUnauthorized` is a hook, not a flag: it answers whether a retry can work, because recovery
 (refresh, logout, both) is the host policy, and a boolean could only have meant "ask the resolver
