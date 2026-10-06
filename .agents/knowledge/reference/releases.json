@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1-3",
+        "date": "2026-10-02",
+        "sha": "49c083d1",
+        "order": 1563
+      },
+      {
         "version": "0.1.1-2",
         "date": "2026-10-02",
         "sha": "34a103b4",
@@ -767,6 +773,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.1-4",
+        "date": "2026-10-06",
+        "sha": "1b52b7d2",
+        "order": 1568
+      },
       {
         "version": "0.2.1-3",
         "date": "2026-10-02",
@@ -1930,6 +1942,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.1-4",
+        "date": "2026-10-06",
+        "sha": "69f2f7f0",
+        "order": 1569
+      },
+      {
         "version": "0.2.1-3",
         "date": "2026-10-02",
         "sha": "f200bee0",
@@ -2563,6 +2581,12 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.2.1-0",
+        "date": "2026-10-06",
+        "sha": "d5e516dd",
+        "order": 1567
+      },
       {
         "version": "0.2.0",
         "date": "2026-09-24",
@@ -4516,6 +4540,28 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-06-http-connector-contract",
+      "file": "2026-10-06-http-connector-contract.md",
+      "date": "2026-10-06",
+      "title": "The HTTP Connector Follows the Session and Keeps the Server's Errors",
+      "packages": [
+        "connectors"
+      ],
+      "kind": "Feature",
+      "order": 1564
+    },
+    {
+      "id": "changelog:2026-10-06-dev-configs-react-preset",
+      "file": "2026-10-06-dev-configs-react-preset.md",
+      "date": "2026-10-06",
+      "title": "dev-configs Gains a React Preset",
+      "packages": [
+        "dev-configs"
+      ],
+      "kind": "Feature",
+      "order": 1565
+    },
     {
       "id": "changelog:2026-10-02-http-connector-writes",
       "file": "2026-10-02-http-connector-writes.md",
