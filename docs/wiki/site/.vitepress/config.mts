@@ -451,13 +451,23 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
-              text: '2026-10-02',
+              text: '2026-10-06',
               collapsed: true,
               items: [
                 {
                   text: "The HTTP Connector Follows the Session and Keeps the Server's Errors",
                   link: '/changelogs/2026-10-06-http-connector-contract',
                 },
+                {
+                  text: 'dev-configs Gains a React Preset',
+                  link: '/changelogs/2026-10-06-dev-configs-react-preset',
+                },
+              ],
+            },
+            {
+              text: '2026-10-02',
+              collapsed: true,
+              items: [
                 {
                   text: 'HTTP Connector Errors Keep the Server Message Args',
                   link: '/changelogs/2026-10-02-http-connector-error-args',

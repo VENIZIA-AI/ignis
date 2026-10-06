@@ -12,7 +12,6 @@ export class EdgeCases extends BaseTestCases {
     // or strict TypeORM/Schema validation might block it.
 
     try {
-      // @ts-ignore
       const results = await this.context.configurationRepository.find({
         filter: {
           where: {

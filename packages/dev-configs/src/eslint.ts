@@ -7,12 +7,13 @@ export const eslintConfigs: Linter.Config[] = [
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-namespace": "error",
     },
   },
   {
     plugins: { unicorn },
     rules: {
-      curly: ["error", "all"],
       "unicorn/switch-case-braces": ["error", "always"],
     },
   },
