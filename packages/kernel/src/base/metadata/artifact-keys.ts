@@ -26,8 +26,9 @@ export class ArtifactBindingKeys {
 
   /**
    * The keys two DIFFERENT classes derive alike in one registration. A minified build gives classes
-   * in different chunks the same short name; a module evaluated twice (hot reload) or a same-named
-   * subclass does too. A pinned `binding` is a deliberate choice and is never counted.
+   * in different chunks the same short name; a module evaluated twice (hot reload) does too. A pinned
+   * `binding` is a deliberate choice and is never counted, nor is a subclass registered after its
+   * parent under the parent's name - the override pattern, where the subclass is meant to win.
    */
   static findDerivedCollisions(opts: {
     entries: Array<{
@@ -46,7 +47,8 @@ export class ArtifactBindingKeys {
       }
 
       const owner = owners.get(key);
-      if (owner && owner !== entry.target) {
+      const isOverride = owner !== undefined && entry.target.prototype instanceof owner;
+      if (owner && owner !== entry.target && !isOverride) {
         collisions.add(key);
       }
 

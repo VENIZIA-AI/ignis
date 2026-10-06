@@ -111,6 +111,38 @@ describe('two classes that derive one binding key fail registration, naming the 
     ).toEqual(['services.zz']);
   });
 
+  test('a subclass registered after its same-named parent overrides it, and registers', async () => {
+    const parent = (() => {
+      @service()
+      class PolicyService {
+        readonly from: string = 'parent';
+      }
+      return PolicyService;
+    })();
+    const child = (() => {
+      @service()
+      class PolicyService extends parent {
+        override readonly from: string = 'child';
+      }
+      return PolicyService;
+    })();
+
+    const application = buildApplication();
+    await application.registerArtifacts({ services: [parent, child] });
+
+    expect(application.get<{ from: string }>({ key: 'services.PolicyService' }).from).toBe('child');
+  });
+
+  test('a parent registered after its subclass would replace it, and fails', () => {
+    const parent = (() => class PolicyService {})();
+    const child = (() => class PolicyService extends parent {})();
+    const entry = (target: Function) => ({ target, namespace: BindingNamespaces.SERVICE });
+
+    expect(
+      ArtifactBindingKeys.findDerivedCollisions({ entries: [entry(child), entry(parent)] }),
+    ).toEqual(['services.PolicyService']);
+  });
+
   test('allowDerivedKeyCollision turns the failure into a warning, the last class winning', async () => {
     const { first, second } = twoClassesNamedZz();
     const application = new IdentityApplication({

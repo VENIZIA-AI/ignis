@@ -22,7 +22,7 @@ description: "A minified build renames classes. Two classes that derive one bind
 
 **One key derivation, exported.** `ArtifactBindingKeys` (from `@venizia/ignis-kernel/metadata`) is the single place a key is derived: `resolve({ target, namespace, binding? })`, `findDerivedCollisions({ entries })` and `assertNoDerivedCollision({ entries, caller })`. `namespace` is a plain string. A framework that registers artifacts itself calls it rather than copying the rule.
 
-The check runs over one `registerArtifacts` call - never at decoration and never in `Container.bind`, where a rebind is deliberate. A hand registration after it is not cross-checked.
+The check runs over one `registerArtifacts` call - never at decoration and never in `Container.bind`, where a rebind is deliberate. A hand registration after it is not cross-checked. A subclass registered after its same-named parent is the override pattern - the subclass is meant to win - and is not a collision; a parent registered after its subclass would replace it, and is.
 
 A hot reload that re-registers in the same process (a discovery app re-booting inside a Vite Worker) decorates a second class with the same name, and looks exactly like a real collision. Set `bootChecks.allowDerivedKeyCollision` there - `examples/browser-bff` sets it from `import.meta.hot`, which a production build does not have.
 
