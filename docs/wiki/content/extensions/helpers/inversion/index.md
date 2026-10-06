@@ -52,7 +52,7 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 
 - **Every constructor parameter must carry `@inject`.** The metadata array is index-keyed - an undecorated parameter leaves a hole the container has no way to fill. `instantiate()` refuses the class by name and parameter index rather than passing `undefined`.
 - **Namespaces auto-tag bindings.** A key like `services.UserService` tags the binding `services` automatically. `setTags()` adds more. `findByTag()` queries by tag, with an `exclude` list.
-- **Keys** can be a `string` or a `symbol`. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
+- **Keys** can be a `string` or a `symbol`. Two symbols are two keys even when they share a description; `Symbol.for(name)` is one key wherever it is created. The lookup methods - `get`, `gets`, `getBinding` - also accept `{ namespace, key }`, which `BindingKeys.build` joins into a dotted string. `bind`, `isBound`, and `unbind` take the plain key only.
 - **`@inject` names a dependency by key or by class.** `@inject({ key: 'repositories.UserRepository' })` and `@inject({ target: UserRepository })` both work. They are the two arms of a union, so you pass one or the other, never both.
 
 **Scopes**
@@ -60,7 +60,7 @@ The framework layer (`@venizia/ignis`) creates these bindings for you - for cont
 | Scope | Constant | Behavior |
 |-------|----------|----------|
 | Transient | `BindingScopes.TRANSIENT` | New instance on every resolution (default) |
-| Singleton | `BindingScopes.SINGLETON` | Cached on the `Binding` after first resolution |
+| Singleton | `BindingScopes.SINGLETON` | Cached on the `Binding` after first resolution - any value, `null` and `undefined` included. A rejected promise stays cached until `clear()` |
 
 > [!IMPORTANT]
 > Singleton caching lives on the `Binding` object, not the container. Rebinding a key creates a fresh `Binding` with its own cache. If you hold onto an old `Binding` reference, its cache stays independent of `container.clear()`/`reset()` calls made against the new `Binding` registered under the same key.
@@ -127,7 +127,9 @@ class UserService {
 
 ### Resolve an optional dependency
 
-`isOptional: true` returns `undefined` instead of throwing when the key is unbound - on the constructor and via `container.get()`. `gets()` resolves several keys at once, always treating each as optional.
+`isOptional: true` returns `undefined` instead of throwing when the key is unbound - on the constructor, on a property, and via `container.get()`. With the `{ target }` form, an optional class that was never registered also resolves to `undefined`.
+
+A dependency cycle throws with its path - `Circular dependency | services.A -> services.B -> services.A` - instead of overflowing the stack. A cycle that passes through an `await` is not detected. `gets()` resolves several keys at once, always treating each as optional.
 
 ```typescript
 const maybeService = container.get<MyService>({ key: 'services.Optional', isOptional: true });

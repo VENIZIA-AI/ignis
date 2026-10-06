@@ -79,8 +79,13 @@ export class MetadataRegistry extends BaseHelper {
   }): void {
     const { target, propertyName, metadata } = opts;
 
-    let properties = this.getPropertiesMetadata({ target });
-    properties ??= new Map<string | symbol, IPropertyMetadata>();
+    // Copy-on-write, as for constructor injection: the inherited map belongs to the parent class and
+    // every sibling subclass reads it.
+    const own: Map<string | symbol, IPropertyMetadata> | undefined = Reflect.getOwnMetadata(
+      MetadataKeys.PROPERTIES,
+      target.constructor,
+    );
+    const properties = own ?? new Map(this.getPropertiesMetadata({ target }));
 
     properties.set(propertyName, metadata);
     Reflect.defineMetadata(MetadataKeys.PROPERTIES, properties, target.constructor);

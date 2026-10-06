@@ -9,16 +9,23 @@ export class Container extends BaseContainer {
     super({ scope: opts?.scope ?? Container.name });
   }
 
-  /** The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative `application.service(X)` both resolve. */
+  /**
+   * The class form reads the key the REGISTRATION recorded, so a call-site override and an imperative
+   * `application.service(X)` both resolve. `@inject` takes a key or a class; metadata a framework
+   * writes may carry both, and then the class wins and the key is the fallback for a class nothing
+   * recorded - one bound by hand with `bind({ key }).toClass(X)`. An optional class with neither
+   * resolves to `undefined`, as an optional key would.
+   */
   protected resolveBindingKey(opts: {
     key?: TBindingKey;
     target?: TInjectTarget;
+    isOptional?: boolean;
     cls: TClass<AnyType>;
     at: string;
-  }): TBindingKey {
-    const { key, target: declared, cls, at } = opts;
+  }): TBindingKey | undefined {
+    const { key, target: declared, isOptional = false, cls, at } = opts;
 
-    if (key !== undefined) {
+    if (declared === undefined && key !== undefined) {
       return key;
     }
 
@@ -35,7 +42,11 @@ export class Container extends BaseContainer {
       });
     }
 
-    const recorded = this.getMetadataRegistry().getBindingKey({ target });
+    const recorded = this.getMetadataRegistry().getBindingKey({ target }) ?? key;
+    if (recorded === undefined && isOptional) {
+      return undefined;
+    }
+
     if (recorded === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names '${target.name}', which is not registered as an artifact | Decorate it (@service, @repository, ...) or register it on the application before it is injected`,
@@ -63,14 +74,16 @@ export class Container extends BaseContainer {
         });
       }
 
+      const isOptional = meta.isOptional ?? false;
       const key = this.resolveBindingKey({
         key: meta.key,
         target: meta.target,
+        isOptional,
         cls,
         at: `Constructor parameter ${index}`,
       });
 
-      args[meta.index] = this.get({ key, isOptional: meta.isOptional ?? false });
+      args[meta.index] = key === undefined ? undefined : this.get({ key, isOptional });
     }
 
     const instance = new cls(...args);
@@ -85,18 +98,17 @@ export class Container extends BaseContainer {
 
     const properties = propertyMetadata.entries();
     for (const [propertyKey, metadata] of properties) {
+      const isOptional = metadata.isOptional ?? false;
       const key = this.resolveBindingKey({
         key: metadata.bindingKey,
         target: metadata.target,
+        isOptional,
         cls,
         at: `Property '${String(propertyKey)}'`,
       });
 
-      const dep = this.get({
-        key,
-        isOptional: metadata.isOptional ?? false,
-      });
-      (instance as any)[propertyKey] = dep;
+      (instance as any)[propertyKey] =
+        key === undefined ? undefined : this.get({ key, isOptional });
     }
 
     return instance;
