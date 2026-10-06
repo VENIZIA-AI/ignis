@@ -121,7 +121,7 @@ A dot-notation key targets a JSON/JSONB column instead of a top-level one.
 | Array index | `{ 'metadata.tags[0]': 'urgent' }` | Access an array element |
 | Combined | `{ 'metadata.users[0].email': value }` | Nested arrays and objects |
 
-**Supported operators:** `eq`, `ne`, `neq`, `gt`, `gte`, `lt`, `lte`, `in`, `inq`, `nin`, `like`, `nlike`, `ilike`, `nilike`, `between`, `notBetween`, `regexp`, `iregexp`, `is`, `isn`, `exists`, `notExists`, `not` - the same set as top-level columns.
+**Supported operators:** every operator a top-level column takes - a JSON path uses the same operator table. The array operators are the exception in practice (see the warning).
 
 > [!WARNING]
 > The array operators (`contains`/`containedBy`/`overlaps`) are **not** rejected on a JSON path - they compile, then fail at the database, because a JSON extraction is text and they need a real array column. Use a `varchar[]`/`text[]` column for array algebra.
