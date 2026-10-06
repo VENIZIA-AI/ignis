@@ -65,7 +65,9 @@ logger.log = () => undefined;
 
 let dataSource: HttpRoundTripDataSource;
 let server: Bun.Server<undefined>;
+let wrappedServer: Bun.Server<undefined>;
 let notes: HttpRepository<TNote>;
+let wrappedNotes: HttpRepository<TNote>;
 
 beforeAll(async () => {
   const client = new PGlite();
@@ -93,14 +95,29 @@ beforeAll(async () => {
 
   server = Bun.serve({ port: 0, fetch: app.fetch });
 
+  // The same routes behind a server that wraps its error envelope under `error.rootKey`.
+  const wrappedApp = new Hono();
+  wrappedApp.route('/notes', controller.getRouter());
+  wrappedApp.onError(new AppErrorMiddleware({ logger, rootKey: 'error' }).value());
+  wrappedServer = Bun.serve({ port: 0, fetch: wrappedApp.fetch });
+
   notes = new HttpRepository<TNote>({
     dataSource: new HttpDataSource({ baseUrl: `http://127.0.0.1:${server.port}` }),
+    resource: 'notes',
+  });
+
+  wrappedNotes = new HttpRepository<TNote>({
+    dataSource: new HttpDataSource({
+      baseUrl: `http://127.0.0.1:${wrappedServer.port}`,
+      errorRootKey: 'error',
+    }),
     resource: 'notes',
   });
 });
 
 afterAll(async () => {
   await server.stop(true);
+  await wrappedServer.stop(true);
   await dataSource.endDriver();
 });
 
@@ -153,5 +170,52 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
     expect(caught.message).toContain('/notes');
     expect(caught.message).toContain('Invalid input');
     expect(await notes.count({ where: {} })).toEqual({ count: 0 });
+  });
+
+  test("a 422's per-field issues are the error's cause, naming the field", async () => {
+    const caught = await notes.create({ data: {} }).catch((error: unknown) => error);
+
+    if (!isApplicationError(caught)) {
+      throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
+    }
+
+    const issues = caught.cause as Array<{ path: string }> | undefined;
+    expect(issues?.map(entry => entry.path)).toContain('title');
+  });
+
+  test("an envelope under the server's rootKey keeps the server's code and text", async () => {
+    const caught = await wrappedNotes.create({ data: {} }).catch((error: unknown) => error);
+
+    if (!isApplicationError(caught)) {
+      throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
+    }
+
+    expect(caught.statusCode).toBe(422);
+    expect(caught.normalized.code).not.toBe('core.system_error');
+    expect(caught.normalized.text).toStartWith('Invalid input');
+  });
+});
+
+describe('HttpRepository reads through a real IGNIS CRUD controller', () => {
+  test('a ranged find, findOne and existsWith read what the server holds', async () => {
+    const created = await Promise.all(
+      ['r1', 'r2', 'r3'].map(title => notes.create({ data: { title } })),
+    );
+    const ids = created.map(entry => entry.data.id);
+
+    const page = await notes.find({
+      filter: { where: { id: { inq: ids } }, order: ['id ASC'], limit: 2, skip: 1 },
+      options: { shouldQueryRange: true },
+    });
+    expect(page.data.map(row => row.title)).toEqual(['r2', 'r3']);
+    expect(page.range).toMatchObject({ start: 1, end: 2, total: 3 });
+
+    expect(await notes.findOne({ filter: { where: { title: 'r2' } } })).toMatchObject({
+      title: 'r2',
+    });
+    expect(await notes.existsWith({ where: { title: 'r3' } })).toBe(true);
+    expect(await notes.existsWith({ where: { title: 'nope' } })).toBe(false);
+
+    await notes.deleteBy({ where: { id: { inq: ids } } });
   });
 });

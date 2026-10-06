@@ -12,8 +12,17 @@ import type {
   TWhere,
 } from '@venizia/ignis-kernel/repository';
 import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository';
-import type { IHttpWriteResult } from './common/types';
+import type { IHttpCallOptions, IHttpWriteResult } from './common/types';
 import type { HttpDataSource } from './datasource';
+
+/**
+ * What a repository call takes. Only `headers` and `signal` cross HTTP; the shared repository
+ * options (`transaction`, `log`, ...) are accepted for the common contract and have no effect.
+ */
+export type THttpRepositoryOptions = NonNullable<
+  Parameters<IReadableRepository['existsWith']>[0]['options']
+> &
+  IHttpCallOptions;
 
 /** A remote resource has a name but no local schema. */
 export class HttpResourceEntity extends AbstractEntity {
@@ -28,7 +37,10 @@ export class HttpResourceEntity extends AbstractEntity {
  * defaults. There is no `createAll`: the IGNIS REST contract has no bulk-create route.
  */
 export class HttpRepository<E extends object = AnyType, P extends object = Partial<E>>
-  implements IReadableRepository<E, {}>, IUpdatableRepository<E, P, {}>, IDeletableRepository<E, {}>
+  implements
+    IReadableRepository<E, THttpRepositoryOptions>,
+    IUpdatableRepository<E, P, THttpRepositoryOptions>,
+    IDeletableRepository<E, THttpRepositoryOptions>
 {
   dataSource: HttpDataSource;
   entity: AbstractEntity;
@@ -66,12 +78,13 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   }
 
   /** From `Content-Range`, or `countPath`. No total throws rather than reporting the page size. */
-  async count(opts: { where: TWhere<E>; options?: {} }): Promise<TCount> {
+  async count(opts: { where: TWhere<E>; options?: THttpRepositoryOptions }): Promise<TCount> {
     if (this.countPath) {
       const rs = await this.dataSource.read<{ count: number }>({
         paths: [this.resource, this.countPath],
         query: { where: opts.where },
         shape: 'one',
+        ...this.toCallOptions({ options: opts.options }),
       });
 
       const counted = rs.data?.count;
@@ -88,23 +101,25 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     const rs = await this.dataSource.read<Array<E>>({
       paths: [this.resource],
       query: { filter: { where: opts.where, limit: 1 } },
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     if (!rs.hasRange) {
       throw this.getMissingTotalError({
         method: 'count',
         contentRange: rs.contentRange,
-        noHeader: `The response carried no Content-Range, so there is no total to report - answering with the page size would claim ${rs.dataLength}. Give this repository a countPath if the API publishes a count route.`,
+        noHeader: `The response carried no Content-Range, so there is no total to report - answering with the page size would claim ${rs.dataLength}. Cross-origin, the server must list Content-Range in Access-Control-Expose-Headers; otherwise give this repository a countPath if the API publishes a count route.`,
       });
     }
 
     return { count: rs.total ?? 0 };
   }
 
-  async existsWith(opts: { where: TWhere<E>; options?: {} }): Promise<boolean> {
+  async existsWith(opts: { where: TWhere<E>; options?: THttpRepositoryOptions }): Promise<boolean> {
     const rs = await this.dataSource.read<Array<E>>({
       paths: [this.resource],
       query: { filter: { where: opts.where, limit: 1 } },
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return rs.dataLength > 0;
@@ -112,9 +127,12 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
 
   async find<R = E>(opts: {
     filter: TFilter<E>;
-    options: { shouldQueryRange: true };
+    options: THttpRepositoryOptions & { shouldQueryRange: true };
   }): Promise<TDataWithRange<R>>;
-  async find<R = E>(opts: { filter?: TFilter<E>; options?: {} }): Promise<Array<R>>;
+  async find<R = E>(opts: {
+    filter?: TFilter<E>;
+    options?: THttpRepositoryOptions;
+  }): Promise<Array<R>>;
   async find<R = E>(opts: {
     filter?: TFilter<E>;
     options?: AnyType;
@@ -122,6 +140,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     const rs = await this.dataSource.read<Array<R>>({
       paths: [this.resource],
       query: { filter: opts.filter ?? {} },
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     const data = rs.data ?? [];
@@ -134,7 +153,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       throw this.getMissingTotalError({
         method: 'find',
         contentRange: rs.contentRange,
-        noHeader: `A range was asked for and the response carried no Content-Range. Deriving it from the page would report ${data.length} as the total.`,
+        noHeader: `A range was asked for and the response carried no Content-Range. Deriving it from the page would report ${data.length} as the total. Cross-origin, the server must list Content-Range in Access-Control-Expose-Headers.`,
       });
     }
 
@@ -150,28 +169,54 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     };
   }
 
-  async findOne<R = E>(opts: { filter?: TFilter<E>; options?: {} }): Promise<R | null> {
-    const rs = await this.find<R>({ filter: { ...(opts.filter ?? {}), limit: 1 } as TFilter<E> });
+  async findOne<R = E>(opts: {
+    filter?: TFilter<E>;
+    options?: THttpRepositoryOptions;
+  }): Promise<R | null> {
+    const rs = await this.find<R>({
+      filter: { ...(opts.filter ?? {}), limit: 1 } as TFilter<E>,
+      options: opts.options,
+    });
     return rs[0] ?? null;
   }
 
+  /** The server answers `null`, never 404, for a missing id. A `where` would be replaced by the id. */
   async findById<R = E>(opts: {
     id: string | number;
-    filter?: TFilter<E>;
-    options?: {};
+    filter?: Omit<TFilter<E>, 'where'>;
+    options?: THttpRepositoryOptions;
   }): Promise<R | null> {
     const rs = await this.dataSource.read<R>({
       paths: this.getIdPaths({ id: opts.id }),
       query: { filter: opts.filter ?? {} },
       shape: 'one',
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return rs.data ?? null;
   }
 
-  /** `<resource>/<id>`, the id encoded: an id carrying `/` or `?` would otherwise name another route. */
+  /**
+   * `<resource>/<id>`, the id encoded: an id carrying `/` or `?` would otherwise name another route.
+   * An empty, `.` or `..` id is refused: a URL resolves it, encoded or not, to `/<resource>/` or the
+   * parent - a router or proxy that ignores the trailing slash then serves the list or bulk route.
+   */
   protected getIdPaths(opts: { id: string | number }): Array<string> {
-    return [this.resource, encodeURIComponent(String(opts.id))];
+    const id = String(opts.id);
+
+    if (id === '' || id === '.' || id === '..') {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[${this.resource}] Invalid id '${id}' | An empty, '.' or '..' id names another route`,
+      });
+    }
+
+    return [this.resource, encodeURIComponent(id)];
+  }
+
+  /** What a call adds to its request: headers and an abort signal. Every other option stays local. */
+  protected toCallOptions(opts: { options?: THttpRepositoryOptions }): IHttpCallOptions {
+    return { headers: opts.options?.headers, signal: opts.options?.signal };
   }
 
   /** The IGNIS bulk routes answer an empty `where` with a 400; refused here before a request is spent. */
@@ -191,7 +236,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   /** The server always answers the rows; `shouldReturn: false` drops them here, as a database repository would not fetch them. */
   protected toWriteResult<R>(opts: {
     result: IHttpWriteResult<R>;
-    options?: { shouldReturn?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): TCount & { data: R | null } {
     const { result, options } = opts;
     return { count: result.count, data: options?.shouldReturn === false ? null : result.data };
@@ -200,12 +245,13 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   /** POST `/<resource>`. */
   async create<R = E>(opts: {
     data: P;
-    options?: { shouldReturn?: true };
+    options?: THttpRepositoryOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }> {
     const result = await this.dataSource.write<R>({
       paths: [this.resource],
       method: HTTP.Methods.POST,
       body: opts.data,
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return { count: result.count, data: result.data };
@@ -214,23 +260,24 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async updateById(opts: {
     id: string | number;
     data: Partial<P>;
-    options: { shouldReturn: false };
+    options: THttpRepositoryOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   async updateById<R = E>(opts: {
     id: string | number;
     data: Partial<P>;
-    options?: { shouldReturn?: true };
+    options?: THttpRepositoryOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   /** PATCH `/<resource>/<id>`. */
   async updateById<R = E>(opts: {
     id: string | number;
     data: Partial<P>;
-    options?: { shouldReturn?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.PATCH,
       body: opts.data,
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return this.toWriteResult({ result, options: opts.options });
@@ -239,18 +286,18 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async updateAll(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options: { shouldReturn: false; force?: boolean };
+    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async updateAll<R = E>(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options?: { shouldReturn?: true; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
   /** PATCH `/<resource>`, the `where` in the body beside the data - a long id list outgrows a URL. */
   async updateAll(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options?: { shouldReturn?: boolean; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     return this.patchWhere({ ...opts, method: 'updateAll' });
   }
@@ -258,18 +305,18 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   async updateBy(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options: { shouldReturn: false; force?: boolean };
+    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async updateBy<R = E>(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options?: { shouldReturn?: true; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
   /** Alias for `updateAll`. */
   async updateBy(opts: {
     data: Partial<P>;
     where: TWhere<E>;
-    options?: { shouldReturn?: boolean; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     return this.patchWhere({ ...opts, method: 'updateBy' });
   }
@@ -278,7 +325,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     method: string;
     data: Partial<P>;
     where: TWhere<E>;
-    options?: { shouldReturn?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
@@ -286,6 +333,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       paths: [this.resource],
       method: HTTP.Methods.PATCH,
       body: { ...opts.data, where },
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return this.toWriteResult({ result, options: opts.options });
@@ -293,20 +341,21 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
 
   async deleteById(opts: {
     id: string | number;
-    options: { shouldReturn: false };
+    options: THttpRepositoryOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
   async deleteById<R = E>(opts: {
     id: string | number;
-    options?: { shouldReturn?: true };
+    options?: THttpRepositoryOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   /** DELETE `/<resource>/<id>`. */
   async deleteById<R = E>(opts: {
     id: string | number;
-    options?: { shouldReturn?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     const result = await this.dataSource.write<R>({
       paths: this.getIdPaths({ id: opts.id }),
       method: HTTP.Methods.DELETE,
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return this.toWriteResult({ result, options: opts.options });
@@ -314,32 +363,32 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
 
   async deleteAll(opts: {
     where?: TWhere<E>;
-    options: { shouldReturn: false; force?: boolean };
+    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async deleteAll<R = E>(opts: {
     where?: TWhere<E>;
-    options?: { shouldReturn?: true; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
   /** DELETE `/<resource>`, the `where` in the body. */
   async deleteAll(opts: {
     where?: TWhere<E>;
-    options?: { shouldReturn?: boolean; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     return this.deleteWhere({ ...opts, method: 'deleteAll' });
   }
 
   async deleteBy(opts: {
     where?: TWhere<E>;
-    options: { shouldReturn: false; force?: boolean };
+    options: THttpRepositoryOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
   async deleteBy<R = E>(opts: {
     where?: TWhere<E>;
-    options?: { shouldReturn?: true; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> | null }>;
   /** Alias for `deleteAll`. */
   async deleteBy(opts: {
     where?: TWhere<E>;
-    options?: { shouldReturn?: boolean; force?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     return this.deleteWhere({ ...opts, method: 'deleteBy' });
   }
@@ -347,7 +396,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   protected async deleteWhere(opts: {
     method: string;
     where?: TWhere<E>;
-    options?: { shouldReturn?: boolean };
+    options?: THttpRepositoryOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: AnyType }> {
     const where = this.assertBulkWhere({ method: opts.method, where: opts.where });
 
@@ -355,6 +404,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       paths: [this.resource],
       method: HTTP.Methods.DELETE,
       body: { where },
+      ...this.toCallOptions({ options: opts.options }),
     });
 
     return this.toWriteResult({ result, options: opts.options });
