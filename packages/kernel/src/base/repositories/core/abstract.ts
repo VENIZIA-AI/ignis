@@ -180,7 +180,7 @@ export abstract class AbstractRepository<
     // never touched it either, because `??` short-circuits when a limit is given. So the ceiling is
     // consulted only when the binding that makes it resolvable is actually present.
     const hasModelBinding = Boolean(
-      MetadataRegistry.getInstance().getRepositoryBinding({ name: this.constructor.name })?.model,
+      MetadataRegistry.getInstance().getRepositoryBinding({ target: this.constructor })?.model,
     );
     const ceiling = (hasModelBinding ? this.maxLimit : undefined) ?? DEFAULT_MAX_LIMIT;
 
@@ -239,7 +239,7 @@ export abstract class AbstractRepository<
   /** Resolves the entity instance from @repository metadata on first access. */
   protected resolveEntity(): AbstractEntity {
     const registry = MetadataRegistry.getInstance();
-    const binding = registry.getRepositoryBinding({ name: this.constructor.name });
+    const binding = registry.getRepositoryBinding({ target: this.constructor });
 
     if (!binding?.model) {
       throw getError({

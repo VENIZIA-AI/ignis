@@ -31,7 +31,8 @@ export class MetadataRegistry extends BaseRegistry {
     this.modelRegistry = new Map<string, IModelRegistryEntry>();
     this.modelsBySchema = new WeakMap<object, IModelRegistryEntry>();
     this.repositoryBindings = new Map<string, IRepositoryBinding>();
-    this.datasourceModels = new Map<string, Set<TClass<AnyType>>>();
+    this.repositoryBindingsByClass = new Map<Function, IRepositoryBinding>();
+    this.datasourceModels = new Map<string | Function, Set<TClass<AnyType>>>();
   }
 
   static getInstance(): MetadataRegistry {
@@ -45,6 +46,7 @@ export class MetadataRegistry extends BaseRegistry {
     this.modelRegistry.clear();
     this.modelsBySchema = new WeakMap<object, IModelRegistryEntry>();
     this.repositoryBindings.clear();
+    this.repositoryBindingsByClass.clear();
     this.datasourceModels.clear();
   }
 }

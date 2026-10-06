@@ -4,7 +4,8 @@ import type {
   TBindingScope,
 } from '@/helpers/inversion';
 import { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
-import { ArtifactTypes, BindingKeys, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactBindingKeys } from './artifact-keys';
 import { getError } from '@venizia/ignis-helpers/core';
 
 /** The root stereotype: marks a class as an artifact the application registers, with its registration defaults. Every other stereotype calls it. */
@@ -37,12 +38,11 @@ export const injectable = <ApplicationType = unknown>(
     // The key this class WOULD get; `registerArtifact` overwrites it with the one actually bound.
     registry.setBindingKey({
       target,
-      key: BindingKeys.build(
-        opts.binding ?? {
-          namespace: ArtifactNamespaces.resolve({ type: opts.type }),
-          key: target.name,
-        },
-      ),
+      key: ArtifactBindingKeys.resolve({
+        target,
+        namespace: ArtifactNamespaces.resolve({ type: opts.type }),
+        binding: opts.binding,
+      }).key,
       isProvisional: true,
     });
   };

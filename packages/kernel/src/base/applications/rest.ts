@@ -1,9 +1,9 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
-import { BindingKeys, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
-import type { IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   executeWithPerformanceMeasure,
   getError,
@@ -15,6 +15,7 @@ import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import { bodyLimit } from 'hono/body-limit';
 import { requestId } from 'hono/request-id';
 import type { BaseComponent } from '../components';
+import { ArtifactBindingKeys } from '../metadata/artifact-keys';
 import { RestComponent } from '../components/controller/rest/rest.component';
 import type { BaseConfiguration } from '../configurations';
 import { ControllerTransports } from '../controllers/common/constants';
@@ -519,14 +520,14 @@ export abstract class RestApplication<
       });
     }
 
-    const binding = opts.opts?.binding ?? declared?.binding ?? { namespace, key: target.name };
+    const pinned = opts.opts?.binding ?? declared?.binding;
     BindingNamespaces.assertArtifactNamespace({
-      namespace: binding.namespace,
+      namespace: pinned?.namespace ?? namespace,
       artifact: target.name,
       caller,
     });
 
-    const key = BindingKeys.build(binding);
+    const { key } = ArtifactBindingKeys.resolve({ target, namespace, binding: pinned });
 
     // What `@inject({ target })` reads back. Only here knows the call site's `binding`, and a
     // class registered by hand has no stereotype metadata to derive one from.
@@ -679,6 +680,36 @@ export abstract class RestApplication<
       input: index,
       application: this,
     });
+
+    const registry = MetadataRegistry.getInstance();
+    const kinds: Array<[ReadonlyArray<TClass<AnyType>>, TBindingNamespace]> = [
+      [resolved.configurations, BindingNamespaces.CONFIGURATION],
+      [resolved.dataSources, BindingNamespaces.DATASOURCE],
+      [resolved.components, BindingNamespaces.COMPONENT],
+      [resolved.repositories, BindingNamespaces.REPOSITORY],
+      [resolved.services, BindingNamespaces.SERVICE],
+      [resolved.controllers, BindingNamespaces.CONTROLLER],
+    ];
+    const collisions = ArtifactBindingKeys.findDerivedCollisions({
+      entries: kinds.flatMap(([targets, namespace]) =>
+        targets.map(target => ({
+          target,
+          namespace,
+          binding: registry.getArtifactMetadata({ target })?.binding,
+        })),
+      ),
+    });
+
+    for (const key of collisions) {
+      const message = ArtifactBindingKeys.describeCollision({ key, caller: 'registerArtifacts' });
+
+      if (!this.configs.bootChecks?.allowDerivedKeyCollision) {
+        throw getError({ message });
+      }
+
+      this.logger.warn('%s', message);
+    }
+
     for (const target of resolved.configurations) {
       this.configuration(target);
       this.bindProvidedKeys({ target });
@@ -750,9 +781,14 @@ export abstract class RestApplication<
     const defaultNamespace = declared?.type
       ? ArtifactNamespaces.resolve({ type: declared.type })
       : BindingNamespaces.COMPONENT;
-    const componentKey = BindingKeys.build(
-      declared?.binding ?? { namespace: defaultNamespace, key: target.name },
-    );
+    // The key the registration actually bound - a call-site override included.
+    const componentKey =
+      registry.getBindingKey({ target }) ??
+      ArtifactBindingKeys.resolve({
+        target,
+        namespace: defaultNamespace,
+        binding: declared?.binding,
+      }).key;
     for (const entry of provides) {
       this.bind({ key: entry.key })
         .toProvider(container => {
