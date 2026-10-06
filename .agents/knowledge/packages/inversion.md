@@ -12,7 +12,7 @@ tags: [packages, inversion, di, ioc]
 
 `src/modules/container/` follows an Abstract -> Base -> concrete tiering: `AbstractContainer` is the contract as a class (every member abstract, typed against `IContainer`), `BaseContainer` adds storage plumbing (bind/lookup/tags/lifecycle over the shipped `Binding`, with `instantiate` still abstract), and `Container` adds the concrete two-phase decorator-metadata injection. A container that shares nothing with the shipped storage would start from `AbstractContainer`; one that only wants to vary resolution starts from `BaseContainer`.
 
-Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`, `gets<T>({ bindings })`, `resolve`/`instantiate`, `findByTag<T>({ tag, exclude? })`, `isBound`, `unbind`, `clear`/`reset`, `getMetadataRegistry()`. Binding keys are `string | symbol` (`TBindingKey`); a symbol is normalized to its string form at the boundary.
+Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`, `gets<T>({ bindings })`, `resolve`/`instantiate`, `findByTag<T>({ tag, exclude? })`, `isBound`, `unbind`, `clear`/`reset`, `getMetadataRegistry()`. Binding keys are `string | symbol` (`TBindingKey`); a bound symbol gets its own string, suffixed (`Symbol(x)#2`) by a per-description counter when another symbol holds the description; only `bind` records a symbol, `unbind` forgets it, and a lookup with an unbound symbol records nothing. `get` names a synchronous cycle (`Circular dependency | a -> b -> a`): a settled binding (cached singleton or `toValue`) skips the check, any other read counts depth and tracks keys only past 64 levels. Tracking every read cost ~6x on the singleton path when first tried; the depth gate measured within noise of before.
 
 ## Instantiation algorithm
 
@@ -20,7 +20,7 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## Binding
 
-`src/modules/binding/` provides the fluent API: `toClass(cls)`, `toValue(val)`, `toProvider(fn | cls)`, `setScope('singleton' | 'transient')`, `setTags(...tags)`, `getValue(container?)`, `clearCache()`. Bindings are auto-tagged by namespace - the key's segment before the first dot (`services.UserService` -> tag `services`). Singleton scope is cached per-Binding, not per-Container. `binding/` and `container/` talk to each other only through `IContainer`, one-way, to avoid an import cycle.
+`src/modules/binding/` provides the fluent API: `toClass(cls)`, `toValue(val)`, `toProvider(fn | cls)`, `setScope('singleton' | 'transient')`, `setTags(...tags)`, `getValue(container?)`, `clearCache()`. Bindings are auto-tagged by namespace - the key's segment before the first dot (`services.UserService` -> tag `services`). Singleton scope is cached per-Binding, not per-Container, boxed (`{ value }`) - a cached `null`/`undefined` is a value, and `clearCache()` always clears. A rejected singleton promise stays cached on purpose: watching it would mark it handled and silence an unawaited rejection (boot `doVerify` reads without awaiting). `binding/` and `container/` talk to each other only through `IContainer`, one-way, to avoid an import cycle.
 
 ## MetadataRegistry
 
@@ -28,7 +28,7 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## Decorators
 
-`@inject({ key, isOptional? })`, in `src/modules/metadata/injectors.ts`, marks a constructor parameter or a property for injection. There is NO `@injectable`: it was removed 2026-07-18 after being inert (its scope/tags metadata was written but never read) - scope is set on the binding, not the class. `isOptional: true` resolves to `undefined` instead of throwing when the key is unbound.
+`@inject({ key, isOptional? })`, in `src/modules/metadata/injectors.ts`, marks a constructor parameter or a property for injection. There is NO `@injectable`: it was removed 2026-07-18 after being inert (its scope/tags metadata was written but never read) - scope is set on the binding, not the class. `isOptional: true` resolves to `undefined` instead of throwing when the key is unbound, or, on the `{ target }` form, when the class was never registered. Metadata may carry BOTH `target` and `key` (never from `@inject`, which is one-or-the-other; the kernel writes it for `@repository`): the class's recorded key wins, the key is the fallback for a class nothing recorded. An older inversion reads such metadata key-first - i.e. the pre-change behaviour, not a failure. Property metadata is copy-on-write per class, like constructor metadata: a subclass's property `@inject` never lands in its parent's map.
 
 ## Error system
 

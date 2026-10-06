@@ -14,6 +14,13 @@ Updated [kernel](/packages/kernel.md), [repository hierarchy](/architecture/repo
   (`bootChecks.allowDerivedKeyCollision` warns instead); `@repository` injects its datasource by
   class with the derived key as fallback; repository/datasource maps keyed by class.
 
+## 2026-10-06 - the inversion container: cycles, optional targets, the singleton cache
+
+Updated [inversion](/packages/inversion.md).
+
+- Property `@inject` copy-on-write; `isOptional` honoured on `{ target }`; cycles named (depth-gated);
+  singleton cache holds falsy values; symbol keys no longer collide.
+
 ## 2026-10-06 - dev-configs gains a React preset
 
 Updated [dev-configs](/packages/dev-configs.md).
