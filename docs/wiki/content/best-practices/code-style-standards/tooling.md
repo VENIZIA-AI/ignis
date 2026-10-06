@@ -97,6 +97,22 @@ bun run eslint --fix     # Auto-fix issues
 bun run lint:fix         # Run both ESLint + Prettier
 ```
 
+### A React frontend
+
+`ReactEslintConfigs` is the same base plus the React, hooks and accessibility rules a frontend needs. Pass the plugins in - a backend never installs them:
+
+```typescript
+// eslint.config.mjs
+import { ReactEslintConfigs } from '@venizia/dev-configs';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+
+export default ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } });
+```
+
+It adds React correctness and `jsx-a11y` basics on `.jsx`/`.tsx`, `rules-of-hooks` (error) and `exhaustive-deps` (warn) on `.js`/`.jsx`/`.ts`/`.tsx`, and `consistent-type-imports`. Under ESLint 10, pass `reactVersion` (`'19.2'`): eslint-plugin-react 7 cannot detect it there. It relaxes what a UI does on purpose: PascalCase function components, promises fired from handlers, `_`-prefixed unused names. The full table is in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
+
 ## TypeScript Configuration
 
 Use the centralized TypeScript configs:

@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-06 - dev-configs gains a React preset
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `ReactEslintConfigs.create({ plugins })`, from a 15-package frontend inventory against the base.
+  Base: duplicate `curly` dropped; `ban-ts-comment` and `no-namespace` raised to `error`.
+
 ## 2026-10-02 - generated POST /find and POST /count added, then removed
 
 Updated [controller system](/architecture/controller-system.md).

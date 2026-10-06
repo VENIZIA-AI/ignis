@@ -19,7 +19,9 @@ TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/ts
 
 ## ESLint
 
-Flat config format (ESLint v9+), built on `@minimaltech/eslint-node` plus `eslint-plugin-unicorn`. Notable rules: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure.
+Flat config format (ESLint v9+), built on `@minimaltech/eslint-node` plus `eslint-plugin-unicorn`. Notable rules: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` (from the upstream preset) and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
+
+`ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` basics, hooks and `consistent-type-imports`, with the UI relaxations (PascalCase functions, no `no-floating-promises`/`no-void`, `no-unused-vars` ignoring `_`). Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule is derived from the base at call time and extended for `.jsx`/`.tsx` only, not copied, so an upstream change to it carries through.
 
 ## Prettier
 

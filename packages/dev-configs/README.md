@@ -63,20 +63,58 @@ earlier. Every IGNIS example does.
 
 | Entry point | What it gives |
 | :--- | :--- |
-| `@venizia/dev-configs` | `eslintConfigs` (flat config array), `prettierConfigs`, `BunCompiler` |
+| `@venizia/dev-configs` | `eslintConfigs` (flat config array), `ReactEslintConfigs`, `prettierConfigs`, `BunCompiler` |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2024, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 
 ## What each config sets
 
 `eslintConfigs` is `@minimaltech/eslint-node` (ESLint recommended, typescript-eslint, Prettier as a
-lint rule, naming conventions, `eslint-plugin-n`) plus three IGNIS rules:
+lint rule, naming conventions, `curly`, `eslint-plugin-n`) plus these IGNIS rules:
 
 | Rule | Setting |
 | :--- | :--- |
 | `@typescript-eslint/no-explicit-any` | `off` |
-| `curly` | `['error', 'all']` |
+| `@typescript-eslint/ban-ts-comment` | `error` - `@ts-expect-error` with a description is still allowed |
+| `@typescript-eslint/no-namespace` | `error` |
 | `unicorn/switch-case-braces` | `['error', 'always']` |
+
+`ReactEslintConfigs.create({ plugins })` is `eslintConfigs` plus what a React frontend needs. The
+plugins come in as options, so a backend installs none of them:
+
+```js
+// eslint.config.mjs
+import { ReactEslintConfigs } from '@venizia/dev-configs';
+import react from 'eslint-plugin-react';
+import reactHooks from 'eslint-plugin-react-hooks';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
+
+export default [
+  { ignores: ['dist/'] },
+  ...ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } }),
+];
+```
+
+| Adds | Setting |
+| :--- | :--- |
+| React correctness (`jsx-key`, `no-children-prop`, `no-deprecated`, ... - 14 rules) | `error`, `.jsx`/`.tsx` |
+| `jsx-a11y` basics (`alt-text`, `aria-props`, `aria-role`, ... - 9 rules) | `error`, `.jsx`/`.tsx` |
+| `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error` / `warn`, every source file |
+| `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
+| `naming-convention` | the base rule, plus PascalCase functions (`function App()`), `.jsx`/`.tsx` |
+| `no-floating-promises`, `no-void`, `no-invalid-this`, `no-use-before-define` | `off` - a UI fires promises from handlers and uses components above their declaration |
+| `no-explicit-any` | `warn` (the base has it `off`) |
+| `no-shadow` | `warn` |
+| `no-unused-vars` | `warn`, `_`-prefixed names ignored |
+
+Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, `prop-types`,
+`jsx-no-undef`, ...) are left out.
+
+- `reactVersion` defaults to `'detect'`. Under ESLint 10, eslint-plugin-react 7 cannot detect it and
+  aborts - pass the version: `create({ plugins, reactVersion: '19.2' })`.
+- In an `eslint.config.ts`, `eslint-plugin-jsx-a11y` needs `@types/eslint-plugin-jsx-a11y`.
+- `consistent-type-imports` keeps the default `fixStyle`; a codebase that prefers
+  `inline-type-imports` sets it on top.
 
 `prettierConfigs`:
 
