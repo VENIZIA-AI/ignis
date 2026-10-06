@@ -49,7 +49,7 @@ const applyParamInject = (opts: { target: Function; index: number; key: string }
 };
 
 describe('@repository - datasource auto-injection at param[0]', () => {
-  test('a repository with no constructor gets the datasource injected at param[0]', () => {
+  test('a repository with no constructor gets the datasource injected at param[0], by class with the derived key as fallback', () => {
     class AutoInjectedRepository {}
 
     repository({ model: InjectorAccount, dataSource: InjectorPrimaryDataSource })(
@@ -58,6 +58,7 @@ describe('@repository - datasource auto-injection at param[0]', () => {
 
     const injects = registry.getInjectMetadata({ target: AutoInjectedRepository });
     expect(injects?.[0]).toEqual({
+      target: InjectorPrimaryDataSource,
       key: 'datasources.InjectorPrimaryDataSource',
       index: 0,
       isOptional: false,

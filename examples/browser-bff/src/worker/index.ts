@@ -5,6 +5,9 @@ const application = new Application({
   config: {
     path: { base: '/api', isStrict: false },
     discoverArtifacts: true,
+    // A hot reload re-evaluates a module, decorating a second class of the same name; in development
+    // that is expected, so it warns instead of failing. A production build has no `import.meta.hot`.
+    bootChecks: { allowDerivedKeyCollision: import.meta.hot !== undefined },
     // A Worker has no `process.env`, so the error middleware reads its environment from here.
     error: { environment: import.meta.env.MODE },
   },

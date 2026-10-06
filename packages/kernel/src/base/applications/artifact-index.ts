@@ -112,18 +112,15 @@ export class ArtifactIndexHelper extends BaseHelper {
     }
 
     const registry = MetadataRegistry.getInstance();
-    const classMap = new Map<string, TClass<any>>();
-    for (const target of classes) {
-      classMap.set(target.name, target);
-    }
 
-    // Build graph: edge A -> B means A must run before B (B declared after: [A])
-    const inDegree = new Map<string, number>();
-    const adjacency = new Map<string, string[]>();
+    // Keyed by the class itself: two configurations may share a name (a minified build renames them),
+    // and a name-keyed graph silently drops one of them.
+    const inDegree = new Map<TClass<any>, number>();
+    const adjacency = new Map<TClass<any>, TClass<any>[]>();
 
     for (const target of classes) {
-      inDegree.set(target.name, 0);
-      adjacency.set(target.name, []);
+      inDegree.set(target, 0);
+      adjacency.set(target, []);
     }
 
     for (const target of classes) {
@@ -131,53 +128,54 @@ export class ArtifactIndexHelper extends BaseHelper {
       const afterList = metadata?.after ?? [];
 
       for (const prereq of afterList) {
-        const prereqName = typeof prereq === 'function' ? prereq.name : String(prereq);
-        if (!classMap.has(prereqName)) {
+        // A string names a class, the only form that can; a class is matched by identity.
+        const prereqClass =
+          typeof prereq === 'function'
+            ? classes.find(candidate => candidate === prereq)
+            : classes.find(candidate => candidate.name === String(prereq));
+
+        if (!prereqClass) {
+          const prereqName = typeof prereq === 'function' ? prereq.name : String(prereq);
           throw getError({
             message: `[sortConfigurationsTopologically][${target.name}] Declared 'after' dependency '${prereqName}' is not registered as a configuration`,
           });
         }
 
-        adjacency.get(prereqName)!.push(target.name);
-        inDegree.set(target.name, (inDegree.get(target.name) ?? 0) + 1);
+        adjacency.get(prereqClass)!.push(target);
+        inDegree.set(target, (inDegree.get(target) ?? 0) + 1);
       }
     }
 
-    // Kahn's algorithm with priority queue (sorted by class name for deterministic sibling ordering)
-    const available: string[] = [];
-    const inDegreeEntries = inDegree.entries();
-    for (const [name, deg] of inDegreeEntries) {
-      if (deg === 0) {
-        available.push(name);
-      }
-    }
-    available.sort((a, b) => a.localeCompare(b));
-
-    const sortedNames: string[] = [];
+    // Kahn's algorithm. Siblings run in class-name order; a minified build renames classes, so an
+    // order that matters belongs in `after`.
+    const byName = (a: TClass<any>, b: TClass<any>) => a.name.localeCompare(b.name);
+    const available = classes.filter(target => inDegree.get(target) === 0).sort(byName);
+    const sorted: TClass<any>[] = [];
 
     while (available.length > 0) {
       const current = available.shift()!;
-      sortedNames.push(current);
+      sorted.push(current);
 
-      const dependents = adjacency.get(current) ?? [];
-      for (const dep of dependents) {
-        const newDeg = inDegree.get(dep)! - 1;
-        inDegree.set(dep, newDeg);
+      for (const dependent of adjacency.get(current) ?? []) {
+        const newDeg = inDegree.get(dependent)! - 1;
+        inDegree.set(dependent, newDeg);
         if (newDeg === 0) {
-          available.push(dep);
-          available.sort((a, b) => a.localeCompare(b));
+          available.push(dependent);
+          available.sort(byName);
         }
       }
     }
 
-    if (sortedNames.length !== classes.length) {
-      const unvisited = classes.filter(c => !sortedNames.includes(c.name)).map(c => c.name);
+    if (sorted.length !== classes.length) {
+      const unvisited = classes
+        .filter(target => !sorted.includes(target))
+        .map(target => target.name);
       throw getError({
         message: `[sortConfigurationsTopologically] Dependency cycle detected in configurations: ${unvisited.join(', ')}`,
       });
     }
 
-    return sortedNames.map(name => classMap.get(name)!);
+    return sorted;
   }
 
   /** One index, or arrays nested to any depth, as a flat list in input order; a conditional entry contributes its subtree only when its `when` answers true. */

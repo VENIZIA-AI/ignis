@@ -1851,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 63,
+      "line": 71,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -1881,7 +1881,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 54,
+      "line": 62,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -3621,7 +3621,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 78,
+      "line": 86,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -5202,7 +5202,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 42,
+      "line": 43,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -9302,7 +9302,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -9712,7 +9712,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -29363,7 +29363,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "class",
       "file": "packages/inversion/src/modules/container/base.ts",
-      "line": 9,
+      "line": 12,
       "signature": "class BaseContainer extends AbstractContainer"
     },
     {
@@ -29973,7 +29973,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 159,
+      "line": 164,
       "signature": "metadataRegistry: MetadataRegistry"
     },
     {
@@ -30743,7 +30743,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 63,
+      "line": 71,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -30763,7 +30763,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 54,
+      "line": 62,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -31573,7 +31573,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 78,
+      "line": 86,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -32023,7 +32023,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 42,
+      "line": 43,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -33773,7 +33773,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -33933,7 +33933,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -34107,6 +34107,16 @@
       "signature": "unary: <RpcRouteConfigType extends Omit<IRpcMetadata, \"method\">>(opts: { configs: RpcRouteConfigType; }) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void"
     },
     {
+      "name": "ArtifactBindingKeys",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/base/metadata/artifact-keys.ts",
+      "line": 8,
+      "signature": "class ArtifactBindingKeys"
+    },
+    {
       "name": "ArtifactNamespaces",
       "package": "@venizia/ignis-kernel",
       "subpath": "./metadata",
@@ -34243,7 +34253,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -34283,7 +34293,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {

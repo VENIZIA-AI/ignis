@@ -35,6 +35,14 @@ export interface IApplicationConfigs {
   /** Boot-time checks. Without `binding`, nothing is verified, and hand registration and same-key override stay allowed. */
   bootChecks?: {
     binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean };
+
+    /**
+     * Two different classes deriving one binding key from their class name fail registration: in a
+     * minified build the second would silently replace the first. A development setup that
+     * re-registers after a hot reload re-evaluates modules, which looks the same; `true` there turns
+     * the failure into a warning.
+     */
+    allowDerivedKeyCollision?: boolean;
   };
 
   /** Controller transports to enable. Defaults to ['rest']. */

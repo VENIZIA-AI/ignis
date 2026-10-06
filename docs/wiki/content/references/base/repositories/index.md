@@ -170,7 +170,7 @@ export class ProductRepository extends HttpRepository<TProduct> {
 }
 ```
 
-The datasource is still injected at constructor param[0]. No model binding is registered, so the datasource discovers no schema through this repository.
+The datasource is still injected at constructor param[0] - by its class, so a datasource pinned to its own key (`@datasource({ binding })`) is found even after a minified build renames it. No model binding is registered, so the datasource discovers no schema through this repository.
 
 | `type` | Value | `model` | Registers |
 |---|---|---|---|

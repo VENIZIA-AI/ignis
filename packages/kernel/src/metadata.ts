@@ -17,6 +17,7 @@ export {
 } from '@/base/metadata/injectable';
 export { datasource, model, repository } from '@/base/metadata/persistents';
 export { inject } from '@/base/metadata/injectors';
+export { ArtifactBindingKeys } from '@/base/metadata/artifact-keys';
 
 export { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
 export type { TBindingNamespace } from '@/common/bindings';

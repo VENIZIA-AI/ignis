@@ -1390,8 +1390,9 @@ tags: [reference, exports, api]
 - `WhereQuerySchema` const
 - `WhereSchema` const
 
-### `@venizia/ignis-kernel/metadata` (19)
+### `@venizia/ignis-kernel/metadata` (20)
 
+- `ArtifactBindingKeys` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `BindingKeys` class

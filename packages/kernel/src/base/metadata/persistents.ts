@@ -132,20 +132,18 @@ const validateFirstConstructorParameter = (opts: {
   }
 };
 
-/** Auto-injects dataSource at constructor param[0] unless explicit @inject exists. */
+/**
+ * Auto-injects dataSource at constructor param[0] unless explicit @inject exists. A class is injected
+ * by the class itself, so the container reads the key its registration recorded: a pinned
+ * `binding` and a minified class name both resolve. Only a string reference is a key.
+ */
 const registerDataSourceInjection = (opts: {
   target: Function;
   registry: MetadataRegistry;
+  dataSourceRef: TRepositoryMetadata['dataSource'];
   resolvedDataSource: string | Function;
 }): void => {
-  const { target, registry, resolvedDataSource } = opts;
-
-  const paramTypes = Reflect.getMetadata('design:paramtypes', target);
-  const firstParamType = paramTypes?.[0];
-
-  if (firstParamType) {
-    validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
-  }
+  const { target, registry, dataSourceRef, resolvedDataSource } = opts;
 
   // Own metadata only: `getInjectMetadata` walks the prototype chain, so a repository extending another @repository class would see the BASE's injection at param[0] and silently resolve the base's dataSource.
   const ownInjects: IInjectMetadata[] | undefined = Reflect.getOwnMetadata(
@@ -164,12 +162,11 @@ const registerDataSourceInjection = (opts: {
       injectAtIndex0.key ??
       (injectedTarget ? registry.getBindingKey({ target: injectedTarget }) : undefined);
 
-    // A datasource registered by hand gets its key from `this.dataSource()`, after this decorator
-    // runs, so an unkeyed target is judged by its class instead.
-    const isDataSourceTarget =
-      typeof injectKey === 'string'
-        ? injectKey.startsWith(`${BindingNamespaces.DATASOURCE}.`)
-        : isDataSourceClass(injectedTarget);
+    // A class is judged by its brand: its key may sit under any namespace a `binding` pinned, and
+    // a provisional key may still change at registration. Only a bare key is judged by its prefix.
+    const isDataSourceTarget = injectedTarget
+      ? isDataSourceClass(injectedTarget)
+      : typeof injectKey === 'string' && injectKey.startsWith(`${BindingNamespaces.DATASOURCE}.`);
 
     if (!isDataSourceTarget) {
       throw getError({
@@ -180,9 +177,12 @@ const registerDataSourceInjection = (opts: {
     return;
   }
 
-  const dsName =
-    typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
-  const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
+  // Checked only when this decorator writes the injection: an explicit @inject decides for itself,
+  // and an interface or `import type` parameter emits `Object`, which says nothing.
+  const firstParamType = Reflect.getMetadata('design:paramtypes', target)?.[0];
+  if (firstParamType && firstParamType !== Object) {
+    validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
+  }
 
   // The inherited list is the base repository's own, and setInjectMetadata may write straight into it.
   if (!ownInjects) {
@@ -193,10 +193,21 @@ const registerDataSourceInjection = (opts: {
     );
   }
 
+  const derivedKey = BindingKeys.build({
+    namespace: BindingNamespaces.DATASOURCE,
+    key: typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name,
+  });
+
+  // The class first, decided when the repository is resolved: by then any registration - decorated,
+  // `bindingList()`, or `dataSource(X, { binding })` - has recorded its key on the class. The derived
+  // key is the fallback for a class nothing recorded, bound by hand under exactly that key.
   registry.setInjectMetadata({
     target,
     index: 0,
-    metadata: { key: dsBindingKey, index: 0, isOptional: false },
+    metadata:
+      typeof dataSourceRef === 'string'
+        ? { key: derivedKey, index: 0, isOptional: false }
+        : { target: dataSourceRef, key: derivedKey, index: 0, isOptional: false },
   });
 };
 
@@ -214,10 +225,20 @@ const resolveRepositoryMetadata = <
   validateRepositoryMetadata({ metadata, target });
 
   const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
+  if (!resolvedDataSource) {
+    throw getError({
+      message: `[@repository][${target.name}] The dataSource resolver returned nothing at decoration time | An import cycle leaves the datasource class undefined here; import it without the cycle, or name it as a string`,
+    });
+  }
 
   // No model, so no binding: the datasource owns no schema through this repository.
   if (metadata.type === RepositoryTypes.REMOTE) {
-    registerDataSourceInjection({ target, registry, resolvedDataSource });
+    registerDataSourceInjection({
+      target,
+      registry,
+      dataSourceRef: metadata.dataSource,
+      resolvedDataSource,
+    });
     return {
       type: RepositoryTypes.REMOTE,
       dataSource: resolvedDataSource,
@@ -233,7 +254,12 @@ const resolveRepositoryMetadata = <
     dataSource: resolvedDataSource,
   });
 
-  registerDataSourceInjection({ target, registry, resolvedDataSource });
+  registerDataSourceInjection({
+    target,
+    registry,
+    dataSourceRef: metadata.dataSource,
+    resolvedDataSource,
+  });
 
   return {
     type: RepositoryTypes.MODEL,

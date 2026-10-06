@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Artifact Identity No Longer Rides on the Class Name',
+                  link: '/changelogs/2026-10-06-artifact-identity',
+                },
+                {
                   text: 'The Container Names a Cycle and Caches Any Singleton',
                   link: '/changelogs/2026-10-06-inversion-container-correctness',
                 },

@@ -25,13 +25,18 @@ export const RepositoryMetadataMixin = <
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
+    /** By repository class name, for the by-name API. Two classes may share a name; `repositoryBindingsByClass` cannot confuse them. */
     repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
+    /** By repository class: a minified build renames classes, and two chunks may give two of them one name. */
+    repositoryBindingsByClass: Map<Function, IRepositoryBinding<AbstractEntity>>;
+
     /**
-     * The model classes a datasource owns, never their names: two classes may share a name and the
-     * name-keyed `modelRegistry` holds only one, so keying by name resolves the wrong class.
+     * The model classes each datasource owns, keyed by the datasource class - or by the string a
+     * repository named it with (`dataSource: 'PgDataSource'`), which only a class of that name
+     * can match. Never by class name alone: a minified build gives two datasources one name.
      */
-    datasourceModels: Map<string, Set<TClass<AnyType>>>;
+    datasourceModels: Map<string | Function, Set<TClass<AnyType>>>;
 
     setRepositoryMetadata<
       Target extends object = object,
@@ -64,21 +69,54 @@ export const RepositoryMetadataMixin = <
       // datasource then silently discovers no schema.
       const repositoryClass = resolveValue({ value: opts.repository });
       this.repositoryBindings.set(repositoryClass.name, opts);
+      this.repositoryBindingsByClass.set(repositoryClass, opts);
 
       const dataSourceRef = resolveValue({ value: opts.dataSource });
-      const dsKey = typeof dataSourceRef === 'string' ? dataSourceRef : dataSourceRef.name;
-
       const modelClass = resolveValue({ value: opts.model });
 
-      if (!this.datasourceModels.has(dsKey)) {
-        this.datasourceModels.set(dsKey, new Set());
+      if (!this.datasourceModels.has(dataSourceRef)) {
+        this.datasourceModels.set(dataSourceRef, new Set());
       }
 
-      this.datasourceModels.get(dsKey)!.add(modelClass);
+      this.datasourceModels.get(dataSourceRef)!.add(modelClass);
     }
 
-    getRepositoryBinding(opts: { name: string }): IRepositoryBinding<AbstractEntity> | undefined {
-      return this.repositoryBindings.get(opts.name);
+    /** By class, walking up to the nearest decorated parent; by name only for callers holding a name. */
+    getRepositoryBinding(
+      opts: { target: Function } | { name: string },
+    ): IRepositoryBinding<AbstractEntity> | undefined {
+      if ('name' in opts) {
+        return this.repositoryBindings.get(opts.name);
+      }
+
+      for (
+        let current: Function | null = opts.target;
+        current && current !== Function.prototype;
+        current = Object.getPrototypeOf(current)
+      ) {
+        const binding = this.repositoryBindingsByClass.get(current);
+        if (binding) {
+          return binding;
+        }
+      }
+
+      return undefined;
+    }
+
+    /** A class finds what was registered under it, and under a string equal to its name. */
+    getDataSourceModelClasses(opts: {
+      dataSource: string | TClass<IDataSource>;
+    }): Set<TClass<AnyType>> {
+      const { dataSource } = opts;
+
+      if (typeof dataSource === 'string') {
+        return this.datasourceModels.get(dataSource) ?? new Set();
+      }
+
+      return new Set([
+        ...(this.datasourceModels.get(dataSource) ?? []),
+        ...(this.datasourceModels.get(dataSource.name) ?? []),
+      ]);
     }
 
     /**
@@ -127,9 +165,7 @@ export const RepositoryMetadataMixin = <
       schema: unknown;
       relations?: unknown;
     }> {
-      const { dataSource } = opts;
-      const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-      const modelClasses = this.datasourceModels.get(dsKey) ?? new Set();
+      const modelClasses = this.getDataSourceModelClasses({ dataSource: opts.dataSource });
 
       const rs = Array.from(modelClasses)
         .map(modelClass => {
@@ -166,12 +202,9 @@ export const RepositoryMetadataMixin = <
      * has no pgTable to resolve.
      */
     getModelClasses(opts: { dataSource: string | TClass<IDataSource> }): Array<TClass<unknown>> {
-      const { dataSource } = opts;
-      const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-
       // Straight from the stored class refs: a name round-trip through the shared modelRegistry
       // would hand back whichever same-named class registered last.
-      return Array.from(this.datasourceModels.get(dsKey) ?? new Set());
+      return Array.from(this.getDataSourceModelClasses({ dataSource: opts.dataSource }));
     }
 
     /** The key a model occupies in `modelRegistry` - its table name, or its class name when it has none. */
@@ -212,9 +245,7 @@ export const RepositoryMetadataMixin = <
     }
 
     hasModels(opts: { dataSource: string | TClass<IDataSource> }): boolean {
-      const dsKey = typeof opts.dataSource === 'string' ? opts.dataSource : opts.dataSource.name;
-      const modelNames = this.datasourceModels.get(dsKey);
-      return modelNames !== undefined && modelNames.size > 0;
+      return this.getDataSourceModelClasses({ dataSource: opts.dataSource }).size > 0;
     }
   };
 };

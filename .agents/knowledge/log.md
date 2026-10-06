@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-06 - artifact identity no longer rides on the class name
+
+Updated [kernel](/packages/kernel.md), [repository hierarchy](/architecture/repository-hierarchy.md).
+
+- `ArtifactBindingKeys`; `registerArtifacts` throws on two classes deriving one key
+  (`bootChecks.allowDerivedKeyCollision` warns instead); `@repository` injects its datasource by
+  class with the derived key as fallback; repository/datasource maps keyed by class.
+
 ## 2026-10-06 - the inversion container: cycles, optional targets, the singleton cache
 
 Updated [inversion](/packages/inversion.md).

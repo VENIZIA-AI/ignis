@@ -166,13 +166,22 @@ export class UserRepository extends DefaultRelationalRepository<typeof User.sche
 `registerDataSourceInjection` in `packages/kernel/src/base/metadata/persistents.ts` does the work,
 and it is strict:
 
-- If the constructor declares a first parameter, its `design:paramtypes` entry must extend
-  `AbstractDataSource` and be compatible with the class named in `@repository({ dataSource })`. Both
-  mismatches throw by class name at decoration time.
-- If an explicit `@inject` sits at index 0, it must name a datasource. A key (given, or recorded on
-  the `target` class) must start with the `datasources.` namespace. A `target` with no recorded key
-  yet - a datasource registered by hand, whose key `this.dataSource()` records after the decorator
-  ran - is judged by `isDataSourceClass` instead. Parameter 0 is always a datasource.
+- With no explicit `@inject` at index 0, the decorator writes the injection: `{ target, key }` for a
+  class, `{ key }` for a string. The container decides at RESOLVE time - the key the class's
+  registration recorded (decorated, `bindingList()`, `dataSource(X, { binding })`) wins, and the
+  derived `datasources.<ClassName>` is the fallback for a class bound raw with `bind({ key })`. This
+  needs the inversion that reads target-first; an older one reads the key first, i.e. the old
+  behaviour. The recorded key is per class, process-wide: two applications binding one class under
+  two keys share the last one recorded.
+- Only then is the first parameter checked: its `design:paramtypes` entry must extend
+  `AbstractDataSource` and be compatible with the declared class. `Object` (an interface or an
+  `import type` - what tsc emits for them, while esbuild/Vite emit nothing) is not checked, so two
+  builds of one codebase agree.
+- An explicit `@inject` at index 0 decides for itself and must name a datasource: a `target` class
+  by its brand (`isDataSourceClass`), whatever namespace its key sits in; a bare key by its
+  `datasources.` prefix. Parameter 0 is always a datasource.
+- A `dataSource: () => X` that returns nothing at decoration time (an import cycle) throws naming
+  the cycle, rather than crashing on `.name` of undefined.
 - It reads **own** metadata only (`Reflect.getOwnMetadata`). `getInjectMetadata` walks the prototype
   chain, so a repository extending another `@repository` class would otherwise see the base class's
   injection at param[0], skip its own auto-injection, and silently resolve the base's datasource.
