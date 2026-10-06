@@ -47,12 +47,12 @@ instead of breaking later inside the router.
 - `init()` - Register the core bindings; call it once before `start()`
 - `initialize()` - Run the boot sequence; `start()` already calls it for you
 - `start()` - Initialize, set up middlewares, then bind the socket
-- `stop()` - Stop the server, then close every datasource the boot configured
+- `stop()` - Run the post-stop hooks, stop the server, then close every datasource (even when stopping the server fails)
 
 ### BaseRestController
 
 ```typescript
-import { BaseRestController, controller, get } from '@venizia/ignis';
+import { BaseRestController, controller, get, TRouteContext } from '@venizia/ignis';
 
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
@@ -63,7 +63,7 @@ class UserController extends BaseRestController {
   override binding() {}
 
   @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
-  getUser(c: Context) {
+  getUser(c: TRouteContext) {
     const id = c.req.param('id');
     return c.json({ id, name: 'John' });
   }
@@ -80,6 +80,7 @@ class UserController extends BaseRestController {
 ```typescript
 import { BaseGrpcController, controller, unary, ControllerTransports } from '@venizia/ignis';
 import { GreeterService } from '../gen/greeter_connect';
+import type { SayHelloRequest } from '../gen/greeter_pb';
 
 @controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterService })
 class GreeterController extends BaseGrpcController {
@@ -90,8 +91,8 @@ class GreeterController extends BaseGrpcController {
   override binding() {}
 
   @unary({ configs: { name: 'sayHello' } })
-  async sayHello(request: SayHelloRequest) {
-    return { message: `Hello, ${request.name}!` };
+  async sayHello(opts: { request: SayHelloRequest }) {
+    return { message: `Hello, ${opts.request.name}!` };
   }
 }
 ```
@@ -99,15 +100,18 @@ class GreeterController extends BaseGrpcController {
 ### BaseService
 
 ```typescript
-import { BaseService } from '@venizia/ignis';
+import { BaseService, inject } from '@venizia/ignis';
+import { UserRepository } from '../repositories';
 
 class UserService extends BaseService {
-  constructor() {
+  constructor(
+    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
+  ) {
     super({ scope: UserService.name });
   }
 
   async getUser(id: string) {
-    this.logger.info('Getting user', id);
+    this.logger.info('Getting user | id: %s', id);
     return this.userRepository.findById({ id });
   }
 }
@@ -184,9 +188,14 @@ class User extends BaseEntity {
 | `@clientStream()` | Client streaming | `@clientStream({ configs: { name: 'uploadData' } })` |
 | `@bidiStream()` | Bidirectional | `@bidiStream({ configs: { name: 'chat' } })` |
 
+> [!WARNING]
+> Only `@unary` runs today. A controller with a streaming method throws when it is configured.
+
 ### REST Example
 
 ```typescript
+import { BaseRestController, controller, get, inject, post, TRouteContext } from '@venizia/ignis';
+
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
   constructor(
@@ -198,14 +207,14 @@ class UserController extends BaseRestController {
   override binding() {}
 
   @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
-  async createUser(c: Context) {
+  async createUser(c: TRouteContext) {
     const data = await c.req.json();
     const result = await this.userService.create(data);
     return c.json(result, 201);
   }
 
   @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
-  async getUser(c: Context) {
+  async getUser(c: TRouteContext) {
     const id = c.req.param('id');
     const result = await this.userService.findById(id);
     return c.json(result);
@@ -256,7 +265,7 @@ class UserController extends BaseRestController {
 |----------|-----|---------|
 | `and` | `AND` | `{ and: [{ age: { gt: 18 } }, { status: 'active' }] }` |
 | `or` | `OR` | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` |
-| `not` | `NOT` | `{ not: { status: 'deleted' } }` |
+| `not` | `NOT (...)` | `{ status: { not: 'deleted' } }` - inside a column, never at the top level |
 
 ### Array Operators (PostgreSQL)
 
@@ -367,6 +376,7 @@ import {
 
   // Repositories
   DefaultCRUDRepository,
+  repository,
 
   // Models
   BaseEntity,
@@ -437,7 +447,7 @@ import { BindingNamespaces } from '@venizia/ignis';
 ### JSON Response
 
 ```typescript
-import { jsonResponse } from '@venizia/ignis';
+import { jsonResponse, TRouteContext } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 @get({
@@ -453,7 +463,7 @@ import { z } from '@hono/zod-openapi';
     }),
   },
 })
-getUser(c: Context) {
+getUser(c: TRouteContext) {
   const id = c.req.param('id');
   return c.json({ id, name: 'John', email: 'john@example.com' });
 }
@@ -462,7 +472,7 @@ getUser(c: Context) {
 ### HTML Response
 
 ```typescript
-import { htmlResponse } from '@venizia/ignis';
+import { htmlResponse, TRouteContext } from '@venizia/ignis';
 
 @get({
   configs: {
@@ -472,7 +482,7 @@ import { htmlResponse } from '@venizia/ignis';
     }),
   },
 })
-getDashboard(c: Context) {
+getDashboard(c: TRouteContext) {
   return c.html(<DashboardPage />);
 }
 ```
@@ -571,7 +581,21 @@ class MyApplication extends BaseApplication {
 ### Controller → Service → Repository
 
 ```typescript
+import {
+  BaseRestController,
+  BaseService,
+  controller,
+  DefaultCRUDRepository,
+  inject,
+  post,
+  repository,
+  TRouteContext,
+} from '@venizia/ignis';
 import { genSalt, hash } from 'bcrypt';
+import { PostgresDataSource } from '../datasources';
+import { User } from '../models';
+
+type CreateUserDto = { name: string; email: string; password: string };
 
 // Controller
 @controller({ path: '/users' })
@@ -586,7 +610,7 @@ class UserController extends BaseRestController {
   override binding() {}
 
   @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
-  async createUser(c: Context) {
+  async createUser(c: TRouteContext) {
     const data = await c.req.json();
     return c.json(await this.userService.create(data), 201);
   }
