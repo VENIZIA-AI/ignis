@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: "The HTTP Connector Follows the Session and Keeps the Server's Errors",
+                  link: '/changelogs/2026-10-06-http-connector-contract',
+                },
+                {
                   text: 'dev-configs Gains a React Preset',
                   link: '/changelogs/2026-10-06-dev-configs-react-preset',
                 },
