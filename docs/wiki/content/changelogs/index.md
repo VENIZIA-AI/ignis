@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-06 | [The Container Names a Cycle and Caches Any Singleton](./2026-10-06-inversion-container-correctness) | Bug Fix, Behavior Change |
 | 2026-10-06 | [dev-configs Gains a React Preset](./2026-10-06-dev-configs-react-preset) | Feature, Behavior Change |
 | 2026-10-06 | [The HTTP Connector Follows the Session and Keeps the Server's Errors](./2026-10-06-http-connector-contract) | Feature, Bug Fix, Behavior Change |
 | 2026-10-02 | [HTTP Connector Errors Keep the Server Message Args](./2026-10-02-http-connector-error-args) | Bug Fix |

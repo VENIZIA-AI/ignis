@@ -10,7 +10,8 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
 
   private bindScope: TBindingScope = BindingScopes.TRANSIENT;
   private tags: Set<string>;
-  private cached?: T;
+  /** Boxed: a singleton may legitimately be `null`, `false`, `0`, `''` or `undefined`. */
+  private cached?: { value: T };
 
   private resolver:
     | { type: typeof BindingValueTypes.CLASS; value: TClass<T> }
@@ -81,9 +82,17 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     return this.bindScope;
   }
 
+  /** True when `getValue` answers without building anything: a cached singleton or a plain value. Nothing it reads can form a cycle. */
+  isSettled(): boolean {
+    return (
+      (this.bindScope === BindingScopes.SINGLETON && this.cached !== undefined) ||
+      this.resolver.type === BindingValueTypes.VALUE
+    );
+  }
+
   getValue(container?: IContainer): T {
-    if (this.bindScope === BindingScopes.SINGLETON && this.cached !== undefined) {
-      return this.cached;
+    if (this.bindScope === BindingScopes.SINGLETON && this.cached) {
+      return this.cached.value;
     }
 
     let instance: T;
@@ -130,17 +139,13 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     }
 
     if (this.bindScope === BindingScopes.SINGLETON) {
-      this.cached = instance;
+      this.cached = { value: instance };
     }
 
     return instance;
   }
 
   clearCache() {
-    if (!this.cached) {
-      return;
-    }
-
     this.cached = undefined;
   }
 }

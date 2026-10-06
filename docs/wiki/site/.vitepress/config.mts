@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The Container Names a Cycle and Caches Any Singleton',
+                  link: '/changelogs/2026-10-06-inversion-container-correctness',
+                },
+                {
                   text: "The HTTP Connector Follows the Session and Keeps the Server's Errors",
                   link: '/changelogs/2026-10-06-http-connector-contract',
                 },
