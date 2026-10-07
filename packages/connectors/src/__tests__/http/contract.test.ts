@@ -514,3 +514,98 @@ describe('review cases', () => {
     expect(error.statusCode).toBe(502);
   });
 });
+
+describe('list extras, asked for by name', () => {
+  const marked = (body: unknown, names: string) => ({
+    status: 200,
+    text: JSON.stringify(body),
+    headers: { 'x-response-extra': names },
+  });
+
+  const buildRepository = () =>
+    new HttpRepository({
+      dataSource: new HttpDataSource({ baseUrl: BASE_URL }),
+      resource: 'items',
+    });
+
+  test('find sends plain, grouped and switched-off extras in one header, and reads the marked body', async () => {
+    const attempts = stubFetch([
+      marked({ data: [{ id: 1 }], extra: { facets: { status: 2 }, counts: 1 } }, 'facets,counts'),
+    ]);
+
+    const result = await buildRepository().find({
+      filter: {},
+      options: { extra: { facets: ['status', 'tag'], counts: true, lots: false } },
+    });
+
+    expect(attempts[0].headers['x-request-extra']).toBe('facets(status,tag),counts,-lots');
+    expect(result.data).toEqual([{ id: 1 }]);
+    expect(result.extra.facets?.status).toBe(2);
+  });
+
+  test('a find that names no extra sends no header', async () => {
+    const attempts = stubFetch([{ status: 200, text: '[]' }]);
+
+    await buildRepository().find({ filter: {} });
+
+    expect(attempts[0].headers['x-request-extra']).toBeUndefined();
+  });
+
+  test('count, existsWith and findOne ask for the rows alone, every default off', async () => {
+    const attempts = stubFetch([
+      { status: 200, text: '[]', headers: { 'content-range': 'records */0' } },
+    ]);
+    const repository = buildRepository();
+
+    await repository.count({ where: {} });
+    await repository.existsWith({ where: {} });
+    await repository.findOne({ filter: {} });
+
+    expect(attempts.map(attempt => attempt.headers['x-request-extra'])).toEqual(['-*', '-*', '-*']);
+  });
+
+  test('an unmarked { data, extra } body is not unwrapped as a list', async () => {
+    stubFetch([{ status: 200, text: JSON.stringify({ data: [1, 2], extra: { note: 'x' } }) }]);
+
+    await expectRejection({
+      task: new HttpDataSource({ baseUrl: BASE_URL }).read({ paths: ['items'] }),
+      message: /neither an array/,
+    });
+  });
+});
+
+describe('write extras', () => {
+  test('a write marked by the server reads { data, extra }', async () => {
+    const attempts = stubFetch([
+      {
+        status: 200,
+        text: JSON.stringify({ data: [{ id: 1 }], extra: { counts: { declared: 1 } } }),
+        headers: { 'x-response-extra': 'counts' },
+      },
+    ]);
+
+    const result = await new HttpDataSource({ baseUrl: BASE_URL }).write({
+      paths: ['items', 'bulk'],
+      method: 'POST',
+      body: {},
+      extra: { counts: true },
+    });
+
+    expect(attempts[0].headers['x-request-extra']).toBe('counts');
+    expect(result).toMatchObject({ data: [{ id: 1 }], extra: { counts: { declared: 1 } } });
+  });
+
+  test('an unmarked row with data and extra columns comes back as written', async () => {
+    const row = { id: 1, data: [1], extra: { note: 'x' } };
+    stubFetch([{ status: 200, text: JSON.stringify(row) }]);
+
+    const result = await new HttpDataSource({ baseUrl: BASE_URL }).write({
+      paths: ['items'],
+      method: 'POST',
+      body: {},
+    });
+
+    expect(result.data).toEqual(row);
+    expect(result.extra).toBeUndefined();
+  });
+});

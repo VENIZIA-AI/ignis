@@ -255,7 +255,19 @@ Header precedence, weakest first: `headers`, `headersResolver`, the call's own, 
 > [!WARNING]
 > Cross-origin, `count()` and `find({ options: { shouldQueryRange: true } })` read `Content-Range`, which a browser hides unless the server lists it in `Access-Control-Expose-Headers` (with `x-response-count` for writes).
 
-The connector's readers are exported for a client that talks to the same server: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })` and `HttpResponseReader.readError({ response, rootKey })`.
+A list route that offers extras (see [Extras beside the rows](/references/base/controllers#extras-beside-the-rows)) answers the ones the call names - `true` for a plain one, a list of keys for a group, `false` to switch a default off:
+
+```typescript
+const { data, range, extra } = await productRepository.find({
+  filter,
+  options: { shouldQueryRange: true, extra: { facets: ['status', 'category'], counts: false } },
+});
+extra.facets.status; // keys typed from what was asked for
+```
+
+Without `shouldQueryRange`, `find` with `extra` answers `{ data, extra }`; asked for, `extra` is always present, and each entry is optional. `read({ extra })` and `write({ extra })` take the same request. The connector unwraps `{ data, extra }` only when the response carries `x-response-extra`. `count`, `existsWith` and `findOne` ask for the rows alone (`-*`), so no default is computed for them. A client without the connector builds the header with `HttpExtraRequest.toHeader` and reads the body with `HttpResponseReader.readExtra`, both from `@venizia/ignis-kernel/repository`.
+
+The connector's readers are exported for a client that talks to the same server - from `@venizia/ignis-kernel/repository`, so that client needs no connector, and re-exported from `/http`: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })` and `HttpResponseReader.readError({ response, rootKey })`.
 
 ## See also
 

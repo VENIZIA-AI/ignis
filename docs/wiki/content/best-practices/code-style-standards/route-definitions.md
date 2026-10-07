@@ -143,6 +143,7 @@ Three rules follow from it:
 
 - **A list never depends on a `/count` route.** The total travels in `Content-Range`. The factory's `count` verb stays available for callers that want a count alone.
 - **Count with its own narrow query, next to the page query.** `shouldQueryRange: true` already does this (in parallel outside a transaction, one after the other inside one). Do not fold the count into the page query with `COUNT(*) OVER()`: it is free on a small table and costs seconds on a large one, because the window forces the whole scope to be walked before the page is cut.
+- **Figures beside the rows are extras, asked for by the client.** Offer them in `respond({ extra })` - plain, as a default when cheap and always shown, or as a keyed group (`facets(status,tag)`) computed in one pass - never as a hand-built `{ facets, data }` body, which breaks the bare-array contract clients ask for. See [Extras beside the rows](/references/base/controllers#extras-beside-the-rows).
 - **A body that is not `{ count, data }` still sends the headers.** Call `setListHeaders({ context, range, count })`; `POST /search` does this and keeps `{ found, isFoundExact, hits }` as its body.
 
 ## OpenAPI Schema Integration

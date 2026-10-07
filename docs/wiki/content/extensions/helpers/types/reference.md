@@ -519,8 +519,19 @@ Grouped by category, matching the source file's comments:
 | | `REQUEST_DEVICE_INFO` | `'x-device-info'` |
 | | `REQUEST_CHANNEL` | `'x-request-channel'` |
 | | `REQUEST_COUNT_DATA` | `'x-request-count'` |
+| | `REQUEST_EXTRA` | `'x-request-extra'` |
 | | `RESPONSE_COUNT_DATA` | `'x-response-count'` |
 | | `RESPONSE_FORMAT` | `'x-response-format'` |
+| | `RESPONSE_EXTRA` | `'x-response-extra'` |
+
+#### HTTP.CorsHeaders
+
+The headers IGNIS adds, for a CORS configuration that lists headers by hand - spread them in, and a header IGNIS adds later needs no change there:
+
+| Constant | Headers |
+|----------|---------|
+| `ALLOW` | `x-request-id`, `x-request-count`, `x-request-extra`, `x-request-channel`, `x-device-info` |
+| `EXPOSE` | `content-range`, `x-request-id`, `x-response-count`, `x-response-format`, `x-response-extra` |
 
 #### HTTP.HeaderValues
 

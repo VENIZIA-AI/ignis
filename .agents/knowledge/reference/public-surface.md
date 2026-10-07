@@ -978,7 +978,7 @@ tags: [reference, exports, api]
 
 ## kernel
 
-### `@venizia/ignis-kernel` (409)
+### `@venizia/ignis-kernel` (412)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1162,6 +1162,7 @@ tags: [reference, exports, api]
 - `IRepositoryMetadata` interface
 - `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
+- `IRequestedExtra` interface
 - `IRequestIdOptions` interface
 - `IResolvedRepositoryMetadata` interface
 - `IRestApplication` interface
@@ -1230,6 +1231,7 @@ tags: [reference, exports, api]
 - `resolveFindOneConfig` const
 - `resolveInjectTarget` const
 - `resolveRequestDomain` const
+- `ResponseExtras` class
 - `ResponseFormats` class
 - `RestApplication` class
 - `RestBindingKeys` class
@@ -1361,6 +1363,7 @@ tags: [reference, exports, api]
 - `TRepositoryType` type
 - `TRequestContextResolver` type
 - `TResponseBodyOf` type
+- `TResponseExtra` type
 - `TResponseFormat` type
 - `TResponseHeaderObject` type
 - `TResponseHeaders` type
@@ -1413,7 +1416,7 @@ tags: [reference, exports, api]
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (29)
+### `@venizia/ignis-kernel/repository` (33)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1422,6 +1425,8 @@ tags: [reference, exports, api]
 - `CoreErrorCodes` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
+- `HttpExtraRequest` class
+- `HttpResponseReader` class
 - `ICreatableRepository` interface
 - `ICrudRepository` interface
 - `IDataSource` interface
@@ -1437,6 +1442,8 @@ tags: [reference, exports, api]
 - `TCount` type
 - `TDataRange` type
 - `TDataWithRange` type
+- `TExtraRequest` type
+- `TExtraResult` type
 - `TFilter` type
 - `throwNotSupported` const
 - `TIdSchemaType` type
@@ -1578,7 +1585,7 @@ tags: [reference, exports, api]
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/http` (16)
+### `@venizia/ignis-connectors/http` (18)
 
 - `HttpDataSource` class
 - `HttpRepository` class
@@ -1591,6 +1598,8 @@ tags: [reference, exports, api]
 - `IHttpRequestContext` interface
 - `IHttpWriteResult` interface
 - `TAuthTokenResolver` type
+- `TExtraRequest` type
+- `TExtraResult` type
 - `THttpBody` type
 - `THttpHeaders` type
 - `THttpHeadersResolver` type
@@ -2058,7 +2067,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1009)
+### `@venizia/ignis` (1012)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2487,6 +2496,7 @@ tags: [reference, exports, api]
 - `IRepositoryMetadata` interface
 - `IRepositoryMetadataBase` interface
 - `IRepositoryMixin` interface
+- `IRequestedExtra` interface
 - `IRequestedRemark` interface
 - `IRequestIdOptions` interface
 - `IRequestOptions` interface
@@ -2696,6 +2706,7 @@ tags: [reference, exports, api]
 - `resolveValue` const
 - `resolveValueAsync` const
 - `ResourceRoleManager` class
+- `ResponseExtras` class
 - `ResponseFormats` class
 - `RestApplication` class
 - `RestBindingKeys` class
@@ -2969,6 +2980,7 @@ tags: [reference, exports, api]
 - `TResolver` type
 - `TResponseBodyOf` type
 - `TResponsedError` type
+- `TResponseExtra` type
 - `TResponseFormat` type
 - `TResponseHeaderObject` type
 - `TResponseHeaders` type

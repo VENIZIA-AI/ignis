@@ -219,7 +219,7 @@ Override to register routes manually using `bindRoute` or `defineRoute`.
 
 Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`, plus the response helpers every controller shares.
 
-### `respond<R>(opts: { context, format, payload, range? })`
+### `respond<R>(opts: { context, format, payload, range?, extra? })`
 
 The one response call. Sets `X-Response-Format` (`ResponseFormats.ARRAY` or `ResponseFormats.OBJECT`), and with `range` also `Content-Range: records <start>-<end>/<total>` (`records */<total>` for an empty page); then returns `payload` (`{ count, data }`) through `normalizeCountData`, which writes `X-Response-Count` from `payload.count` and returns the bare `data` when the client sent `x-request-count: false`. `payload.count` is the rows of this response, never the total.
 
@@ -232,6 +232,35 @@ return context.json(
 ```
 
 `range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+
+#### Extras beside the rows
+
+A list can offer figures beside its rows - facet counts, chip totals. Declare them in `extra`; the client names the ones it wants in `x-request-extra`, and only those are computed:
+
+```typescript
+const body = await this.respond({
+  context,
+  format: ResponseFormats.ARRAY,
+  payload: { count: data.length, data },
+  range,
+  extra: {
+    summary: () => this.productService.summary({ where }),                         // when named
+    counts: { isDefault: true, compute: () => this.productService.counts({ where }) }, // always, unless switched off
+    facets: { keys: ['status', 'category', 'tag'], compute: ({ keys }) => this.productService.facets({ where, keys }) },
+  },
+});
+return context.json(body, HTTP.ResultCodes.RS_2.Ok);
+```
+
+| `x-request-extra` entry | Meaning |
+|---|---|
+| `summary` | A plain extra |
+| `facets(status,tag)` | A group with the keys wanted; `compute` receives exactly those, for one aggregate pass |
+| `-counts` / `-*` | One default / every default switched off |
+
+When anything was computed, the body is `{ data, extra }` (plus `count` unless `x-request-count: false`) and the response carries `x-response-extra` naming it. Otherwise the body is unchanged. An unknown name or key, a group named without keys, or a malformed entry is a 400 naming what the route offers.
+
+With `extra`, `respond` returns a promise: await it. A write route offers extras the same way. Only routes that pass `extra` read the header; the others ignore it. `getRequestedExtras({ context })` returns the parsed entries for a route that builds its body by hand. Cross-origin, spread `HTTP.CorsHeaders.ALLOW` and `HTTP.CorsHeaders.EXPOSE` into a CORS configuration that lists headers by hand.
 
 ### `setListHeaders(opts: { context, count } & ({ range } | { offset, total }))`
 

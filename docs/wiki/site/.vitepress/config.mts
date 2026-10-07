@@ -451,6 +451,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-07',
+              collapsed: true,
+              items: [
+                {
+                  text: 'HttpResponseReader Moves Next to the Server Contract',
+                  link: '/changelogs/2026-10-07-response-reader-in-kernel',
+                },
+                {
+                  text: 'A List Answers Extras Only When They Are Asked For',
+                  link: '/changelogs/2026-10-07-list-extras',
+                },
+              ],
+            },
+            {
               text: '2026-10-06',
               collapsed: true,
               items: [

@@ -12,7 +12,12 @@ import type {
   TWhere,
 } from '@venizia/ignis-kernel/repository';
 import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository';
-import type { IHttpCallOptions, IHttpWriteResult } from './common/types';
+import type {
+  IHttpCallOptions,
+  IHttpWriteResult,
+  TExtraRequest,
+  TExtraResult,
+} from './common/types';
 import type { HttpDataSource } from './datasource';
 
 /**
@@ -84,6 +89,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
         paths: [this.resource, this.countPath],
         query: { where: opts.where },
         shape: 'one',
+        isEveryDefaultOff: true,
         ...this.toCallOptions({ options: opts.options }),
       });
 
@@ -101,6 +107,8 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     const rs = await this.dataSource.read<Array<E>>({
       paths: [this.resource],
       query: { filter: { where: opts.where, limit: 1 } },
+      // Rows alone: a default extra would be computed and thrown away on every count or probe.
+      isEveryDefaultOff: true,
       ...this.toCallOptions({ options: opts.options }),
     });
 
@@ -119,34 +127,53 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     const rs = await this.dataSource.read<Array<E>>({
       paths: [this.resource],
       query: { filter: { where: opts.where, limit: 1 } },
+      // Rows alone: a default extra would be computed and thrown away on every count or probe.
+      isEveryDefaultOff: true,
       ...this.toCallOptions({ options: opts.options }),
     });
 
     return rs.dataLength > 0;
   }
 
+  /** With `extra`: what the route answered beside the rows, typed by what was asked for. */
+  async find<R = E, const Extra extends TExtraRequest = TExtraRequest>(opts: {
+    filter: TFilter<E>;
+    options: THttpRepositoryOptions & { shouldQueryRange: true; extra: Extra };
+  }): Promise<TDataWithRange<R> & { extra: TExtraResult<Extra> }>;
   async find<R = E>(opts: {
     filter: TFilter<E>;
     options: THttpRepositoryOptions & { shouldQueryRange: true };
   }): Promise<TDataWithRange<R>>;
+  async find<R = E, const Extra extends TExtraRequest = TExtraRequest>(opts: {
+    filter?: TFilter<E>;
+    options: THttpRepositoryOptions & { extra: Extra };
+  }): Promise<{ data: Array<R>; extra: TExtraResult<Extra> }>;
   async find<R = E>(opts: {
     filter?: TFilter<E>;
     options?: THttpRepositoryOptions;
   }): Promise<Array<R>>;
+  /** `extra` or the range decided at run time: the caller narrows the union. */
+  async find<R = E>(opts: {
+    filter?: TFilter<E>;
+    options?: THttpRepositoryOptions & { shouldQueryRange?: boolean; extra?: TExtraRequest };
+  }): Promise<
+    Array<R> | TDataWithRange<R> | { data: Array<R>; extra: TExtraResult<TExtraRequest> }
+  >;
   async find<R = E>(opts: {
     filter?: TFilter<E>;
     options?: AnyType;
-  }): Promise<Array<R> | TDataWithRange<R>> {
+  }): Promise<Array<R> | TDataWithRange<R> | { data: Array<R>; extra?: Record<string, unknown> }> {
     const rs = await this.dataSource.read<Array<R>>({
       paths: [this.resource],
       query: { filter: opts.filter ?? {} },
+      extra: opts.options?.extra,
       ...this.toCallOptions({ options: opts.options }),
     });
 
     const data = rs.data ?? [];
 
     if (!opts.options?.shouldQueryRange) {
-      return data;
+      return opts.options?.extra ? { data, extra: rs.extra ?? {} } : data;
     }
 
     if (!rs.hasRange) {
@@ -166,6 +193,8 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
         dataLength: data.length,
         total: rs.total ?? 0,
       }),
+      // Asked for, `extra` is always there - empty when the route offered none.
+      ...(opts.options?.extra ? { extra: rs.extra ?? {} } : {}),
     };
   }
 
@@ -173,11 +202,13 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     filter?: TFilter<E>;
     options?: THttpRepositoryOptions;
   }): Promise<R | null> {
-    const rs = await this.find<R>({
-      filter: { ...(opts.filter ?? {}), limit: 1 } as TFilter<E>,
-      options: opts.options,
+    const rs = await this.dataSource.read<Array<R>>({
+      paths: [this.resource],
+      query: { filter: { ...(opts.filter ?? {}), limit: 1 } },
+      isEveryDefaultOff: true,
+      ...this.toCallOptions({ options: opts.options }),
     });
-    return rs[0] ?? null;
+    return rs.data?.[0] ?? null;
   }
 
   /** The server answers `null`, never 404, for a missing id. A `where` would be replaced by the id. */

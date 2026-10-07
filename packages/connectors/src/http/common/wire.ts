@@ -1,23 +1,13 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { THttpBody, THttpHeaders } from './types';
+import { HttpExtraRequest } from '@venizia/ignis-kernel/repository';
+import type { TExtraRequest, THttpBody, THttpHeaders } from './types';
 
 /**
  * What `HttpDataSource` puts on the wire and reads back off it: headers, request bodies, rows and
  * the path an error message names. Internal - not part of the `http` entry.
  */
 export class HttpWire {
-  static isPlainObject(value: unknown): value is Record<string, unknown> {
-    return (
-      !!value && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
-    );
-  }
-
-  /** An empty string reads as absent, so a fallback still applies. */
-  static toText(value: unknown): string | undefined {
-    return typeof value === 'string' && value !== '' ? value : undefined;
-  }
-
   /**
    * Caller headers as unique lowercase pairs, last spelling winning.
    *
@@ -142,6 +132,26 @@ export class HttpWire {
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: `[read] A list was asked for and the response is neither an array nor a { count, data } envelope | ${HttpWire.describeUrl({ url })}`,
     });
+  }
+
+  /**
+   * The call's headers plus `x-request-extra` for the extras it asks for - `name`, `-name`,
+   * `name(key,key)` - and `-*` first when it wants the rows alone, with every default off.
+   */
+  static withExtraHeader(opts: {
+    headers?: THttpHeaders;
+    extra?: TExtraRequest;
+    isEveryDefaultOff?: boolean;
+  }): THttpHeaders | undefined {
+    const { headers, extra, isEveryDefaultOff } = opts;
+    const value = HttpExtraRequest.toHeader({ extra, isEveryDefaultOff });
+
+    if (value === undefined) {
+      return headers;
+    }
+
+    const extraHeader: [string, string] = [HttpExtraRequest.HEADER, value];
+    return [...HttpWire.toHeaderEntries({ headers }), extraHeader];
   }
 
   /**
