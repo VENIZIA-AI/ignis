@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-07 - readExtra keeps the count envelope
+
+Updated [kernel](/packages/kernel.md).
+
+- A marked body asked with the count gives `{ count, data }` as `body`, not the bare rows; 0.2.1-4 dropped `count` for a client that sends `x-request-count: true`.
+
 ## 2026-10-07 - HttpResponseReader moves to kernel/repository
 
 Updated [connectors](/packages/connectors.md).

@@ -96,9 +96,10 @@ export class HttpResponseReader {
   }
 
   /**
-   * A body the server marked with `x-response-extra` is `{ data, extra }`: its rows and what it
-   * answered beside them. Any other body is returned as it stands - an unmarked object is never
-   * unwrapped, so a row that has `data` and `extra` columns of its own is never misread.
+   * A body the server marked with `x-response-extra` carries `extra` beside its rows. `body` is what
+   * the route answers without extras: the `{ count, data }` envelope when the count was asked for in
+   * the body, the rows otherwise. Any other body is returned as it stands - an unmarked object is
+   * never unwrapped, so a row that has `data` and `extra` columns of its own is never misread.
    */
   static readExtra(opts: { body: unknown; headers: Pick<Headers, 'has'> }): {
     body: unknown;
@@ -115,6 +116,7 @@ export class HttpResponseReader {
       return { body };
     }
 
-    return { body: body.data, extra: { ...body.extra } };
+    const { extra, ...envelope } = body;
+    return { body: 'count' in envelope ? envelope : envelope.data, extra: { ...extra } };
   }
 }
