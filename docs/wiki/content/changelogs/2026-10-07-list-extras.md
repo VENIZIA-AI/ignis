@@ -73,7 +73,7 @@ A group named with no keys is a 400, not "every key". A client cannot trigger ev
 - `read({ extra })` and `write({ extra })` take the same request object and return `extra`.
 - The connector unwraps `{ data, extra }` only when the response carries `x-response-extra`. A row that happens to have `data` and `extra` columns is never misread.
 - `count` (by `Content-Range` or by `countPath`), `existsWith` and `findOne` send `-*`, so a default is not computed for a read that throws it away. They always ask for the rows alone, replacing any `x-request-extra` the call set by hand.
-- The header builder and the reader live in `@venizia/ignis-kernel/repository`: `HttpExtraRequest.toHeader({ extra, isEveryDefaultOff })`, and `HttpResponseReader.readExtra({ body, headers })`. A client that reads the server without the connector uses the same code.
+- The header builder and the reader live in `@venizia/ignis-kernel/repository`: `HttpExtraRequest.toHeader({ extra, isEveryDefaultOff })`, and `HttpResponseReader.readExtra({ body, headers })`. A client that reads the server without the connector uses the same code. `readExtra` returns `extra` and the body as the route answers it without extras: the `{ count, data }` envelope when the count was asked for in the body, the rows otherwise (from kernel 0.2.1-5; 0.2.1-4 dropped `count`).
 
 To read extras without rows, send `limit: 0`.
 
