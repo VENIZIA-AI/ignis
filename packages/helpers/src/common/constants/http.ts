@@ -71,8 +71,32 @@ export class HTTP {
     REQUEST_DEVICE_INFO: 'x-device-info',
     REQUEST_CHANNEL: 'x-request-channel',
     REQUEST_COUNT_DATA: 'x-request-count',
+    REQUEST_EXTRA: 'x-request-extra',
     RESPONSE_COUNT_DATA: 'x-response-count',
     RESPONSE_FORMAT: 'x-response-format',
+    RESPONSE_EXTRA: 'x-response-extra',
+  } as const;
+
+  /**
+   * The headers IGNIS adds to a request and to a response, for a CORS configuration that lists them
+   * by hand: spread `ALLOW` into the allowed request headers and `EXPOSE` into the exposed ones, so
+   * a header IGNIS adds later needs no change there.
+   */
+  static readonly CorsHeaders = {
+    ALLOW: [
+      'x-request-id',
+      'x-request-count',
+      'x-request-extra',
+      'x-request-channel',
+      'x-device-info',
+    ],
+    EXPOSE: [
+      'content-range',
+      'x-request-id',
+      'x-response-count',
+      'x-response-format',
+      'x-response-extra',
+    ],
   } as const;
 
   /** Common MIME / Content-Type values. */

@@ -21,5 +21,9 @@ export const buildDataRange = (opts: {
   return { start, end, total };
 };
 
-/** The `shouldQueryRange: true` result envelope. */
-export type TDataWithRange<R> = { data: Array<R>; range: TDataRange };
+/** The `shouldQueryRange: true` result envelope; `extra` carries what a list answered beside its rows - see `x-request-extra`. */
+export type TDataWithRange<R> = {
+  data: Array<R>;
+  range: TDataRange;
+  extra?: Record<string, unknown>;
+};

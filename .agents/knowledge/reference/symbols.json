@@ -819,7 +819,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/rest/base.ts",
-      "line": 27,
+      "line": 29,
       "signature": "class BaseRestController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>> extends AbstractRestController<RouteEnv, RouteSchema,"
     },
     {
@@ -1851,7 +1851,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 63,
+      "line": 71,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -1881,7 +1881,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 54,
+      "line": 62,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -3595,6 +3595,16 @@
       "signature": "interface IRequestOptions"
     },
     {
+      "name": "IRequestedExtra",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 22,
+      "signature": "interface IRequestedExtra"
+    },
+    {
       "name": "IRequestedRemark",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3621,7 +3631,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 78,
+      "line": 86,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -5186,6 +5196,16 @@
       "signature": "class ResourceRoleManager extends BaseRoleManager implements RoleManager"
     },
     {
+      "name": "ResponseExtras",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 36,
+      "signature": "class ResponseExtras"
+    },
+    {
       "name": "ResponseFormats",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -5202,7 +5222,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 42,
+      "line": 43,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -6253,7 +6273,7 @@
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
       "line": 25,
-      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
+      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; extra?: Record<string, unknown>; }"
     },
     {
       "name": "TDecoratorModelTarget",
@@ -6762,7 +6782,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 206,
+      "line": 230,
       "signature": "type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>"
     },
     {
@@ -6772,7 +6792,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 207,
+      "line": 231,
       "signature": "type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>"
     },
     {
@@ -6782,7 +6802,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 209,
+      "line": 233,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -7644,6 +7664,16 @@
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
       "line": 68,
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
+    },
+    {
+      "name": "TResponseExtra",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 12,
+      "signature": "type TResponseExtra = (() => ValueOrPromise<unknown>) | { isDefault: boolean; compute: () => ValueOrPromise<unknown>; keys?: never; } | { keys: ReadonlyArray<string>; compute: (opts: { keys: Array<string>; }) => ValueOrPromise<unknown>; isDefault?: never; }"
     },
     {
       "name": "TResponseFormat",
@@ -9302,7 +9332,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -9712,7 +9742,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -9942,7 +9972,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/rest/base.ts",
-      "line": 20,
+      "line": 22,
       "signature": "toContentRange: (opts: { range: TDataRange; count: number; }) => string"
     },
     {
@@ -17191,7 +17221,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/datasource.ts",
-      "line": 21,
+      "line": 22,
       "signature": "class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings>"
     },
     {
@@ -17201,7 +17231,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 39,
+      "line": 44,
       "signature": "class HttpRepository<E extends object = AnyType, P extends object = Partial<E>> implements IReadableRepository<E, THttpRepositoryOptions>, IUpdatableRepository<E, P, THttpRepositoryOptions>, IDeletableRepository<E, THttpRepositoryOptions>"
     },
     {
@@ -17211,7 +17241,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 28,
+      "line": 33,
       "signature": "class HttpResourceEntity extends AbstractEntity"
     },
     {
@@ -17220,7 +17250,7 @@
       "subpath": "./http",
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
-      "file": "packages/connectors/src/http/common/readers.ts",
+      "file": "packages/kernel/src/base/repositories/common/response-reader.ts",
       "line": 8,
       "signature": "class HttpResponseReader"
     },
@@ -17241,7 +17271,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 35,
+      "line": 38,
       "signature": "interface IHttpCallOptions"
     },
     {
@@ -17251,7 +17281,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 40,
+      "line": 43,
       "signature": "interface IHttpDataSourceSettings"
     },
     {
@@ -17261,7 +17291,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 68,
+      "line": 71,
       "signature": "interface IHttpReadResult<R>"
     },
     {
@@ -17281,7 +17311,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "interface",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 79,
+      "line": 84,
       "signature": "interface IHttpWriteResult<R>"
     },
     {
@@ -17293,6 +17323,26 @@
       "file": "packages/connectors/src/http/common/types.ts",
       "line": 19,
       "signature": "type TAuthTokenResolver = (context: IHttpRequestContext) => IAuthToken | undefined"
+    },
+    {
+      "name": "TExtraRequest",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/extra-request.ts",
+      "line": 7,
+      "signature": "type TExtraRequest = Record<string, boolean | ReadonlyArray<string>>"
+    },
+    {
+      "name": "TExtraResult",
+      "package": "@venizia/ignis-connectors",
+      "subpath": "./http",
+      "specifier": "@venizia/ignis-connectors/http",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/extra-request.ts",
+      "line": 13,
+      "signature": "type TExtraResult<Extra extends TExtraRequest> = { [K in keyof Extra as Extra[K] extends false ? never : K]?: Extra[K] extends ReadonlyArray<infer Key extends string> ? Record<Key, unknown> : unknown; } & Record<string, unknown>"
     },
     {
       "name": "THttpBody",
@@ -17331,7 +17381,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/common/types.ts",
-      "line": 84,
+      "line": 91,
       "signature": "type THttpQuery<E extends object> = { filter?: TFilter<E>; }"
     },
     {
@@ -17341,7 +17391,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "type",
       "file": "packages/connectors/src/http/repository.ts",
-      "line": 22,
+      "line": 27,
       "signature": "type THttpRepositoryOptions = NonNullable<Parameters<IReadableRepository['existsWith']>[0]['options']> & IHttpCallOptions"
     },
     {
@@ -24653,7 +24703,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 206,
+      "line": 230,
       "signature": "type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>"
     },
     {
@@ -24663,7 +24713,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 207,
+      "line": 231,
       "signature": "type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>"
     },
     {
@@ -24673,7 +24723,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 209,
+      "line": 233,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -26463,7 +26513,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 206,
+      "line": 230,
       "signature": "type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>"
     },
     {
@@ -26473,7 +26523,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 207,
+      "line": 231,
       "signature": "type THttpProtocol = ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>"
     },
     {
@@ -26483,7 +26533,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 209,
+      "line": 233,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -30403,7 +30453,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/rest/base.ts",
-      "line": 27,
+      "line": 29,
       "signature": "class BaseRestController<RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>> extends AbstractRestController<RouteEnv, RouteSchema,"
     },
     {
@@ -30743,7 +30793,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 63,
+      "line": 71,
       "signature": "interface IApplication<AppEnv extends Env = Env, AppSchema extends Schema = Schema, BasePath extends string = '/'>"
     },
     {
@@ -30763,7 +30813,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 54,
+      "line": 62,
       "signature": "interface IApplicationInfo"
     },
     {
@@ -31557,6 +31607,16 @@
       "signature": "interface IRequestIdOptions extends IBaseMiddlewareOptions"
     },
     {
+      "name": "IRequestedExtra",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "interface",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 22,
+      "signature": "interface IRequestedExtra"
+    },
+    {
       "name": "IResolvedRepositoryMetadata",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -31573,7 +31633,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/applications/common/types/application.ts",
-      "line": 78,
+      "line": 86,
       "signature": "interface IRestApplication extends IApplication, IComponentMixin, IControllerMixin, IRepositoryMixin, IServiceMixin, IStaticServeMixin"
     },
     {
@@ -32007,6 +32067,16 @@
       "signature": "RequestErrors: { readonly BODY_MALFORMED: { readonly message: { readonly text: \"Malformed body payload\"; readonly code: \"core.request.body_malformed\"; }; readonly statusCode: 400; readonly category: \"validation\"; }; readonly BODY_TOO_LARGE: { readonly message: { readonly text: \"Request body is too l"
     },
     {
+      "name": "ResponseExtras",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "class",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 36,
+      "signature": "class ResponseExtras"
+    },
+    {
       "name": "ResponseFormats",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -32023,7 +32093,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/applications/rest.ts",
-      "line": 42,
+      "line": 43,
       "signature": "class RestApplication<AppEnv extends Env = Env, AppSchema extends Schema = {}, BasePath extends string = '/'> extends AbstractApplication"
     },
     {
@@ -32614,7 +32684,7 @@
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
       "line": 25,
-      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
+      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; extra?: Record<string, unknown>; }"
     },
     {
       "name": "TDecoratorModelTarget",
@@ -33237,6 +33307,16 @@
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
     },
     {
+      "name": "TResponseExtra",
+      "package": "@venizia/ignis-kernel",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-kernel",
+      "kind": "type",
+      "file": "packages/kernel/src/base/controllers/rest/extras.ts",
+      "line": 12,
+      "signature": "type TResponseExtra = (() => ValueOrPromise<unknown>) | { isDefault: boolean; compute: () => ValueOrPromise<unknown>; keys?: never; } | { keys: ReadonlyArray<string>; compute: (opts: { keys: Array<string>; }) => ValueOrPromise<unknown>; isDefault?: never; }"
+    },
+    {
       "name": "TResponseFormat",
       "package": "@venizia/ignis-kernel",
       "subpath": ".",
@@ -33773,7 +33853,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -33933,7 +34013,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -34073,7 +34153,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "const",
       "file": "packages/kernel/src/base/controllers/rest/base.ts",
-      "line": 20,
+      "line": 22,
       "signature": "toContentRange: (opts: { range: TDataRange; count: number; }) => string"
     },
     {
@@ -34105,6 +34185,16 @@
       "file": "packages/kernel/src/base/metadata/routes/rpc.ts",
       "line": 28,
       "signature": "unary: <RpcRouteConfigType extends Omit<IRpcMetadata, \"method\">>(opts: { configs: RpcRouteConfigType; }) => (target: any, propertyKey: string | symbol, _descriptor: PropertyDescriptor) => void"
+    },
+    {
+      "name": "ArtifactBindingKeys",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./metadata",
+      "specifier": "@venizia/ignis-kernel/metadata",
+      "kind": "class",
+      "file": "packages/kernel/src/base/metadata/artifact-keys.ts",
+      "line": 8,
+      "signature": "class ArtifactBindingKeys"
     },
     {
       "name": "ArtifactNamespaces",
@@ -34243,7 +34333,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/injectable.ts",
-      "line": 11,
+      "line": 12,
       "signature": "injectable: <ApplicationType = unknown>(opts: IArtifactMetadata<ApplicationType>) => ClassDecorator"
     },
     {
@@ -34283,7 +34373,7 @@
       "specifier": "@venizia/ignis-kernel/metadata",
       "kind": "const",
       "file": "packages/kernel/src/base/metadata/persistents.ts",
-      "line": 288,
+      "line": 314,
       "signature": "repository: <Model extends AbstractEntity = AbstractEntity, DataSource extends IDataSource = IDataSource>(metadata?: TRepositoryMetadata<Model, DataSource>) => ClassDecorator"
     },
     {
@@ -34355,6 +34445,26 @@
       "file": "packages/kernel/src/base/repositories/common/constants.ts",
       "line": 18,
       "signature": "DEFAULT_MAX_LIMIT = 1000"
+    },
+    {
+      "name": "HttpExtraRequest",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/extra-request.ts",
+      "line": 22,
+      "signature": "class HttpExtraRequest"
+    },
+    {
+      "name": "HttpResponseReader",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "class",
+      "file": "packages/kernel/src/base/repositories/common/response-reader.ts",
+      "line": 8,
+      "signature": "class HttpResponseReader"
     },
     {
       "name": "ICreatableRepository",
@@ -34504,7 +34614,27 @@
       "kind": "type",
       "file": "packages/kernel/src/base/repositories/common/types/results.ts",
       "line": 25,
-      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; }"
+      "signature": "type TDataWithRange<R> = { data: Array<R>; range: TDataRange; extra?: Record<string, unknown>; }"
+    },
+    {
+      "name": "TExtraRequest",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/extra-request.ts",
+      "line": 7,
+      "signature": "type TExtraRequest = Record<string, boolean | ReadonlyArray<string>>"
+    },
+    {
+      "name": "TExtraResult",
+      "package": "@venizia/ignis-kernel",
+      "subpath": "./repository",
+      "specifier": "@venizia/ignis-kernel/repository",
+      "kind": "type",
+      "file": "packages/kernel/src/base/repositories/common/extra-request.ts",
+      "line": 13,
+      "signature": "type TExtraResult<Extra extends TExtraRequest> = { [K in keyof Extra as Extra[K] extends false ? never : K]?: Extra[K] extends ReadonlyArray<infer Key extends string> ? Record<Key, unknown> : unknown; } & Record<string, unknown>"
     },
     {
       "name": "TFilter",

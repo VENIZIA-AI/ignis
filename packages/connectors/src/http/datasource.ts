@@ -7,6 +7,7 @@ import type {
   IAuthToken,
   IHttpCallOptions,
   IHttpDataSourceSettings,
+  TExtraRequest,
   IHttpReadResult,
   IHttpRequestContext,
   IHttpWriteResult,
@@ -289,17 +290,30 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       shape?: 'list' | 'one';
       method?: string;
       body?: THttpBody;
+      /** Extras the route offers beside its rows, asked for by name (`x-request-extra`). */
+      extra?: TExtraRequest;
+      /** The rows alone: every default extra off (`-*`), for a read that only counts or probes. */
+      isEveryDefaultOff?: boolean;
     } & IHttpCallOptions,
   ): Promise<IHttpReadResult<R>> {
     const url = this.buildUrl(opts);
-    const response = await this.sendRequest({ ...opts, url });
+    const headers = HttpWire.withExtraHeader({
+      headers: opts.headers,
+      extra: opts.extra,
+      isEveryDefaultOff: opts.isEveryDefaultOff,
+    });
+    const response = await this.sendRequest({ ...opts, url, headers });
 
     if (!response.ok) {
       throw await this.toResponseError({ response, url, verb: 'read' });
     }
 
     // A 204 or an empty body is no row; a list asked for of it still throws below.
-    const body = await this.readJsonBody({ response, url, verb: 'read' });
+    const parsed = await this.readJsonBody({ response, url, verb: 'read' });
+    const { body, extra } = HttpResponseReader.readExtra({
+      body: parsed,
+      headers: response.headers,
+    });
     const contentRange = response.headers.get(HTTP.Headers.CONTENT_RANGE) ?? undefined;
     const range = HttpResponseReader.parseContentRange({ header: contentRange });
     const data = HttpWire.unwrapRows<R>({ body, shape: opts.shape ?? 'list', url });
@@ -311,6 +325,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       total: range?.total,
       skip: range?.skip,
       dataLength: Array.isArray(data) ? data.length : data === null ? 0 : 1,
+      extra,
     };
   }
 
@@ -324,17 +339,22 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
       query?: Record<string, unknown>;
       method: string;
       body?: THttpBody;
+      /** Extras the route answers beside its rows, asked for by name (`x-request-extra`). */
+      extra?: TExtraRequest;
     } & IHttpCallOptions,
   ): Promise<IHttpWriteResult<R>> {
     const url = this.buildUrl(opts);
-    const response = await this.sendRequest({ ...opts, url });
+    const headers = HttpWire.withExtraHeader({ headers: opts.headers, extra: opts.extra });
+    const response = await this.sendRequest({ ...opts, url, headers });
 
     if (!response.ok) {
       throw await this.toResponseError({ response, url, verb: 'write' });
     }
 
     // A 204, or a route that answers nothing, has no body to parse.
-    const data = await this.readJsonBody({ response, url, verb: 'write' });
+    const parsed = await this.readJsonBody({ response, url, verb: 'write' });
+    const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
+    const data = extra ? parsed.data : parsed;
 
     const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
     const counted = countHeader === null ? Number.NaN : Number(countHeader);
@@ -348,6 +368,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
           : data === null
             ? 0
             : 1,
+      ...(extra ? { extra } : {}),
     };
   }
 }

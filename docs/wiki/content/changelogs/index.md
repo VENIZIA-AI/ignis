@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-07 | [HttpResponseReader Moves Next to the Server Contract](./2026-10-07-response-reader-in-kernel) | Enhancement |
+| 2026-10-07 | [A List Answers Extras Only When They Are Asked For](./2026-10-07-list-extras) | Feature |
 | 2026-10-06 | [Artifact Identity No Longer Rides on the Class Name](./2026-10-06-artifact-identity) | Bug Fix, Behavior Change |
 | 2026-10-06 | [The Container Names a Cycle and Caches Any Singleton](./2026-10-06-inversion-container-correctness) | Bug Fix, Behavior Change |
 | 2026-10-06 | [dev-configs Gains a React Preset](./2026-10-06-dev-configs-react-preset) | Feature, Behavior Change |

@@ -15,6 +15,8 @@ import type {
   TRouteHandler,
 } from '../common/types';
 import { AbstractRestController } from './abstract';
+import type { IRequestedExtra, TResponseExtra } from './extras';
+import { ResponseExtras } from './extras';
 
 /** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. Exported so a route that writes the header itself uses the one formatter. */
 export const toContentRange = (opts: { range: TDataRange; count: number }): string => {
@@ -71,21 +73,103 @@ export abstract class BaseRestController<
     return payload.data;
   }
 
-  /** The one response call. Sets `X-Response-Format`, and with `range` (a list) also `Content-Range` - `payload.count` is the rows of THIS response, never the total - then normalizes count/data per the request-count header. */
+  /** `x-request-extra`, parsed: `name`, `-name` (a default switched off) and `name(key,key)`. */
+  getRequestedExtras(opts: { context: TRouteContext<RouteEnv> }): Array<IRequestedExtra> {
+    return ResponseExtras.parse({ header: opts.context.req.header(HTTP.Headers.REQUEST_EXTRA) });
+  }
+
+  /**
+   * The one response call. Sets `X-Response-Format`, and with `range` (a list) also `Content-Range` -
+   * `payload.count` is the rows of THIS response, never the total - then normalizes count/data per
+   * the request-count header.
+   *
+   * `extra` offers figures beside the rows (see {@link TResponseExtra}): each runs when the client
+   * names it in `x-request-extra`, or always when it is a default. When any runs, the body is
+   * `{ data, extra }` (with `count` when it is requested); when none does, nothing is computed and the
+   * body is what it would be without `extra`. A name the route does not offer is a 400 listing the
+   * ones it does.
+   */
   respond<R>(opts: {
     context: TRouteContext<RouteEnv>;
     format: TResponseFormat;
     payload: { count: number; data?: TNullable<R> };
     range?: TDataRange;
+    extra?: never;
+  }): R | { count: number; data?: TNullable<R> } | null | undefined;
+  respond<R, Extra extends Record<string, TResponseExtra>>(opts: {
+    context: TRouteContext<RouteEnv>;
+    format: TResponseFormat;
+    payload: { count: number; data?: TNullable<R> };
+    range?: TDataRange;
+    extra: Extra;
+  }): Promise<
+    | R
+    | { count: number; data?: TNullable<R> }
+    | {
+        count?: number;
+        data?: TNullable<R>;
+        extra: Partial<Record<keyof Extra, unknown>>;
+      }
+    | null
+    | undefined
+  >;
+  respond<R>(opts: {
+    context: TRouteContext<RouteEnv>;
+    format: TResponseFormat;
+    payload: { count: number; data?: TNullable<R> };
+    range?: TDataRange;
+    extra?: Record<string, TResponseExtra>;
+  }): ValueOrPromise<
+    R | { count?: number; data?: TNullable<R>; extra?: Record<string, unknown> } | null | undefined
+  >;
+  respond<R>(opts: {
+    context: TRouteContext<RouteEnv>;
+    format: TResponseFormat;
+    payload: { count: number; data?: TNullable<R> };
+    range?: TDataRange;
+    extra?: Record<string, TResponseExtra>;
   }) {
-    const { context, format, payload, range } = opts;
+    const { context, format, payload, range, extra } = opts;
 
     if (range) {
       context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count: payload.count }));
     }
     context.header(HTTP.Headers.RESPONSE_FORMAT, format);
 
-    return this.normalizeCountData<R>({ context, payload });
+    if (!extra) {
+      return this.normalizeCountData<R>({ context, payload });
+    }
+
+    return this.respondWithExtra<R>({ context, payload, extra });
+  }
+
+  /** The `extra` half of `respond`: resolves what was asked against what is offered, runs it in parallel. */
+  async respondWithExtra<R>(opts: {
+    context: TRouteContext<RouteEnv>;
+    payload: { count: number; data?: TNullable<R> };
+    extra: Record<string, TResponseExtra>;
+  }) {
+    const { context, payload, extra } = opts;
+    const plan = ResponseExtras.resolve({
+      requested: this.getRequestedExtras({ context }),
+      offered: extra,
+    });
+
+    if (plan.size === 0) {
+      return this.normalizeCountData<R>({ context, payload });
+    }
+
+    const computed = await ResponseExtras.compute({ plan, offered: extra });
+
+    // Rows still counted in the header; the body is an object, since an array cannot carry extras.
+    // `x-response-extra` marks it, so a client unwraps `{ data, extra }` only when the server says so.
+    context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
+    context.header(HTTP.Headers.RESPONSE_EXTRA, Object.keys(computed).join(','));
+    const useCountData = toBoolean(context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true');
+
+    return useCountData
+      ? { count: payload.count, data: payload.data, extra: computed }
+      : { data: payload.data, extra: computed };
   }
 
   /** The list headers without the body, for a list whose body is not a `{ count, data }` envelope: `Content-Range`, `X-Response-Count` = rows in THIS response, `X-Response-Format: array`. Pass a `range`, or `offset` + `total` for an engine that reports those (a search page): the range is derived with the same inclusive-end rule. */

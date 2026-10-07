@@ -6,6 +6,20 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-07 - HttpResponseReader moves to kernel/repository
+
+Updated [connectors](/packages/connectors.md).
+
+- Exported from `@venizia/ignis-kernel/repository`; connectors re-exports it from `/http`.
+
+## 2026-10-07 - list extras, asked for by the client
+
+Updated [kernel](/packages/kernel.md), [connectors](/packages/connectors.md).
+
+- `respond({ extra })`: plain, default and keyed-group extras behind `x-request-extra`
+  (`name`, `-name`, `-*`, `name(k,k)`), marked by `x-response-extra`; typed connector `extra`;
+  `HTTP.CorsHeaders`.
+
 ## 2026-10-06 - artifact identity no longer rides on the class name
 
 Updated [kernel](/packages/kernel.md), [repository hierarchy](/architecture/repository-hierarchy.md).

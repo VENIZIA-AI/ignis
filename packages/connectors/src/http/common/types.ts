@@ -31,6 +31,9 @@ export type THttpHeaders = Headers | Array<[string, string]> | Record<string, st
  */
 export type THttpBody = string | object;
 
+/** The list-extras request and result types live with the server contract, in kernel. */
+export type { TExtraRequest, TExtraResult } from '@venizia/ignis-kernel/repository';
+
 /** What one call may add: its own headers (they win over the configured ones) and a signal to abort it. */
 export interface IHttpCallOptions {
   headers?: THttpHeaders;
@@ -73,12 +76,16 @@ export interface IHttpReadResult<R> {
   total?: number;
   skip?: number;
   dataLength: number;
+  /** What a list answered beside its rows, when the server marked it with `x-response-extra`. */
+  extra?: Record<string, unknown>;
 }
 
 /** What a write answers: the rows the server returned, and its `x-response-count`. */
 export interface IHttpWriteResult<R> {
   data: R;
   count: number;
+  /** What the route answered beside the rows, when the server marked it with `x-response-extra`. */
+  extra?: Record<string, unknown>;
 }
 
 export type THttpQuery<E extends object> = { filter?: TFilter<E> };

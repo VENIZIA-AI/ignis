@@ -98,15 +98,16 @@ Headers and the token are decided per send, not per datasource: `headersResolver
 holds after the refresh, and a public route can answer no token and no refresh. The `signal` lets a
 hook stop waiting; it must not abort a refresh other calls share. Precedence, weakest first: `settings.headers`, `headersResolver`, the call's own
 headers, the connector's. A resolver throw fails the request; nothing is swallowed. Every verb's
-`options` carries `headers` and `signal` for one call.
+`options` carries `headers` and `signal` for one call. `extra` (`{ name: true | false | keys[] }`) - `options.extra` on `find`, top-level on `read`/`write` - becomes `x-request-extra` through kernel's `HttpExtraRequest.toHeader`; `find`'s result `extra` is typed from it (const generic). `{ data, extra }` is unwrapped ONLY when the response carries `x-response-extra` (kernel's `HttpResponseReader.readExtra`) - a row with `data`/`extra` columns is never misread - and `count` (both paths)/`existsWith`/`findOne` send `-*`, overriding any hand-set header, so defaults are not computed for reads that discard them. `TExtraResult` entries are optional; a ranged find that asked always carries `extra`.
 
 A failure is rebuilt as the error the server threw: status, `normalized`, the server's `extra` plus
 `requestId` (a relayed upstream id survives as `upstreamRequestId`), and `details.cause` (a 422's
 field issues) as `cause`. `message` names the path only: a BFF that relays the error must not send an
 internal host or a filter's values to its clients. `errorRootKey` must match the
 server's `error.rootKey` - the connector does not guess, and a wrapped envelope otherwise reads as
-`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`) is
-exported so another client of the same server shares the parsing instead of copying it.
+`core.system_error`. `HttpResponseReader` (`parseContentRange`, `readErrorEnvelope`, `readError`, plus `isPlainObject`/`toText`)
+lives in `@venizia/ignis-kernel/repository` and is re-exported from `/http`: another client of the same
+server shares the parsing without taking connectors.
 
 Ids `''`, `.` and `..` are refused: WHATWG URL resolves `.`/`%2e` segments, so encoding cannot save
 them: `deleteById('.')` asks for `/<resource>/`, which a router or proxy that ignores the trailing
