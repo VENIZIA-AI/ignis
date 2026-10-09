@@ -85,7 +85,7 @@ describe('DurationAliases.resolve - written units', () => {
 
   test('every canonical unit name parses back to itself, so no alias table entry can go missing', () => {
     for (const unit of DurationUnits.SCHEME_SET) {
-      expect(DurationAliases.resolve(unit)).toBe(unit);
+      expect<string | null>(DurationAliases.resolve(unit)).toBe(unit);
     }
   });
 

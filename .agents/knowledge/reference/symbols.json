@@ -2071,7 +2071,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 24,
+      "line": 25,
       "signature": "interface IBindingTag"
     },
     {
@@ -5932,7 +5932,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 22,
+      "line": 23,
       "signature": "type TBindingKey = string | symbol"
     },
     {
@@ -6102,8 +6102,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 6,
-      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>"
+      "line": 11,
+      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {}"
     },
     {
       "name": "TConstructor",
@@ -7182,8 +7182,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 5,
-      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number>"
+      "line": 10,
+      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {}"
     },
     {
       "name": "TObjectFromFieldMappings",
@@ -7972,8 +7972,8 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 4,
-      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>"
+      "line": 9,
+      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {}"
     },
     {
       "name": "TSubsetGrantMetadata",
@@ -24423,8 +24423,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 6,
-      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>"
+      "line": 11,
+      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {}"
     },
     {
       "name": "TConstructor",
@@ -24813,8 +24813,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 5,
-      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number>"
+      "line": 10,
+      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {}"
     },
     {
       "name": "TObjectFromFieldMappings",
@@ -25013,8 +25013,8 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 4,
-      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>"
+      "line": 9,
+      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {}"
     },
     {
       "name": "TTask",
@@ -26423,8 +26423,8 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 6,
-      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>"
+      "line": 11,
+      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {}"
     },
     {
       "name": "TConstructor",
@@ -26583,8 +26583,8 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 5,
-      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number>"
+      "line": 10,
+      "signature": "type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {}"
     },
     {
       "name": "TObjectFromFieldMappings",
@@ -26643,8 +26643,8 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/types/const-value.ts",
-      "line": 4,
-      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>"
+      "line": 9,
+      "signature": "type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {}"
     },
     {
       "name": "TValueOrAsyncResolver",
@@ -28744,7 +28744,7 @@
       "kind": "const",
       "file": "packages/helpers/src/modules/logger/pino/backing.ts",
       "line": 63,
-      "signature": "buildPinoOptions: () => { name: string; level: string; customLevels: Record<\"emerg\", number>; }"
+      "signature": "buildPinoOptions: () => { name: string; level: import(\"../common\").TLogLevel; customLevels: Record<\"emerg\", number>; }"
     },
     {
       "name": "getPinoBackingLogger",
@@ -29513,7 +29513,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 24,
+      "line": 25,
       "signature": "interface IBindingTag"
     },
     {
@@ -29643,7 +29643,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 22,
+      "line": 23,
       "signature": "type TBindingKey = string | symbol"
     },
     {
@@ -29703,8 +29703,8 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 20,
-      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>"
+      "line": 21,
+      "signature": "type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {}"
     },
     {
       "name": "TConstructor",
@@ -31003,7 +31003,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 24,
+      "line": 25,
       "signature": "interface IBindingTag"
     },
     {
@@ -32473,7 +32473,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/inversion/src/common/types.ts",
-      "line": 22,
+      "line": 23,
       "signature": "type TBindingKey = string | symbol"
     },
     {

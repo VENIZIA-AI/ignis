@@ -223,10 +223,12 @@ type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 `Source ->` [`types/const-value.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types/const-value.ts)
 
 ```typescript
-type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string>;
-type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number>;
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
+type TStringConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string> & {};
+type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {};
+type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 ```
+
+The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'node' | 'bun'`, not `string`.
 
 | Type | Meaning | Use |
 |------|---------|-----|

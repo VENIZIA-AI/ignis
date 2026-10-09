@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-09 - const-value aliases stay literal
+
+Updated [const classes](/conventions/const-classes.md) and [gotchas](/conventions/gotchas.md).
+
+- `TConstValue`, `TStringConstValue`, `TNumberConstValue` end in `& {}`, so a value no longer widens to `string` / `number`. The return-type gotcha it caused is folded into the new entry.
+
 ## 2026-10-07 - readExtra keeps the count envelope
 
 Updated [kernel](/packages/kernel.md).

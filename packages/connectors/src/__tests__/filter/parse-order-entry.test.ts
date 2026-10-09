@@ -191,6 +191,6 @@ describe('parseOrderEntry - result type', () => {
     const outside: TSortDirection = 'sideways';
 
     expect(literal).toBe(fromSorts);
-    expect(outside).toBe('sideways');
+    expect<string>(outside).toBe('sideways');
   });
 });
