@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1-7",
+        "date": "2026-10-07",
+        "sha": "a3e27ffc",
+        "order": 1597
+      },
+      {
         "version": "0.1.1-6",
         "date": "2026-10-07",
         "sha": "a745022d",
@@ -3250,6 +3256,12 @@
     ],
     "helpers": [
       {
+        "version": "0.2.1-3",
+        "date": "2026-10-09",
+        "sha": "aa9d34b7",
+        "order": 1601
+      },
+      {
         "version": "0.2.1-2",
         "date": "2026-10-07",
         "sha": "b48e6581",
@@ -3984,6 +3996,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.1-1",
+        "date": "2026-10-09",
+        "sha": "27d86d67",
+        "order": 1600
+      },
+      {
         "version": "0.2.1-0",
         "date": "2026-10-06",
         "sha": "0d4dafec",
@@ -4654,6 +4672,18 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-09-const-value-literals",
+      "file": "2026-10-09-const-value-literals.md",
+      "date": "2026-10-09",
+      "title": "Const Values Stay Literal",
+      "packages": [
+        "helpers",
+        "inversion"
+      ],
+      "kind": "Bug Fix",
+      "order": 1599
+    },
     {
       "id": "changelog:2026-10-07-response-reader-in-kernel",
       "file": "2026-10-07-response-reader-in-kernel.md",
