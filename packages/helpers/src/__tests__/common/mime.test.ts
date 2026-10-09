@@ -17,7 +17,7 @@ describe('ContentTypeTable - office and archive types', () => {
     ['bundle.zip', 'application/zip'],
     ['notes.txt', 'text/plain'],
   ])('%s -> %s', (filename, contentType) => {
-    expect(ContentTypeTable.resolve({ filename })).toBe(contentType);
+    expect<string>(ContentTypeTable.resolve({ filename })).toBe(contentType);
   });
 
   test('the extension match ignores case, as it does for every other type', () => {

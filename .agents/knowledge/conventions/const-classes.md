@@ -11,8 +11,10 @@ For a fixed set of string values, IGNIS uses a class of `static readonly` fields
 
 ```typescript
 // packages/helpers/src/common/types/const-value.ts
-export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
+export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 ```
+
+The `& {}` stops the union widening back to `string` - see [gotchas](/conventions/gotchas.md#a-const-value-alias-without-the-empty-intersection-widens-to-string).
 
 ## Why
 

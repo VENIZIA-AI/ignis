@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-09',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Const Values Stay Literal',
+                  link: '/changelogs/2026-10-09-const-value-literals',
+                },
+              ],
+            },
+            {
               text: '2026-10-07',
               collapsed: true,
               items: [

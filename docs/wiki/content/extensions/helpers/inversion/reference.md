@@ -456,7 +456,7 @@ type ValueOf<T> = T[keyof T];
 type TConstructor<T> = new (...args: any[]) => T;
 type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
 type TClass<T> = TConstructor<T> & { [property: string]: any };
-type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
+type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 type TBindingKey = string | symbol;
 type AnyType = any;
 

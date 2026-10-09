@@ -51,7 +51,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
 - [The health-check `stats` route is a security default](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
 - [A self-refreshing cache must gate its retry on the last attempt](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
-- [An unannotated method return widens a `TConstValue`-derived literal](#an-unannotated-method-return-widens-a-tconstvalue-derived-literal-back-to-string)
+- [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
 - [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
 - [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
 - [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
@@ -446,21 +446,24 @@ If a background TTL refresh checks "how long since the last **successful** load"
 
 A short-lived `DomainHierarchyStore` in `core-server`'s casbin enforcer shipped with this bug first, found in review before release; `refreshIfStale()` gated on `lastAttemptAt`, set at the start of every attempt regardless of outcome, never `lastLoadedAt`, which only advances on success. The store itself was later removed entirely - the process-wide shared tree it cached duplicated the per-principal `g3` policy-line path, which needs no separate TTL or staleness ceiling - but the retry-gating lesson generalizes to any other background-refreshed cache in the framework.
 
-## An unannotated method return widens a TConstValue-derived literal back to string
+## A const-value alias without the empty intersection widens to string
 
-`TConstValue<T> = Extract<ValueOf<T>, string | number>` reads a class's static readonly literals
-through an indexed access type (`T[keyof T]`). That indirection makes the resulting literal union
-"fresh" again, so when a method returns it through an object literal with no explicit return type
-annotation, TypeScript's return-type inference widens it straight back to `string` - silently,
-with no error at the declaration site. A plain hand-written union (`'a' | 'b' | 'c'`) does not have
-this problem; only types derived through a generic conditional/indexed-access alias do.
+A `static readonly X = 'a'` member has a *widening* literal type. `Extract<ValueOf<T>, ...>` passes
+it through unchanged, so before 2026-10-09 a `TConstValue` value became `string` in an object
+literal, a `let`, an inferred generic, or an unannotated method return. That once turned
+`AuthorizationPolicyBuilder.grant()`'s `effect` into `string`, which was patched with an explicit
+return type before the alias was fixed.
 
-This bit `AuthorizationPolicyBuilder.grant()`/`.customGrant()`: their `effect: TAuthorizationDecision`
-parameter came back out as `effect: string` in the inferred return type, which stopped satisfying
-`PolicyDefinition`'s `.$type<TAuthorizationDecision>()` column once that column was narrowed. Fixed
-by giving both methods an explicit return type. Check any other builder whose return object carries
-a `TConstValue`-derived field for the same gap - it only surfaces once something downstream assigns
-the result into an equally-narrowed type, so it can sit latent for a long time.
+- `TConstValue`, `TStringConstValue`, `TNumberConstValue` (helpers) and `TConstValue` (inversion) now
+  end in `& {}`: same members, a regular literal union that never widens. Keep the `& {}` - it
+  looks redundant and is not.
+- `Extract<...> & {}` was chosen over a template literal (`` `${Extract<..., string>}` ``): the
+  template form leaves numbers widening, and in generic code is not assignable back to
+  `Extract<ValueOf<T>, ...>`.
+- The cost: a generic inferred from such a value keeps the union, so `expect(value).toBe(aString)`
+  fails to compile. Widen the generic (`expect<string>(value)`), as the fixed IGNIS tests do.
+- A consumer that declares its own copy of these aliases (ARDOR's `ardor-kernel` does) does not get
+  this fix from IGNIS.
 
 ## bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView
 

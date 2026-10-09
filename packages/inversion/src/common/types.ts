@@ -17,7 +17,8 @@ export type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 /** What `@inject({ target })` names: the class, or a function returning it. The function form defers the reference to resolve time, which is how a class reached through an import cycle stays reachable. */
 export type TInjectTarget = TValueOrResolver<TClass<AnyType>>;
 
-export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number>;
+/** `& {}` keeps the literal set but stops it widening to `string` / `number` in mutable positions; see `TConstValue` in `@venizia/ignis-helpers`. */
+export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 
 export type TBindingKey = string | symbol;
 
