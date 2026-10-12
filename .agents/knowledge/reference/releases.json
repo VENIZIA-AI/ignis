@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1-8",
+        "date": "2026-10-09",
+        "sha": "64d382a1",
+        "order": 1603
+      },
+      {
         "version": "0.1.1-7",
         "date": "2026-10-07",
         "sha": "a3e27ffc",
@@ -4340,6 +4346,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.1-6",
+        "date": "2026-10-12",
+        "sha": "c004a935",
+        "order": 1605
+      },
+      {
         "version": "0.2.1-5",
         "date": "2026-10-07",
         "sha": "0ac1ccd0",
@@ -4672,6 +4684,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-11-error-message-placeholders",
+      "file": "2026-10-11-error-message-placeholders.md",
+      "date": "2026-10-11",
+      "title": "Error Messages Fill Their Placeholders",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Enhancement",
+      "order": 1604
+    },
     {
       "id": "changelog:2026-10-09-const-value-literals",
       "file": "2026-10-09-const-value-literals.md",
