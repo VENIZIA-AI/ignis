@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-11',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Error Messages Fill Their Placeholders',
+                  link: '/changelogs/2026-10-11-error-message-placeholders',
+                },
+              ],
+            },
+            {
               text: '2026-10-09',
               collapsed: true,
               items: [

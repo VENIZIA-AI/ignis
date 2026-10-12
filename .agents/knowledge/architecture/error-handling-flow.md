@@ -103,9 +103,9 @@ error's own `extra` and a flattened `cause` chain, dropping the rest. `ErrorPret
 that as a `- field: value` bullet list ordered what-happened first: `message`, then `args`, the
 `cause` chain, then `name`/`code`, the diagnostics, `extra`, and `stack` last.
 
-`args` sits directly under `message` because nothing resolves `%{placeholder}` server-side - i18n does
-it downstream - so without that line the log names no field. Root only: a cause's args belong to a
-message the block does not print. Redacted on render like `extra`; an empty map prints no line.
+`args` sits directly under `message` because the log keeps the `%{placeholder}` template - only the
+response `message` is filled - so without that line the log names no field. Root only: a cause's
+args belong to a message the block does not print. Redacted on render like `extra`; an empty map prints no line.
 
 `code` and `messageCode` stay separate. `code` is the error's own (a driver's `23505`, a gRPC `14`)
 and feeds the `name:` line; `messageCode` is `normalized.code` and feeds the `code:` line, so a call
@@ -212,6 +212,13 @@ production, because you chose that message deliberately. An error you did not ra
 `normalized` is what a client renders: `translate(normalized.code, normalized.args)`. It is the ONLY
 source: the flat `messageCode` and the `extra.messageArgs` mirror duplicated it and were REMOVED. A
 client still reading either must move to `normalized`.
+
+On the INTENTIONAL branch the middleware fills each `%{key}` of the response `message` with
+`String(args[key])` from `normalized.args` (`renderMessageTemplate`, `app-error/message.handler.ts`),
+so a client with no translation for the code shows readable text. `normalized.text` stays the
+template, and so do `Error.message` and the log: inlining the values there would move them out of the
+redacted `args` map. A key with no arg stays as written; outside production one `warn` line names the
+code and the missing keys. The other branches write their own text and are never filled.
 
 Only the INTENTIONAL branch reports the message the throw site wrote. The other four REPLACE the
 message; `normalized` is built from the replacement, never from the original, so it cannot become a

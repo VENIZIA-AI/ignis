@@ -13,6 +13,7 @@ import {
   DATABASE_RETRYABLE_ERROR_MESSAGE,
 } from './definition';
 import type { IResolvedApplicationError, TApplicationErrorType } from './common';
+import { renderMessageTemplate } from './message.handler';
 import { formatZodError } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
@@ -378,6 +379,36 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     );
   }
 
+  /** Only an intentional error's message is a catalog template; every other branch writes its own text, so it passes through as is. */
+  private renderMessage(opts: {
+    resolved: IResolvedApplicationError;
+    isProduction: boolean;
+    requestId: string;
+  }): string {
+    const { resolved, isProduction, requestId } = opts;
+
+    if (resolved.type !== ApplicationErrorTypes.INTENTIONAL) {
+      return resolved.message;
+    }
+
+    const { text, missing } = renderMessageTemplate({
+      text: resolved.message,
+      args: resolved.normalized.args,
+    });
+
+    // Production stays silent and renders what it can; anywhere else a missing arg is a throw site to fix.
+    if (missing.length > 0 && !isProduction) {
+      this.logger.warn(
+        '[%s] MESSAGE PLACEHOLDER WITHOUT ARG | code: %s | keys: %s',
+        requestId,
+        resolved.normalized.code,
+        missing.join(', '),
+      );
+    }
+
+    return text;
+  }
+
   value(): ErrorHandler {
     return async (error, context) => {
       const requestId = context.get(REQUEST_ID_KEY);
@@ -406,12 +437,13 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
         );
       }
 
-      const { statusCode, message, normalized, type } = this.resolve({ error, isProduction });
+      const resolved = this.resolve({ error, isProduction });
+      const { statusCode, normalized, type } = resolved;
 
       this.logError({ error, context, requestId, statusCode, messageCode: normalized.code, type });
 
       const rs = {
-        message,
+        message: this.renderMessage({ resolved, isProduction, requestId }),
         statusCode,
         normalized,
         requestId,

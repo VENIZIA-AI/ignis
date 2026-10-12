@@ -629,7 +629,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 87,
+      "line": 88,
       "signature": "class BaseAppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler>"
     },
     {
@@ -6472,7 +6472,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 25,
+      "line": 26,
       "signature": "type TErrorLogFormatter = (opts: { error: unknown; messageCode?: string; extra?: Record<string, unknown>; includeStack?: boolean; maxStackFrames?: number; }) => string"
     },
     {
@@ -30413,7 +30413,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 87,
+      "line": 88,
       "signature": "class BaseAppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler>"
     },
     {
@@ -32763,7 +32763,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 25,
+      "line": 26,
       "signature": "type TErrorLogFormatter = (opts: { error: unknown; messageCode?: string; extra?: Record<string, unknown>; includeStack?: boolean; maxStackFrames?: number; }) => string"
     },
     {

@@ -349,6 +349,8 @@ interface ErrorResponse {
 
 There's no top-level `messageCode` - read `normalized.code`. `extra` never mirrors `messageArgs`; the resolved interpolation values live at `normalized.args`.
 
+An intentional error's `message` has each `%{key}` filled from `normalized.args`, so a client can show it as is. `normalized.text` keeps the template for a client that translates `code` + `args`.
+
 **400 Bad Request:**
 
 ```json
