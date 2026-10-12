@@ -266,7 +266,7 @@ const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
 | `ZodError` (validation)                   | 422     | the first issue's `params.code`, else its raw Zod code | that issue's message; per-field list in `details.cause`               | never                                                 |
 | DB client error (SQLSTATE class 22/23/44) | 400     | `core.system_error`                                    | a fixed, safe summary - never the driver's text                       | never                                                 |
 | Transient DB conflict (40001/40P01)       | 409     | `database.conflict`                                    | a fixed retry message                                                 | never                                                 |
-| `getError(...)` - intentional             | its own | its own                                                | its own                                                               | when the throw site attached `extra` or unknown keys  |
+| `getError(...)` - intentional             | its own | its own                                                | its own, with each `%{key}` filled from `normalized.args`             | when the throw site attached `extra` or unknown keys  |
 | Anything else                             | 500     | `core.system_error`                                    | `Internal Server Error` in production; the raw message in development | never                                                 |
 
 Only the intentional branch reports what the throw site wrote. The other four **replace** the message - a driver error can carry SQL, schema, and constraint names. `normalized` is built from that replacement, so it can never leak what `message` just scrubbed.
@@ -277,7 +277,7 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 
 ```json
 {
-  "message": "Only %{available} left of %{variantId}.",
+  "message": "Only 2 left of V1.",
   "statusCode": 409,
   "normalized": {
     "text": "Only %{available} left of %{variantId}.",
@@ -300,7 +300,9 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 > Note the two `details`. The inner one is context the throw site attached - it went through `extra`. The outer one is the middleware's own request info. They're unrelated despite sharing a name.
 
 > [!NOTE]
-> `message` and `normalized.text` are the same string, unless a `transform` deliberately makes them differ. `message` stays the raw text the throw site wrote. `normalized.text` is what a client shows. Most errors never set `transform`, so most of the time the two match.
+> `message` is ready to show: the middleware fills each `%{key}` with `String(args[key])` from `normalized.args`. `normalized.text` keeps the template, so a client that translates `code` + `args` formats it itself. A `transform` changes only `normalized.text`.
+>
+> A key with no arg stays as written. Outside production, the middleware logs one warning naming the code and the missing keys. `Error.message` and the log line keep the template, so an arg value never leaves the redacted `args` map.
 
 ### Consume the error response from a browser client
 

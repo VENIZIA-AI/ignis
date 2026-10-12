@@ -532,8 +532,8 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
     };
 
     expect(res.status).toBe(409);
-    // The raw text stays on `message`; the client-facing text is the transform's.
-    expect(body.message).toBe('Only %{available} left.');
+    // `message` is the thrown text with its args filled in; the client-facing text is the transform's.
+    expect(body.message).toBe('Only 2 left.');
     expect(body.normalized.text).toBe('Chỉ còn 2 vé.');
     expect(body.normalized.args).toEqual({ available: 2 });
   });

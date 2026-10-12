@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-11 - the error response fills its placeholders
+
+Updated [error handling](/conventions/error-handling.md), [error-handling flow](/architecture/error-handling-flow.md).
+
+- The middleware fills `%{key}` in an intentional error's response `message` from `normalized.args`; `normalized.text`, `Error.message` and the log keep the template. Reverses "the server never substitutes" for `message` only.
+
 ## 2026-10-09 - const-value aliases stay literal
 
 Updated [const classes](/conventions/const-classes.md) and [gotchas](/conventions/gotchas.md).

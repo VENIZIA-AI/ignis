@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-11 | [Error Messages Fill Their Placeholders](./2026-10-11-error-message-placeholders) | Enhancement, Behavior Change |
 | 2026-10-09 | [Const Values Stay Literal](./2026-10-09-const-value-literals) | Bug Fix, Breaking Change |
 | 2026-10-07 | [HttpResponseReader Moves Next to the Server Contract](./2026-10-07-response-reader-in-kernel) | Enhancement |
 | 2026-10-07 | [A List Answers Extras Only When They Are Asked For](./2026-10-07-list-extras) | Feature |

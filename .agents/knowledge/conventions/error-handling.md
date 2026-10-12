@@ -68,7 +68,9 @@ being replaced, so a transform can amend one field and spread the rest:
 transform: snapshot => ({ ...snapshot.message, text: renderVi(snapshot.message) });
 ```
 
-The server never substitutes `%{name}`: it ships the template plus `args` and the CLIENT translates.
+`normalized.text` and `Error.message` keep the `%{name}` template: a client translating `code` +
+`args` formats it itself, and the log keeps each value under the redacted `args` map. Only the
+response `message` is filled - see [the response shape](/architecture/error-handling-flow.md#the-response-shape).
 That is why the input carries `args` rather than a pre-formatted string.
 
 `messageCode` and `messageArgs` are INPUTS only. There is no flat `error.messageCode` field and

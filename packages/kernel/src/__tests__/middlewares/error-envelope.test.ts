@@ -1,4 +1,5 @@
 import { BaseAppErrorMiddleware, notFoundHandler } from '@/base/middlewares';
+import { renderMessageTemplate } from '@/base/middlewares/app-error/message.handler';
 import { z } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -474,5 +475,125 @@ describe('the log fragment the pure formatter builds', () => {
     const rendered = new ExposedMiddleware().format({ error: { code: 42 } });
 
     expect(rendered).toBe('- message: {"code":42}');
+  });
+});
+
+const ITEM_LOCKED_CODE = 'server.inventory.item.locked';
+const ITEM_LOCKED_TEXT = 'Item %{itemName} is locked by %{orderCount} open orders.';
+
+const throwItemLocked = (opts: { messageArgs: Record<string, unknown> }) => () => {
+  throw getError({
+    error: {
+      message: { text: ITEM_LOCKED_TEXT, code: ITEM_LOCKED_CODE },
+      statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    },
+    messageArgs: opts.messageArgs,
+  });
+};
+
+const developmentProbe = (opts: { thrower: () => void }) => {
+  const logger = new RecordingLogger();
+
+  return probe({
+    thrower: opts.thrower,
+    middleware: new BaseAppErrorMiddleware({ logger, environment: () => 'development' }),
+    logger,
+  });
+};
+
+/** `message` is what a toast falls back to when the client has no translation for the code, so it is filled; `normalized.text` is what a translator keys on, so it is not. */
+describe('the response message fills its %{key} placeholders', () => {
+  test('message is rendered from normalized.args, and normalized.text keeps the template', async () => {
+    const { status, body } = await probe({
+      thrower: throwItemLocked({ messageArgs: { itemName: 'Latte', orderCount: 3 } }),
+    });
+
+    expect(status).toBe(HTTP.ResultCodes.RS_4.Conflict);
+    expect(body.message).toBe('Item Latte is locked by 3 open orders.');
+    expect(body.normalized).toEqual({
+      text: ITEM_LOCKED_TEXT,
+      code: ITEM_LOCKED_CODE,
+      args: { itemName: 'Latte', orderCount: 3 },
+    });
+  });
+
+  test('the log keeps the template, so an arg never leaves the redacted args map', async () => {
+    const { logger } = await probe({
+      thrower: throwItemLocked({ messageArgs: { itemName: 'Latte', orderCount: 3 } }),
+    });
+
+    expect(logger.rendered()).toContain(`- message: ${ITEM_LOCKED_TEXT}`);
+    expect(logger.rendered()).not.toContain('Latte');
+  });
+
+  test('a missing arg stays as written and logs one warning naming the code and the key', async () => {
+    const { body, logger } = await developmentProbe({
+      thrower: throwItemLocked({ messageArgs: { orderCount: 3 } }),
+    });
+
+    expect(body.message).toBe('Item %{itemName} is locked by 3 open orders.');
+    expect(logger.linesFrom({ sink: 'warn' })).toEqual([
+      {
+        sink: 'warn',
+        message: '[%s] MESSAGE PLACEHOLDER WITHOUT ARG | code: %s | keys: %s',
+        args: [REQUEST_ID, ITEM_LOCKED_CODE, 'itemName'],
+      },
+    ]);
+  });
+
+  test('production renders what it can and stays silent about the missing arg', async () => {
+    const { body, logger } = await probe({
+      thrower: throwItemLocked({ messageArgs: { orderCount: 3 } }),
+    });
+
+    expect(body.message).toBe('Item %{itemName} is locked by 3 open orders.');
+    expect(logger.linesFrom({ sink: 'warn' })).toEqual([]);
+  });
+
+  test('an unexpected error is not a template - a %{...} in its raw text is neither filled nor warned about', async () => {
+    const { body, logger } = await developmentProbe({
+      thrower: () => {
+        throw new TypeError('format %{x} failed');
+      },
+    });
+
+    expect(body.message).toBe('format %{x} failed');
+    expect(logger.linesFrom({ sink: 'warn' })).toEqual([]);
+  });
+});
+
+describe('renderMessageTemplate', () => {
+  test('fills every occurrence of a key, and reports each missing key once', () => {
+    expect(renderMessageTemplate({ text: '%{a}-%{a} %{b} %{b}', args: { a: 1 } })).toEqual({
+      text: '1-1 %{b} %{b}',
+      missing: ['b'],
+    });
+  });
+
+  test('null and false are values; undefined and an inherited key are missing', () => {
+    const args = Object.assign(Object.create({ inherited: 'no' }), {
+      gone: undefined,
+      nil: null,
+      off: false,
+    });
+
+    expect(renderMessageTemplate({ text: '%{nil} %{off} %{gone} %{inherited}', args })).toEqual({
+      text: 'null false %{gone} %{inherited}',
+      missing: ['gone', 'inherited'],
+    });
+  });
+
+  test('args that are not an object leave every placeholder as written', () => {
+    expect(renderMessageTemplate({ text: 'x %{a}', args: 'oops' })).toEqual({
+      text: 'x %{a}',
+      missing: ['a'],
+    });
+  });
+
+  test('a value String() cannot convert leaves its placeholder instead of throwing', () => {
+    expect(renderMessageTemplate({ text: 'x %{a}', args: { a: Object.create(null) } })).toEqual({
+      text: 'x %{a}',
+      missing: [],
+    });
   });
 });
