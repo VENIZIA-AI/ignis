@@ -333,6 +333,11 @@ const processor = async (job: Job) => {
 
 Fill only where you choose to. A filled text carries every arg value inline, outside the `args` map a log redacts by key. `MessageTemplate.render({ text, args })` is the same fill, and also returns the keys it found no arg for.
 
+> [!WARNING]
+> `toFilledText()` is a method, so it exists only on a real `ApplicationError`. An error body read from a response is a plain object: `(body as ApplicationError).toFilledText()` compiles, then throws `toFilledText is not a function`. Rebuild it first with `fromError({ error: body }).toFilledText()`, or fill the shape directly with `MessageTemplate.render({ text: body.normalized?.text ?? '', args: body.normalized?.args }).text`. A response `message` is already filled by the server, so a client rarely needs either.
+>
+> For the same reason, an object literal typed `ApplicationError` - a test fixture, a mock - no longer compiles. Build it with `getError(...)`.
+
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
