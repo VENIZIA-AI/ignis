@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-14 - TemporalHelper in every browser, with a locale
+
+Updated [helpers](/packages/helpers.md).
+
+- `IntlTemporalAdapter` and the Native-else-Intl default; write-only locale tokens and `formatIntl`; `relative`, `diff`, `compare`, `tryParse`, `isValid`, `durationParts`, `formatDuration`. Asked by BANA to drop dayjs from its browser apps.
+
 ## 2026-10-11 - the error response fills its placeholders
 
 Updated [error handling](/conventions/error-handling.md), [error-handling flow](/architecture/error-handling-flow.md).

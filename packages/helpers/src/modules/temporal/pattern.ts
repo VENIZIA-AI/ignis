@@ -1,8 +1,10 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { ITemporalParts, IZonedTemporalParts } from './common/types';
+import { TemporalLocale } from './locale';
 import {
   isLetter,
+  isLocaleToken,
   isToken,
   MAX_COMPILED_PATTERNS,
   NUMERIC_TOKENS,
@@ -88,12 +90,18 @@ export class TemporalPattern {
     return segments;
   }
 
-  static format(opts: { pattern: string; parts: IZonedTemporalParts }): string {
+  /** Writes the wall clock; `locale` spells the name tokens, and is only resolved when one is used. */
+  static format(opts: { pattern: string; parts: IZonedTemporalParts; locale: string }): string {
     const segments = TemporalPattern.compile({ pattern: opts.pattern });
+    let resolved: TemporalLocale | undefined;
+    const input = {
+      parts: opts.parts,
+      locale: () => (resolved ??= TemporalLocale.of({ locale: opts.locale })),
+    };
+
     let text = '';
     for (const segment of segments) {
-      text +=
-        'literal' in segment ? segment.literal : (WRITERS.get(segment.token)?.(opts.parts) ?? '');
+      text += 'literal' in segment ? segment.literal : (WRITERS.get(segment.token)?.(input) ?? '');
     }
     return text;
   }
@@ -127,6 +135,14 @@ export class TemporalPattern {
       }
 
       const { token } = segment;
+      // A pattern is code, not input: a write-only token here is a bug, as an unknown token is.
+      if (isLocaleToken(token)) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+          message: `[TemporalPattern] '${token}' in pattern '${opts.pattern}' is for writing only | A parse reads the numeric tokens`,
+        });
+      }
+
       if (token === 'Z' || token === 'ZZ') {
         const offset = readOffset({ value, position, separator: token === 'Z' });
         if (!offset) {
