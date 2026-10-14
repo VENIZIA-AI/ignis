@@ -82,18 +82,18 @@ _Flat `src/` - no subsystem directories._
 | `common/` | 17 |
 | `utilities/` | 11 |
 
-## inversion  (32 source files)
+## inversion  (33 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 26 |
+| `modules/` | 27 |
 | `common/` | 5 |
 
-## kernel  (211 source files)
+## kernel  (210 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 174 |
+| `base/` | 173 |
 | `helpers/` | 24 |
 | `common/` | 8 |
 | `utilities/` | 2 |

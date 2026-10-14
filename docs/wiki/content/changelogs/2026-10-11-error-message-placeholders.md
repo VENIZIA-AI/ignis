@@ -51,6 +51,6 @@ A route error inside a Worker host goes through the same middleware, so it answe
 
 The fill runs in the response only. Filling `Error.message` too would print each value inline in the log line, outside the redacted `args` map.
 
-**Files:** [`packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts), [`packages/kernel/src/base/middlewares/app-error/message.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/middlewares/app-error/message.handler.ts)
+**Files:** [`packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts), [`packages/inversion/src/modules/error/message-template.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-template.ts)
 
 See [Read the error response shape](/extensions/helpers/error/#read-the-error-response-shape) for the full response.

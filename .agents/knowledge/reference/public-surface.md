@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## inversion
 
-### `@venizia/ignis-inversion` (69)
+### `@venizia/ignis-inversion` (70)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -40,6 +40,7 @@ tags: [reference, exports, api]
 - `isEmpty` const
 - `Logger` class
 - `MessageCode` class
+- `MessageTemplate` class
 - `MetadataKeys` const
 - `metadataRegistry` const
 - `MetadataRegistry` class
@@ -125,7 +126,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (424)
+### `@venizia/ignis-helpers` (425)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -362,6 +363,7 @@ tags: [reference, exports, api]
 - `LuxonTemporalAdapter` class
 - `MemoryStorageHelper` class
 - `MessageCode` class
+- `MessageTemplate` class
 - `MimeTypes` class
 - `MIN_UID_ALPHABET_SIZE` const
 - `MINIMUM_KDF_SALT_BYTES` const
@@ -617,7 +619,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (137)
+### `@venizia/ignis-helpers/core` (138)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -694,6 +696,7 @@ tags: [reference, exports, api]
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `MessageCode` class
+- `MessageTemplate` class
 - `MIN_UID_ALPHABET_SIZE` const
 - `NativeTemporalAdapter` class
 - `NodeFetcher` class
@@ -2082,7 +2085,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1017)
+### `@venizia/ignis` (1018)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2629,6 +2632,7 @@ tags: [reference, exports, api]
 - `MembershipRoleManager` class
 - `MemoryStorageHelper` class
 - `MessageCode` class
+- `MessageTemplate` class
 - `MetadataKeys` const
 - `MetadataRegistry` class
 - `MigrationStatuses` class

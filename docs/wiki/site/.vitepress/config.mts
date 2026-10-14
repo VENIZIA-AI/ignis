@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'An Error Hands Out Its Filled Text',
+                  link: '/changelogs/2026-10-14-error-filled-text',
+                },
+                {
                   text: 'TemporalHelper Runs in Every Browser and Speaks a Locale',
                   link: '/changelogs/2026-10-14-temporal-browser-and-locale',
                 },

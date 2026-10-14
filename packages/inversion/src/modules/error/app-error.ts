@@ -1,6 +1,7 @@
 import { AnyType, TNullable } from '@/common/types';
 import { omit } from '@/common/utilities';
 import { MessageCode } from './message-code';
+import { MessageTemplate } from './message-template';
 import type { TError, TErrorLogLevel, TErrorNormalized, TResponsedError } from './common';
 
 /** Consumed keys. Everything else rides into `extra`. */
@@ -64,6 +65,15 @@ export class ApplicationError extends Error {
           extra: this.extra,
         })
       : normalized;
+  }
+
+  /**
+   * The message with its args filled in: `Only 2 left of TRA-01`. `message` itself stays the template,
+   * so a log or an error tracker never prints a value outside the args it redacts by key - call this
+   * where a plain reader stores or shows the text, such as a queue's failure reason.
+   */
+  toFilledText(): string {
+    return MessageTemplate.render({ text: this.message, args: this.normalized.args }).text;
   }
 
   static getError(opts: TError) {

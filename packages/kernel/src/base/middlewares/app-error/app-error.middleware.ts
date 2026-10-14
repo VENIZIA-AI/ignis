@@ -1,6 +1,12 @@
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import type { TNullable } from '@venizia/ignis-helpers/common';
-import { BaseHelper, EnvironmentNames, LogLevels, MessageCode } from '@venizia/ignis-helpers/core';
+import {
+  BaseHelper,
+  EnvironmentNames,
+  LogLevels,
+  MessageCode,
+  MessageTemplate,
+} from '@venizia/ignis-helpers/core';
 import { HTTP, toJsonSafe } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import type { Context } from 'hono';
@@ -13,7 +19,6 @@ import {
   DATABASE_RETRYABLE_ERROR_MESSAGE,
 } from './definition';
 import type { IResolvedApplicationError, TApplicationErrorType } from './common';
-import { renderMessageTemplate } from './message.handler';
 import { formatZodError } from './zod.handler';
 
 const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
@@ -391,7 +396,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       return resolved.message;
     }
 
-    const { text, missing } = renderMessageTemplate({
+    const { text, missing } = MessageTemplate.render({
       text: resolved.message,
       args: resolved.normalized.args,
     });

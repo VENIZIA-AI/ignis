@@ -1,8 +1,8 @@
 import { BaseAppErrorMiddleware, notFoundHandler } from '@/base/middlewares';
-import { renderMessageTemplate } from '@/base/middlewares/app-error/message.handler';
 import { z } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { MessageTemplate } from '@venizia/ignis-helpers/core';
 import type { ILogger, TLogLevel } from '@venizia/ignis-helpers/core';
 import { getError, MessageCode } from '@venizia/ignis-helpers/core';
 import { Hono } from 'hono';
@@ -562,9 +562,9 @@ describe('the response message fills its %{key} placeholders', () => {
   });
 });
 
-describe('renderMessageTemplate', () => {
+describe('MessageTemplate.render', () => {
   test('fills every occurrence of a key, and reports each missing key once', () => {
-    expect(renderMessageTemplate({ text: '%{a}-%{a} %{b} %{b}', args: { a: 1 } })).toEqual({
+    expect(MessageTemplate.render({ text: '%{a}-%{a} %{b} %{b}', args: { a: 1 } })).toEqual({
       text: '1-1 %{b} %{b}',
       missing: ['b'],
     });
@@ -577,21 +577,21 @@ describe('renderMessageTemplate', () => {
       off: false,
     });
 
-    expect(renderMessageTemplate({ text: '%{nil} %{off} %{gone} %{inherited}', args })).toEqual({
+    expect(MessageTemplate.render({ text: '%{nil} %{off} %{gone} %{inherited}', args })).toEqual({
       text: 'null false %{gone} %{inherited}',
       missing: ['gone', 'inherited'],
     });
   });
 
   test('args that are not an object leave every placeholder as written', () => {
-    expect(renderMessageTemplate({ text: 'x %{a}', args: 'oops' })).toEqual({
+    expect(MessageTemplate.render({ text: 'x %{a}', args: 'oops' })).toEqual({
       text: 'x %{a}',
       missing: ['a'],
     });
   });
 
   test('a value String() cannot convert leaves its placeholder instead of throwing', () => {
-    expect(renderMessageTemplate({ text: 'x %{a}', args: { a: Object.create(null) } })).toEqual({
+    expect(MessageTemplate.render({ text: 'x %{a}', args: { a: Object.create(null) } })).toEqual({
       text: 'x %{a}',
       missing: [],
     });

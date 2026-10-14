@@ -7,6 +7,7 @@ export {
   getError,
   isApplicationError,
   MessageCode,
+  MessageTemplate,
 } from '@venizia/ignis-inversion';
 
 export type {
