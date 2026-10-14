@@ -33,6 +33,8 @@ The error response already filled its `message` (2026-10-11). A reader outside t
 ## Who is affected
 
 - **A queue, tracker or log that stores `error.message`.** Call `toFilledText()` where you hand the error over - see [Store the filled text](/extensions/helpers/error/#store-the-filled-text-where-a-plain-reader-shows-it).
+- **A client that casts a response error to `ApplicationError`.** The cast object has no `toFilledText()`; calling it throws at run time. Use `fromError({ error }).toFilledText()`, or the response `message`, which the server already fills.
+- **An object literal typed `ApplicationError`** - a test fixture, a mock - no longer compiles, because it lacks the method. Build it with `getError(...)`.
 - **Everyone else.** No change.
 
 **Files:** [`packages/inversion/src/modules/error/message-template.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-template.ts), [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts), [`packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts)
