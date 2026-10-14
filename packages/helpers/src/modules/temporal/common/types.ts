@@ -72,3 +72,13 @@ export interface ILuxonDateTime {
 export interface ILuxonDateTimeFactory {
   fromMillis(milliseconds: number, options: { zone: string }): ILuxonDateTime;
 }
+
+/** A span of time split into whole units, every field non-negative; `isNegative` carries the sign. */
+export interface ITemporalDurationParts {
+  isNegative: boolean;
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  milliseconds: number;
+}

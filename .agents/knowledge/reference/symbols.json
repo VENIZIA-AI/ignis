@@ -1304,6 +1304,16 @@
       "signature": "DEFAULT_PAD_END: string"
     },
     {
+      "name": "DEFAULT_TEMPORAL_LOCALE",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 39,
+      "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
+    },
+    {
       "name": "DEFAULT_TEMPORAL_PATTERN",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -3985,6 +3995,16 @@
       "signature": "interface ITemporalAdapter"
     },
     {
+      "name": "ITemporalDurationParts",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 77,
+      "signature": "interface ITemporalDurationParts"
+    },
+    {
       "name": "ITemporalNamespace",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -4323,6 +4343,16 @@
       "file": "packages/kernel/src/base/repositories/query-schemas/index.ts",
       "line": 14,
       "signature": "InclusionSchema: any"
+    },
+    {
+      "name": "IntlTemporalAdapter",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/intl.ts",
+      "line": 15,
+      "signature": "class IntlTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "IsolationLevels",
@@ -8036,6 +8066,16 @@
       "signature": "type TTask<T> = (...args: any[]) => Promise<T>"
     },
     {
+      "name": "TTemporalDurationStyle",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 55,
+      "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
       "name": "TTemporalInput",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8326,13 +8366,23 @@
       "signature": "class TableColumnCache"
     },
     {
+      "name": "TemporalDurationStyles",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 42,
+      "signature": "class TemporalDurationStyles"
+    },
+    {
       "name": "TemporalHelper",
       "package": "@venizia/ignis",
       "subpath": ".",
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 58,
+      "line": 81,
       "signature": "class TemporalHelper extends BaseHelper"
     },
     {
@@ -22335,6 +22385,16 @@
       "signature": "DEFAULT_PAD_END: string"
     },
     {
+      "name": "DEFAULT_TEMPORAL_LOCALE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 39,
+      "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
+    },
+    {
       "name": "DEFAULT_TEMPORAL_PATTERN",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23566,6 +23626,16 @@
       "signature": "interface ITemporalAdapter"
     },
     {
+      "name": "ITemporalDurationParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 77,
+      "signature": "interface ITemporalDurationParts"
+    },
+    {
       "name": "ITemporalNamespace",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -23794,6 +23864,16 @@
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
       "line": 16,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
+      "name": "IntlTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/intl.ts",
+      "line": 15,
+      "signature": "class IntlTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "LEADING_OR_TRAILING_HYPHENS_PATTERN",
@@ -25027,6 +25107,16 @@
       "signature": "type TTask<T> = (...args: any[]) => Promise<T>"
     },
     {
+      "name": "TTemporalDurationStyle",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 55,
+      "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
       "name": "TTemporalInput",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -25217,13 +25307,23 @@
       "signature": "type TWebSocketValidateRoomFn = (opts: { clientId: string; userId?: string; rooms: string[]; }) => ValueOrPromise<string[]>"
     },
     {
+      "name": "TemporalDurationStyles",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 42,
+      "signature": "class TemporalDurationStyles"
+    },
+    {
       "name": "TemporalHelper",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 58,
+      "line": 81,
       "signature": "class TemporalHelper extends BaseHelper"
     },
     {
@@ -26877,6 +26977,16 @@
       "signature": "class BuildInfoRegistry"
     },
     {
+      "name": "DEFAULT_TEMPORAL_LOCALE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 39,
+      "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
+    },
+    {
       "name": "DEFAULT_TEMPORAL_PATTERN",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27287,6 +27397,16 @@
       "signature": "interface ITemporalAdapter"
     },
     {
+      "name": "ITemporalDurationParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 77,
+      "signature": "interface ITemporalDurationParts"
+    },
+    {
       "name": "ITemporalNamespace",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27385,6 +27505,16 @@
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
       "line": 16,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
+    },
+    {
+      "name": "IntlTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/intl.ts",
+      "line": 15,
+      "signature": "class IntlTemporalAdapter implements ITemporalAdapter"
     },
     {
       "name": "LogLevels",
@@ -27787,6 +27917,16 @@
       "signature": "type TRetryJitterMode = TConstValue<typeof RetryJitterModes>"
     },
     {
+      "name": "TTemporalDurationStyle",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 55,
+      "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
       "name": "TTemporalInput",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27827,13 +27967,23 @@
       "signature": "type TUrlScheme = TConstValue<typeof UrlSchemes>"
     },
     {
+      "name": "TemporalDurationStyles",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 42,
+      "signature": "class TemporalDurationStyles"
+    },
+    {
       "name": "TemporalHelper",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 58,
+      "line": 81,
       "signature": "class TemporalHelper extends BaseHelper"
     },
     {
@@ -28967,6 +29117,16 @@
       "signature": "type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[]; }) => ValueOrPromise<string[]>"
     },
     {
+      "name": "DEFAULT_TEMPORAL_LOCALE",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "const",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 39,
+      "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
+    },
+    {
       "name": "DEFAULT_TEMPORAL_PATTERN",
       "package": "@venizia/ignis-helpers",
       "subpath": "./temporal",
@@ -29047,6 +29207,16 @@
       "signature": "interface ITemporalAdapter"
     },
     {
+      "name": "ITemporalDurationParts",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 77,
+      "signature": "interface ITemporalDurationParts"
+    },
+    {
       "name": "ITemporalNamespace",
       "package": "@venizia/ignis-helpers",
       "subpath": "./temporal",
@@ -29087,6 +29257,16 @@
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
     },
     {
+      "name": "IntlTemporalAdapter",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/adapters/intl.ts",
+      "line": 15,
+      "signature": "class IntlTemporalAdapter implements ITemporalAdapter"
+    },
+    {
       "name": "LuxonTemporalAdapter",
       "package": "@venizia/ignis-helpers",
       "subpath": "./temporal",
@@ -29105,6 +29285,16 @@
       "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
       "line": 12,
       "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
+    },
+    {
+      "name": "TTemporalDurationStyle",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 55,
+      "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
     },
     {
       "name": "TTemporalInput",
@@ -29127,13 +29317,23 @@
       "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
+      "name": "TemporalDurationStyles",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 42,
+      "signature": "class TemporalDurationStyles"
+    },
+    {
       "name": "TemporalHelper",
       "package": "@venizia/ignis-helpers",
       "subpath": "./temporal",
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 58,
+      "line": 81,
       "signature": "class TemporalHelper extends BaseHelper"
     },
     {

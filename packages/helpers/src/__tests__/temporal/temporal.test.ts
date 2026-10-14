@@ -6,6 +6,7 @@ import utc from 'dayjs/plugin/utc.js';
 import { DateTime } from 'luxon';
 import {
   DayjsTemporalAdapter,
+  IntlTemporalAdapter,
   LuxonTemporalAdapter,
   NativeTemporalAdapter,
   TemporalHelper,
@@ -23,6 +24,7 @@ const LORD_HOWE = 'Australia/Lord_Howe';
 
 const adapters: Array<{ name: string; build: () => ITemporalAdapter }> = [
   { name: 'native Temporal', build: () => new NativeTemporalAdapter() },
+  { name: 'Intl', build: () => new IntlTemporalAdapter() },
   { name: 'dayjs', build: () => new DayjsTemporalAdapter({ dayjs }) },
   { name: 'luxon', build: () => new LuxonTemporalAdapter({ DateTime }) },
 ];
@@ -402,8 +404,8 @@ describe('TemporalHelper input', () => {
 describe('TemporalPattern tokens', () => {
   const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), timeZone: SAIGON });
 
-  // Month and day names are dayjs and moment tokens; read greedily they came out as digits.
-  test.each(['DD MMM YYYY', 'MMMM', 'DDDD', 'HHH', 'ZZZ', 'Do', 'SS', 'YYYYY'])(
+  // dayjs and moment tokens this dialect does not have; read greedily they came out as digits.
+  test.each(['DDDD', 'HHH', 'ZZZ', 'Do', 'SS', 'YYYYY', 'MMMMM', 'ddddd', 'AA', 'LLL'])(
     "'%s' is refused, not split into smaller tokens",
     pattern => {
       expect(() => helper.format({ value: 0, pattern })).toThrow(/unknown token/);

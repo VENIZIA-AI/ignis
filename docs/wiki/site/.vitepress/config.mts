@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-14',
+              collapsed: true,
+              items: [
+                {
+                  text: 'TemporalHelper Runs in Every Browser and Speaks a Locale',
+                  link: '/changelogs/2026-10-14-temporal-browser-and-locale',
+                },
+              ],
+            },
+            {
               text: '2026-10-11',
               collapsed: true,
               items: [

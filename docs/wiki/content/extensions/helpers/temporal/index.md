@@ -28,7 +28,8 @@ An **adapter** answers one question: which UTC offset a zone observes at an inst
 
 | Adapter | Build it with | Needs | Reach for it when |
 |---|---|---|---|
-| `NativeTemporalAdapter` (the default) | `new NativeTemporalAdapter()` | The runtime's `Temporal` API - Bun and current browsers have it | You run on Bun |
+| `NativeTemporalAdapter` (the default when the runtime has `Temporal`) | `new NativeTemporalAdapter()` | The runtime's `Temporal` API - Bun has it, not every browser does | You run on Bun |
+| `IntlTemporalAdapter` (the default otherwise) | `new IntlTemporalAdapter()` | Nothing: `Intl.DateTimeFormat` ships in every browser and runtime | You run in a browser, or want one behaviour everywhere |
 | `NativeTemporalAdapter` | `new NativeTemporalAdapter({ temporal })` | A Temporal polyfill's namespace | Your runtime has no `Temporal` and you want the standard API |
 | `DayjsTemporalAdapter` | `new DayjsTemporalAdapter({ dayjs })` | Your `dayjs`, with the `utc` and `timezone` plugins extended | Your app already ships dayjs |
 | `LuxonTemporalAdapter` | `new LuxonTemporalAdapter({ DateTime })` | Your Luxon `DateTime` class | Your app already ships Luxon |
@@ -105,7 +106,43 @@ temporal.format({ value: paidAt, pattern: '[on] D/M/YYYY [at] H:mm' }); // 'on 1
 
 Without a pattern you get ISO 8601 with the zone's offset. Wrap literal text in `[brackets]`.
 
-Patterns use the dayjs spelling, digits only - see [Pattern tokens](#pattern-tokens). Any other letter throws when the pattern is read, so a date-fns pattern like `yyyy-MM-dd` fails loudly instead of printing garbage.
+Patterns use the dayjs spelling - see [Pattern tokens](#pattern-tokens). Any other letter throws when the pattern is read, so a date-fns pattern like `yyyy-MM-dd` fails loudly instead of printing garbage.
+
+### Write month names, weekdays and 12-hour time
+
+```typescript
+const vietnamese = new TemporalHelper({ timeZone: 'Asia/Ho_Chi_Minh', locale: 'vi-VN' });
+
+vietnamese.format({ value: paidAt, pattern: 'dddd, D MMMM YYYY hh:mm A' }); // 'Thứ Bảy, 19 Tháng 9 2026 12:00 CH'
+temporal.format({ value: paidAt, pattern: 'ddd, MMM D, h:mm a', locale: 'en-US' }); // 'Sat, Sep 19, 12:00 pm'
+temporal.format({ value: paidAt, pattern: 'LL', locale: 'en-US' }); // 'September 19, 2026'
+```
+
+The names are what `Intl` spells for the locale, so a browser can differ slightly from Bun. These tokens write only: `parse` stays numeric. For anything a token cannot say, pass `Intl.DateTimeFormat` options to `formatIntl`:
+
+```typescript
+temporal.formatIntl({ value: paidAt, options: { weekday: 'long', hour: 'numeric' }, locale: 'en-US' }); // 'Saturday 12 PM'
+```
+
+### Say how long ago
+
+```typescript
+temporal.relative({ value: paidAt, base: '2026-09-19T08:00:00Z' }); // '3 hours ago'
+temporal.relative({ value: paidAt, unit: TemporalUnits.DAY, numeric: 'auto' }); // 'yesterday', 'today', 'tomorrow'
+```
+
+Without a `unit`, `relative` says the largest whole unit that has passed. With one, it counts that unit's boundaries in the zone: 23:00 yesterday, seen at 01:00, is `yesterday`. `base` defaults to now.
+
+### Compare and measure
+
+```typescript
+temporal.compare({ value: a, other: b, unit: TemporalUnits.DAY }); // -1, 0 or 1 - is a before, on, or after b's day?
+temporal.diff({ value: b, other: a, unit: TemporalUnits.MONTH }); // whole months from a to b
+temporal.tryParse({ value: input }); // a Date, or null where parse would throw
+temporal.formatDuration({ milliseconds: 5_400_000 }); // '1h30m'
+```
+
+`diff` is the inverse of `add`: `diff(add(x, n), x)` is `n`, except in a zone that skipped a whole day (Samoa on 2011-12-30). Hours and smaller count elapsed time; days and larger count the calendar, so the 23-hour day of a spring-forward jump is one day.
 
 ### Move a date by days, months or hours
 
@@ -213,7 +250,7 @@ Those five plugins and that zone are what IGNIS configured. Then point every imp
 | `isWeekday(date)` | `temporal.isWeekday({ value })` |
 | `getNextWeekday({ date })` | `temporal.nextWeekday({ value })` |
 | `getPreviousWeekday({ date })` | `temporal.previousWeekday({ value })` |
-| `getDateTz({ date, timezone })` | `temporal.format({ value, timeZone })` for numeric text, `temporal.parts({ value, timeZone })` for fields. There is no day-name token: `format` with `dddd` throws, so read the weekday as `parts(...).dayOfWeek` (ISO: 1 is Monday, 7 is Sunday) |
+| `getDateTz({ date, timezone })` | `temporal.format({ value, timeZone })` for text, with `dddd` for the weekday name; `temporal.parts({ value, timeZone })` for fields |
 | `getDateTz({ ..., timeOffset })` | `temporal.add({ value, amount: timeOffset, unit: TemporalUnits.HOUR })` |
 | `sleep()`, `hrTime()` | Unchanged - both still ship from `@venizia/ignis-helpers` |
 
@@ -235,8 +272,9 @@ The same names ship from `@venizia/ignis-helpers` and from the browser-safe `@ve
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `adapter` | `ITemporalAdapter` | `new NativeTemporalAdapter()` | Converts time zones. The default throws when the runtime has no `Temporal` |
+| `adapter` | `ITemporalAdapter` | `NativeTemporalAdapter` when the runtime has `Temporal`, `IntlTemporalAdapter` otherwise | Converts time zones |
 | `timeZone` | `string` | `'UTC'` | The IANA zone every call uses unless it passes its own. Checked when the helper is built |
+| `locale` | `string` | `'en-US'` | Spells name tokens, relative time and durations, unless a call passes its own. A malformed tag is a 400 |
 | `scope` | `string` | `'TemporalHelper'` | Logger scope, from `BaseHelper` |
 
 ### Methods
@@ -246,11 +284,15 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | Method | Returns | What it does |
 |---|---|---|
 | `getTimeZone()` | `string` | The helper's zone |
+| `getLocale()` | `string` | The helper's locale |
 | `now()` | `Date` | The current instant |
 | `toDate({ value, timeZone })` | `Date` | The instant `value` names. An ISO string without an offset is wall clock in the zone |
 | `parts({ value, timeZone })` | `IZonedTemporalParts` | The wall clock in the zone, with the ISO weekday and the offset |
 | `parse({ value, pattern, timeZone })` | `Date` | Reads a string: an exact match with `pattern`, ISO 8601 without. An offset in the value wins over the zone |
-| `format({ value, pattern, timeZone })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ` |
+| `tryParse({ value, pattern, timeZone })` | `Date \| null` | `parse`, answering `null` where `parse` throws a 400. A broken pattern still throws |
+| `isValid({ value, pattern, timeZone })` | `boolean` | Whether the value names an instant in years 1-9999; a string is read as `parse` reads it |
+| `format({ value, pattern, timeZone, locale })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ` |
+| `formatIntl({ value, options, timeZone, locale })` | `string` | Writes the value with `Intl.DateTimeFormat` options, in the zone |
 | `add({ value, amount, unit, timeZone })` | `Date` | Moves the value by whole units - see [Units](#units) |
 | `subtract({ value, amount, unit, timeZone })` | `Date` | `add` with the sign flipped |
 | `startOf({ value, unit, timeZone })` | `Date` | The first instant of the unit containing the value |
@@ -258,6 +300,11 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `isWeekday({ value, timeZone })` | `boolean` | Monday to Friday, on the zone's wall clock |
 | `nextWeekday({ value, timeZone })` | `Date` | The next Monday-to-Friday day, same wall time |
 | `previousWeekday({ value, timeZone })` | `Date` | The previous Monday-to-Friday day, same wall time |
+| `diff({ value, other, unit, timeZone })` | `number` | Whole units from `other` to `value`, truncated toward zero. The largest `n` that `add` can move `other` by without passing `value` |
+| `compare({ value, other, unit, timeZone })` | `-1 \| 0 \| 1` | Before, in or after the unit holding `other`. Without `unit`, to the millisecond |
+| `relative({ value, base, unit, numeric, style, timeZone, locale })` | `string` | `value` relative to `base` (default now), through `Intl.RelativeTimeFormat`. `unit` has no millisecond |
+| `durationParts({ milliseconds })` | `ITemporalDurationParts` | Days, hours, minutes, seconds and milliseconds; a day is 24 hours |
+| `formatDuration({ milliseconds, style, locale })` | `string` | `compact` (default) writes `1d1h30m`; `narrow`, `short` and `long` use the locale's unit words. Zero units and milliseconds are left out |
 
 ### Units
 
@@ -287,10 +334,16 @@ Examples format `2026-09-19T05:04:03.021Z` in `Asia/Ho_Chi_Minh`.
 | `SSS` | Millisecond, three digits | `021` |
 | `Z` | Offset with a colon, and seconds when it has them. Parsing also takes `Z` | `+07:00` |
 | `ZZ` | Offset without a colon, and seconds when it has them. Parsing also takes `Z` | `+0700` |
+| `MMMM` / `MMM` | Month name, long / short, on the Gregorian calendar whatever the locale's own. Writing only | `September` / `Sep` |
+| `dddd` / `ddd` | Weekday name, long / short. Writing only | `Saturday` / `Sat` |
+| `hh` / `h` | Hour 1-12, padded / unpadded. Writing only | `12` / `12` |
+| `A` / `a` | AM/PM marker, as written / lower case. Writing only | `PM` / `pm` |
+| `L` / `LL` | The date in the locale's numeric order / its long form. Writing only | `09/19/2026` / `September 19, 2026` |
 | `[text]` | Literal text | `[at]` writes `at` |
 | `T` | A literal `T` - the one letter allowed without brackets | `T` |
 
-- A run of one letter is one token. `MMM`, `DDDD` or `ZZZ` throws a 500 that names it, rather than being read as smaller tokens - month and weekday names are not supported.
+- A run of one letter is one token. `DDDD` or `ZZZ` throws a 500 that names it, rather than being read as smaller tokens.
+- Name examples are `en-US`. The writing-only tokens take the call's `locale`, or the helper's. A parse pattern holding one throws a 500.
 - Any other letter throws the same way. Spaces and punctuation are literals.
 - An offset with seconds is historic local mean time: `Asia/Ho_Chi_Minh` in 1900 writes `+07:06:30`. Parsing refuses an offset hour above 23, or a minute or second above 59.
 - Parsing fills a field the pattern leaves out with its start: year 1970, month 1, day 1, 00:00:00.000.
@@ -317,8 +370,10 @@ Examples format `2026-09-19T05:04:03.021Z` in `Asia/Ho_Chi_Minh`.
 | A value outside years 1-9999, or an `add` that leaves them | 400 | `[TemporalHelper]` ... `outside the years 1-9999` |
 | An adapter called directly with a zone it cannot read | 400 | `[NativeTemporalAdapter] no offset for` (and the same for the other two) |
 | An unknown unit, or a fractional `amount` | 400 | `[TemporalHelper] unknown unit` / `[TemporalHelper] amount must be an integer` |
-| An unknown token, or an unclosed `[`, in a pattern | 500 | `[TemporalPattern]` |
-| The default adapter finds no `Temporal` | 500 | `[NativeTemporalAdapter] Temporal is not available on this runtime` |
+| An unknown token, or an unclosed `[`, in a pattern; a writing-only token in a parse pattern | 500 | `[TemporalPattern]` |
+| A malformed `locale` | 400 | `[TemporalLocale] invalid locale` |
+| A fractional `milliseconds`, or an unknown duration `style` | 400 | `[TemporalDuration]` |
+| `new NativeTemporalAdapter()` finds no `Temporal` | 500 | `[NativeTemporalAdapter] Temporal is not available on this runtime` |
 | dayjs without the `timezone` plugin | 500 | ``[DayjsTemporalAdapter] dayjs has no `tz` `` |
 
 ### Types
@@ -335,8 +390,10 @@ interface ITemporalAdapter {
 | `TTemporalInput` | `Date \| number \| string` |
 | `ITemporalParts` | `year`, `month` (1-12), `day` (1-31), `hour`, `minute`, `second`, `millisecond` |
 | `IZonedTemporalParts` | `ITemporalParts` plus `dayOfWeek` (ISO: 1 is Monday, 7 is Sunday) and `offsetMinutes` (east of UTC: `420` for `+07:00`; a fraction when the offset has seconds) |
+| `ITemporalDurationParts` | `isNegative`, and non-negative `days`, `hours`, `minutes`, `seconds`, `milliseconds` |
 
-- `DEFAULT_TEMPORAL_TIME_ZONE` is `'UTC'`. `DEFAULT_TEMPORAL_PATTERN` is `'YYYY-MM-DDTHH:mm:ss.SSSZ'`.
+- `DEFAULT_TEMPORAL_TIME_ZONE` is `'UTC'`. `DEFAULT_TEMPORAL_PATTERN` is `'YYYY-MM-DDTHH:mm:ss.SSSZ'`. `DEFAULT_TEMPORAL_LOCALE` is `'en-US'`.
+- `TemporalDurationStyles` holds `COMPACT`, `NARROW`, `SHORT` and `LONG`.
 - The adapters type their library argument structurally (`ITemporalNamespace`, `IDayjsFactory`, `ILuxonDateTimeFactory`), so no date library's types ship with this package.
 
 ## See also
@@ -351,6 +408,9 @@ interface ITemporalAdapter {
 - [`packages/helpers/src/modules/temporal/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/helper.ts) - `TemporalHelper`
 - [`packages/helpers/src/modules/temporal/pattern.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/pattern.ts) - the pattern dialect
 - [`packages/helpers/src/modules/temporal/calendar.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/calendar.ts) - day and month arithmetic
+- [`packages/helpers/src/modules/temporal/adapters/intl.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/intl.ts) - `IntlTemporalAdapter`
+- [`packages/helpers/src/modules/temporal/locale.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/locale.ts) - month and weekday names per locale
+- [`packages/helpers/src/modules/temporal/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/duration.ts) - `durationParts` and `formatDuration`
 - [`packages/helpers/src/modules/temporal/adapters/native.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/native.ts) - `NativeTemporalAdapter`
 - [`packages/helpers/src/modules/temporal/adapters/dayjs.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/dayjs.ts) - `DayjsTemporalAdapter`
 - [`packages/helpers/src/modules/temporal/adapters/luxon.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/luxon.ts) - `LuxonTemporalAdapter`

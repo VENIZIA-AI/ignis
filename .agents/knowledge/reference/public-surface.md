@@ -125,7 +125,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (419)
+### `@venizia/ignis-helpers` (424)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -182,6 +182,7 @@ tags: [reference, exports, api]
 - `DEFAULT_KDF_ITERATIONS` const
 - `DEFAULT_KDF_SALT` const
 - `DEFAULT_PAD_END` const
+- `DEFAULT_TEMPORAL_LOCALE` const
 - `DEFAULT_TEMPORAL_PATTERN` const
 - `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
@@ -264,6 +265,7 @@ tags: [reference, exports, api]
 - `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
 - `int` const
+- `IntlTemporalAdapter` class
 - `invokeHook` const
 - `IObjectInfo` interface
 - `IObjectLocation` interface
@@ -326,6 +328,7 @@ tags: [reference, exports, api]
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
 - `ITemporalAdapter` interface
+- `ITemporalDurationParts` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -431,6 +434,7 @@ tags: [reference, exports, api]
 - `TContentType` type
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
+- `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalUnits` class
 - `TError` type
@@ -499,6 +503,7 @@ tags: [reference, exports, api]
 - `TSecretRotationHandler` type
 - `TStringConstValue` type
 - `TTask` type
+- `TTemporalDurationStyle` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TTimerHandle` type
@@ -612,7 +617,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (132)
+### `@venizia/ignis-helpers/core` (137)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -627,6 +632,7 @@ tags: [reference, exports, api]
 - `createUuidV5` const
 - `createUuidV7` const
 - `DayjsTemporalAdapter` class
+- `DEFAULT_TEMPORAL_LOCALE` const
 - `DEFAULT_TEMPORAL_PATTERN` const
 - `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
@@ -657,6 +663,7 @@ tags: [reference, exports, api]
 - `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
 - `int` const
+- `IntlTemporalAdapter` class
 - `IOpaqueUidOptions` interface
 - `IPayloadCipher` interface
 - `IPool` interface
@@ -672,6 +679,7 @@ tags: [reference, exports, api]
 - `isApplicationError` const
 - `ISnowflakeParsedId` interface
 - `ITemporalAdapter` interface
+- `ITemporalDurationParts` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -703,6 +711,7 @@ tags: [reference, exports, api]
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
 - `TBuildInfoRecord` type
+- `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalUnits` class
 - `TError` type
@@ -731,6 +740,7 @@ tags: [reference, exports, api]
 - `TResponsedError` type
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
+- `TTemporalDurationStyle` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TUidCaseForm` type
@@ -760,24 +770,29 @@ tags: [reference, exports, api]
 - `uuidV5` const
 - `uuidV7` const
 
-### `@venizia/ignis-helpers/temporal` (18)
+### `@venizia/ignis-helpers/temporal` (23)
 
 - `DayjsTemporalAdapter` class
+- `DEFAULT_TEMPORAL_LOCALE` const
 - `DEFAULT_TEMPORAL_PATTERN` const
 - `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `IDayjsFactory` interface
 - `IDayjsInstance` interface
 - `ILuxonDateTime` interface
 - `ILuxonDateTimeFactory` interface
+- `IntlTemporalAdapter` class
 - `ITemporalAdapter` interface
+- `ITemporalDurationParts` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
 - `IZonedTemporalParts` interface
 - `LuxonTemporalAdapter` class
 - `NativeTemporalAdapter` class
+- `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalUnits` class
+- `TTemporalDurationStyle` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 
@@ -2067,7 +2082,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1012)
+### `@venizia/ignis` (1017)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2226,6 +2241,7 @@ tags: [reference, exports, api]
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `DEFAULT_PAD_END` const
+- `DEFAULT_TEMPORAL_LOCALE` const
 - `DEFAULT_TEMPORAL_PATTERN` const
 - `DEFAULT_TEMPORAL_TIME_ZONE` const
 - `DEFAULT_UID_DELIMITER` const
@@ -2443,6 +2459,7 @@ tags: [reference, exports, api]
 - `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
 - `int` const
+- `IntlTemporalAdapter` class
 - `invokeHook` const
 - `IObjectInfo` interface
 - `IObjectLocation` interface
@@ -2551,6 +2568,7 @@ tags: [reference, exports, api]
 - `ITcpSocketClient` interface
 - `ITcpSocketServerOptions` interface
 - `ITemporalAdapter` interface
+- `ITemporalDurationParts` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -2832,6 +2850,7 @@ tags: [reference, exports, api]
 - `TDomainHierarchyEdge` type
 - `TDrizzleQueryOptions` type
 - `TDurationUnit` type
+- `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalUnits` class
 - `TEntityDataObject` type
@@ -3016,6 +3035,7 @@ tags: [reference, exports, api]
 - `TTableObject` type
 - `TTableSchemaWithId` type
 - `TTask` type
+- `TTemporalDurationStyle` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TTimerHandle` type
