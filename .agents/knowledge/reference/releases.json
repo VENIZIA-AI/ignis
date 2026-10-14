@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.2-0",
+        "date": "2026-10-14",
+        "sha": "7a13b114",
+        "order": 1625
+      },
+      {
         "version": "0.1.1",
         "date": "2026-10-12",
         "sha": "30375e1e",
@@ -815,6 +821,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.2-1",
+        "date": "2026-10-14",
+        "sha": "a0960da2",
+        "order": 1631
+      },
       {
         "version": "0.2.2-0",
         "date": "2026-10-14",
@@ -2014,6 +2026,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.2-1",
+        "date": "2026-10-14",
+        "sha": "88b2fe0d",
+        "order": 1633
+      },
+      {
         "version": "0.2.2-0",
         "date": "2026-10-14",
         "sha": "48f82299",
@@ -2387,6 +2405,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.2-1",
+        "date": "2026-10-14",
+        "sha": "5c81ac61",
+        "order": 1632
+      },
       {
         "version": "0.2.2-0",
         "date": "2026-10-14",
@@ -3128,6 +3152,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "10de4309",
+        "order": 1628
+      },
+      {
         "version": "0.2.1",
         "date": "2026-10-12",
         "sha": "cb6c1ed8",
@@ -3321,6 +3351,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.2-1",
+        "date": "2026-10-14",
+        "sha": "7d9c118b",
+        "order": 1629
+      },
       {
         "version": "0.2.2-0",
         "date": "2026-10-14",
@@ -4074,6 +4110,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "b079323a",
+        "order": 1627
+      },
+      {
         "version": "0.2.1",
         "date": "2026-10-12",
         "sha": "7b41cd51",
@@ -4423,6 +4465,12 @@
       }
     ],
     "kernel": [
+      {
+        "version": "0.2.2-1",
+        "date": "2026-10-14",
+        "sha": "e9a0a0a6",
+        "order": 1630
+      },
       {
         "version": "0.2.2-0",
         "date": "2026-10-14",
@@ -4786,11 +4834,24 @@
       "order": 1618
     },
     {
+      "id": "changelog:2026-10-14-error-filled-text",
+      "file": "2026-10-14-error-filled-text.md",
+      "date": "2026-10-14",
+      "title": "An Error Hands Out Its Filled Text",
+      "packages": [
+        "helpers",
+        "inversion"
+      ],
+      "kind": "Enhancement",
+      "order": 1626
+    },
+    {
       "id": "changelog:2026-10-11-error-message-placeholders",
       "file": "2026-10-11-error-message-placeholders.md",
       "date": "2026-10-11",
       "title": "Error Messages Fill Their Placeholders",
       "packages": [
+        "inversion",
         "kernel"
       ],
       "kind": "Enhancement",
