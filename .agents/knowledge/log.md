@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-14 - ApplicationError.toFilledText
+
+Updated [kernel](/packages/kernel.md).
+
+- The `%{key}` fill moved from kernel's `message.handler.ts` (deleted) to inversion's `MessageTemplate.render`; `ApplicationError#toFilledText()` uses it. `Error.message` stays the template on purpose (redaction by key); BANA asked because BullMQ stores `failedReason = err.message`.
+
 ## 2026-10-14 - TemporalHelper in every browser, with a locale
 
 Updated [helpers](/packages/helpers.md).

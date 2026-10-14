@@ -329,7 +329,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class ApplicationError extends Error"
     },
     {
@@ -629,7 +629,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 88,
+      "line": 93,
       "signature": "class BaseAppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler>"
     },
     {
@@ -4635,6 +4635,16 @@
       "signature": "class MessageCode"
     },
     {
+      "name": "MessageTemplate",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/inversion/src/modules/error/message-template.ts",
+      "line": 9,
+      "signature": "class MessageTemplate"
+    },
+    {
       "name": "MetadataKeys",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -6502,7 +6512,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 26,
+      "line": 31,
       "signature": "type TErrorLogFormatter = (opts: { error: unknown; messageCode?: string; extra?: Record<string, unknown>; includeStack?: boolean; maxStackFrames?: number; }) => string"
     },
     {
@@ -9182,7 +9192,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 91,
+      "line": 101,
       "signature": "fromError: (opts: { error: TResponsedError; }) => ApplicationError"
     },
     {
@@ -9282,7 +9292,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 89,
+      "line": 99,
       "signature": "getError: (opts: TError) => ApplicationError"
     },
     {
@@ -9412,7 +9422,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 94,
+      "line": 104,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -22120,7 +22130,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class ApplicationError extends Error"
     },
     {
@@ -23996,6 +24006,16 @@
       "signature": "class MessageCode"
     },
     {
+      "name": "MessageTemplate",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/inversion/src/modules/error/message-template.ts",
+      "line": 9,
+      "signature": "class MessageTemplate"
+    },
+    {
       "name": "MimeTypes",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -25743,7 +25763,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 91,
+      "line": 101,
       "signature": "fromError: (opts: { error: TResponsedError; }) => ApplicationError"
     },
     {
@@ -25763,7 +25783,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 89,
+      "line": 99,
       "signature": "getError: (opts: TError) => ApplicationError"
     },
     {
@@ -25833,7 +25853,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 94,
+      "line": 104,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -26933,7 +26953,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class ApplicationError extends Error"
     },
     {
@@ -27557,6 +27577,16 @@
       "signature": "class MessageCode"
     },
     {
+      "name": "MessageTemplate",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/inversion/src/modules/error/message-template.ts",
+      "line": 9,
+      "signature": "class MessageTemplate"
+    },
+    {
       "name": "NativeTemporalAdapter",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -28153,7 +28183,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 91,
+      "line": 101,
       "signature": "fromError: (opts: { error: TResponsedError; }) => ApplicationError"
     },
     {
@@ -28163,7 +28193,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 89,
+      "line": 99,
       "signature": "getError: (opts: TError) => ApplicationError"
     },
     {
@@ -28183,7 +28213,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 94,
+      "line": 104,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -29603,7 +29633,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "class",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 20,
+      "line": 21,
       "signature": "class ApplicationError extends Error"
     },
     {
@@ -29787,6 +29817,16 @@
       "signature": "class MessageCode"
     },
     {
+      "name": "MessageTemplate",
+      "package": "@venizia/ignis-inversion",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-inversion",
+      "kind": "class",
+      "file": "packages/inversion/src/modules/error/message-template.ts",
+      "line": 9,
+      "signature": "class MessageTemplate"
+    },
+    {
       "name": "MetadataKeys",
       "package": "@venizia/ignis-inversion",
       "subpath": ".",
@@ -29823,7 +29863,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 98,
+      "line": 108,
       "signature": "type TApplicationError = ApplicationError"
     },
     {
@@ -30153,7 +30193,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 91,
+      "line": 101,
       "signature": "fromError: (opts: { error: TResponsedError; }) => ApplicationError"
     },
     {
@@ -30163,7 +30203,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 89,
+      "line": 99,
       "signature": "getError: (opts: TError) => ApplicationError"
     },
     {
@@ -30183,7 +30223,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 94,
+      "line": 104,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -30613,7 +30653,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 88,
+      "line": 93,
       "signature": "class BaseAppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler>"
     },
     {
@@ -32963,7 +33003,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/middlewares/app-error/app-error.middleware.ts",
-      "line": 26,
+      "line": 31,
       "signature": "type TErrorLogFormatter = (opts: { error: unknown; messageCode?: string; extra?: Record<string, unknown>; includeStack?: boolean; maxStackFrames?: number; }) => string"
     },
     {

@@ -304,6 +304,35 @@ The handler is fail-closed on environment. It exposes `stack` and `cause` in `de
 >
 > A key with no arg stays as written. Outside production, the middleware logs one warning naming the code and the missing keys. `Error.message` and the log line keep the template, so an arg value never leaves the redacted `args` map.
 
+### Store the filled text where a plain reader shows it
+
+`error.message` stays the template, so a reader that only knows `.message` - a job queue's failure reason, a third-party log - shows `%{key}`. Fill it where you hand the error over:
+
+```typescript
+const error = getError({
+  message: { text: 'Only %{available} left of %{sku}.', code: 'stock.unavailable' },
+  messageArgs: { available: 2, sku: 'TRA-01' },
+  statusCode: 409,
+});
+
+error.toFilledText(); // 'Only 2 left of TRA-01.'
+error.message; // 'Only %{available} left of %{sku}.' - unchanged
+```
+
+For a BullMQ processor, which stores `job.failedReason = error.message`:
+
+```typescript
+const processor = async (job: Job) => {
+  try {
+    return await handle(job);
+  } catch (error) {
+    throw isApplicationError(error) ? new Error(error.toFilledText(), { cause: error }) : error;
+  }
+};
+```
+
+Fill only where you choose to. A filled text carries every arg value inline, outside the `args` map a log redacts by key. `MessageTemplate.render({ text, args })` is the same fill, and also returns the keys it found no arg for.
+
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
