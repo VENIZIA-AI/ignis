@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.1",
+        "date": "2026-10-12",
+        "sha": "30375e1e",
+        "order": 1617
+      },
+      {
         "version": "0.1.1-9",
         "date": "2026-10-12",
         "sha": "6790dd0c",
@@ -809,6 +815,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "abd59b0b",
+        "order": 1621
+      },
       {
         "version": "0.2.1",
         "date": "2026-10-12",
@@ -2002,6 +2014,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "48f82299",
+        "order": 1623
+      },
+      {
         "version": "0.2.1",
         "date": "2026-10-12",
         "sha": "47b58fe7",
@@ -2369,6 +2387,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "169144f7",
+        "order": 1622
+      },
       {
         "version": "0.2.1",
         "date": "2026-10-12",
@@ -3297,6 +3321,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "1038c658",
+        "order": 1619
+      },
       {
         "version": "0.2.1",
         "date": "2026-10-12",
@@ -4394,6 +4424,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.2-0",
+        "date": "2026-10-14",
+        "sha": "1ff784cd",
+        "order": 1620
+      },
+      {
         "version": "0.2.1",
         "date": "2026-10-12",
         "sha": "aab3bfe5",
@@ -4738,6 +4774,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-14-temporal-browser-and-locale",
+      "file": "2026-10-14-temporal-browser-and-locale.md",
+      "date": "2026-10-14",
+      "title": "TemporalHelper Runs in Every Browser and Speaks a Locale",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1618
+    },
     {
       "id": "changelog:2026-10-11-error-message-placeholders",
       "file": "2026-10-11-error-message-placeholders.md",
