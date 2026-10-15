@@ -21,7 +21,7 @@ class ProjectRootApplication extends ServerApplication {
   override async initialize(): Promise<void> {}
 }
 
-/** The shape 16 BANA packages carried before the option existed: the base body with `__dirname`. */
+/** The shape 16 consumer packages carried before the option existed: the base body with `__dirname`. */
 class OverridingApplication extends ProjectRootApplication {
   override getProjectRoot(): string {
     const projectRoot = join('/from', 'override');

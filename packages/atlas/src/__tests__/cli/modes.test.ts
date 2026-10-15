@@ -216,11 +216,11 @@ describe('isRepositoryCheckout - only a VENIZIA family workspace', () => {
   });
 
   test('a sibling family workspace with the same corpora is a checkout too', () => {
-    expect(isRepositoryCheckout({ root: buildRoot({ name: '@venizia/ardor-workspace' }) })).toBe(
+    expect(isRepositoryCheckout({ root: buildRoot({ name: '@venizia/example-workspace' }) })).toBe(
       true,
     );
-    expect(workspaceFamilyOf({ root: buildRoot({ name: '@venizia/ardor-workspace' }) })).toBe(
-      'ardor',
+    expect(workspaceFamilyOf({ root: buildRoot({ name: '@venizia/example-workspace' }) })).toBe(
+      'example',
     );
     expect(workspaceFamilyOf({ root: buildRoot({ name: WORKSPACE_PACKAGE_NAME }) })).toBe('ignis');
   });

@@ -7,7 +7,7 @@ import { PACKAGE_ROOT } from '../package-root';
 /**
  * A `bun build --compile` binary ships without `node_modules`, and an optional peer loaded by name
  * is invisible to the bundler - so the binary cannot find it, even when the entry imported it. The
- * binary here is built and run for real, in an empty directory, the way BANA's production image runs.
+ * binary here is built and run for real, in an empty directory, the way a consumer's production image runs.
  */
 const PROBE = `
 import { LoggerFactory, ModuleUtility, RedisSingleHelper } from '${PACKAGE_ROOT}/dist/esm/index.js';
