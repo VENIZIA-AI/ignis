@@ -38,18 +38,18 @@ export class NativeTemporalAdapter implements ITemporalAdapter {
     this.temporal = temporal;
   }
 
-  getOffsetMilliseconds(opts: { value: Date; timeZone: string }): number {
-    const { value, timeZone } = opts;
+  getOffsetMilliseconds(opts: { value: Date; tz: string }): number {
+    const { value, tz } = opts;
 
     try {
       const zoned = this.temporal.Instant.fromEpochMilliseconds(value.getTime()).toZonedDateTimeISO(
-        timeZone,
+        tz,
       );
       return zoned.offsetNanoseconds / NANOSECONDS_PER_MILLISECOND;
     } catch (error) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[NativeTemporalAdapter] no offset for ${timeZone} at ${value.getTime()} | ${error instanceof Error ? error.message : String(error)}`,
+        message: `[NativeTemporalAdapter] no offset for ${tz} at ${value.getTime()} | ${error instanceof Error ? error.message : String(error)}`,
       });
     }
   }

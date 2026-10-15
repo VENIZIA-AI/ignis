@@ -31,8 +31,8 @@ export class TemporalUnits {
 
 export type TTemporalUnit = TConstValue<typeof TemporalUnits>;
 
-/** A helper built without a `timeZone` computes in UTC - never in the host's zone, which differs per machine. */
-export const DEFAULT_TEMPORAL_TIME_ZONE = 'UTC';
+/** A helper built without a `tz` computes in UTC - never in the host's zone, which differs per machine. */
+export const DEFAULT_TEMPORAL_TZ = 'UTC';
 
 /** `format` with no pattern writes ISO 8601 with the zone's offset: `2026-09-19T12:00:00.000+07:00`. */
 export const DEFAULT_TEMPORAL_PATTERN = 'YYYY-MM-DDTHH:mm:ss.SSSZ';

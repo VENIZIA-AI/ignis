@@ -10,6 +10,7 @@ counted as concepts.
 
 Updated [helpers](/packages/helpers.md).
 
+- `timeZone` renamed `tz` (PO exception to C-04); `ITemporalHelper` -> `AbstractTemporalHelper` -> `TemporalHelper`; date-picker bridge `fromWallClock`/`toWallClock`.
 - null is a 400 (was 1970); quarter; set; boolean comparisons and isBetween; duration face and maxUnits; clone; names per locale and `dd`; dayjs-compatible diff; fractional add for hour and below. Temporal internals are classes now.
 
 ## 2026-10-15 - isApplicationError checks the whole shape

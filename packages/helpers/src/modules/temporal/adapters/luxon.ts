@@ -12,15 +12,15 @@ export class LuxonTemporalAdapter implements ITemporalAdapter {
     this.dateTime = opts.DateTime;
   }
 
-  getOffsetMilliseconds(opts: { value: Date; timeZone: string }): number {
-    const { value, timeZone } = opts;
-    const zoned = this.dateTime.fromMillis(value.getTime(), { zone: timeZone });
+  getOffsetMilliseconds(opts: { value: Date; tz: string }): number {
+    const { value, tz } = opts;
+    const zoned = this.dateTime.fromMillis(value.getTime(), { zone: tz });
 
     // Luxon answers an unusable zone with an invalid `DateTime` rather than a throw.
     if (!zoned.isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[LuxonTemporalAdapter] no offset for ${timeZone} at ${value.getTime()} | ${zoned.invalidReason ?? 'invalid'}`,
+        message: `[LuxonTemporalAdapter] no offset for ${tz} at ${value.getTime()} | ${zoned.invalidReason ?? 'invalid'}`,
       });
     }
     return zoned.offset * MILLISECONDS_PER_MINUTE;

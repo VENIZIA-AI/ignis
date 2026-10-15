@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import path from 'node:path';
 import dayjs from 'dayjs';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
 import timezone from 'dayjs/plugin/timezone.js';
@@ -10,6 +11,7 @@ import {
   TemporalUnits,
 } from '@/modules/temporal';
 import type { TTemporalUnit } from '@/modules/temporal';
+import { PACKAGE_ROOT } from '../package-root';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -30,7 +32,7 @@ const statusOf = (run: () => unknown): unknown => {
 };
 
 describe('null is not a date', () => {
-  const helper = new TemporalHelper({ timeZone: SAIGON });
+  const helper = new TemporalHelper({ tz: SAIGON });
 
   test('toDate, compare and format refuse null with a 400, never 1970', () => {
     expect(statusOf(() => helper.toDate({ value: JSON.parse('null') }))).toBe(400);
@@ -53,12 +55,12 @@ describe('null is not a date', () => {
     expect(statusOf(() => helper.format({ value: VALUE, pattern: 'yyyy', fallback: '--' }))).toBe(
       500,
     );
-    expect(statusOf(() => helper.tryToDate({ value: VALUE, timeZone: 'Mars/Base' }))).toBe(400);
+    expect(statusOf(() => helper.tryToDate({ value: VALUE, tz: 'Mars/Base' }))).toBe(400);
   });
 });
 
 describe('quarter', () => {
-  const helper = new TemporalHelper({ timeZone: SAIGON });
+  const helper = new TemporalHelper({ tz: SAIGON });
 
   test('start, end, add, diff and the Q token', () => {
     expect(helper.startOf({ value: VALUE, unit: TemporalUnits.QUARTER }).toISOString()).toBe(
@@ -85,7 +87,7 @@ describe('quarter', () => {
 });
 
 describe('set', () => {
-  const helper = new TemporalHelper({ timeZone: SAIGON });
+  const helper = new TemporalHelper({ tz: SAIGON });
 
   test('replaces wall-clock fields in the zone, the day clamped to the month', () => {
     expect(helper.set({ value: VALUE, hour: 9, minute: 0 }).toISOString()).toBe(
@@ -100,7 +102,7 @@ describe('set', () => {
   });
 
   test('a skipped wall time resolves forward, as parse does', () => {
-    const newYork = new TemporalHelper({ timeZone: NEW_YORK });
+    const newYork = new TemporalHelper({ tz: NEW_YORK });
     expect(newYork.set({ value: '2026-03-08T12:00:00Z', hour: 2, minute: 30 }).toISOString()).toBe(
       '2026-03-08T07:30:00.000Z',
     );
@@ -113,7 +115,7 @@ describe('set', () => {
 });
 
 describe('comparisons', () => {
-  const helper = new TemporalHelper({ timeZone: SAIGON });
+  const helper = new TemporalHelper({ tz: SAIGON });
   const other = '2026-10-15T23:00:00+07:00';
 
   test('the booleans follow compare', () => {
@@ -176,7 +178,7 @@ describe('clone and names', () => {
   };
   const helper = new TemporalHelper({
     adapter: new IntlTemporalAdapter(),
-    timeZone: SAIGON,
+    tz: SAIGON,
     locale: 'vi-VN',
     names,
   });
@@ -195,14 +197,12 @@ describe('clone and names', () => {
   test('clone keeps the names and the adapter, and changes only what it is given', () => {
     const english = helper.clone({ locale: 'en-US' });
     expect(english.getLocale()).toBe('en-US');
-    expect(english.getTimeZone()).toBe(SAIGON);
+    expect(english.getTz()).toBe(SAIGON);
     expect(english.format({ value: VALUE, pattern: 'ddd MMM' })).toBe('Thu Oct');
     expect(english.clone({ locale: 'vi-VN' }).format({ value: VALUE, pattern: 'MMM' })).toBe(
       'Th10',
     );
-    expect(helper.clone({ timeZone: 'UTC' }).format({ value: VALUE, pattern: 'HH:mm' })).toBe(
-      '07:30',
-    );
+    expect(helper.clone({ tz: 'UTC' }).format({ value: VALUE, pattern: 'HH:mm' })).toBe('07:30');
   });
 
   test('a list of the wrong length fails when the helper is built', () => {
@@ -244,16 +244,16 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
     'year',
   ];
 
-  for (const timeZone of [SAIGON, NEW_YORK]) {
-    test(`every pair and unit matches dayjs in ${timeZone}, and diff(a, b) is -diff(b, a)`, () => {
-      const helper = new TemporalHelper({ timeZone });
+  for (const tz of [SAIGON, NEW_YORK]) {
+    test(`every pair and unit matches dayjs in ${tz}, and diff(a, b) is -diff(b, a)`, () => {
+      const helper = new TemporalHelper({ tz });
       const mismatches: Array<string> = [];
 
       for (const unit of UNITS) {
         for (const value of INSTANTS) {
           for (const other of INSTANTS) {
             const counted = helper.diff({ value, other, unit });
-            const expected = dayjs(value).tz(timeZone).diff(dayjs(other).tz(timeZone), unit);
+            const expected = dayjs(value).tz(tz).diff(dayjs(other).tz(tz), unit);
             if (
               counted !== expected ||
               counted !== -helper.diff({ value: other, other: value, unit }) + 0
@@ -268,7 +268,7 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
   }
 
   test('the month-end lines that anchoring at the earlier date gets wrong', () => {
-    const helper = new TemporalHelper({ timeZone: SAIGON });
+    const helper = new TemporalHelper({ tz: SAIGON });
     expect(
       helper.diff({
         value: '2024-02-29T12:00:00+07:00',
@@ -286,7 +286,7 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
   });
 
   test('add takes a fraction of an hour or less, and refuses one of a calendar unit', () => {
-    const helper = new TemporalHelper({ timeZone: SAIGON });
+    const helper = new TemporalHelper({ tz: SAIGON });
     const start = '2026-08-25T00:00:00Z';
 
     expect(helper.add({ value: start, amount: 1.5, unit: 'hour' }).toISOString()).toBe(
@@ -299,5 +299,84 @@ describe('diff counts as dayjs does, add takes fractions of elapsed time', () =>
     expect(
       statusOf(() => helper.add({ value: start, amount: Number.POSITIVE_INFINITY, unit: 'hour' })),
     ).toBe(400);
+  });
+});
+
+describe('the date-picker bridge', () => {
+  const saigon = new TemporalHelper({ tz: SAIGON });
+
+  test('a picked day in another zone keeps its calendar day in the helper zone', () => {
+    // A picker in New York hands back Oct 15 00:00 New York time (04:00Z).
+    const picked = new Date('2026-10-15T04:00:00Z');
+    const stored = saigon.fromWallClock({ value: picked, sourceTz: NEW_YORK });
+
+    expect(stored.toISOString()).toBe('2026-10-14T17:00:00.000Z');
+    expect(saigon.format({ value: stored, pattern: 'DD/MM/YYYY HH:mm' })).toBe('15/10/2026 00:00');
+    expect(saigon.toWallClock({ value: stored, targetTz: NEW_YORK }).toISOString()).toBe(
+      picked.toISOString(),
+    );
+  });
+
+  test('a wall time the target zone skips resolves forward', () => {
+    const newYork = new TemporalHelper({ tz: NEW_YORK });
+    // 02:30 on 2026-03-08 never happens in New York.
+    const picked = new Date('2026-03-08T02:30:00Z');
+    expect(newYork.fromWallClock({ value: picked, sourceTz: 'UTC' }).toISOString()).toBe(
+      '2026-03-08T07:30:00.000Z',
+    );
+  });
+
+  test('a bad zone is a 400', () => {
+    expect(statusOf(() => saigon.fromWallClock({ value: 0, sourceTz: 'Mars/Base' }))).toBe(400);
+  });
+
+  test.each(['America/New_York', 'Asia/Tokyo'])(
+    'the host zone is the default, under %s',
+    hostZone => {
+      const moduleSource = path.resolve(PACKAGE_ROOT, 'src/modules/temporal/index.ts');
+      const script = `
+      const { TemporalHelper } = await import('${moduleSource}');
+      const helper = new TemporalHelper({ tz: 'Asia/Ho_Chi_Minh' });
+      const picked = new Date(2026, 9, 15);
+      const stored = helper.fromWallClock({ value: picked });
+      const back = helper.toWallClock({ value: stored });
+      console.log(TemporalHelper.getHostTz());
+      console.log(helper.format({ value: stored, pattern: 'DD/MM/YYYY HH:mm' }));
+      console.log(back.getTime() === picked.getTime());
+    `;
+      const run = Bun.spawnSync({
+        cmd: [process.execPath, '-e', script],
+        cwd: PACKAGE_ROOT,
+        env: { ...process.env, TZ: hostZone },
+        stderr: 'pipe',
+      });
+
+      expect(run.stdout.toString().trim().split('\n')).toEqual([
+        hostZone,
+        '15/10/2026 00:00',
+        'true',
+      ]);
+    },
+  );
+});
+
+describe('names do not depend on the host zone', () => {
+  test('a host west of UTC writes the same month, weekday and date', () => {
+    const moduleSource = path.resolve(PACKAGE_ROOT, 'src/modules/temporal/index.ts');
+    const script = `
+      const { TemporalHelper } = await import('${moduleSource}');
+      const helper = new TemporalHelper({ tz: 'Asia/Ho_Chi_Minh', locale: 'en-US' });
+      console.log(helper.format({ value: '2026-01-01T03:00:00+07:00', pattern: 'dddd ddd dd MMMM MMM L LL' }));
+    `;
+    const run = Bun.spawnSync({
+      cmd: [process.execPath, '-e', script],
+      cwd: PACKAGE_ROOT,
+      env: { ...process.env, TZ: 'America/Los_Angeles' },
+      stderr: 'pipe',
+    });
+
+    expect(run.stdout.toString().trim()).toBe(
+      'Thursday Thu T January Jan 01/01/2026 January 1, 2026',
+    );
   });
 });
