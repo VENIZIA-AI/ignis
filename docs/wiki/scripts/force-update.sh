@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Usage: ./force-update.sh [latest|next|highest]
+# Usage: ./force-update.sh [latest|next|highest|workspace]
+# - workspace: the version in this repository's packages/*/package.json, as the release chain uses
 # Default: latest
 # - latest/next: Use npm dist-tag to resolve version
 # - highest: Use the highest released version (sorted by semver)
 
 TAG="${1:-latest}"
 
-if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ] && [ "$TAG" != "highest" ]; then
-  echo "ERROR | Invalid tag: $TAG (must be 'latest', 'next', or 'highest')"
+if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ] && [ "$TAG" != "highest" ] && [ "$TAG" != "workspace" ]; then
+  echo "ERROR | Invalid tag: $TAG (must be 'latest', 'next', 'highest' or 'workspace')"
   exit 1
 fi
 
@@ -20,7 +21,14 @@ PACKAGES="@venizia/dev-configs"
 for pkg in $PACKAGES; do
   echo "[$pkg] Fetching $TAG version..."
 
-  if [ "$TAG" = "highest" ]; then
+  WORKSPACE_VERSION=""
+  if [ "$TAG" = "workspace" ]; then
+    WORKSPACE_VERSION=$(jq -r --arg p "$pkg" 'select(.name == $p) | .version' ../../packages/*/package.json 2>/dev/null | head -n 1)
+  fi
+
+  if [ -n "$WORKSPACE_VERSION" ]; then
+    VERSION="$WORKSPACE_VERSION"
+  elif [ "$TAG" = "highest" ] || [ "$TAG" = "workspace" ]; then
     # Get the highest released version by semver sort
     # jq, not `grep '"' | tail -1`: with --json, npm prints its E404 body on STDOUT, so the old
     # pipe turned the error text into the "version" and handed it to sed. A package that is not
