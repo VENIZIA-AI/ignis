@@ -148,9 +148,17 @@ describe('isApplicationError', () => {
   test('recognizes an error by shape, not class identity', () => {
     expect(isApplicationError(getError({ message: 'x' }))).toBe(true);
 
-    const foreignError = new Error('from another package copy');
-    (foreignError as Error & { statusCode?: number }).statusCode = 404;
+    // An ApplicationError from another copy of the class: the same shape, another constructor.
+    const foreignError = Object.assign(new Error('from another package copy'), {
+      statusCode: 404,
+      normalized: { text: 'from another package copy', code: 'core.system_error', args: {} },
+    });
     expect(isApplicationError(foreignError)).toBe(true);
+  });
+
+  test('rejects a plain Error that only carries a statusCode, as an HTTP client error does', () => {
+    const httpError = Object.assign(new Error('Request failed'), { statusCode: 404 });
+    expect(isApplicationError(httpError)).toBe(false);
   });
 
   test('rejects a plain Error, a non-Error object of the right shape, and non-objects', () => {

@@ -9422,7 +9422,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 104,
+      "line": 111,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -25853,7 +25853,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 104,
+      "line": 111,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -28213,7 +28213,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 104,
+      "line": 111,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {
@@ -29863,7 +29863,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 108,
+      "line": 126,
       "signature": "type TApplicationError = ApplicationError"
     },
     {
@@ -30223,7 +30223,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/error/app-error.ts",
-      "line": 104,
+      "line": 111,
       "signature": "isApplicationError: (error: unknown) => error is ApplicationError"
     },
     {

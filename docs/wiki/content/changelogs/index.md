@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-15 | [isApplicationError Checks the Whole Shape](./2026-10-15-is-application-error-shape) | Bug Fix, Behavior Change |
 | 2026-10-14 | [An Error Hands Out Its Filled Text](./2026-10-14-error-filled-text) | Enhancement |
 | 2026-10-14 | [TemporalHelper Runs in Every Browser and Speaks a Locale](./2026-10-14-temporal-browser-and-locale) | Feature |
 | 2026-10-11 | [Error Messages Fill Their Placeholders](./2026-10-11-error-message-placeholders) | Enhancement, Behavior Change |

@@ -1,4 +1,4 @@
-import { AnyType, TNullable } from '@/common/types';
+import { TNullable } from '@/common/types';
 import { omit } from '@/common/utilities';
 import { MessageCode } from './message-code';
 import { MessageTemplate } from './message-template';
@@ -101,8 +101,26 @@ export const getError = (opts: TError): ApplicationError => ApplicationError.get
 export const fromError = (opts: { error: TResponsedError }): ApplicationError =>
   ApplicationError.fromError(opts);
 
+/**
+ * An `ApplicationError` by shape - a numeric `statusCode` and a `normalized` with its `text` - so it
+ * holds across the CJS and ESM copies of this class, where `instanceof` does not. A plain `Error`
+ * that merely carries a `statusCode` (an HTTP client's, an engine's) is not one.
+ *
+ * An error from a copy older than 0.2.2-0 matches but has no `toFilledText()`.
+ */
 export const isApplicationError = (error: unknown): error is ApplicationError => {
-  return error instanceof Error && typeof (error as AnyType).statusCode === 'number';
+  if (!(error instanceof Error) || !('statusCode' in error) || !('normalized' in error)) {
+    return false;
+  }
+
+  const { statusCode, normalized } = error;
+  return (
+    typeof statusCode === 'number' &&
+    typeof normalized === 'object' &&
+    normalized !== null &&
+    'text' in normalized &&
+    typeof normalized.text === 'string'
+  );
 };
 
 export type TApplicationError = ApplicationError;

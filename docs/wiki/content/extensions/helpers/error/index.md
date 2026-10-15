@@ -67,7 +67,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 - **`error` is refused on the free-form branch (`error?: never`).** This makes `getError({ message, error: caughtError })` fail to compile, so the mistake is caught before runtime - use `cause` instead.
 
 > [!IMPORTANT]
-> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere.
+> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere. The shape is an `Error` with a numeric `statusCode` and a `normalized` whose `text` is a string; a plain `Error` that only carries a `statusCode`, as an HTTP client's does, is not an `ApplicationError`.
 
 **Options shared by both forms**
 
