@@ -22,7 +22,7 @@ check into a 401. `import type` from `jose` stays static.
 
 The generated `/sign-in`, `/sign-up` and `/change-password` routes validate the body, then pass the
 raw JSON to the service: undeclared fields arrive, and a schema's transforms do not apply. They move
-to the validated body together, reviewed with BANA, whose password schema trims.
+to the validated body together, reviewed with a consumer, whose password schema trims.
 
 ### Leaf imports, never barrels
 

@@ -96,7 +96,7 @@ Spreading a definition is now safe: `getError({ ...Errors.X })` resolves identic
 `getError({ error: Errors.X })`, because a definition's `message` object IS the free-form input
 shape. Under the old `key` shape it degraded to `core.system_error` while status and text still
 arrived, so it looked fine - that footgun is gone. Pinned in `consumer-probe.test.ts`
-(`packages/helpers/src/__tests__/error/`, renamed from `bana-probe.test.ts`): every shape in it is
+(`packages/helpers/src/__tests__/error/`): every shape in it is
 copied from a real application call site, so the file stops compiling the moment the framework
 rejects one.
 

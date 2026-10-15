@@ -108,7 +108,7 @@ into a lint failure instead of a runtime 404.
 `BaseApplication.boot()`, `hasWarnedBootDeprecated`, `IBootableApplication`, `configs.bootOptions`
 and `BindingNamespaces.BOOTERS` are gone as of 2026-09-03 - see the
 [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed). `booter()` and `registerBooters()`
-left earlier, on 2026-09-02. 16 BANA applications `override async boot()` (none calls
+left earlier, on 2026-09-02. 16 consumer applications `override async boot()` (none calls
 `super.boot()`; each returns the literal empty report, so the fix is deleting the method, not just
 `override`). A separate 3 files call `.boot()` directly - one of the 16, `search/migrations/bootstrap.ts`,
 is also one of those 3. Every site fails to compile until it is deleted.

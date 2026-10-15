@@ -200,7 +200,7 @@ use, and when a waiver goes stale, delete it rather than loosening the gate.
 resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
 `connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
 ^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
-consumer contract: nx-seller pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
+consumer contract: a consumer app pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
 migration guide promises those still satisfy the peers. After any `bun update`, diff
 `peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
 peer only as its own deliberate change with a changelog line.
@@ -384,7 +384,7 @@ literal, so compile with `--env=disable`. The positive control in the same test 
 `EnvironmentKeys` (`packages/core-server/src/common/environments.ts`) declared
 `APP_ENV_APPLICATION_DS_MIGRATION` while its only reader - the startup banner in
 `base/applications/base.ts` - read `APP_ENV_DS_MIGRATION`. Every example `.env`, the configuration
-reference and BANA's k8s `shared-config.yaml` set the declared spelling, so the banner always
+reference and a consumer's k8s `shared-config.yaml` set the declared spelling, so the banner always
 printed the default `postgres` and nobody could tell why. The audit that followed found the real
 answer: NEITHER name selected a datasource, both fed one log line, so the constants, the banner
 line and the `.env` entries were all deleted (2026-09-11) rather than reconciled. A setting that
@@ -462,7 +462,7 @@ return type before the alias was fixed.
   `Extract<ValueOf<T>, ...>`.
 - The cost: a generic inferred from such a value keeps the union, so `expect(value).toBe(aString)`
   fails to compile. Widen the generic (`expect<string>(value)`), as the fixed IGNIS tests do.
-- A consumer that declares its own copy of these aliases (ARDOR's `ardor-kernel` does) does not get
+- A consumer that declares its own copy of these aliases (a frontend framework's kernel does) does not get
   this fix from IGNIS.
 
 ## bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView
@@ -487,7 +487,7 @@ latest and pins `vite` 5. All four are dev-server or self-built-input exposures;
 Hono caches `req.json()`, `req.text()` and `req.parseBody()`, so a later handler reading through `c.req` still
 works - but the RAW stream is drained. A handler that streams `c.req.raw.body` on (an upload proxy) then fails with
 `Body object should not be disturbed or locked`, and a text read mangles binary bytes for everyone after it.
-`RequestSpyMiddleware` did exactly this for every non-JSON, non-form type until 2026-09-23 (BANA asset proxy).
+`RequestSpyMiddleware` did exactly this for every non-JSON, non-form type until 2026-09-23 (a consumer's asset proxy).
 Read a `req.raw.clone()`, or describe the body (`<N bytes, content-type>`) without reading it. A body an
 earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it through Hono's cache
 (`req.text()`) instead, or `clone()` throws and a valid request becomes a 400.

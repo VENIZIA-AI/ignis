@@ -172,7 +172,7 @@ so this is invisible to typed callers. Two effects follow: a spread copy (`{ ...
 longer carries `isActive`, so passing one to a repository now throws "Transaction is no longer
 active" where it used to work; and reading `isActive` through a `Proxy` or an
 `Object.create(transaction)` wrapper now throws a `TypeError` instead - ES private fields are neither
-proxyable nor inherited. Nothing in IGNIS or BANA does either.
+proxyable nor inherited. Nothing in IGNIS or a consumer does either.
 
 ## `runInTransaction` - join or own, never both
 
@@ -238,7 +238,7 @@ client offers `close()` only.
 `close()` does not use `drainClient()` first: it ends the driver, which also frees the PGlite and
 libsql slot and clears PGlite's host exit status. `drainClient()` is its fallback for a client no
 driver can wrap, and for a driver that has no `end()` - a hand-made one cast past `IRelationalDriver`,
-BANA's `ReportDataSource` shape. Falsified by `__tests__/relational/datasource-close.test.ts`.
+A consumer's `ReportDataSource` shape. Falsified by `__tests__/relational/datasource-close.test.ts`.
 
 ## What stays Postgres-only
 
@@ -342,7 +342,7 @@ against the built package:
 
 `ReadableRepository === ReadableRelationalRepository` is therefore **false**, and so on down the
 chain. `instanceof` still holds - a `SoftDeletableRepository` instance is a
-`DefaultRelationalRepository` - and nothing in the framework or in BANA compares repository classes
+`DefaultRelationalRepository` - and nothing in the framework or in a consumer compares repository classes
 by `===`, `instanceof` against the neutral name, or `.constructor ===`. The neutral names are no
 longer exported from `@venizia/ignis/postgres`; import them from `@venizia/ignis/relational`.
 
@@ -370,7 +370,7 @@ the identical name. That alias is gone. Verified against the built `dist`:
 
 The name disappeared from the root entry as a side effect: the alias barrel behind the root of
 `@venizia/ignis` re-exports `./postgres` only, so withdrawing the alias there withdrew it from the
-root too. BANA imports
+root too. A consumer imports
 `FilterBuilder` in zero files, but it was a documented public import - recorded in
 [the 2026-08-01 changelog](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/changelogs/2026-08-01-relational-connector-lift.md).
 

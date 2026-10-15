@@ -207,7 +207,7 @@ Postgres 32 at its root; `@venizia/ignis-connectors` gets the neutral 43.
 
 ## Two ways to declare a model, both supported
 
-`BaseRelationalEntity` with a hand-written table on a static `schema` is the original, and 192 BANA
+`BaseRelationalEntity` with a hand-written table on a static `schema` is the original, and 192 consumer
 models use it - it is not going anywhere. `ModelFactory.defineEntity({ table, relations? })`
 (`relational/core/models/factory.ts`, exported by `./relational`, `./postgres`, `./sqlite` and
 `@venizia/ignis/postgres`) is the second, TABLE FIRST: the table is a plain drizzle table
@@ -254,11 +254,11 @@ config - only the new inference path produces one) THROWS through `getError` nam
 relation and the fix - at boot when `configure()` reads `getSchema()`, else on the first
 `getConnector()` / `beginTransaction()`. A relation whose TARGET TABLE has no model on the datasource
 is never fatal and never a warning: one `debug` line per datasource lists them ("N relations point to a
-table outside this datasource: A.b -> T, ...") - BANA 2026-09-23 boot showed narrow datasources on
+table outside this datasource: A.b -> T, ...") - a consumer's 2026-09-23 boot showed narrow datasources on
 purpose (commerce direct: 2 models, report) printing 27 warn lines that taught readers to skim past
 real ones. Any OTHER relation drizzle cannot pair (a `many` whose `relationName` matches no `one` on a
-target that IS here) is WARNED about, one line each (BANA had 4, e.g. `Category.products`),
-deliberately: BANA's 192 hand-written models boot today, and a latent broken relation must not
+target that IS here) is WARNED about, one line each (a consumer had 4, e.g. `Category.products`),
+deliberately: A consumer's 192 hand-written models boot today, and a latent broken relation must not
 become a boot failure in a prerelease - its first query still throws, as before.
 
 A `one` relation's key is its drizzle `relationName` (unless its metadata sets one), so
@@ -314,7 +314,7 @@ which reaches `drizzle-orm` through `import type` only, and not in `helpers`, wh
 `drizzle-orm` at all. It is the one place in the relational tier that imports `drizzle-orm/pg-core`
 and `drizzle-orm/sqlite-core`. Exported by the root, `./relational`, `./postgres` and `./sqlite`;
 `@venizia/ignis` still exports it from its root through the postgres alias.
-Ported from 14 hand-written BANA queries that each had to remember their own depth guard; one of
+Ported from 14 hand-written consumer queries that each had to remember their own depth guard; one of
 the 14 forgot and hung a production process walking an unbounded parent chain.
 
 - **`maxDepth` is mandatory, no default, and validated at runtime (`<= 0` throws via `getError`).**

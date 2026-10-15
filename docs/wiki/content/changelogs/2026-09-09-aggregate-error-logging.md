@@ -61,5 +61,5 @@ change.
 
 ## Credit
 
-Found and first patched by the BANA team while tracing a boot failure whose cause the log was
+Found and first patched by a consumer team while tracing a boot failure whose cause the log was
 hiding.
