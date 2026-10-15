@@ -395,13 +395,19 @@ const main = async (): Promise<void> => {
   const skipAtlas = args.includes('--no-atlas');
   const modeIndex = args.indexOf('--mode');
   const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;
+  // Resuming a chain that stopped: the packages an earlier run already published, so the next ones
+  // trust their workspace version instead of waiting for npm to show them.
+  const seedIndex = args.indexOf('--chain-released');
+  const seeded = seedIndex >= 0 ? (args[seedIndex + 1] ?? '').split(',').filter(Boolean) : [];
   const issueIndex = args.indexOf('--issue');
   const issue = issueIndex >= 0 ? args[issueIndex + 1] : undefined;
   if (issueIndex >= 0 && !/^\d+$/.test(issue ?? '')) {
     throw new Error(`--issue needs an issue number, got: ${issue ?? 'nothing'}`);
   }
 
-  const named = args.filter(arg => !arg.startsWith('--') && arg !== mode && arg !== issue);
+  const named = args.filter(
+    arg => !arg.startsWith('--') && arg !== mode && arg !== issue && arg !== args[seedIndex + 1],
+  );
   const unknownNames = named.filter(name => !RELEASE_ORDER.includes(name as never));
   if (unknownNames.length > 0) {
     throw new Error(
@@ -469,7 +475,9 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const chainReleased: Array<string> = [];
+  const chainReleased: Array<string> = seeded.map(name =>
+    name.startsWith('@') ? name : (states.find(state => state.name === name)?.packageName ?? name),
+  );
   for (const state of plan) {
     // The tables are generated from release commits, so they are refreshed after the framework
     // packages have shipped and before atlas packages them.
