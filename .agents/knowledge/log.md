@@ -219,7 +219,7 @@ Updated [connectors](/packages/connectors.md), [Relational connector](/architect
   literal's exposure. Two real differences: `isActive` now lives on the prototype, so a spread copy
   no longer carries it and now throws "Transaction is no longer active"; and reading `isActive`
   through a `Proxy` or an `Object.create(transaction)` wrapper now throws a `TypeError`, since ES
-  private fields are neither proxyable nor inherited. No IGNIS or BANA code does either.
+  private fields are neither proxyable nor inherited. No IGNIS or consumer code does either.
 
 ## 2026-09-26 - order entries share one parser; toOrderBy gains an expressions option
 
@@ -384,7 +384,7 @@ Updated [kernel](/packages/kernel.md), [controller system](/architecture/control
   under Bun (30/30 with ignis first). The clean-install gate now loads `@venizia/ignis` then `jose`.
 - `ChangePasswordRequestSchema` lost its manual `required`, so the document requires all four fields.
   Moving `/sign-in`, `/sign-up` and `/change-password` to the validated body was held: it trims
-  BANA's passwords, so the three move together with a BANA review.
+  A consumer's passwords, so the three move together with a consumer review.
 - `stop()` (server and worker) closes every datasource the boot configured through the new `close()`;
   the relational `close()` ends the driver once, wiring it first.
 
@@ -474,11 +474,11 @@ Updated [helpers](/packages/helpers.md) and [connectors](/packages/connectors.md
     escape
   - the postgres `TRelationConfig` is the core type
   - foreign-key lookups are memoized per `createRelations` call
-- **Corrections from BANA's review (2026-09-23).** Lazy `ioredis` dates from helpers 0.2.0-37, not `@venizia/ignis` 0.2.0-45: every ignis 0.2.0 prerelease admits it on a fresh install. The dayjs advice no longer says "run with `TZ=UTC`" - that would move every other host-local dayjs call. The temporal `getDateTz` mapping now says there is no day-name token (`dddd` throws; use `parts().dayOfWeek`).
-- **Corrections from ARDOR's review (2026-09-23).** dayjs misreads sub-hour local mean time offsets before 1914 (documented). ISO parse takes an hour-only offset, only after a time. A fields-less `one()` skips foreign keys a written `one()` on the same entity already claims (only when two or more keys exist); one key left is inferred, zero or several are still refused - the self-reference guard uses the same exclusion.
-- **Structure (Phat, 2026-09-23): a file holds a class or loose functions, never both.** `dialect/relation.ts` became `dialect/relations/{one.ts (class OneRelations), many.ts (class ManyRelations), create.ts (createRelations), common/}`; discovery pairing moved out of `datasources/base.ts` into `RelationPairing`; `BaseHelper.pinLogger` and `NativeTemporalAdapter.isTemporalNamespace` moved to functions-only siblings (`logger/slot.ts` `pinHelperLogger`, `temporal/adapters/guards.ts`) - NOT private statics: a private member on an exported, extendable class breaks exported anonymous subclasses at declaration emit (TS4094); temporal token readers/writers moved to `temporal/tokens.ts` and wall-clock helpers to `calendar.ts`; the three pre-existing search files split too (`search/core/datasources/guards.ts`, `repositories/core/guards.ts`, `repositories/common/query-params.ts`). Public surface unchanged.
-- **Discovery noise cut (BANA boot, 2026-09-23).** Relations whose target table has no model on the datasource are one `debug` line per datasource, never a warning or a boot failure; the hint builder is `buildUnpairedRelationHint`, with plainer hints.
-- **Clean-install gate hardened (ARDOR G1-G6).** It refuses an ancestor `node_modules`, `NODE_PATH` or a home module root; asserts every `@venizia/*` lock entry resolves to the packed tarball; refuses an unclaimed published package (dev-configs has an explicit `configOnly` claim); reports a browser-claimed ESM entry no row loads; and refuses a `dist/` older than its `src/`. 532 checks (464 + one lock-pin per sandbox).
+- **Corrections from a consumer's review (2026-09-23).** Lazy `ioredis` dates from helpers 0.2.0-37, not `@venizia/ignis` 0.2.0-45: every ignis 0.2.0 prerelease admits it on a fresh install. The dayjs advice no longer says "run with `TZ=UTC`" - that would move every other host-local dayjs call. The temporal `getDateTz` mapping now says there is no day-name token (`dddd` throws; use `parts().dayOfWeek`).
+- **Corrections from a frontend consumer's review (2026-09-23).** dayjs misreads sub-hour local mean time offsets before 1914 (documented). ISO parse takes an hour-only offset, only after a time. A fields-less `one()` skips foreign keys a written `one()` on the same entity already claims (only when two or more keys exist); one key left is inferred, zero or several are still refused - the self-reference guard uses the same exclusion.
+- **Structure (the PO, 2026-09-23): a file holds a class or loose functions, never both.** `dialect/relation.ts` became `dialect/relations/{one.ts (class OneRelations), many.ts (class ManyRelations), create.ts (createRelations), common/}`; discovery pairing moved out of `datasources/base.ts` into `RelationPairing`; `BaseHelper.pinLogger` and `NativeTemporalAdapter.isTemporalNamespace` moved to functions-only siblings (`logger/slot.ts` `pinHelperLogger`, `temporal/adapters/guards.ts`) - NOT private statics: a private member on an exported, extendable class breaks exported anonymous subclasses at declaration emit (TS4094); temporal token readers/writers moved to `temporal/tokens.ts` and wall-clock helpers to `calendar.ts`; the three pre-existing search files split too (`search/core/datasources/guards.ts`, `repositories/core/guards.ts`, `repositories/common/query-params.ts`). Public surface unchanged.
+- **Discovery noise cut (a consumer boot, 2026-09-23).** Relations whose target table has no model on the datasource are one `debug` line per datasource, never a warning or a boot failure; the hint builder is `buildUnpairedRelationHint`, with plainer hints.
+- **Clean-install gate hardened (a frontend consumer's G1-G6).** It refuses an ancestor `node_modules`, `NODE_PATH` or a home module root; asserts every `@venizia/*` lock entry resolves to the packed tarball; refuses an unclaimed published package (dev-configs has an explicit `configOnly` claim); reports a browser-claimed ESM entry no row loads; and refuses a `dist/` older than its `src/`. 532 checks (464 + one lock-pin per sandbox).
 - **Gates.** CI now runs `make test-scripts`. A uuid memory test that could not fail now measures
   `external` against a fresh generator.
 
@@ -526,7 +526,7 @@ and [build system](/process/build-system.md).
 
 ## 2026-09-19 - `defineEntity`: a model states each fact once
 
-Measured first, because the example in this repo understates it: BANA has 192 models, 191 of which
+Measured first, because the example in this repo understates it: A consumer has 192 models, 191 of which
 re-create their own zod schemas and rewrite `TABLE_NAME`, and 182 declare every relation TWICE -
 once as runtime config, once as a hand-written type intersection that nothing keeps in sync.
 `packages/core`'s model files alone are 13,591 lines.
@@ -534,7 +534,7 @@ once as runtime config, once as a hand-written type intersection that nothing ke
 So: `ModelFactory.defineEntity({ name, columns, relations })` builds the `pgTable` and the class
 together (no more class-table cycle and its `no-use-before-define` suppression), relations are
 keyed by name and compile down to the array the query dialect already reads, and
-`TEntityObject<typeof Entity>` infers the row WITH its relations. Additive - BANA's 192 models keep
+`TEntityObject<typeof Entity>` infers the row WITH its relations. Additive - A consumer's 192 models keep
 working untouched.
 
 Three things this cost, all of them silent failures found by probing rather than by tests going red:
@@ -552,12 +552,12 @@ Three things this cost, all of them silent failures found by probing rather than
 
 The type contract is a test: probe files compiled by a real `tsc`, one run for all eight cases,
 asserting a correct row compiles clean and seven wrong shapes do not. Control verified - dropping
-relations from `TEntityObject` turns it red. Phat caught the first name, `InferEntity`, breaking the
+relations from `TEntityObject` turns it red. The PO caught the first name, `InferEntity`, breaking the
 `T` prefix 405 of 417 exported types follow; it is `TEntityObject` now.
 
 ## 2026-09-18 (d) - a `./uuid` subpath, because one class could not be tree-shaken
 
-ARDOR asked for it with numbers: `./core` cost 10.2 KB gzip for one `v4()` call against their
+A frontend consumer asked for it with numbers: `./core` cost 10.2 KB gzip for one `v4()` call against their
 7.7 KB brotli budget, on a kernel already at 6.42. Two independent measurements agreed on the cause
 and BOTH of my first guesses were wrong - it is not SHA-1 (0.83 KB) and not a barrel (`HTTP` is
 1.85 KB deep or through the barrel, identically). It is `getError` pulling inversion's
@@ -566,13 +566,13 @@ and BOTH of my first guesses were wrong - it is not SHA-1 (0.83 KB) and not a ba
 So all three became closures from factories (`createUuidV4/5/7`, with `uuidV4/5/7` as the shared
 instances), `UuidHelper` a thin facade over
 them, and all of it is published on `@venizia/ignis-helpers/uuid` beside `./core`. Measured after:
-`uuidV4` **398 B** gzip (from 10.2 KB), `uuidV7` 609 B, facade 9.7 KB. Phat drove two corrections on the way: style had to be consistent across the three versions (v4/v5 functional beside a v7 class was the worst of both), and when the choice was consistency-as-classes (1129 B) against consistency-as-functions (398 B), the lightest one wins - `UuidV7Generator` was published but unused, so it is simply gone rather than deprecated. The factory (`createUuidV7()`) keeps the one thing the class gave: a private sequence for the test that hides `Bun.randomUUIDv7` and exercises the browser path. The marginal cost
-of the facade for a consumer that already bundles inversion is 3.8 KB - still too much for ARDOR,
+`uuidV4` **398 B** gzip (from 10.2 KB), `uuidV7` 609 B, facade 9.7 KB. The PO drove two corrections on the way: style had to be consistent across the three versions (v4/v5 functional beside a v7 class was the worst of both), and when the choice was consistency-as-classes (1129 B) against consistency-as-functions (398 B), the lightest one wins - `UuidV7Generator` was published but unused, so it is simply gone rather than deprecated. The factory (`createUuidV7()`) keeps the one thing the class gave: a private sequence for the test that hides `Bun.randomUUIDv7` and exercises the browser path. The marginal cost
+of the facade for a consumer that already bundles inversion is 3.8 KB - still too much for a frontend consumer,
 which is why the split had to go all the way to a free function rather than stop at a subpath.
 
 Two things worth keeping. The budget is now a TEST (`uuid-bundle-budget.test.ts`, ceilings 600 B and
 800 B, positive control - importing `getError` inside `v4.ts` turns two of three red), because a
-size contract with no test is a comment. And `BaseHelper` itself got lighter, which was Phat asking
+size contract with no test is a comment. And `BaseHelper` itself got lighter, which was the PO asking
 the better question - not "drop the base class" but "why is the logger mandatory": it resolved a
 logger EAGERLY in its constructor, so every browser bundle carrying any helper paid 1033 B. Now it
 reads through `logger/slot.ts` (a mutable slot the logger module fills on import) and resolves on
@@ -581,7 +581,7 @@ proper switch. The per-instance cache lives in a `WeakMap` beside the slot, not 
 returning an anonymous class cannot carry `private` OR `#private` through declaration emit (TS4094),
 which kernel found immediately.
 
-Phat refused a lint rule banning `crypto.randomUUID` repo-wide, which ARDOR had asked for. The trap
+The PO refused a lint rule banning `crypto.randomUUID` repo-wide, which a frontend consumer had asked for. The trap
 is documented at the call site instead.
 
 ## 2026-09-18 (c) - `UuidHelper`: one door for v4, v5 and v7
@@ -609,7 +609,7 @@ caught the file move on its own: `make symbols-gen` is required after any source
 
 ## 2026-09-18 (b) - review round: eight defects found in this batch, fixed
 
-A five-way review of the whole batch (four agents plus a BANA crosscheck) found, all measured:
+A five-way review of the whole batch (four agents plus a consumer crosscheck) found, all measured:
 `DELETE /` answered 400 to a client sending `content-type: application/json` with no body (a declared
 body schema gates the media type) - the schema is gone and the handler reads the body; two models over
 one drizzle table made the schema-keyed registry answer with the wrong one (a `hiddenProperties`
@@ -621,11 +621,11 @@ two `const productsData` in one block, which broke `examples/vert` compilation (
 neither `make build-all` nor any tsc gate); `PUT .../meta-links/{objectName}` and `folderPath` at
 commit accepted labels they could not honour; `ModuleUtility` said "is required" without naming the
 root it resolved from. Also 25 hard-coded `statusCode` literals across five packages became
-`HTTP.ResultCodes` constants, on Phat's rule.
+`HTTP.ResultCodes` constants, on the PO's rule.
 
-BANA, re-measured: 16 of 17 service packages must add `ioredis` (isolated install, services start
+A consumer, re-measured: 16 of 17 service packages must add `ioredis` (isolated install, services start
 `bun .` from their own package, peers resolve from there) - the earlier note said 9, from a grep that
-matched helper names BANA never calls directly.
+matched helper names a consumer never calls directly.
 ## 2026-09-18 - the last breaking round before 0.2.0 stable
 
 `ioredis` became an optional peer of helpers (lazy `ModuleUtility.loadSync` in the Redis helpers) and
@@ -633,10 +633,10 @@ helpers' duplicate `ErrorSchema` - its only `@hono/zod-openapi` import - was rem
 remains. `resolveValue`/`resolveValueAsync`/`resolveClass`/`resolveInjectTarget` take opts. Type
 guards were deliberately left positional: a codemod over 101 guards showed an opts predicate narrows
 only the true branch. Upload labels in the query now answer 400. 200 loop heads hoisted to named
-consts. BANA (measured, isolated install, services run `bun .` from their own package, so peers resolve
+consts. A consumer (measured, isolated install, services run `bun .` from their own package, so peers resolve
 from that package): 16 of 17 service packages must add `ioredis` or they throw at the first client
 construction; 4 `ErrorSchema` imports and 3 `resolveValueAsync` calls move. `resolveClass`,
-`resolveInjectTarget`, upload labels and the type guards: 0 BANA sites.
+`resolveInjectTarget`, upload labels and the type guards: 0 consumer sites.
 
 ## 2026-09-17 (f) - the default string id is UUID v7
 
@@ -652,21 +652,21 @@ Three server fixes found by the connectors/http real-server pass, before release
 446 ns). `PATCH /`/`DELETE /` take `where` in the query or the body; both or neither is 400. The
 model registry is also keyed by schema object: `include` looked settings up by SQL table name, so a
 model whose table name differed from its registered name leaked `hiddenProperties` and skipped
-`scopeFilter` - BANA scanned, 193/193 models match, not exposed.
+`scopeFilter` - A consumer scanned, 193/193 models match, not exposed.
 
 ## 2026-09-17 (d) - an empty page carries its total
 
 `HttpRepository.count()` threw on every filter that matched nothing: the connector parsed only
 `records 0-24/137`, and an IGNIS server answers an empty page `records */N`. Now read as the total,
-with the start taken from the filter. Reported by ARDOR against the published package.
+with the start taken from the filter. Reported by a frontend consumer against the published package.
 
 A real-server roundtrip (PGlite, 16 filters, 162 comparisons against the repository) found a second:
 a caller `x-request-count: true` made `findById` return `{ count, data }` as the record. The
 connector now owns that header. `drizzle-orm`, `drizzle-zod`, `hono` and `@hono/zod-openapi` became
 optional peers - `./http` imports none of them.
 
-ARDOR review, then a second real-server pass (inq, like with Vietnamese and reserved characters,
-include, fields, tied order, BANA-style hand routes; 121 comparisons): a configured
+A frontend consumer review, then a second real-server pass (inq, like with Vietnamese and reserved characters,
+include, fields, tied order, consumer-style hand routes; 121 comparisons): a configured
 `x-request-count` now throws instead of being dropped; an unreadable total gets its own message; a
 URL past ~16 KB (431) says so and no longer pastes 200 KB into the message.
 
@@ -954,7 +954,7 @@ policy condition, or S3 rejects the form it just signed.
 **The asset download route drops its plural.** `GET {base}/downloads/{objectName}` is now
 `GET {base}/download/{objectName}`, reversing half of the 09-08 route move. `download` is one action
 on one object; `/buckets` and `/objects` stay plural because each names a listable collection.
-Position is untouched - the action sits BEFORE the key, forced by Hono. Measured in BANA: `/downloads/`
+Position is untouched - the action sits BEFORE the key, forced by Hono. Measured in a consumer app: `/downloads/`
 appears 0 times, and their hand-written controller already serves `/download/{objectName}{.+}`, so the
 singular spelling is the one their clients already learned.
 
@@ -1151,7 +1151,7 @@ with service version, `runtime`, `NODE_ENV` and memory, unauthenticated.
 A BLANK `secretKey` deliberately does NOT warn - it fails closed, so the route refuses everything; only
 `undefined` means open, which is why `blankToUndefined` is the WRONG tool for it.
 
-BANA's shape avoids this by construction: `stats: { enable: Boolean(secretKey), secretKey }` - no key
+A consumer's shape avoids this by construction: `stats: { enable: Boolean(secretKey), secretKey }` - no key
 means the route is never mounted.
 
 ## 2026-09-12 - a blank env value now reads as unset everywhere
@@ -1159,7 +1159,7 @@ means the route is never mounted.
 `ApplicationEnvironment.get()` (`packages/helpers/src/modules/env/app-env.ts`) now normalises a
 present-but-empty value (`KEY=`) to `undefined`, so `defaultValue` applies, but only when the caller
 supplied one - a `get()` with no default still returns `''` unchanged. Blast radius: 10 call sites in
-IGNIS, 89 in BANA; `'0'` and `'false'` are never normalised.
+IGNIS, 89 in a consumer app; `'0'` and `'false'` are never normalised.
 
 Ten framework constants bypassed this by reading `process.env` directly with `??`:
 `APPLICATION_ENV_PREFIX`, the default timezone, winston/pino settings, `App.APPLICATION_NAME`, the
@@ -1171,7 +1171,7 @@ matches everything and `ApplicationEnvironment` copies the WHOLE of `process.env
 by running it, `keys()` returned `PATH`, `HOME`, host tokens.
 
 `validateEnvs()` no longer throws on an empty prefixed value: the default FLIPPED, unset
-`ALLOW_EMPTY_ENV_VALUE` now means allowed, a host opts in with `false`/`0`. Phat's call - refusing to
+`ALLOW_EMPTY_ENV_VALUE` now means allowed, a host opts in with `false`/`0`. The PO's call - refusing to
 boot over a blank line fought a reader that already resolves it; a required name left empty now fails
 at USE, not boot. `APPLICATION_ENV_PREFIX` and `ALLOW_EMPTY_ENV_VALUE` are deliberately not in
 `EnvironmentKeys`, since both are bootstrap variables read straight off `process.env`.
@@ -1180,14 +1180,14 @@ Trap: the first prefix test passed VACUOUSLY, since `every()` on an empty key li
 assertions now check the list is populated first. Controls were restored from a `cp` backup, never `git
 checkout`, since the files carried uncommitted work.
 
-`int()` is UNCHANGED by decision (Phat): stays total, `0` for unparseable. The BANA-reported defect is
+`int()` is UNCHANGED by decision (the PO): stays total, `0` for unparseable. The consumer-reported defect is
 dead code in the caller idiom `int(x) ?? fallback`, never nullish. Measured with balanced-paren
-matching, not regex: IGNIS has **0** such sites, BANA has 6; an earlier regex reported 3, one a FALSE
+matching, not regex: IGNIS has **0** such sites, a consumer has 6; an earlier regex reported 3, one a FALSE
 POSITIVE from stopping at the first inner paren of a nested call.
 
 `EnvironmentKeys` drops `APP_ENV_OAUTH2_VIEW_FOLDER` and `APP_ENV_DATASOURCE_NAME` (0 readers in either
 repo), leaving 15 names. `APP_ENV_JWT_SECRET` survived only because
-`examples/supabase/src/application.ts:92` still reads it - Phat overrode the standing
+`examples/supabase/src/application.ts:92` still reads it - The PO overrode the standing
 no-usage-does-not-justify-deletion rule after seeing the measurement, precedent for asking first, not
 deleting on a zero count alone.
 
@@ -1203,15 +1203,15 @@ did not. `RedisClusterHelper` now builds `{ enableOfflineQueue: true, lazyConnec
 keeps existing callers byte-identical.
 
 Precedence is DELIBERATELY the inverse of sentinel: the two defaults sit below the caller spread, so
-`clusterOptions` still wins - both BANA call sites already set their own timing through it. Control:
+`clusterOptions` still wins - both consumer call sites already set their own timing through it. Control:
 the "explicit clusterOptions still win" case in `cluster.helper.test.ts`.
 
 `enableOfflineQueue: true` was already the live ioredis 5.11.1 default; stating it means an upgrade
 cannot silently move it. Cluster still does not call `buildDefaultOpts` (a separate, deliberate
 decision).
 
-Scope note: BANA asked IGNIS to also own an env-driven `createRedisHelperFromEnv`. Phat REFUSED - those
-env names are BANA conventions; IGNIS supplies the mechanism, not where values come from.
+Scope note: A consumer asked IGNIS to also own an env-driven `createRedisHelperFromEnv`. The PO REFUSED - those
+env names are consumer conventions; IGNIS supplies the mechanism, not where values come from.
 
 ## 2026-09-11 - a build stamp baked in at compile time, and a two-tier health check
 
@@ -1250,7 +1250,7 @@ The startup banner read `APP_ENV_DS_MIGRATION` while `EnvironmentKeys` and every
 ## 2026-09-11 (b) - atlas grows repo mode for any workspace family
 
 Repo mode now accepts any `@venizia/<family>-workspace` checkout and names the server
-`<family>-atlas`. ARDOR runs the same atlas over its own corpora.
+`<family>-atlas`. A frontend consumer runs the same atlas over its own corpora.
 
 ## 2026-09-10 - @configuration and type-safe component options
 
@@ -1272,16 +1272,16 @@ or the other, never both, across constructor parameters and properties.
 
 The key is RECORDED ON THE CLASS under `Symbol.for('ignis:binding-key')`, not derived at resolve time.
 Deriving `<namespace>.<Class>` from artifact metadata was wrong in three shapes: hand-registered classes
-carry no metadata (86 BANA sites, 47 classes); a declared `binding` renames the key away from the class
+carry no metadata (86 consumer sites, 47 classes); a declared `binding` renames the key away from the class
 name; a call-site `TMixinOpts.binding` is never written back to the class.
 
 Every registration now asserts its namespace. `Binding` tags only when the key has more than one
 dot-separated part, so a namespace-less key binds untagged - never drained, never verified. Measured:
-BANA declares no empty namespace; an EARLIER pass of this work reported one at `sms-otp-sender.ts:7`,
+A consumer declares no empty namespace; an EARLIER pass of this work reported one at `sms-otp-sender.ts:7`,
 and that reading was WRONG.
 
 `getOwnMetadata` means a subclass resolves nothing rather than borrowing its parent's binding - four
-BANA repositories that inject their datasource by class depend on this.
+Consumer repositories that inject their datasource by class depend on this.
 
 Inferring from `design:paramtypes` was rejected, not overlooked: it becomes `undefined` with NO error
 when an app's tsconfig `extends` a package path under bun.
@@ -1343,7 +1343,7 @@ Atlas grew from two tools to five. `symbol { name, package? }` reads `.agents/kn
 
 Two rulings: the default `changes` window walks back to the newest version of an EARLIER day, because several releases of one package can land on one day and the naive predecessor answers nothing; `version.snapshot` lists only packages that exist today (`livePackages`), while `changes` still reads a retired package's history. A changelog's packages are inferred by four rules in order - `packages:` frontmatter, a Details table's `Package` column, `@venizia/ignis...` mentions, then `packages/<dir>` paths - so prose in a `Package` column never invents a package; 9 of 118 files legitimately name none. A version window is keyed by COMMIT position (`order`, first-parent history), not by date: four kernel releases shipped on 2026-09-06, and a date window between any two of them is empty. `version` also reads a workspace root's `overrides`/`resolutions`.
 
-Four extension seams closed the copied-code list BANA measured. `BaseKafkaHelper`'s members are `protected`. A worker application takes `configs.projectRoot`; because core-worker is browser-pure it cannot import `ModuleUtility` (node builtins at module level), so the `globalThis` slot moved to `ProjectRootRegistry` on `@venizia/ignis-helpers/core`, shared by both hosts. Every CRUD read verb (`find`, `count`, `findOne`, `findById`) ANDs `getBaseWhere()` into the request where; it is public, not protected, because a protected member on the factory's anonymous returned class fails declaration emit with TS4094. The static-asset controller takes `resolveObjectName` and `defineExtraRoutes`, threaded through the component options.
+Four extension seams closed the copied-code list a consumer measured. `BaseKafkaHelper`'s members are `protected`. A worker application takes `configs.projectRoot`; because core-worker is browser-pure it cannot import `ModuleUtility` (node builtins at module level), so the `globalThis` slot moved to `ProjectRootRegistry` on `@venizia/ignis-helpers/core`, shared by both hosts. Every CRUD read verb (`find`, `count`, `findOne`, `findById`) ANDs `getBaseWhere()` into the request where; it is public, not protected, because a protected member on the factory's anonymous returned class fails declaration emit with TS4094. The static-asset controller takes `resolveObjectName` and `defineExtraRoutes`, threaded through the component options.
 
 ## 2026-09-07 - two AES tests asserted a probabilistic outcome
 
@@ -1351,7 +1351,7 @@ Four extension seams closed the copied-code list BANA measured. `BaseKafkaHelper
 
 ## 2026-09-07 - Atlas recognised the wrong repository as its own checkout
 
-`isRepositoryCheckout` asked for two directories, `docs/wiki/content` and `.agents/knowledge` - a layout IGNIS invented and its consumers copy. BANA has both but no `docs/wiki/content/changelogs`, so repo mode was chosen in their repository and the loader threw `ENOENT` before the first JSON-RPC line; the MCP client reported `CONNECTION_CLOSED` and the packaged snapshot beside the binary was never reached. A marker must identify the repository, not its shape: the check now also requires the changelog directory and a root `package.json` named `@venizia/ignis-workspace`. Fixed in atlas 0.1.0-4; regression tests build a foreign-manifest root and assert it is not a checkout.
+`isRepositoryCheckout` asked for two directories, `docs/wiki/content` and `.agents/knowledge` - a layout IGNIS invented and its consumers copy. A consumer has both but no `docs/wiki/content/changelogs`, so repo mode was chosen in their repository and the loader threw `ENOENT` before the first JSON-RPC line; the MCP client reported `CONNECTION_CLOSED` and the packaged snapshot beside the binary was never reached. A marker must identify the repository, not its shape: the check now also requires the changelog directory and a root `package.json` named `@venizia/ignis-workspace`. Fixed in atlas 0.1.0-4; regression tests build a foreign-manifest root and assert it is not a checkout.
 
 ## 2026-09-07 - two stale claims corrected against the source
 
@@ -1361,9 +1361,9 @@ The changelog `2025-12-18-repository-validation-security` also ended on a stray 
 
 ## 2026-09-06 - one-release batch: `projectRoot` readers, conditional index entries, generator ignore warning, `setListHeaders` from offset and total
 
-Five framework changes land together in one chain (Phat's rule: small releases, not one per item, never bundle unrelated features - all five are seams BANA copied code to work around); a sixth item, `check` comparing the body, already shipped in boot 0.2.0-14.
+Five framework changes land together in one chain (The PO's rule: small releases, not one per item, never bundle unrelated features - all five are seams a consumer copied code to work around); a sixth item, `check` comparing the body, already shipped in boot 0.2.0-14.
 
-`configs.projectRoot` (core-server) gains real readers: `ServerApplication.getProjectRoot()` calls `ModuleUtility.setProjectRoot()` (globalThis slot `ignis:project-root`), so `loadSync`/`assertInstalled` and the gRPC adapter resolve peers under `<projectRoot>/node_modules` - previously the binding was write-only and 16 BANA packages overrode the method to change a value nothing read.
+`configs.projectRoot` (core-server) gains real readers: `ServerApplication.getProjectRoot()` calls `ModuleUtility.setProjectRoot()` (globalThis slot `ignis:project-root`), so `loadSync`/`assertInstalled` and the gRPC adapter resolve peers under `<projectRoot>/node_modules` - previously the binding was write-only and 16 a consumer packages overrode the method to change a value nothing read.
 
 `configs.artifacts` accepts `{ when, index }` entries (`IConditionalArtifactIndex`; `ArtifactIndexHelper.flatten` is async and takes `application`): the run-mode gate belongs here because `registerArtifacts` runs before `preConfigure` - a worker that gated controllers there mounted 7 unauthenticated routes.
 
@@ -1377,21 +1377,21 @@ Five framework changes land together in one chain (Phat's rule: small releases, 
 
 ## 2026-09-06 - helpers declares `@hono/zod-openapi` as a peer; generator header prints the real command
 
-The packed `@venizia/ignis-atlas` died outside the workspace on `Cannot find module '@hono/zod-openapi'` from the helpers root barrel: `error/schemas.ts` imports it, and helpers listed it only in `devDependencies` (kernel, connectors, core-server, core-worker all declare it as a peer). Now a peer (`^1.5.1`) plus `root-barrel-dependencies.test.ts`, which walks the static import closure of `src/index.ts` and reported exactly this package before the fix. In boot, `ArtifactIndexEmitter` lost the fixed `HEADER` string; `renderHeader({ root, out, ignore, exportName })` prints the flags the CLI ran with (BANA writes `src/_artifacts.ts` with `--ignore`, and the header pointed at `src/generated/artifacts.ts`). Changelog `2026-09-06-helpers-peer-and-generator-header`.
+The packed `@venizia/ignis-atlas` died outside the workspace on `Cannot find module '@hono/zod-openapi'` from the helpers root barrel: `error/schemas.ts` imports it, and helpers listed it only in `devDependencies` (kernel, connectors, core-server, core-worker all declare it as a peer). Now a peer (`^1.5.1`) plus `root-barrel-dependencies.test.ts`, which walks the static import closure of `src/index.ts` and reported exactly this package before the fix. In boot, `ArtifactIndexEmitter` lost the fixed `HEADER` string; `renderHeader({ root, out, ignore, exportName })` prints the flags the CLI ran with (A consumer writes `src/_artifacts.ts` with `--ignore`, and the header pointed at `src/generated/artifacts.ts`). Changelog `2026-09-06-helpers-peer-and-generator-header`.
 
 ## 2026-09-06 - `configs.server` carries `Bun.serve` options
 
-BANA's commerce package copied the whole of `startBunModule` (40 lines, frozen at the 2026-08-21 kernel) to add one line, `idleTimeout: 60`. `IServerApplicationConfigs.server` now takes `idleTimeout` and `maxRequestBodySize`; `getServerRuntimeOptions()` drops unset keys so Bun's defaults survive, `startBunModule` spreads the result into `Bun.serve`, and `startNodeModule` warns that the group is ignored. Core-server only - the kernel stays free of Bun types. Changelog `2026-09-06-bun-serve-options`.
+A consumer's commerce package copied the whole of `startBunModule` (40 lines, frozen at the 2026-08-21 kernel) to add one line, `idleTimeout: 60`. `IServerApplicationConfigs.server` now takes `idleTimeout` and `maxRequestBodySize`; `getServerRuntimeOptions()` drops unset keys so Bun's defaults survive, `startBunModule` spreads the result into `Bun.serve`, and `startNodeModule` warns that the group is ignored. Core-server only - the kernel stays free of Bun types. Changelog `2026-09-06-bun-serve-options`.
 
 ## 2026-09-06 - bare `@repository()` inherits the parent's model and datasource; console-fallback warning moves to the first log line; `ignis-artifacts` is quiet
 
-BANA's index adoption (iden-2) has 54 repository subclasses that only add methods. `repository(metadata?)` now takes an optional argument: with none, it reads the nearest decorated parent's `model`/`dataSource`/`operationScope` through the prototype chain (own metadata does not exist yet at decoration time) and declares its own artifact metadata with no registration options, so the generator lists the subclass and it registers under its own name; no parent throws at decoration, naming the class (`kernel/src/base/metadata/persistents.ts`).
+A consumer's index adoption has 54 repository subclasses that only add methods. `repository(metadata?)` now takes an optional argument: with none, it reads the nearest decorated parent's `model`/`dataSource`/`operationScope` through the prototype chain (own metadata does not exist yet at decoration time) and declares its own artifact metadata with no registration options, so the generator lists the subclass and it registers under its own name; no parent throws at decoration, naming the class (`kernel/src/base/metadata/persistents.ts`).
 
 In helpers, `LoggerResolver` warns about the console fallback inside the console resolver (first routed line), not in `resolve()` - the old placement fired during the barrel import because `applicationEnvironment` (a `BaseHelper`) is constructed before `logger/factory` evaluates. The `ignis-artifacts` CLI imports `common/install-quiet-logger` first (`QuietLogger`: debug/info dropped, warn+ to stderr). Changelog `2026-09-06-repository-inheritance-and-quiet-cli`.
 
 ## 2026-09-06 - `applicationEnvironment` and `ModuleUtility`'s registry shared across module copies; `configs.path.base` guard
 
-BANA proved seven long-red invoice tests came from two `applicationEnvironment` instances in one process (the TypeScript test through `import` -> dist/esm, `@nx/core/dist` through `require` -> dist/cjs). Both now live in `globalThis` under `Symbol.for('ignis:application-environment')` and `Symbol.for('ignis:module-registry')`, the pattern `LoggerFactory` already used. The test that proves it loads the module twice through `require` plus `delete require.cache[path]` - Bun does NOT create a second copy for a `?query` URL, so that form is not a positive control.
+A consumer proved seven long-red invoice tests came from two `applicationEnvironment` instances in one process (the TypeScript test through `import` -> dist/esm, `@nx/core/dist` through `require` -> dist/cjs). Both now live in `globalThis` under `Symbol.for('ignis:application-environment')` and `Symbol.for('ignis:module-registry')`, the pattern `LoggerFactory` already used. The test that proves it loads the module twice through `require` plus `delete require.cache[path]` - Bun does NOT create a second copy for a `?query` URL, so that form is not a positive control.
 
 `RestApplication` now throws at construction when `configs.path.base` is not a string (a consumer's `process.env.X!` produced `undefined` and the failure surfaced inside `@hono/zod-openapi`'s `route()` at `start()`). Rule for new code: module-level state in helpers goes behind a `Symbol.for('ignis:...')` slot; in kernel behind `SingletonRealm`. Changelog `2026-09-06-shared-singletons-across-module-copies`.
 
@@ -1409,7 +1409,7 @@ Repo mode indexes the wiki, the changelogs and this bundle from the live tree, a
 
 ## 2026-09-05 - opt-in boot checks: `verifyBindings` step, no-hand-registration strict mode, app-wide no-override
 
-Asked for by BANA's identity lane (iden-1) for the artifact-index migration, approved by the PO. `configs.bootChecks.binding.doVerify` adds `BootSteps.VERIFY_BINDINGS` after `postConfigure` (server sequence: 15 steps, `verifyBindings` before `validateScopeFilterSupport`): `get` every binding in the `services` and `repositories` namespaces, collect, throw once with every failing key - a made-up `@inject` key or a `when`-excluded dependency fails the boot instead of the first request. `configs.bootChecks.binding.allowManual: false` makes `registerArtifact` throw when called inside `preConfigure()`/`postConfigure()` while `configs.artifacts` is set (the hooks run under `runApplicationHook`, so index and framework registrations are exempt). `configs.bootChecks.binding.allowOverride: false` makes `assertNoBindingCollision` default `allowOverride` to `false` (an explicit `true` on the decorator or at the call site still wins); `bind()`, `set()` and `@provide` never pass through the guard, so runtime rebinding is untouched - the PO approved this once that was measured.
+Asked for by a consumer's identity lane for the artifact-index migration, approved by the PO. `configs.bootChecks.binding.doVerify` adds `BootSteps.VERIFY_BINDINGS` after `postConfigure` (server sequence: 15 steps, `verifyBindings` before `validateScopeFilterSupport`): `get` every binding in the `services` and `repositories` namespaces, collect, throw once with every failing key - a made-up `@inject` key or a `when`-excluded dependency fails the boot instead of the first request. `configs.bootChecks.binding.allowManual: false` makes `registerArtifact` throw when called inside `preConfigure()`/`postConfigure()` while `configs.artifacts` is set (the hooks run under `runApplicationHook`, so index and framework registrations are exempt). `configs.bootChecks.binding.allowOverride: false` makes `assertNoBindingCollision` default `allowOverride` to `false` (an explicit `true` on the decorator or at the call site still wins); `bind()`, `set()` and `@provide` never pass through the guard, so runtime rebinding is untouched - the PO approved this once that was measured.
 
 The three form one `binding` group of required booleans (the PO reshaped it from three `should*` flags mid-task); without the group nothing is checked. One proposal was declined on purpose: index entries as option objects (no consumer once iden-1 found the "shared class with two conditions" was two same-named classes).
 
@@ -1417,11 +1417,11 @@ Tests: `kernel/__tests__/applications/boot-checks.test.ts`; step-count assertion
 
 ## 2026-09-05 - list-response contract: `respond` takes a range, `setListHeaders`, `ResponseFormats`; `POST /search` sends the list headers
 
-`respond` and `normalizeCountData` moved up from `AbstractCrudController` to `BaseRestController` (no caller outside it). `respond({ context, format, payload, range? })` is the ONE response call - with `range` it also writes `Content-Range` (a `respondList` was built first and folded back in on the PO's call: one method with options, not a specialised sibling); `setListHeaders({ context, range, count })` serves bodies that are not the envelope; `format` is the const class `ResponseFormats` (`OBJECT`/`ARRAY`, `TResponseFormat`) instead of string literals; the option `responseData` is now `payload` (BANA: 6 `normalizeCountData` call sites rename). The CRUD `find()` passes its range.
+`respond` and `normalizeCountData` moved up from `AbstractCrudController` to `BaseRestController` (no caller outside it). `respond({ context, format, payload, range? })` is the ONE response call - with `range` it also writes `Content-Range` (a `respondList` was built first and folded back in on the PO's call: one method with options, not a specialised sibling); `setListHeaders({ context, range, count })` serves bodies that are not the envelope; `format` is the const class `ResponseFormats` (`OBJECT`/`ARRAY`, `TResponseFormat`) instead of string literals; the option `responseData` is now `payload` (A consumer: 6 `normalizeCountData` call sites rename). The CRUD `find()` passes its range.
 
 `AbstractSearchController.search()` used to answer with a bare `context.json()` and no header - the one place in the repo setting `Content-Range` was the CRUD read tier - so it now sets the list headers (`start` from `filter.skip`/`filter.offset`, raw mode from the engine's `offset` or `page` x `per_page`; `total` from `found`), body unchanged; `isFoundExact` in the body stays the only "found is an estimate" signal (an `X-Response-Count-Exact` header was built and then dropped on the PO's call the same day).
 
-Contract locked by the PO on 2026-09-05: `total` exact and never `*`, `X-Response-Count` = rows of this response, `X-Response-Format: array`, `{ count, data }` or the bare array on `x-request-count: false`, no list depends on `/count` (the factory verb stays opt-in). Not adopted: window counts (measured 1.9 s at 237k rows by BANA). Tests: `kernel/__tests__/controllers/list-response.test.ts`, `connectors/__tests__/search/controllers/factory.test.ts`.
+Contract locked by the PO on 2026-09-05: `total` exact and never `*`, `X-Response-Count` = rows of this response, `X-Response-Format: array`, `{ count, data }` or the bare array on `x-request-count: false`, no list depends on `/count` (the factory verb stays opt-in). Not adopted: window counts (measured 1.9 s at 237k rows by a consumer). Tests: `kernel/__tests__/controllers/list-response.test.ts`, `connectors/__tests__/search/controllers/factory.test.ts`.
 
 ## 2026-09-04 - evening dependency pass: every in-range update taken, three majors held with reasons
 
@@ -1510,7 +1510,7 @@ Gate (epic close): vert `build`/`lint`/`check:artifacts`/`compile:linux` exit 0;
 
 `IArtifactOptions`, `IBootOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` and `boot/src/common/` are gone from `@venizia/ignis-boot`. `BaseApplication.boot()` and `hasWarnedBootDeprecated` are gone from `core-server`; `IApplicationConfigs.bootOptions` and its kernel mirror (`IApplicationArtifactOptions`, `IApplicationBootOptions`) are gone from `kernel`. `BindingNamespaces.BOOTERS` is gone, and so is the dead `base/services/base-crud.ts` placeholder.
 
-User-ordered full removal (`a6d5e5e9`), not a deprecation cycle: measured zero IGNIS usage outside the deleted sites before deleting. BANA carries 3 `.boot()` call sites, 2 `bootOptions` config literals and 16 `override async boot()` sites that now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+User-ordered full removal (`a6d5e5e9`), not a deprecation cycle: measured zero IGNIS usage outside the deleted sites before deleting. A consumer carries 3 `.boot()` call sites, 2 `bootOptions` config literals and 16 `override async boot()` sites that now fail to compile. See the [changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
 
 Fix round 1 (Opus review): `ArtifactScanner.scan()`'s `ignore` option was replacing `DEFAULT_IGNORE` instead of merging with it, contradicting every doc that already described it as additive - fixed the code, not the docs. Added `removed-members.test.ts` pinning `boot`, `booter` and `registerBooters` absent from `BaseApplication.prototype`.
 
@@ -1534,7 +1534,7 @@ Found while proving the vert binary: it crashed at import on every commit back t
 
 (4) bun renames every tsc-emitted decorated class expression (`X` -> `X2`, `X_1` under `--minify-syntax`; `--keep-names` does not help), so vert's eight literal binding keys broke; they are `BindingKeys.build({ key: X.name })` now, and the compile scripts stop minifying identifiers.
 
-Guards: `helpers/src/__tests__/env/bundle-safe-reads.test.ts` (barrel exports through the CLI, ambient read, positive control that the bare read IS folded) and `logger/provider-slot.test.ts`. Measured after: the vert binary boots through 12 steps and fails only at `postConfigure` with `ECONNREFUSED` against refused ports - identical to `bun dist/index.js`. Open: the renamed class names still show in logs and keys (`controllers.JWKSController2`); a build plugin that restores names is the candidate fix. BANA does not compile binaries and still runs tsc output, so none of this reaches them today; their 380 literal keys would break only under a bundler.
+Guards: `helpers/src/__tests__/env/bundle-safe-reads.test.ts` (barrel exports through the CLI, ambient read, positive control that the bare read IS folded) and `logger/provider-slot.test.ts`. Measured after: the vert binary boots through 12 steps and fails only at `postConfigure` with `ECONNREFUSED` against refused ports - identical to `bun dist/index.js`. Open: the renamed class names still show in logs and keys (`controllers.JWKSController2`); a build plugin that restores names is the candidate fix. A consumer does not compile binaries and still runs tsc output, so none of this reaches them today; their 380 literal keys would break only under a bundler.
 
 ## 2026-09-02 - Part 4: decorator-driven artifact registration; `configs.artifacts` boot step; runtime booters retired; examples adopt it
 
@@ -1542,7 +1542,7 @@ Guards: `helpers/src/__tests__/env/bundle-safe-reads.test.ts` (barrel exports th
 
 Deviations from the plan: the reference app is `examples/vert`, not a helpdesk sample; there is no `imports` option and no `profiles` - composition of indexes and a `when` function replaced both; `@bean` was rejected in favour of `@provide`. Tooling fix on the way: the generated `reference/binding-keys.md` had been empty ("0 keys") because `knowledge-tools/config.ts` still pointed `coreBindings` at `packages/core-server/src/common/bindings.ts`, which moved to the kernel; it now reads `packages/kernel/src/common/bindings.ts` (16 keys across 2 classes).
 
-BANA crosscheck (read-only grep over `packages` and `apps`): no `booter(`, `registerBooters`, `Bootstrapper`, `BootMixin`, `IBootReport`, `TMixinOpts` or `@venizia/ignis-boot` anywhere; `.boot()` in 4 entry points and `async boot(` overrides in 16 files (15 `application.ts` plus `search/src/migrations/bootstrap.ts`) - all compile against the no-op; `bootOptions` in 2 configs (ignored). Hand registration remains their path: 146 `this.controller(`, 353 `this.service(`, 66 `this.component(`, 369 `this.repository(`, 19 `this.dataSource(` - all still valid. No `get<XController>` or `controllers.` key lookup, so `controller()` becoming SINGLETON has no BANA call site to disturb.
+A consumer crosscheck (read-only grep over `packages` and `apps`): no `booter(`, `registerBooters`, `Bootstrapper`, `BootMixin`, `IBootReport`, `TMixinOpts` or `@venizia/ignis-boot` anywhere; `.boot()` in 4 entry points and `async boot(` overrides in 16 files (15 `application.ts` plus `search/src/migrations/bootstrap.ts`) - all compile against the no-op; `bootOptions` in 2 configs (ignored). Hand registration remains their path: 146 `this.controller(`, 353 `this.service(`, 66 `this.component(`, 369 `this.repository(`, 19 `this.dataSource(` - all still valid. No `get<XController>` or `controllers.` key lookup, so `controller()` becoming SINGLETON has no a consumer call site to disturb.
 
 `examples/vert` is the reference application for decorator-driven registration. Its `application.ts` no longer calls `this.dataSource/repository/service/controller/component`: the config carries `artifacts: [GeneratedArtifacts, { components: [...framework components] }]`, where `src/generated/artifacts.ts` is emitted by `bun run generate:artifacts` (the boot CLI run from source) and gated by `bun run check:artifacts`, wired into `make lint-examples` through `make artifacts-check`. The five option bindings the framework components read (health-check, authenticate REST/JWT/basic, authorize) moved into a vert-owned `PlatformComponent` as `@provide` methods; the enforcer and strategy registrations stay imperative since they are registry calls, not bindings. `TestController` demonstrates `when` (mounted outside production). `ConfigurationController`, `MetaLinkRepository` and four authorization repositories were decorated but never registered by hand; the index now registers them (bindings only - nothing resolves the repositories at boot). Every example entry point awaits `application.start()` in one try/catch; the `.boot().then(start)` chain and the dead `bootOptions: {}` are gone.
 
@@ -1554,7 +1554,7 @@ Concepts rewritten: `packages/boot.md`, `architecture/boot-lifecycle.md` (now ti
 
 Registration-engine-consolidation, Tasks 1-5, all landed the same day.
 
-`BootSequence.insertAfter` now refuses a duplicated target name with `Ambiguous step`, as it already refused an unknown one (`findIndex` used to splice after the first match silently). `RestApplication.initialize()` delegates to a new protected `runBootSequence()`: one `executeWithPerformanceMeasure` line per step at debug (`Boot step n/N <name>`), an info summary listing every step name, and an error line naming the failed step before the original error is rethrown; `BaseApplication.initialize()` keeps an identical one-line body as a tripwire. Step names are const classes: `BootSteps` (kernel, eight names incl. `registerDefaultMiddlewares`) and `ServerBootSteps extends BootSteps` (core-server, `packages/core-server/src/base/applications/boot-steps.ts`, five server-only names); `IBootSequenceStep.name` stays `string` so an application can add its own steps. The collision guard's `caller` is derived from the method (`this.controller.name`), no longer a literal that had to match by hand. `packages/inversion` gained `tsconfig.build.json`: `build.sh` type-checks `tsconfig.json` (tests included) then emits from the build config, so `dist` no longer carries compiled `__tests__` - `bun test` reports 38 tests instead of 3x that (the npm tarball never shipped them; the cost was the false count and the wasted emit). `TMixinOpts` lost `args` and its `Args` generic - no registration method read it and no caller in IGNIS, examples or BANA passed it; a type-level breaking change against kernel-v0.2.0-13 with no known caller affected. `controller()` binds SINGLETON like `component()` and `dataSource()`, so a second `get('controllers.X')` returns the mounted instance instead of an unmounted twin.
+`BootSequence.insertAfter` now refuses a duplicated target name with `Ambiguous step`, as it already refused an unknown one (`findIndex` used to splice after the first match silently). `RestApplication.initialize()` delegates to a new protected `runBootSequence()`: one `executeWithPerformanceMeasure` line per step at debug (`Boot step n/N <name>`), an info summary listing every step name, and an error line naming the failed step before the original error is rethrown; `BaseApplication.initialize()` keeps an identical one-line body as a tripwire. Step names are const classes: `BootSteps` (kernel, eight names incl. `registerDefaultMiddlewares`) and `ServerBootSteps extends BootSteps` (core-server, `packages/core-server/src/base/applications/boot-steps.ts`, five server-only names); `IBootSequenceStep.name` stays `string` so an application can add its own steps. The collision guard's `caller` is derived from the method (`this.controller.name`), no longer a literal that had to match by hand. `packages/inversion` gained `tsconfig.build.json`: `build.sh` type-checks `tsconfig.json` (tests included) then emits from the build config, so `dist` no longer carries compiled `__tests__` - `bun test` reports 38 tests instead of 3x that (the npm tarball never shipped them; the cost was the false count and the wasted emit). `TMixinOpts` lost `args` and its `Args` generic - no registration method read it and no caller in IGNIS, examples or a consumer passed it; a type-level breaking change against kernel-v0.2.0-13 with no known caller affected. `controller()` binds SINGLETON like `component()` and `dataSource()`, so a second `get('controllers.X')` returns the mounted instance instead of an unmounted twin.
 
 Registration methods gained a same-key collision guard: `TMixinOpts.allowOverride?: boolean`, default `true` to match `bind()`'s historical silent-overwrite behavior. `RestApplication`'s five artifact methods (`component`/`controller`/`service`/`repository`/`dataSource`) and core-server's `booter()` call a shared `assertNoBindingCollision` before binding: with `allowOverride: false` and the key already bound, it throws via `getError` instead of clobbering. `assertNoBindingCollision` is exported from kernel (`packages/kernel/src/base/applications/rest.ts`) rather than duplicated per package. `opts.binding` on `TMixinOpts` is now optional (it always had a derived default).
 
@@ -1564,7 +1564,7 @@ Follow-ups fixed two regressions and tightened two seams. `registerDynamicBindin
 
 Updated: `architecture/di-container.md`, `architecture/application-lifecycle.md` (two passages), `docs/wiki/content/references/base/application.md` (`registerDynamicBindings`, 13-step mermaid, `registerComponents`, `TMixinOpts`), `docs/wiki/content/best-practices/architectural-patterns.md` (13-step box, `service()` sample). Tests: kernel `boot-sequence.test.ts`, `layering.test.ts`, `registration-override.test.ts`; core-server `lifecycle.test.ts`; kernel tests share `src/__tests__/support/recording-logger.ts`.
 
-Verification gate for the whole consolidation: `make kernel`/`make core-server` green, kernel 151/151 and core-server 1307/1307 (+1 skip) tests pass, `make lint-kernel`/`make lint-core-server` clean, BANA (`nx-seller`) grep for `registerDynamicBindings`/`drainByTag`/`getBootSequence`/`registerContributedDataSources`/`BootSequence` returns no hits, `make okf-check` green.
+Verification gate for the whole consolidation: `make kernel`/`make core-server` green, kernel 151/151 and core-server 1307/1307 (+1 skip) tests pass, `make lint-kernel`/`make lint-core-server` clean, a consumer (`the consumer repository`) grep for `registerDynamicBindings`/`drainByTag`/`getBootSequence`/`registerContributedDataSources`/`BootSequence` returns no hits, `make okf-check` green.
 ## 2026-09-01 - `registerComponents()`'s nested datasource hook is gone; it's a flat boot-sequence step now
 
 Kernel's `RestApplication.registerComponents()` no longer passes `onAfterConfigure` to re-scan the DATASOURCE namespace after every component. `initialize()` now runs a `getBootSequence()` (`packages/kernel/src/base/applications/boot-sequence.ts`, `IBootSequenceStep` + `BootSequence.insertBefore`/`insertAfter`), adding one explicit `registerContributedDataSources()` step - a flat second `registerDataSources()` sweep - right after `registerComponents()`. A component contributing a datasource at any nesting depth is still caught before `initialize()` returns.
@@ -1596,12 +1596,12 @@ The question arrived as "which one wins", presuming a precedence rule that does 
 
 - The alias must be emitted RAW (`sql.raw`), never `sql.identifier` - a quoted alias keeps its case while the unquoted `FROM` alias folds to lower case, so `"policyDefinition"` never resolves (`missing FROM-clause entry for table "policyDefinition"`).
 - Every existing adapter test passed with that bug in place: they stub `execute` and return row literals, so none ran the adapter's SQL. Added `scoped-adapter-domain-sql-e2e.test.ts` against real Postgres (PGlite) - the only test in the authorize tree that executes the SQL.
-- Reported by BANA from a real incident: never verify a backfill with a `SELECT` after `UPDATE` - a pooler or replica read can hit a lagging node and report zero changes over correct data. Count from the write with `RETURNING`.
+- Reported by a consumer from a real incident: never verify a backfill with a `SELECT` after `UPDATE` - a pooler or replica read can hit a lagging node and report zero changes over correct data. Count from the write with `RETURNING`.
 
 **Coverage extended to every adapter query shape.** `scoped-adapter-domain-sql-e2e.test.ts` now also drives `queryPrincipalPolicies`, `queryEdgePolicies` (three aliases, two self-joins), and `CustomGrantExpander.queryOperationCatalog` (row-constructor `IN` list plus the resource-node filter) against real Postgres - none of these were previously executed by any test.
 
 - Verified load-bearing with two mutations: `sql.raw(alias)` -> `sql.identifier(alias)` turns 4 of 6 cases red; swapping both `ON` sides in `queryEdgePolicies` (wrong-direction self-join) turns 1 red, token order flips. Run both before trusting an edit here.
-- Check the mutation actually landed before reading the result - "broke it and still green" means either the test is blind or the break never arrived, and those lead to opposite actions. BANA nearly rewrote a healthy suite: their mutation failed to compile, their `build.sh` piped through `sed` and swallowed the exit code, so `dist` kept the old build and tests ran on un-mutated code. IGNIS's `build.sh` has `set -e`, no pipes, and a `tsc --noEmit` gate, and these tests import source, not `dist` - not exposed to that exact path. But `make <pkg>` cleans `dist` before building, so a failed build leaves it empty - the local variant of the same disguise.
+- Check the mutation actually landed before reading the result - "broke it and still green" means either the test is blind or the break never arrived, and those lead to opposite actions. A consumer nearly rewrote a healthy suite: their mutation failed to compile, their `build.sh` piped through `sed` and swallowed the exit code, so `dist` kept the old build and tests ran on un-mutated code. IGNIS's `build.sh` has `set -e`, no pipes, and a `tsc --noEmit` gate, and these tests import source, not `dist` - not exposed to that exact path. But `make <pkg>` cleans `dist` before building, so a failed build leaves it empty - the local variant of the same disguise.
 - RULE: a change to any of these statements is unverified until a case in this file executes it. The bug class - identifier folding, alias resolution, three-valued predicate logic - is invisible to `tsc`, to lint, and to every stubbed test.
 
 **`PolicyDefinition.metadata` typed and extensible.** Was `jsonb('metadata')` with no `$type<>()`, read back as `unknown`; any shape compiled going in. Now carries `TSubsetGrantMetadata` (`{ ops: string[] }`), declared in kernel beside its only writer (`AuthorizationPolicyBuilder.customGrant`); only reader is `parseCustomGrantMetadata`.
@@ -1619,7 +1619,7 @@ The question arrived as "which one wins", presuming a precedence rule that does 
 
 Search is reported first when both apply - it needs a code change, the other may be one config line. Detection is by class (`BaseSearchEntity` in the prototype chain), not by datasource. Not breaking in practice: `asyncContext.enable` defaults to true for a server application, so only an explicit opt-out plus a `scopeFilter` declaration trips it. Tests: `connectors/src/__tests__/common/scope-filter-boot.test.ts`.
 
-**Adoption guidance (docs-only, from a BANA design review).**
+**Adoption guidance (docs-only, from a consumer design review).**
 
 1. Running `scopeFilter` alongside an existing ownership guard is a TRAP, not a safe migration step. AND-ing the same predicate twice stays correct, which is why it is dangerous: it hides divergence when a subclass overrides one hook but not the other, with no compile error. Corrects verbal advice given earlier the same day ("they do not fight, run them in parallel"), which checked result correctness and missed invariant ownership.
 2. `scopeFilter` narrows, a hand-written guard throws - opposite failure profiles. A `where` means a handler that forgets is still scoped, but a legitimate cross-principal write silently does nothing, and `create` is unreachable. A guard that loads the row and throws covers `create` and cannot silently succeed, but is a hole wherever nobody called it, and costs a read per write.
@@ -1633,7 +1633,7 @@ Also newly documented: because `update`/`delete` ARE scoped, an admin method leg
 
 ## 2026-08-31 - `EventBus`: payload-map typing gotcha, and a retry reshape (jitter, per-registration window, tagged `handler`)
 
-**Payload maps silently degrade to an index signature.** Docs + one test, no source change. `EventBus`'s only type safety is `K extends keyof TPayloadMap & string`, only as strong as the map a consumer supplies. A map built from computed keys off a PLAIN OBJECT LITERAL degrades without a word: no `as const` means the key is typed `string`, a computed key of type `string` produces an INDEX SIGNATURE, `keyof TPayloadMap` becomes `string`, and `register`/`publish` accept every name. Reported by BANA after migrating 47 registrations. It survives review because it compiles clean, lint says nothing, tests say nothing, and call sites look checked - a `static readonly` on a class keeps its literal type, so the same codebase had one sound map and one degraded map for a reason invisible at any use site. Detection is a control line: put `// @ts-expect-error` on a bogus key - `tsc` reports the directive UNUSED when degraded, says nothing when sound. Test: `kernel/src/__tests__/events/payload-map-typing.test.ts` (degraded case asserted by a line that compiles WITHOUT a marker). Docs: `docs/wiki/content/changelogs/2026-08-31-event-bus-retry.md`, `packages/kernel.md`.
+**Payload maps silently degrade to an index signature.** Docs + one test, no source change. `EventBus`'s only type safety is `K extends keyof TPayloadMap & string`, only as strong as the map a consumer supplies. A map built from computed keys off a PLAIN OBJECT LITERAL degrades without a word: no `as const` means the key is typed `string`, a computed key of type `string` produces an INDEX SIGNATURE, `keyof TPayloadMap` becomes `string`, and `register`/`publish` accept every name. Reported by a consumer after migrating 47 registrations. It survives review because it compiles clean, lint says nothing, tests say nothing, and call sites look checked - a `static readonly` on a class keeps its literal type, so the same codebase had one sound map and one degraded map for a reason invisible at any use site. Detection is a control line: put `// @ts-expect-error` on a bogus key - `tsc` reports the directive UNUSED when degraded, says nothing when sound. Test: `kernel/src/__tests__/events/payload-map-typing.test.ts` (degraded case asserted by a line that compiles WITHOUT a marker). Docs: `docs/wiki/content/changelogs/2026-08-31-event-bus-retry.md`, `packages/kernel.md`.
 
 **Retry reshape**, in `kernel/src/base/events/event-bus.ts`, load-bearing on the class doc's "bounded maximum dispatch time" guarantee (previously "fixed retry" - corrected, no longer true).
 
@@ -1702,7 +1702,7 @@ Fallout, all fixed: `connectors` - 4 sites (`persistable.ts`, `readable.ts`, `so
 
 ## 2026-08-30 - Tree utilities (`helpers`) and `RecursiveTreeSql` (`kernel`) ship, then gain SQLite support
 
-Per the agent contract `2026-08-31-tree-graph.md`: BANA hand-wrote 15 recursive SQL queries (14 with their own depth guard, 1 without - which hung a production process walking an unbounded parent chain) plus 2 duplicate in-memory tree algorithms. Both moved into IGNIS.
+Per the agent contract `2026-08-31-tree-graph.md`: A consumer hand-wrote 15 recursive SQL queries (14 with their own depth guard, 1 without - which hung a production process walking an unbounded parent chain) plus 2 duplicate in-memory tree algorithms. Both moved into IGNIS.
 
 `packages/helpers/src/modules/tree/` (pure - `Map`/`Set`/arrays only, no Drizzle/DI/I/O): `walk.ts` (`TreeWalker`: static `walk`/`walkAsync`/`height`/`heightWhere`/`count`/`collectLeaves`), `builder.ts` (`TreeBuilder`: static `build`/`leaves`/`nonLeaves`/`print`). Named `TreeBuilder` not `GraphHelper` - `build` cuts cycles, so the result is always a tree, and a wider name invites real graph algorithms it does not implement. Kept `walk`/`walkAsync` as distinctly-named methods rather than one with a mode flag - the return types genuinely differ (`void` vs `Promise<void>`). Three behaviors preserved verbatim from production, commented because each is counter-intuitive: `shouldPrune(node, depth)` returning `true` still visits the node, only its children are skipped; `build`'s `seen`-by-`getKey` cycle guard SKIPS a repeated branch rather than throwing, because real hierarchies contain legitimate diamonds; `leaves({ includePath: true })` returns the root-to-leaf chain alongside each leaf.
 
@@ -1726,11 +1726,11 @@ All four packages (`helpers`, `connectors`, `core-server`, `core-worker`) green 
 
 **`Hash` introduced.** `utilities/crypto.utility.ts`'s `hash(text, options)` had two branches that returned `text` unhashed - a missing SHA256 secret, and any algorithm outside `'SHA256' | 'MD5'` - so a caller that forgot `secret` stored or compared plaintext with no error. Added `Hash` (`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`): a `BaseHelper` (not `BaseCryptoAlgorithm`/`ICryptoAlgorithm` - a digest has no inverse). `digest({ message, opts? })` takes no secret; `hmac({ message, secret, opts? })` requires one and throws via `getError` if empty. New const-classes `HashAlgorithms` (`md5`/`sha1`/`sha256`/`sha384`/`sha512`) and `HashOutputEncodings` (`hex`/`base64`/`base64url`), plus `DEFAULT_HASH_OUTPUT_ENCODING` (`hex`).
 
-`crypto.utility.ts`'s `hash()` kept its exact positional signature at this point (published API, ~15 external BANA payment call sites) and delegated to `Hash`, byte-identical (pinned against `node:crypto` directly); the one behavior change was both former passthrough branches now throw. Also replaced the deprecated `crypto.Encoding` type with `BufferEncoding` in `aes.algorithm.ts`, `aes-legacy.algorithm.ts`, `rsa.algorithm.ts` - zero behavior change. Swept the rest of `modules/crypto` for other deprecated Node crypto APIs: none found. Left unchanged and reported: `RSA.generateDERKeyPair({ modulus })` accepts any modulus with no lower bound.
+`crypto.utility.ts`'s `hash()` kept its exact positional signature at this point (published API, ~15 external consumer payment call sites) and delegated to `Hash`, byte-identical (pinned against `node:crypto` directly); the one behavior change was both former passthrough branches now throw. Also replaced the deprecated `crypto.Encoding` type with `BufferEncoding` in `aes.algorithm.ts`, `aes-legacy.algorithm.ts`, `rsa.algorithm.ts` - zero behavior change. Swept the rest of `modules/crypto` for other deprecated Node crypto APIs: none found. Left unchanged and reported: `RSA.generateDERKeyPair({ modulus })` accepts any modulus with no lower bound.
 
 **KDF salt override, same day.** `DEFAULT_KDF_SALT` is a single string shipped in every IGNIS deployment - flagged by a prior sweep, since one precomputed table attacks every deployment deriving a key from a weak passphrase. Changing the default was ruled out - a downstream product already has ciphertext encrypted under it. Added optional `kdfSalt`/`kdfIterations` to `AES`'s `encrypt`/`decrypt` `opts`, threaded through `resolveEncryptKey`/`resolveDecryptKey` (now options-object methods, previously positional) to `BaseCryptoAlgorithm.normalizeSecretKey`. Omitting both reproduces the shipped default byte-for-byte, pinned against a `node:crypto` `pbkdf2Sync` call using literal salt/iteration values. A supplied `kdfSalt` must be at least 16 UTF-8 bytes (`MINIMUM_KDF_SALT_BYTES`, NIST SP 800-132's 128-bit minimum) or `normalizeSecretKey` throws. `LegacyAES` deliberately does NOT get the option - its `normalizeSecretKeyLegacy` is padEnd/truncate, never PBKDF2. `RSA`/`ECDH` don't derive keys via PBKDF2, so neither takes it. Documented the weakness directly on `DEFAULT_KDF_SALT`.
 
-**`hash()` and `crypto.utility.ts` removed outright, later the same day - supersedes the shim above.** The delegating-shim decision is reversed before shipping: `utilities/crypto.utility.ts` and its test are deleted entirely, the barrel no longer exports `hash`. No delegating wrapper, no `@deprecated` alias - `hash()` does not exist. Every caller (~15 external BANA payment call sites) must migrate directly to `Hash.withAlgorithm(...).digest()`/`.hmac()`. Digest bytes are unchanged, so a migrated call site produces the same value a payment gateway already verifies. Docs rewritten accordingly: changelog hashing section from "deprecated, delegates" to "removed" with a migration table for the three known call shapes; the Hashing section of the crypto reference rewritten around `Hash`; `references/utilities/crypto.md` removed outright along with its sidebar/index entries.
+**`hash()` and `crypto.utility.ts` removed outright, later the same day - supersedes the shim above.** The delegating-shim decision is reversed before shipping: `utilities/crypto.utility.ts` and its test are deleted entirely, the barrel no longer exports `hash`. No delegating wrapper, no `@deprecated` alias - `hash()` does not exist. Every caller (~15 external consumer payment call sites) must migrate directly to `Hash.withAlgorithm(...).digest()`/`.hmac()`. Digest bytes are unchanged, so a migrated call site produces the same value a payment gateway already verifies. Docs rewritten accordingly: changelog hashing section from "deprecated, delegates" to "removed" with a migration table for the three known call shapes; the Hashing section of the crypto reference rewritten around `Hash`; `references/utilities/crypto.md` removed outright along with its sidebar/index entries.
 
 ## 2026-08-30 - Retry reshape: `retry.utility.ts` becomes `RetryHelper`, moves to `modules/retry/`, aliases fully removed
 
@@ -1865,7 +1865,7 @@ Only an optional input flag stood between a mis-pasted key and a published signi
 
 `assertPublicJWK` refuses `d`, `p`, `q`, `dp`, `dq`, `qi`, `k` in TWO places - at key load, and again immediately before the JWKS document is built, the last place to catch a signing key before `/certs` serves it. Named members, not a blanket scan, since a public JWK legitimately carries `x`, `y`, `n`, `e`.
 
-Present in the published `@venizia/ignis@0.2.0-2`. Found evaluating BANA's service-auth implementation, whose PEM-only signer is immune - the immunity the service strategy inherits.
+Present in the published `@venizia/ignis@0.2.0-2`. Found evaluating a consumer's service-auth implementation, whose PEM-only signer is immune - the immunity the service strategy inherits.
 
 ## 2026-08-20 - `scripts/release.ts` drives the release chain
 
@@ -1893,11 +1893,11 @@ A public export deleted without a changelog line breaks a consumer with nothing 
 
 **All three, not one** - removing only the named symbol would leave a consumer breaking on one of three, the worst of both states. Historical changelogs describing the original rename stay untouched.
 
-Pure rename, no runtime consequence: `SwaggerBindingKeys.SWAGGER_OPTIONS` always held `'@app/api-reference/options'`. Verified before removing: no usage in `packages/*/src`, `examples/*/src`, or BANA.
+Pure rename, no runtime consequence: `SwaggerBindingKeys.SWAGGER_OPTIONS` always held `'@app/api-reference/options'`. Verified before removing: no usage in `packages/*/src`, `examples/*/src`, or a consumer.
 
 ## 2026-08-19 - service-to-service authentication, phase 1
 
-Requested by BANA as a written change spec, evaluated claim by claim against `packages/*/src`, built after they accepted two overrides.
+Requested by a consumer as a written change spec, evaluated claim by claim against `packages/*/src`, built after they accepted two overrides.
 
 **The strategy type is open now:** `TAuthStrategy = TConstValue<typeof AuthenticateStrategy> | (string & {})`, the idiom `TDataSourceDriver` already used. The runtime was always open (a `Map<string, ...>`, a `string[]` middleware factory); only the type was closed.
 
@@ -1954,10 +1954,10 @@ The page-side fetch bridge moved from `examples/browser-bff` into `@venizia/igni
 
 168 agents raised 52 findings, 34 survived three adversarial lenses, 18 distinct defects were fixed. Behavioural changes a consumer can notice:
 
-- `AxiosFetcher` defaulted `rejectUnauthorized` to **false** - every HTTPS request accepted any certificate. Now `true`; the agent builds once per instance; a caller-supplied `httpsAgent` is no longer overwritten by the `...rest` spread; `rejectUnauthorized` is a declared option. BANA uses this fetcher at 12 sites (VNPay, T-VAN, iiapi) and never set the flag, so a partner endpoint with a bad chain now fails loudly.
+- `AxiosFetcher` defaulted `rejectUnauthorized` to **false** - every HTTPS request accepted any certificate. Now `true`; the agent builds once per instance; a caller-supplied `httpsAgent` is no longer overwritten by the `...rest` spread; `rejectUnauthorized` is a declared option. A consumer uses this fetcher at 12 sites (VNPay, T-VAN, iiapi) and never set the flag, so a partner endpoint with a bad chain now fails loudly.
 - `RequestSpyMiddleware` tested `env !== 'production'`, logging full bodies in `staging`, `uat`, `alpha`, `beta`, `prod` and with `NODE_ENV` unset. Now asks `EnvironmentNames.DEVELOPMENT_ENVS`, matching `BaseAppErrorMiddleware.isProduction`. Pinned by `request-spy-environment.test.ts`.
 - `limit` is `int().nonnegative()` on the wire; `assertLimitWithinCeiling` enforces `@model settings.maxLimit` for the relational tier, which read it nowhere before - a negative limit dropped Drizzle's LIMIT clause and returned the whole table.
-- `shouldSkipDefaultFilter` is off the wire `InclusionSchema`; stays on the internal `TInclusion` type and repository `options`, where BANA's four call sites use it.
+- `shouldSkipDefaultFilter` is off the wire `InclusionSchema`; stays on the internal `TInclusion` type and repository `options`, where a consumer's four call sites use it.
 - A malformed `filter`/`where` query string is a 400, not a 500: zod let a `SyntaxError` escape `safeParse` because the bare `JSON.parse` inside the transform bypassed validation.
 - `Authorization.RULES` holds a `Map` keyed by enforcer name, and the resolved domain is a local instead of read back off context - one spec's domain used to leak into the next.
 - Log redaction now covers `%o`/`%O` and placeholder-less arguments, plus `*Secret`, `*_password`, `connection_string`, `dsn`; `NodeFetcher` logs a body SIZE, never the body.
@@ -1979,7 +1979,7 @@ Two measured traps wiring `ra-core-infra`: `noAuthPaths` matches by EXACT resour
 
 `@minimaltech/ra-core-infra@0.0.3-17`'s peer ranges (`@venizia/ignis-inversion: ^0.1.1-6`, `@venizia/ignis-filter: ^0.1.2-0`) don't cover 0.2.0-0, but the four symbols it uses still exist - a stale range, not a break. It also calls `crypto.randomUUID()` unguarded for its tracing header, the same secure-context trap just removed from `RequestIdGenerator`.
 
-**`RequestIdGenerator` mints a UUID v4 again, not a base62 Snowflake.** Snowflake cost 609 ns/op against 51 ns/op for `crypto.randomUUID()` - "UUID must be slower" is backwards; 72% of Snowflake's cost is its BigInt base62 encode loop. The strategy resolves once in the constructor, falling back to an RFC 9562 v4 from `crypto.getRandomValues()`, which no browser gates. Verified in Chrome on a plain-http origin (`isSecureContext: false`): 10,000 ids, all valid, none duplicated. `SnowflakeUidHelper` is UNTOUCHED - BANA mints business ids with it at 23 sites.
+**`RequestIdGenerator` mints a UUID v4 again, not a base62 Snowflake.** Snowflake cost 609 ns/op against 51 ns/op for `crypto.randomUUID()` - "UUID must be slower" is backwards; 72% of Snowflake's cost is its BigInt base62 encode loop. The strategy resolves once in the constructor, falling back to an RFC 9562 v4 from `crypto.getRandomValues()`, which no browser gates. Verified in Chrome on a plain-http origin (`isSecureContext: false`): 10,000 ids, all valid, none duplicated. `SnowflakeUidHelper` is UNTOUCHED - A consumer mints business ids with it at 23 sites.
 
 ## 2026-08-18 - `OpaqueUidHelper`, the short-id counterpart to Snowflake
 
@@ -1998,11 +1998,11 @@ Default length 6 is 2^30, chosen against airline record locators for the same re
 
 **`BaseAppErrorMiddleware` takes `environment` and `formatError` as constructor options**, replacing `protected` hooks that three subclasses existed only to answer. A present function returning `undefined` means a host that should have an ambient environment is misconfigured. `examples/browser-bff`, which faked the environment with a Hono middleware, now sets `config.error.environment`; its `TBffEnv` binding type is gone. `AppErrorMiddleware` in `@venizia/ignis` survives, overriding nothing. Verified in Chrome.
 
-**The injected-host-object half of the review is REFUSED, with the measurement.** It proposed replacing `AbstractApplication`'s remaining virtuals with an injected `IApplicationHost`. BANA overrides `getProjectRoot()` in **10+ applications** - application API, not an accident. Its real substance, the `host`/`port` duplication and re-implemented port-validity logic, was closed by the socket split; one legitimate override plus `getDefaultAsyncContextEnabled` remain.
+**The injected-host-object half of the review is REFUSED, with the measurement.** It proposed replacing `AbstractApplication`'s remaining virtuals with an injected `IApplicationHost`. A consumer overrides `getProjectRoot()` in **10+ applications** - application API, not an accident. Its real substance, the `host`/`port` duplication and re-implemented port-validity logic, was closed by the socket split; one legitimate override plus `getDefaultAsyncContextEnabled` remain.
 
 **The migration runner left the example.** `RelationalMigrationRunner` (`connectors/src/relational/core/migrations/`) commits the DDL and its ledger row in ONE transaction, so an interrupted first visit cannot leave a created table with an empty ledger. It splits on `drizzle-kit`'s `--> statement-breakpoint` (PGlite's `query` and postgres-js reject multi-statement strings) and REFUSES a migration name outside `[A-Za-z0-9._-]` rather than escaping it. Proven in Chrome against a PRE-EXISTING OPFS database: old notes read back, no re-migration, a write accepted.
 
-**One `initialize()`.** `RestApplication.initialize()` states the artifact ordering once (staticConfigure -> preConfigure -> datasources -> components -> controllers -> postConfigure); `examples/browser-bff` deleted its copy. NOT done, deliberately: no-op defaults on the four lifecycle hooks, since `noImplicitOverride` would then demand `override` at **7 sites in BANA** - a real breaking change, left for an explicit decision.
+**One `initialize()`.** `RestApplication.initialize()` states the artifact ordering once (staticConfigure -> preConfigure -> datasources -> components -> controllers -> postConfigure); `examples/browser-bff` deleted its copy. NOT done, deliberately: no-op defaults on the four lifecycle hooks, since `noImplicitOverride` would then demand `override` at **7 sites in a consumer** - a real breaking change, left for an explicit decision.
 
 **One audit-user resolver.** `resolveAuditUserId` replaces the byte-identical `getCurrentUserId` the postgres and sqlite enrichers each carried.
 
@@ -2037,7 +2037,7 @@ Three altitude findings, done together as one thing seen from three sides: serve
 
 **`host`, `port`, the runtime union and start/stop left the kernel.** `RestApplication.server` is `{ hono }` alone; the kernel used to write `localhost:3000` into every Worker application's config. Kernel `IApplication` narrowed to what every host implements; the rest is `@venizia/ignis`'s new `IServerApplication`.
 
-Two things pinned by test: **`@venizia/ignis` must keep exporting `IApplicationConfigs` WITH `host`/`port`** (nx-seller writes both) via an explicit re-export in `src/index.ts` - a name reachable only through two `export *` lines is ambiguous and TypeScript exports NEITHER, with no error. And `hono/request-id`'s `ContextVariableMap` augmentation only applies where that module is in the program - once the middleware moved into the kernel, `context.get(REQUEST_ID_KEY)` silently lost its type; `middlewares/common/constants.ts` now restates the augmentation.
+Two things pinned by test: **`@venizia/ignis` must keep exporting `IApplicationConfigs` WITH `host`/`port`** (the consumer repository writes both) via an explicit re-export in `src/index.ts` - a name reachable only through two `export *` lines is ambiguous and TypeScript exports NEITHER, with no error. And `hono/request-id`'s `ContextVariableMap` augmentation only applies where that module is in the program - once the middleware moved into the kernel, `context.get(REQUEST_ID_KEY)` silently lost its type; `middlewares/common/constants.ts` now restates the augmentation.
 
 ## 2026-08-17 - two measured hot paths, and one that measured as not worth fixing
 
@@ -2047,7 +2047,7 @@ Two things pinned by test: **`@venizia/ignis` must keep exporting `IApplicationC
 
 A per-schema `WeakMap` memo was tried FIRST and reverted: it made 40 core-server tests fail, because a model entry cached under one test's registry mock leaked into the next - the same staleness a re-registered model (HMR in the browser BFF) would hit. Do not re-introduce it.
 
-**The error-path log gate was measured and rejected.** `formatError` renders eagerly as a `logger.log()` argument - 46.58 µs, 98.6% of the error path - and gating on the resolved level was proposed. The win is zero: the level only falls below the floor when a throw site passes `getError({ logLevel })`, and both framework sites doing that pass `warn`, which is emitted. BANA has **zero** `logLevel` sites. Revisit only if an application starts throwing below its logger floor.
+**The error-path log gate was measured and rejected.** `formatError` renders eagerly as a `logger.log()` argument - 46.58 µs, 98.6% of the error path - and gating on the resolved level was proposed. The win is zero: the level only falls below the floor when a throw site passes `getError({ logLevel })`, and both framework sites doing that pass `warn`, which is emitted. A consumer has **zero** `logLevel` sites. Revisit only if an application starts throwing below its logger floor.
 
 ## 2026-08-17 - module-level state moved into classes, and the last cross-package `instanceof`
 
@@ -2070,11 +2070,11 @@ Two related sweeps, both leaving every published name in place.
 
 A published name stays exported as a one-line delegate, the shape `getError`/`fromError` already use. Only `core-worker`'s envelope functions were renamed outright, that package having never shipped. Pure stateless functions were left alone.
 
-## 2026-08-15 - duration units and conversion, brought over from BANA
+## 2026-08-15 - duration units and conversion, brought over from a consumer
 
-`DurationUnits`, `TDurationUnit`, `IDuration` and `DurationMultipliers` now live in `packages/helpers/src/common/constants/duration.ts`, browser-pure. Ported from BANA's `packages/core/src/models/schemas/common/constants.ts`, keeping `toMilliseconds`'s `null`-not-throw contract so BANA migrates by changing an import.
+`DurationUnits`, `TDurationUnit`, `IDuration` and `DurationMultipliers` now live in `packages/helpers/src/common/constants/duration.ts`, browser-pure. Ported from a consumer's `packages/core/src/models/schemas/common/constants.ts`, keeping `toMilliseconds`'s `null`-not-throw contract so a consumer migrates by changing an import.
 
-Left behind deliberately: `LABELS` (presentation strings, pulling BANA's `INameI18n`) and `NearExpiryThreshold` (business logic).
+Left behind deliberately: `LABELS` (presentation strings, pulling a consumer's `INameI18n`) and `NearExpiryThreshold` (business logic).
 
 Added beyond the port: `DurationAliases` (a const class whose UPPER_CASE members ARE the accepted spellings), `fromMilliseconds`, `convert`, `parse`, `parseToMilliseconds`.
 
@@ -2263,7 +2263,7 @@ names, so merging them would make one of each pair unreachable by name. New conc
 connector needs its own 724-line filter translator - measured
 against the file, wrong. `FilterBuilder` has zero `drizzle-orm/pg-core` imports; only ~471 of ~1104
 dialect lines are genuinely Postgres-specific. Verified against the built package, not only types:
-every BANA-facing compat alias is the SAME class object as its canonical `connectors/relational` name.
+every consumer-facing compat alias is the SAME class object as its canonical `connectors/relational` name.
 
 Same-day review found two more facts wrong. CORRECTION: the `FilterBuilder` override seam did not
 exist - every relevant method was `private`, hardcoded to `PostgresQueryOperators.FNS`; six methods
@@ -2275,7 +2275,7 @@ renamed to `AbstractPostgresDataSource`/`BasePostgresDataSource`.
 
 `SoftDeletableRelationalRepository.findById` and `RelationalBaseRepository`'s abstract read verbs
 typed `options` as bare `ExtraOptions`, dropping `IWithReadRetry` - `options.retry` was a compile
-error on the class BANA extends most. GOTCHA recorded in `repository-hierarchy.md`: re-declaring a
+error on the class a consumer extends most. GOTCHA recorded in `repository-hierarchy.md`: re-declaring a
 read verb silently narrows `retry` away, invisible to `tsc`. Also recorded: `isStrict` is evaluated
 AFTER the retry loop is exhausted, so a strict read waits out replica lag before throwing
 `ENTITY_NOT_FOUND`.
@@ -2323,7 +2323,7 @@ draft-06 validation fails).
 ## 2026-07-27 - optional peers reach compiled binaries: a registry, then a typed options seam
 
 `ModuleUtility.register({ modules })` closes the hole a bundler-invisible specifier opens: a `bun
-build --compile` binary has no `node_modules` to resolve a peer at runtime. BANA's `identity` proved
+build --compile` binary has no `node_modules` to resolve a peer at runtime. A consumer's `identity` proved
 it in production - `nodemailer` in `package.json`, nothing in the image, boot dead the moment mail
 transport switched to `ModuleUtility.loadSync`. The app registers the peer before the consuming
 component binds. A same-day follow-up demotes it for mail:
@@ -2405,7 +2405,7 @@ sites carried no code. The client-facing 4xx set - 39 sites - is now catalogued 
 ## 2026-07-25 - every Error logged via %s is prettified, and auth stops double-logging
 
 `formatLogMessage` now routes an `Error` bound to `%s` through `ErrorPrettier` instead of
-`util.inspect`, fixing ~100 raw-dump call sites at once. A BANA `jose` failure was printing the entire
+`util.inspect`, fixing ~100 raw-dump call sites at once. A consumer's `jose` failure was printing the entire
 JWT payload - 2900 chars down to 382. Secrets are now dropped rather than masked - an `AxiosError`'s
 `config` never reaches the line at all.
 
@@ -2430,7 +2430,7 @@ Publishing with npm had already broken `@venizia/ignis@0.1.1-9`, `ignis-helpers@
 using one transport to install or externalize the other. `importOptionalModule` /
 `requireOptionalModuleSync` / `validateModule` / `validateModuleSync` are GONE, replaced by one class:
 `ModuleUtility.load` (async), `ModuleUtility.loadSync` (constructor paths that cannot await), and
-`ModuleUtility.assertInstalled` (presence check). BANA used none of the old names.
+`ModuleUtility.assertInstalled` (presence check). A consumer used none of the old names.
 
 ## 2026-07-24 - error logs render readable through ErrorPrettier, and getError gains a logLevel
 
@@ -2504,7 +2504,7 @@ string-no-args 66ns, vs pino sync 831ns (~14x).
 handles re-point at registration, so loggers captured at import time follow the provider regardless of
 import order. `PinoLogger` lives ONLY at `@venizia/ignis-helpers/pino`. MEASURED: pino ~481-633ns vs
 winston ~1250ns per line (~2.5x). The level vocabulary trims to five: `alert`/`http`/`verbose`/`silly`
-are REMOVED after usage analysis found ZERO call sites in ignis and BANA.
+are REMOVED after usage analysis found ZERO call sites in ignis and a consumer app.
 `APP_ENV_LOGGER_DO_REDACT=false` (literal string only, fail-closed) makes redaction pass-through for
 local debugging. winston packages become OPTIONAL peers, moved out of the root barrel to `/winston`.
 BREAKING: the scope-less `applicationLogger` export is REMOVED - migrate to
@@ -2524,7 +2524,7 @@ in-flight read - it now only bounds whether a NEW attempt may start. Added `sign
 
 The Winston pipeline formats in two stages now: shared prep on the logger, per-transport assembly - so
 console colorizes while file and UDP output carries no ANSI codes, and `json` mode emits valid JSON.
-`HfLogger` stays: unused inside this repo and BANA, but external systems consume it - repo-internal
+`HfLogger` stays: unused inside this repo and a consumer app, but external systems consume it - repo-internal
 grep is NOT sufficient evidence for deleting a public helpers export.
 
 ## 2026-07-17 - secrets peers made bundler-invisible
@@ -2545,11 +2545,11 @@ silently kills the registry's autocomplete.
 
 ## 2026-07-16 - bundle created
 
-Initial IGNIS knowledge bundle, ported from the BANA `.agents/knowledge` reference implementation.
+Initial IGNIS knowledge bundle, ported from a consumer's `.agents/knowledge` reference implementation.
 
 - Tooling at `.agents/knowledge-tools/` (`gen`, `check`, `coverage`, `viz`, `mcp`), zero runtime
   dependencies, all repo-specific configuration isolated in `config.ts`.
-- Ten defects in the BANA original fixed during the port rather than carried over, among them YAML
+- Ten defects in the consumer original fixed during the port rather than carried over, among them YAML
   frontmatter parsing, link extraction inside code fences, and fabricated timestamps.
 - Generated reference layer: source map, components, helpers, binding keys, and Makefile targets.
   Knowledge that previously lived only in gitignored `CLAUDE.md` files - never shared with the team -
@@ -2572,7 +2572,7 @@ be false:
 - The Casbin shared-model TOCTOU race is gone: each request evaluates on its own pooled enforcer.
 - `Container.instantiate` no longer crashes on a sparse metadata array; it throws a named error.
 - The legacy error duplicates are REMOVED: there is no flat `ApplicationError.messageCode` and `extra`
-  no longer mirrors `messageArgs`. BREAKING for clients reading the flat pair (BANA: 188
+  no longer mirrors `messageArgs`. BREAKING for clients reading the flat pair (a consumer: 188
   `.messageCode` sites + 3 `extra?.messageArgs` OTP sites, not yet migrated).
 - The error module now has ONE message shape: a `TErrorDefinition`, the `getError` input and
   `normalized` all speak `{ text, code, args }`. BREAKING against the PUBLISHED inversion 0.1.1-0.
