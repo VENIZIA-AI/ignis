@@ -154,8 +154,8 @@ Repo mode is not IGNIS-only - snapshot mode is.
 
 - **A family checkout is any `@venizia/<family>-workspace`.** `isRepositoryCheckout` accepts any
   root manifest matching that name which keeps `docs/wiki`, its `changelogs` and
-  `.agents/knowledge` at the IGNIS paths, and the server then names itself `<family>-atlas`. ARDOR
-  (`@venizia/ardor-workspace`) is the first sibling to run atlas this way.
+  `.agents/knowledge` at the IGNIS paths, and the server then names itself `<family>-atlas`. A sibling
+  framework's workspace already runs atlas this way.
 - **Snapshot mode always serves the IGNIS corpus.** The packaged wiki and changelogs are built into
   the tarball, so the server keeps the package's own name whatever family the caller sits in.
 

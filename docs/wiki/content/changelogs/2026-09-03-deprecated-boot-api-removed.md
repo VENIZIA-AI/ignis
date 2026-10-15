@@ -36,8 +36,8 @@ await application.start();
 - **Configs that set `bootOptions`.** Delete the key; it has been ignored since 2026-09-02.
 - **Classes that `implements IBootableApplication` or `override boot()`.** Delete both - the interface and the base method no longer exist.
 - **Everyone already on `configs.artifacts`.** No action needed - see the [2026-09-02 changelog](./2026-09-02-decorator-artifact-registration) if you have not migrated yet.
-- **Upgrading nx-seller?** Follow the [migration guide](/guides/migrations/boot-api-removal-migration) - it lists every file and the order to fix them.
-- **Known internal call sites and overrides, for coordination (21 across BANA/nx-seller).** Every
+- **Upgrading an app?** Follow the [migration guide](/guides/migrations/boot-api-removal-migration) - it lists every file and the order to fix them.
+- **Known internal call sites and overrides, for coordination (21 across a consumer app).** Every
   row fails to compile until it's deleted. 3 call `.boot()`, 2 set `bootOptions`, and 16 declare
   `override async boot()` - none of the 16 calls `super.boot()` and every one returns the literal
   empty report, so the fix is to delete the whole method, not just the `override` keyword (keeping
@@ -127,7 +127,7 @@ Migration:
 | `ArtifactScanner.scan()`'s `ignore` option | Fixed - now merges with `DEFAULT_IGNORE` instead of replacing it | boot |
 
 `ArtifactScanner.scan()`'s `ignore` option merging instead of replacing was a latent bug caught while
-touching this file - nobody passes `--ignore` today, in this repo or in BANA, so its blast radius is
+touching this file - nobody passes `--ignore` today, in this repo or in a consumer, so its blast radius is
 zero.
 
 - Reference: [Artifact Registration](/references/base/bootstrapping). Guide: [Registering artifacts](/guides/core-concepts/application/bootstrapping). Prior migration: [2026-09-02 changelog](./2026-09-02-decorator-artifact-registration).

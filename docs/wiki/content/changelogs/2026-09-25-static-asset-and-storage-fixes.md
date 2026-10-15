@@ -88,7 +88,7 @@ const { success, action, count, metaLink, metaLinks } = await response.json();
 > [!IMPORTANT]
 > The MetaLink type contract checks the **select row** only - the columns the component reads and writes, on whatever table `metaLink.model`/`metaLink.repository` point at. A column you add of your own must be nullable or carry a default: the component's default insert writes exactly the columns it knows about, so a `NOT NULL` column with no default passes the type check and then fails every insert the component makes without your own `createMetaLink` hook.
 
-**Who is affected:** anyone calling `PUT .../meta-links/{objectName}` on a table with more than one row per `(bucketName, objectName)` pair, or reading `metaLink.storageType` after a refresh - it now keeps the value your `createMetaLink` hook wrote, instead of the component's own. A `createMetaLink` hook that enriches `metadata` (for example BANA inventory's width, height, and placeholder) is no longer overwritten by a recreate call. Code reading `metaLink` off the response is unaffected; code that assumed one row per object should read `metaLinks` instead.
+**Who is affected:** anyone calling `PUT .../meta-links/{objectName}` on a table with more than one row per `(bucketName, objectName)` pair, or reading `metaLink.storageType` after a refresh - it now keeps the value your `createMetaLink` hook wrote, instead of the component's own. A `createMetaLink` hook that enriches `metadata` (for example a consumer inventory's width, height, and placeholder) is no longer overwritten by a recreate call. Code reading `metaLink` off the response is unaffected; code that assumed one row per object should read `metaLinks` instead.
 
 ## `configs.middlewares.bodyLimit` is applied
 
@@ -142,7 +142,7 @@ const formData = await readFormBody({ req: context.req });
 
 <Badge type="info" text="Bug Fix" />
 
-The `content-length` pre-check moved from the upload handler into route middleware, appended **after** your own `routes.upload.middleware` - so an application's own size guard (for example BANA inventory's `REQUEST_TOO_LARGE`) still answers first.
+The `content-length` pre-check moved from the upload handler into route middleware, appended **after** your own `routes.upload.middleware` - so an application's own size guard (for example inventory `REQUEST_TOO_LARGE`) still answers first.
 
 It moved because `@hono/zod-openapi`'s form validator already reads the whole multipart body before any handler runs: a check inside the handler saw a body that was already fully read, so it never saved the memory it was written to save. The per-file `buffer.length` check - the authoritative one, since a multipart envelope is larger than the files inside it - stays in the handler.
 
@@ -188,7 +188,7 @@ This changes what the MetaLink `mimetype` column, `DiskHelper.getStat`, `writeSt
 
 <Badge type="info" text="Bug Fix" />
 
-With `virtualHostedStyle: true`, `presignPost`'s `postURL` was `https://<bucket>.<host>/<bucket>` - the bucket named in the host and repeated as a path segment, so the browser posted to a path that does not exist. It is now `https://<bucket>.<host>`. Path-style addressing (the common case, and what every current `BunS3Helper` construction in BANA uses) is unchanged: `http://minio:9000/<bucket>`.
+With `virtualHostedStyle: true`, `presignPost`'s `postURL` was `https://<bucket>.<host>/<bucket>` - the bucket named in the host and repeated as a path segment, so the browser posted to a path that does not exist. It is now `https://<bucket>.<host>`. Path-style addressing (the common case, and what every current `BunS3Helper` construction in a consumer uses) is unchanged: `http://minio:9000/<bucket>`.
 
 **Who is affected:** `BunS3Helper` constructed with `virtualHostedStyle: true` and used with `directUpload` or a hand-called `presignPost`. Nobody using path-style addressing (the default) sees any change.
 

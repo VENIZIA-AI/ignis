@@ -25,7 +25,7 @@ description: Every catalog range moved to its latest compatible version, two Bun
 
 ## Who is affected
 
-- **Apps that pin exact versions through `overrides` (nx-seller).** Raise the pins to at least the floors above in the same change as the `@venizia/*` bump, or `bun install` forces the older library onto the framework. The [migration guide](/guides/migrations/boot-api-removal-migration) lists the table.
+- **Apps that pin exact versions through `overrides`.** Raise the pins to at least the floors above in the same change as the `@venizia/*` bump, or `bun install` forces the older library onto the framework. The [migration guide](/guides/migrations/boot-api-removal-migration) lists the table.
 - **Code that calls `socket.send` or `server.publish` on the Bun mirror types with a `Buffer`, `Uint8Array` or string.** No action needed.
 - **Code that passed a structural `ArrayBufferView` there.** Pass a typed array or a `DataView` instead.
 

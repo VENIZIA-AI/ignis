@@ -70,7 +70,7 @@ export class NoteController extends BaseCrudController {}
 - **Who is not:** a subclass with an explicit `@inject` constructor. Its own injection at parameter 0 still wins.
 - **An empty `repository.name` throws** when the controller is defined. Before, the name was never read.
 - **Fixed on the way:** a subclass's `@inject` no longer rewrites the injection list its parent class owns, so two subclasses of one generated controller can inject differently.
-- **Bump every `@venizia/*` package of this release together.** BANA pins each package separately, so a partial bump is possible.
+- **Bump every `@venizia/*` package of this release together.** A consumer pins each package separately, so a partial bump is possible.
   - On inversion 0.2.0-23, `setInjectMetadata` writes into the injection list a subclass inherits, so the subclass rewrites its parent's. Two subclasses of one generated CRUD or search controller keep separate injections only on the new inversion. A `@repository` subclass that names its own `dataSource` is safe on both: the kernel copies the list before it writes.
   - **A partial bump fails loud.** An old kernel next to the new connectors, `@venizia/ignis` or worker throws `errorResponses is not a function` at boot, rejects `stop()` inside its `finally`, or fails to link the connectors' search controllers.
   - **A partial bump fails silent.** A new kernel next to old connectors stops reporting the audit keys, so the CRUD routes no longer omit them - writable again, as before this release.

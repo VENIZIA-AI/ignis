@@ -80,7 +80,7 @@ once, and the search and HTTP datasources keep that. `AbstractRelationalDataSour
 `driver.end()`. The driver is wired even if nothing queried yet, because `end()` is the engine's full
 teardown: PGlite also destroys its slot and clears the exit status 99 it plants on the host. A client
 no driver can wrap is drained with `drainClient()`. A driver without `end()` (a hand-made one cast
-past `IRelationalDriver`, BANA's `ReportDataSource` shape) is drained the same way instead of
+past `IRelationalDriver`, a consumer's `ReportDataSource` shape) is drained the same way instead of
 rejecting. `application.stop()` calls `close()` on every configured datasource, bounded by
 `dataSourceCloseTimeoutMs` - see [Application lifecycle](/architecture/application-lifecycle.md).
 

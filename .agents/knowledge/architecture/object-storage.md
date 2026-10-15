@@ -125,7 +125,7 @@ stored-object facts on EVERY row of the pair, and keeps each row's own labels an
 earlier `findOne` + `updateById` touched only the first row found and overwrote its `storageType`
 with the controller's own backend. What a refresh writes depends on `metaLink.createMetaLink`: with
 one configured, ONE `updateAll` writes only `mimetype`, `size`, `etag`, `isSynced` - the hook owns
-`link` and `metadata` on that row (an enrichment such as BANA inventory's width/height/placeholder
+`link` and `metadata` on that row (an enrichment such as a consumer's inventory width/height/placeholder
 survives a recreate); without one, that same `updateAll` also writes `link`, and then ONE `updateById`
 PER ROW merges `metadata: { ...row.metadata, ...fileStat.metadata }` (the stat's keys win, skipped
 entirely when the stat carries none) - fed from the first statement's own `RETURNING`, not a second

@@ -180,5 +180,5 @@ object to satisfy `upload()`, and then wonders where the memory went.
 ## Credit
 
 The address list, the `dns.lookup(host, { all: true })` rule, and the mutation control this was
-verified against came from the BANA team, contributed at
+verified against came from a consumer team, contributed at
 `agent-contracts/ignis/2026-09-08-ssrf-fetch-guard-input.md`.

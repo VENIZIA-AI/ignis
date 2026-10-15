@@ -1,6 +1,6 @@
 # Migrating to the Scoped RBAC Authorization (ignis ≥ scoped-rbac release)
 
-> **Audience:** the team/agent maintaining **nx-seller** (and any app that wrote a custom
+> **Audience:** the team/agent maintaining **a consumer app** (or any app that wrote a custom
 > `DrizzleCasbinAdapter` subclass). This is a hand-off spec describing exactly what breaks when you
 > upgrade `@venizia/ignis` to the scoped-RBAC release and the two supported migration paths.
 
@@ -9,7 +9,7 @@
 ## 0. TL;DR
 
 The ignis `authorize` module was reworked around a single **edge table** + a **scoped Casbin model**.
-As part of that, several symbols nx-seller depends on were **removed or changed**. Upgrading ignis
+As part of that, several symbols a consumer app depends on were **removed or changed**. Upgrading ignis
 **will not compile** until you act on the breakages in §2.
 
 You have two paths:
@@ -43,22 +43,22 @@ Both are described below with exact before/after.
 
 ---
 
-## 2. What breaks in nx-seller (exact references)
+## 2. What breaks in a consumer app (exact references)
 
 When you bump ignis, these stop compiling/working:
 
-1. **nx-seller's `security/application-casbin-adapter.ts`**
+1. **A consumer's `security/application-casbin-adapter.ts`**
    - `extends DrizzleCasbinAdapter` → class removed.
    - `import { DrizzleCasbinAdapter, IDrizzleCasbinAdapterOptions, ICasbinPolicyFilter } from '@venizia/ignis'` → first two removed; `ICasbinPolicyFilter` still exists but its **shape changed**.
    - `filter.principalValue` / `filter.principalType` → now `filter.principal.id` / `filter.principal.type`.
    - `CasbinRuleVariants.GROUP` / `CasbinRuleVariants.POLICY` → removed.
    - `this.entities.role.principalType` / `this.entities.permission.principalType` → `entities` no longer provided by the base.
 
-2. **nx-seller's `repositories/policy-definition.repository.ts`**
+2. **A consumer's `repositories/policy-definition.repository.ts`**
    - Many `eq(pd.variant, CasbinRuleVariants.GROUP)` / `.POLICY` → constant removed. This file is the
      biggest single breakage surface outside the adapter.
 
-3. **nx-seller's `application/verifier.ts`** (enforcer registration)
+3. **A consumer's `application/verifier.ts`** (enforcer registration)
    - The Redis-absent fallback uses `CasbinEnforcerCachedDrivers.IN_MEMORY` → removed. You must pick
      Redis or `{ use: false }`.
 
@@ -290,9 +290,9 @@ the bespoke adapter and gain resource/action/domain hierarchies for free.
 
 ---
 
-## 7. Reference - current nx-seller wiring (before)
+## 7. Reference - a consumer app's wiring (before)
 
-For context, the current registration (nx-seller's `application/verifier.ts`) uses:
+For context, the registration (a consumer's `application/verifier.ts`) uses:
 `ApplicationCasbinAdapter` (subclass of removed `DrizzleCasbinAdapter`), `CASBIN_RBAC_MODEL` (flat
 `g + p`, exact `r.obj == p.obj`), a Redis-or-in-memory `cached`, `domainMatching { roleDefinition: 'g',
 fn: keyMatch }`, and a `normalizePayloadFn` mapping subject/domain via

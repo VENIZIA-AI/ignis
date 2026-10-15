@@ -697,7 +697,7 @@ Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and diffe
 
 `extra.maxBytes`'s `content-length` check is route middleware, built by `appendDeclaredLengthGuard`
 and appended AFTER your own `routes.upload.middleware` - so an application check of its own (for
-example BANA inventory's `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
+example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
 validator and before the handler.
 
 It moved out of the handler because `@hono/zod-openapi`'s form validator reads the whole multipart
