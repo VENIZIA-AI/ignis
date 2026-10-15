@@ -143,6 +143,7 @@ temporal.diff({ value: b, other: a, unit: TemporalUnits.MONTH }); // whole month
 temporal.tryParse({ value: input }); // a Date, or null where parse would throw
 temporal.tryToDate({ value: row.paidAt }); // a Date, or null for null, undefined or bad input
 temporal.format({ value: row.paidAt, pattern: 'DD/MM/YYYY', fallback: '--' }); // '--' when there is no date
+// Or once for every call: new TemporalHelper({ tz, fallback: '--' })
 temporal.formatDuration({ milliseconds: 5_400_000 }); // '1h30m'
 ```
 
@@ -337,7 +338,8 @@ The same names ship from `@venizia/ignis-helpers` and from the browser-safe `@ve
 | `adapter` | `ITemporalAdapter` | `NativeTemporalAdapter` when the runtime has `Temporal`, `IntlTemporalAdapter` otherwise | Converts time zones |
 | `tz` | `string` | `'UTC'` | The IANA zone every call uses unless it passes its own. Checked when the helper is built |
 | `locale` | `string` | `'en-US'` | Spells name tokens, relative time and durations, unless a call passes its own. A malformed tag is a 400 |
-| `names` | `Record<string, ITemporalLocaleNames>` | none | Your own month and weekday names and AM/PM marker, per locale, over `Intl`'s |
+| `names` | `Record<string, ITemporalLocaleNames>` | none | Your own month and weekday names and AM/PM marker, per locale, over `Intl`'s. A call in another tag of the same language (`vi` for a `vi-VN` entry) uses the entry |
+| `fallback` | `string` | none | What `format` and `formatIntl` write for a value that is not a date - null included - when a call passes none. Without it, such a value is a 400 |
 | `scope` | `string` | `'TemporalHelper'` | Logger scope, from `BaseHelper` |
 
 ### Methods
@@ -356,7 +358,7 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `tryParse({ value, pattern, tz })` | `Date \| null` | `parse`, answering `null` where `parse` throws a 400. A broken pattern still throws |
 | `isValid({ value, pattern, tz })` | `boolean` | Whether the value names an instant in years 1-9999; a string is read as `parse` reads it. `null` and `undefined` are `false` |
 | `format({ value, pattern, tz, locale, fallback })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ`. With `fallback`, a value that is not a date writes the fallback |
-| `formatIntl({ value, options, tz, locale })` | `string` | Writes the value with `Intl.DateTimeFormat` options, in the zone |
+| `formatIntl({ value, options, tz, locale, fallback })` | `string` | Writes the value with `Intl.DateTimeFormat` options, in the zone |
 | `add({ value, amount, unit, tz })` | `Date` | Moves the value - see [Units](#units). An hour or smaller takes a fraction (`1.5` hours is 90 minutes); a calendar unit takes whole numbers only |
 | `set({ value, year, month, day, hour, minute, second, millisecond, tz })` | `Date` | Replaces wall-clock fields in the zone; `month` is 1-12; the day clamps to the month |
 | `subtract({ value, amount, unit, tz })` | `Date` | `add` with the sign flipped |

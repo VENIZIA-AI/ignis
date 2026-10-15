@@ -173,10 +173,11 @@ export interface ITemporalHelper {
 
   /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
   formatIntl(opts: {
-    value: TTemporalInput;
+    value: TTemporalInput | null | undefined;
     options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
     tz?: string;
     locale?: string;
+    fallback?: string;
   }): string;
 
   /**

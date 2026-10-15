@@ -57,17 +57,23 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
   protected readonly tz: string;
   protected readonly locale: string;
   protected readonly names: Record<string, ITemporalLocaleNames>;
+  protected readonly fallback?: string;
+  /** Which `names` entry each locale a call wrote in resolved to - `names` never changes after construction. */
+  private readonly namesByLocale = new Map<string, ITemporalLocaleNames | undefined>();
 
   /**
    * `locale` (default `en-US`) spells month and weekday names, AM/PM, relative time and durations,
    * unless a call passes its own. `names` replaces `Intl`'s wording for a locale - month and weekday
-   * names, the AM/PM marker - keyed by the locale tag a call writes in.
+   * names, the AM/PM marker - keyed by a locale tag; a call in another tag of the same language (`vi`
+   * for a `vi-VN` entry) uses it too. `fallback` is what `format` and `formatIntl` write for a value
+   * that is not a date when a call gives none; without it, such a value is a 400.
    */
   constructor(opts?: {
     adapter?: ITemporalAdapter;
     tz?: string;
     locale?: string;
     names?: Record<string, ITemporalLocaleNames>;
+    fallback?: string;
     scope?: string;
   }) {
     super({ scope: opts?.scope ?? new.target.name });
@@ -81,6 +87,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
     });
     this.adapter = opts?.adapter ?? AbstractTemporalHelper.defaultAdapter();
     this.names = AbstractTemporalHelper.ensureNames({ names: opts?.names ?? {} });
+    this.fallback = opts?.fallback;
   }
 
   /**
@@ -133,7 +140,42 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
   /** The wording this helper holds for `locale`, if any. */
   protected namesOf(opts: { locale: string }): ITemporalLocaleNames | undefined {
-    return Object.hasOwn(this.names, opts.locale) ? this.names[opts.locale] : undefined;
+    const { locale } = opts;
+    if (Object.hasOwn(this.names, locale)) {
+      return this.names[locale];
+    }
+
+    if (this.namesByLocale.has(locale)) {
+      return this.namesByLocale.get(locale);
+    }
+    // A malformed tag is the caller's 400, before it reaches `Intl.Locale`.
+    AbstractTemporalHelper.ensureLocale({ locale });
+
+    // No entry for the exact tag: one for the same language serves - `vi` reads a `vi-VN` entry.
+    const language = new Intl.Locale(locale).language;
+    const match = Object.keys(this.names).find(key => new Intl.Locale(key).language === language);
+    const names = match === undefined ? undefined : this.names[match];
+    this.namesByLocale.set(locale, names);
+    return names;
+  }
+
+  /**
+   * The value as a date for a writer: with a fallback - the call's, else the helper's - a value that
+   * is not a date answers `null`; without one it is a 400, null included.
+   */
+  protected readDate(opts: {
+    value: TTemporalInput | null | undefined;
+    tz: string;
+    fallback?: string;
+  }): Date | null {
+    const { value, tz } = opts;
+    if ((opts.fallback ?? this.fallback) !== undefined) {
+      return this.tryToDate({ value, tz });
+    }
+    if (value === null || value === undefined) {
+      throw AbstractTemporalHelper.notADate({ value });
+    }
+    return this.toDate({ value, tz });
   }
 
   /** The runtime's `Temporal` where it has one; `Intl`, which every runtime has, everywhere else. */

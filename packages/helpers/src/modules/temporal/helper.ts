@@ -101,13 +101,14 @@ export class TemporalHelper extends AbstractTemporalHelper {
     });
   }
 
-  /** A helper like this one, with another locale or zone: same adapter, same `names`. */
+  /** A helper like this one, with another locale or zone: same adapter, `names` and `fallback`. */
   clone(opts: { locale?: string; tz?: string }): TemporalHelper {
     return new TemporalHelper({
       adapter: this.adapter,
       tz: opts.tz ?? this.tz,
       locale: opts.locale ?? this.locale,
       names: this.names,
+      fallback: this.fallback,
       scope: this.scope,
     });
   }
@@ -230,20 +231,12 @@ export class TemporalHelper extends AbstractTemporalHelper {
     locale?: string;
     fallback?: string;
   }): string {
-    const { value, fallback } = opts;
     const tz = this.resolveTz({ tz: opts.tz });
     const locale = opts.locale ?? this.locale;
 
-    let date: Date | null;
-    if (fallback !== undefined) {
-      date = this.tryToDate({ value, tz });
-    } else if (value === null || value === undefined) {
-      throw TemporalHelper.notADate({ value });
-    } else {
-      date = this.toDate({ value, tz });
-    }
+    const date = this.readDate({ value: opts.value, tz, fallback: opts.fallback });
     if (date === null) {
-      return fallback ?? '';
+      return opts.fallback ?? this.fallback ?? '';
     }
 
     return TemporalPattern.format({
@@ -256,17 +249,21 @@ export class TemporalHelper extends AbstractTemporalHelper {
 
   /** Writes the value with `Intl.DateTimeFormat` options, in the zone - for what the pattern tokens cannot say. */
   formatIntl(opts: {
-    value: TTemporalInput;
+    value: TTemporalInput | null | undefined;
     options?: Omit<Intl.DateTimeFormatOptions, 'timeZone'>;
     tz?: string;
     locale?: string;
+    fallback?: string;
   }): string {
     const tz = this.resolveTz({ tz: opts.tz });
     const locale =
       opts.locale === undefined
         ? this.locale
         : TemporalHelper.ensureLocale({ locale: opts.locale });
-    const date = this.toDate({ value: opts.value, tz });
+    const date = this.readDate({ value: opts.value, tz, fallback: opts.fallback });
+    if (date === null) {
+      return opts.fallback ?? this.fallback ?? '';
+    }
 
     const key = `${locale}|${tz}|${JSON.stringify(opts.options ?? {})}`;
     let formatter = TemporalHelper.intlFormatters.get(key);
