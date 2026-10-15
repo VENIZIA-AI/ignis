@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.2-1",
+        "date": "2026-10-14",
+        "sha": "f1b874e2",
+        "order": 1635
+      },
+      {
         "version": "0.1.2-0",
         "date": "2026-10-14",
         "sha": "7a13b114",
@@ -821,6 +827,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.2-2",
+        "date": "2026-10-15",
+        "sha": "603e7e36",
+        "order": 1642
+      },
       {
         "version": "0.2.2-1",
         "date": "2026-10-14",
@@ -2026,6 +2038,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.2-2",
+        "date": "2026-10-15",
+        "sha": "0891916f",
+        "order": 1644
+      },
+      {
         "version": "0.2.2-1",
         "date": "2026-10-14",
         "sha": "88b2fe0d",
@@ -2405,6 +2423,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.2-2",
+        "date": "2026-10-15",
+        "sha": "ea156f9f",
+        "order": 1643
+      },
       {
         "version": "0.2.2-1",
         "date": "2026-10-14",
@@ -3152,6 +3176,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.2-1",
+        "date": "2026-10-15",
+        "sha": "fe28ce8d",
+        "order": 1639
+      },
+      {
         "version": "0.2.2-0",
         "date": "2026-10-14",
         "sha": "10de4309",
@@ -3351,6 +3381,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.2-2",
+        "date": "2026-10-15",
+        "sha": "d3c49a54",
+        "order": 1640
+      },
       {
         "version": "0.2.2-1",
         "date": "2026-10-14",
@@ -4110,6 +4146,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.2-1",
+        "date": "2026-10-15",
+        "sha": "20176300",
+        "order": 1638
+      },
+      {
         "version": "0.2.2-0",
         "date": "2026-10-14",
         "sha": "b079323a",
@@ -4465,6 +4507,12 @@
       }
     ],
     "kernel": [
+      {
+        "version": "0.2.2-2",
+        "date": "2026-10-15",
+        "sha": "30be1585",
+        "order": 1641
+      },
       {
         "version": "0.2.2-1",
         "date": "2026-10-14",
@@ -4822,6 +4870,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-15-is-application-error-shape",
+      "file": "2026-10-15-is-application-error-shape.md",
+      "date": "2026-10-15",
+      "title": "isApplicationError Checks the Whole Shape",
+      "packages": [
+        "inversion"
+      ],
+      "kind": "Bug Fix",
+      "order": 1637
+    },
     {
       "id": "changelog:2026-10-14-temporal-browser-and-locale",
       "file": "2026-10-14-temporal-browser-and-locale.md",
