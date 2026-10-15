@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-15 - TemporalHelper constructor fallback, names by language
+
+Updated [helpers](/packages/helpers.md).
+
+- `fallback` in the constructor for `format`/`formatIntl`; `names` resolve by language when the exact tag has no entry.
+
 ## 2026-10-15 - TemporalHelper covers a dayjs wrapper's surface
 
 Updated [helpers](/packages/helpers.md).

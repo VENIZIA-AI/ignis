@@ -26,12 +26,12 @@ temporal.fromWallClock({ value: pickedDay }); // the picked day, kept in the hel
 | Area | Now |
 |---|---|
 | `null` | **Bug fix.** `toDate`, `compare` and `format` threw nothing and answered 1970 for `null`, and `isValid(null)` was `true`. Now `null` is a 400, and `isValid` is `false` |
-| Reading without throwing | `tryToDate({ value })` answers `null`; `format({ ..., fallback })` writes the fallback for a value that is not a date |
+| Reading without throwing | `tryToDate({ value })` answers `null`; `format({ ..., fallback })` writes the fallback for a value that is not a date. The constructor takes a `fallback` too, used by `format` and `formatIntl` when a call passes none |
 | Quarter | `TemporalUnits.QUARTER` for `add`, `startOf`, `endOf`, `diff`, `compare` and `relative`; the `Q` token writes 1-4 |
 | `set` | Replaces wall-clock fields in the zone; the day clamps to the month |
 | Comparisons | `isBefore`, `isAfter`, `isSame`, `isSameOrBefore`, `isSameOrAfter`, and `isBetween` with `()`, `[]`, `[)` or `(]` |
 | Durations | `formatDuration` takes a clock-face `pattern` (`HH:mm:ss`, `mm:ss`) and `maxUnits` |
-| Locales | `clone({ locale, tz })`; the constructor's `names` replaces `Intl`'s month and weekday names and AM/PM marker per locale; the `dd` token writes the narrowest weekday |
+| Locales | `clone({ locale, tz })`; the constructor's `names` replaces `Intl`'s month and weekday names and AM/PM marker per locale, and a call in another tag of the same language uses the entry; the `dd` token writes the narrowest weekday |
 | Date pickers | `fromWallClock({ value })` moves a picker's host-zone wall clock into the helper's zone; `toWallClock` feeds it back; `TemporalHelper.getHostTz()` names the host's zone |
 | `add` | An hour or smaller takes a fraction: 1.5 hours is 90 minutes. A calendar unit still takes whole numbers only |
 | The zone option | **Breaking.** `timeZone` is now `tz` everywhere on `TemporalHelper` and `ITemporalAdapter`: the constructor, every per-call option, `getTz()`, `TemporalHelper.getHostTz()`, `DEFAULT_TEMPORAL_TZ`, and `getOffsetMilliseconds({ value, tz })`. `Intl`'s own `timeZone` option is unchanged |

@@ -380,3 +380,34 @@ describe('names do not depend on the host zone', () => {
     );
   });
 });
+
+describe('a helper-wide fallback, and names matched by language', () => {
+  const names = { 'vi-VN': { weekdaysShort: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'] } };
+  const helper = new TemporalHelper({
+    tz: SAIGON,
+    locale: 'vi-VN',
+    names,
+    fallback: 'Invalid Date',
+  });
+
+  test('format and formatIntl write the helper fallback; a call fallback still wins', () => {
+    expect(helper.format({ value: null, pattern: 'DD/MM' })).toBe('Invalid Date');
+    expect(helper.format({ value: 'not a date', pattern: 'DD/MM' })).toBe('Invalid Date');
+    expect(helper.format({ value: null, pattern: 'DD/MM', fallback: '--' })).toBe('--');
+    expect(helper.formatIntl({ value: undefined, options: { month: 'long' } })).toBe(
+      'Invalid Date',
+    );
+    expect(helper.format({ value: VALUE, pattern: 'DD/MM' })).toBe('15/10');
+  });
+
+  test('clone keeps the fallback; a helper without one still refuses null', () => {
+    expect(helper.clone({ locale: 'en-US' }).format({ value: null })).toBe('Invalid Date');
+    expect(statusOf(() => new TemporalHelper().format({ value: JSON.parse('null') }))).toBe(400);
+  });
+
+  test('a call in another tag of the same language uses the entry', () => {
+    expect(helper.format({ value: VALUE, pattern: 'ddd', locale: 'vi' })).toBe('T5');
+    expect(helper.format({ value: VALUE, pattern: 'ddd', locale: 'vi-VN' })).toBe('T5');
+    expect(helper.format({ value: VALUE, pattern: 'ddd', locale: 'en-US' })).toBe('Thu');
+  });
+});
