@@ -43,9 +43,9 @@ const statusOf = (run: () => unknown): unknown => {
 
 for (const { name, build } of adapters) {
   describe(`TemporalHelper over ${name}`, () => {
-    const saigon = new TemporalHelper({ adapter: build(), timeZone: SAIGON });
-    const newYork = new TemporalHelper({ adapter: build(), timeZone: NEW_YORK });
-    const lordHowe = new TemporalHelper({ adapter: build(), timeZone: LORD_HOWE });
+    const saigon = new TemporalHelper({ adapter: build(), tz: SAIGON });
+    const newYork = new TemporalHelper({ adapter: build(), tz: NEW_YORK });
+    const lordHowe = new TemporalHelper({ adapter: build(), tz: LORD_HOWE });
 
     describe('time zones', () => {
       test('reads the wall clock an instant shows in the zone', () => {
@@ -65,7 +65,7 @@ for (const { name, build } of adapters) {
       });
 
       test('a per-call timeZone overrides the helper default', () => {
-        expect(saigon.parts({ value: '2026-09-19T00:00:00Z', timeZone: 'UTC' }).hour).toBe(0);
+        expect(saigon.parts({ value: '2026-09-19T00:00:00Z', tz: 'UTC' }).hour).toBe(0);
       });
 
       test('a wall time a daylight-saving jump skips resolves forward past the gap', () => {
@@ -83,7 +83,7 @@ for (const { name, build } of adapters) {
       });
 
       test('an unknown time zone is refused when the helper is built', () => {
-        expect(() => new TemporalHelper({ adapter: build(), timeZone: 'Mars/Olympus' })).toThrow(
+        expect(() => new TemporalHelper({ adapter: build(), tz: 'Mars/Olympus' })).toThrow(
           /time zone/i,
         );
       });
@@ -229,7 +229,7 @@ for (const { name, build } of adapters) {
       test('reads the weekday in the zone, not in UTC', () => {
         // Friday 20:00 UTC is already Saturday 03:00 in Saigon.
         expect(saigon.isWeekday({ value: '2026-09-18T20:00:00Z' })).toBe(false);
-        expect(saigon.isWeekday({ value: '2026-09-18T20:00:00Z', timeZone: 'UTC' })).toBe(true);
+        expect(saigon.isWeekday({ value: '2026-09-18T20:00:00Z', tz: 'UTC' })).toBe(true);
       });
 
       test('next and previous weekday skip the weekend', () => {
@@ -346,14 +346,13 @@ for (const { name, build } of adapters) {
             value: 0,
             amount: 1,
             unit: TemporalUnits.HOUR,
-            timeZone: 'Mars/Olympus',
+            tz: 'Mars/Olympus',
           });
         expect(statusOf(run)).toBe(400);
       });
 
       test('the adapter itself refuses an unknown zone with a 400', () => {
-        const run = () =>
-          build().getOffsetMilliseconds({ value: new Date(0), timeZone: 'Mars/Olympus' });
+        const run = () => build().getOffsetMilliseconds({ value: new Date(0), tz: 'Mars/Olympus' });
         expect(statusOf(run)).toBe(400);
       });
     });
@@ -382,7 +381,7 @@ describe('adapters refuse a library they cannot drive', () => {
 });
 
 describe('TemporalHelper input', () => {
-  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), timeZone: SAIGON });
+  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), tz: SAIGON });
 
   test('takes a Date, epoch milliseconds or an ISO string as the same instant', () => {
     const instant = new Date('2026-09-19T05:00:00Z');
@@ -402,7 +401,7 @@ describe('TemporalHelper input', () => {
 });
 
 describe('TemporalPattern tokens', () => {
-  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), timeZone: SAIGON });
+  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), tz: SAIGON });
 
   // dayjs and moment tokens this dialect does not have; read greedily they came out as digits.
   test.each(['DDDD', 'HHH', 'ZZZ', 'Do', 'SS', 'YYYYY', 'MMMMM', 'ddddd', 'AA', 'LLL'])(
@@ -414,10 +413,10 @@ describe('TemporalPattern tokens', () => {
 });
 
 describe('TemporalHelper offsets', () => {
-  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), timeZone: SAIGON });
+  const helper = new TemporalHelper({ adapter: new NativeTemporalAdapter(), tz: SAIGON });
 
   test('an offset with seconds is written and read in full', () => {
-    expect(helper.format({ value: '1900-01-01T00:00:00Z', timeZone: SAIGON })).toBe(
+    expect(helper.format({ value: '1900-01-01T00:00:00Z', tz: SAIGON })).toBe(
       '1900-01-01T07:06:30.000+07:06:30',
     );
     expect(iso(helper.parse({ value: '2026-01-01T00:00:00+07:06:40' }))).toBe(
@@ -476,7 +475,7 @@ describe('TemporalHelper and the host zone', () => {
         };
         const helper = new temporal.TemporalHelper({
           adapter: adapters['${adapterName}'](),
-          timeZone: 'Asia/Ho_Chi_Minh',
+          tz: 'Asia/Ho_Chi_Minh',
         });
         const value = '2026-03-07T19:30:00Z';
         console.log(helper.format({ value }));

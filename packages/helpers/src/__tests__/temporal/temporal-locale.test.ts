@@ -28,11 +28,11 @@ const statusOf = (run: () => unknown): unknown => {
 /** What `Intl` itself writes for the instant in the zone - the spelling the tokens promise. */
 const intl = (opts: {
   locale: string;
-  timeZone: string;
+  tz: string;
   options: Intl.DateTimeFormatOptions;
   value?: string;
 }): string =>
-  new Intl.DateTimeFormat(opts.locale, { ...opts.options, timeZone: opts.timeZone }).format(
+  new Intl.DateTimeFormat(opts.locale, { ...opts.options, timeZone: opts.tz }).format(
     new Date(opts.value ?? EVENING_UTC),
   );
 
@@ -42,7 +42,7 @@ describe('the default adapter', () => {
     Reflect.deleteProperty(globalThis, 'Temporal');
 
     try {
-      const helper = new TemporalHelper({ timeZone: NEW_YORK });
+      const helper = new TemporalHelper({ tz: NEW_YORK });
       // Across the November fall-back: -04:00 before, -05:00 after.
       expect(helper.format({ value: '2026-11-01T05:30:00Z' })).toBe(
         '2026-11-01T01:30:00.000-04:00',
@@ -58,7 +58,7 @@ describe('the default adapter', () => {
   test('IntlTemporalAdapter refuses an unknown zone with a 400', () => {
     const adapter = new IntlTemporalAdapter();
     expect(
-      statusOf(() => adapter.getOffsetMilliseconds({ value: new Date(0), timeZone: 'Mars/Base' })),
+      statusOf(() => adapter.getOffsetMilliseconds({ value: new Date(0), tz: 'Mars/Base' })),
     ).toBe(400);
   });
 
@@ -72,12 +72,12 @@ describe('the default adapter', () => {
       253_402_300_799_999,
     ];
 
-    for (const timeZone of zones) {
+    for (const tz of zones) {
       for (const epoch of instants) {
         for (const delta of [-1, 0, 1, 1500, -3_600_000]) {
           const value = new Date(epoch + delta);
-          expect(intlAdapter.getOffsetMilliseconds({ value, timeZone })).toBe(
-            nativeAdapter.getOffsetMilliseconds({ value, timeZone }),
+          expect(intlAdapter.getOffsetMilliseconds({ value, tz })).toBe(
+            nativeAdapter.getOffsetMilliseconds({ value, tz }),
           );
         }
       }
@@ -86,9 +86,9 @@ describe('the default adapter', () => {
 });
 
 for (const locale of LOCALES) {
-  for (const timeZone of ZONES) {
-    describe(`${locale} in ${timeZone}`, () => {
-      const helper = new TemporalHelper({ timeZone, locale });
+  for (const tz of ZONES) {
+    describe(`${locale} in ${tz}`, () => {
+      const helper = new TemporalHelper({ tz, locale });
 
       test('name tokens spell what Intl spells, on the wall clock of the zone', () => {
         const names = helper.format({
@@ -97,23 +97,23 @@ for (const locale of LOCALES) {
         });
 
         expect(names.split('|')).toEqual([
-          intl({ locale, timeZone, options: { weekday: 'long' } }),
-          intl({ locale, timeZone, options: { weekday: 'short' } }),
-          intl({ locale, timeZone, options: { month: 'long' } }),
-          intl({ locale, timeZone, options: { month: 'short' } }),
+          intl({ locale, tz, options: { weekday: 'long' } }),
+          intl({ locale, tz, options: { weekday: 'short' } }),
+          intl({ locale, tz, options: { month: 'long' } }),
+          intl({ locale, tz, options: { month: 'short' } }),
           intl({
             locale,
-            timeZone,
+            tz,
             options: { year: 'numeric', month: '2-digit', day: '2-digit' },
           }),
-          intl({ locale, timeZone, options: { dateStyle: 'long' } }),
+          intl({ locale, tz, options: { dateStyle: 'long' } }),
         ]);
       });
 
       test('the 12-hour clock and its marker', () => {
-        const isSaigon = timeZone === SAIGON;
+        const isSaigon = tz === SAIGON;
         const marker = new Intl.DateTimeFormat(locale, {
-          timeZone,
+          timeZone: tz,
           hour: 'numeric',
           hourCycle: 'h12',
         })
@@ -123,15 +123,15 @@ for (const locale of LOCALES) {
         expect(helper.format({ value: EVENING_UTC, pattern: 'hh:mm h A a' })).toBe(
           `${isSaigon ? '03:30 3' : '08:30 8'} ${marker} ${marker?.toLowerCase()}`,
         );
-        expect(
-          helper.format({ value: '2026-10-14T00:00:00Z', pattern: 'h', timeZone: 'UTC' }),
-        ).toBe('12');
+        expect(helper.format({ value: '2026-10-14T00:00:00Z', pattern: 'h', tz: 'UTC' })).toBe(
+          '12',
+        );
       });
 
       test('formatIntl passes Intl options through, in the zone', () => {
         const options: Intl.DateTimeFormatOptions = { weekday: 'long', hour: 'numeric' };
         expect(helper.formatIntl({ value: EVENING_UTC, options })).toBe(
-          intl({ locale, timeZone, options }),
+          intl({ locale, tz, options }),
         );
       });
 
@@ -142,7 +142,7 @@ for (const locale of LOCALES) {
         const words = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
 
         expect(helper.relative({ value, base, unit: TemporalUnits.DAY, numeric: 'auto' })).toBe(
-          words.format(timeZone === SAIGON ? -1 : 0, 'day'),
+          words.format(tz === SAIGON ? -1 : 0, 'day'),
         );
       });
 
@@ -164,7 +164,7 @@ for (const locale of LOCALES) {
         const other = '2026-10-14T17:01:00Z';
 
         expect(helper.compare({ value, other, unit: TemporalUnits.DAY })).toBe(
-          timeZone === SAIGON ? -1 : 0,
+          tz === SAIGON ? -1 : 0,
         );
         expect(helper.compare({ value, other })).toBe(-1);
         expect(helper.compare({ value: other, other: value })).toBe(1);
@@ -174,8 +174,8 @@ for (const locale of LOCALES) {
 }
 
 describe('diff', () => {
-  const newYork = new TemporalHelper({ timeZone: NEW_YORK });
-  const saigon = new TemporalHelper({ timeZone: SAIGON });
+  const newYork = new TemporalHelper({ tz: NEW_YORK });
+  const saigon = new TemporalHelper({ tz: SAIGON });
 
   test('is the inverse of add, across daylight saving and month ends', () => {
     const units: Array<TTemporalUnit> = [
@@ -231,7 +231,7 @@ describe('diff', () => {
 });
 
 describe('reading without throwing', () => {
-  const helper = new TemporalHelper({ timeZone: SAIGON });
+  const helper = new TemporalHelper({ tz: SAIGON });
 
   test('tryParse answers null where parse refuses the value', () => {
     expect(helper.tryParse({ value: '2026-13-01' })).toBeNull();
@@ -318,31 +318,26 @@ describe('locales', () => {
   });
 });
 
+/** The wall clock a helper reads for a value, as `Date.UTC` arguments. */
+const wallClockFields = (opts: {
+  helper: TemporalHelper;
+  value: string;
+}): [number, number, number, number, number, number, number] => {
+  const parts = opts.helper.parts({ value: opts.value });
+  return [
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    parts.millisecond,
+  ];
+};
+
 describe('review cases', () => {
-  /** The largest n that add can move `other` by without passing `value` - diff's definition, by brute force. */
-  const bruteForce = (opts: {
-    helper: TemporalHelper;
-    value: string;
-    other: string;
-    unit: TTemporalUnit;
-  }): number => {
-    const { helper, value, other, unit } = opts;
-    const target = new Date(value).getTime();
-    const direction = Math.sign(target - new Date(other).getTime());
-    const passes = (amount: number): boolean => {
-      const moved = helper.add({ value: other, amount, unit }).getTime();
-      return direction > 0 ? moved > target : moved < target;
-    };
-
-    let amount = 0;
-    while (!passes(amount + direction)) {
-      amount += direction;
-    }
-    return amount;
-  };
-
   test('diff near the end of the year range does not throw', () => {
-    const helper = new TemporalHelper({ timeZone: 'UTC' });
+    const helper = new TemporalHelper({ tz: 'UTC' });
 
     expect(
       helper.diff({ value: '9999-12-31T23:59:59Z', other: '2026-10-14T09:00:00Z', unit: 'day' }),
@@ -354,27 +349,22 @@ describe('review cases', () => {
     ).toBe(-1);
   });
 
-  test('diff steps forward where a zone repeats or skips a whole day', () => {
-    const cases: Array<{ timeZone: string; value: string; other: string; unit: TTemporalUnit }> = [
-      // Sitka repeated 18 October 1867 when Alaska moved from Russian to American time.
-      {
-        timeZone: 'America/Sitka',
-        value: '1867-10-19T01:31:13Z',
-        other: '1867-10-17T19:01:13Z',
-        unit: 'day',
-      },
-      // Apia skipped 30 December 2011.
-      {
-        timeZone: 'Pacific/Apia',
-        value: '2011-12-30T19:00:00Z',
-        other: '2011-12-31T20:00:00Z',
-        unit: 'day',
-      },
+  test('a calendar day is read off the wall clocks, even where a zone repeated or skipped one', () => {
+    // Sitka repeated 18 October 1867; Apia skipped 30 December 2011. Days count wall-clock dates.
+    const sitka = new TemporalHelper({ tz: 'America/Sitka' });
+    const apia = new TemporalHelper({ tz: 'Pacific/Apia' });
+    const cases = [
+      { helper: sitka, value: '1867-10-19T01:31:13Z', other: '1867-10-17T19:01:13Z' },
+      { helper: apia, value: '2011-12-30T19:00:00Z', other: '2011-12-31T20:00:00Z' },
     ];
 
-    for (const { timeZone, value, other, unit } of cases) {
-      const helper = new TemporalHelper({ timeZone });
-      expect(helper.diff({ value, other, unit })).toBe(bruteForce({ helper, value, other, unit }));
+    for (const { helper, value, other } of cases) {
+      const days = helper.diff({ value, other, unit: 'day' });
+      const wallClocks =
+        Date.UTC(...wallClockFields({ helper, value })) -
+        Date.UTC(...wallClockFields({ helper, value: other }));
+      expect(days).toBe(Math.trunc(wallClocks / 86_400_000) + 0);
+      expect(helper.diff({ value: other, other: value, unit: 'day' })).toBe(-days + 0);
     }
   });
 
@@ -386,12 +376,12 @@ describe('review cases', () => {
 
   test('tryParse still throws for a bad zone', () => {
     expect(
-      statusOf(() => new TemporalHelper().tryParse({ value: '2026-01-01', timeZone: 'Mars/Base' })),
+      statusOf(() => new TemporalHelper().tryParse({ value: '2026-01-01', tz: 'Mars/Base' })),
     ).toBe(400);
   });
 
   test('names stay Gregorian whatever the locale calendar', () => {
-    const helper = new TemporalHelper({ timeZone: 'UTC' });
+    const helper = new TemporalHelper({ tz: 'UTC' });
     const value = '2026-10-14T10:00:00Z';
 
     for (const locale of ['fa-IR', 'th-TH', 'en-US-u-ca-islamic']) {

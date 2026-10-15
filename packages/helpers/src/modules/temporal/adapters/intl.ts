@@ -19,12 +19,12 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
   >();
 
   /** The zone's formatter, and how it spells the common era - so any other era is before year 1, whatever the engine calls it. */
-  private static formatterOf(opts: { timeZone: string }): {
+  private static formatterOf(opts: { tz: string }): {
     formatter: Intl.DateTimeFormat;
     commonEra: string | undefined;
   } {
-    const { timeZone } = opts;
-    const cached = IntlTemporalAdapter.formatters.get(timeZone);
+    const { tz } = opts;
+    const cached = IntlTemporalAdapter.formatters.get(tz);
     if (cached) {
       return cached;
     }
@@ -32,7 +32,7 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
     let formatter: Intl.DateTimeFormat;
     try {
       formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone,
+        timeZone: tz,
         hourCycle: 'h23',
         era: 'short',
         year: 'numeric',
@@ -45,7 +45,7 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
     } catch (error) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[IntlTemporalAdapter] unknown time zone '${timeZone}' | ${error instanceof Error ? error.message : String(error)}`,
+        message: `[IntlTemporalAdapter] unknown time zone '${tz}' | ${error instanceof Error ? error.message : String(error)}`,
       });
     }
 
@@ -59,17 +59,17 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
       }
     }
     const entry = { formatter, commonEra };
-    IntlTemporalAdapter.formatters.set(timeZone, entry);
+    IntlTemporalAdapter.formatters.set(tz, entry);
     return entry;
   }
 
-  getOffsetMilliseconds(opts: { value: Date; timeZone: string }): number {
-    const { value, timeZone } = opts;
+  getOffsetMilliseconds(opts: { value: Date; tz: string }): number {
+    const { value, tz } = opts;
     const epoch = value.getTime();
 
     const fields = { year: 0, month: 1, day: 1, hour: 0, minute: 0, second: 0 };
     let isBeforeCommonEra = false;
-    const { formatter, commonEra } = IntlTemporalAdapter.formatterOf({ timeZone });
+    const { formatter, commonEra } = IntlTemporalAdapter.formatterOf({ tz });
     for (const part of formatter.formatToParts(value)) {
       if (part.type === 'era') {
         isBeforeCommonEra = commonEra !== undefined && part.value !== commonEra;

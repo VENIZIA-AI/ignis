@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
-import type { ITemporalParts } from './common/types';
+import type { ITemporalParts } from '../common/types';
 
 /** A service writes a handful of locales; capped so caller-fed locales cannot grow it. */
 const MAX_CACHED_LOCALES = 32;
@@ -103,7 +103,7 @@ export class TemporalLocale {
   }
 
   /** `dayOfWeek` is ISO: 1 Monday - 7 Sunday. */
-  weekdayName(opts: { dayOfWeek: number; width: 'short' | 'long' }): string {
+  weekdayName(opts: { dayOfWeek: number; width: 'narrow' | 'short' | 'long' }): string {
     const { dayOfWeek, width } = opts;
     const formatter = this.formatterOf({ weekday: width });
     const table = this.tableOf({
@@ -115,7 +115,11 @@ export class TemporalLocale {
   }
 
   /** The AM or PM marker the locale writes for `hour` (0-23), lower-cased by the locale's own rules when asked. */
-  dayPeriod(opts: { hour: number; isLowerCase?: boolean }): string {
+  dayPeriod(opts: {
+    hour: number;
+    meridiem?: readonly [string, string];
+    isLowerCase?: boolean;
+  }): string {
     const formatter = this.formatterOf({ hour: 'numeric', hourCycle: 'h12' });
     const table = this.tableOf({
       key: 'day-period',
@@ -125,7 +129,7 @@ export class TemporalLocale {
           .formatToParts(Date.UTC(2024, 0, 1, index === 0 ? 1 : NOON + 1))
           .find(part => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
     });
-    const marker = table[opts.hour < NOON ? 0 : 1];
+    const marker = (opts.meridiem ?? table)[opts.hour < NOON ? 0 : 1];
     return opts.isLowerCase ? marker.toLocaleLowerCase(this.locale) : marker;
   }
 

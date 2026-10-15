@@ -34,8 +34,8 @@ export class DayjsTemporalAdapter implements ITemporalAdapter {
     this.dayjs = opts.dayjs;
   }
 
-  getOffsetMilliseconds(opts: { value: Date; timeZone: string }): number {
-    const { value, timeZone } = opts;
+  getOffsetMilliseconds(opts: { value: Date; tz: string }): number {
+    const { value, tz } = opts;
 
     let epoch = value.getTime();
     while (epoch < FIRST_SAFE_EPOCH) {
@@ -43,11 +43,11 @@ export class DayjsTemporalAdapter implements ITemporalAdapter {
     }
 
     try {
-      return this.dayjs(epoch).tz(timeZone).utcOffset() * MILLISECONDS_PER_MINUTE;
+      return this.dayjs(epoch).tz(tz).utcOffset() * MILLISECONDS_PER_MINUTE;
     } catch (error) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[DayjsTemporalAdapter] no offset for ${timeZone} at ${value.getTime()} | ${error instanceof Error ? error.message : String(error)}`,
+        message: `[DayjsTemporalAdapter] no offset for ${tz} at ${value.getTime()} | ${error instanceof Error ? error.message : String(error)}`,
       });
     }
   }

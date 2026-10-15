@@ -1,20 +1,9 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
-import type { ITemporalParts, IZonedTemporalParts } from './common/types';
-import { TemporalLocale } from './locale';
-import {
-  isLetter,
-  isLocaleToken,
-  isToken,
-  MAX_COMPILED_PATTERNS,
-  NUMERIC_TOKENS,
-  readDigits,
-  readOffset,
-  SUPPORTED,
-  TWO_DIGIT_YEAR_PIVOT,
-  WRITERS,
-} from './tokens';
-import type { TPatternSegment } from './tokens';
+import type { ITemporalLocaleNames, ITemporalParts, IZonedTemporalParts } from '../common/types';
+import { TemporalLocale } from '../locale';
+import { TemporalTokens } from './tokens';
+import type { TPatternSegment } from './common/types';
 
 /** The pattern dialect: compiled once per pattern, then formatted and parsed from the cache. */
 export class TemporalPattern {
@@ -53,7 +42,7 @@ export class TemporalPattern {
       }
 
       // `T` is the ISO date-time separator, and the one letter a pattern may carry bare.
-      if (!isLetter(pattern.charCodeAt(position)) || character === 'T') {
+      if (!TemporalTokens.isLetter({ code: pattern.charCodeAt(position) }) || character === 'T') {
         literal += character;
         position += 1;
         continue;
@@ -65,10 +54,10 @@ export class TemporalPattern {
       }
 
       const run = pattern.slice(position, runEnd);
-      if (!isToken(run)) {
+      if (!TemporalTokens.isToken(run)) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          message: `[TemporalPattern] unknown token '${run}' in pattern '${pattern}' | Supported: ${SUPPORTED}; wrap text in [brackets]`,
+          message: `[TemporalPattern] unknown token '${run}' in pattern '${pattern}' | Supported: ${TemporalTokens.SUPPORTED}; wrap text in [brackets]`,
         });
       }
 
@@ -84,24 +73,33 @@ export class TemporalPattern {
       segments.push({ literal });
     }
 
-    if (TemporalPattern.compiled.size < MAX_COMPILED_PATTERNS) {
+    if (TemporalPattern.compiled.size < TemporalTokens.MAX_COMPILED_PATTERNS) {
       TemporalPattern.compiled.set(pattern, segments);
     }
     return segments;
   }
 
   /** Writes the wall clock; `locale` spells the name tokens, and is only resolved when one is used. */
-  static format(opts: { pattern: string; parts: IZonedTemporalParts; locale: string }): string {
+  static format(opts: {
+    pattern: string;
+    parts: IZonedTemporalParts;
+    locale: string;
+    names?: ITemporalLocaleNames;
+  }): string {
     const segments = TemporalPattern.compile({ pattern: opts.pattern });
     let resolved: TemporalLocale | undefined;
     const input = {
       parts: opts.parts,
+      names: opts.names,
       locale: () => (resolved ??= TemporalLocale.of({ locale: opts.locale })),
     };
 
     let text = '';
     for (const segment of segments) {
-      text += 'literal' in segment ? segment.literal : (WRITERS.get(segment.token)?.(input) ?? '');
+      text +=
+        'literal' in segment
+          ? segment.literal
+          : (TemporalTokens.WRITERS.get(segment.token)?.(input) ?? '');
     }
     return text;
   }
@@ -136,7 +134,7 @@ export class TemporalPattern {
 
       const { token } = segment;
       // A pattern is code, not input: a write-only token here is a bug, as an unknown token is.
-      if (isLocaleToken(token)) {
+      if (TemporalTokens.isWriteOnlyToken(token)) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
           message: `[TemporalPattern] '${token}' in pattern '${opts.pattern}' is for writing only | A parse reads the numeric tokens`,
@@ -144,7 +142,7 @@ export class TemporalPattern {
       }
 
       if (token === 'Z' || token === 'ZZ') {
-        const offset = readOffset({ value, position, separator: token === 'Z' });
+        const offset = TemporalTokens.readOffset({ value, position, separator: token === 'Z' });
         if (!offset) {
           return undefined;
         }
@@ -154,17 +152,18 @@ export class TemporalPattern {
       }
 
       if (token === 'YY') {
-        const read = readDigits({ value, position, min: 2, max: 2 });
+        const read = TemporalTokens.readDigits({ value, position, min: 2, max: 2 });
         if (!read) {
           return undefined;
         }
-        parts.year = read.number + (read.number > TWO_DIGIT_YEAR_PIVOT ? 1900 : 2000);
+        parts.year =
+          read.number + (read.number > TemporalTokens.TWO_DIGIT_YEAR_PIVOT ? 1900 : 2000);
         position = read.next;
         continue;
       }
 
-      const [min, max, field] = NUMERIC_TOKENS[token];
-      const read = readDigits({ value, position, min, max });
+      const [min, max, field] = TemporalTokens.NUMERIC_TOKENS[token];
+      const read = TemporalTokens.readDigits({ value, position, min, max });
       if (!read) {
         return undefined;
       }

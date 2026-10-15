@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'TemporalHelper Covers What a dayjs Wrapper Did',
+                  link: '/changelogs/2026-10-15-temporal-wrapper-surface',
+                },
+                {
                   text: 'isApplicationError Checks the Whole Shape',
                   link: '/changelogs/2026-10-15-is-application-error-shape',
                 },
