@@ -100,7 +100,7 @@ export const buildServer = (opts: {
       buildVersionTool({ releases }),
       buildChangesTool({ releases }),
     ],
-    // A family checkout names its own server (`ardor-atlas` in the ARDOR repo); the packaged
+    // A family checkout names its own server (`<family>-atlas` in a sibling's repo); the packaged
     // snapshot is always IGNIS's, so it keeps the package's name.
     serverName:
       mode === AtlasModes.REPOSITORY ? serverNameOf({ root }) : AtlasConstants.SERVER_NAME,

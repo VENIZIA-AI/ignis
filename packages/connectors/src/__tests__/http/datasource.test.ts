@@ -513,7 +513,7 @@ describe('a failed read names the path, never the host or the query', () => {
 });
 
 // Two spellings of one name inside the CALLER's own headers: `new Headers(input)` appends them into
-// a value neither spelling wrote. Reported by ARDOR, measured against the published build.
+// a value neither spelling wrote. Reported by a frontend consumer, measured against the published build.
 describe('a caller that names one header twice gets the last value, not a joined one', () => {
   const twice: Array<[string, THttpHeaders]> = [
     [

@@ -37,7 +37,7 @@ class DecoratedService {
   readonly tag = 'decorated';
 }
 
-/** No stereotype: the 47 classes BANA registers by hand look exactly like this. */
+/** No stereotype: the 47 classes a consumer registers by hand look exactly like this. */
 class ImperativeService {
   readonly tag = 'imperative';
 }

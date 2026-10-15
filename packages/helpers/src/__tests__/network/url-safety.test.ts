@@ -1,5 +1,5 @@
 /**
- * The address list comes from BANA's draft guard, contributed at
+ * The address list comes from a consumer's draft guard, contributed at
  * `agent-contracts/ignis/2026-09-08-ssrf-fetch-guard-input.md`, and is the floor this must meet.
  */
 
@@ -126,7 +126,7 @@ describe('UrlPolicy.assertSafeUrl', () => {
 });
 
 /**
- * The gap BANA found: every case above feeds the predicate a string the WHATWG parser never
+ * The gap a consumer found: every case above feeds the predicate a string the WHATWG parser never
  * produces. `new URL` rewrites a v4-mapped literal into hex, so a dotted-quad-only check was green
  * over a live bypass. These drive real urls.
  */

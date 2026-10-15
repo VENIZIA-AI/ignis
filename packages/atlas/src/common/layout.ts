@@ -32,7 +32,7 @@ export const releasesFileOf = (opts: { mode: TAtlasMode; root: string }): string
 /**
  * The IGNIS workspace manifest name, and the family pattern every sibling framework follows:
  * `@venizia/<family>-workspace`. Atlas serves any checkout that keeps the same three corpora under
- * the same paths - ARDOR (`@venizia/ardor-workspace`) is the first sibling - while a consumer that
+ * the same paths - a sibling framework's workspace already does - while a consumer that
  * merely copied the layout is still refused, because its root manifest is not a family workspace.
  */
 export const WORKSPACE_PACKAGE_NAME = '@venizia/ignis-workspace';
@@ -53,7 +53,7 @@ export const workspaceNameOf = (opts: { root: string }): string | undefined => {
   }
 };
 
-/** `ignis` for `@venizia/ignis-workspace`, `ardor` for `@venizia/ardor-workspace`; `undefined` outside the family. */
+/** `ignis` for `@venizia/ignis-workspace`, `example` for `@venizia/example-workspace`; `undefined` outside the family. */
 export const workspaceFamilyOf = (opts: { root: string }): string | undefined => {
   const name = workspaceNameOf({ root: opts.root });
   return name === undefined ? undefined : WORKSPACE_PACKAGE_PATTERN.exec(name)?.[1];

@@ -85,7 +85,7 @@ describe('BuildInfoResolver.resolve', () => {
     expect((await BuildInfoResolver.getInstance().resolve({ root })).commit).toBe('bbbbbbbbbbbb');
   });
 
-  /** The `APP_ENV_` prefix is what BANA's own pipeline already exports; it must outrank the rest. */
+  /** The `APP_ENV_` prefix is what a consumer's own pipeline already exports; it must outrank the rest. */
   test('APP_ENV_BUILD_VERSION outranks every other version variable', async () => {
     process.env.CI_COMMIT_TAG = 'from-ci';
     process.env.APP_BUILD_VERSION = 'from-app-build';

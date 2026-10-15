@@ -213,7 +213,7 @@ describe('clone and names', () => {
 });
 
 describe('diff counts as dayjs does, add takes fractions of elapsed time', () => {
-  /** The instants BANA's golden proof uses: month ends, a leap day, the edges of a day and a year. */
+  /** The instants a consumer's golden proof uses: month ends, a leap day, the edges of a day and a year. */
   const INSTANTS = [
     '2026-01-31T12:00:00+07:00',
     '2026-02-28T12:00:00+07:00',
