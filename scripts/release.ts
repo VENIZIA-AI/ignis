@@ -290,45 +290,34 @@ const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
 };
 
 /**
- * A green workflow is not proof of a publish. Verified against the registry, because the release
- * publishes BEFORE it commits: a run can put a version on npm and still fail afterwards, and the
- * reverse - a green run whose publish silently did nothing - is exactly what this catches.
+ * A green workflow is not proof of a publish: a run can put a version on npm and still fail
+ * afterwards, and a green run whose publish silently did nothing is exactly what this catches. The
+ * proof is the run's own publish line, `+ <name>@<version>` from `bun publish` - not the registry,
+ * whose metadata shows a new version 3 to 16 minutes late (measured 2026-10-15), which made every
+ * chain wait that long per package.
  */
-const assertPublished = async (opts: {
-  state: IPackageState;
-  distTag: string;
-}): Promise<string> => {
-  // Ten minutes, not four, and not one. The `next` dist-tag lags the publish, and the lag is longer
-  // than it looks: measured 2026-09-12, `@venizia/ignis@0.2.0-28` published at 08:53:04 and did not
-  // appear on registry.npmjs.org until 09:00:41 - seven and a half minutes. The four-minute window
-  // in place then failed a release that had fully succeeded, which stopped the chain one package
-  // short of atlas and sent someone hunting a bug that did not exist. A verification window shorter
-  // than the registry's own propagation is worse than no check, because the next person stops
-  // believing the check.
-  for (let attempt = 0; attempt < 120; attempt += 1) {
-    const published = await resolvePublishedVersion({
-      packageName: opts.state.packageName,
-      distTag: opts.distTag,
-    });
+const assertPublished = async (opts: { state: IPackageState; runId: string }): Promise<string> => {
+  const { stdout } = await run({ command: ['gh', 'run', 'view', opts.runId, '--log'] });
+  const marker = `+ ${opts.state.packageName}@`;
+  const line = stdout.split('\n').find(entry => entry.includes(marker) && !entry.includes('echo'));
+  const version = line?.slice(line.indexOf(marker) + marker.length).trim();
 
-    if (published && published !== opts.state.publishedVersion) {
-      return published;
-    }
-
-    await sleep(5_000);
+  if (!version) {
+    throw new Error(
+      `Run ${opts.runId} is green but its log has no "${marker}" line. Check the Publish step before anything else: gh run view ${opts.runId} --log`,
+    );
   }
-
-  throw new Error(
-    `${opts.state.packageName} still reads ${opts.state.publishedVersion ?? 'nothing'} on the registry after ten minutes. Do NOT re-run the release before checking: read the workflow log for a "+ ${opts.state.packageName}@" line, then ask the registry itself with \`curl -s https://registry.npmjs.org/${opts.state.packageName.replace('/', '%2F')} | grep -o '"${opts.state.localVersion}"'\`. Publishing twice over a publish that already succeeded is how this turns into a real failure.`,
-  );
+  return version;
 };
 
 const releasePackage = async (opts: {
   state: IPackageState;
   mode: TReleaseMode;
   issue?: string;
+  /** npm names published earlier in this run: their CI trusts the workspace for them. */
+  chainReleased: Array<string>;
 }): Promise<void> => {
-  const { state, mode, issue } = opts;
+  const { state, mode, issue, chainReleased } = opts;
 
   console.log(`\n▶ ${state.name} (${state.localVersion} -> ${mode})`);
 
@@ -345,6 +334,12 @@ const releasePackage = async (opts: {
       '-f',
       `build_mode=${mode}`,
       ...(issue ? ['-f', `issue=${issue}`] : []),
+      // Internal ranges from the workspace: the previous package of this chain is published and
+      // pushed, but npm may not show it for minutes.
+      '-f',
+      'dependencies_from=workspace',
+      '-f',
+      `chain_released=${chainReleased.join(',')}`,
     ],
   });
 
@@ -358,7 +353,7 @@ const releasePackage = async (opts: {
     );
   }
 
-  const published = await assertPublished({ state, distTag: toDistTag({ mode }) });
+  const published = await assertPublished({ state, runId });
   console.log(`  published ${state.packageName}@${published}`);
 
   // The workflow pushes its own release commit. Without this the next package reads a stale local
@@ -406,7 +401,19 @@ const main = async (): Promise<void> => {
     throw new Error(`--issue needs an issue number, got: ${issue ?? 'nothing'}`);
   }
 
-  const requested = args.filter(arg => !arg.startsWith('--') && arg !== mode && arg !== issue);
+  const named = args.filter(arg => !arg.startsWith('--') && arg !== mode && arg !== issue);
+  const unknownNames = named.filter(name => !RELEASE_ORDER.includes(name as never));
+  if (unknownNames.length > 0) {
+    throw new Error(
+      `Unknown package(s): ${unknownNames.join(', ')}. Known: ${RELEASE_ORDER.join(', ')}`,
+    );
+  }
+  // A name means "from here on": the package and everything after it in the chain, so a consumer
+  // never gets a new package beside a stale one that depends on it.
+  const start =
+    named.length > 0 ? Math.min(...named.map(name => RELEASE_ORDER.indexOf(name as never))) : -1;
+  const requested: Array<string> =
+    start >= 0 ? RELEASE_ORDER.slice(start).filter(name => !(skipAtlas && name === ATLAS)) : [];
   // Atlas closes any chain that carries a framework package: its snapshot must know what shipped.
   const withAtlasTail =
     !skipAtlas && requested.length > 0 && !requested.includes(ATLAS)
@@ -462,13 +469,15 @@ const main = async (): Promise<void> => {
     return;
   }
 
+  const chainReleased: Array<string> = [];
   for (const state of plan) {
     // The tables are generated from release commits, so they are refreshed after the framework
     // packages have shipped and before atlas packages them.
     if (state.name === ATLAS && plan.length > 1) {
       await refreshGeneratedTables({ issue });
     }
-    await releasePackage({ state, mode, issue });
+    await releasePackage({ state, mode, issue, chainReleased });
+    chainReleased.push(state.packageName);
   }
 
   console.log(`\n✓ Released ${plan.length} package(s).`);
