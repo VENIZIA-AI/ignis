@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-15',
+              collapsed: true,
+              items: [
+                {
+                  text: 'isApplicationError Checks the Whole Shape',
+                  link: '/changelogs/2026-10-15-is-application-error-shape',
+                },
+              ],
+            },
+            {
               text: '2026-10-14',
               collapsed: true,
               items: [

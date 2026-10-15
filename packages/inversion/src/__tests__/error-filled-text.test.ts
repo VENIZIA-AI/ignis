@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { getError, MessageTemplate } from '@/modules/error';
+import { getError, isApplicationError, MessageTemplate } from '@/modules/error';
 
 describe('ApplicationError.toFilledText', () => {
   test('fills the args into the template, and leaves message and normalized.text as the template', () => {
@@ -46,5 +46,33 @@ describe('MessageTemplate.render', () => {
       text: 'x %{a}',
       missing: ['a'],
     });
+  });
+});
+
+describe('isApplicationError', () => {
+  test('a plain Error that carries a statusCode is not one', () => {
+    const httpError = Object.assign(new Error('Request failed'), { statusCode: 502 });
+    expect(isApplicationError(httpError)).toBe(false);
+  });
+
+  test('an error with a statusCode and a malformed normalized is not one', () => {
+    const malformed = Object.assign(new Error('x'), { statusCode: 400, normalized: { text: 1 } });
+    expect(isApplicationError(malformed)).toBe(false);
+  });
+
+  test('an ApplicationError is one, and so is the same shape from another copy of the class', () => {
+    expect(isApplicationError(getError({ message: 'x', statusCode: 400 }))).toBe(true);
+
+    // What a CJS-built ApplicationError looks like to the ESM copy: same shape, another constructor.
+    const otherCopy = Object.assign(new Error('x'), {
+      statusCode: 409,
+      normalized: { text: 'x', code: 'core.system_error', args: {} },
+    });
+    expect(isApplicationError(otherCopy)).toBe(true);
+  });
+
+  test('anything that is not an Error is not one', () => {
+    expect(isApplicationError({ statusCode: 400, normalized: { text: 'x' } })).toBe(false);
+    expect(isApplicationError(null)).toBe(false);
   });
 });

@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-15 - isApplicationError checks the whole shape
+
+Updated [inversion](/packages/inversion.md).
+
+- The guard now requires `normalized.text`; a statusCode-only plain Error no longer passes. Reported by BANA (com-1).
+
 ## 2026-10-14 - ApplicationError.toFilledText
 
 Updated [kernel](/packages/kernel.md).
