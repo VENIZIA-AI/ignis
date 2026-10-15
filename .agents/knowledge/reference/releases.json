@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.2-2",
+        "date": "2026-10-15",
+        "sha": "aecfe564",
+        "order": 1646
+      },
+      {
         "version": "0.1.2-1",
         "date": "2026-10-14",
         "sha": "f1b874e2",
@@ -827,6 +833,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.2-3",
+        "date": "2026-10-15",
+        "sha": "548cec18",
+        "order": 1650
+      },
       {
         "version": "0.2.2-2",
         "date": "2026-10-15",
@@ -2038,6 +2050,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.2-3",
+        "date": "2026-10-15",
+        "sha": "a5b95d99",
+        "order": 1652
+      },
+      {
         "version": "0.2.2-2",
         "date": "2026-10-15",
         "sha": "0891916f",
@@ -2423,6 +2441,12 @@
       }
     ],
     "core-worker": [
+      {
+        "version": "0.2.2-3",
+        "date": "2026-10-15",
+        "sha": "52407ff6",
+        "order": 1651
+      },
       {
         "version": "0.2.2-2",
         "date": "2026-10-15",
@@ -3381,6 +3405,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.2-3",
+        "date": "2026-10-15",
+        "sha": "bf68017c",
+        "order": 1648
+      },
       {
         "version": "0.2.2-2",
         "date": "2026-10-15",
@@ -4508,6 +4538,12 @@
     ],
     "kernel": [
       {
+        "version": "0.2.2-3",
+        "date": "2026-10-15",
+        "sha": "a29b9868",
+        "order": 1649
+      },
+      {
         "version": "0.2.2-2",
         "date": "2026-10-15",
         "sha": "30be1585",
@@ -4870,6 +4906,17 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-15-temporal-wrapper-surface",
+      "file": "2026-10-15-temporal-wrapper-surface.md",
+      "date": "2026-10-15",
+      "title": "TemporalHelper Covers What a dayjs Wrapper Did",
+      "packages": [
+        "helpers"
+      ],
+      "kind": "Feature",
+      "order": 1647
+    },
     {
       "id": "changelog:2026-10-15-is-application-error-shape",
       "file": "2026-10-15-is-application-error-shape.md",
