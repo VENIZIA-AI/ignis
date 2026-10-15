@@ -6,23 +6,29 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-15 - TemporalHelper covers a dayjs wrapper's surface
+
+Updated [helpers](/packages/helpers.md).
+
+- null is a 400 (was 1970); quarter; set; boolean comparisons and isBetween; duration face and maxUnits; clone; names per locale and `dd`; dayjs-compatible diff; fractional add for hour and below. Temporal internals are classes now.
+
 ## 2026-10-15 - isApplicationError checks the whole shape
 
 Updated [inversion](/packages/inversion.md).
 
-- The guard now requires `normalized.text`; a statusCode-only plain Error no longer passes. Reported by BANA (com-1).
+- The guard now requires `normalized.text`; a statusCode-only plain Error no longer passes. Reported by a consumer whose fixtures carried a statusCode-only Error.
 
 ## 2026-10-14 - ApplicationError.toFilledText
 
 Updated [kernel](/packages/kernel.md).
 
-- The `%{key}` fill moved from kernel's `message.handler.ts` (deleted) to inversion's `MessageTemplate.render`; `ApplicationError#toFilledText()` uses it. `Error.message` stays the template on purpose (redaction by key); BANA asked because BullMQ stores `failedReason = err.message`.
+- The `%{key}` fill moved from kernel's `message.handler.ts` (deleted) to inversion's `MessageTemplate.render`; `ApplicationError#toFilledText()` uses it. `Error.message` stays the template on purpose (redaction by key); A queue such as BullMQ stores `failedReason = err.message`, so a consumer needs the filled text at that boundary.
 
 ## 2026-10-14 - TemporalHelper in every browser, with a locale
 
 Updated [helpers](/packages/helpers.md).
 
-- `IntlTemporalAdapter` and the Native-else-Intl default; write-only locale tokens and `formatIntl`; `relative`, `diff`, `compare`, `tryParse`, `isValid`, `durationParts`, `formatDuration`. Asked by BANA to drop dayjs from its browser apps.
+- `IntlTemporalAdapter` and the Native-else-Intl default; write-only locale tokens and `formatIntl`; `relative`, `diff`, `compare`, `tryParse`, `isValid`, `durationParts`, `formatDuration`. So a browser app can drop dayjs.
 
 ## 2026-10-11 - the error response fills its placeholders
 

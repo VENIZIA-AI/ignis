@@ -318,29 +318,24 @@ describe('locales', () => {
   });
 });
 
+/** The wall clock a helper reads for a value, as `Date.UTC` arguments. */
+const wallClockFields = (opts: {
+  helper: TemporalHelper;
+  value: string;
+}): [number, number, number, number, number, number, number] => {
+  const parts = opts.helper.parts({ value: opts.value });
+  return [
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+    parts.millisecond,
+  ];
+};
+
 describe('review cases', () => {
-  /** The largest n that add can move `other` by without passing `value` - diff's definition, by brute force. */
-  const bruteForce = (opts: {
-    helper: TemporalHelper;
-    value: string;
-    other: string;
-    unit: TTemporalUnit;
-  }): number => {
-    const { helper, value, other, unit } = opts;
-    const target = new Date(value).getTime();
-    const direction = Math.sign(target - new Date(other).getTime());
-    const passes = (amount: number): boolean => {
-      const moved = helper.add({ value: other, amount, unit }).getTime();
-      return direction > 0 ? moved > target : moved < target;
-    };
-
-    let amount = 0;
-    while (!passes(amount + direction)) {
-      amount += direction;
-    }
-    return amount;
-  };
-
   test('diff near the end of the year range does not throw', () => {
     const helper = new TemporalHelper({ timeZone: 'UTC' });
 
@@ -354,27 +349,22 @@ describe('review cases', () => {
     ).toBe(-1);
   });
 
-  test('diff steps forward where a zone repeats or skips a whole day', () => {
-    const cases: Array<{ timeZone: string; value: string; other: string; unit: TTemporalUnit }> = [
-      // Sitka repeated 18 October 1867 when Alaska moved from Russian to American time.
-      {
-        timeZone: 'America/Sitka',
-        value: '1867-10-19T01:31:13Z',
-        other: '1867-10-17T19:01:13Z',
-        unit: 'day',
-      },
-      // Apia skipped 30 December 2011.
-      {
-        timeZone: 'Pacific/Apia',
-        value: '2011-12-30T19:00:00Z',
-        other: '2011-12-31T20:00:00Z',
-        unit: 'day',
-      },
+  test('a calendar day is read off the wall clocks, even where a zone repeated or skipped one', () => {
+    // Sitka repeated 18 October 1867; Apia skipped 30 December 2011. Days count wall-clock dates.
+    const sitka = new TemporalHelper({ timeZone: 'America/Sitka' });
+    const apia = new TemporalHelper({ timeZone: 'Pacific/Apia' });
+    const cases = [
+      { helper: sitka, value: '1867-10-19T01:31:13Z', other: '1867-10-17T19:01:13Z' },
+      { helper: apia, value: '2011-12-30T19:00:00Z', other: '2011-12-31T20:00:00Z' },
     ];
 
-    for (const { timeZone, value, other, unit } of cases) {
-      const helper = new TemporalHelper({ timeZone });
-      expect(helper.diff({ value, other, unit })).toBe(bruteForce({ helper, value, other, unit }));
+    for (const { helper, value, other } of cases) {
+      const days = helper.diff({ value, other, unit: 'day' });
+      const wallClocks =
+        Date.UTC(...wallClockFields({ helper, value })) -
+        Date.UTC(...wallClockFields({ helper, value: other }));
+      expect(days).toBe(Math.trunc(wallClocks / 86_400_000) + 0);
+      expect(helper.diff({ value: other, other: value, unit: 'day' })).toBe(-days + 0);
     }
   });
 

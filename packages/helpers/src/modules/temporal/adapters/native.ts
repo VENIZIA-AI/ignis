@@ -1,7 +1,6 @@
 import { HTTP } from '@/common/constants/http';
 import { getError } from '@/modules/error';
 import type { ITemporalAdapter, ITemporalNamespace } from '../common/types';
-import { isTemporalNamespace } from './guards';
 
 const NANOSECONDS_PER_MILLISECOND = 1_000_000;
 
@@ -12,10 +11,23 @@ const NANOSECONDS_PER_MILLISECOND = 1_000_000;
 export class NativeTemporalAdapter implements ITemporalAdapter {
   private readonly temporal: ITemporalNamespace;
 
+  /** A `Temporal` namespace - the runtime's global or a polyfill's - by the one member the adapter drives. */
+  static isTemporalNamespace(value: unknown): value is ITemporalNamespace {
+    if (typeof value !== 'object' || value === null || !('Instant' in value)) {
+      return false;
+    }
+
+    const instant = value.Instant;
+    return (
+      (typeof instant === 'function' || (typeof instant === 'object' && instant !== null)) &&
+      typeof Reflect.get(instant, 'fromEpochMilliseconds') === 'function'
+    );
+  }
+
   constructor(opts?: { temporal?: ITemporalNamespace }) {
     const temporal: unknown = opts?.temporal ?? Reflect.get(globalThis, 'Temporal');
 
-    if (!isTemporalNamespace(temporal)) {
+    if (!NativeTemporalAdapter.isTemporalNamespace(temporal)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message:

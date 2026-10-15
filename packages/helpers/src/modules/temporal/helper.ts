@@ -1,32 +1,28 @@
 import { HTTP } from '@/common/constants/http';
 import { BaseHelper } from '@/modules/base';
 import { getError, isApplicationError } from '@/modules/error';
-import { isTemporalNamespace } from './adapters/guards';
 import { IntlTemporalAdapter } from './adapters/intl';
 import { NativeTemporalAdapter } from './adapters/native';
-import {
-  epochAtOffset,
-  EXACT_UNIT_MILLISECONDS,
-  isRealDateTime,
-  isSupportedYear,
-  MAX_TEMPORAL_YEAR,
-  MIN_TEMPORAL_YEAR,
-  shiftWallClock,
-  truncateTo,
-  wallClockAt,
-  wallClockOf,
-} from './calendar';
+import { TemporalCalendar } from './calendar';
 import {
   DEFAULT_TEMPORAL_LOCALE,
   DEFAULT_TEMPORAL_PATTERN,
   DEFAULT_TEMPORAL_TIME_ZONE,
+  TemporalInclusivities,
   TemporalUnits,
 } from './common/constants';
-import type { TTemporalDurationStyle, TTemporalUnit } from './common/constants';
+import type {
+  TTemporalDurationStyle,
+  TTemporalInclusivity,
+  TTemporalUnit,
+} from './common/constants';
 import type {
   ITemporalAdapter,
   ITemporalDurationParts,
+  ITemporalLocaleNames,
   ITemporalParts,
+  TRelativeUnit,
+  TTemporalFields,
   IZonedTemporalParts,
   TTemporalInput,
 } from './common/types';
@@ -49,11 +45,36 @@ const MAX_INSTANT = 253_402_300_799_999;
 
 const MAX_KNOWN_TIME_ZONES = 256;
 
+/** Months in each calendar unit `diff` counts by months. */
+const MONTHS_IN: Partial<Record<TTemporalUnit, number>> = {
+  [TemporalUnits.MONTH]: 1,
+  [TemporalUnits.QUARTER]: 3,
+  [TemporalUnits.YEAR]: 12,
+};
+
+/** What each wall-clock field `set` takes. The day is clamped to the month separately. */
+const FIELD_RANGES: Record<keyof ITemporalParts, [number, number]> = {
+  year: [TemporalCalendar.MIN_YEAR, TemporalCalendar.MAX_YEAR],
+  month: [1, 12],
+  day: [1, 31],
+  hour: [0, 23],
+  minute: [0, 59],
+  second: [0, 59],
+  millisecond: [0, 999],
+};
+
+/** How many entries each `names` list must hold. */
+const NAME_LENGTHS: Record<keyof ITemporalLocaleNames, number> = {
+  months: 12,
+  monthsShort: 12,
+  weekdays: 7,
+  weekdaysShort: 7,
+  weekdaysMin: 7,
+  meridiem: 2,
+};
+
 /** `formatIntl` builds one formatter per locale, options and zone; capped so caller-fed options cannot grow it. */
 const MAX_INTL_FORMATTERS = 128;
-
-/** The units `Intl.RelativeTimeFormat` speaks: every temporal unit but the millisecond. */
-type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>;
 
 /** `relative` without a unit says it in the largest whole one, down to seconds. */
 const RELATIVE_UNITS: Array<TRelativeUnit> = [
@@ -66,7 +87,7 @@ const RELATIVE_UNITS: Array<TRelativeUnit> = [
   TemporalUnits.SECOND,
 ];
 
-const OUT_OF_RANGE = `outside the years ${MIN_TEMPORAL_YEAR}-${MAX_TEMPORAL_YEAR}`;
+const OUT_OF_RANGE = `outside the years ${TemporalCalendar.MIN_YEAR}-${TemporalCalendar.MAX_YEAR}`;
 
 /**
  * Dates in one time zone, through whichever library you choose: pass an adapter - the runtime's
@@ -87,15 +108,18 @@ export class TemporalHelper extends BaseHelper {
   private readonly adapter: ITemporalAdapter;
   private readonly timeZone: string;
   private readonly locale: string;
+  private readonly names: Record<string, ITemporalLocaleNames>;
 
   /**
    * `locale` (default `en-US`) spells month and weekday names, AM/PM, relative time and durations,
-   * unless a call passes its own.
+   * unless a call passes its own. `names` replaces `Intl`'s wording for a locale - month and weekday
+   * names, the AM/PM marker - keyed by the locale tag a call writes in.
    */
   constructor(opts?: {
     adapter?: ITemporalAdapter;
     timeZone?: string;
     locale?: string;
+    names?: Record<string, ITemporalLocaleNames>;
     scope?: string;
   }) {
     super({ scope: opts?.scope ?? TemporalHelper.name });
@@ -106,11 +130,54 @@ export class TemporalHelper extends BaseHelper {
     });
     this.locale = TemporalHelper.ensureLocale({ locale: opts?.locale ?? DEFAULT_TEMPORAL_LOCALE });
     this.adapter = opts?.adapter ?? TemporalHelper.defaultAdapter();
+    this.names = TemporalHelper.ensureNames({ names: opts?.names ?? {} });
+  }
+
+  /** A helper like this one, with another locale or zone: same adapter, same `names`. */
+  clone(opts: { locale?: string; timeZone?: string }): TemporalHelper {
+    return new TemporalHelper({
+      adapter: this.adapter,
+      timeZone: opts.timeZone ?? this.timeZone,
+      locale: opts.locale ?? this.locale,
+      names: this.names,
+      scope: this.scope,
+    });
+  }
+
+  /** Every list the right length, so a bad table fails when the helper is built, not on a screen. */
+  private static ensureNames(opts: {
+    names: Record<string, ITemporalLocaleNames>;
+  }): Record<string, ITemporalLocaleNames> {
+    for (const [locale, names] of Object.entries(opts.names)) {
+      TemporalHelper.ensureLocale({ locale });
+      for (const [key, length] of Object.entries(NAME_LENGTHS)) {
+        const list: unknown = Reflect.get(names, key);
+        if (list === undefined) {
+          continue;
+        }
+        if (
+          !Array.isArray(list) ||
+          list.length !== length ||
+          !list.every(entry => typeof entry === 'string')
+        ) {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+            message: `[TemporalHelper] names['${locale}'].${key} must hold ${length} strings`,
+          });
+        }
+      }
+    }
+    return opts.names;
+  }
+
+  /** The wording this helper holds for `locale`, if any. */
+  private namesOf(opts: { locale: string }): ITemporalLocaleNames | undefined {
+    return Object.hasOwn(this.names, opts.locale) ? this.names[opts.locale] : undefined;
   }
 
   /** The runtime's `Temporal` where it has one; `Intl`, which every runtime has, everywhere else. */
   private static defaultAdapter(): ITemporalAdapter {
-    return isTemporalNamespace(Reflect.get(globalThis, 'Temporal'))
+    return NativeTemporalAdapter.isTemporalNamespace(Reflect.get(globalThis, 'Temporal'))
       ? new NativeTemporalAdapter()
       : new IntlTemporalAdapter();
   }
@@ -154,10 +221,17 @@ export class TemporalHelper extends BaseHelper {
         message: `[TemporalHelper] unknown unit '${unit}' | Supported: ${[...TemporalUnits.SCHEME_SET].join(', ')}`,
       });
     }
-    if (amount !== undefined && !Number.isInteger(amount)) {
+    if (amount === undefined) {
+      return;
+    }
+    // Elapsed time takes a fraction (1.5 hours is 90 minutes); a calendar unit has no half.
+    const isElapsed = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit] !== undefined;
+    if (isElapsed ? !Number.isFinite(amount) : !Number.isInteger(amount)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message: `[TemporalHelper] amount must be an integer - received ${amount}`,
+        message: isElapsed
+          ? `[TemporalHelper] amount must be a finite number - received ${amount}`
+          : `[TemporalHelper] amount must be an integer for '${unit}' - received ${amount}`,
       });
     }
   }
@@ -175,7 +249,7 @@ export class TemporalHelper extends BaseHelper {
   }
 
   private static ensureYear(opts: { parts: ITemporalParts }): void {
-    if (!isSupportedYear(opts.parts.year)) {
+    if (!TemporalCalendar.isSupportedYear({ year: opts.parts.year })) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: `[TemporalHelper] year ${opts.parts.year} is ${OUT_OF_RANGE}`,
@@ -200,7 +274,10 @@ export class TemporalHelper extends BaseHelper {
   }
 
   private zonedParts(opts: { epoch: number; timeZone: string }): IZonedTemporalParts {
-    const parts = wallClockAt({ epoch: opts.epoch, offsetMilliseconds: this.offsetAt(opts) });
+    const parts = TemporalCalendar.wallClockAt({
+      epoch: opts.epoch,
+      offsetMilliseconds: this.offsetAt(opts),
+    });
     TemporalHelper.ensureYear({ parts });
     return parts;
   }
@@ -215,7 +292,7 @@ export class TemporalHelper extends BaseHelper {
     forward: number;
   } {
     const { parts, timeZone } = opts;
-    const local = epochAtOffset({ parts, offsetMilliseconds: 0 });
+    const local = TemporalCalendar.epochAtOffset({ parts, offsetMilliseconds: 0 });
     const before = this.offsetAt({ epoch: local - DAY_MILLISECONDS, timeZone });
     const after = this.offsetAt({ epoch: local + DAY_MILLISECONDS, timeZone });
 
@@ -248,12 +325,15 @@ export class TemporalHelper extends BaseHelper {
     end: number;
   } {
     const { epoch, unit, timeZone } = opts;
-    const startParts = truncateTo({ parts: this.zonedParts({ epoch, timeZone }), unit });
-    const nextParts = shiftWallClock({ parts: startParts, amount: 1, unit });
+    const startParts = TemporalCalendar.truncate({
+      parts: this.zonedParts({ epoch, timeZone }),
+      unit,
+    });
+    const nextParts = TemporalCalendar.shift({ parts: startParts, amount: 1, unit });
     TemporalHelper.ensureYear({ parts: nextParts });
 
     const starts = this.instantsOf({ parts: startParts, timeZone });
-    if (EXACT_UNIT_MILLISECONDS[unit] === undefined) {
+    if (TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit] === undefined) {
       const start = starts.instants[0] ?? starts.forward;
       return { start, end: this.earliestOf({ parts: nextParts, timeZone }) };
     }
@@ -286,10 +366,42 @@ export class TemporalHelper extends BaseHelper {
     if (typeof value === 'string') {
       return this.parse({ value, timeZone: opts.timeZone });
     }
+    if (value instanceof Date) {
+      return TemporalHelper.ensureInstant({ epoch: value.getTime() });
+    }
+    if (typeof value === 'number') {
+      return TemporalHelper.ensureInstant({ epoch: value });
+    }
 
-    return TemporalHelper.ensureInstant({
-      epoch: value instanceof Date ? value.getTime() : value,
+    // `null` above all: read as a number it would be 1970, a date nobody meant.
+    throw TemporalHelper.notADate({ value });
+  }
+
+  private static notADate(opts: { value: unknown }) {
+    const { value } = opts;
+    return getError({
+      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+      message: `[TemporalHelper] not a date - received ${value === null ? 'null' : typeof value}`,
     });
+  }
+
+  /** `toDate`, answering `null` where `toDate` refuses the value: null, undefined, bad text, NaN. */
+  tryToDate(opts: { value: TTemporalInput | null | undefined; timeZone?: string }): Date | null {
+    const { value } = opts;
+    // Outside the try: a bad zone is the caller's bug, not an unreadable value.
+    const timeZone = this.resolveTimeZone({ timeZone: opts.timeZone });
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    try {
+      return this.toDate({ value, timeZone });
+    } catch (error) {
+      if (TemporalHelper.isRefusal(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   /** The wall clock the value shows in the zone, with its ISO weekday and UTC offset. */
@@ -318,7 +430,7 @@ export class TemporalHelper extends BaseHelper {
       });
     }
 
-    if (!isRealDateTime({ parts: read.parts })) {
+    if (!TemporalCalendar.isRealDateTime({ parts: read.parts })) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
         message: `[TemporalHelper] '${value}' is not a real date and time`,
@@ -328,7 +440,10 @@ export class TemporalHelper extends BaseHelper {
     const epoch =
       read.offsetMilliseconds === undefined
         ? this.earliestOf({ parts: read.parts, timeZone })
-        : epochAtOffset({ parts: read.parts, offsetMilliseconds: read.offsetMilliseconds });
+        : TemporalCalendar.epochAtOffset({
+            parts: read.parts,
+            offsetMilliseconds: read.offsetMilliseconds,
+          });
     return TemporalHelper.ensureInstant({ epoch });
   }
 
@@ -385,10 +500,17 @@ export class TemporalHelper extends BaseHelper {
   }
 
   /** Whether the value names an instant in years 1-9999 - a string read as `parse` reads it. */
-  isValid(opts: { value: TTemporalInput; pattern?: string; timeZone?: string }): boolean {
+  isValid(opts: {
+    value: TTemporalInput | null | undefined;
+    pattern?: string;
+    timeZone?: string;
+  }): boolean {
     const { value, pattern, timeZone } = opts;
     if (typeof value === 'string') {
       return this.tryParse({ value, pattern, timeZone }) !== null;
+    }
+    if (!(value instanceof Date) && typeof value !== 'number') {
+      return false;
     }
 
     const epoch = value instanceof Date ? value.getTime() : value;
@@ -396,19 +518,38 @@ export class TemporalHelper extends BaseHelper {
   }
 
   /**
-   * Writes the value in the zone. Without a `pattern`: ISO 8601 with the zone's offset. The locale
-   * tokens `MMMM MMM dddd ddd A a hh h LL L` are spelled in `locale`.
+   * Writes the value in the zone. Without a `pattern`: ISO 8601 with the zone's offset. The tokens
+   * `MMMM MMM dddd ddd dd A a hh h LL L` are spelled in `locale`. With a `fallback`, a value that is
+   * not a date - null included - writes the fallback; without one, it is a 400.
    */
   format(opts: {
-    value: TTemporalInput;
+    value: TTemporalInput | null | undefined;
     pattern?: string;
     timeZone?: string;
     locale?: string;
+    fallback?: string;
   }): string {
+    const { value, fallback } = opts;
+    const timeZone = this.resolveTimeZone({ timeZone: opts.timeZone });
+    const locale = opts.locale ?? this.locale;
+
+    let date: Date | null;
+    if (fallback !== undefined) {
+      date = this.tryToDate({ value, timeZone });
+    } else if (value === null || value === undefined) {
+      throw TemporalHelper.notADate({ value });
+    } else {
+      date = this.toDate({ value, timeZone });
+    }
+    if (date === null) {
+      return fallback ?? '';
+    }
+
     return TemporalPattern.format({
       pattern: opts.pattern ?? DEFAULT_TEMPORAL_PATTERN,
-      parts: this.parts({ value: opts.value, timeZone: opts.timeZone }),
-      locale: opts.locale ?? this.locale,
+      parts: this.zonedParts({ epoch: date.getTime(), timeZone }),
+      locale,
+      names: this.namesOf({ locale }),
     });
   }
 
@@ -457,13 +598,15 @@ export class TemporalHelper extends BaseHelper {
       return date;
     }
 
-    const exact = EXACT_UNIT_MILLISECONDS[unit];
+    const exact = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit];
     if (exact !== undefined) {
       return TemporalHelper.ensureInstant({ epoch: date.getTime() + amount * exact });
     }
 
-    const parts = wallClockOf({ parts: this.zonedParts({ epoch: date.getTime(), timeZone }) });
-    const shifted = shiftWallClock({ parts, amount, unit });
+    const parts = TemporalCalendar.wallClockOf({
+      parts: this.zonedParts({ epoch: date.getTime(), timeZone }),
+    });
+    const shifted = TemporalCalendar.shift({ parts, amount, unit });
     TemporalHelper.ensureYear({ parts: shifted });
 
     return TemporalHelper.ensureInstant({ epoch: this.earliestOf({ parts: shifted, timeZone }) });
@@ -541,10 +684,125 @@ export class TemporalHelper extends BaseHelper {
   }
 
   /**
+   * The value with wall-clock fields replaced in the zone - `{ hour: 9, minute: 0 }` is 09:00 that day.
+   * `month` is 1-12. The day is clamped to the month's last day, so setting February on the 31st
+   * lands on the 28th or 29th. A wall time a daylight-saving jump skips resolves forward, as `parse` does.
+   */
+  set(opts: { value: TTemporalInput; timeZone?: string } & TTemporalFields): Date {
+    const timeZone = this.resolveTimeZone({ timeZone: opts.timeZone });
+    const date = this.toDate({ value: opts.value, timeZone });
+    const wall = TemporalCalendar.wallClockOf({
+      parts: this.zonedParts({ epoch: date.getTime(), timeZone }),
+    });
+
+    const next: ITemporalParts = { ...wall };
+    for (const [field, [min, max]] of Object.entries(FIELD_RANGES)) {
+      const given: unknown = Reflect.get(opts, field);
+      if (given === undefined) {
+        continue;
+      }
+      if (typeof given !== 'number' || !Number.isInteger(given) || given < min || given > max) {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          message: `[TemporalHelper] ${field} must be an integer from ${min} to ${max} - received ${String(given)}`,
+        });
+      }
+      Reflect.set(next, field, given);
+    }
+    next.day = Math.min(
+      next.day,
+      TemporalCalendar.daysInMonth({ year: next.year, month: next.month }),
+    );
+
+    return TemporalHelper.ensureInstant({ epoch: this.earliestOf({ parts: next, timeZone }) });
+  }
+
+  /** `value` is before `other` - at the unit's granularity in the zone when `unit` is given. */
+  isBefore(opts: {
+    value: TTemporalInput;
+    other: TTemporalInput;
+    unit?: TTemporalUnit;
+    timeZone?: string;
+  }): boolean {
+    return this.compare(opts) < 0;
+  }
+
+  isAfter(opts: {
+    value: TTemporalInput;
+    other: TTemporalInput;
+    unit?: TTemporalUnit;
+    timeZone?: string;
+  }): boolean {
+    return this.compare(opts) > 0;
+  }
+
+  /** In the same unit - `unit: 'day'` is the same calendar day in the zone. */
+  isSame(opts: {
+    value: TTemporalInput;
+    other: TTemporalInput;
+    unit?: TTemporalUnit;
+    timeZone?: string;
+  }): boolean {
+    return this.compare(opts) === 0;
+  }
+
+  isSameOrBefore(opts: {
+    value: TTemporalInput;
+    other: TTemporalInput;
+    unit?: TTemporalUnit;
+    timeZone?: string;
+  }): boolean {
+    return this.compare(opts) <= 0;
+  }
+
+  isSameOrAfter(opts: {
+    value: TTemporalInput;
+    other: TTemporalInput;
+    unit?: TTemporalUnit;
+    timeZone?: string;
+  }): boolean {
+    return this.compare(opts) >= 0;
+  }
+
+  /**
+   * Whether `value` lies between `from` and `to`, in either order. `inclusivity` says which ends count:
+   * `()` (the default) neither, `[]` both, `[)` the start, `(]` the end.
+   */
+  isBetween(opts: {
+    value: TTemporalInput;
+    from: TTemporalInput;
+    to: TTemporalInput;
+    unit?: TTemporalUnit;
+    inclusivity?: TTemporalInclusivity;
+    timeZone?: string;
+  }): boolean {
+    const { value, from, to, unit, inclusivity = TemporalInclusivities.EXCLUSIVE, timeZone } = opts;
+    if (!TemporalInclusivities.isValid(inclusivity)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[TemporalHelper] unknown inclusivity '${inclusivity}' | Supported: ${[...TemporalInclusivities.SCHEME_SET].join(', ')}`,
+      });
+    }
+
+    const isStartIncluded = inclusivity.startsWith('[');
+    const isEndIncluded = inclusivity.endsWith(']');
+    const fromOrder = this.compare({ value, other: from, unit, timeZone });
+    const toOrder = this.compare({ value, other: to, unit, timeZone });
+
+    const isAfterStart = isStartIncluded ? fromOrder >= 0 : fromOrder > 0;
+    const isBeforeEnd = isEndIncluded ? toOrder <= 0 : toOrder < 0;
+    // The range given backwards: `to` is the earlier end.
+    const isAfterEnd = isEndIncluded ? toOrder >= 0 : toOrder > 0;
+    const isBeforeStart = isStartIncluded ? fromOrder <= 0 : fromOrder < 0;
+    return (isAfterStart && isBeforeEnd) || (isAfterEnd && isBeforeStart);
+  }
+
+  /**
    * How many whole units `value` is past `other` - negative when it is before - truncated toward
-   * zero. Hours and smaller count elapsed time. Days and larger count the calendar in the zone, as
-   * `add` moves it: the answer is the largest `n` that `add` can move `other` by without passing
-   * `value`, so `diff(add(x, n), x)` is `n` wherever the zone skips no whole day.
+   * zero, counted as dayjs counts. Hours and smaller are elapsed time. Days and weeks are calendar
+   * days in the zone: the wall clocks' difference, so a 23-hour daylight-saving day is one day.
+   * Months, quarters and years are anchored on the date with the later day of the month, then
+   * truncated, so `diff(a, b)` is always `-diff(b, a)`.
    */
   diff(opts: {
     value: TTemporalInput;
@@ -559,50 +817,69 @@ export class TemporalHelper extends BaseHelper {
     const value = this.toDate({ value: opts.value, timeZone }).getTime();
     const other = this.toDate({ value: opts.other, timeZone }).getTime();
 
-    const exact = EXACT_UNIT_MILLISECONDS[unit];
+    // `+ 0` turns a truncated `-0` into `0`.
+    const exact = TemporalCalendar.EXACT_UNIT_MILLISECONDS[unit];
     if (exact !== undefined) {
-      // `+ 0` turns a truncated `-0` into `0`.
       return Math.trunc((value - other) / exact) + 0;
     }
-    if (value === other) {
-      return 0;
+
+    const months = MONTHS_IN[unit];
+    if (months !== undefined) {
+      return Math.trunc(this.monthGap({ value, other, timeZone }) / months) + 0;
     }
 
-    const later = this.zonedParts({ epoch: value, timeZone });
-    const earlier = this.zonedParts({ epoch: other, timeZone });
+    const wallClocks =
+      TemporalCalendar.epochAtOffset({
+        parts: TemporalCalendar.wallClockOf({ parts: this.zonedParts({ epoch: value, timeZone }) }),
+        offsetMilliseconds: 0,
+      }) -
+      TemporalCalendar.epochAtOffset({
+        parts: TemporalCalendar.wallClockOf({ parts: this.zonedParts({ epoch: other, timeZone }) }),
+        offsetMilliseconds: 0,
+      });
+    const days = wallClocks / DAY_MILLISECONDS;
+    return Math.trunc(unit === TemporalUnits.WEEK ? days / 7 : days) + 0;
+  }
 
-    // A first guess from the wall clocks, settled by `add` itself: back while it passes `value`, then
-    // on while the next step does not - a zone that repeats or skips a whole day can put it either side.
-    let guess: number;
-    if (unit === TemporalUnits.MONTH || unit === TemporalUnits.YEAR) {
-      const months = (later.year - earlier.year) * 12 + (later.month - earlier.month);
-      guess = unit === TemporalUnits.YEAR ? Math.trunc(months / 12) : months;
-    } else {
-      const days = Math.round(
-        (epochAtOffset({ parts: wallClockOf({ parts: later }), offsetMilliseconds: 0 }) -
-          epochAtOffset({ parts: wallClockOf({ parts: earlier }), offsetMilliseconds: 0 })) /
-          DAY_MILLISECONDS,
-      );
-      guess = unit === TemporalUnits.WEEK ? Math.trunc(days / 7) : Math.trunc(days);
+  /**
+   * Fractional months from `other` to `value` (dayjs and moment's month difference): anchored on the
+   * date with the later day of the month, whole months by `add`, the rest as a share of the month
+   * it falls in.
+   */
+  private monthGap(opts: { value: number; other: number; timeZone: string }): number {
+    const { value, other, timeZone } = opts;
+    const valueParts = this.zonedParts({ epoch: value, timeZone });
+    const otherParts = this.zonedParts({ epoch: other, timeZone });
+    if (valueParts.day < otherParts.day) {
+      return -this.monthGap({ value: other, other: value, timeZone });
     }
 
-    const direction = Math.sign(value - other);
-    const start = wallClockOf({ parts: earlier });
-    const passes = (amount: number): boolean => {
-      // A move past years 1-9999 passes every value inside them, and `add` would refuse it.
-      if (!isSupportedYear(shiftWallClock({ parts: start, amount, unit }).year)) {
-        return true;
-      }
-      const moved = this.add({ value: other, amount, unit, timeZone }).getTime();
-      return direction > 0 ? moved > value : moved < value;
-    };
-    while (guess !== 0 && passes(guess)) {
-      guess -= direction;
-    }
-    while (!passes(guess + direction)) {
-      guess += direction;
-    }
-    return guess + 0;
+    const whole = (otherParts.year - valueParts.year) * 12 + (otherParts.month - valueParts.month);
+    const anchor = this.shiftMonthsFrom({ parts: valueParts, months: whole, timeZone });
+    const isBelow = other - anchor < 0;
+    const nextAnchor = this.shiftMonthsFrom({
+      parts: valueParts,
+      months: whole + (isBelow ? -1 : 1),
+      timeZone,
+    });
+    const span = isBelow ? anchor - nextAnchor : nextAnchor - anchor;
+
+    return -(whole + (other - anchor) / span) || 0;
+  }
+
+  /** `add` by months without the 1-9999 check: an anchor one month past the range is still a number. */
+  private shiftMonthsFrom(opts: {
+    parts: IZonedTemporalParts;
+    months: number;
+    timeZone: string;
+  }): number {
+    const { parts, months, timeZone } = opts;
+    const shifted = TemporalCalendar.shift({
+      parts: TemporalCalendar.wallClockOf({ parts }),
+      amount: months,
+      unit: TemporalUnits.MONTH,
+    });
+    return this.earliestOf({ parts: shifted, timeZone });
   }
 
   /**
@@ -698,12 +975,22 @@ export class TemporalHelper extends BaseHelper {
   formatDuration(opts: {
     milliseconds: number;
     style?: TTemporalDurationStyle;
+    /** A clock face instead of words: `HH:mm:ss`, `mm:ss`, `D[d] HH:mm`. The largest token carries the rest. */
+    pattern?: string;
+    /** Only the largest units that are not zero: `1` writes `2 giờ` for 2 hours 5 minutes. */
+    maxUnits?: number;
     locale?: string;
   }): string {
     const locale =
       opts.locale === undefined
         ? this.locale
         : TemporalHelper.ensureLocale({ locale: opts.locale });
-    return TemporalDuration.format({ milliseconds: opts.milliseconds, style: opts.style, locale });
+    return TemporalDuration.format({
+      milliseconds: opts.milliseconds,
+      style: opts.style,
+      pattern: opts.pattern,
+      maxUnits: opts.maxUnits,
+      locale,
+    });
   }
 }

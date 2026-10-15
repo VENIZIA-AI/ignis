@@ -126,7 +126,7 @@ tags: [reference, exports, api]
 
 ## helpers
 
-### `@venizia/ignis-helpers` (425)
+### `@venizia/ignis-helpers` (430)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -330,6 +330,7 @@ tags: [reference, exports, api]
 - `ITcpSocketServerOptions` interface
 - `ITemporalAdapter` interface
 - `ITemporalDurationParts` interface
+- `ITemporalLocaleNames` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -438,6 +439,7 @@ tags: [reference, exports, api]
 - `TDurationUnit` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
+- `TemporalInclusivities` class
 - `TemporalUnits` class
 - `TError` type
 - `TErrorByDefinition` type
@@ -495,6 +497,7 @@ tags: [reference, exports, api]
 - `TreeBuilder` class
 - `TreeWalker` class
 - `TRegisterErrors` type
+- `TRelativeUnit` type
 - `TResolver` type
 - `TResponsedError` type
 - `TRetryBackoffStrategy` type
@@ -506,6 +509,8 @@ tags: [reference, exports, api]
 - `TStringConstValue` type
 - `TTask` type
 - `TTemporalDurationStyle` type
+- `TTemporalFields` type
+- `TTemporalInclusivity` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TTimerHandle` type
@@ -619,7 +624,7 @@ tags: [reference, exports, api]
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (138)
+### `@venizia/ignis-helpers/core` (143)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -682,6 +687,7 @@ tags: [reference, exports, api]
 - `ISnowflakeParsedId` interface
 - `ITemporalAdapter` interface
 - `ITemporalDurationParts` interface
+- `ITemporalLocaleNames` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -716,6 +722,7 @@ tags: [reference, exports, api]
 - `TBuildInfoRecord` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
+- `TemporalInclusivities` class
 - `TemporalUnits` class
 - `TError` type
 - `TErrorByDefinition` type
@@ -740,10 +747,13 @@ tags: [reference, exports, api]
 - `TreeBuilder` class
 - `TreeWalker` class
 - `TRegisterErrors` type
+- `TRelativeUnit` type
 - `TResponsedError` type
 - `TRetryBackoffStrategy` type
 - `TRetryJitterMode` type
 - `TTemporalDurationStyle` type
+- `TTemporalFields` type
+- `TTemporalInclusivity` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TUidCaseForm` type
@@ -773,7 +783,7 @@ tags: [reference, exports, api]
 - `uuidV5` const
 - `uuidV7` const
 
-### `@venizia/ignis-helpers/temporal` (23)
+### `@venizia/ignis-helpers/temporal` (28)
 
 - `DayjsTemporalAdapter` class
 - `DEFAULT_TEMPORAL_LOCALE` const
@@ -786,6 +796,7 @@ tags: [reference, exports, api]
 - `IntlTemporalAdapter` class
 - `ITemporalAdapter` interface
 - `ITemporalDurationParts` interface
+- `ITemporalLocaleNames` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -794,8 +805,12 @@ tags: [reference, exports, api]
 - `NativeTemporalAdapter` class
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
+- `TemporalInclusivities` class
 - `TemporalUnits` class
+- `TRelativeUnit` type
 - `TTemporalDurationStyle` type
+- `TTemporalFields` type
+- `TTemporalInclusivity` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 
@@ -2085,7 +2100,7 @@ tags: [reference, exports, api]
 
 ## core-server
 
-### `@venizia/ignis` (1018)
+### `@venizia/ignis` (1023)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2572,6 +2587,7 @@ tags: [reference, exports, api]
 - `ITcpSocketServerOptions` interface
 - `ITemporalAdapter` interface
 - `ITemporalDurationParts` interface
+- `ITemporalLocaleNames` interface
 - `ITemporalNamespace` interface
 - `ITemporalParts` interface
 - `ITemporalZonedDateTime` interface
@@ -2856,6 +2872,7 @@ tags: [reference, exports, api]
 - `TDurationUnit` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
+- `TemporalInclusivities` class
 - `TemporalUnits` class
 - `TEntityDataObject` type
 - `TEntityId` type
@@ -2993,6 +3010,7 @@ tags: [reference, exports, api]
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
 - `TRelationType` type
+- `TRelativeUnit` type
 - `TRepositoryErrorCode` type
 - `TRepositoryLogOptions` type
 - `TRepositoryMetadata` type
@@ -3040,6 +3058,8 @@ tags: [reference, exports, api]
 - `TTableSchemaWithId` type
 - `TTask` type
 - `TTemporalDurationStyle` type
+- `TTemporalFields` type
+- `TTemporalInclusivity` type
 - `TTemporalInput` type
 - `TTemporalUnit` type
 - `TTimerHandle` type

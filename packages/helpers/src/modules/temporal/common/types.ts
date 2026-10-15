@@ -1,3 +1,4 @@
+import type { TemporalUnits, TTemporalUnit } from './constants';
 /** What a date-taking method accepts: a `Date`, epoch milliseconds, or an ISO 8601 string. */
 export type TTemporalInput = Date | number | string;
 
@@ -82,3 +83,22 @@ export interface ITemporalDurationParts {
   seconds: number;
   milliseconds: number;
 }
+
+/**
+ * A locale's own wording, over what `Intl` writes for it: month names (January first), weekday
+ * names in ISO order (Monday first), and the AM and PM markers. Any list left out stays `Intl`'s.
+ */
+export interface ITemporalLocaleNames {
+  months?: ReadonlyArray<string>;
+  monthsShort?: ReadonlyArray<string>;
+  weekdays?: ReadonlyArray<string>;
+  weekdaysShort?: ReadonlyArray<string>;
+  weekdaysMin?: ReadonlyArray<string>;
+  meridiem?: readonly [string, string];
+}
+
+/** The fields `set` replaces on the wall clock: `month` is 1-12. */
+export type TTemporalFields = Partial<ITemporalParts>;
+
+/** The units `Intl.RelativeTimeFormat` speaks: every temporal unit but the millisecond. */
+export type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>;

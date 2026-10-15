@@ -137,12 +137,61 @@ Without a `unit`, `relative` says the largest whole unit that has passed. With o
 
 ```typescript
 temporal.compare({ value: a, other: b, unit: TemporalUnits.DAY }); // -1, 0 or 1 - is a before, on, or after b's day?
+temporal.isSame({ value: a, other: b, unit: TemporalUnits.DAY }); // true on the same day in the zone
+temporal.isBetween({ value: a, from, to, inclusivity: '[]' }); // both ends count
 temporal.diff({ value: b, other: a, unit: TemporalUnits.MONTH }); // whole months from a to b
 temporal.tryParse({ value: input }); // a Date, or null where parse would throw
+temporal.tryToDate({ value: row.paidAt }); // a Date, or null for null, undefined or bad input
+temporal.format({ value: row.paidAt, pattern: 'DD/MM/YYYY', fallback: '--' }); // '--' when there is no date
 temporal.formatDuration({ milliseconds: 5_400_000 }); // '1h30m'
 ```
 
-`diff` is the inverse of `add`: `diff(add(x, n), x)` is `n`, except in a zone that skipped a whole day (Samoa on 2011-12-30). Hours and smaller count elapsed time; days and larger count the calendar, so the 23-hour day of a spring-forward jump is one day.
+`diff` counts as dayjs does, truncated toward zero, and `diff(a, b)` is always `-diff(b, a)`:
+
+- Hours and smaller count elapsed time.
+- Days and weeks count the wall clocks in the zone, so the 23-hour day of a spring-forward jump is one day.
+- Months, quarters and years anchor on the date with the later day of the month. From Feb 28 23:59 to Mar 31 12:00 is 0 months: Mar 31 less a month is Feb 28 12:00, before the start.
+
+`null` is never a date: `toDate`, `compare` and `format` throw a 400 for it, `isValid` answers `false`.
+
+### Set fields, and clone a helper for another locale
+
+```typescript
+temporal.set({ value: order.createdAt, hour: 9, minute: 0 }); // 09:00 that day, in the zone
+temporal.set({ value: '2026-01-31T10:00:00+07:00', month: 2 }); // Feb 28 - the day clamps to the month
+
+const english = temporal.clone({ locale: 'en-US' }); // same zone, adapter and names
+```
+
+### Write a clock face, or the largest unit only
+
+```typescript
+temporal.formatDuration({ milliseconds: 3_723_000, pattern: 'HH:mm:ss' }); // '01:02:03'
+temporal.formatDuration({ milliseconds: 4_500_000, pattern: 'mm:ss' }); // '75:00' - the largest token carries the rest
+temporal.formatDuration({ milliseconds: 7_500_000, style: 'long', maxUnits: 1 }); // '2 hours'
+```
+
+Face tokens are `DD D HH H mm m ss s SSS`, text in `[brackets]`.
+
+### Use your own month and weekday names
+
+```typescript
+const temporal = new TemporalHelper({
+  timeZone: 'Asia/Ho_Chi_Minh',
+  locale: 'vi-VN',
+  names: {
+    'vi-VN': {
+      weekdaysShort: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'], // Monday first
+      monthsShort: ['Th1', 'Th2', 'Th3', 'Th4', 'Th5', 'Th6', 'Th7', 'Th8', 'Th9', 'Th10', 'Th11', 'Th12'],
+      meridiem: ['AM', 'PM'],
+    },
+  },
+});
+
+temporal.format({ value: paidAt, pattern: 'ddd D MMM, hh:mm A' }); // 'T7 19 Th9, 12:00 PM'
+```
+
+`names` replaces `Intl`'s wording for the locale it is keyed by: `months`, `monthsShort` (January first), `weekdays`, `weekdaysShort`, `weekdaysMin` (Monday first) and `meridiem`. A list of the wrong length fails when the helper is built.
 
 ### Move a date by days, months or hours
 
@@ -275,6 +324,7 @@ The same names ship from `@venizia/ignis-helpers` and from the browser-safe `@ve
 | `adapter` | `ITemporalAdapter` | `NativeTemporalAdapter` when the runtime has `Temporal`, `IntlTemporalAdapter` otherwise | Converts time zones |
 | `timeZone` | `string` | `'UTC'` | The IANA zone every call uses unless it passes its own. Checked when the helper is built |
 | `locale` | `string` | `'en-US'` | Spells name tokens, relative time and durations, unless a call passes its own. A malformed tag is a 400 |
+| `names` | `Record<string, ITemporalLocaleNames>` | none | Your own month and weekday names and AM/PM marker, per locale, over `Intl`'s |
 | `scope` | `string` | `'TemporalHelper'` | Logger scope, from `BaseHelper` |
 
 ### Methods
@@ -286,25 +336,30 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `getTimeZone()` | `string` | The helper's zone |
 | `getLocale()` | `string` | The helper's locale |
 | `now()` | `Date` | The current instant |
-| `toDate({ value, timeZone })` | `Date` | The instant `value` names. An ISO string without an offset is wall clock in the zone |
+| `toDate({ value, timeZone })` | `Date` | The instant `value` names. An ISO string without an offset is wall clock in the zone. `null` is a 400 |
+| `tryToDate({ value, timeZone })` | `Date \| null` | `toDate`, answering `null` for null, undefined, bad text or `NaN` |
 | `parts({ value, timeZone })` | `IZonedTemporalParts` | The wall clock in the zone, with the ISO weekday and the offset |
 | `parse({ value, pattern, timeZone })` | `Date` | Reads a string: an exact match with `pattern`, ISO 8601 without. An offset in the value wins over the zone |
 | `tryParse({ value, pattern, timeZone })` | `Date \| null` | `parse`, answering `null` where `parse` throws a 400. A broken pattern still throws |
-| `isValid({ value, pattern, timeZone })` | `boolean` | Whether the value names an instant in years 1-9999; a string is read as `parse` reads it |
-| `format({ value, pattern, timeZone, locale })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ` |
+| `isValid({ value, pattern, timeZone })` | `boolean` | Whether the value names an instant in years 1-9999; a string is read as `parse` reads it. `null` and `undefined` are `false` |
+| `format({ value, pattern, timeZone, locale, fallback })` | `string` | Writes the value in the zone. `pattern` defaults to `YYYY-MM-DDTHH:mm:ss.SSSZ`. With `fallback`, a value that is not a date writes the fallback |
 | `formatIntl({ value, options, timeZone, locale })` | `string` | Writes the value with `Intl.DateTimeFormat` options, in the zone |
-| `add({ value, amount, unit, timeZone })` | `Date` | Moves the value by whole units - see [Units](#units) |
+| `add({ value, amount, unit, timeZone })` | `Date` | Moves the value - see [Units](#units). An hour or smaller takes a fraction (`1.5` hours is 90 minutes); a calendar unit takes whole numbers only |
+| `set({ value, year, month, day, hour, minute, second, millisecond, timeZone })` | `Date` | Replaces wall-clock fields in the zone; `month` is 1-12; the day clamps to the month |
 | `subtract({ value, amount, unit, timeZone })` | `Date` | `add` with the sign flipped |
 | `startOf({ value, unit, timeZone })` | `Date` | The first instant of the unit containing the value |
 | `endOf({ value, unit, timeZone })` | `Date` | The last millisecond of that unit |
 | `isWeekday({ value, timeZone })` | `boolean` | Monday to Friday, on the zone's wall clock |
 | `nextWeekday({ value, timeZone })` | `Date` | The next Monday-to-Friday day, same wall time |
 | `previousWeekday({ value, timeZone })` | `Date` | The previous Monday-to-Friday day, same wall time |
-| `diff({ value, other, unit, timeZone })` | `number` | Whole units from `other` to `value`, truncated toward zero. The largest `n` that `add` can move `other` by without passing `value` |
+| `diff({ value, other, unit, timeZone })` | `number` | Whole units from `other` to `value`, truncated toward zero, counted as dayjs counts - see [Compare and measure](#compare-and-measure) |
 | `compare({ value, other, unit, timeZone })` | `-1 \| 0 \| 1` | Before, in or after the unit holding `other`. Without `unit`, to the millisecond |
+| `isBefore`, `isAfter`, `isSame`, `isSameOrBefore`, `isSameOrAfter` `({ value, other, unit, timeZone })` | `boolean` | `compare` as a yes or no |
+| `isBetween({ value, from, to, unit, inclusivity, timeZone })` | `boolean` | Between the two ends, in either order. `inclusivity` is `()` (default), `[]`, `[)` or `(]` - `TemporalInclusivities` |
 | `relative({ value, base, unit, numeric, style, timeZone, locale })` | `string` | `value` relative to `base` (default now), through `Intl.RelativeTimeFormat`. `unit` has no millisecond |
 | `durationParts({ milliseconds })` | `ITemporalDurationParts` | Days, hours, minutes, seconds and milliseconds; a day is 24 hours |
-| `formatDuration({ milliseconds, style, locale })` | `string` | `compact` (default) writes `1d1h30m`; `narrow`, `short` and `long` use the locale's unit words. Zero units and milliseconds are left out |
+| `formatDuration({ milliseconds, style, pattern, maxUnits, locale })` | `string` | `compact` (default) writes `1d1h30m`; `narrow`, `short` and `long` use the locale's unit words. `maxUnits` keeps the largest units; `pattern` writes a clock face instead |
+| `clone({ locale, timeZone })` | `TemporalHelper` | A helper like this one with another locale or zone: same adapter and names |
 
 ### Units
 
@@ -316,6 +371,7 @@ Every method takes one options object. `value` is a `TTemporalInput`: a `Date`, 
 | `DAY` | One calendar day in the zone, same wall time | 00:00 in the zone |
 | `WEEK` | Seven calendar days | Monday, 00:00 |
 | `MONTH` | One calendar month, the day clamped to the month's end | The 1st, 00:00 |
+| `QUARTER` | Three calendar months, clamped the same way | January, April, July or October 1, 00:00 |
 | `YEAR` | Twelve calendar months, clamped the same way | January 1, 00:00 |
 
 ### Pattern tokens
@@ -339,6 +395,8 @@ Examples format `2026-09-19T05:04:03.021Z` in `Asia/Ho_Chi_Minh`.
 | `hh` / `h` | Hour 1-12, padded / unpadded. Writing only | `12` / `12` |
 | `A` / `a` | AM/PM marker, as written / lower case. Writing only | `PM` / `pm` |
 | `L` / `LL` | The date in the locale's numeric order / its long form. Writing only | `09/19/2026` / `September 19, 2026` |
+| `dd` | Weekday name, narrowest. Writing only | `S` (vi-VN: `T7`) |
+| `Q` | Quarter, 1-4. Writing only | `3` |
 | `[text]` | Literal text | `[at]` writes `at` |
 | `T` | A literal `T` - the one letter allowed without brackets | `T` |
 
@@ -406,11 +464,11 @@ interface ITemporalAdapter {
 **Files:**
 
 - [`packages/helpers/src/modules/temporal/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/helper.ts) - `TemporalHelper`
-- [`packages/helpers/src/modules/temporal/pattern.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/pattern.ts) - the pattern dialect
-- [`packages/helpers/src/modules/temporal/calendar.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/calendar.ts) - day and month arithmetic
+- [`packages/helpers/src/modules/temporal/pattern/pattern.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/pattern/pattern.ts) - the pattern dialect
+- [`packages/helpers/src/modules/temporal/calendar/calendar.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/calendar/calendar.ts) - day and month arithmetic
 - [`packages/helpers/src/modules/temporal/adapters/intl.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/intl.ts) - `IntlTemporalAdapter`
-- [`packages/helpers/src/modules/temporal/locale.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/locale.ts) - month and weekday names per locale
-- [`packages/helpers/src/modules/temporal/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/duration.ts) - `durationParts` and `formatDuration`
+- [`packages/helpers/src/modules/temporal/locale/locale.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/locale/locale.ts) - month and weekday names per locale
+- [`packages/helpers/src/modules/temporal/duration/duration.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/duration/duration.ts) - `durationParts` and `formatDuration`
 - [`packages/helpers/src/modules/temporal/adapters/native.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/native.ts) - `NativeTemporalAdapter`
 - [`packages/helpers/src/modules/temporal/adapters/dayjs.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/dayjs.ts) - `DayjsTemporalAdapter`
 - [`packages/helpers/src/modules/temporal/adapters/luxon.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/temporal/adapters/luxon.ts) - `LuxonTemporalAdapter`

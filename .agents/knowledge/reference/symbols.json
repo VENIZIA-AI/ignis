@@ -1310,7 +1310,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 39,
+      "line": 41,
       "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
     },
     {
@@ -1320,7 +1320,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 36,
+      "line": 38,
       "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
     },
     {
@@ -1330,7 +1330,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 33,
+      "line": 35,
       "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
     },
     {
@@ -2481,7 +2481,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 59,
+      "line": 60,
       "signature": "interface IDayjsFactory"
     },
     {
@@ -2491,7 +2491,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 53,
+      "line": 54,
       "signature": "interface IDayjsInstance"
     },
     {
@@ -2941,7 +2941,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 65,
+      "line": 66,
       "signature": "interface ILuxonDateTime"
     },
     {
@@ -2951,7 +2951,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 72,
+      "line": 73,
       "signature": "interface ILuxonDateTimeFactory"
     },
     {
@@ -3991,7 +3991,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "interface ITemporalAdapter"
     },
     {
@@ -4001,8 +4001,18 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 77,
+      "line": 78,
       "signature": "interface ITemporalDurationParts"
+    },
+    {
+      "name": "ITemporalLocaleNames",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 91,
+      "signature": "interface ITemporalLocaleNames"
     },
     {
       "name": "ITemporalNamespace",
@@ -4011,7 +4021,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 44,
+      "line": 45,
       "signature": "interface ITemporalNamespace"
     },
     {
@@ -4021,7 +4031,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface ITemporalParts"
     },
     {
@@ -4031,7 +4041,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface ITemporalZonedDateTime"
     },
     {
@@ -4321,7 +4331,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 16,
+      "line": 17,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
     },
     {
@@ -4721,7 +4731,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
-      "line": 12,
+      "line": 11,
       "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
@@ -7616,6 +7626,16 @@
       "signature": "type TRelationalDriver<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema, Client = unknown> = IRelationalDriver<TRelationalConnector<Schema>, Client>"
     },
     {
+      "name": "TRelativeUnit",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 104,
+      "signature": "type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>"
+    },
+    {
       "name": "TRepositoryErrorCode",
       "package": "@venizia/ignis",
       "subpath": ".",
@@ -8082,8 +8102,28 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 55,
+      "line": 57,
       "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
+      "name": "TTemporalFields",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 101,
+      "signature": "type TTemporalFields = Partial<ITemporalParts>"
+    },
+    {
+      "name": "TTemporalInclusivity",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 78,
+      "signature": "type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>"
     },
     {
       "name": "TTemporalInput",
@@ -8092,7 +8132,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 2,
+      "line": 3,
       "signature": "type TTemporalInput = Date | number | string"
     },
     {
@@ -8102,7 +8142,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 30,
+      "line": 32,
       "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
@@ -8382,7 +8422,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 42,
+      "line": 44,
       "signature": "class TemporalDurationStyles"
     },
     {
@@ -8392,8 +8432,18 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 81,
+      "line": 102,
       "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalInclusivities",
+      "package": "@venizia/ignis",
+      "subpath": ".",
+      "specifier": "@venizia/ignis",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 60,
+      "signature": "class TemporalInclusivities"
     },
     {
       "name": "TemporalUnits",
@@ -22401,7 +22451,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 39,
+      "line": 41,
       "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
     },
     {
@@ -22411,7 +22461,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 36,
+      "line": 38,
       "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
     },
     {
@@ -22421,7 +22471,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 33,
+      "line": 35,
       "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
     },
     {
@@ -22852,7 +22902,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 59,
+      "line": 60,
       "signature": "interface IDayjsFactory"
     },
     {
@@ -22862,7 +22912,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 53,
+      "line": 54,
       "signature": "interface IDayjsInstance"
     },
     {
@@ -23052,7 +23102,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 65,
+      "line": 66,
       "signature": "interface ILuxonDateTime"
     },
     {
@@ -23062,7 +23112,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 72,
+      "line": 73,
       "signature": "interface ILuxonDateTimeFactory"
     },
     {
@@ -23632,7 +23682,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "interface ITemporalAdapter"
     },
     {
@@ -23642,8 +23692,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 77,
+      "line": 78,
       "signature": "interface ITemporalDurationParts"
+    },
+    {
+      "name": "ITemporalLocaleNames",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 91,
+      "signature": "interface ITemporalLocaleNames"
     },
     {
       "name": "ITemporalNamespace",
@@ -23652,7 +23712,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 44,
+      "line": 45,
       "signature": "interface ITemporalNamespace"
     },
     {
@@ -23662,7 +23722,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface ITemporalParts"
     },
     {
@@ -23672,7 +23732,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface ITemporalZonedDateTime"
     },
     {
@@ -23872,7 +23932,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 16,
+      "line": 17,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
     },
     {
@@ -24052,7 +24112,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
-      "line": 12,
+      "line": 11,
       "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
@@ -25027,6 +25087,16 @@
       "signature": "type TRegisterErrors<T extends Record<string, TErrorDefinition>> = Record<T[keyof T]['message']['code'], true>"
     },
     {
+      "name": "TRelativeUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 104,
+      "signature": "type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>"
+    },
+    {
       "name": "TResolver",
       "package": "@venizia/ignis-helpers",
       "subpath": ".",
@@ -25133,8 +25203,28 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 55,
+      "line": 57,
       "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
+      "name": "TTemporalFields",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 101,
+      "signature": "type TTemporalFields = Partial<ITemporalParts>"
+    },
+    {
+      "name": "TTemporalInclusivity",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 78,
+      "signature": "type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>"
     },
     {
       "name": "TTemporalInput",
@@ -25143,7 +25233,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 2,
+      "line": 3,
       "signature": "type TTemporalInput = Date | number | string"
     },
     {
@@ -25153,7 +25243,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 30,
+      "line": 32,
       "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
@@ -25333,7 +25423,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 42,
+      "line": 44,
       "signature": "class TemporalDurationStyles"
     },
     {
@@ -25343,8 +25433,18 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 81,
+      "line": 102,
       "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalInclusivities",
+      "package": "@venizia/ignis-helpers",
+      "subpath": ".",
+      "specifier": "@venizia/ignis-helpers",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 60,
+      "signature": "class TemporalInclusivities"
     },
     {
       "name": "TemporalUnits",
@@ -27003,7 +27103,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 39,
+      "line": 41,
       "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
     },
     {
@@ -27013,7 +27113,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 36,
+      "line": 38,
       "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
     },
     {
@@ -27023,7 +27123,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 33,
+      "line": 35,
       "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
     },
     {
@@ -27123,7 +27223,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 59,
+      "line": 60,
       "signature": "interface IDayjsFactory"
     },
     {
@@ -27133,7 +27233,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 53,
+      "line": 54,
       "signature": "interface IDayjsInstance"
     },
     {
@@ -27223,7 +27323,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 65,
+      "line": 66,
       "signature": "interface ILuxonDateTime"
     },
     {
@@ -27233,7 +27333,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 72,
+      "line": 73,
       "signature": "interface ILuxonDateTimeFactory"
     },
     {
@@ -27413,7 +27513,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "interface ITemporalAdapter"
     },
     {
@@ -27423,8 +27523,18 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 77,
+      "line": 78,
       "signature": "interface ITemporalDurationParts"
+    },
+    {
+      "name": "ITemporalLocaleNames",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 91,
+      "signature": "interface ITemporalLocaleNames"
     },
     {
       "name": "ITemporalNamespace",
@@ -27433,7 +27543,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 44,
+      "line": 45,
       "signature": "interface ITemporalNamespace"
     },
     {
@@ -27443,7 +27553,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface ITemporalParts"
     },
     {
@@ -27453,7 +27563,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface ITemporalZonedDateTime"
     },
     {
@@ -27523,7 +27633,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 16,
+      "line": 17,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
     },
     {
@@ -27593,7 +27703,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
-      "line": 12,
+      "line": 11,
       "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
     },
     {
@@ -27917,6 +28027,16 @@
       "signature": "type TRegisterErrors<T extends Record<string, TErrorDefinition>> = Record<T[keyof T]['message']['code'], true>"
     },
     {
+      "name": "TRelativeUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 104,
+      "signature": "type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>"
+    },
+    {
       "name": "TResponsedError",
       "package": "@venizia/ignis-helpers",
       "subpath": "./core",
@@ -27953,8 +28073,28 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 55,
+      "line": 57,
       "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
+      "name": "TTemporalFields",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 101,
+      "signature": "type TTemporalFields = Partial<ITemporalParts>"
+    },
+    {
+      "name": "TTemporalInclusivity",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 78,
+      "signature": "type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>"
     },
     {
       "name": "TTemporalInput",
@@ -27963,7 +28103,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 2,
+      "line": 3,
       "signature": "type TTemporalInput = Date | number | string"
     },
     {
@@ -27973,7 +28113,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 30,
+      "line": 32,
       "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
@@ -28003,7 +28143,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 42,
+      "line": 44,
       "signature": "class TemporalDurationStyles"
     },
     {
@@ -28013,8 +28153,18 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 81,
+      "line": 102,
       "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalInclusivities",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./core",
+      "specifier": "@venizia/ignis-helpers/core",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 60,
+      "signature": "class TemporalInclusivities"
     },
     {
       "name": "TemporalUnits",
@@ -29153,7 +29303,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 39,
+      "line": 41,
       "signature": "DEFAULT_TEMPORAL_LOCALE = \"en-US\""
     },
     {
@@ -29163,7 +29313,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 36,
+      "line": 38,
       "signature": "DEFAULT_TEMPORAL_PATTERN = \"YYYY-MM-DDTHH:mm:ss.SSSZ\""
     },
     {
@@ -29173,7 +29323,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "const",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 33,
+      "line": 35,
       "signature": "DEFAULT_TEMPORAL_TIME_ZONE = \"UTC\""
     },
     {
@@ -29193,7 +29343,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 59,
+      "line": 60,
       "signature": "interface IDayjsFactory"
     },
     {
@@ -29203,7 +29353,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 53,
+      "line": 54,
       "signature": "interface IDayjsInstance"
     },
     {
@@ -29213,7 +29363,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 65,
+      "line": 66,
       "signature": "interface ILuxonDateTime"
     },
     {
@@ -29223,7 +29373,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 72,
+      "line": 73,
       "signature": "interface ILuxonDateTimeFactory"
     },
     {
@@ -29233,7 +29383,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 28,
+      "line": 29,
       "signature": "interface ITemporalAdapter"
     },
     {
@@ -29243,8 +29393,18 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 77,
+      "line": 78,
       "signature": "interface ITemporalDurationParts"
+    },
+    {
+      "name": "ITemporalLocaleNames",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "interface",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 91,
+      "signature": "interface ITemporalLocaleNames"
     },
     {
       "name": "ITemporalNamespace",
@@ -29253,7 +29413,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 44,
+      "line": 45,
       "signature": "interface ITemporalNamespace"
     },
     {
@@ -29263,7 +29423,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 5,
+      "line": 6,
       "signature": "interface ITemporalParts"
     },
     {
@@ -29273,7 +29433,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 36,
+      "line": 37,
       "signature": "interface ITemporalZonedDateTime"
     },
     {
@@ -29283,7 +29443,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "interface",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 16,
+      "line": 17,
       "signature": "interface IZonedTemporalParts extends ITemporalParts"
     },
     {
@@ -29313,8 +29473,18 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/adapters/native.ts",
-      "line": 12,
+      "line": 11,
       "signature": "class NativeTemporalAdapter implements ITemporalAdapter"
+    },
+    {
+      "name": "TRelativeUnit",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 104,
+      "signature": "type TRelativeUnit = Exclude<TTemporalUnit, typeof TemporalUnits.MILLISECOND>"
     },
     {
       "name": "TTemporalDurationStyle",
@@ -29323,8 +29493,28 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 55,
+      "line": 57,
       "signature": "type TTemporalDurationStyle = TConstValue<typeof TemporalDurationStyles>"
+    },
+    {
+      "name": "TTemporalFields",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/types.ts",
+      "line": 101,
+      "signature": "type TTemporalFields = Partial<ITemporalParts>"
+    },
+    {
+      "name": "TTemporalInclusivity",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "type",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 78,
+      "signature": "type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>"
     },
     {
       "name": "TTemporalInput",
@@ -29333,7 +29523,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/types.ts",
-      "line": 2,
+      "line": 3,
       "signature": "type TTemporalInput = Date | number | string"
     },
     {
@@ -29343,7 +29533,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "type",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 30,
+      "line": 32,
       "signature": "type TTemporalUnit = TConstValue<typeof TemporalUnits>"
     },
     {
@@ -29353,7 +29543,7 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/common/constants.ts",
-      "line": 42,
+      "line": 44,
       "signature": "class TemporalDurationStyles"
     },
     {
@@ -29363,8 +29553,18 @@
       "specifier": "@venizia/ignis-helpers/temporal",
       "kind": "class",
       "file": "packages/helpers/src/modules/temporal/helper.ts",
-      "line": 81,
+      "line": 102,
       "signature": "class TemporalHelper extends BaseHelper"
+    },
+    {
+      "name": "TemporalInclusivities",
+      "package": "@venizia/ignis-helpers",
+      "subpath": "./temporal",
+      "specifier": "@venizia/ignis-helpers/temporal",
+      "kind": "class",
+      "file": "packages/helpers/src/modules/temporal/common/constants.ts",
+      "line": 60,
+      "signature": "class TemporalInclusivities"
     },
     {
       "name": "TemporalUnits",
