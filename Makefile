@@ -4,9 +4,9 @@
 
 .PHONY: all
 
-DEFAULT_GOAL := help
+# A bare `make` prints the target list; `make all` / `make build` builds.
+.DEFAULT_GOAL := help
 
-# The first target, so a bare `make` runs it.
 all: build
 
 # Every package, in the order `clean` walks them and `lint-<pkg>` / `fmt-<pkg>` are generated for.
