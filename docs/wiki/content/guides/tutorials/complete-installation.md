@@ -32,7 +32,7 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti tsc-alias
+bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint tsc-alias
 ```
 
 **What `@venizia/dev-configs` provides:**
@@ -93,7 +93,7 @@ import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 export default defineConfig(oxfmtConfigs);
 ```
 
-`.configs/eslint.config.mts` runs the naming-convention rule, the one rule oxlint cannot run yet:
+`.configs/eslint.config.mjs` runs the naming-convention rule, the one rule oxlint cannot run yet:
 
 ```typescript
 import { namingConventionConfigs } from '@venizia/dev-configs/linters';
@@ -386,8 +386,8 @@ Add common application scripts to your `package.json`:
 
 ```json
 "scripts": {
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",

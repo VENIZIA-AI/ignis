@@ -136,7 +136,7 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
  * next to `oxlintConfigs`. It needs no type information, so ESLint stays fast.
  *
  * ```js
- * // .configs/eslint.config.mts
+ * // .configs/eslint.config.mjs
  * import { namingConventionConfigs } from '@venizia/dev-configs/linters';
  *
  * export default namingConventionConfigs;

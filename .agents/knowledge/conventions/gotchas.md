@@ -24,7 +24,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
 - [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
 - [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
-- [ESLint needs `jiti` for an `eslint.config.mts`](#eslint-needs-jiti-for-an-eslintconfigmts)
+- [The ESLint config is `.mjs`: a TypeScript one needs `jiti`](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
 - [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
 
 **Browser purity**
@@ -141,7 +141,7 @@ not close it either - the directive then resolves through node module resolution
 
 This reaches **any** consumer of those published types, not just `core-worker`.
 `examples/browser-bff` reproduces it from its own import graph. So the author-time defence in both is
-a `no-restricted-globals` and `no-restricted-imports` block in `.configs/eslint.config.mts`, with the builtin
+a `no-restricted-globals` and `no-restricted-imports` block in `.configs/eslint.config.mjs`, with the builtin
 list derived from `node:module`'s `builtinModules` rather than hand-written. Scope the `files` glob to
 `{ts,tsx,mts,cts}`: a package that sets `jsx` can have a `.tsx` production file, and a `.ts`-only glob
 leaves it with no rule at all.
@@ -611,14 +611,14 @@ sidebar layout.
 - Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `fmt-%` are static
   pattern rules (`$(LINT_PKG_TARGETS): lint-%:`), not plain `lint-%:` rules.
 
-## ESLint needs jiti for an eslint.config.mts
+## The ESLint config is .mjs: a TypeScript one needs jiti
 
-ESLint 10 loads a TypeScript config through `jiti` and fails without it: "The 'jiti' library is
-required for loading TypeScript configuration files". A workspace can hide this - bun links `jiti` as
-ESLint's optional peer when any other package already pulled it in - so the repository ran green while
-a clean install of the packed `@venizia/dev-configs` failed. Every project with a
-`.configs/eslint.config.mts` declares `jiti` in its own devDependencies; `dev-configs` lists it as an
-optional peer.
+ESLint 10 loads a TypeScript config (`.ts`, `.mts`, `.cts`) only through `jiti`, and fails without it:
+"The 'jiti' library is required for loading TypeScript configuration files". A workspace can hide
+this - bun links `jiti` as ESLint's optional peer when another package already pulled it in - so the
+repository ran green while a clean install of the packed `@venizia/dev-configs` failed. To keep the
+dependency out, every `.configs/eslint.config.*` is `.mjs` (plain JavaScript, loaded natively). oxlint
+and oxfmt read `.mts` configs on their own, so those stay `.mts`.
 
 ## oxlint exits 0 on warnings
 

@@ -67,10 +67,10 @@ rebuild: typecheck clean
 
 lint:
 	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings .
-	@$(BIN)/eslint -c .configs/eslint.config.mts .
+	@$(BIN)/eslint -c .configs/eslint.config.mjs .
 	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB)
 
 fmt:
 	@$(BIN)/oxlint -c .configs/oxlint.config.mts --fix .
-	@$(BIN)/eslint -c .configs/eslint.config.mts --fix .
+	@$(BIN)/eslint -c .configs/eslint.config.mjs --fix .
 	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB)

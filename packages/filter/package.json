@@ -75,9 +75,8 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@venizia/dev-configs": "^0.2.1",
+    "@venizia/dev-configs": "^0.3.0",
     "eslint": "catalog:",
-    "jiti": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

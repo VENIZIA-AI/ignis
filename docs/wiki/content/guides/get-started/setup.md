@@ -87,7 +87,7 @@ Create `.vscode/settings.json` in your project:
   "oxc.configPath": ".configs/oxlint.config.mts",
   "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
   "oxc.typeAware": true,
-  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mts" },
+  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mjs" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   }

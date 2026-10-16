@@ -9,7 +9,7 @@ description: "The IGNIS repository replaces Prettier and most of ESLint with oxl
 
 <Badge type="tip" text="New Feature" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** `@venizia/dev-configs` now ships oxlint and oxfmt configs next to the ESLint and Prettier ones, and the IGNIS repository uses them.
+**In one line.** `@venizia/dev-configs` **0.3.0** ships oxlint and oxfmt configs next to the ESLint and Prettier ones, and the IGNIS repository uses them. It is the only package released for this change.
 
 ```typescript
 // .configs/oxlint.config.mts
@@ -26,7 +26,7 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 - **oxlint replaces ESLint for linting.** `oxlintConfigs` is a rule-for-rule port of the previous preset. Type-aware rules run through `oxlint-tsgolint`.
 - **oxfmt replaces Prettier.** `oxfmtConfigs` holds the same seven options as `prettierConfigs`.
 - **ESLint stays for one rule.** `@typescript-eslint/naming-convention` has no oxlint port yet, so `namingConventionConfigs` runs it alone.
-- **Every project owns a `.configs/` folder.** It holds `oxlint.config.mts`, `oxfmt.config.mts` and `eslint.config.mts`. Packages also keep `tsconfig.build.json` and `tsconfig.esm.json` there. `tsconfig.json` stays at the project root.
+- **Every project owns a `.configs/` folder.** It holds `oxlint.config.mts`, `oxfmt.config.mts` and `eslint.config.mjs`. Packages also keep `tsconfig.build.json` and `tsconfig.esm.json` there. `tsconfig.json` stays at the project root.
 - **`eslintConfigs` is owned by IGNIS.** It no longer wraps `@minimaltech/eslint-node`. The rules live in `linters/eslint.ts` and resolve to the same config as before, rule for rule.
 - **The TypeScript target is ES2025.** `tsconfig.base.json` and `tsconfig.common.json` move from ES2024 to ES2025, target and lib. The emitted JavaScript of every IGNIS package is unchanged; the gain is the ES2025 types (`Set` methods, iterator helpers, `Promise.try`).
 - **New `@venizia/dev-configs` exports.** Subpaths `/compilers`, `/formatters` and `/linters`, plus one class per rule (see the table below).
@@ -75,18 +75,18 @@ oxlint exits 0 when it finds only warnings, so every lint call passes `--deny-wa
 
    ```bash
    bun remove prettier
-   bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti
+   bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint
    ```
 
-2. Create `.configs/oxlint.config.mts`, `.configs/oxfmt.config.mts` and `.configs/eslint.config.mts` with the three snippets in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
-   ESLint loads a `.mts` config through `jiti`, so `jiti` must be a devDependency. A repository can
-   appear to work without it when another package already pulled `jiti` in; a clean install fails.
+2. Create `.configs/oxlint.config.mts`, `.configs/oxfmt.config.mts` and `.configs/eslint.config.mjs` with the three snippets in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
+   Keep the ESLint config `.mjs`: ESLint loads a TypeScript config only through `jiti`, one more
+   dependency. oxlint and oxfmt read their `.mts` configs on their own.
 3. Update your scripts to pass `-c`:
 
    ```json
    {
-     "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-     "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
+     "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+     "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
    }
    ```
 
@@ -100,7 +100,8 @@ oxlint exits 0 when it finds only warnings, so every lint call passes `--deny-wa
 - **Unused disable comments.** Drop `--report-unused-disable-directives`. oxlint does not run the naming-convention rule, so it would flag every naming disable comment as unused.
 - **Stricter checks.** oxlint caught four real `no-unsafe-optional-chaining` bugs that ESLint missed: `(x?.y as T).z` still throws when `x` is undefined.
 - **Not ported.** `prefer-optional-chain` (an oxlint nursery rule) and `no-invalid-this` (covered by `noImplicitThis`). `n/prefer-node-protocol` became `unicorn/prefer-node-protocol`.
-- **Peer dependencies.** `oxlint` (>=1.88.0), `oxfmt` (>=0.73.0) and `oxlint-tsgolint` (>=7.0.2004) are new optional peers. `typescript-eslint` is a new dependency.
+- **Peer dependencies.** `oxlint` (>=1.88.0), `oxfmt` (>=0.73.0), and `oxlint-tsgolint` (>=7.0.2004) are new optional peers. `typescript-eslint` is a new dependency.
+- **Upgrading the range.** 0.3.0 is a minor bump on a 0.x package, so a `^0.2.x` range does not reach it - write `^0.3.0`.
 - **TypeScript.** `oxlint-tsgolint` is built on TypeScript 7 and works in a project on 6.
 - **Build.** `tsc-alias` must read the root `tsconfig.json`, not a `.configs/` one, or `@/...` imports stay unrewritten in `dist`. `dev-configs` now compiles with target ES2024.
 
