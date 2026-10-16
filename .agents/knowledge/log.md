@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - release.ts: package names and the second table refresh
+
+Updated [release and publish](/process/release-publish.md).
+
+- `release.ts <pkg>` dropped the first package name unless `--chain-released` was passed; the parsing moved to `scripts/release-args.ts` with a test that failed on the old logic (issue #172).
+- The atlas tail refreshes the generated tables once more after atlas publishes, so `develop` no longer sits one release entry behind with `test-scripts` red.
+
 ## 2026-10-16 - Bun ignores a package tsconfig extends
 
 Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md), [boot lifecycle](/architecture/boot-lifecycle.md).
