@@ -58,7 +58,7 @@ endif
 # A stale .tsbuildinfo next to a .configs/ tsconfig makes tsc think it is up to date and emit
 # nothing - a "DONE" build with an empty dist.
 clean:
-	@rm -rf dist *.tsbuildinfo .configs/*.tsbuildinfo .eslintcache artifact.zip
+	@rm -rf dist *.tsbuildinfo .configs/*.tsbuildinfo
 
 # Type-check before cleaning: a failure after clean leaves an empty dist, which looks like a hundred
 # unrelated import failures downstream.
