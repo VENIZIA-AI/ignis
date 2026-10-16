@@ -48,6 +48,15 @@ import errors, check whether `dist/` is empty first - a fresh clone or worktree 
 symptom for the simpler reason that it has never been built. See
 [gotchas](/conventions/gotchas.md) for the full mechanics.
 
+## Spawning a child process
+
+Call `spawnSyncBounded` from the package's `src/__tests__/spawn.helper.ts`, never `Bun.spawnSync` directly.
+`spawnSync` blocks the worker thread, so bun's own test timeout cannot fire while it waits, and the
+`timeout` option sends only SIGTERM, which a stuck child can outlive - `compiled-binary.test.ts` once
+stalled the helpers suite for 770s that way. The helper defaults to a 120s bound, always kills with
+SIGKILL and throws naming the command. Each package with spawning tests carries its own copy, like
+`rejection.helper.ts`.
+
 ## Related
 
 - [Coding style](/conventions/coding-style.md)

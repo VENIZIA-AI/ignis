@@ -12,6 +12,7 @@ import {
 } from '@/modules/temporal';
 import type { TTemporalUnit } from '@/modules/temporal';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -344,7 +345,7 @@ describe('the date-picker bridge', () => {
       console.log(helper.format({ value: stored, pattern: 'DD/MM/YYYY HH:mm' }));
       console.log(back.getTime() === picked.getTime());
     `;
-      const run = Bun.spawnSync({
+      const run = spawnSyncBounded({
         cmd: [process.execPath, '-e', script],
         cwd: PACKAGE_ROOT,
         env: { ...process.env, TZ: hostZone },
@@ -368,7 +369,7 @@ describe('names do not depend on the host zone', () => {
       const helper = new TemporalHelper({ tz: 'Asia/Ho_Chi_Minh', locale: 'en-US' });
       console.log(helper.format({ value: '2026-01-01T03:00:00+07:00', pattern: 'dddd ddd dd MMMM MMM L LL' }));
     `;
-    const run = Bun.spawnSync({
+    const run = spawnSyncBounded({
       cmd: [process.execPath, '-e', script],
       cwd: PACKAGE_ROOT,
       env: { ...process.env, TZ: 'America/Los_Angeles' },

@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** Each case runs in a fresh process: the factory is module state, and the slot is process-global. */
 const runInFreshProcess = async (opts: { name: string; body: string }): Promise<string> => {
@@ -17,7 +18,7 @@ const runInFreshProcess = async (opts: { name: string; body: string }): Promise<
         `const fakeProvider = { name: 'fake', get: () => fakeLogger };\n` +
         opts.body.replace('__FACTORY__', JSON.stringify(factoryPath)),
     );
-    const result = Bun.spawnSync({
+    const result = spawnSyncBounded({
       cmd: ['bun', script],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',

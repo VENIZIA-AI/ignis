@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /**
  * The `./uuid` subpath exists so a browser bundle can mint an id without the error surface, the
@@ -32,7 +33,7 @@ const gzippedSize = async (opts: { name: string; source: string }): Promise<numb
   const outfile = path.join(probeDirectory, `${opts.name}.bundle.js`);
   await writeFile(entryPath, opts.source);
 
-  const build = Bun.spawnSync({
+  const build = spawnSyncBounded({
     cmd: ['bun', 'build', '--target=browser', '--minify', entryPath, '--outfile', outfile],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

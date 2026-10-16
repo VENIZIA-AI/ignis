@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** node-vault and @dotenvx/dotenvx are OPTIONAL peers - importing the secrets barrel must load neither; their helpers live behind sub-paths and the factory reaches them only via dynamic import, so a stray `export * from './hashicorp'` would reintroduce the eager import. */
 const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<boolean> => {
@@ -8,7 +9,7 @@ const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<b
     const loaded = Object.keys(require.cache ?? {}).some(p => p.includes(${JSON.stringify(peerPathFragment)}));
     console.log(loaded ? 'PEER_LOADED' : 'PEER_ABSENT');
   `;
-  const result = Bun.spawnSync({
+  const result = spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

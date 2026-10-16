@@ -27,6 +27,7 @@ import {
 import { MailService } from '@/components/mail/services';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { FakeMailTransport } from './fakes';
+import { spawnSyncBounded } from '../spawn.helper';
 
 const PATH_REFUSED = 'core.mail.attachment_path_refused';
 const TOO_LARGE = 'core.mail.attachment_too_large';
@@ -756,7 +757,7 @@ describe('Mail attachments - review fixes', () => {
 
   test('a FIFO inside the root is refused at once instead of hanging the send', async () => {
     const fifoPath = join(attachmentRoot, 'pipe');
-    const created = Bun.spawnSync(['mkfifo', fifoPath]);
+    const created = spawnSyncBounded({ cmd: ['mkfifo', fifoPath] });
     expect(created.exitCode).toBe(0);
 
     const { service } = buildService({ attachmentRoot });

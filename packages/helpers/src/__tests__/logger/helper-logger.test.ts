@@ -9,6 +9,7 @@ import type { ILogger } from '@/modules/logger/common/types';
 import { loggerSlot } from '@/modules/logger/slot';
 import type { TLoggerResolver } from '@/modules/logger/slot';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 class ProbeHelper extends BaseHelper {
   constructor() {
@@ -158,7 +159,7 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
       }
       console.log(JSON.stringify({ warnings: warnings.filter(line => line.includes('no logger provider')).length }));
     `;
-    const run = Bun.spawnSync({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
     const report: { warnings: number } = JSON.parse(
       run.stdout.toString().trim().split('\n').at(-1) ?? '{}',
     );
@@ -179,7 +180,7 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
       }
       console.log(JSON.stringify({ warnings: warnings.filter(line => line.includes('no logger provider')).length }));
     `;
-    const run = Bun.spawnSync({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
     const report: { warnings?: number } = JSON.parse(
       run.stdout.toString().trim().split('\n').at(-1) ?? '{}',
     );

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { spawnSyncBounded } from '../../spawn.helper';
 
 /**
  * What `defineEntity` promises is that a WRONG shape stops compiling, which a runtime test cannot
@@ -248,7 +249,7 @@ describe('defineEntity keeps the compiler strict', () => {
       }),
     );
 
-    const result = Bun.spawnSync({
+    const result = spawnSyncBounded({
       cmd: [process.execPath, TSC, '-p', configPath],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',
