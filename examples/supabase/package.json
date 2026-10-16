@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
-    "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
     "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
     "rebuild": "bun run clean && bun run build",
@@ -32,6 +32,7 @@
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
+    "jiti": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

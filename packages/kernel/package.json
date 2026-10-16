@@ -117,6 +117,7 @@
     "@venizia/dev-configs": "^0.2.1",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
+    "jiti": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

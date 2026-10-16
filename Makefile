@@ -221,7 +221,7 @@ update-kernel:
 # Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
 FMT_GLOB := "**/*.{ts,mts,js,mjs}"
 # $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
-LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mts $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
+LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mts $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
 
 LINT_PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server atlas
 LINT_PKG_TARGETS := $(addprefix lint-,$(LINT_PACKAGES))
@@ -387,11 +387,11 @@ clean-install:
 	@echo "🔍 Loading every published sub-path from a clean install..."
 	@bun scripts/clean-install/cli.ts
 
-clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server clean-install-atlas:
+clean-install-dev-configs clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server clean-install-atlas:
 	@echo "🔍 Loading every published sub-path of $(patsubst clean-install-%,%,$@) from a clean install..."
 	@bun scripts/clean-install/cli.ts $(patsubst clean-install-%,%,$@)
 
-clean-install-dev-configs clean-install-core:
+clean-install-core:
 	@echo "ℹ️  No runtime sub-path to load for this package - skipping."
 
 # ----------------------------------------------------------------------------

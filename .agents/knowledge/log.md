@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - pre-release fixes: jiti, deny-warnings, dev-configs install gate
+
+Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md).
+
+- Every project with a `.configs/eslint.config.mts` declares `jiti`; a clean install failed without it.
+- oxlint passes `--deny-warnings` everywhere, since it exits 0 on warnings.
+- `make clean-install` now loads every `dev-configs` sub-path (it skipped the package as config-only).
+
 ## 2026-10-16 - React preset for oxlint
 
 Updated [dev-configs](/packages/dev-configs.md).

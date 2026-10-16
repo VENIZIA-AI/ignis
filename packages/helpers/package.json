@@ -322,6 +322,7 @@
     "eslint": "catalog:",
     "hono": "catalog:",
     "ioredis": "catalog:",
+    "jiti": "catalog:",
     "luxon": "^3.7.2",
     "minio": "^8.0.7",
     "mqtt": "^5.15.2",

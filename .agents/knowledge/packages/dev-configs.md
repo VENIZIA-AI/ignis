@@ -22,7 +22,7 @@ TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/ts
 
 ## oxlint and oxfmt
 
-oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced ESLint and Prettier for everything except one rule. They are optional peer dependencies: `oxlint >=1.88.0`, `oxfmt >=0.73.0`, `oxlint-tsgolint >=7.0.2004`. `typescript-eslint` is a regular dependency.
+oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced ESLint and Prettier for everything except one rule. They are optional peer dependencies: `oxlint >=1.88.0`, `oxfmt >=0.73.0`, `oxlint-tsgolint >=7.0.2004`, and `jiti >=2.2` (ESLint needs it to load an `eslint.config.mts`). `typescript-eslint` is a regular dependency.
 
 - `oxlintConfigs` is the oxlint port of `eslintConfigs`, generated with `@oxlint/migrate`. Three rules are not ported: `prefer-optional-chain` (oxlint nursery), `no-invalid-this` (covered by `noImplicitThis`), and `n/prefer-node-protocol` (now `unicorn/prefer-node-protocol`).
 - `oxfmtConfigs` carries the same seven options the old Prettier config did: `printWidth: 100`, `tabWidth: 2`, `singleQuote: true`, `semi: true`, `trailingComma: "all"`, `arrowParens: "avoid"`, `bracketSpacing: true`.
@@ -51,7 +51,7 @@ oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays fo
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
-`ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` basics, hooks and `consistent-type-imports`, with the UI relaxations (PascalCase functions, no `no-floating-promises`/`no-void`, `no-unused-vars` ignoring `_`). Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule is derived from the base at call time and extended for `.jsx`/`.tsx` only, not copied, so an upstream change to it carries through.
+`ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` basics, hooks and `consistent-type-imports`, with no UI relaxation (decided 2026-10-16: frontend code meets the backend's standard), `exhaustive-deps` an error and `crypto.randomUUID` banned. Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule comes from `NamingConventionRule.build({ extraSelectors })`, extended for `.jsx`/`.tsx` only.
 
 ## Per-project `.configs/` folder
 

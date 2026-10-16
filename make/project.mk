@@ -66,7 +66,7 @@ rebuild: typecheck clean
 	@$(MAKE) --no-print-directory build
 
 lint:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts .
+	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings .
 	@$(BIN)/eslint -c .configs/eslint.config.mts .
 	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB)
 
