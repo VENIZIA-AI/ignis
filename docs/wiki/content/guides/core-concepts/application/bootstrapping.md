@@ -27,7 +27,7 @@ This page is the how-to. The [reference](/references/base/bootstrapping) has eve
 ## Before you start
 
 - `@venizia/ignis` 0.1.x or later, `@venizia/ignis-boot` as a devDependency (it ships the `ignis-artifacts` binary).
-- `experimentalDecorators: true` in the application's own `tsconfig.json`. Under bun, a flag inherited only through `extends` is not enough - see the [gotcha](#if-bun-runs-your-source-directly).
+- `experimentalDecorators: true` and `useDefineForClassFields: false` in the application's own `tsconfig.json`. Bun ignores an `extends` that names a package, so a flag inherited only through `extends` is not enough - see the [gotcha](#if-bun-runs-your-source-directly).
 
 ## 1. Decorate every class the application owns
 

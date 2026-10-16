@@ -343,14 +343,20 @@ formatting churn even when resolved versions are unchanged. Revert the file rath
 
 ## Bun can silently drop @inject when tsconfig extends isn't resolved
 
-If an app's `tsconfig.json` only does `extends: "@venizia/dev-configs/..."` and Bun fails to
-resolve that chain at run time, `experimentalDecorators` effectively turns off and parameter
+Bun ignores a tsconfig `extends` that names a package - measured on Bun 1.4.2 with a real npm
+install: `extends: "@venizia/dev-configs/tsconfig.common.json"` and even the one-level
+`.../tsconfig.base.json` give TC39 decorators; only a relative path one level into `node_modules`, or
+the flag in the project's own file, gives legacy decorators. `tsc` follows the chain, so typecheck and
+build stay green and only `bun run` / `bun test` diverge. So when an app's `tsconfig.json` only does
+`extends: "@venizia/dev-configs/..."`, `experimentalDecorators` is off under Bun and parameter
 decorators are dropped silently - no error, just an injected value that is `undefined` at runtime.
 Class/property decorators (`@controller`, `@model`) keep working, so boot looks fine until a
 handler touches the missing dependency. Method decorators fare worse: Bun falls back to TC39
 decorators, which call the decorator with `(value, context)`, so `@provide` records nothing and a
-provided key is never bound. Fix: declare `experimentalDecorators` directly in the app's own
-`tsconfig.json`, not only via `extends` (kernel and every example do). Add `emitDecoratorMetadata`
+provided key is never bound. Class fields diverge too: Bun uses define semantics, the `tsc` dist
+assign semantics (`useDefineForClassFields: false`), so a suite tests other code than it ships. Fix:
+declare `experimentalDecorators: true` and `useDefineForClassFields: false` directly in every
+`tsconfig.json` Bun runs, not only via `extends` (every package and example does). Add `emitDecoratorMetadata`
 only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
 constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
 core-server's `tsconfig.json` declares `experimentalDecorators` alone (its former `tsconfig.core.json` was merged into it).

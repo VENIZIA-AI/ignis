@@ -127,8 +127,9 @@ is also one of those 3. Every site fails to compile until it is deleted.
 - **Provided key resolves to nothing:** the component was registered with `this.component(...)`
   instead of through the index.
 - **`@provide` records nothing under bun:** the application's `tsconfig.json` inherits
-  `experimentalDecorators` only through `extends`; bun then compiles TC39 decorators and the method
-  decorator receives `(value, context)`. Declare the flag directly - see [Gotchas](/conventions/gotchas.md).
+  `experimentalDecorators` only through `extends`; bun ignores a package `extends`, compiles TC39
+  decorators, and the method decorator receives `(value, context)`. Declare the flag directly - see
+  [Gotchas](/conventions/gotchas.md).
 
 ## Related
 

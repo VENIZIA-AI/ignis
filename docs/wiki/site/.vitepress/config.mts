@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Restate the Decorator Options - Bun Ignores a Package tsconfig extends',
+                  link: '/changelogs/2026-10-16-bun-tsconfig-extends',
+                },
+                {
                   text: 'dev-configs Gains a Browser Tier',
                   link: '/changelogs/2026-10-16-dev-configs-browser-tier',
                 },

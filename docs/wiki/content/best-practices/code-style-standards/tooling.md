@@ -270,7 +270,9 @@ Use the centralized TypeScript configs:
     "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
@@ -293,9 +295,11 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
 `^5.0.0 || ^6.0.0`. Do not upgrade past 6 - `typescript-eslint` breaks. oxlint's type-aware engine is built on TypeScript 7 and still works with a project on 6.
 
 > [!WARNING]
-> Bun does not resolve `experimentalDecorators` / `emitDecoratorMetadata` through `extends`. In an
-> **application** `tsconfig.json` that Bun executes, declare both flags directly in
-> `compilerOptions`, or `@inject` parameter decorators are dropped silently and DI fails at boot.
+> Bun ignores an `extends` that names a package, so none of the options above reach `bun run` or
+> `bun test`. `tsc` follows the chain, so typecheck and build stay green and nothing reports it. In
+> every `tsconfig.json` that Bun runs, restate `"experimentalDecorators": true` and
+> `"useDefineForClassFields": false` in `compilerOptions`. Without them `@inject` parameter decorators
+> are dropped silently, and class fields get other semantics than the `tsc` build.
 
 ## IDE Integration
 

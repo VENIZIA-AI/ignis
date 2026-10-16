@@ -58,11 +58,14 @@ there.
     "outDir": "dist",
     "rootDir": "src",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "useDefineForClassFields": false
   },
   "include": ["src"]
 }
 ```
+
+The two options in `compilerOptions` repeat the base on purpose - see
+[Restate the runtime options](#restate-the-runtime-options-in-your-own-tsconfig).
 
 ### Browser and React projects
 
@@ -76,19 +79,32 @@ browser version. A React project swaps it for the React version, which builds on
 | ESLint | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
 | tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
-## Declare the decorator flag in your own tsconfig
+## Restate the runtime options in your own tsconfig
 
-The base config sets `experimentalDecorators`. But Bun can miss a flag inherited through `extends`
-when it runs your source. Parameter decorators are then dropped with no error, and an `@inject`
-value is `undefined` at run time.
+Bun ignores an `extends` that names a package. With `"extends": "@venizia/dev-configs/tsconfig.common.json"`,
+`bun run` and `bun test` see none of the preset's options - even one level deep (measured on Bun 1.4.2).
+Bun then compiles TC39 decorators: a parameter decorator such as `@inject` is dropped with no error,
+and a method decorator such as `@provide` receives the wrong arguments. Class fields get define
+semantics, while the `tsc` build uses assign semantics.
 
-Declare `experimentalDecorators: true` in your application's own `tsconfig.json`, as in the example
-earlier. Every IGNIS example does.
+`tsc` follows the whole chain, so typecheck and build stay green. Only what Bun runs diverges, which
+is why nothing reports it.
+
+In every `tsconfig.json` that Bun runs - an application, a package whose tests run under
+`bun test`, a browser or React project tested with Bun - restate the options that change the emitted
+code:
+
+```json
+"experimentalDecorators": true,
+"useDefineForClassFields": false
+```
+
+Every IGNIS package and example does.
 
 | Flag | Base value | Why |
 | :--- | :--- | :--- |
 | `experimentalDecorators` | `true` | `@inject`, `@controller`, `@repository` and the other decorators need it |
-| `emitDecoratorMetadata` | `true` | Optional. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent |
+| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import, so import such names with `import type` |
 | `useDefineForClassFields` | `false` | Class fields are assigned, not defined, so a subclass field initializer does not shadow a value the base constructor set |
 
 ## Entry points
