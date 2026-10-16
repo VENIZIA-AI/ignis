@@ -14,6 +14,12 @@
   "releases": {
     "atlas": [
       {
+        "version": "0.1.2-4",
+        "date": "2026-10-15",
+        "sha": "9698f262",
+        "order": 1665
+      },
+      {
         "version": "0.1.2-3",
         "date": "2026-10-15",
         "sha": "4b687e41",
@@ -303,6 +309,12 @@
       }
     ],
     "boot": [
+      {
+        "version": "0.2.1-0",
+        "date": "2026-10-16",
+        "sha": "b5c2a374",
+        "order": 1682
+      },
       {
         "version": "0.2.0",
         "date": "2026-09-24",
@@ -839,6 +851,12 @@
       }
     ],
     "connectors": [
+      {
+        "version": "0.2.2-5",
+        "date": "2026-10-16",
+        "sha": "34c0ba40",
+        "order": 1684
+      },
       {
         "version": "0.2.2-4",
         "date": "2026-10-15",
@@ -2062,6 +2080,12 @@
     ],
     "core-server": [
       {
+        "version": "0.2.2-5",
+        "date": "2026-10-16",
+        "sha": "ea1017ff",
+        "order": 1686
+      },
+      {
         "version": "0.2.2-4",
         "date": "2026-10-15",
         "sha": "1d1b1591",
@@ -2460,6 +2484,12 @@
     ],
     "core-worker": [
       {
+        "version": "0.2.2-5",
+        "date": "2026-10-16",
+        "sha": "09473676",
+        "order": 1685
+      },
+      {
         "version": "0.2.2-4",
         "date": "2026-10-15",
         "sha": "e1647174",
@@ -2809,6 +2839,18 @@
       }
     ],
     "dev-configs": [
+      {
+        "version": "0.3.1-0",
+        "date": "2026-10-16",
+        "sha": "15daf38f",
+        "order": 1678
+      },
+      {
+        "version": "0.3.0",
+        "date": "2026-10-16",
+        "sha": "3655d2d4",
+        "order": 1671
+      },
       {
         "version": "0.2.1",
         "date": "2026-10-12",
@@ -3224,6 +3266,12 @@
     ],
     "filter": [
       {
+        "version": "0.2.2-2",
+        "date": "2026-10-16",
+        "sha": "12cb676f",
+        "order": 1680
+      },
+      {
         "version": "0.2.2-1",
         "date": "2026-10-15",
         "sha": "fe28ce8d",
@@ -3429,6 +3477,12 @@
       }
     ],
     "helpers": [
+      {
+        "version": "0.2.2-5",
+        "date": "2026-10-16",
+        "sha": "d2bc9e32",
+        "order": 1681
+      },
       {
         "version": "0.2.2-4",
         "date": "2026-10-15",
@@ -4206,6 +4260,12 @@
     ],
     "inversion": [
       {
+        "version": "0.2.2-2",
+        "date": "2026-10-16",
+        "sha": "f2be59c4",
+        "order": 1679
+      },
+      {
         "version": "0.2.2-1",
         "date": "2026-10-15",
         "sha": "20176300",
@@ -4567,6 +4627,12 @@
       }
     ],
     "kernel": [
+      {
+        "version": "0.2.2-5",
+        "date": "2026-10-16",
+        "sha": "b017d130",
+        "order": 1683
+      },
       {
         "version": "0.2.2-4",
         "date": "2026-10-15",
@@ -4942,6 +5008,36 @@
     ]
   },
   "changelogs": [
+    {
+      "id": "changelog:2026-10-16-oxlint-oxfmt-migration",
+      "file": "2026-10-16-oxlint-oxfmt-migration.md",
+      "date": "2026-10-16",
+      "title": "IGNIS Lints with oxlint and Formats with oxfmt",
+      "packages": [
+        "dev-configs",
+        "kernel"
+      ],
+      "kind": "New Feature",
+      "order": 1669
+    },
+    {
+      "id": "changelog:2026-10-16-dev-configs-browser-tier",
+      "file": "2026-10-16-dev-configs-browser-tier.md",
+      "date": "2026-10-16",
+      "title": "dev-configs Gains a Browser Tier",
+      "packages": [],
+      "kind": "New Feature",
+      "order": 1675
+    },
+    {
+      "id": "changelog:2026-10-16-bun-tsconfig-extends",
+      "file": "2026-10-16-bun-tsconfig-extends.md",
+      "date": "2026-10-16",
+      "title": "Restate the Decorator Options - Bun Ignores a Package tsconfig extends",
+      "packages": [],
+      "kind": "Bug Fix",
+      "order": 1677
+    },
     {
       "id": "changelog:2026-10-15-temporal-wrapper-surface",
       "file": "2026-10-15-temporal-wrapper-surface.md",
