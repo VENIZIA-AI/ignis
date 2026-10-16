@@ -45,6 +45,14 @@ process.exit(0);
 /** A binary that never exits must fail its test, not stall the suite. */
 const BINARY_TIMEOUT_MS = 30_000;
 
+/**
+ * `spawnSync` blocks the worker thread, so bun's own test timeout cannot fire while it waits - the
+ * `timeout` option is the only bound. Its default signal is SIGTERM, which a stuck child can outlive
+ * (one did: this file once ran for 770s and stalled the whole helpers suite). SIGKILL cannot be
+ * ignored, so the bound holds.
+ */
+const KILL_SIGNAL = 'SIGKILL';
+
 /** Compiling the probe takes about a second alone; the limit only bounds a stall. */
 const BUILD_TIMEOUT_MS = 120_000;
 
@@ -58,6 +66,7 @@ const runBinary = (opts: { mode: string }): string => {
     stdout: 'pipe',
     stderr: 'pipe',
     timeout: BINARY_TIMEOUT_MS,
+    killSignal: KILL_SIGNAL,
   });
   if (run.exitedDueToTimeout) {
     throw new Error(
@@ -77,7 +86,8 @@ describe('optional peers inside a compiled binary', () => {
   beforeAll(async () => {
     // The entry must sit in the package, where ioredis and bullmq resolve at build time; the
     // binary then runs from a directory with no node_modules anywhere above it.
-    const entry = path.join(PACKAGE_ROOT, 'src/__tests__/.compiled-binary-probe.ts');
+    // Named per process: two runs in one checkout would otherwise delete each other's entry.
+    const entry = path.join(PACKAGE_ROOT, `src/__tests__/.compiled-binary-probe-${process.pid}.ts`);
     workDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-compiled-'));
     binary = path.join(workDirectory, 'probe');
 
@@ -91,6 +101,7 @@ describe('optional peers inside a compiled binary', () => {
         stdout: 'pipe',
         stderr: 'pipe',
         timeout: BUILD_TIMEOUT_MS,
+        killSignal: KILL_SIGNAL,
       });
       if (built.exitedDueToTimeout || built.exitCode !== 0) {
         throw new Error(
