@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** Bun.build resolves literal dynamic-import specifiers at bundle time - and `minify.syntax` folds const-held specifiers back to literals - so optional peers must stay invisible or consumers are forced to install/externalize them. */
 /** Probes bundle in subprocesses: in-process Bun.build under `bun test` reports spurious errors for modules other test files already loaded. */
@@ -51,7 +52,7 @@ const buildProbeScript = (opts: { entryPath: string; outdirName: string; withSpy
 const runProbe = async (opts: { name: string; script: string }): Promise<IProbeReport> => {
   const scriptPath = path.join(probeDirectory, `${opts.name}.ts`);
   await writeFile(scriptPath, opts.script);
-  const result = Bun.spawnSync({
+  const result = spawnSyncBounded({
     cmd: ['bun', scriptPath],
     cwd: probeDirectory,
     stdout: 'pipe',

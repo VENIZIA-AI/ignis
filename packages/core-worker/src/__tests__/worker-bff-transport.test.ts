@@ -9,6 +9,7 @@ import type {
   IBffResponseEnvelope,
 } from '@/envelope/common';
 import { expectRejection } from './rejection.helper';
+import { spawnSyncBounded } from './spawn.helper';
 
 type TMessageListener = (event: MessageEvent) => void;
 
@@ -452,7 +453,7 @@ describe('WorkerBffTransport outside a secure context', () => {
       console.log(JSON.stringify({ ids: posted.map(envelope => envelope.id), draws }));
       process.exit(0);
     `;
-    const run = Bun.spawnSync({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
     const report: { ids: Array<string>; draws: number } = JSON.parse(
       lastJsonLine({ output: run.stdout.toString() }),
     );

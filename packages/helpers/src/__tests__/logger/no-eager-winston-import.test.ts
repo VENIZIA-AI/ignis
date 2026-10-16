@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static import in `factory.ts` - it must load lazily, only at the first unregistered log call. */
 const winstonState = async (body: string): Promise<string> => {
@@ -9,7 +10,7 @@ const winstonState = async (body: string): Promise<string> => {
     console.log(loaded ? 'WINSTON_LOADED' : 'WINSTON_ABSENT');
   `;
 
-  const result = Bun.spawnSync({
+  const result = spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

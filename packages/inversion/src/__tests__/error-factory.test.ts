@@ -4,6 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { isApplicationError, MessageCode } from '../index';
+import { spawnSyncBounded } from './spawn.helper';
 
 /** `MessageCode.build` must throw `ApplicationError`, not the module-private fallback `Error` -
  * the shape a bundler silently keeps only when the registration lives in the package entry. */
@@ -57,7 +58,7 @@ describe('MessageCode.build throws ApplicationError, bundled for the browser', (
           `}\n`,
       );
 
-      const build = Bun.spawnSync({
+      const build = spawnSyncBounded({
         cmd: ['bun', 'build', probePath, '--target=browser', `--outfile=${outPath}`],
         stdout: 'pipe',
         stderr: 'pipe',
@@ -66,7 +67,7 @@ describe('MessageCode.build throws ApplicationError, bundled for the browser', (
         throw new Error(`[error-factory] bundle failed: ${build.stderr.toString()}`);
       }
 
-      const run = Bun.spawnSync({ cmd: ['bun', outPath], stdout: 'pipe', stderr: 'pipe' });
+      const run = spawnSyncBounded({ cmd: ['bun', outPath], stdout: 'pipe', stderr: 'pipe' });
       expect(run.stdout.toString().trim()).toBe('ApplicationError 400');
     } finally {
       await rm(probeDirectory, { recursive: true, force: true });

@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - bounded child processes in tests
+
+Updated [testing conventions](/conventions/testing-conventions.md).
+
+- Every `Bun.spawnSync` in the test suites goes through `spawnSyncBounded` (per-package `spawn.helper.ts`): a 120s bound, SIGKILL, a throw naming the command. A SIGTERM-only timeout let a stuck child stall the helpers suite for 770s.
+
 ## 2026-10-16 - ESLint config is .mjs, jiti dropped; dev-configs range ^0.3.0
 
 Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md).

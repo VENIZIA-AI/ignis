@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles. */
 interface TProbeResult {
@@ -20,7 +21,7 @@ interface TProbeResult {
 const runProbe = (opts: { fixture: string; args: string[] }): TProbeResult => {
   const script = `src/__tests__/kafka/fixtures/${opts.fixture}.ts`;
 
-  const executed = Bun.spawnSync({
+  const executed = spawnSyncBounded({
     cmd: ['bun', script, ...opts.args],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

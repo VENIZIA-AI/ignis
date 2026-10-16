@@ -3,6 +3,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { platformaticKafkaPlugins, platformaticWasmPlugin } from '../../../modules/queue/kafka';
+import { spawnSyncBounded } from '../../spawn.helper';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/kafka-entrypoint.ts';
 
@@ -39,7 +40,7 @@ const probe = async (): Promise<void> => {
       return;
     }
 
-    const executed = Bun.spawnSync([outfile]);
+    const executed = spawnSyncBounded({ cmd: [outfile] });
     console.log(
       JSON.stringify({
         success: built.success,

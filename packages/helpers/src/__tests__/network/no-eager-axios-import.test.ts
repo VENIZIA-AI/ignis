@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
+import { spawnSyncBounded } from '../spawn.helper';
 
 /** axios is an OPTIONAL peer - nothing reachable from the root or network barrel may value-import it (AxiosFetcher/AxiosNetworkRequest live behind the `@venizia/ignis-helpers/axios` sub-path); a stray `export * from './axios-fetcher'` reintroduces the eager import silently. */
 const loadsAxios = async (specifier: string): Promise<boolean> => {
@@ -10,7 +11,7 @@ const loadsAxios = async (specifier: string): Promise<boolean> => {
     console.log(loaded ? 'AXIOS_LOADED' : 'AXIOS_ABSENT');
   `;
 
-  const result = Bun.spawnSync({
+  const result = spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',
