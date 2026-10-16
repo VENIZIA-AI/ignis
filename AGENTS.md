@@ -46,17 +46,22 @@ It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`, pack
 |---|---|
 | `search` | Find a chunk by keyword - pass `corpus: "knowledge"` to search this bundle only |
 | `get` | Read one chunk in full, by the id a search hit returned |
+| `symbol` | Locate an exported symbol: its package, import specifier, kind, signature and source line |
+| `version` | Compare the `@venizia/*` packages installed in a directory with the newest known versions |
+| `changes` | List the changelog entries between two versions of a package, or between two dates |
 
 Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
-change. Generated content comes from `make okf-gen`; `make okf-check` validates and is not a commit
-gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
+change. Generated reference files come from `make okf-gen` (and `surface-gen`, `symbols-gen`,
+`releases-gen` for the public surface and the atlas tables); `make okf-check` validates and is not a
+commit gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
 
 ## Shared agent assets (`.agents/`)
 
 ```
 .agents/
 ├── rules.md          # THE rules - W · S · P · B · C, cited by ID
-├── knowledge/        # THE knowledge bundle; knowledge-tools/ holds gen · check · coverage · viz
+├── knowledge/        # THE knowledge bundle
+├── knowledge-tools/  # okf.ts gen · check · coverage · viz, and the knowledge-sync workflow
 ├── plugin/           # setup.ts, the project skills, the shared Claude settings and session hook
 │   ├── skills/       # knowledge-sync · update-wiki - symlinked into your agent by setup
 │   └── claude/       # settings.json + hooks/session-start.ts - merged into .claude/ by setup

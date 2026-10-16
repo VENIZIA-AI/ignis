@@ -45,16 +45,17 @@ Replace the generated `tsconfig.json`:
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"]
 }
 ```
 
 > [!IMPORTANT]
-> Declare `experimentalDecorators` and `emitDecoratorMetadata` **inline**, even though the shared
-> config already sets them. Bun does not read them through `extends`, and without them `@inject` and
-> the route decorators are dropped silently.
+> Declare these options **inline**, even though the shared config already sets them. Bun ignores an
+> `extends` that names a package, so without them `@inject` and the route decorators are dropped
+> silently. `tsc` follows `extends`, so typecheck and build stay green - only what Bun runs breaks.
 
 ## Hello world
 
@@ -160,7 +161,7 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> ignis
 
 | Package | Role | Latest | Next |
 | :--- | :--- | ---: | ---: |
-| [`@venizia/dev-configs`](packages/dev-configs/) | Shared ESLint, Prettier and TypeScript configs | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm next](https://img.shields.io/npm/v/@venizia/dev-configs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
+| [`@venizia/dev-configs`](packages/dev-configs/) | Shared lint, format and TypeScript presets: oxlint, oxfmt, ESLint (naming), tsconfig - backend, browser and React | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm next](https://img.shields.io/npm/v/@venizia/dev-configs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
 | [`@venizia/ignis-inversion`](packages/inversion/) | The standalone IoC container, its decorators, and the shared error type | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-inversion/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
 | [`@venizia/ignis-filter`](packages/filter/) | The query filter language and its Zod schemas, shared by every connector | [![npm](https://img.shields.io/npm/v/@venizia/ignis-filter.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-filter) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-filter/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-filter) |
 | [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, IDs, secrets, time zones | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-helpers/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
@@ -267,8 +268,8 @@ bun scripts/examples.ts check   # the examples: artifact index, lint, typecheck
 
 IGNIS needs Bun 1.4 or later, for applications and contributors alike.
 
-Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*` / `fix/*`, and **pull
-requests target `develop`**. Bun only - never npm, yarn, or pnpm. See
+Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*`, `fix/*`, `docs/*`,
+`chore/*` or `test/*`, and **pull requests target `develop`**. Bun only - never npm, yarn, or pnpm. See
 [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
 [SECURITY.md](SECURITY.md).
 
