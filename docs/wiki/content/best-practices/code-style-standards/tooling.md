@@ -196,9 +196,18 @@ In the IGNIS repository, the Makefile runs each package with its own tools:
 
 Packages carry no lint scripts of their own. Examples keep `lint` and `lint:fix` because they are templates you copy.
 
-### A React frontend
+### A browser or React frontend
 
-A React app swaps two of the three `.configs/` files for their React versions. oxlint runs the React, hooks and accessibility rules natively, so there is no plugin to install:
+The presets so far target a backend. Code that runs in a browser swaps them for the browser tier, and a React app for the React tier, which builds on the browser one:
+
+| File | Backend | Browser | React |
+|---|---|---|---|
+| `.configs/oxlint.config.mts` | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
+| `.configs/oxfmt.config.mts` | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
+| `.configs/eslint.config.mjs` | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
+| `tsconfig.json` extends | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
+
+A React app's lint files look like this. oxlint runs the React, hooks and accessibility rules natively, so there is no plugin to install:
 
 ```typescript
 // .configs/oxlint.config.mts
@@ -215,15 +224,23 @@ import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 export default reactNamingConventionConfigs;
 ```
 
-`.configs/oxfmt.config.mts` stays the same.
+The browser tier adds one rule to the backend preset, plus two format changes:
+
+| Adds | Setting |
+|---|---|
+| `no-restricted-properties` | bans `crypto.randomUUID`, which is `undefined` on a plain-http origin or in a WebView |
+| `browserOxfmtConfigs` | `arrowParens: 'always'` (`(x) => x`) and `bracketSameLine: true` (the closing `>` of a JSX element stays on its last attribute line) |
+| `tsconfig.browser.json` | `moduleResolution: bundler`, the `DOM` lib, `types: []` so no Bun types reach `dist` |
+
+The React tier adds these on top of the browser tier:
 
 | Adds | Setting |
 |---|---|
 | React correctness (`jsx-key`, `no-children-prop`, ... - 13 rules) and `jsx-a11y` basics (9 rules) | `error`, `.jsx`/`.tsx` |
 | `react/rules-of-hooks`, `react/exhaustive-deps` | `error`, every source file |
 | `typescript/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
-| `no-restricted-properties` | bans `crypto.randomUUID`, which is `undefined` on a plain-http origin or in a WebView |
 | `naming-convention` (ESLint) | the base rule, plus PascalCase functions (`function App()`) on `.jsx`/`.tsx` |
+| `tsconfig.react.json` | `jsx: react-jsx` |
 
 Frontend code is held to the backend's standard: nothing in the base is relaxed, so a floating promise, a `void`, a use before declaration or a shadowed name fails the lint. An app that wants less overrides the rule after the preset:
 

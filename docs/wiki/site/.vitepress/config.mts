@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'dev-configs Gains a Browser Tier',
+                  link: '/changelogs/2026-10-16-dev-configs-browser-tier',
+                },
+                {
                   text: 'IGNIS Lints with oxlint and Formats with oxfmt',
                   link: '/changelogs/2026-10-16-oxlint-oxfmt-migration',
                 },

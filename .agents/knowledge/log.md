@@ -17,6 +17,16 @@ Updated [build system](/process/build-system.md), [build, run, test](/overview/b
 - A bare `make` prints `make help` (`.DEFAULT_GOAL`; the old `DEFAULT_GOAL` had no dot and did nothing). The help rows go through one `printf`, so they align.
 - The `makefile-targets` generator reads make's database (`make -pRrq`), so the generated targets are listed, and takes each description from the target's `make help` row.
 
+||||||| 0a41768d
+
+## 2026-10-16 - dev-configs browser tier
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- New exports: `BrowserOxlintConfigs.create()`, `browserOxfmtConfigs`, `tsconfig.browser.json` and `tsconfig.react.json` (issue #163). They cover browser code without React; ARDOR repeated these overrides in every project.
+- `ReactOxlintConfigs` now builds on `BrowserOxlintConfigs`. The `crypto.randomUUID` ban moved to the top-level `rules`, so it also covers `.mjs` and `.cjs` files. Every other rule is unchanged.
+- The lint tools stay installed by the consuming app. dev-configs does not bundle them (decided 2026-10-16).
+
 ## 2026-10-16 - bounded child processes in tests
 
 Updated [testing conventions](/conventions/testing-conventions.md).

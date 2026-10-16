@@ -16,9 +16,9 @@ import { oxfmtConfigs } from '@venizia/dev-configs/formatters';      // oxfmt co
 import { namingConventionConfigs } from '@venizia/dev-configs/linters'; // ESLint, naming rule only
 ```
 
-The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
+The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
 
-TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json` and `@venizia/dev-configs/tsconfig.common.json` are package.json `exports` entries that map to `src/tsconfig/` (`files` ships it). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`. The package's own `tsconfig.json` extends its own `src/tsconfig/tsconfig.common.json`.
+TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json`, `tsconfig.common.json`, `tsconfig.browser.json` and `tsconfig.react.json` are package.json `exports` entries that map to `src/tsconfig/` (`files` ships it). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`. The package's own `tsconfig.json` extends its own `src/tsconfig/tsconfig.common.json`.
 
 ## oxlint and oxfmt
 
@@ -41,9 +41,23 @@ NoRestrictedImportsRule.build({ extraPaths: [/* ... */] })
 
 Some classes carry defaults (`NamingConventionRule.SELECTORS`, `NoRestrictedImportsRule.PATHS`).
 
+### Browser and React tiers
+
+There are three tiers. The backend tier is `oxlintConfigs`, `oxfmtConfigs` and `tsconfig.common.json`. The browser tier is for browser code without React. The React tier builds on the browser tier. ARDOR asked for the browser tier because it repeated the same overrides in every project (issue #163).
+
+| Tool | Browser | React |
+|---|---|---|
+| oxlint | `BrowserOxlintConfigs.create()` (`linters/browser.ts`): `oxlintConfigs` plus `NoRestrictedPropertiesRule` in the top-level `rules` | `ReactOxlintConfigs.create()`, built on the browser preset |
+| oxfmt | `browserOxfmtConfigs`: `arrowParens: 'always'`, `bracketSameLine: true` | the same |
+| tsconfig | `tsconfig.browser.json`: extends the **base**, not `common`; `module: ESNext`, `moduleResolution: bundler`, lib `ES2025` + `DOM` + `DOM.Iterable`, `types: []` | `tsconfig.react.json`: the browser config plus `jsx: react-jsx` |
+
+The backend presets did not change. The backend keeps `arrowParens: 'avoid'`, a choice the user made. `types: []` keeps Bun's globals out of a browser `dist`.
+
+Moving the ban into the browser tier changed the React preset in one way. The ban used to sit in an override limited to `js/jsx/ts/tsx/mts/cts`. It is now in the top-level `rules`, so it covers every file, `.mjs` and `.cjs` included. Every other rule is identical: 147 keys, checked by diffing against the 0.3.0 config.
+
 ### React preset for oxlint
 
-Every lint preset, backend and React, lives here; ARDOR consumes them. `ReactOxlintConfigs.create()` is `oxlintConfigs` plus the `react` / `jsx-a11y` rules of `ReactEslintConfigs` (minus `react/no-deprecated`, which oxlint lacks), the hooks rules, `consistent-type-imports` and `NoRestrictedPropertiesRule` (`crypto.randomUUID` is undefined outside a secure context). Nothing in the base is relaxed for a UI (decided 2026-10-16: frontend code meets the backend's standard - no floating promise, no `void`) and `exhaustive-deps` is an error; `ReactEslintConfigs` follows the same rule and bans `crypto.randomUUID` too. The values match what ARDOR measured for its strict variant. `reactNamingConventionConfigs` adds the PascalCase function selector on `.jsx` / `.tsx`. oxlint has no `no-restricted-syntax`, so the secure-context ban is `no-restricted-properties`.
+Every lint preset (backend, browser and React) lives here, and ARDOR consumes them. `ReactOxlintConfigs.create()` is `BrowserOxlintConfigs.create()` plus three groups of rules: the `react` / `jsx-a11y` rules of `ReactEslintConfigs`, the hooks rules, and `consistent-type-imports`. `react/no-deprecated` is the one `ReactEslintConfigs` rule left out, because oxlint lacks it. The browser preset supplies the `crypto.randomUUID` ban, because that method is undefined outside a secure context. Nothing in the base is relaxed for a UI (decided 2026-10-16: frontend code meets the backend's standard - no floating promise, no `void`) and `exhaustive-deps` is an error; `ReactEslintConfigs` follows the same rule and bans `crypto.randomUUID` too. The values match what ARDOR measured for its strict variant. `reactNamingConventionConfigs` adds the PascalCase function selector on `.jsx` / `.tsx`. oxlint has no `no-restricted-syntax`, so the secure-context ban is `no-restricted-properties`.
 
 ## ESLint - naming convention only
 
