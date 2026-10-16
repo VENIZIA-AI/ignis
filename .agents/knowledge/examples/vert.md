@@ -66,8 +66,8 @@ every row in `PolicyDefinition`, `Permission`, `Role` and `Organization`, and ru
   `GET /auth/who-am-i` for the token's payload instead.
 - `src/migration-schema.ts` lists every table drizzle-kit reads, including the static-asset
   component's `MetaLink` table - a table missing there is a table `migrate:generate` never sees.
-- This example needs `docker compose up -d` first; it is not in the root Makefile's
-  `EXAMPLES_SMOKE` list, so its `bun test` runs locally, not in CI.
+- This example needs `docker compose up -d` first; it is not in the `SMOKE_EXAMPLES`
+  list of `scripts/examples.ts`, so its `bun test` runs locally, not in CI.
 
 ## Related
 - [pglite-quickstart](/examples/pglite-quickstart.md)

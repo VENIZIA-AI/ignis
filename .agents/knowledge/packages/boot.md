@@ -91,7 +91,8 @@ exit 2.
   stereotype re-exported through a local wrapper module is not recognised - the import must name an
   IGNIS module.
 - **The index is a lint gate, not a build step.** `check` belongs where lint runs; in this repo
-  `make artifacts-check` (a prerequisite of `make lint-examples`) runs vert's `check:artifacts`.
+  `bun scripts/examples.ts artifacts` (the first step of its `lint` and `check`) runs vert's
+  `check:artifacts`.
 - **Inside the monorepo the examples run the CLI from source** (`bun ../../packages/boot/src/clis/artifacts.ts`)
   so a fresh checkout without a built `dist` still generates; external applications use the bin.
 - **Tests** in `src/__tests__/generator/` run against fixtures under

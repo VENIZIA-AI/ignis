@@ -231,7 +231,7 @@ Every example lives in [`examples/`](examples/).
 
 | Example | What it shows | Smoke test |
 | :--- | :--- | :--- |
-| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | CI (`make examples-smoke`) |
+| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | CI (`bun scripts/examples.ts smoke`) |
 | [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | CI |
 | [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | CI |
 | [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | CI (Bun Worker) |
@@ -262,6 +262,7 @@ bun install
 make build          # every package in dependency order, then the wiki and its checks
 make test-all
 make lint-all
+bun scripts/examples.ts check   # the examples: artifact index, lint, typecheck
 ```
 
 IGNIS needs Bun 1.4 or later, for applications and contributors alike.

@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**79 targets.**
+**75 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -16,23 +16,6 @@ tags: [reference, make, build]
 | `make install` | - | Installing dependencies (with force-update via postinstall) |
 | `make clean` | - | Cleaning all packages |
 | `make setup-hooks` | - | Setting up git hooks |
-| `make okf-check` | - | - |
-| `make okf-gen` | - | - |
-| `make okf-coverage` | - | - |
-| `make okf-viz` | - | - |
-| `make split-report` | - | - |
-| `make surface-gen` | - | - |
-| `make surface-check` | - | - |
-| `make symbols-gen` | - | - |
-| `make symbols-check` | - | - |
-| `make releases-gen` | - | - |
-| `make releases-check` | - | - |
-| `make wiki-links-check` | - | - |
-| `make wiki-anchors-check` | - | - |
-| `make agent-setup` | - | - |
-| `make catalog-check` | - | - |
-| `make release-plan` | - | - |
-| `make release` | - | - |
 | `make build` | `build-all` | - |
 | `make build-all` | `core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check` | All packages rebuilt successfully. |
 | `make dev-configs` | - | Rebuilding @venizia/dev-configs |
@@ -58,20 +41,31 @@ tags: [reference, make, build]
 | `make update-filter` | - | Force updating @venizia/ignis-filter |
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
+| `make okf-check` | - | - |
+| `make okf-gen` | - | - |
+| `make okf-coverage` | - | - |
+| `make okf-viz` | - | - |
+| `make split-report` | - | - |
+| `make surface-gen` | - | - |
+| `make surface-check` | - | - |
+| `make symbols-gen` | - | - |
+| `make symbols-check` | - | - |
+| `make releases-gen` | - | - |
+| `make releases-check` | - | - |
+| `make wiki-links-check` | - | - |
+| `make wiki-anchors-check` | - | - |
+| `make agent-setup` | - | - |
+| `make catalog-check` | - | - |
+| `make release-plan` | - | - |
+| `make release` | - | - |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples typecheck-examples lint-scripts` | All linting completed. |
+| `make lint-all` | `lint-packages lint-scripts` | All linting completed. |
 | `make lint-packages` | `$(LINT_PKG_TARGETS)` | - |
 | `make fmt` | `fmt-packages` | - |
 | `make fmt-packages` | `$(FMT_PKG_TARGETS)` | - |
 | `make lint-core` | `lint-core-server` | - |
-| `make lint-examples` | `artifacts-check` | Linting all examples |
-| `make typecheck-examples` | - | Typechecking all examples |
-| `make artifacts-check` | - | Checking generated artifact indexes |
 | `make lint-wiki` | - | Linting docs/wiki |
 | `make lint-scripts` | - | Linting scripts/ |
-| `make purity` | - | Checking browser purity for all claimed entries |
-| `make purity-test` | - | Running the purity probe's regression tests |
-| `make test-scripts` | - | Running the repository gate scripts' regression tests |
 | `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas` | - |
 | `make test-inversion` | - | - |
 | `make test-helpers` | - | - |
@@ -81,7 +75,9 @@ tags: [reference, make, build]
 | `make test-core-worker` | - | - |
 | `make test-core-server` | - | - |
 | `make test-atlas` | - | - |
-| `make examples-smoke` | - | Smoke-testing examples: $(EXAMPLES_SMOKE) |
+| `make test-scripts` | - | Running the repository gate scripts' regression tests |
+| `make purity` | - | Checking browser purity for all claimed entries |
+| `make purity-test` | - | Running the purity probe's regression tests |
 | `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |
 | `make purity-filter` | - | Checking browser purity for @venizia/ignis-filter |
 | `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |

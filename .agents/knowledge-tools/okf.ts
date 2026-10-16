@@ -177,7 +177,16 @@ const collectMakefileTargets = (): MakeTarget[] => {
     return [];
   }
 
-  const lines = readFileSync(PATHS.makefile, 'utf8').split('\n');
+  // The root Makefile plus the make/*.mk files it includes, in include order.
+  const makefiles = [PATHS.makefile];
+  for (const line of readFileSync(PATHS.makefile, 'utf8').split('\n')) {
+    const include = line.match(/^include\s+(\S+)/);
+    if (include) {
+      makefiles.push(join(REPO, include[1]));
+    }
+  }
+
+  const lines = makefiles.flatMap((file) => readFileSync(file, 'utf8').split('\n'));
   const out: MakeTarget[] = [];
 
   for (let index = 0; index < lines.length; index++) {
@@ -186,7 +195,7 @@ const collectMakefileTargets = (): MakeTarget[] => {
       continue;
     }
 
-    // Description: the first `@echo "…"` of the recipe, stripped of emoji and trailing dots.
+    // Description: the first non-empty `@echo "…"` of the recipe, stripped of emoji and trailing dots.
     let description = '';
     for (let cursor = index + 1; cursor < lines.length; cursor++) {
       const line = lines[cursor];
@@ -194,7 +203,7 @@ const collectMakefileTargets = (): MakeTarget[] => {
         break;
       }
 
-      const echo = line.match(/@echo\s+"([^"]*)"/);
+      const echo = line.match(/@echo\s+"([^"]+)"/);
       if (echo) {
         description = echo[1]
           .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')

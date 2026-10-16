@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - Makefile split by job; the examples leave make
+
+Updated [build system](/process/build-system.md), [build, run, test](/overview/build-run-test.md), [testing](/process/testing.md), [git workflow](/process/git-workflow.md), [docs writing style](/conventions/docs-writing-style.md), [boot](/packages/boot.md), the example concepts.
+
+- The root `Makefile` sets `PACKAGES` and includes `make/build.mk`, `knowledge.mk`, `release.mk`, `lint.mk`, `test.mk` and `help.mk`. Every target that stayed produces the same `make -n` output as before.
+- The example gates moved out of make (the user wants the Makefiles to cover only the packages). `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every example, and `smoke` runs the smoke tests. CI and the pre-commit hook call it next to `make lint-all`, which now covers the packages and `scripts/` only.
+- The `makefile-targets` generator reads the included files and skips an empty `@echo ""` when it picks a description.
+
 ## 2026-10-16 - bounded child processes in tests
 
 Updated [testing conventions](/conventions/testing-conventions.md).

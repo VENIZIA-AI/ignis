@@ -14,9 +14,10 @@ echo ""
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
 
-# Run lint on all packages and examples
+# Lint the packages and scripts/, then the examples (which make does not drive)
 echo "📦 Linting all packages and examples..."
 make lint-all
+bun scripts/examples.ts check
 
 echo ""
 echo "✅ Pre-commit checks passed!"

@@ -60,7 +60,8 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 ```bash
 make lint             # lint packages/ only (oxlint, naming-convention ESLint, oxfmt --check)
 make lint-<package>   # one package, by directory name: make lint-kernel
-make lint-all         # packages, examples, example typecheck and scripts/
+make lint-all         # packages and scripts/
+bun scripts/examples.ts check   # examples: artifact index, lint, typecheck (not in make)
 make fmt              # format packages/ (oxfmt); make fmt-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
@@ -70,7 +71,7 @@ make setup-hooks      # git config core.hooksPath .githooks
 `purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
 entry claimed (`dev-configs`, `boot`, `core`, `core-server`, `atlas`) have a target that just skips.
 
-`.githooks/pre-commit` runs **only** `make lint-all` - nothing else. Purity is a CI gate, run per
+`.githooks/pre-commit` runs **only** `make lint-all` and `bun scripts/examples.ts check` - nothing else. Purity is a CI gate, run per
 package by the release workflow, so a green commit says nothing about it.
 
 ## Gotchas that aren't obvious from reading the code

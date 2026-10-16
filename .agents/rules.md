@@ -96,7 +96,7 @@ Chặn: <what blocks, or "không có">
 
 | ID | Rule |
 |---|---|
-| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`. |
+| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`, and the examples with `bun scripts/examples.ts check`. |
 | **B-02** | **Zero lint errors and zero warnings, build green, after every change.** Non-negotiable; nothing is complete until it passes. |
 | **B-03** | **Verify before claiming.** Run the command, read the output, then say it passes. Evidence before assertions. A step that failed or was skipped is reported as such. |
 | **B-04** | **Know the two build traps.** A stale `.tsbuildinfo` makes `tsc` believe it is up to date and emit nothing - a build that prints `DONE` over an empty `dist/`; `make clean` (part of `make rebuild`) removes the ones under `.configs/` too. `tsc-alias` must read the package's root `tsconfig.json`: pointed at a `.configs/` file it resolves `paths` there and leaves every `@/` import unrewritten. Build through `make` (`make/project.mk` type-checks every emitted program before `clean`, and calls each tool by absolute path), and confirm the `DONE` line. |
@@ -136,7 +136,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 
 | Rule | Enforced by | Actually blocks? |
 |---|---|---|
-| B-02 | `make lint-all`, `make build`, run by hand | No automatic gate |
+| B-02 | `make lint-all`, `bun scripts/examples.ts check`, `make build`, run by hand | No automatic gate |
 | P-03 | `make okf-check` when the bundle is touched; the `knowledge-sync` skill periodically | No, by decision - a per-commit check cannot tell whether prose is still true |
 | W group, P-09, P-10, B-03, B-05, P-05, P-15, W-02 | `.agents/plugin/claude/hooks/session-start.ts` prints them into every Claude session, extracted from this file at run time | Reminds, never blocks |
 | everything else | this file | No |

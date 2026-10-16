@@ -38,7 +38,7 @@ bun run build             # tsc -b, then vite build - fails where the client no 
 
 ## Notable / non-obvious
 
-- This example has no `bun run test` script and is not in `EXAMPLES_SMOKE` - only the server side of
+- This example has no `bun run test` script and is not in `SMOKE_EXAMPLES` - only the server side of
   the pair gets a smoke test in CI.
 - `bun run generate` needs the server running; regenerate after any change to
   `rpc-api-server`'s routes or schemas, or the build fails on the mismatch.
