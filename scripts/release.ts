@@ -21,6 +21,8 @@
  * releases atlas last; `--no-atlas` opts out for a one-package fix.
  */
 
+import { parseReleaseArgs, type TReleaseMode } from './release-args';
+
 const WORKFLOW = 'package-release.yml';
 const BRANCH = 'develop';
 
@@ -52,15 +54,6 @@ const RELEASE_ORDER = [
   'core-server',
   'atlas',
 ] as const;
-
-type TReleaseMode =
-  | 'patch'
-  | 'minor'
-  | 'major'
-  | 'prepatch'
-  | 'preminor'
-  | 'premajor'
-  | 'prerelease';
 
 /** The workflow publishes a stable bump under `latest` and a pre* bump under `next`. */
 const STABLE_MODES: ReadonlySet<TReleaseMode> = new Set(['patch', 'minor', 'major']);
@@ -372,9 +365,12 @@ const releasePackage = async (opts: {
  * framework release and atlas's own: the tables are generated FROM release commits, so they are
  * always stale by exactly the chain that just shipped.
  */
-const refreshGeneratedTables = async (opts: { issue?: string }): Promise<void> => {
-  const subject = 'chore(atlas): refresh the generated tables for the release';
-  console.log('\n▶ refreshing the tables atlas ships');
+const refreshGeneratedTables = async (opts: {
+  issue?: string;
+  subject?: string;
+}): Promise<void> => {
+  const subject = opts.subject ?? 'chore(atlas): refresh the generated tables for the release';
+  console.log(`\n▶ ${subject}`);
   await run({ command: ['make', 'releases-gen'] });
   await run({ command: ['make', 'symbols-gen'] });
 
@@ -395,24 +391,10 @@ const refreshGeneratedTables = async (opts: { issue?: string }): Promise<void> =
 };
 
 const main = async (): Promise<void> => {
-  const args = Bun.argv.slice(2);
-  const isDryRun = args.includes('--dry-run');
-  const isConfirmed = args.includes('--yes');
-  const skipAtlas = args.includes('--no-atlas');
-  const modeIndex = args.indexOf('--mode');
-  const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;
-  // Resuming a chain that stopped: the packages an earlier run already published, so the next ones
-  // trust their workspace version instead of waiting for npm to show them.
-  const seedIndex = args.indexOf('--chain-released');
-  const seeded = seedIndex >= 0 ? (args[seedIndex + 1] ?? '').split(',').filter(Boolean) : [];
-  const issueIndex = args.indexOf('--issue');
-  const issue = issueIndex >= 0 ? args[issueIndex + 1] : undefined;
-  if (issueIndex >= 0 && !/^\d+$/.test(issue ?? '')) {
-    throw new Error(`--issue needs an issue number, got: ${issue ?? 'nothing'}`);
-  }
-
-  const named = args.filter(
-    arg => !arg.startsWith('--') && arg !== mode && arg !== issue && arg !== args[seedIndex + 1],
+  // `seeded`: resuming a chain that stopped - the packages an earlier run already published, so the
+  // next ones trust their workspace version instead of waiting for npm to show them.
+  const { isDryRun, isConfirmed, skipAtlas, mode, seeded, issue, named } = parseReleaseArgs(
+    Bun.argv.slice(2),
   );
   const unknownNames = named.filter(name => !RELEASE_ORDER.includes(name as never));
   if (unknownNames.length > 0) {
@@ -492,6 +474,15 @@ const main = async (): Promise<void> => {
     }
     await releasePackage({ state, mode, issue, chainReleased });
     chainReleased.push(state.packageName);
+  }
+
+  // Atlas's own release commit lands after the tables were packaged, so develop is one entry behind
+  // until they are regenerated once more - and `make test-scripts` / `releases-check` fail meanwhile.
+  if (plan.some(state => state.name === ATLAS)) {
+    await refreshGeneratedTables({
+      issue,
+      subject: 'chore(atlas): record the atlas release in the generated tables',
+    });
   }
 
   console.log(`\n✓ Released ${plan.length} package(s).`);
