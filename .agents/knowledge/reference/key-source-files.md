@@ -12,7 +12,7 @@ generated file inventory.
 | Path | Why it matters |
 |---|---|
 | `Makefile` | Root entry point for build, lint, and OKF (`okf-check`/`okf-gen`) targets across every package. |
-| `packages/dev-configs/tsconfig/tsconfig.base.json` | Shared compiler base; sets `experimentalDecorators` + `emitDecoratorMetadata`, without which no `@inject`/`@controller`/`@repository` decorator works. |
+| `packages/dev-configs/src/tsconfig/tsconfig.base.json` | Shared compiler base; sets `experimentalDecorators` + `emitDecoratorMetadata`, without which no `@inject`/`@controller`/`@repository` decorator works. |
 | `packages/inversion/src/modules/container/abstract.ts` | `AbstractContainer` - the bottom of the container class chain, extends `BaseHelper`. |
 | `packages/inversion/src/modules/container/base.ts` | `BaseContainer` - adds binding storage/resolution on top of `AbstractContainer`. |
 | `packages/inversion/src/modules/container/container.ts` | `Container` - the concrete IoC container; `AbstractApplication` extends it directly. |

@@ -32,8 +32,8 @@ tags: [process, build]
    purpose - see step 6.
 5. Each package's `build` script is `sh ./scripts/build.sh`. Every package but `filter` and
    `dev-configs` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
-   then emits production output only via `tsc -p tsconfig.build.json` (which excludes `__tests__`,
-   `*.test.ts`, `*.spec.ts`), then `tsc-alias` to rewrite path aliases. Every ESM pass runs `tsc-alias` with
+   then emits production output only via `tsc -p .configs/tsconfig.build.json` (which excludes `__tests__`,
+   `*.test.ts`, `*.spec.ts`), then `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path aliases. Every ESM pass runs `tsc-alias` with
    `resolveFullPaths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and then
    `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with `"type": "module"`
    and the package's `sideEffects` re-rooted - without it Node parses every file as CommonJS first
@@ -42,9 +42,9 @@ tags: [process, build]
    and ESM outputs as two passes; only `core`, `dev-configs`, and `atlas` emit a single pass. No
    package ships its tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs
    directly. A package that emits them into `dist` makes a bare `bun test` execute every test once
-   per copy - `inversion` reported 111 for 37 tests until its `tsconfig.build.json` excluded them.
+   per copy - `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
 6. Every `build.sh` has `set -e` and every package's tsconfig inherits `noEmitOnError: true` from
-   `packages/dev-configs/tsconfig/tsconfig.base.json`. A type error anywhere aborts the script
+   `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error anywhere aborts the script
    immediately and the closing `echo "DONE | Build completed successfully!"` never prints.
    `rebuild.sh` type-checks *before* it runs `clean`, so a failure leaves the previous `dist/`
    intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. Do not trust
@@ -69,11 +69,22 @@ tags: [process, build]
    `builtinModules`, so a bare `fs` import is caught as well as `node:fs`. And it passes
    `--env=disable`, because Bun otherwise inlines `process.env.NODE_ENV` at compile time and erases
    the exact read the gate exists to catch.
-10. `make lint` / `make lint-all` (packages only vs. packages + `examples/`) do not build anything -
-    run them after a build, not instead of one.
+10. `make lint` / `make lint-all` (packages only vs. packages + `examples/` + scripts) do not build
+    anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
+    name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
+    `eslint` and `oxfmt --check`, each with `-c .configs/<tool>.config.mts`. `make fmt` and
+    `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
+    format-checks the wiki. Packages carry no lint scripts in `package.json`; examples keep
+    `lint` and `lint:fix` because they are templates a consumer copies. Each project lists
+    `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
+    the root declares only `oxfmt` and `@venizia/dev-configs`, for `scripts/`. Versions are pinned in
+    the root `workspaces.catalog`. Type-aware oxlint on `packages/kernel` (253 files) took about
+    0.8s against 8.16s for ESLint; oxfmt 0.06s against 2.16s for Prettier.
+    `--report-unused-disable-directives` is not used: oxlint does not run the naming rule, so it
+    would flag every naming-convention disable comment as unused.
 11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
-    target runs prettier and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
+    target runs oxlint, oxfmt and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
     `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
 12. `make clean-install` packs every package and installs each one alone into an empty project
     under `tmpdir()`, with its required peers plus the peers `scripts/clean-install/manifest.ts`

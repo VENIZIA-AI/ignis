@@ -38,8 +38,8 @@ tags: [process, debugging]
    repository boundary before assuming the bug is upstream of the query.
 6. Cross-cutting gotcha, wherever `tsc` disagrees with what you just fixed: purge stale
    `.tsbuildinfo` files before trusting `tsc` output. `incremental: true` is set repo-wide
-   (`packages/dev-configs/tsconfig/tsconfig.base.json`), and each package's `tsconfig.tsbuildinfo` /
-   `tsconfig.build.tsbuildinfo` can replay diagnostics for errors that no longer exist (e.g. after
+   (`packages/dev-configs/src/tsconfig/tsconfig.base.json`), and each package's `tsconfig.tsbuildinfo` /
+   `.configs/tsconfig.build.tsbuildinfo` can replay diagnostics for errors that no longer exist (e.g. after
    changing a package's `exports` map) - `rm` the `.tsbuildinfo` files in the affected package
    before re-running `tsc --noEmit` if the reported errors don't match the current source.
 

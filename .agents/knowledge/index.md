@@ -40,7 +40,7 @@ The framework ships ten packages, built in dependency order.
 | [filter](/packages/filter.md) | The query filter language and its schemas |
 | [inversion](/packages/inversion.md) | The standalone IoC container |
 | [helpers](/packages/helpers.md) | Production utility modules |
-| [dev-configs](/packages/dev-configs.md) | Shared ESLint, Prettier, and TypeScript config |
+| [dev-configs](/packages/dev-configs.md) | Shared oxlint, oxfmt, naming-convention ESLint, and TypeScript config |
 | [atlas](/packages/atlas.md) | The MCP server: search and read the wiki, changelogs and knowledge bundle |
 
 ## Architecture

@@ -1,34 +1,53 @@
 # @venizia/dev-configs
 
-The ESLint, Prettier and TypeScript settings every IGNIS package is built with. Install it as a dev
-dependency in an application that wants the same rules.
+The oxlint, oxfmt, ESLint, Prettier and TypeScript settings every IGNIS package is built with. Install
+it as a dev dependency in an application that wants the same rules.
 
 ## Install
 
 ```bash
-bun add -d @venizia/dev-configs eslint prettier typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 ```
 
-`eslint` (9 or 10), `prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the
-tools you use.
+`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `oxfmt` (>=0.73.0), `eslint` (9 or 10),
+`prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools you use. A
+project that still runs ESLint and Prettier installs `eslint prettier` and skips the oxc tools.
 
 ## Use it
 
-Each tool takes one file.
+Each tool takes one file. IGNIS keeps them in a `.configs/` folder and passes `-c` to each tool.
 
-```javascript
-// eslint.config.mjs
-import { eslintConfigs } from '@venizia/dev-configs';
+```typescript
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { oxlintConfigs } from '@venizia/dev-configs/linters';
 
-export default [{ ignores: ['dist/'] }, ...eslintConfigs];
+export default defineConfig(oxlintConfigs);
 ```
 
-```javascript
-// .prettierrc.mjs
-import { prettierConfigs } from '@venizia/dev-configs';
+```typescript
+// .configs/oxfmt.config.mts
+import { defineConfig } from 'oxfmt';
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 
-export default prettierConfigs;
+export default defineConfig(oxfmtConfigs);
 ```
+
+```typescript
+// .configs/eslint.config.mts - the one rule oxlint cannot run yet
+import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+
+export default namingConventionConfigs;
+```
+
+```bash
+oxlint -c .configs/oxlint.config.mts
+eslint -c .configs/eslint.config.mts .
+oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+```
+
+`tsconfig.json` stays at the project root. Bun, the editor and oxlint's type-aware engine only find it
+there.
 
 ```json
 // tsconfig.json
@@ -63,13 +82,94 @@ earlier. Every IGNIS example does.
 
 | Entry point | What it gives |
 | :--- | :--- |
-| `@venizia/dev-configs` | `eslintConfigs` (flat config array), `ReactEslintConfigs`, `prettierConfigs`, `BunCompiler` |
+| `@venizia/dev-configs` | Everything below, re-exported |
+| `@venizia/dev-configs/compilers` | `BunCompiler` |
+| `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `prettierConfigs` |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `namingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2024, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 
 ## What each config sets
 
-`eslintConfigs` is `@minimaltech/eslint-node` (ESLint recommended, typescript-eslint, Prettier as a
+### oxlintConfigs
+
+`oxlintConfigs` (type `OxlintConfig`) is a static port of the `eslintConfigs` rules, generated with
+`@oxlint/migrate`. It enables the `typescript` and `unicorn` plugins and type-aware linting, so it needs
+`oxlint-tsgolint`.
+
+Not ported:
+
+| Rule | Why |
+| :--- | :--- |
+| `@typescript-eslint/naming-convention` | oxlint has no equivalent yet - `namingConventionConfigs` runs it in ESLint |
+| `@typescript-eslint/prefer-optional-chain` | In oxlint's nursery |
+| `no-invalid-this` | `noImplicitThis` in `tsconfig.base.json` covers it |
+| `n/prefer-node-protocol` | Maps to `unicorn/prefer-node-protocol` |
+
+### namingConventionConfigs
+
+`namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
+the 15 LoopBack 4 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
+`coverage`, `*.d.ts` and plain JavaScript. ESLint does not report unused disable comments in this
+config, because oxlint owns the other rules.
+
+### Rule classes
+
+Each rule has a class with `static readonly NAME` and `static build(options)`. `build` returns the rule
+entry with the IGNIS defaults. Every `severity` defaults to `'error'`.
+
+| Class | Rule name | `build` options (default) |
+| :--- | :--- | :--- |
+| `EqeqeqRule` | `eqeqeq` | `mode`: `'always' \| 'smart'` (`'smart'`) |
+| `NoUnusedVarsRule` | `no-unused-vars` | `vars` (`'all'`), `args` (`'none'`), `ignoreRestSiblings` (`false`) |
+| `SwitchCaseBracesRule` | `unicorn/switch-case-braces` | `mode`: `'always' \| 'avoid'` (`'always'`) |
+| `NoRestrictedImportsRule` | `no-restricted-imports` | `extraPaths`: `IRestrictedImportPath[]` (none), added to `PATHS` (lodash) |
+| `PreferNullishCoalescingRule` | `typescript/prefer-nullish-coalescing` | `ignoreConditionalTests`, `ignoreMixedLogicalExpressions`, `ignoreTernaryTests` (oxlint's own defaults) |
+| `NamingConventionRule` | `@typescript-eslint/naming-convention` | `extraSelectors`: `TNamingSelector[]` (none), added after `SELECTORS` |
+
+Types: `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector`, `IRestrictedImportPath`.
+
+Replace a rule by key. This makes `==` an error everywhere and bans one more import:
+
+```typescript
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import {
+  EqeqeqRule,
+  NoRestrictedImportsRule,
+  oxlintConfigs,
+} from '@venizia/dev-configs/linters';
+
+export default defineConfig({
+  ...oxlintConfigs,
+  rules: {
+    ...oxlintConfigs.rules,
+    [EqeqeqRule.NAME]: EqeqeqRule.build({ mode: 'always' }),
+    [NoRestrictedImportsRule.NAME]: NoRestrictedImportsRule.build({
+      extraPaths: [{ name: 'moment', message: 'Use TemporalHelper instead.' }],
+    }),
+  },
+});
+```
+
+### oxfmtConfigs and prettierConfigs
+
+`oxfmtConfigs` (type `OxfmtConfig`) and `prettierConfigs` hold the same seven options, so the output
+matches. oxfmt differs from Prettier on long union types, which it breaks with a leading `|` per line.
+
+| Setting | Value |
+| :--- | :--- |
+| `printWidth` | `100` |
+| `tabWidth` | `2` |
+| `singleQuote` | `true` |
+| `semi` | `true` |
+| `trailingComma` | `'all'` |
+| `bracketSpacing` | `true` |
+| `arrowParens` | `'avoid'` |
+
+### eslintConfigs
+
+`eslintConfigs` is unchanged: `@minimaltech/eslint-node` (ESLint recommended, typescript-eslint, Prettier as a
 lint rule, naming conventions, `curly`, `eslint-plugin-n`) plus these IGNIS rules:
 
 | Rule | Setting |
@@ -78,6 +178,8 @@ lint rule, naming conventions, `curly`, `eslint-plugin-n`) plus these IGNIS rule
 | `@typescript-eslint/ban-ts-comment` | `error` - `@ts-expect-error` with a description is still allowed |
 | `@typescript-eslint/no-namespace` | `error` |
 | `unicorn/switch-case-braces` | `['error', 'always']` |
+
+### ReactEslintConfigs
 
 `ReactEslintConfigs.create({ plugins })` is `eslintConfigs` plus what a React frontend needs. The
 plugins come in as options, so a backend installs none of them:
@@ -116,17 +218,7 @@ Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, 
 - `consistent-type-imports` keeps the default `fixStyle`; a codebase that prefers
   `inline-type-imports` sets it on top.
 
-`prettierConfigs`:
-
-| Setting | Value |
-| :--- | :--- |
-| `printWidth` | `100` |
-| `tabWidth` | `2` |
-| `singleQuote` | `true` |
-| `semi` | `true` |
-| `trailingComma` | `'all'` |
-| `bracketSpacing` | `true` |
-| `arrowParens` | `'avoid'` |
+### BunCompiler
 
 `BunCompiler.compile()` builds one Bun executable: minified, with a linked source map. The
 compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`.
@@ -146,6 +238,7 @@ The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion ->
 
 - [Tooling configuration](https://ignis.venizia.ai/best-practices/code-style-standards/tooling)
 - [TypeScript 6 and toolchain changelog](https://ignis.venizia.ai/changelogs/2026-03-31-typescript-6-and-toolchain)
+- [oxlint and oxfmt changelog](https://ignis.venizia.ai/changelogs/2026-10-16-oxlint-oxfmt-migration)
 - [Changelog](https://ignis.venizia.ai/changelogs/)
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs)
 

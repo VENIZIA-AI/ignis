@@ -61,7 +61,7 @@ Deterministic text: header naming the regenerate command, imports sorted by path
 output file, POSIX separators, no extension), then one field per kind in `EMIT_ORDER`
 (`configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`), names sorted, empty arrays
 kept. A field wider than 100 columns wraps one name per line with trailing commas, so the file passes
-the repo's `prettier -l` untouched. No IGNIS import in the file - the object is type-checked where
+the repo's `oxfmt --check` untouched. No IGNIS import in the file - the object is type-checked where
 `registerArtifacts` receives it.
 
 ## Generated header names the command
@@ -96,10 +96,10 @@ exit 2.
   so a fresh checkout without a built `dist` still generates; external applications use the bin.
 - **Tests** in `src/__tests__/generator/` run against fixtures under
   `src/__tests__/fixtures/artifacts/**`. The fixtures import `@venizia/ignis`, so they are excluded
-  from `tsconfig.json` and eslint - the boot build stays independent of core. Tests locate fixtures
+  from `tsconfig.json` and the linters - the boot build stays independent of core. Tests locate fixtures
   with `resolve(process.cwd(), ...)`; `import.meta` is unavailable in the CJS type-check.
 - **Build:** `scripts/build.sh` type-checks `tsconfig.json` (tests included) with `--noEmit`, then
-  emits from `tsconfig.build.json`; `dist` carries `build-info`, `clis`, `common` and `generator`.
+  emits from `.configs/tsconfig.build.json`; `dist` carries `build-info`, `clis`, `common` and `generator`.
 
 ## Removed
 

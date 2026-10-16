@@ -1,7 +1,7 @@
 ---
 type: Package
 title: dev-configs
-description: Centralized ESLint, Prettier, and TypeScript configuration consumed by every package in the IGNIS monorepo.
+description: Centralized oxlint, oxfmt, naming-convention ESLint, and TypeScript configuration consumed by every package in the IGNIS monorepo.
 resource: packages/dev-configs
 tags: [packages, dev-configs, tooling]
 ---
@@ -11,21 +11,55 @@ tags: [packages, dev-configs, tooling]
 ## Exports
 
 ```typescript
-import { eslintConfigs } from '@venizia/dev-configs';   // ESLint flat config
-import { prettierConfigs } from '@venizia/dev-configs'; // Prettier config
+import { oxlintConfigs } from '@venizia/dev-configs/linters';       // oxlint config object
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';      // oxfmt config object
+import { namingConventionConfigs } from '@venizia/dev-configs/linters'; // ESLint, naming rule only
 ```
 
-TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json` and `@venizia/dev-configs/tsconfig.common.json` are package.json `exports` entries that map to the nested `tsconfig/` directory (the files are not at the package root). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`.
+The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
 
-## ESLint
+TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json` and `@venizia/dev-configs/tsconfig.common.json` are package.json `exports` entries that map to `src/tsconfig/` (`files` ships it). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`. The package's own `tsconfig.json` extends its own `src/tsconfig/tsconfig.common.json`.
 
-Flat config format (ESLint v9+), built on `@minimaltech/eslint-node` plus `eslint-plugin-unicorn`. Notable rules: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` (from the upstream preset) and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
+## oxlint and oxfmt
+
+oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced ESLint and Prettier for everything except one rule. They are optional peer dependencies: `oxlint >=1.88.0`, `oxfmt >=0.73.0`, `oxlint-tsgolint >=7.0.2004`. `typescript-eslint` is a regular dependency.
+
+- `oxlintConfigs` is a static port of the `@minimaltech/eslint-node` preset, generated with `@oxlint/migrate`. Three rules are not ported: `prefer-optional-chain` (oxlint nursery), `no-invalid-this` (covered by `noImplicitThis`), and `n/prefer-node-protocol` (now `unicorn/prefer-node-protocol`).
+- `oxfmtConfigs` carries the same seven options the old Prettier config did: `printWidth: 100`, `tabWidth: 2`, `singleQuote: true`, `semi: true`, `trailingComma: "all"`, `arrowParens: "avoid"`, `bracketSpacing: true`.
+- `prettierConfigs` is still exported for a consumer that has not moved. IGNIS itself no longer uses it.
+- `oxlint-tsgolint` is built on TypeScript 7. IGNIS is on TypeScript 6 and it works.
+
+### Rule classes
+
+`linters/rules/` holds one class per rule: `NamingConventionRule`, `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`. Each has `static readonly NAME` and `static build(opts)`, which returns a rule entry. The types `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector` and `IRestrictedImportPath` are exported too.
+
+```typescript
+rules: { [EqeqeqRule.NAME]: EqeqeqRule.build({ mode: 'always' }) }
+NamingConventionRule.build({ extraSelectors: [/* ... */] })
+NoRestrictedImportsRule.build({ extraPaths: [/* ... */] })
+```
+
+Some classes carry defaults (`NamingConventionRule.SELECTORS`, `NoRestrictedImportsRule.PATHS`).
+
+## ESLint - naming convention only
+
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mts` exports. The legacy `eslintConfigs` (flat config, built on `@minimaltech/eslint-node` plus `eslint-plugin-unicorn`) still works, and its naming rule now comes from `NamingConventionRule` - the same 15 selectors, verified deep-equal.
+
+Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
 `ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` basics, hooks and `consistent-type-imports`, with the UI relaxations (PascalCase functions, no `no-floating-promises`/`no-void`, `no-unused-vars` ignoring `_`). Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule is derived from the base at call time and extended for `.jsx`/`.tsx` only, not copied, so an upstream change to it carries through.
 
-## Prettier
+## Per-project `.configs/` folder
 
-`printWidth: 100`, `tabWidth: 2`, `singleQuote: true`, `semi: true`, `trailingComma: "all"`, `arrowParens: "avoid"`, `bracketSpacing: true`.
+Every project (each package, `docs/wiki`, each example except `examples/rpc-client-app`) owns three small files under `.configs/`:
+
+| File | Content |
+|---|---|
+| `oxlint.config.mts` | `defineConfig(oxlintConfigs)` |
+| `oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
+| `eslint.config.mts` | `namingConventionConfigs`, plus project rules where needed |
+
+No tool finds `.configs/` on its own, so every call passes `-c .configs/<tool>.config.mts`. See [build system](/process/build-system.md) for the commands.
 
 ## TypeScript - the critical setting
 
@@ -37,7 +71,7 @@ Other base settings worth knowing: `target: ES2024`, `module`/`moduleResolution:
 
 ## Gotcha: changes here are monorepo-wide
 
-Because every package extends these configs directly, a change to `tsconfig.base.json`, the ESLint flat config, or the Prettier config affects every package's build and lint output simultaneously. There is no per-package override mechanism beyond what each package's own `tsconfig.json`/`eslint.config.mjs` layers on top.
+Because every package extends these configs directly, a change to `tsconfig.base.json`, `oxlintConfigs`, `oxfmtConfigs` or `namingConventionConfigs` affects every package's build and lint output simultaneously. There is no per-package override mechanism beyond what each package's own `tsconfig.json` and `.configs/*.config.mts` layer on top.
 
 ## Related
 

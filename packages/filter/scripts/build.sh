@@ -12,8 +12,8 @@ echo ""
 
 # Build ESM (Client/Browser)
 echo ">>> Building ESM..."
-tsc -p tsconfig.esm.json --extendedDiagnostics
-tsc-alias -p tsconfig.esm.json
+tsc -p .configs/tsconfig.esm.json --extendedDiagnostics
+tsc-alias -p tsconfig.json --outDir dist/esm --resolve-full-paths
 bun ../../scripts/esm-marker.ts
 
 echo "DONE | Build completed successfully!"

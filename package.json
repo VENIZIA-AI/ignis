@@ -80,7 +80,11 @@
       "drizzle-orm": "^0.45.2",
       "postgres": "^3.4.9",
       "socket.io": "^4.8.3",
-      "socket.io-client": "^4.8.3"
+      "socket.io-client": "^4.8.3",
+      "oxlint": "1.88.0",
+      "oxlint-tsgolint": "7.0.2004",
+      "oxfmt": "0.73.0",
+      "typescript-eslint": "^8.71.2"
     }
   },
   "scripts": {
@@ -90,6 +94,8 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "oxfmt": "catalog:",
     "typescript": "catalog:"
   }
 }

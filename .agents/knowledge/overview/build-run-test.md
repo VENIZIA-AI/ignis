@@ -47,7 +47,7 @@ cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
-step for the tests, and `tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
+step for the tests, and `.configs/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
 package's `.env.test` automatically. Only `boot` and `atlas` define a `test` script of their own
 (`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
 script stays the single owner of the package's environment.
@@ -58,8 +58,10 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 ## Lint and hooks
 
 ```bash
-make lint             # lint packages/ only
-make lint-all         # lint packages/ and examples/
+make lint             # lint packages/ only (oxlint, naming-convention ESLint, oxfmt --check)
+make lint-<package>   # one package, by directory name: make lint-kernel
+make lint-all         # packages, examples, example typecheck and scripts/
+make fmt              # format packages/ (oxfmt); make fmt-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks

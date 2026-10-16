@@ -7,7 +7,7 @@ echo "START | Building application..."
 tsc --noEmit -p tsconfig.json
 
 # Emit production output only — tests are excluded from dist via tsconfig.build.json.
-tsc -p tsconfig.build.json --extendedDiagnostics
-tsc-alias -p tsconfig.build.json
+tsc -p .configs/tsconfig.build.json --extendedDiagnostics
+tsc-alias -p tsconfig.json --outDir dist
 
 echo "DONE | Build completed successfully!"

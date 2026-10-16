@@ -9,11 +9,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
+    "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "rebuild": "bun run clean && bun run build",
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
     "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
@@ -37,7 +34,9 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "prettier": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
   }

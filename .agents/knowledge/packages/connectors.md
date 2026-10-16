@@ -502,7 +502,7 @@ the cache.
 `scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
-guards this package either: `eslint.config.mjs` is the shared preset alone, unlike `core-worker`,
+guards this package either: `.configs/eslint.config.mts` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
 Seven rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.

@@ -96,11 +96,6 @@
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
     "clean": "sh ./scripts/clean.sh",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
   },
@@ -112,7 +107,9 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "^0.2.1",
     "eslint": "catalog:",
-    "prettier": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
   }

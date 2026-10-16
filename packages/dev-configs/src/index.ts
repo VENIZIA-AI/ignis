@@ -1,4 +1,3 @@
-export * from "./compile";
-export * from "./eslint";
-export * from "./prettier";
-export * from "./react";
+export * from './compilers';
+export * from './formatters';
+export * from './linters';

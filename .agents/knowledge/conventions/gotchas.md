@@ -15,6 +15,16 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [Stale `.tsbuildinfo` replays phantom errors](#stale-tsbuildinfo-replays-phantom-errors)
 - [`bun install` reformats the committed `bun.lock`](#bun-install-reformats-the-committed-bunlock)
 
+**Lint, format and config layout**
+
+- [Only `tsconfig.json` stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
+- [`tsc-alias` must read the root `tsconfig.json`](#tsc-alias-must-read-the-root-tsconfigjson)
+- [A stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [`ignorePatterns` in a `.configs/` file resolve against `.configs/`](#ignorepatterns-in-a-configs-file-resolve-against-configs)
+- [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
+- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
+
 **Browser purity**
 
 - [A node global in the kernel passes `tsc` and fails `make purity`](#a-node-global-in-the-kernel-passes-tsc-and-fails-make-purity)
@@ -86,7 +96,7 @@ whole project compiles, so a broken test fails loudly with the last good `dist/`
 type-check gate to fail.
 
 Guard **every** program `build.sh` runs, not just the first. `inversion`, `filter` and `boot` emit
-CJS and ESM from two configs, and `tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
+CJS and ESM from two configs, and `.configs/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
 the same files under different rules and can fail where the CJS pass passed. Guarding one left a
 half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
 something resolves the `import` condition.
@@ -129,7 +139,7 @@ not close it either - the directive then resolves through node module resolution
 
 This reaches **any** consumer of those published types, not just `core-worker`.
 `examples/browser-bff` reproduces it from its own import graph. So the author-time defence in both is
-a `no-restricted-globals` and `no-restricted-imports` block in `eslint.config.mjs`, with the builtin
+a `no-restricted-globals` and `no-restricted-imports` block in `.configs/eslint.config.mts`, with the builtin
 list derived from `node:module`'s `builtinModules` rather than hand-written. Scope the `files` glob to
 `{ts,tsx,mts,cts}`: a package that sets `jsx` can have a `.tsx` production file, and a `.ts`-only glob
 leaves it with no rule at all.
@@ -319,7 +329,9 @@ routing its keys through `build()`.
 
 After changing a package's `exports` field or `dist` layout, a consumer's `.tsbuildinfo` can replay
 diagnostics cached against the old resolution - unchanged files suddenly report errors on valid
-types. Purge every `tsconfig*.tsbuildinfo` outside `node_modules` before trusting `tsc`.
+types. Purge every `tsconfig*.tsbuildinfo` outside `node_modules` before trusting `tsc`. The build
+tsconfigs now live in `.configs/`, so their cache does too: `.configs/*.tsbuildinfo`. See
+[a stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing).
 
 ## bun install reformats the committed bun.lock
 
@@ -339,7 +351,7 @@ provided key is never bound. Fix: declare `experimentalDecorators` directly in t
 `tsconfig.json`, not only via `extends` (kernel and every example do). Add `emitDecoratorMetadata`
 only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
 constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
-core-server's `tsconfig.core.json` declares `experimentalDecorators` alone.
+core-server's `tsconfig.json` declares `experimentalDecorators` alone (its former `tsconfig.core.json` was merged into it).
 
 ## Under bun-runs-source, a type used on a decorated member must come from `import type`
 
@@ -546,6 +558,56 @@ then `postgres`).
 The race lives only while modules load. Load the peer at boot (fail fast), never at import. The
 clean-install `bun-order` check runs its entry `ORDER_RUNS` (5) times, because the race crashes only
 some runs: at 19 in 30, a single run missed it about one gate run in 7.
+
+## Only tsconfig.json stays at a project root
+
+Each project keeps its build tsconfigs (`tsconfig.build.json`, `tsconfig.esm.json`) in `.configs/`.
+`tsconfig.json` stays at the root. Bun (legacy decorators and `emitDecoratorMetadata`), the editor's
+TS server and oxlint's type-aware pass (`oxlint-tsgolint`) only look for `tsconfig.json` at the root.
+
+Proven: with the tsconfig only in `.configs/`, Bun ran TC39 decorators and `Reflect.getMetadata`
+threw. See [Bun silently drops `@inject`](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved).
+
+## tsc-alias must read the root tsconfig.json
+
+Build scripts run `tsc-alias -p tsconfig.json --outDir dist/cjs` (ESM: `--outDir dist/esm
+--resolve-full-paths`; core-server: `--outDir dist`). Do not point `-p` at a `.configs/` file.
+
+tsc-alias resolves `paths` against the directory of the file it reads. Pointed at `.configs/`, it
+resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still
+reports success.
+
+## A stale .configs/*.tsbuildinfo makes tsc emit nothing
+
+`incremental` writes the cache next to the build tsconfig, so it now lands in `.configs/`. A stale
+`.configs/*.tsbuildinfo` made `tsc` skip emit: core-server printed "DONE" with an empty `dist`.
+`clean.sh` removes `.configs/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
+green and `dist` is empty, delete those files by hand.
+
+## ignorePatterns in a .configs file resolve against .configs
+
+The tools are run with `-c .configs/<tool>.config.mts`. An `ignorePatterns` entry inside that file is
+relative to `.configs/`, not the project, so it matches nothing. Do not rely on it.
+
+`dist` and `node_modules` are skipped through `.gitignore`. For anything else, pass a CLI flag:
+`examples/vert` skips `scripts/` with `--ignore-pattern "scripts/**"` in its `lint` script.
+
+## oxlint finds bugs ESLint missed
+
+oxlint caught four real `no-unsafe-optional-chaining` cases. `(x?.y as T).z` still throws when `x` is
+undefined, because the cast ends the optional chain. They were in the connectors tests and are fixed.
+
+## oxfmt formats long unions differently from Prettier
+
+oxfmt puts a leading `|` on each line of a long union type. The switch reformatted 16 files once.
+`docs/wiki/site/.vitepress/config.mts` is excluded from formatting to keep its one-entry-per-line
+sidebar layout.
+
+## Makefile: a $(call) glob with a comma, and .PHONY pattern rules
+
+- A `$(call ...)` argument containing `{ts,js}` splits on the comma. Put such a glob in a variable.
+- Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `fmt-%` are static
+  pattern rules (`$(LINT_PKG_TARGETS): lint-%:`), not plain `lint-%:` rules.
 
 ## Related
 

@@ -345,7 +345,8 @@ export class CasbinAuthorizationEnforcer<
       // addNamedDomainMatchingFunc(G, keyMatchFunc) above must stay: generateTempRoles ORs
       // hasDomainPattern with hasDomainHierarchy, and role_inherits `*` rides the keyMatch path.
       const gRoleManager = enforcer.getNamedRoleManager(CasbinRuleVariants.G) as
-        (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy) | undefined;
+        | (CasbinRoleManagerType & ICasbinRoleManagerWithDomainHierarchy)
+        | undefined;
 
       if (!gRoleManager?.addDomainHierarchy) {
         throw getError({

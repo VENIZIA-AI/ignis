@@ -56,18 +56,15 @@
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:dev": "vitepress dev site",
     "docs:preview": "vitepress preview site",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "force-update": "sh ./scripts/force-update.sh",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write"
+    "force-update": "sh ./scripts/force-update.sh"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "^0.2.0-3",
     "eslint": "catalog:",
-    "prettier": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",

@@ -69,7 +69,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/abstract.ts",
-      "line": 14,
+      "line": 15,
       "signature": "class AbstractCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntit"
     },
     {
@@ -2421,7 +2421,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 88,
+      "line": 89,
       "signature": "interface ICustomizableRoutes<RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig>"
     },
     {
@@ -2631,7 +2631,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/base/events/common/types.ts",
-      "line": 68,
+      "line": 69,
       "signature": "interface IEventHandler<TEvent extends IDomainEvent = IDomainEvent>"
     },
     {
@@ -3011,7 +3011,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/model.ts",
-      "line": 94,
+      "line": 95,
       "signature": "interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity>"
     },
     {
@@ -5342,7 +5342,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/retry/helper.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class RetryHelper extends BaseHelper"
     },
     {
@@ -6292,7 +6292,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 72,
+      "line": 73,
       "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodType; headers?: TResp"
     },
     {
@@ -6872,7 +6872,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 233,
+      "line": 234,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -7742,7 +7742,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 68,
+      "line": 69,
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
     },
     {
@@ -7772,7 +7772,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 58,
+      "line": 59,
       "signature": "type TResponseHeaderObject = { description?: string; schema: { type: 'string'; examples?: string[]; }; }"
     },
     {
@@ -7782,7 +7782,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 64,
+      "line": 65,
       "signature": "type TResponseHeaders = Record<string, TResponseHeaderObject>"
     },
     {
@@ -7822,7 +7822,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 52,
+      "line": 53,
       "signature": "type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: TRouteAuthorizeConfig; }"
     },
     {
@@ -7842,7 +7842,7 @@
       "specifier": "@venizia/ignis",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 49,
+      "line": 50,
       "signature": "type TRouteAuthorizeConfig = { skip: true; } | IAuthorizationSpec | IAuthorizationSpec[]"
     },
     {
@@ -24393,7 +24393,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/retry/helper.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class RetryHelper extends BaseHelper"
     },
     {
@@ -24923,7 +24923,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 233,
+      "line": 234,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -26793,7 +26793,7 @@
       "specifier": "@venizia/ignis-helpers/common",
       "kind": "type",
       "file": "packages/helpers/src/common/constants/http.ts",
-      "line": 233,
+      "line": 234,
       "signature": "type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>"
     },
     {
@@ -27853,7 +27853,7 @@
       "specifier": "@venizia/ignis-helpers/core",
       "kind": "class",
       "file": "packages/helpers/src/modules/retry/helper.ts",
-      "line": 16,
+      "line": 17,
       "signature": "class RetryHelper extends BaseHelper"
     },
     {
@@ -30003,7 +30003,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "interface",
       "file": "packages/inversion/src/modules/binding/common/types.ts",
-      "line": 21,
+      "line": 22,
       "signature": "interface IBinding<T = any>"
     },
     {
@@ -30183,7 +30183,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "type",
       "file": "packages/inversion/src/modules/binding/common/types.ts",
-      "line": 19,
+      "line": 20,
       "signature": "type TBindingResolverValue<T> = TClass<T> | T | TBindingProvider<T>"
     },
     {
@@ -30613,7 +30613,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/kernel/src/base/controllers/factory/crud/abstract.ts",
-      "line": 14,
+      "line": 15,
       "signature": "class AbstractCrudController<TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>, RouteEnv extends Env = Env, RouteSchema extends Schema = {}, BasePath extends string = '/', ConfigurableOptions extends object = {}, TDataObject extends object = TEntityDataObject<TEntit"
     },
     {
@@ -31713,7 +31713,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 88,
+      "line": 89,
       "signature": "interface ICustomizableRoutes<RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig>"
     },
     {
@@ -31793,7 +31793,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/base/events/common/types.ts",
-      "line": 68,
+      "line": 69,
       "signature": "interface IEventHandler<TEvent extends IDomainEvent = IDomainEvent>"
     },
     {
@@ -31963,7 +31963,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "interface",
       "file": "packages/kernel/src/helpers/inversion/common/types/model.ts",
-      "line": 94,
+      "line": 95,
       "signature": "interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity>"
     },
     {
@@ -33163,7 +33163,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 72,
+      "line": 73,
       "signature": "type TCustomizableRouteConfig = TRouteAuthConfig & { /** Whether this route is registered. Defaults to true. */ enabled?: boolean; request?: { params?: TAnyObjectSchema; query?: TAnyObjectSchema; body?: TAnyObjectSchema; headers?: TAnyObjectSchema; }; response?: { schema?: z.ZodType; headers?: TResp"
     },
     {
@@ -33823,7 +33823,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 68,
+      "line": 69,
       "signature": "type TResponseBodyOf<R extends { responses: AnyType; }> = TInferDistributive<R['responses'][keyof R['responses']]['content']['application/json']['schema']>"
     },
     {
@@ -33853,7 +33853,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 58,
+      "line": 59,
       "signature": "type TResponseHeaderObject = { description?: string; schema: { type: 'string'; examples?: string[]; }; }"
     },
     {
@@ -33863,7 +33863,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 64,
+      "line": 65,
       "signature": "type TResponseHeaders = Record<string, TResponseHeaderObject>"
     },
     {
@@ -33873,7 +33873,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 52,
+      "line": 53,
       "signature": "type TRouteAuthConfig = { authenticate?: TRouteAuthenticateConfig; authorize?: TRouteAuthorizeConfig; }"
     },
     {
@@ -33893,7 +33893,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "type",
       "file": "packages/kernel/src/base/controllers/common/types/route.ts",
-      "line": 49,
+      "line": 50,
       "signature": "type TRouteAuthorizeConfig = { skip: true; } | IAuthorizationSpec | IAuthorizationSpec[]"
     },
     {

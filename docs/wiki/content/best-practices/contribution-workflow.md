@@ -62,7 +62,7 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-se
 
 | Directory | npm name | Depends on | Purpose |
 |-----------|----------|------------|---------|
-| `dev-configs` | `@venizia/dev-configs` | - | Shared ESLint, Prettier, TypeScript configs |
+| `dev-configs` | `@venizia/dev-configs` | - | Shared oxlint, oxfmt, ESLint, TypeScript configs |
 | `inversion` | `@venizia/ignis-inversion` | dev-configs | IoC container, DI primitives |
 | `filter` | `@venizia/ignis-filter` | inversion | Isomorphic filter language. Deliberately not after helpers |
 | `helpers` | `@venizia/ignis-helpers` | inversion | Utilities, loggers, crypto, Redis, sockets |
@@ -179,7 +179,7 @@ A commit that serves several issues it cannot be split between lists each: `[#42
 ```bash
 # Lint and format (from root) - zero warnings and zero errors is the bar
 make lint-all
-# Or run `bun run lint:fix` inside a package directory
+# Fix what can be fixed: make fmt (every package) or make fmt-<pkg> (one)
 
 # Build all packages (from root) - tests run against dist/, so build first
 make build

@@ -175,7 +175,8 @@ export abstract class BaseRestController<
   /** The list headers without the body, for a list whose body is not a `{ count, data }` envelope: `Content-Range`, `X-Response-Count` = rows in THIS response, `X-Response-Format: array`. Pass a `range`, or `offset` + `total` for an engine that reports those (a search page): the range is derived with the same inclusive-end rule. */
   setListHeaders(
     opts: { context: TRouteContext<RouteEnv>; count: number } & (
-      { range: TDataRange } | { offset: number; total: number }
+      | { range: TDataRange }
+      | { offset: number; total: number }
     ),
   ) {
     const { context, count } = opts;

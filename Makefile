@@ -1,7 +1,7 @@
 .PHONY: all build build-all release release-plan core core-server connectors core-worker dev-configs docs filter helpers inversion boot atlas kernel \
         help install clean setup-hooks agent-setup \
-        lint lint-all lint-packages lint-examples typecheck-examples artifacts-check \
-        lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-core lint-core-server lint-kernel lint-connectors lint-core-worker lint-atlas lint-scripts \
+        lint lint-all lint-packages lint-examples typecheck-examples artifacts-check lint-wiki lint-scripts fmt fmt-packages \
+        lint-core \
         purity purity-test test-scripts purity-inversion purity-filter purity-helpers purity-kernel \
         clean-install clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot \
         clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server \
@@ -215,23 +215,49 @@ update-kernel:
 # ----------------------------------------------------------------------------
 # LINT TARGETS
 # ----------------------------------------------------------------------------
+# Each project lints itself, from its own .configs/ and with its own tools (its node_modules/.bin).
+# oxlint owns the rules, ESLint runs only naming-convention (oxlint has no port yet), oxfmt formats.
+# Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
+FMT_GLOB := "**/*.{ts,mts,js,mjs}"
+# $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
+LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mts $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
+FMT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --fix . && node_modules/.bin/eslint -c .configs/eslint.config.mts --fix . && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB)
+
+LINT_PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server atlas
+LINT_PKG_TARGETS := $(addprefix lint-,$(LINT_PACKAGES))
+FMT_PKG_TARGETS := $(addprefix fmt-,$(LINT_PACKAGES))
+.PHONY: $(LINT_PKG_TARGETS) $(FMT_PKG_TARGETS)
+
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-# Includes lint-atlas: the release workflow lints it, so leaving it out of `all` hides a failure
-# until release time.
-lint-all: lint-packages lint-examples typecheck-examples lint-atlas lint-scripts
+# lint-packages covers atlas too: the release workflow lints it, so leaving it out of `all` hides a
+# failure until release time.
+lint-all: lint-packages lint-examples typecheck-examples lint-scripts
 	@echo "✅ All linting completed."
 
-lint-packages:
-	@echo "🔍 Linting all packages..."
-	@bun run --filter "./packages/*" lint
+lint-packages: $(LINT_PKG_TARGETS)
+
+fmt: fmt-packages
+
+fmt-packages: $(FMT_PKG_TARGETS)
+
+# Static pattern rules: make skips implicit-rule search for .PHONY targets, so a plain `lint-%`
+# would never match. The release workflow calls `make lint-<package dir>`.
+$(LINT_PKG_TARGETS): lint-%:
+	@echo "🔍 Linting packages/$*..."
+	@$(call LINT_PROJECT,packages/$*)
+
+$(FMT_PKG_TARGETS): fmt-%:
+	@$(call FMT_PROJECT,packages/$*)
+
+lint-core: lint-core-server
 
 lint-examples: artifacts-check
 	@echo "🔍 Linting all examples..."
 	@bun run --filter "./examples/*" lint
 
-# eslint and prettier do not typecheck, and no example is in `build-all` - a codemod once left an
+# oxlint and oxfmt do not typecheck, and no example is in `build-all` - a codemod once left an
 # example that could not compile and every gate stayed green.
 typecheck-examples:
 	@echo "🔍 Typechecking all examples..."
@@ -243,54 +269,20 @@ artifacts-check:
 	@echo "🔍 Checking generated artifact indexes..."
 	@bun run --filter "./examples/vert" check:artifacts
 
-lint-dev-configs:
-	@echo "🔍 Linting @venizia/dev-configs..."
-	@bun run --filter "@venizia/dev-configs" lint
+# site/ is the VitePress theme, written to its API (a `Layout` render method), so only the wiki's
+# own scripts are linted. The sidebar config (.vitepress/config.mts) keeps its one-entry-per-line
+# layout, so formatting skips it, as Prettier's `*.{js,ts}` glob did.
+# A variable, not inline: the comma in {ts,js} would split the $(call) arguments.
+WIKI_FMT_GLOB := "**/*.{ts,js}" "scripts/*.mts"
+lint-wiki:
+	@echo "🔍 Linting docs/wiki..."
+	@$(call LINT_PROJECT,docs/wiki,scripts,$(WIKI_FMT_GLOB))
 
-lint-inversion:
-	@echo "🔍 Linting @venizia/ignis-inversion..."
-	@bun run --filter "@venizia/ignis-inversion" lint
-
-lint-filter:
-	@echo "🔍 Linting @venizia/ignis-filter..."
-	@bun run --filter "@venizia/ignis-filter" lint
-
-lint-helpers:
-	@echo "🔍 Linting @venizia/ignis-helpers..."
-	@bun run --filter "@venizia/ignis-helpers" lint
-
-lint-boot:
-	@echo "🔍 Linting @venizia/ignis-boot..."
-	@bun run --filter "@venizia/ignis-boot" lint
-
-lint-core-server:
-	@echo "🔍 Linting @venizia/ignis (core-server)..."
-	@bun run --filter "@venizia/ignis" lint
-
-lint-core: lint-core-server
-
-lint-kernel:
-	@echo "🔍 Linting @venizia/ignis-kernel..."
-	@bun run --filter "@venizia/ignis-kernel" lint
-
-lint-connectors:
-	@echo "🔍 Linting @venizia/ignis-connectors..."
-	@bun run --filter "@venizia/ignis-connectors" lint
-
-lint-core-worker:
-	@echo "🔍 Linting @venizia/ignis-worker..."
-	@bun run --filter "@venizia/ignis-worker" lint
-
-lint-atlas:
-	@echo "🔍 Linting @venizia/ignis-atlas..."
-	@bun run --filter "@venizia/ignis-atlas" lint
-
-# `scripts/` is not a workspace member, so it has no local `lint` script to filter into - prettier
-# runs directly against the config's relative import of packages/dev-configs.
+# `scripts/` is not a workspace member: its config and oxfmt resolve from the root package.json.
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
-	@bunx prettier --config scripts/.prettierrc.mjs -l 'scripts/**/*.ts'
-	@bunx tsc -p scripts/tsconfig.json
+	@node_modules/.bin/oxfmt -c scripts/.configs/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
+	@node_modules/.bin/tsc -p scripts/tsconfig.json
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -438,15 +430,13 @@ help:
 	@echo "Linting:"
 	@echo "  lint              - Lint all packages (alias for lint-packages)."
 	@echo "  lint-all          - Lint all packages AND examples."
-	@echo "  lint-packages     - Lint packages/ directory only."
+	@echo "  lint-packages     - oxlint + ESLint (naming-convention) + oxfmt check over packages/."
+	@echo "  lint-<pkg>        - Lint one package by its directory name, e.g. lint-kernel."
 	@echo "  lint-examples     - Lint examples/ directory only (runs artifacts-check first)."
 	@echo "  artifacts-check   - Verify generated artifact indexes are fresh (examples/vert)."
-	@echo "  lint-dev-configs  - Lint @venizia/dev-configs."
-	@echo "  lint-inversion    - Lint @venizia/ignis-inversion."
-	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."
-	@echo "  lint-boot         - Lint @venizia/ignis-boot."
-	@echo "  lint-core         - Lint @venizia/ignis (core)."
-	@echo "  lint-scripts      - Lint scripts/ (prettier format check + tsc type-check against scripts/tsconfig.json)."
+	@echo "  lint-wiki         - Lint docs/wiki scripts and check its format."
+	@echo "  lint-scripts      - Format check + tsc type-check of scripts/."
+	@echo "  fmt / fmt-<pkg>   - Apply oxlint --fix, ESLint --fix and oxfmt to packages/ or one package."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge):"
 	@echo "  okf-check        - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."

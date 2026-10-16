@@ -34,7 +34,7 @@ tags: [process, test, bun]
    type-check BEFORE `clean`, so a failure leaves `dist/` stale, never emptied - the next `bun test`
    silently runs sibling packages against the PREVIOUS build instead of the code you just changed.
    `dist/` is gitignored, so nothing in the working tree hints that the build never landed.
-6. `make lint` / `make lint-all` are separate from testing - they run ESLint and Prettier, not
+6. `make lint` / `make lint-all` are separate from testing - they run oxlint, ESLint (naming convention only) and oxfmt, not
    `bun test`. The pre-commit hook (`.githooks/pre-commit`) runs `make lint-all` and nothing else.
    `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
    script (`scripts/purity/cli.ts`) that bundles each manifest entry with `bun build

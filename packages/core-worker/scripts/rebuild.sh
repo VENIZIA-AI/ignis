@@ -10,7 +10,7 @@ tsc --noEmit -p tsconfig.json
 # Both configs, because they are different programs: tsconfig.json carries Bun types for the tests,
 # tsconfig.build.json carries none so the shipped sources cannot reach a Bun host. Only the second
 # one runs during the emit step, which happens after dist is gone.
-tsc --noEmit -p tsconfig.build.json
+tsc --noEmit -p .configs/tsconfig.build.json
 
 echo "\nCleaning up resources ..."
 bun run clean

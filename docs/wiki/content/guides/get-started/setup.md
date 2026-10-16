@@ -9,7 +9,7 @@ covers macOS, Linux, and Windows through WSL2.
 |------|---------|----------|-----|
 | **Bun** | >= 1.4 | Yes | Installs packages and runs every build; IGNIS never uses npm, yarn, or pnpm |
 | **PostgreSQL** | >= 14 | Yes | Primary database; the repository system assumes Drizzle + `pg` |
-| **VS Code** | Latest | Optional | Best editor support, through ESLint and Prettier extensions |
+| **VS Code** | Latest | Optional | Best editor support, through the Oxc and ESLint extensions |
 
 > IGNIS apps can also run on Node.js 18+ in production, through `@hono/node-server`. That is a
 > deployment choice, not a setup choice - Bun still installs packages and runs every command in
@@ -69,11 +69,11 @@ sudo -u postgres psql -c "CREATE DATABASE my_app_db;"
 
 ## Step 3: Configure Your Editor (Optional)
 
-Install the extensions that match IGNIS' ESLint and Prettier setup:
+Install the extensions that match IGNIS' oxlint, oxfmt and ESLint setup:
 
 ```bash
 code --install-extension dbaeumer.vscode-eslint
-code --install-extension esbenp.prettier-vscode
+code --install-extension oxc.oxc-vscode
 code --install-extension usernamehw.errorlens
 code --install-extension humao.rest-client
 ```
@@ -83,12 +83,18 @@ Create `.vscode/settings.json` in your project:
 ```json
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "oxc.configPath": ".configs/oxlint.config.mts",
+  "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
+  "oxc.typeAware": true,
+  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mts" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   }
 }
 ```
+
+The tools do not look inside `.configs/` on their own, so the settings point at each file. The paths resolve against the folder VS Code opened: open the project folder itself.
 
 ## Verify Your Setup
 

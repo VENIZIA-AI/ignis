@@ -78,7 +78,8 @@ type TOutcome =
 const relationalOutcome = (where: TWhere): TOutcome => {
   try {
     const condition = relational.toWhere({ tableName: 'parity_fixture', schema: table, where }) as
-      SQL | undefined;
+      | SQL
+      | undefined;
 
     if (!condition) {
       return { kind: 'dropped' };

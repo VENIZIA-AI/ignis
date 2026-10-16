@@ -9,6 +9,6 @@
     "jsxImportSource": "hono/jsx",
     "lib": ["ES2024", "WebWorker"]
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]
 }

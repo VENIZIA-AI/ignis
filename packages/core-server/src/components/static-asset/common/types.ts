@@ -178,6 +178,7 @@ export type TStaticAssetsComponentOptions<
     | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     (
-      { useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> }
+      | { useMetaLink?: false | undefined }
+      | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> }
     );
 };

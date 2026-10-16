@@ -8,15 +8,15 @@ tsc --noEmit -p tsconfig.json
 
 # Emit production output only — tests are excluded from tsconfig.build.json / tsconfig.esm.json.
 echo ">>> Building CJS..."
-tsc -p tsconfig.build.json --extendedDiagnostics
-tsc-alias -p tsconfig.build.json
+tsc -p .configs/tsconfig.build.json --extendedDiagnostics
+tsc-alias -p tsconfig.json --outDir dist/cjs
 
 # ESM as well as CJS: this package carries a browser-purity claim, and a browser bundler that finds
 # only CommonJS either fails on the bare `require()` or needs a per-consumer pre-bundling
 # workaround. The purity manifest enforces the `import` condition this build produces.
 echo ">>> Building ESM..."
-tsc -p tsconfig.esm.json --extendedDiagnostics
-tsc-alias -p tsconfig.esm.json
+tsc -p .configs/tsconfig.esm.json --extendedDiagnostics
+tsc-alias -p tsconfig.json --outDir dist/esm --resolve-full-paths
 bun ../../scripts/esm-marker.ts
 
 echo "DONE | Build completed successfully!"

@@ -8,8 +8,8 @@ tsc --noEmit -p tsconfig.json
 
 # Emit production output only - tests are excluded from tsconfig.build.json.
 echo ">>> Building CJS..."
-tsc -p tsconfig.build.json --extendedDiagnostics
-tsc-alias -p tsconfig.build.json
+tsc -p .configs/tsconfig.build.json --extendedDiagnostics
+tsc-alias -p tsconfig.json --outDir dist/cjs
 
 # Packages the npm-mode snapshot: docs/wiki/content (minus changelogs/) as the `wiki` corpus,
 # changelogs/ as its own `changelog` corpus. Only *.md files are copied - the wiki's own static

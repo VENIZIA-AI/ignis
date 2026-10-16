@@ -1,19 +1,8 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./src/tsconfig/tsconfig.common.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "lib": ["ES2022"],
-    "types": ["bun"],
-    "skipLibCheck": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "outDir": "dist",
     "rootDir": "src"
   },

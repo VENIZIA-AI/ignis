@@ -6,6 +6,16 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - lint and format moved to oxlint and oxfmt
+
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [git workflow](/process/git-workflow.md), [testing](/process/testing.md), [debugging](/process/debugging.md), [testing conventions](/conventions/testing-conventions.md).
+
+- Prettier is gone. oxlint (type-aware) and oxfmt replace it and ESLint; ESLint stays for `@typescript-eslint/naming-convention` only.
+- Every project owns `.configs/` (oxlint, oxfmt, eslint configs, plus the build tsconfigs); every tool call passes `-c .configs/...`. `tsconfig.json` stays at the root so Bun, the editor and tsgolint find it.
+- dev-configs: subpath exports, `oxlintConfigs`, `oxfmtConfigs`, `namingConventionConfigs`, rule classes, tsconfigs moved to `src/tsconfig/`. A consumer migrating copies the three `.configs/` files.
+- New gotchas: tsc-alias must read the root tsconfig, a stale `.configs/*.tsbuildinfo` empties `dist`, `ignorePatterns` resolve against `.configs/`.
+- core-server's `tsconfig.core.json` was merged into its `tsconfig.json`.
+
 ## 2026-10-15 - TemporalHelper constructor fallback, names by language
 
 Updated [helpers](/packages/helpers.md).

@@ -54,7 +54,13 @@ const RELEASE_ORDER = [
 ] as const;
 
 type TReleaseMode =
-  'patch' | 'minor' | 'major' | 'prepatch' | 'preminor' | 'premajor' | 'prerelease';
+  | 'patch'
+  | 'minor'
+  | 'major'
+  | 'prepatch'
+  | 'preminor'
+  | 'premajor'
+  | 'prerelease';
 
 /** The workflow publishes a stable bump under `latest` and a pre* bump under `next`. */
 const STABLE_MODES: ReadonlySet<TReleaseMode> = new Set(['patch', 'minor', 'major']);
