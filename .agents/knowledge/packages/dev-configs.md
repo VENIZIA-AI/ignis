@@ -24,7 +24,7 @@ TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/ts
 
 oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced ESLint and Prettier for everything except one rule. They are optional peer dependencies: `oxlint >=1.88.0`, `oxfmt >=0.73.0`, `oxlint-tsgolint >=7.0.2004`. `typescript-eslint` is a regular dependency.
 
-- `oxlintConfigs` is a static port of the `@minimaltech/eslint-node` preset, generated with `@oxlint/migrate`. Three rules are not ported: `prefer-optional-chain` (oxlint nursery), `no-invalid-this` (covered by `noImplicitThis`), and `n/prefer-node-protocol` (now `unicorn/prefer-node-protocol`).
+- `oxlintConfigs` is the oxlint port of `eslintConfigs`, generated with `@oxlint/migrate`. Three rules are not ported: `prefer-optional-chain` (oxlint nursery), `no-invalid-this` (covered by `noImplicitThis`), and `n/prefer-node-protocol` (now `unicorn/prefer-node-protocol`).
 - `oxfmtConfigs` carries the same seven options the old Prettier config did: `printWidth: 100`, `tabWidth: 2`, `singleQuote: true`, `semi: true`, `trailingComma: "all"`, `arrowParens: "avoid"`, `bracketSpacing: true`.
 - `prettierConfigs` is still exported for a consumer that has not moved. IGNIS itself no longer uses it.
 - `oxlint-tsgolint` is built on TypeScript 7. IGNIS is on TypeScript 6 and it works.
@@ -43,7 +43,7 @@ Some classes carry defaults (`NamingConventionRule.SELECTORS`, `NoRestrictedImpo
 
 ## ESLint - naming convention only
 
-oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mts` exports. The legacy `eslintConfigs` (flat config, built on `@minimaltech/eslint-node` plus `eslint-plugin-unicorn`) still works, and its naming rule now comes from `NamingConventionRule` - the same 15 selectors, verified deep-equal.
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mts` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
@@ -65,7 +65,7 @@ No tool finds `.configs/` on its own, so every call passes `-c .configs/<tool>.c
 
 `tsconfig.base.json` sets `experimentalDecorators: true` and `emitDecoratorMetadata: true`. These two flags are not stylistic - they are load-bearing for the entire DI system. `@inject` and `@injectable` rely on `reflect-metadata` receiving constructor parameter type metadata that only `emitDecoratorMetadata` causes `tsc` to emit; without it, the DI container silently receives no parameter metadata at all; there is no compiler error, just an empty metadata array, and `@inject` stops working with no diagnostic pointing at the cause. `useDefineForClassFields: false` is required alongside them, since the default `true` setting breaks decorator-driven property initialization.
 
-Other base settings worth knowing: `target: ES2024`, `module`/`moduleResolution: Node16`, `strict: true` with `noImplicitAny: false` (pragmatic strictness), and `noEmitOnError: true` - a single type error in a package's build empties its `dist/` rather than emitting best-effort output, which matters because `dist/` is gitignored.
+Other base settings worth knowing: `target: ES2025`, `module`/`moduleResolution: Node16`, `strict: true` with `noImplicitAny: false` (pragmatic strictness), and `noEmitOnError: true` - a single type error in a package's build empties its `dist/` rather than emitting best-effort output, which matters because `dist/` is gitignored.
 
 `tsconfig.common.json` is the consumer-facing simplification: it extends `tsconfig.base.json` and switches `module`/`moduleResolution` to `nodenext`.
 

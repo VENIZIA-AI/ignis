@@ -237,7 +237,7 @@ Use the centralized TypeScript configs:
 
 | Option | Value | Purpose |
 |--------|-------|---------|
-| `target` | `ES2024` | Modern JavaScript features |
+| `target` | `ES2025` | Modern JavaScript features |
 | `experimentalDecorators` | `true` | Required for IGNIS decorators |
 | `emitDecoratorMetadata` | `true` | Metadata reflection for DI |
 | `useDefineForClassFields` | `false` | Decorator-compatible class fields |

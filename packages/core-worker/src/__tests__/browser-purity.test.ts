@@ -236,7 +236,7 @@ describe('browser purity is enforced at author time', () => {
       };
 
       expect(compilerOptions.types).toEqual([]);
-      expect(compilerOptions.lib).toEqual(['es2024', 'webworker']);
+      expect(compilerOptions.lib).toEqual(['es2025', 'webworker']);
     },
     TIMEOUT_MS,
   );

@@ -69,7 +69,7 @@ Create `tsconfig.json` in your project root:
 }
 ```
 
-> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2024 target settings. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
 
 ### Tool configs
 

@@ -216,7 +216,7 @@ is for.
   condition disappears. It shipped CommonJS only once, and a Vite consumer then needed an
   `optimizeDeps.include` line per sub-path - see [browser-bff](/examples/browser-bff.md).
 - **`IWorkerMessageScope` is a structural type, not `DedicatedWorkerGlobalScope`.** Not because this
-  package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2024", "WebWorker"]` and
+  package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2025", "WebWorker"]` and
   `browser-purity.test.ts` asserts it. Naming the DOM type in a public signature would force
   `lib.webworker` on every **consumer**.
 - **`WorkerApplication` inherits `initialize()` from the kernel, and a browser gets the phase order

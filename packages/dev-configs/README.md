@@ -86,7 +86,7 @@ earlier. Every IGNIS example does.
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `namingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
-| `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2024, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
+| `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 
 ## What each config sets
@@ -169,8 +169,9 @@ matches. oxfmt differs from Prettier on long union types, which it breaks with a
 
 ### eslintConfigs
 
-`eslintConfigs` is unchanged: `@minimaltech/eslint-node` (ESLint recommended, typescript-eslint, Prettier as a
-lint rule, naming conventions, `curly`, `eslint-plugin-n`) plus these IGNIS rules:
+`eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
+of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, Prettier as a lint
+rule, naming conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
 
 | Rule | Setting |
 | :--- | :--- |

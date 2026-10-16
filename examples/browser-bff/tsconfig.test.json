@@ -11,7 +11,7 @@
     /* The smoke test runs in Bun and loads the Worker by URL, so it needs Bun's types and none of
        the application's. */
     "lib": [
-      "ES2024",
+      "ES2025",
       "DOM"
     ],
     "types": [

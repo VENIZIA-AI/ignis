@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - ESLint preset owned here, target ES2025
+
+Updated [dev-configs](/packages/dev-configs.md), [core-worker](/packages/core-worker.md).
+
+- `eslintConfigs` no longer depends on `@minimaltech/eslint-node`: the LoopBack 4 rule set is ported into `linters/eslint.ts`. The resolved config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` is deep-equal to the old one.
+- `tsconfig.base.json` / `tsconfig.common.json` target and lib ES2024 -> ES2025. Every package `dist/` is byte-identical; only the available types grow.
+
 ## 2026-10-16 - lint and format moved to oxlint and oxfmt
 
 Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [git workflow](/process/git-workflow.md), [testing](/process/testing.md), [debugging](/process/debugging.md), [testing conventions](/conventions/testing-conventions.md).

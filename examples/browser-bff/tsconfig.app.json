@@ -12,7 +12,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
 
-    /* Replaces the shared `["ES2024"]` + `["bun"]`: this code runs in a browser tab and a dedicated
+    /* Replaces the shared `["ES2025"]` + `["bun"]`: this code runs in a browser tab and a dedicated
        Worker, so it needs DOM and Vite's `import.meta.env` / `?raw` declarations. `node` is left
        out, and lives in `tsconfig.node.json` with the one file that genuinely runs in node.
 
@@ -30,7 +30,7 @@
        keeps the config file's node types out of the application's project, and the tsc-level
        guarantee appears for free if those `.d.ts` leaks are ever fixed. */
     "lib": [
-      "ES2024",
+      "ES2025",
       "DOM",
       "DOM.Iterable"
     ],

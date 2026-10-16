@@ -27,6 +27,8 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 - **oxfmt replaces Prettier.** `oxfmtConfigs` holds the same seven options as `prettierConfigs`.
 - **ESLint stays for one rule.** `@typescript-eslint/naming-convention` has no oxlint port yet, so `namingConventionConfigs` runs it alone.
 - **Every project owns a `.configs/` folder.** It holds `oxlint.config.mts`, `oxfmt.config.mts` and `eslint.config.mts`. Packages also keep `tsconfig.build.json` and `tsconfig.esm.json` there. `tsconfig.json` stays at the project root.
+- **`eslintConfigs` is owned by IGNIS.** It no longer wraps `@minimaltech/eslint-node`. The rules live in `linters/eslint.ts` and resolve to the same config as before, rule for rule.
+- **The TypeScript target is ES2025.** `tsconfig.base.json` and `tsconfig.common.json` move from ES2024 to ES2025, target and lib. The emitted JavaScript of every IGNIS package is unchanged; the gain is the ES2025 types (`Set` methods, iterator helpers, `Promise.try`).
 - **New `@venizia/dev-configs` exports.** Subpaths `/compilers`, `/formatters` and `/linters`, plus one class per rule (see the table below).
 
 | New export | From | Use |
@@ -39,7 +41,8 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 ## Who is affected
 
 - **Contributors to the IGNIS repository.** Use the new commands below. The `.prettierrc.mjs`, `.prettierignore` and root `eslint.config.mjs` files are gone.
-- **Consumers of `@venizia/dev-configs`.** No action needed. `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs`, `BunCompiler` and the two tsconfig exports are unchanged, and the root import still re-exports everything.
+- **Consumers of `@venizia/dev-configs`.** No lint action needed. `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs`, `BunCompiler` and the two tsconfig exports keep their shape, and the root import still re-exports everything.
+- **Consumers that extend `tsconfig.common.json`.** Your target becomes ES2025. Your runtime needs ES2025 support (Bun 1.4 and Node 24 have it); a bundler that rejects ES2025 needs its own target, as the IGNIS wiki does for esbuild.
 - **Consumers who want the faster tools.** Switch with the steps below.
 
 ## For contributors
