@@ -13,7 +13,7 @@ import { builtinModules } from 'node:module';
  * - an inline `eslint-disable` comment
  * `make purity` is the backstop for all three at bundle level, except the computed form.
  *
- * The same block lives in `packages/core-worker/.configs/eslint.config.mts`. Its home is
+ * The same block lives in `packages/core-worker/.configs/eslint.config.mjs`. Its home is
  * `@venizia/dev-configs` once a third consumer needs it; it is duplicated rather than hoisted while
  * that package sits outside this wave's scope.
  */

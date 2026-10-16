@@ -221,7 +221,7 @@ update-kernel:
 # Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
 FMT_GLOB := "**/*.{ts,mts,js,mjs}"
 # $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
-LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mts $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
+LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mjs $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
 
 LINT_PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server atlas
 LINT_PKG_TARGETS := $(addprefix lint-,$(LINT_PACKAGES))

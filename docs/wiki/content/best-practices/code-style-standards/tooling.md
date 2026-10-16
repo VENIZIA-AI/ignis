@@ -20,7 +20,7 @@ export default defineConfig(oxlintConfigs);
 ## Installation
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 ```
 
 | Tool | Job |
@@ -40,7 +40,7 @@ my-app/
 ├── .configs/
 │   ├── oxlint.config.mts
 │   ├── oxfmt.config.mts
-│   └── eslint.config.mts
+│   └── eslint.config.mjs
 ├── src/
 ├── package.json
 └── tsconfig.json
@@ -50,7 +50,7 @@ No tool finds `.configs/` on its own, so every call passes `-c`:
 
 ```bash
 oxlint -c .configs/oxlint.config.mts
-eslint -c .configs/eslint.config.mts .
+eslint -c .configs/eslint.config.mjs .
 oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
@@ -105,7 +105,7 @@ The rule classes and their options are in the [package README](https://github.co
 
 oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint runs that one rule.
 
-**`.configs/eslint.config.mts`:**
+**`.configs/eslint.config.mjs`:**
 ```typescript
 import { namingConventionConfigs } from '@venizia/dev-configs/linters';
 
@@ -177,8 +177,8 @@ In an application, add scripts that pass `-c`:
 ```json
 {
   "scripts": {
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
   }
 }
 ```
@@ -197,19 +197,45 @@ Packages carry no lint scripts of their own. Examples keep `lint` and `lint:fix`
 
 ### A React frontend
 
-`ReactEslintConfigs` is the same base plus the React, hooks and accessibility rules a frontend needs. Pass the plugins in - a backend never installs them:
+A React app swaps two of the three `.configs/` files for their React versions. oxlint runs the React, hooks and accessibility rules natively, so there is no plugin to install:
 
 ```typescript
-// eslint.config.mjs
-import { ReactEslintConfigs } from '@venizia/dev-configs';
-import react from 'eslint-plugin-react';
-import reactHooks from 'eslint-plugin-react-hooks';
-import jsxA11y from 'eslint-plugin-jsx-a11y';
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
 
-export default ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } });
+export default defineConfig(ReactOxlintConfigs.create());
 ```
 
-It adds React correctness and `jsx-a11y` basics on `.jsx`/`.tsx`, `rules-of-hooks` (error) and `exhaustive-deps` (warn) on `.js`/`.jsx`/`.ts`/`.tsx`, and `consistent-type-imports`. Under ESLint 10, pass `reactVersion` (`'19.2'`): eslint-plugin-react 7 cannot detect it there. It relaxes what a UI does on purpose: PascalCase function components, promises fired from handlers, `_`-prefixed unused names. The full table is in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
+```typescript
+// .configs/eslint.config.mjs
+import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
+
+export default reactNamingConventionConfigs;
+```
+
+`.configs/oxfmt.config.mts` stays the same.
+
+| Adds | Setting |
+|---|---|
+| React correctness (`jsx-key`, `no-children-prop`, ... - 13 rules) and `jsx-a11y` basics (9 rules) | `error`, `.jsx`/`.tsx` |
+| `react/rules-of-hooks`, `react/exhaustive-deps` | `error`, every source file |
+| `typescript/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
+| `no-restricted-properties` | bans `crypto.randomUUID`, which is `undefined` on a plain-http origin or in a WebView |
+| `naming-convention` (ESLint) | the base rule, plus PascalCase functions (`function App()`) on `.jsx`/`.tsx` |
+
+Frontend code is held to the backend's standard: nothing in the base is relaxed, so a floating promise, a `void`, a use before declaration or a shadowed name fails the lint. An app that wants less overrides the rule after the preset:
+
+```typescript
+const base = ReactOxlintConfigs.create();
+
+export default defineConfig({
+  ...base,
+  rules: { ...base.rules, 'typescript/no-floating-promises': 'warn' },
+});
+```
+
+A project that stays on ESLint uses `ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` instead - the same rules, with the plugins passed in. The full tables are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
 
 ## TypeScript Configuration
 
@@ -269,7 +295,7 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
   "oxc.configPath": ".configs/oxlint.config.mts",
   "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
   "oxc.typeAware": true,
-  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mts" },
+  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mjs" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
@@ -282,7 +308,7 @@ The tools do not look inside `.configs/` on their own, so the settings point at 
 ### WebStorm / IntelliJ
 
 1. Go to **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
-2. Select "Manual ESLint configuration" and point it at `.configs/eslint.config.mts`
+2. Select "Manual ESLint configuration" and point it at `.configs/eslint.config.mjs`
 3. Run oxlint and oxfmt through the `lint` and `lint:fix` scripts, or install the Oxc plugin
 
 ## See Also

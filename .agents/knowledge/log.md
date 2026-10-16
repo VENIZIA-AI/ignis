@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - ESLint config is .mjs, jiti dropped; dev-configs range ^0.3.0
+
+Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md).
+
+- Every `.configs/eslint.config.mts` became `.mjs`: ESLint loads a TypeScript config only through `jiti`, and the user wants fewer dependencies. `jiti` is gone from the catalog, every project and the dev-configs peers. oxlint and oxfmt configs stay `.mts` (they need nothing extra).
+- After the 0.3.0 release, the `^0.2.x` devDependency ranges no longer reached the workspace copy, so bun pulled 0.2.1 (no `/linters`) from npm and lint broke; the ranges are now `^0.3.0`.
+
 ## 2026-10-16 - pre-release fixes: jiti, deny-warnings, dev-configs install gate
 
 Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md).

@@ -6,12 +6,12 @@ it as a dev dependency in an application that wants the same rules.
 ## Install
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 ```
 
 `oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `oxfmt` (>=0.73.0), `eslint` (9 or 10),
-`jiti` (>=2.2), `prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools
-you use. ESLint loads an `eslint.config.mts` through `jiti`, so a project with one needs it. A
+`prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools you use. Keep the
+ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
 project that still runs ESLint and Prettier installs `eslint prettier` and skips the oxc tools.
 
 ## Use it
@@ -35,7 +35,7 @@ export default defineConfig(oxfmtConfigs);
 ```
 
 ```typescript
-// .configs/eslint.config.mts - the one rule oxlint cannot run yet
+// .configs/eslint.config.mjs - the one rule oxlint cannot run yet
 import { namingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default namingConventionConfigs;
@@ -43,7 +43,7 @@ export default namingConventionConfigs;
 
 ```bash
 oxlint -c .configs/oxlint.config.mts --deny-warnings
-eslint -c .configs/eslint.config.mts .
+eslint -c .configs/eslint.config.mjs .
 oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
@@ -233,7 +233,7 @@ import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
 
 export default defineConfig(ReactOxlintConfigs.create());
 
-// .configs/eslint.config.mts
+// .configs/eslint.config.mjs
 import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default reactNamingConventionConfigs;

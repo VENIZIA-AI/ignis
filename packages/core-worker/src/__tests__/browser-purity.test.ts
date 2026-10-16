@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
  * - `tsconfig.build.json` sets `types: []`, which is what removes the `Bun` namespace, and
  *   `lib: ["ES2024", "WebWorker"]`, which is what supplies OPFS. Adding `types: ["bun"]` back to
  *   stop an editor complaining would silently undo it.
- * - `.configs/eslint.config.mts` restricts Node's host globals and the builtin module specifiers.
+ * - `.configs/eslint.config.mjs` restricts Node's host globals and the builtin module specifiers.
  *   tsc cannot do this job: `ioredis` (reached through `@venizia/ignis-helpers/core`) and `casbin`
  *   (reached through `@venizia/ignis-kernel`) both carry `/// <reference types="node" />` in their
  *   published declarations, and a type-library reference from a `.d.ts` is unconditional - so
@@ -27,7 +27,7 @@ const PACKAGE_BIN = join(PACKAGE_ROOT, 'node_modules', '.bin');
 const TSC = join(PACKAGE_BIN, 'tsc');
 const ESLINT = join(PACKAGE_BIN, 'eslint');
 /** The package keeps its lint configs in `.configs/`, where ESLint does not look on its own. */
-const ESLINT_CONFIG = join(PACKAGE_ROOT, '.configs', 'eslint.config.mts');
+const ESLINT_CONFIG = join(PACKAGE_ROOT, '.configs', 'eslint.config.mjs');
 const PRODUCTION_TSCONFIG = join(PACKAGE_ROOT, '.configs', 'tsconfig.build.json');
 
 /** Written and removed per probe. Untracked, so a crashed run leaves something visible, not silent. */
@@ -55,7 +55,7 @@ const TIMEOUT_MS = 120_000;
  * `crypto.randomUUID` type-checks and lints clean - it is a real Web Crypto API, present in every
  * `lib.webworker` - but a browser exposes it only in a SECURE CONTEXT. On a plain-http LAN origin
  * or inside a WebView it is `undefined`, and the first line that calls it throws. No rule in
- * `.configs/eslint.config.mts` covers a conditionally-available API, and the two halves of the BFF
+ * `.configs/eslint.config.mjs` covers a conditionally-available API, and the two halves of the BFF
  * channel already disagreed about this one once. `RequestIdGenerator` is what a production source
  * uses.
  */
