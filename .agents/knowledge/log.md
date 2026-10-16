@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - dev-configs browser tier
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- New exports: `BrowserOxlintConfigs.create()`, `browserOxfmtConfigs`, `tsconfig.browser.json` and `tsconfig.react.json` (issue #163). They cover browser code without React; ARDOR repeated these overrides in every project.
+- `ReactOxlintConfigs` now builds on `BrowserOxlintConfigs`. The `crypto.randomUUID` ban moved to the top-level `rules`, so it also covers `.mjs` and `.cjs` files. Every other rule is unchanged.
+- The lint tools stay installed by the consuming app. dev-configs does not bundle them (decided 2026-10-16).
+
 ## 2026-10-16 - bounded child processes in tests
 
 Updated [testing conventions](/conventions/testing-conventions.md).

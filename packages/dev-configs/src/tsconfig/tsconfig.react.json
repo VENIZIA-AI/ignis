@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.browser.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}

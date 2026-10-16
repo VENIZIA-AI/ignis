@@ -1,8 +1,8 @@
 import type { ESLint, Linter } from 'eslint';
 import type { OxlintConfig } from 'oxlint';
 import tseslint from 'typescript-eslint';
+import { BrowserOxlintConfigs } from './browser';
 import { eslintConfigs, namingConventionConfigs } from './eslint';
-import { oxlintConfigs } from './oxlint';
 import { NamingConventionRule, NoRestrictedPropertiesRule } from './rules';
 
 /** Without `configs`: each plugin types its presets its own way, and only the rules are used here. */
@@ -103,9 +103,10 @@ const SOURCE_FILES = ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', 
 const COMPONENT_FUNCTION_SELECTOR = { selector: 'function', format: ['camelCase', 'PascalCase'] };
 
 /**
- * The oxlint counterpart of `ReactEslintConfigs`: `oxlintConfigs` plus the React, hooks and
- * accessibility rules, `consistent-type-imports`, and the secure-context ban. oxlint runs these
- * plugins natively, so nothing is passed in. `react/no-deprecated` has no oxlint port and is left out.
+ * The oxlint counterpart of `ReactEslintConfigs`: `BrowserOxlintConfigs` (the base rules plus the
+ * secure-context ban) plus the React, hooks and accessibility rules and `consistent-type-imports`.
+ * oxlint runs these plugins natively, so nothing is passed in. `react/no-deprecated` has no oxlint
+ * port and is left out.
  *
  * Nothing in the base is relaxed - frontend code meets the backend's standard - and
  * `exhaustive-deps` is an error.
@@ -120,11 +121,13 @@ const COMPONENT_FUNCTION_SELECTOR = { selector: 'function', format: ['camelCase'
  */
 export class ReactOxlintConfigs {
   static create(): OxlintConfig {
+    const browserConfigs = BrowserOxlintConfigs.create();
+
     return {
-      ...oxlintConfigs,
-      plugins: [...new Set([...(oxlintConfigs.plugins ?? []), 'react', 'jsx-a11y'] as const)],
+      ...browserConfigs,
+      plugins: [...new Set([...(browserConfigs.plugins ?? []), 'react', 'jsx-a11y'] as const)],
       overrides: [
-        ...(oxlintConfigs.overrides ?? []),
+        ...(browserConfigs.overrides ?? []),
         {
           files: JSX_FILES,
           rules: {
@@ -161,7 +164,6 @@ export class ReactOxlintConfigs {
             'react/rules-of-hooks': 'error',
             'react/exhaustive-deps': 'error',
             'typescript/consistent-type-imports': ['error', { prefer: 'type-imports' }],
-            [NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build(),
           },
         },
       ],

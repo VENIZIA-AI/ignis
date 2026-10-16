@@ -80,6 +80,8 @@
     },
     "./tsconfig.base.json": "./src/tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./src/tsconfig/tsconfig.common.json",
+    "./tsconfig.browser.json": "./src/tsconfig/tsconfig.browser.json",
+    "./tsconfig.react.json": "./src/tsconfig/tsconfig.react.json",
     "./package.json": "./package.json"
   },
   "files": [

@@ -64,6 +64,18 @@ there.
 }
 ```
 
+### Browser and React projects
+
+The presets above target a Bun or Node backend. Code that runs in a browser swaps each one for its
+browser version. A React project swaps it for the React version, which builds on the browser one.
+
+| Tool | Backend | Browser | React |
+| :--- | :--- | :--- | :--- |
+| oxlint | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
+| oxfmt | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
+| ESLint | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
+| tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
+
 ## Declare the decorator flag in your own tsconfig
 
 The base config sets `experimentalDecorators`. But Bun can miss a flag inherited through `extends`
@@ -85,10 +97,12 @@ earlier. Every IGNIS example does.
 | :--- | :--- |
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
-| `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `prettierConfigs` |
-| `@venizia/dev-configs/linters` | `oxlintConfigs`, `namingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
+| `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
+| `@venizia/dev-configs/tsconfig.react.json` | Extends `tsconfig.browser.json` and sets `jsx: react-jsx` |
 
 ## What each config sets
 
@@ -169,6 +183,13 @@ matches. oxfmt differs from Prettier on long union types, which it breaks with a
 | `bracketSpacing` | `true` |
 | `arrowParens` | `'avoid'` |
 
+`browserOxfmtConfigs` is `oxfmtConfigs` with two changes for browser and React code:
+
+| Setting | Value | Effect |
+| :--- | :--- | :--- |
+| `arrowParens` | `'always'` | `(x) => x` instead of `x => x` |
+| `bracketSameLine` | `true` | The closing `>` of a multi-line JSX element stays on its last attribute line, which keeps JSX diffs small |
+
 ### eslintConfigs
 
 `eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
@@ -221,6 +242,21 @@ Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, 
 - `consistent-type-imports` keeps the default `fixStyle`; a codebase that prefers
   `inline-type-imports` sets it on top.
 
+### BrowserOxlintConfigs
+
+`BrowserOxlintConfigs.create()` is `oxlintConfigs` plus `NoRestrictedPropertiesRule.build()`. That
+rule bans `crypto.randomUUID`, which exists only in a secure context (https, localhost). On a
+plain-http origin or in a WebView, the method is `undefined`. Use this preset for browser code that
+does not use React.
+
+```ts
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(BrowserOxlintConfigs.create());
+```
+
 ### ReactOxlintConfigs and reactNamingConventionConfigs
 
 The oxlint version of the React preset. oxlint runs the React, hooks and `jsx-a11y` rules natively, so
@@ -239,10 +275,8 @@ import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 export default reactNamingConventionConfigs;
 ```
 
-`ReactOxlintConfigs.create()` is `oxlintConfigs` plus the same rules as the ESLint table above, as
-strict as the base. `react/no-deprecated` is left out: oxlint has no port of it. `crypto.randomUUID`
-is banned because it exists only in a secure context (https, localhost), and is `undefined` on a
-plain-http origin or in a WebView.
+`ReactOxlintConfigs.create()` is `BrowserOxlintConfigs.create()` plus the same rules as the ESLint
+table above, as strict as the base. `react/no-deprecated` is left out: oxlint has no port of it.
 
 The presets start strict. An application that wants less overrides the rule after the preset:
 
@@ -256,8 +290,7 @@ export default defineConfig({
 ```
 
 `reactNamingConventionConfigs` is `namingConventionConfigs` plus PascalCase functions in `.jsx` and
-`.tsx` files. To ban `crypto.randomUUID` in a project without React, add
-`[NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build()` to its rules.
+`.tsx` files.
 
 ### BunCompiler
 
