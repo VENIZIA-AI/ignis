@@ -87,6 +87,8 @@ Other base settings worth knowing: `target: ES2025`, `module`/`moduleResolution:
 
 `tsconfig.common.json` is the consumer-facing simplification: it extends `tsconfig.base.json` and switches `module`/`moduleResolution` to `nodenext`.
 
+Bun ignores an `extends` that names a package (`@venizia/dev-configs/...`), even one level deep, so none of these options reach `bun run` or `bun test`; `tsc` follows the chain and stays green. Every `tsconfig.json` Bun runs therefore restates `experimentalDecorators: true` and `useDefineForClassFields: false` - see [gotchas](/conventions/gotchas.md). Flattening the presets would not help: the package-specifier form is skipped outright. Decided 2026-10-16 (issue #167): fix it in the docs and the repo's own tsconfigs, keep the presets as they are.
+
 ## Gotcha: changes here are monorepo-wide
 
 Because every package extends these configs directly, a change to `tsconfig.base.json`, `oxlintConfigs`, `oxfmtConfigs` or `namingConventionConfigs` affects every package's build and lint output simultaneously. There is no per-package override mechanism beyond what each package's own `tsconfig.json` and `.configs/*.config.mts` layer on top.

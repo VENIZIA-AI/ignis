@@ -62,14 +62,16 @@ Create `tsconfig.json` in your project root:
     "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
-> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. `tsc` reads it, but Bun ignores an `extends` that names a package - so the two options that change the emitted code, `experimentalDecorators` and `useDefineForClassFields`, are restated here. Without them `bun run` drops `@inject` silently. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
 
 ### Tool configs
 

@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-16 | [Restate the Decorator Options - Bun Ignores a Package tsconfig extends](./2026-10-16-bun-tsconfig-extends) | Bug Fix |
 | 2026-10-16 | [dev-configs Gains a Browser Tier](./2026-10-16-dev-configs-browser-tier) | Feature |
 | 2026-10-16 | [IGNIS Lints with oxlint and Formats with oxfmt](./2026-10-16-oxlint-oxfmt-migration) | Feature, Enhancement |
 | 2026-10-15 | [TemporalHelper Covers What a dayjs Wrapper Did](./2026-10-15-temporal-wrapper-surface) | Feature, Bug Fix, Breaking Change |

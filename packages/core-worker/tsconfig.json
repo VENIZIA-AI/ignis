@@ -7,7 +7,9 @@
     "paths": { "@/*": ["./src/*"] },
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "lib": ["ES2025", "WebWorker"]
+    "lib": ["ES2025", "WebWorker"],
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]

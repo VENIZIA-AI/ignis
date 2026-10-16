@@ -11,7 +11,8 @@
       "@/*": [
         "./src/*"
       ]
-    }
+    },
+    "useDefineForClassFields": false
   },
   "include": [
     "src"

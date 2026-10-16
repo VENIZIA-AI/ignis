@@ -24,7 +24,7 @@ Both commands finish in a few seconds. You now have a `package.json` with IGNIS 
 
 ## 2. Configure TypeScript for decorators
 
-IGNIS controllers use TypeScript's legacy decorators (`@controller`, `@get`). Set the two decorator flags directly in your own `tsconfig.json`. Bun does not reliably resolve them through an `extends` chain, and a missing flag drops your routes silently.
+IGNIS controllers use TypeScript's legacy decorators (`@controller`, `@get`). Set the decorator options directly in your own `tsconfig.json`. Bun ignores an `extends` that names a package, and a missing flag drops your routes silently.
 
 Create `tsconfig.json`:
 
@@ -39,7 +39,8 @@ Create `tsconfig.json`:
       "@/*": ["./src/*"]
     },
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

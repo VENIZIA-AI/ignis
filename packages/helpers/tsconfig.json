@@ -6,7 +6,9 @@
     "rootDir": "src",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": [ "node_modules", "dist", "app_data" ]

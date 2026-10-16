@@ -4,7 +4,9 @@
   "compilerOptions": {
     "outDir": "dist/cjs",
     "rootDir": "src",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*"] },
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]

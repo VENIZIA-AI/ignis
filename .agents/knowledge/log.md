@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - Bun ignores a package tsconfig extends
+
+Updated [gotchas](/conventions/gotchas.md), [dev-configs](/packages/dev-configs.md), [boot lifecycle](/architecture/boot-lifecycle.md).
+
+- Bun 1.4.2 skips a tsconfig `extends` that names a package (`@venizia/dev-configs/...`), even one level deep; `tsc` follows it. Under Bun the decorators were TC39 and class fields used define semantics, while the `tsc` dist uses legacy decorators and assign semantics. ARDOR found it (issue #167).
+- Every package and example `tsconfig.json` now restates `experimentalDecorators: true` and `useDefineForClassFields: false`. Before the fix, the helpers suite ran TC39 decorators and the kernel suite define semantics.
+- The presets stay as they are: flattening them would not help, because Bun skips the package-specifier form outright.
+
 ## 2026-10-16 - Makefile split by job; the examples leave make
 
 Updated [build system](/process/build-system.md), [build, run, test](/overview/build-run-test.md), [testing](/process/testing.md), [git workflow](/process/git-workflow.md), [docs writing style](/conventions/docs-writing-style.md), [boot](/packages/boot.md), the example concepts.

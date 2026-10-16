@@ -8,7 +8,8 @@
     "rootDir": "src",
     "paths": { "@/*": ["./src/*"] },
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
+    "jsxImportSource": "hono/jsx",
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]
