@@ -14,6 +14,7 @@ import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import type { AnyType } from '@venizia/ignis-helpers/common';
+import { rejectionOf } from '../rejection.helper';
 
 /**
  * Real Ed25519 keys, a real JWK set served over HTTP, and verification through
@@ -142,9 +143,9 @@ describe('a callee accepts what was minted for it', () => {
     const verifier = buildVerifier(calleeOptions());
 
     // What `new URL(context.req.url).pathname` hands over.
-    await (expect(verifier.verify({ token, method: 'GET', path: encoded })).resolves.toMatchObject({
+    expect(await verifier.verify({ token, method: 'GET', path: encoded })).toMatchObject({
       issuer: CALLER,
-    }) as AnyType);
+    });
 
     // What `context.req.path` would have handed over.
     return expect(verifier.verify({ token, method: 'GET', path: decoded })).rejects.toThrow();
@@ -276,9 +277,11 @@ describe('the callee decides the window, per caller', () => {
       .sign(await (signer as AnyType).resolvePrivateKey());
 
     // Default window: refused.
-    await (expect(
-      buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
-    ).rejects.toThrow() as AnyType);
+    expect(
+      await rejectionOf(
+        buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
+      ),
+    ).toBeInstanceOf(Error);
 
     // Same token, this caller granted more slack by the CALLEE's config.
     const generous = buildVerifier(

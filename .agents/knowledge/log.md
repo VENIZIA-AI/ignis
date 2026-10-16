@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - async matchers without the cast
+
+Updated [testing conventions](/conventions/testing-conventions.md).
+
+- `rejection.helper.ts` gained `rejectionOf`; `expectRejection` no longer casts (`as AnyType`), and the five cast sites in core-server's authenticate tests await the task instead (issue #174, the shape ARDOR proved).
+- Found on the way: bun 1.4.2 `toMatchObject` with an asymmetric matcher overwrites the checked object's property, so the helper compares the message as a string.
+
 ## 2026-10-16 - release.ts: package names and the second table refresh
 
 Updated [release and publish](/process/release-publish.md).

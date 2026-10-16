@@ -11,6 +11,7 @@ import { ServiceAssertionSignerService } from '@/components/auth/authenticate/se
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
 import type { AnyType } from '@venizia/ignis-helpers/common';
+import { expectRejection } from '../rejection.helper';
 
 /**
  * The seam an application owns: `resolvePrincipal` returning `null`, a principal with no `userId`,
@@ -122,7 +123,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await (expect(task).rejects.toThrow(/no principal/) as AnyType);
+    await expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -142,7 +143,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET', token }),
     );
 
-    await (expect(task).rejects.toThrow(/no principal/) as AnyType);
+    await expectRejection({ task, message: /no principal/ });
     await server.stop(true);
   });
 
@@ -155,7 +156,7 @@ describe('the strategy validates what the application hands back', () => {
       buildContext({ url: 'http://pricing/v1/api/x', method: 'GET' }),
     );
 
-    await (expect(task).rejects.toThrow(/Missing service assertion/) as AnyType);
+    await expectRejection({ task, message: /Missing service assertion/ });
     await server.stop(true);
   });
 });

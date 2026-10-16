@@ -57,6 +57,20 @@ stalled the helpers suite for 770s that way. The helper defaults to a 120s bound
 SIGKILL and throws naming the command. Each package with spawning tests carries its own copy, like
 `rejection.helper.ts`.
 
+## Asserting a rejection or a resolution
+
+bun types `expect(task).rejects` / `.resolves` as `void`, so type-aware lint (`await-thenable`)
+refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) breaks C-10. Await the
+task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
+`await expectRejection({ task, message })` or `expect(await rejectionOf(task)).toBeInstanceOf(Error)`
+from the package's `src/__tests__/rejection.helper.ts` (connectors, core-server, core-worker - one
+identical copy each). `rejectionOf` throws when the task resolves. `expectRejection` compares the
+message as a string on purpose: bun 1.4.2 `toMatchObject` with an asymmetric matcher
+(`expect.stringMatching`) overwrites the matched property on the object it checks, so a later
+`error.message` read returns the matcher - a test that reads the same error twice then fails with
+"Expected and actual values must be numbers". `return expect(task).rejects...` (returned, not
+awaited) needs no cast and stays.
+
 ## Related
 
 - [Coding style](/conventions/coding-style.md)
