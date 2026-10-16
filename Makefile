@@ -1,6 +1,5 @@
 # The IGNIS monorepo. Each file under make/ holds one job; `make help` lists every target.
 # make/project.mk is not included here: it is the per-package include, used by packages/*/Makefile.
-# The examples are not built, linted or tested from make - see scripts/examples.ts.
 
 .PHONY: all
 

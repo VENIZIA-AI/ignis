@@ -1,5 +1,4 @@
-# Lint and format the packages, the wiki scripts and scripts/. The examples lint through
-# scripts/examples.ts, not from here.
+# Lint and format the packages, the wiki scripts and scripts/.
 
 # Each project lints itself, from its own .configs/ and with its own tools (its node_modules/.bin).
 # oxlint owns the rules, ESLint runs only naming-convention (oxlint has no port yet), oxfmt formats.
