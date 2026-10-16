@@ -193,10 +193,10 @@ Both are type-only, so `make purity` stays green - which is why nobody noticed. 
 [gotchas](/conventions/gotchas.md).
 
 So the author-time defence is a `no-restricted-globals` and `no-restricted-imports` block in
-`eslint.config.mjs`, scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
-`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint against
-committed fixtures. `tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
-namespace. `scripts/rebuild.sh` type-checks the production graph **before** cleaning `dist/`.
+`.configs/eslint.config.mts` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
+`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/eslint.config.mts`) against
+committed fixtures. `.configs/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
+namespace. `make rebuild` type-checks the production graph **before** cleaning `dist/`.
 
 What no static rule reaches: computed member access (`globalThis['process']`), a variable import
 specifier, and an inline `eslint-disable`. `make purity` backstops the first two at bundle level;
@@ -216,7 +216,7 @@ is for.
   condition disappears. It shipped CommonJS only once, and a Vite consumer then needed an
   `optimizeDeps.include` line per sub-path - see [browser-bff](/examples/browser-bff.md).
 - **`IWorkerMessageScope` is a structural type, not `DedicatedWorkerGlobalScope`.** Not because this
-  package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2024", "WebWorker"]` and
+  package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2025", "WebWorker"]` and
   `browser-purity.test.ts` asserts it. Naming the DOM type in a public signature would force
   `lib.webworker` on every **consumer**.
 - **`WorkerApplication` inherits `initialize()` from the kernel, and a browser gets the phase order

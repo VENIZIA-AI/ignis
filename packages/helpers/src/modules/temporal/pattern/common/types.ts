@@ -6,7 +6,18 @@ import type { TemporalLocale } from '../../locale';
  * quarter from the month, and a parse stays numeric and strict.
  */
 export type TWriteOnlyToken =
-  'MMMM' | 'MMM' | 'dddd' | 'ddd' | 'dd' | 'A' | 'a' | 'hh' | 'h' | 'LL' | 'L' | 'Q';
+  | 'MMMM'
+  | 'MMM'
+  | 'dddd'
+  | 'ddd'
+  | 'dd'
+  | 'A'
+  | 'a'
+  | 'hh'
+  | 'h'
+  | 'LL'
+  | 'L'
+  | 'Q';
 
 /**
  * The pattern dialect, one for every adapter: `YYYY YY MM M DD D HH H mm m ss s SSS Z ZZ` both ways,

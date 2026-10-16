@@ -87,7 +87,7 @@ describe('TypesenseConnector search', () => {
     });
     expect(fake.calls.some(c => c.op === 'multiSearch.perform')).toBe(true);
     const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
-    expect((ms?.args[0] as { searches: unknown[] }).searches.length).toBe(1);
+    expect((ms!.args[0] as { searches: unknown[] }).searches.length).toBe(1);
   });
 
   test('multiSearch (federated, default) calls perform without a union flag and returns results[]', async () => {
@@ -153,6 +153,6 @@ describe('TypesenseConnector search', () => {
       options: { abortSignal: abortController.signal },
     });
     const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
-    expect((ms?.args[2] as { abortSignal: AbortSignal }).abortSignal).toBe(abortController.signal);
+    expect((ms!.args[2] as { abortSignal: AbortSignal }).abortSignal).toBe(abortController.signal);
   });
 });

@@ -32,12 +32,13 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
+bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint tsc-alias
 ```
 
 **What `@venizia/dev-configs` provides:**
-- Centralized ESLint configuration
-- Centralized Prettier configuration
+- Centralized oxlint configuration (lint rules)
+- Centralized oxfmt configuration (formatting)
+- The naming-convention rule for ESLint, the one rule oxlint cannot run yet
 - Shared TypeScript base configs
 - Consistent code style across all IGNIS projects
 
@@ -63,52 +64,52 @@ Create `tsconfig.json` in your project root:
       "@/*": ["./*"]
     }
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
-> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2022 target settings.
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
 
-### Prettier
+### Tool configs
 
-Create `.prettierrc.mjs` for code formatting:
+Each tool reads its settings from a `.configs/` folder. Create the folder and three files.
 
-```javascript
-import { prettierConfigs } from '@venizia/dev-configs';
+`.configs/oxlint.config.mts` sets the lint rules:
 
-export default prettierConfigs;
+```typescript
+import { defineConfig } from 'oxlint';
+import { oxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(oxlintConfigs);
 ```
 
-Create `.prettierignore`:
-```
-dist
-node_modules
-*.log
-.*-audit.json
+`.configs/oxfmt.config.mts` sets the formatting:
+
+```typescript
+import { defineConfig } from 'oxfmt';
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
+
+export default defineConfig(oxfmtConfigs);
 ```
 
-> **Customization:** To override Prettier settings, merge with the base config:
-> ```javascript
-> import { prettierConfigs } from '@venizia/dev-configs';
-> export default { ...prettierConfigs, printWidth: 120 };
+`.configs/eslint.config.mts` runs the naming-convention rule, the one rule oxlint cannot run yet:
+
+```typescript
+import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+
+export default namingConventionConfigs;
+```
+
+oxlint and oxfmt skip `dist` and `node_modules` through your `.gitignore`, so no ignore file is needed.
+
+> **Customization:** To override a formatting option, spread the base config:
+> ```typescript
+> import { defineConfig } from 'oxfmt';
+> import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
+> export default defineConfig({ ...oxfmtConfigs, printWidth: 120 });
 > ```
-
-### ESLint
-
-Create `eslint.config.mjs` for code linting:
-
-```javascript
-import { eslintConfigs } from '@venizia/dev-configs';
-
-export default eslintConfigs;
-```
-
-> **Customization:** To add project-specific rules:
-> ```javascript
-> import { eslintConfigs } from '@venizia/dev-configs';
-> export default [...eslintConfigs, { rules: { 'no-console': 'warn' } }];
-> ```
+> To change a lint rule, use its rule class. See [Tooling Configuration](/best-practices/code-style-standards/tooling).
 
 > **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards/) for detailed configuration options.
 
@@ -385,11 +386,8 @@ Add common application scripts to your `package.json`:
 
 ```json
 "scripts": {
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
-    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",
@@ -407,7 +405,7 @@ Create a cleanup script at `scripts/clean.sh`:
 
 echo "START | Clean up..."
 
-rm -rf dist *.tsbuildinfo .eslintcache
+rm -rf dist *.tsbuildinfo
 rm -rf artifact.zip
 
 echo "DONE | Clean up..."

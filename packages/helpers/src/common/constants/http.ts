@@ -229,5 +229,6 @@ export class HTTP {
 
 export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
 export type THttpProtocol =
-  ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
+  | ValueOf<typeof HTTP.Protocols>
+  | Uppercase<ValueOf<typeof HTTP.Protocols>>;
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;

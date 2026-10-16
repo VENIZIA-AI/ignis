@@ -22,11 +22,11 @@ reaches `kernel` through `connectors`, so `make core` runs dev-configs -> invers
 no framework package depends on (an application declares `boot` itself, for the artifact
 generator), so `make build-all` names both explicitly.
 
-Each target builds its dependencies first, running `bun run --filter "@venizia/<name>" rebuild` -
-type-check, then clean, then build. The type-check runs *before* `clean` on purpose: `build.sh`
+Each target builds its dependencies first, running `make -C packages/<name> rebuild` -
+type-check, then clean, then build. The type-check runs *before* `clean` on purpose: it
 type-checks `__tests__` too, so ordering it first stops a broken test from wiping `dist/` and
 leaving an empty directory behind. To build one package alone:
-`cd packages/core-server && bun run rebuild`.
+`make -C packages/core-server rebuild`.
 
 ## Run
 
@@ -47,7 +47,7 @@ cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
-step for the tests, and `tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
+step for the tests, and `.configs/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
 package's `.env.test` automatically. Only `boot` and `atlas` define a `test` script of their own
 (`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
 script stays the single owner of the package's environment.
@@ -58,8 +58,10 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 ## Lint and hooks
 
 ```bash
-make lint             # lint packages/ only
-make lint-all         # lint packages/ and examples/
+make lint             # lint packages/ only (oxlint, naming-convention ESLint, oxfmt --check)
+make lint-<package>   # one package, by directory name: make lint-kernel
+make lint-all         # packages, examples, example typecheck and scripts/
+make fmt              # format packages/ (oxfmt); make fmt-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks
@@ -80,9 +82,9 @@ package by the release workflow, so a green commit says nothing about it.
   `packages/helpers/dist/...`, so skipping the build makes `bun test` in any downstream package
   fail with a wall of module-resolution errors unrelated to your change. Build in dependency order
   first (`make build`, or at least everything upstream of the package you're touching).
-- **`noEmitOnError: true` is set repo-wide**, and every `build.sh` runs under `set -e` - a type
-  error anywhere aborts the build immediately and `dist` is left exactly as it was, stale rather
-  than partially overwritten. For `core`/`helpers`, `build.sh` type-checks the whole `tsconfig.json`
+- **`noEmitOnError: true` is set repo-wide**, and every recipe in `make/project.mk` stops at the first failing
+  command - a type error anywhere aborts the build immediately and `dist` is left exactly as it was, stale rather
+  than partially overwritten. For every package, `make build` type-checks the whole `tsconfig.json`
   (including `src/__tests__/`) before the emit-only pass that excludes tests, so a broken test file
   blocks a build of code that never touches it. If a build seems like it should have succeeded, run
   `tsc --noEmit -p tsconfig.json` in the package directly and check its exit code.

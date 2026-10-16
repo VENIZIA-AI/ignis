@@ -54,7 +54,7 @@ tags: [process, helper, helpers]
 8. Write tests under `src/__tests__/<name>/` as `*.test.ts`. `bun test` runs these directly from
    `src` for `helpers` (no `test` script needed in `package.json`) - see
    [testing](/process/testing.md).
-9. Build with `bun run rebuild` in `packages/helpers`, or `make helpers` for the full dependency
+9. Build with `make rebuild` in `packages/helpers`, or `make helpers` for the full dependency
    chain. Remember: a type error in your new module's test file fails the WHOLE package's build,
    not just the test (see [build system](/process/build-system.md)).
 

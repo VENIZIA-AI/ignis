@@ -6,7 +6,7 @@ Consistent function patterns improve code readability and maintainability.
 
 ### Prefer Named Exports
 
-Avoid `export default` except for configuration files (e.g., `eslint.config.mjs`) or lazy-loaded components. Use named exports for all classes, functions, and constants.
+Avoid `export default` except for configuration files (e.g., `.configs/oxlint.config.mts`) or lazy-loaded components. Use named exports for all classes, functions, and constants.
 
 **Why?**
 - **Refactoring:** Renaming a symbol automatically updates imports across the monorepo

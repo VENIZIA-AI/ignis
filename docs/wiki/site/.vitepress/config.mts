@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-16',
+              collapsed: true,
+              items: [
+                {
+                  text: 'IGNIS Lints with oxlint and Formats with oxfmt',
+                  link: '/changelogs/2026-10-16-oxlint-oxfmt-migration',
+                },
+              ],
+            },
+            {
               text: '2026-10-15',
               collapsed: true,
               items: [

@@ -17,7 +17,7 @@ fi
 
 echo "START | Force updating from NPM registry (tag: $TAG)..."
 
-EXTRA_PACKAGES="@minimaltech/eslint-node"
+EXTRA_PACKAGES=""
 
 # Derived from package.json, never hardcoded: a hardcoded list silently goes stale when a new
 # workspace dependency is added - that is how @venizia/ignis-filter went unrefreshed in core, and

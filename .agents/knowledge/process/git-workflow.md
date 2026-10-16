@@ -20,9 +20,9 @@ tags: [process, git, contributing]
    `docs`, `chore`, `refactor`, `test`) after the issue number. A commit that serves several issues it
    cannot be split between lists each: `[#42][#44] ...`. The repository is public, so an issue
    describes the framework defect, never a consumer's internals.
-4. Before committing, run `bun run --filter "*" lint:fix` and `make build` to catch style and type
-   issues early - `lint:fix` is defined per package, so a bare `bun run lint:fix` at the repo root
-   finds no script. `make lint-all` is the check-only equivalent, and the pre-commit hook (below)
+4. Before committing, run `make fmt` and `make build` to catch style and type issues early.
+   Packages have no `lint` or `lint:fix` script; the Makefile runs each package's own oxlint, ESLint
+   and oxfmt (`make fmt-<package>` for one). `make lint-all` is the check-only equivalent, and the pre-commit hook (below)
    will block a commit that fails lint anyway.
 5. If git hooks aren't wired up yet, run `make setup-hooks` once - it runs `git config
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of

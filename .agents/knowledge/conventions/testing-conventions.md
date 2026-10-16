@@ -37,12 +37,12 @@ expect(executor['delayedJobs'].size).toBe(1);
 
 The build's type-check gate runs against `tsconfig.json`, which includes `src/__tests__`. One
 broken test file - even someone else's in-progress, untracked one - fails the build for the
-**entire package**, even though the emit step reads `tsconfig.build.json` and keeps tests out of
+**entire package**, even though the emit step reads `.configs/tsconfig.build.json` and keeps tests out of
 `dist/`. Before trusting a red build here, check `git status` for untracked test files that might
 be the real cause.
 
-That failure no longer costs you the build output: `rebuild.sh` type-checks *before* it runs
-`bun run clean`, so a broken test aborts while the last good `dist/` is still in place. The
+That failure no longer costs you the build output: `make rebuild` type-checks *before* it runs
+`clean`, so a broken test aborts while the last good `dist/` is still in place. The
 diagnostic habit still pays off, though. `dist/` is gitignored, so when `bun test` collapses into
 import errors, check whether `dist/` is empty first - a fresh clone or worktree shows the identical
 symptom for the simpler reason that it has never been built. See

@@ -419,7 +419,7 @@ describe('ReadableSearchRepository', () => {
           queryText: 'x',
         });
         expect(
-          (dataSource.fakeConnector.searchCalls[0]?.params as Record<string, unknown>)['prefix'],
+          (dataSource.fakeConnector.searchCalls[0]!.params as Record<string, unknown>)['prefix'],
         ).toBe(false);
 
         // prefix is engine-specific tuning now; engineParams merges last and overrides the default.
@@ -430,7 +430,7 @@ describe('ReadableSearchRepository', () => {
           engineParams: { prefix: true },
         });
         expect(
-          (dataSource.fakeConnector.searchCalls[1]?.params as Record<string, unknown>)['prefix'],
+          (dataSource.fakeConnector.searchCalls[1]!.params as Record<string, unknown>)['prefix'],
         ).toBe(true);
       });
 

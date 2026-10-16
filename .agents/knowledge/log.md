@@ -6,6 +6,38 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - React preset for oxlint
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `ReactOxlintConfigs.create()`, `reactNamingConventionConfigs` and `NoRestrictedPropertiesRule` added, from the rule list ARDOR sent; every lint preset stays in dev-configs and ARDOR consumes it.
+- Both React presets (oxlint and `ReactEslintConfigs`) are as strict as the base: the UI relaxations (floating promises, `void`, use before define, shadow, unused vars) are gone and `exhaustive-deps` is an error.
+
+## 2026-10-16 - per-package Makefiles replace the build scripts
+
+Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [testing conventions](/conventions/testing-conventions.md), [testing](/process/testing.md), [adding a helper](/process/adding-a-helper.md), [atlas](/packages/atlas.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [kernel](/packages/kernel.md).
+
+- Each package has a `Makefile` that includes `make/project.mk` (`typecheck`, `build`, `clean`, `rebuild`, `lint`, `fmt`). `build.sh`, `clean.sh` and `rebuild.sh` are gone; `package.json` keeps only `force-update`, `prepublishOnly`, and `test` where it existed.
+- `rebuild` type-checks every emitted program before `clean`, for every package. The `dev-configs` exception no longer holds.
+- atlas copies its corpus with `scripts/corpus.sh` as `POST_BUILD`; boot does its `chmod` the same way.
+
+## 2026-10-16 - ESLint preset owned here, target ES2025
+
+Updated [dev-configs](/packages/dev-configs.md), [core-worker](/packages/core-worker.md).
+
+- `eslintConfigs` no longer depends on `@minimaltech/eslint-node`: the LoopBack 4 rule set is ported into `linters/eslint.ts`. The resolved config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` is deep-equal to the old one.
+- `tsconfig.base.json` / `tsconfig.common.json` target and lib ES2024 -> ES2025. Every package `dist/` is byte-identical; only the available types grow.
+
+## 2026-10-16 - lint and format moved to oxlint and oxfmt
+
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [git workflow](/process/git-workflow.md), [testing](/process/testing.md), [debugging](/process/debugging.md), [testing conventions](/conventions/testing-conventions.md).
+
+- Prettier is gone. oxlint (type-aware) and oxfmt replace it and ESLint; ESLint stays for `@typescript-eslint/naming-convention` only.
+- Every project owns `.configs/` (oxlint, oxfmt, eslint configs, plus the build tsconfigs); every tool call passes `-c .configs/...`. `tsconfig.json` stays at the root so Bun, the editor and tsgolint find it.
+- dev-configs: subpath exports, `oxlintConfigs`, `oxfmtConfigs`, `namingConventionConfigs`, rule classes, tsconfigs moved to `src/tsconfig/`. A consumer migrating copies the three `.configs/` files.
+- New gotchas: tsc-alias must read the root tsconfig, a stale `.configs/*.tsbuildinfo` empties `dist`, `ignorePatterns` resolve against `.configs/`.
+- core-server's `tsconfig.core.json` was merged into its `tsconfig.json`.
+
 ## 2026-10-15 - TemporalHelper constructor fallback, names by language
 
 Updated [helpers](/packages/helpers.md).

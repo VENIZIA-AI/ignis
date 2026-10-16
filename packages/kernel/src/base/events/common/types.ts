@@ -45,7 +45,8 @@ export interface IEventHandlerFunctionReference<TPayload = unknown> {
  * `IEventHandler`'s rebind property; see its doc.
  */
 export type TEventHandlerReference<TPayload = unknown> =
-  IEventHandlerBindingKeyReference | IEventHandlerFunctionReference<TPayload>;
+  | IEventHandlerBindingKeyReference
+  | IEventHandlerFunctionReference<TPayload>;
 
 /**
  * Handles one `IDomainEvent`. Implemented by whatever is bound into the container under

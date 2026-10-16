@@ -12,9 +12,7 @@
     }
   },
   "include": [
-    "src",
-    "./*.config.*",
-    ".prettierrc.*"
+    "src"
   ],
   "exclude": [
     "node_modules",

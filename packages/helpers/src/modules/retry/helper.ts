@@ -7,7 +7,8 @@ import type { IRetryBackoffOptions, IRetryContext } from './common/types';
 import { BaseHelper } from '@/modules/base';
 
 type TRetryAttemptOutcome<T> =
-  { isResolved: true; value: T } | { isResolved: false; error: unknown; isRetryAllowed: boolean };
+  | { isResolved: true; value: T }
+  | { isResolved: false; error: unknown; isRetryAllowed: boolean };
 
 /**
  * Static members call each other through the class name (`RetryHelper.xxx`), never `this` - a

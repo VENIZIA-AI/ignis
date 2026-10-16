@@ -11,7 +11,7 @@ Production-ready patterns, security guidelines, and optimization strategies for 
 
 <a href="./code-style-standards/" class="guide-card">
 <h3>Code Standards</h3>
-<p>Naming, types, patterns, ESLint, Prettier</p>
+<p>Naming, types, patterns, oxlint, oxfmt</p>
 </a>
 
 <a href="./security-guidelines" class="guide-card highlight">
@@ -165,7 +165,7 @@ const data: any = await fetchData(); // Use proper types!
 
 | Guide | Description |
 |-------|-------------|
-| [Code Style Standards](./code-style-standards/) | Naming conventions, types, ESLint, Prettier |
+| [Code Style Standards](./code-style-standards/) | Naming conventions, types, oxlint, oxfmt |
 | [Data Modeling](./data-modeling) | Schema design, enrichers, relations, migrations |
 | [API Usage Examples](./api-usage-examples) | Routing, repositories, middleware, services |
 

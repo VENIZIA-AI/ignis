@@ -1,35 +1,150 @@
 # Tooling Configuration
 
-IGNIS provides centralized development configurations via the `@venizia/dev-configs` package.
+IGNIS lints with **oxlint**, formats with **oxfmt**, and keeps **ESLint** for one rule. All three read their settings from `@venizia/dev-configs`.
+
+```typescript
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { oxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(oxlintConfigs);
+```
 
 > [!IMPORTANT]
 > **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
 > through a package script; never reach for `npx` or `bun x`.
 >
-> `bunx` is fine for running a one-off CLI that is not a project dependency. The repository does
-> exactly that: `make lint-scripts` runs `bunx prettier` and `bunx tsc` against `scripts/`, which is
-> not a workspace member, and the `ignis-build-info` how-to runs `bunx ignis-build-info`.
+> `bunx` is fine for running a one-off CLI that is not a project dependency. The `ignis-build-info`
+> how-to runs `bunx ignis-build-info`.
 
 ## Installation
 
 ```bash
-bun add -d @venizia/dev-configs
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 ```
 
-This package provides:
-- **ESLint rules** - flat config, pre-configured for Node.js/TypeScript projects
-- **Prettier settings** - Consistent formatting across all IGNIS projects
-- **TypeScript configs** - Shared base and common configurations
+| Tool | Job |
+|------|-----|
+| `oxlint` | Every lint rule except naming conventions |
+| `oxlint-tsgolint` | Type-aware rules such as `no-floating-promises`. Install it next to `oxlint` |
+| `oxfmt` | Formatting. Prettier-compatible output |
+| `eslint` | Runs one rule: `@typescript-eslint/naming-convention`, which oxlint cannot run yet |
+| `typescript` | Type checking and the build |
 
-## Prettier Configuration
+## The `.configs/` layout
+
+Every project keeps its tool settings in a `.configs/` folder:
+
+```
+my-app/
+├── .configs/
+│   ├── oxlint.config.mts
+│   ├── oxfmt.config.mts
+│   └── eslint.config.mts
+├── src/
+├── package.json
+└── tsconfig.json
+```
+
+No tool finds `.configs/` on its own, so every call passes `-c`:
+
+```bash
+oxlint -c .configs/oxlint.config.mts
+eslint -c .configs/eslint.config.mts .
+oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+```
+
+`tsconfig.json` stays at the project root. Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there. Without it, Bun silently stops applying legacy decorators.
+
+> [!NOTE]
+> An `ignorePatterns` entry inside a `.configs/*` file resolves against `.configs/`, not the project, so it matches nothing. `dist` and `node_modules` are skipped through `.gitignore`. To skip another folder, pass `--ignore-pattern "folder/**"` on the command line.
+
+## oxlint Configuration
+
+oxlint catches common errors and enforces best practices. It is a rule-for-rule port of the previous ESLint preset, and it runs type-aware rules through `oxlint-tsgolint`.
+
+**`.configs/oxlint.config.mts`:**
+```typescript
+import { defineConfig } from 'oxlint';
+import { oxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(oxlintConfigs);
+```
+
+**Includes:**
+- The ESLint recommended and typescript-eslint rules, ported
+- `unicorn/switch-case-braces: ['error', 'always']`
+- `@typescript-eslint/no-explicit-any` off by default
+
+**Customization:** each rule has a class in `@venizia/dev-configs/linters`. A class exposes the rule's `NAME` and a `build()` that returns its entry with the IGNIS defaults. Pass only what you change:
+
+```typescript
+import { defineConfig } from 'oxlint';
+import {
+  EqeqeqRule,
+  NoRestrictedImportsRule,
+  oxlintConfigs,
+} from '@venizia/dev-configs/linters';
+
+export default defineConfig({
+  ...oxlintConfigs,
+  rules: {
+    ...oxlintConfigs.rules,
+    [EqeqeqRule.NAME]: EqeqeqRule.build({ mode: 'always' }),
+    [NoRestrictedImportsRule.NAME]: NoRestrictedImportsRule.build({
+      extraPaths: [{ name: 'moment', message: 'Use TemporalHelper instead.' }],
+    }),
+    'no-console': 'warn',
+  },
+});
+```
+
+The rule classes and their options are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
+
+## ESLint Configuration (naming conventions only)
+
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint runs that one rule.
+
+**`.configs/eslint.config.mts`:**
+```typescript
+import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+
+export default namingConventionConfigs;
+```
+
+To change the allowed names, build the rule with extra selectors. Extra selectors go last, so they win over a base selector they overlap:
+
+```typescript
+import {
+  NamingConventionRule,
+  namingConventionConfigs,
+} from '@venizia/dev-configs/linters';
+
+export default [
+  ...namingConventionConfigs,
+  {
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      [NamingConventionRule.NAME]: NamingConventionRule.build({
+        extraSelectors: [{ selector: 'variable', format: null, filter: '^__' }],
+      }),
+    },
+  },
+];
+```
+
+Because oxlint owns the other rules, ESLint does not report unused `eslint-disable` comments. A project that wants the full ESLint preset instead still has `eslintConfigs`.
+
+## oxfmt Configuration
 
 Automatic code formatting eliminates style debates.
 
-**`.prettierrc.mjs`:**
-```javascript
-import { prettierConfigs } from '@venizia/dev-configs';
+**`.configs/oxfmt.config.mts`:**
+```typescript
+import { defineConfig } from 'oxfmt';
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 
-export default prettierConfigs;
+export default defineConfig(oxfmtConfigs);
 ```
 
 **Default Settings:**
@@ -45,57 +160,40 @@ export default prettierConfigs;
 | `semi` | `true` | Semicolons required |
 
 **Customization:**
-```javascript
-import { prettierConfigs } from '@venizia/dev-configs';
+```typescript
+import { defineConfig } from 'oxfmt';
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 
-export default {
-  ...prettierConfigs,
-  printWidth: 120,  // Override specific settings
-};
+export default defineConfig({
+  ...oxfmtConfigs,
+  printWidth: 120, // Override specific settings
+});
 ```
 
-**Usage:**
-```bash
-bun run prettier:cli      # Check formatting
-bun run prettier:fix      # Auto-fix
+## Running the tools
+
+In an application, add scripts that pass `-c`:
+
+```json
+{
+  "scripts": {
+    "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
+  }
+}
 ```
 
-## ESLint Configuration
+In the IGNIS repository, the Makefile runs each package with its own tools:
 
-Prevents common errors and enforces best practices.
+| Command | What it does |
+|---------|--------------|
+| `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then an oxfmt check |
+| `make fmt-<pkg>` | Same tools with `--fix` and write mode |
+| `make lint-packages` / `make fmt` | Every package |
+| `make lint-all` | Packages, examples, example typecheck and `scripts/` |
+| `make lint-wiki` | Lint and format-check `docs/wiki/scripts` |
 
-**`eslint.config.mjs`:**
-```javascript
-import { eslintConfigs } from '@venizia/dev-configs';
-
-export default eslintConfigs;
-```
-
-**Includes:**
-- Pre-configured rules for Node.js/TypeScript (via `@minimaltech/eslint-node`)
-- Disables `@typescript-eslint/no-explicit-any` by default
-- Enforces mandatory braces: `curly: ['error', 'all']` and `unicorn/switch-case-braces: ['error', 'always']`
-
-**Customization:**
-```javascript
-import { eslintConfigs } from '@venizia/dev-configs';
-
-export default [
-  ...eslintConfigs,
-  {
-    rules: {
-      'no-console': 'warn',  // Add project-specific rules
-    },
-  },
-];
-```
-
-**Usage:**
-```bash
-bun run eslint           # Check for issues
-bun run eslint --fix     # Auto-fix issues
-bun run lint:fix         # Run both ESLint + Prettier
-```
+Packages carry no lint scripts of their own. Examples keep `lint` and `lint:fix` because they are templates you copy.
 
 ### A React frontend
 
@@ -139,7 +237,7 @@ Use the centralized TypeScript configs:
 
 | Option | Value | Purpose |
 |--------|-------|---------|
-| `target` | `ES2024` | Modern JavaScript features |
+| `target` | `ES2025` | Modern JavaScript features |
 | `experimentalDecorators` | `true` | Required for IGNIS decorators |
 | `emitDecoratorMetadata` | `true` | Metadata reflection for DI |
 | `useDefineForClassFields` | `false` | Decorator-compatible class fields |
@@ -148,7 +246,7 @@ Use the centralized TypeScript configs:
 | `noEmitOnError` | `true` | A type error emits nothing - the build fails loudly |
 
 Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-configs` accepts
-`^5.0.0 || ^6.0.0`. Do not upgrade past 6 - `typescript-eslint` breaks.
+`^5.0.0 || ^6.0.0`. Do not upgrade past 6 - `typescript-eslint` breaks. oxlint's type-aware engine is built on TypeScript 7 and still works with a project on 6.
 
 > [!WARNING]
 > Bun does not resolve `experimentalDecorators` / `emitDecoratorMetadata` through `extends`. In an
@@ -160,14 +258,18 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
 ### VS Code
 
 **Recommended Extensions:**
-- ESLint (`dbaeumer.vscode-eslint`)
-- Prettier (`esbenp.prettier-vscode`)
+- Oxc (`oxc.oxc-vscode`) - oxlint and oxfmt
+- ESLint (`dbaeumer.vscode-eslint`) - the naming-convention rule only
 
 **`.vscode/settings.json`:**
 ```json
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "oxc.configPath": ".configs/oxlint.config.mts",
+  "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
+  "oxc.typeAware": true,
+  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mts" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
@@ -175,12 +277,13 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
 }
 ```
 
+The tools do not look inside `.configs/` on their own, so the settings point at each file. The paths resolve against the folder VS Code opened: open the project folder itself.
+
 ### WebStorm / IntelliJ
 
-1. Go to **Settings → Languages & Frameworks → JavaScript → Prettier**
-2. Enable "Run on save"
-3. Go to **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
-4. Select "Automatic ESLint configuration"
+1. Go to **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
+2. Select "Manual ESLint configuration" and point it at `.configs/eslint.config.mts`
+3. Run oxlint and oxfmt through the `lint` and `lint:fix` scripts, or install the Oxc plugin
 
 ## See Also
 

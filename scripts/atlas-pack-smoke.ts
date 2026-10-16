@@ -88,7 +88,8 @@ const main = (): void => {
     });
 
     const toolList = messages.find(message => message.id === 2)?.result as
-      { tools?: { name: string }[] } | undefined;
+      | { tools?: { name: string }[] }
+      | undefined;
     const names = (toolList?.tools ?? []).map(tool => tool.name).sort();
     const expected = 'changes,get,search,symbol,version';
     if (names.join(',') !== expected) {
@@ -98,7 +99,8 @@ const main = (): void => {
     }
 
     const searched = messages.find(message => message.id === 3)?.result as
-      { content?: { text: string }[] } | undefined;
+      | { content?: { text: string }[] }
+      | undefined;
     const payload = JSON.parse(searched?.content?.[0]?.text ?? '{}') as { total?: number };
     if (!payload.total || payload.total < 1) {
       fail(`search returned no hits in npm mode: ${JSON.stringify(payload).slice(0, 200)}`);

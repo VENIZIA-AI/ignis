@@ -13,7 +13,8 @@ export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> 
 };
 
 export type TBindingProvider<T> =
-  (<C extends IContainer>(container: C) => T) | TClass<IProvider<T>>;
+  | (<C extends IContainer>(container: C) => T)
+  | TClass<IProvider<T>>;
 
 /** What a binding's resolver holds - a class, a plain value, or a provider. */
 export type TBindingResolverValue<T> = TClass<T> | T | TBindingProvider<T>;

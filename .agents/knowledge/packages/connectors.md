@@ -15,7 +15,7 @@ It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `
 `helpers` that only applications consume). `make connectors` needs `kernel`; `make core` needs
 `connectors`. It ships a **dual CJS + ESM build** - `dist/cjs` plus `dist/esm`, with every one of its
 `exports` entries carrying both `import` and `require` - as `kernel`, `inversion`, `filter`,
-`helpers`, and `boot` do. The ESM pass in `build.sh` is not cosmetic: it exists for the
+`helpers`, and `boot` do. The ESM pass in `make build` is not cosmetic: it exists for the
 browser-purity claim below, whose gate refuses any claimed sub-path that publishes no `import`
 condition, because a bundler would otherwise fall back to the CommonJS entry and meet a bare
 `require()`.
@@ -502,7 +502,7 @@ the cache.
 `scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
-guards this package either: `eslint.config.mjs` is the shared preset alone, unlike `core-worker`,
+guards this package either: `.configs/eslint.config.mts` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
 Seven rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.
@@ -591,7 +591,7 @@ catch rather than prove it absent.
 - `drizzle-orm` and `drizzle-zod` are optional peers, yet the relational tier value-imports
   `getTableColumns`, `sql`, `relations` and `createSchemaFactory` - a relational sub-path needs them
   installed. Optional spares `./http` and the three search entries, which import neither. `@venizia/ignis` still requires them.
-- `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
+- `make build` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
 - `isoTimestamp` (`relational/{postgres,sqlite}/models/common/columns.ts`) declares its column's
   `data` as `string | TIsoTimestamp`, not bare `string`. `TIsoTimestamp` is a branded type owned by

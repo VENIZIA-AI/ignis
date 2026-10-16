@@ -89,7 +89,8 @@ export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<
 
 /** Decorator target for model classes (supports both strongly typed and ClassDecorator patterns). */
 export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity> =
-  TModelClass<Model> | (Function & IEntityStatics);
+  | TModelClass<Model>
+  | (Function & IEntityStatics);
 
 export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity> {
   target: TValueOrResolver<TClass<Model>>;

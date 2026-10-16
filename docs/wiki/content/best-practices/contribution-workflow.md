@@ -62,7 +62,7 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-se
 
 | Directory | npm name | Depends on | Purpose |
 |-----------|----------|------------|---------|
-| `dev-configs` | `@venizia/dev-configs` | - | Shared ESLint, Prettier, TypeScript configs |
+| `dev-configs` | `@venizia/dev-configs` | - | Shared oxlint, oxfmt, ESLint, TypeScript configs |
 | `inversion` | `@venizia/ignis-inversion` | dev-configs | IoC container, DI primitives |
 | `filter` | `@venizia/ignis-filter` | inversion | Isomorphic filter language. Deliberately not after helpers |
 | `helpers` | `@venizia/ignis-helpers` | inversion | Utilities, loggers, crypto, Redis, sockets |
@@ -179,7 +179,7 @@ A commit that serves several issues it cannot be split between lists each: `[#42
 ```bash
 # Lint and format (from root) - zero warnings and zero errors is the bar
 make lint-all
-# Or run `bun run lint:fix` inside a package directory
+# Fix what can be fixed: make fmt (every package) or make fmt-<pkg> (one)
 
 # Build all packages (from root) - tests run against dist/, so build first
 make build
@@ -193,7 +193,7 @@ make test-core-server
 > Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). Two packages, `boot` and `atlas`, also own their own `test` script (`NODE_ENV=test bun test --env-file=.env.test`); a bare `bun test` there silently skips both the environment and the env file. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker`, `test-core-server` and `test-atlas`. `filter` has no suite.
 
 > [!NOTE]
-> Tests load `dist/`, not `src/`, so a stale build tests stale code. `make <package>` handles the ordering for you: `rebuild.sh` type-checks first and only then cleans `dist/`, so a broken test aborts the run before anything is deleted.
+> Tests load `dist/`, not `src/`, so a stale build tests stale code. `make <package>` handles the ordering for you: each package's `make rebuild` type-checks first and only then cleans `dist/`, so a broken test aborts the run before anything is deleted.
 
 ## 3. Submit Pull Request
 

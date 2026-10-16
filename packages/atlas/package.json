@@ -45,16 +45,7 @@
   "sideEffects": false,
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
-    "build": "sh ./scripts/build.sh",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
-    "prepublishOnly": "bun run rebuild",
+    "prepublishOnly": "make rebuild",
     "test": "NODE_ENV=test bun test --env-file=.env.test",
     "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test"
   },
@@ -67,7 +58,9 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "^0.2.1",
     "eslint": "catalog:",
-    "prettier": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
   }

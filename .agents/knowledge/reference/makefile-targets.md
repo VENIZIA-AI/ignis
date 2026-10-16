@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**85 targets.**
+**78 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -59,22 +59,15 @@ tags: [reference, make, build]
 | `make update-boot` | - | Force updating @venizia/ignis-boot |
 | `make update-kernel` | - | Force updating @venizia/ignis-kernel |
 | `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-examples typecheck-examples lint-atlas lint-scripts` | All linting completed. |
-| `make lint-packages` | - | Linting all packages |
+| `make lint-all` | `lint-packages lint-examples typecheck-examples lint-scripts` | All linting completed. |
+| `make lint-packages` | `$(LINT_PKG_TARGETS)` | - |
+| `make fmt` | `fmt-packages` | - |
+| `make fmt-packages` | `$(FMT_PKG_TARGETS)` | - |
+| `make lint-core` | `lint-core-server` | - |
 | `make lint-examples` | `artifacts-check` | Linting all examples |
 | `make typecheck-examples` | - | Typechecking all examples |
 | `make artifacts-check` | - | Checking generated artifact indexes |
-| `make lint-dev-configs` | - | Linting @venizia/dev-configs |
-| `make lint-inversion` | - | Linting @venizia/ignis-inversion |
-| `make lint-filter` | - | Linting @venizia/ignis-filter |
-| `make lint-helpers` | - | Linting @venizia/ignis-helpers |
-| `make lint-boot` | - | Linting @venizia/ignis-boot |
-| `make lint-core-server` | - | Linting @venizia/ignis (core-server) |
-| `make lint-core` | `lint-core-server` | - |
-| `make lint-kernel` | - | Linting @venizia/ignis-kernel |
-| `make lint-connectors` | - | Linting @venizia/ignis-connectors |
-| `make lint-core-worker` | - | Linting @venizia/ignis-worker |
-| `make lint-atlas` | - | Linting @venizia/ignis-atlas |
+| `make lint-wiki` | - | Linting docs/wiki |
 | `make lint-scripts` | - | Linting scripts/ |
 | `make purity` | - | Checking browser purity for all claimed entries |
 | `make purity-test` | - | Running the purity probe's regression tests |

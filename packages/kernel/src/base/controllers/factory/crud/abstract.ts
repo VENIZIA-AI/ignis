@@ -8,7 +8,8 @@ import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../
 import { BaseRestController } from '../../rest/base';
 
 type TBulkWhereResolution<WhereType> =
-  { where: WhereType; error?: undefined } | { where?: undefined; error: Response };
+  | { where: WhereType; error?: undefined }
+  | { where?: undefined; error: Response };
 
 /** Base tier of a generated CRUD controller - the repository handle; the response helpers (`respond`, `setListHeaders`) live on BaseRestController so hand-written controllers share them. Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
 export abstract class AbstractCrudController<

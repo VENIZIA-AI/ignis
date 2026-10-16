@@ -24,4 +24,6 @@ export interface IConditionalArtifactIndex extends Partial<Record<keyof IArtifac
 
 /** One index, a conditional entry, or any nesting of arrays of them - a library exports one, an application composes several. */
 export type TArtifactIndexInput =
-  IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[];
+  | IArtifactIndex
+  | IConditionalArtifactIndex
+  | TArtifactIndexInput[];

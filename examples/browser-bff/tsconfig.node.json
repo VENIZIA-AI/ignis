@@ -12,7 +12,7 @@
        in node and needs `fileURLToPath`. `node` is scoped here rather than declared once for the
        whole package so it cannot reach `src`. */
     "lib": [
-      "ES2024"
+      "ES2025"
     ],
     "types": [
       "node"

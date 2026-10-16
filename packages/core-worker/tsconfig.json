@@ -7,8 +7,8 @@
     "paths": { "@/*": ["./src/*"] },
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "lib": ["ES2024", "WebWorker"]
+    "lib": ["ES2025", "WebWorker"]
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]
 }
