@@ -42,11 +42,13 @@ completeness + usability critics.
    facts `gen` already fixes. `check` must be clean before proceeding.
 2. **Anchor the last sync by COMMIT, not by date:**
    ```bash
-   LAST_SYNC=$(git log -1 --format=%H -- .agents/knowledge/log.md)
+   LAST_SYNC=$(git log -1 --format=%H -G '^## [0-9-]+ - knowledge-sync' -- .agents/knowledge/log.md)
    ```
-   The scan range is `$LAST_SYNC..HEAD`. The log entry's date heading is only a display label.
+   The scan range is `$LAST_SYNC..HEAD`. Anchor on the sync's own log heading, never on the last
+   edit of `log.md`: P-03 makes every ordinary change append to it, so the last edit is almost never
+   the last sync and the range would come out empty. The date in the heading is only a display label.
 
-   **If `LAST_SYNC` is empty** the bundle has never been committed (or `log.md` was renamed). Do not
+   **If `LAST_SYNC` is empty** no entry carries the `knowledge-sync` heading yet (or `log.md` was renamed). Do not
    build a `..HEAD` range from it - that silently means "everything". Either anchor on the commit
    that introduced the bundle (`git log --diff-filter=A --format=%H -- .agents/knowledge/index.md`)
    or run `full` mode, which does not depend on the range for its spot-auditors.
@@ -55,7 +57,7 @@ completeness + usability critics.
    last sync get double-counted. A hash range has neither problem.
 3. Changed-area scan:
    ```bash
-   git log $LAST_SYNC..HEAD --no-merges --name-only --format= -- packages/ examples/ Makefile .github/ .githooks/ scripts/ \
+   git log $LAST_SYNC..HEAD --no-merges --name-only --format= -- packages/ examples/ Makefile make/ .github/ .githooks/ scripts/ \
      | sort -u | awk -F/ '{print $1"/"$2}' | sort | uniq -c | sort -rn
    git log $LAST_SYNC..HEAD --no-merges --oneline
    ```
@@ -73,16 +75,21 @@ as concepts are added.
 | Changed area | Concepts to verify (under `.agents/knowledge/`) |
 |---|---|
 | `packages/core-server/src/base/applications` | architecture/application-lifecycle, packages/core-server |
-| `packages/core-server/src/base/repositories`, `src/connectors` | architecture/repository-hierarchy, architecture/datasource-hierarchy, architecture/filter-system, architecture/transactions, architecture/search-typesense, packages/core-server |
 | `packages/core-server/src/components` | architecture/component-model, architecture/controller-system, architecture/authentication, architecture/authorization-casbin, process/adding-a-component |
-| `packages/core-server/src/common/bindings.ts` | conventions/binding-key-namespaces |
+| `packages/kernel/src/base/repositories`, `packages/kernel/src/base/datasources` | architecture/repository-hierarchy, architecture/datasource-hierarchy, architecture/transactions, packages/kernel |
+| `packages/kernel/src/common/bindings.ts` | conventions/binding-key-namespaces |
+| `packages/kernel` (broad/other) | packages/kernel, architecture/di-container, architecture/controller-system, architecture/error-handling-flow |
+| `packages/connectors` | packages/connectors, architecture/relational-connector, architecture/sqlite-connector, architecture/search-typesense, architecture/transactions |
+| `packages/filter` | packages/filter, architecture/filter-system |
+| `packages/core-worker` | packages/core-worker |
+| `packages/atlas` | packages/atlas |
 | `packages/core-server` (broad/other) | packages/core-server, architecture/error-handling-flow, conventions/gotchas |
 | `packages/boot` | packages/boot, architecture/boot-lifecycle |
 | `packages/inversion` | packages/inversion, architecture/di-container, conventions/gotchas |
 | `packages/helpers` | packages/helpers, conventions/error-handling, process/adding-a-helper |
 | `packages/dev-configs` | packages/dev-configs, conventions/coding-style, conventions/testing-conventions |
 | `examples/<x>` | examples/&lt;x&gt; |
-| `Makefile`, `scripts/`, `.githooks/`, root `package.json` | process/build-system, process/testing, process/git-workflow, overview/build-run-test, conventions/gotchas |
+| `Makefile`, `make/`, `scripts/`, `.githooks/`, root `package.json` | process/build-system, process/testing, process/git-workflow, overview/build-run-test, conventions/gotchas |
 | `.github/workflows/` | process/release-publish, process/updating-the-wiki |
 | `docs/wiki` | process/updating-the-wiki |
 
@@ -122,7 +129,7 @@ and runs one Opus applier per file under strict curation rules. Returns
 2. **Gates:** `make okf-gen`, then `make okf-check` (must be OK), then
    `bun .agents/knowledge-tools/okf.ts coverage --min 100` (structural must stay 100% - every
    `packages/*` and `examples/*` needs a concept; the number grows as the repo does).
-3. **Log:** prepend an entry to `.agents/knowledge/log.md` in the existing style: date + mode, a
+3. **Log:** prepend an entry to `.agents/knowledge/log.md` headed `## YYYY-MM-DD - knowledge-sync (<mode>): <summary>` (the `knowledge-sync` word is what Step 0 anchors on), then a
    method one-liner (N verifiers / findings / confirmed / files touched), bullets for the notable
    corrections (the ones that change how someone works), creations, dedups, gate status. **This entry
    is the anchor the next sync reads** - its commit is what `LAST_SYNC` resolves to.

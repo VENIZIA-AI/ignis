@@ -37,7 +37,7 @@ docs/wiki/
 │   ├── guides/           # get-started/, core-concepts/, tutorials/, migrations/, reference/
 │   ├── public/           # static assets
 │   └── references/       # base/, utilities/, configuration/, quick-reference.md
-├── scripts/              # docs-build.sh, check-sidebar.mts, docs-clean.sh
+├── scripts/              # docs-build.sh, check-sidebar.mts, docs-clean.sh, docs-rebuild.sh, force-update.sh
 └── site/.vitepress/      # config.mts - the sidebar is hand-maintained here
 ```
 
@@ -94,11 +94,12 @@ the sidebar, not on disk).
 ### 5. Gate it
 
 ```bash
-make docs
+make docs wiki-links-check wiki-anchors-check lint-wiki
 ```
 
-That runs `docs-build.sh`, which runs `check-sidebar.mts` and then the VitePress build. Dead links
-fail it. A green run prints the page and link counts.
+`make docs` runs `docs-build.sh`: `check-sidebar.mts`, then the VitePress build, which fails on a
+dead link. `wiki-links-check` fails on a named source path that does not exist, `wiki-anchors-check`
+on a `#fragment` that resolves nowhere (it reads the build), and `lint-wiki` lints the wiki scripts.
 
 If the change also touched facts an agent reads, update the knowledge bundle in the same change
 (P-03) - that is the `knowledge-sync` skill's territory, not this one.

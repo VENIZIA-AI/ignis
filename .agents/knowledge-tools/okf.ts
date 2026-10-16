@@ -133,17 +133,6 @@ const collectHelperUtilities = (): string[] => {
     .sort();
 };
 
-const collectBooters = (): string[] => {
-  if (!existsSync(PATHS.bootBooters)) {
-    return [];
-  }
-
-  return readdirSync(PATHS.bootBooters)
-    .filter((name) => name.endsWith('.booter.ts'))
-    .map((name) => name.replace(/\.booter\.ts$/, ''))
-    .sort();
-};
-
 type BindingClass = { name: string; keys: { key: string; value: string }[] };
 
 /** Const-classes of binding keys: `static readonly X = '...'` grouped by declaring class. */
@@ -710,9 +699,6 @@ const coverage = (): void => {
   const ids = new Set(concepts.map((concept) => concept.id));
 
   const hasId = (opts: { id: string }): boolean => ids.has(opts.id);
-  const hasPrefix = (opts: { prefix: string }): boolean =>
-    [...ids].some((id) => id === opts.prefix || id.startsWith(opts.prefix + '/'));
-
   const lines: string[] = [];
   let structCovered = 0;
   let structTotal = 0;
@@ -760,7 +746,6 @@ const coverage = (): void => {
     count: helperModules.length,
     generated: hasId({ id: '/reference/helpers' }),
   });
-  ref({ name: 'booters', count: collectBooters().length, generated: hasPrefix({ prefix: '/packages/boot' }) });
   ref({
     name: 'binding keys',
     count: bindingClasses.reduce((sum, entry) => sum + entry.keys.length, 0),
