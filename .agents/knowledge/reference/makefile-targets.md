@@ -8,82 +8,123 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**75 targets.**
+**116 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
-| `make all` | `build` | - |
-| `make install` | - | Installing dependencies (with force-update via postinstall) |
-| `make clean` | - | Cleaning all packages |
-| `make setup-hooks` | - | Setting up git hooks |
-| `make build` | `build-all` | - |
-| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check` | All packages rebuilt successfully. |
-| `make dev-configs` | - | Rebuilding @venizia/dev-configs |
-| `make inversion` | `dev-configs` | Rebuilding @venizia/ignis-inversion |
-| `make filter` | `inversion` | Rebuilding @venizia/ignis-filter |
-| `make helpers` | `inversion` | Rebuilding @venizia/ignis-helpers |
-| `make boot` | `helpers` | Rebuilding @venizia/ignis-boot |
-| `make atlas` | `helpers` | Rebuilding @venizia/ignis-atlas |
-| `make kernel` | `helpers filter` | Rebuilding @venizia/ignis-kernel |
-| `make connectors` | `kernel` | Rebuilding @venizia/ignis-connectors |
-| `make core-worker` | `kernel` | Rebuilding @venizia/ignis-worker |
-| `make core-server` | `connectors` | Rebuilding @venizia/ignis (core-server) |
-| `make core` | `core-server` | - |
-| `make docs` | - | Rebuilding wiki (VitePress) |
-| `make update` | `install` | - |
-| `make update-all` | `install` | - |
-| `make update-core-server` | - | Force updating @venizia/ignis (core-server) |
-| `make update-core` | `update-core-server` | - |
-| `make update-dev-configs` | - | Force updating @venizia/dev-configs |
-| `make update-atlas` | - | Force updating @venizia/ignis-atlas |
-| `make update-helpers` | - | Force updating @venizia/ignis-helpers |
-| `make update-inversion` | - | Force updating @venizia/ignis-inversion |
-| `make update-filter` | - | Force updating @venizia/ignis-filter |
-| `make update-boot` | - | Force updating @venizia/ignis-boot |
-| `make update-kernel` | - | Force updating @venizia/ignis-kernel |
-| `make okf-check` | - | - |
-| `make okf-gen` | - | - |
-| `make okf-coverage` | - | - |
-| `make okf-viz` | - | - |
-| `make split-report` | - | - |
-| `make surface-gen` | - | - |
-| `make surface-check` | - | - |
-| `make symbols-gen` | - | - |
-| `make symbols-check` | - | - |
-| `make releases-gen` | - | - |
-| `make releases-check` | - | - |
-| `make wiki-links-check` | - | - |
-| `make wiki-anchors-check` | - | - |
-| `make agent-setup` | - | - |
-| `make catalog-check` | - | - |
-| `make release-plan` | - | - |
-| `make release` | - | - |
-| `make lint` | `lint-packages` | Linting completed. |
-| `make lint-all` | `lint-packages lint-scripts` | All linting completed. |
-| `make lint-packages` | `$(LINT_PKG_TARGETS)` | - |
-| `make fmt` | `fmt-packages` | - |
-| `make fmt-packages` | `$(FMT_PKG_TARGETS)` | - |
-| `make lint-core` | `lint-core-server` | - |
-| `make lint-wiki` | - | Linting docs/wiki |
-| `make lint-scripts` | - | Linting scripts/ |
-| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas` | - |
-| `make test-inversion` | - | - |
-| `make test-helpers` | - | - |
-| `make test-boot` | - | - |
-| `make test-kernel` | - | - |
-| `make test-connectors` | - | - |
-| `make test-core-worker` | - | - |
-| `make test-core-server` | - | - |
-| `make test-atlas` | - | - |
-| `make test-scripts` | - | Running the repository gate scripts' regression tests |
-| `make purity` | - | Checking browser purity for all claimed entries |
-| `make purity-test` | - | Running the purity probe's regression tests |
-| `make purity-inversion` | - | Checking browser purity for @venizia/ignis-inversion |
-| `make purity-filter` | - | Checking browser purity for @venizia/ignis-filter |
-| `make purity-helpers` | - | Checking browser purity for @venizia/ignis-helpers |
-| `make purity-kernel` | - | Checking browser purity for @venizia/ignis-kernel |
-| `make purity-connectors` | - | Checking browser purity for @venizia/ignis-connectors |
-| `make purity-core-worker` | - | Checking browser purity for @venizia/ignis-worker |
-| `make clean-install` | - | Loading every published sub-path from a clean install |
-| `make clean-install-core` | - | ️  No runtime sub-path to load for this package - skipping. |
-| `make help` | - | Makefile for the @venizia/lib Monorepo |
+| `make agent-setup` | - | Link your agent's tool file + skills to the tracked AGENTS.md. |
+| `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
+| `make atlas` | `helpers` | Rebuild one package, after its dependencies. |
+| `make boot` | `helpers` | Rebuild one package, after its dependencies. |
+| `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
+| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
+| `make clean` | - | Clean build artifacts from all packages. |
+| `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
+| `make clean-install-atlas` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-connectors` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-core` | `clean-install-core-server` | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-core-server` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-core-worker` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-dev-configs` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-filter` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-helpers` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-inversion` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make clean-install-kernel` | - | Load one package's sub-paths from a clean install. Needs a build. |
+| `make connectors` | `kernel` | Rebuild one package, after its dependencies. |
+| `make core` | `core-server` | Rebuild one package, after its dependencies. |
+| `make core-server` | `connectors` | Rebuild one package, after its dependencies. |
+| `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
+| `make dev-configs` | - | Rebuild one package, after its dependencies. |
+| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make filter` | `inversion` | Rebuild one package, after its dependencies. |
+| `make fmt` | `fmt-packages` | fmt-<pkg> for every package. |
+| `make fmt-atlas` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-boot` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-connectors` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-core` | `fmt-core-server` | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-core-server` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-core-worker` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-dev-configs` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-filter` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-kernel` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
+| `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server fmt-atlas` | fmt-<pkg> for every package. |
+| `make help` | - | Show this help message (a bare 'make' does the same). |
+| `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
+| `make install` | - | Install all dependencies with bun. |
+| `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
+| `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
+| `make lint` | `lint-packages` | lint-<pkg> for every package. |
+| `make lint-all` | `lint-packages lint-scripts` | lint-packages and lint-scripts. |
+| `make lint-atlas` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-boot` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-connectors` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-core-server` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-core-worker` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-filter` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-helpers` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-inversion` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-kernel` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
+| `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server lint-atlas` | lint-<pkg> for every package. |
+| `make lint-scripts` | - | Format check + tsc type-check of scripts/. |
+| `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
+| `make okf-check` | - | Gate: frontmatter, links, coverage, freshness. |
+| `make okf-coverage` | - | Report bundle coverage against the source inventory. |
+| `make okf-gen` | - | Regenerate source-derived reference content. |
+| `make okf-viz` | - | Build the offline knowledge-graph explorer. |
+| `make purity` | - | Gate: every entry claimed browser-pure has no node builtin or global. |
+| `make purity-atlas` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-boot` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-connectors` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-core` | `purity-core-server` | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-core-server` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-core-worker` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-dev-configs` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-filter` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-helpers` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-inversion` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-kernel` | - | Gate: one package's browser-pure entries. Needs a build. |
+| `make purity-test` | - | Run the purity probe's own regression tests. |
+| `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
+| `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
+| `make releases-check` | - | Gate: the release table matches the release commits and the changelogs. |
+| `make releases-gen` | - | Regenerate .agents/knowledge/reference/releases.json for the Atlas version and changes tools. |
+| `make setup-hooks` | - | Configure git to use .githooks directory. |
+| `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
+| `make surface-check` | - | Gate: the public surface equals the snapshot. |
+| `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
+| `make symbols-check` | - | Gate: the symbol table matches the built .d.ts. |
+| `make symbols-gen` | - | Regenerate .agents/knowledge/reference/symbols.json for the Atlas symbol tool. |
+| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
+| `make test-atlas` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-core-server` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-core-worker` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-dev-configs` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-filter` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-helpers` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-inversion` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
+| `make update` | `install` | Force update all packages from NPM registry. |
+| `make update-all` | `install` | Force update all packages from NPM registry. |
+| `make update-atlas` | - | Force update one package's dependencies from NPM. |
+| `make update-boot` | - | Force update one package's dependencies from NPM. |
+| `make update-connectors` | - | Force update one package's dependencies from NPM. |
+| `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |
+| `make update-core-server` | - | Force update one package's dependencies from NPM. |
+| `make update-core-worker` | - | Force update one package's dependencies from NPM. |
+| `make update-dev-configs` | - | Force update one package's dependencies from NPM. |
+| `make update-filter` | - | Force update one package's dependencies from NPM. |
+| `make update-helpers` | - | Force update one package's dependencies from NPM. |
+| `make update-inversion` | - | Force update one package's dependencies from NPM. |
+| `make update-kernel` | - | Force update one package's dependencies from NPM. |
+| `make wiki-anchors-check` | - | Gate: every wiki '#fragment' link resolves. Needs a build (make docs). |
+| `make wiki-links-check` | - | Gate: every source path the wiki and knowledge bundle name exists. |

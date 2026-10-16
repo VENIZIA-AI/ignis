@@ -1,49 +1,38 @@
 # Package test suites, the browser-purity gate, the clean-install gate, and the gate scripts' own tests.
 
-.PHONY: test-all test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker \
-        test-core-server test-atlas test-scripts \
-        purity purity-test purity-inversion purity-filter purity-helpers purity-kernel purity-connectors \
-        purity-core-worker purity-dev-configs purity-boot purity-core purity-core-server purity-atlas \
-        clean-install clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot \
-        clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server \
-        clean-install-atlas clean-install-dev-configs clean-install-core
+# Packages with no suite of their own; their `test-<pkg>` says so and passes.
+NO_TEST := dev-configs filter
+# Packages whose package.json owns the test command (NODE_ENV=test + .env.test); `bun run` appends
+# the flags to it. The rest run `bun test` directly.
+TEST_SCRIPT := boot atlas
+TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
+
+# Packages with an entry claimed browser-pure (scripts/purity/manifest.ts); the rest skip.
+PURE := inversion filter helpers kernel connectors core-worker
+
+TEST_TARGETS := $(addprefix test-,$(PACKAGES))
+PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
+CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
+
+.PHONY: test-all test-scripts purity purity-test clean-install \
+        $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
 # TEST TARGETS
 # The one home of the test flags: CI calls these targets, and so should you. `--parallel` runs the
 # files across worker processes and implies `--isolate` - a fresh global and module registry per
 # file, servers and timers a file left open closed between files - so a mock, env or TLS setting one
-# file leaks cannot pass or fail another. `filter` has no suite. Needs a build first (B-05).
+# file leaks cannot pass or fail another. Needs a build first (B-05).
 # ----------------------------------------------------------------------------
 BUN_TEST_FLAGS ?= --parallel
 
-test-all: test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas
+test-all: $(addprefix test-,$(TEST_PACKAGES))
 
-test-inversion:
-	@cd packages/inversion && bun test $(BUN_TEST_FLAGS)
+$(addprefix test-,$(TEST_PACKAGES)): test-%:
+	@cd packages/$* && $(if $(filter $*,$(TEST_SCRIPT)),bun run test,bun test) $(BUN_TEST_FLAGS)
 
-test-helpers:
-	@cd packages/helpers && bun test $(BUN_TEST_FLAGS)
-
-# boot's package.json owns its command (NODE_ENV=test + .env.test); `bun run` appends the flags to it.
-test-boot:
-	@cd packages/boot && bun run test $(BUN_TEST_FLAGS)
-
-test-kernel:
-	@cd packages/kernel && bun test $(BUN_TEST_FLAGS)
-
-test-connectors:
-	@cd packages/connectors && bun test $(BUN_TEST_FLAGS)
-
-test-core-worker:
-	@cd packages/core-worker && bun test $(BUN_TEST_FLAGS)
-
-test-core-server:
-	@cd packages/core-server && bun test $(BUN_TEST_FLAGS)
-
-# atlas's package.json owns its command (NODE_ENV=test + .env.test); `bun run` appends the flags to it.
-test-atlas:
-	@cd packages/atlas && bun run test $(BUN_TEST_FLAGS)
+$(addprefix test-,$(NO_TEST)):
+	@echo "ℹ️  No test suite in this package - skipping."
 
 # The repository gate scripts' own regression tests (module-cycles, split-report, public-surface,
 # wiki-source-links) - same reasoning as purity-test, nothing else runs them.
@@ -66,31 +55,11 @@ purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
 	@bun test scripts/purity/__tests__
 
-purity-inversion:
-	@echo "🔍 Checking browser purity for @venizia/ignis-inversion..."
-	@bun scripts/purity/cli.ts inversion
+$(addprefix purity-,$(PURE)): purity-%:
+	@echo "🔍 Checking browser purity for $(call PKG_NAME,$*)..."
+	@bun scripts/purity/cli.ts $*
 
-purity-filter:
-	@echo "🔍 Checking browser purity for @venizia/ignis-filter..."
-	@bun scripts/purity/cli.ts filter
-
-purity-helpers:
-	@echo "🔍 Checking browser purity for @venizia/ignis-helpers..."
-	@bun scripts/purity/cli.ts helpers
-
-purity-kernel:
-	@echo "🔍 Checking browser purity for @venizia/ignis-kernel..."
-	@bun scripts/purity/cli.ts kernel
-
-purity-connectors:
-	@echo "🔍 Checking browser purity for @venizia/ignis-connectors..."
-	@bun scripts/purity/cli.ts connectors
-
-purity-core-worker:
-	@echo "🔍 Checking browser purity for @venizia/ignis-worker..."
-	@bun scripts/purity/cli.ts core-worker
-
-purity-dev-configs purity-boot purity-core purity-core-server purity-atlas:
+$(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
 
 # ----------------------------------------------------------------------------
@@ -104,9 +73,6 @@ clean-install:
 	@echo "🔍 Loading every published sub-path from a clean install..."
 	@bun scripts/clean-install/cli.ts
 
-clean-install-dev-configs clean-install-inversion clean-install-filter clean-install-helpers clean-install-boot clean-install-kernel clean-install-connectors clean-install-core-worker clean-install-core-server clean-install-atlas:
-	@echo "🔍 Loading every published sub-path of $(patsubst clean-install-%,%,$@) from a clean install..."
-	@bun scripts/clean-install/cli.ts $(patsubst clean-install-%,%,$@)
-
-clean-install-core:
-	@echo "ℹ️  No runtime sub-path to load for this package - skipping."
+$(CLEAN_INSTALL_TARGETS): clean-install-%:
+	@echo "🔍 Loading every published sub-path of $* from a clean install..."
+	@bun scripts/clean-install/cli.ts $*

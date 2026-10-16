@@ -29,7 +29,9 @@ tags: [process, build]
 4. To build a single package without walking its dependency chain (they're already built):
    `make -C packages/<name> rebuild`, or `make rebuild` inside the package. The root `Makefile` only
    sets `PACKAGES` and includes one file per job: `make/build.mk`, `knowledge.mk`, `release.mk`,
-   `lint.mk`, `test.mk` and `help.mk`. Every package has a
+   `lint.mk`, `test.mk` and `help.mk`. Every per-package target (`<pkg>`, `update-`, `lint-`, `fmt-`,
+   `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
+   that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
    `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no

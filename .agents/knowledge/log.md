@@ -12,7 +12,10 @@ Updated [build system](/process/build-system.md), [build, run, test](/overview/b
 
 - The root `Makefile` sets `PACKAGES` and includes `make/build.mk`, `knowledge.mk`, `release.mk`, `lint.mk`, `test.mk` and `help.mk`. Every target that stayed produces the same `make -n` output as before.
 - The example gates moved out of make (the user wants the Makefiles to cover only the packages). `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every example, and `smoke` runs the smoke tests. CI and the pre-commit hook call it next to `make lint-all`, which now covers the packages and `scripts/` only.
-- The `makefile-targets` generator reads the included files and skips an empty `@echo ""` when it picks a description.
+- Every per-package target is generated from `PACKAGES`: `<pkg>`, `update-<pkg>`, `lint-<pkg>`, `fmt-<pkg>`, `test-<pkg>`, `purity-<pkg>` and `clean-install-<pkg>`. The npm name is read from each `package.json` (`PKG_NAME`). Adding a package to `PACKAGES` creates all of its targets. `update-connectors` and `update-core-worker` exist now, and `test-dev-configs` and `test-filter` skip (no suite).
+- Every `<job>-core` is an alias of `<job>-core-server`. `clean-install-core` used to print a skip; it now runs core-server's clean install.
+- A bare `make` prints `make help` (`.DEFAULT_GOAL`; the old `DEFAULT_GOAL` had no dot and did nothing). The help rows go through one `printf`, so they align.
+- The `makefile-targets` generator reads make's database (`make -pRrq`), so the generated targets are listed, and takes each description from the target's `make help` row.
 
 ## 2026-10-16 - bounded child processes in tests
 

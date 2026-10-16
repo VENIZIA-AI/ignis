@@ -10,7 +10,7 @@ LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
 
-.PHONY: lint lint-all lint-packages lint-core lint-wiki lint-scripts fmt fmt-packages \
+.PHONY: lint lint-all lint-packages lint-wiki lint-scripts fmt fmt-packages \
         $(LINT_PKG_TARGETS) $(FMT_PKG_TARGETS)
 
 lint: lint-packages
@@ -35,8 +35,6 @@ $(LINT_PKG_TARGETS): lint-%:
 
 $(FMT_PKG_TARGETS): fmt-%:
 	@$(MAKE) --no-print-directory -C packages/$* fmt
-
-lint-core: lint-core-server
 
 # site/ is the VitePress theme, written to its API (a `Layout` render method), so only the wiki's
 # own scripts are linted. The sidebar config (.vitepress/config.mts) keeps its one-entry-per-line
