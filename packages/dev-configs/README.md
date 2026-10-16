@@ -6,11 +6,12 @@ it as a dev dependency in an application that wants the same rules.
 ## Install
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti typescript
 ```
 
 `oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `oxfmt` (>=0.73.0), `eslint` (9 or 10),
-`prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools you use. A
+`jiti` (>=2.2), `prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools
+you use. ESLint loads an `eslint.config.mts` through `jiti`, so a project with one needs it. A
 project that still runs ESLint and Prettier installs `eslint prettier` and skips the oxc tools.
 
 ## Use it
@@ -41,7 +42,7 @@ export default namingConventionConfigs;
 ```
 
 ```bash
-oxlint -c .configs/oxlint.config.mts
+oxlint -c .configs/oxlint.config.mts --deny-warnings
 eslint -c .configs/eslint.config.mts .
 oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
 ```

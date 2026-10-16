@@ -67,22 +67,25 @@ Two things to know when you touch a build or lint config:
 - Every tool call passes `-c .configs/<tool>.config.mts`. No tool finds that folder on its own.
 - An `ignorePatterns` entry inside `.configs/` resolves against `.configs/`, so it matches nothing. `dist` and `node_modules` are skipped through `.gitignore`.
 
+oxlint exits 0 when it finds only warnings, so every lint call passes `--deny-warnings`: a warning fails the build, as it did under ESLint.
+
 ## For consumers: switch to oxlint and oxfmt
 
 1. Replace the tools:
 
    ```bash
    bun remove prettier
-   bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint
+   bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti
    ```
 
 2. Create `.configs/oxlint.config.mts`, `.configs/oxfmt.config.mts` and `.configs/eslint.config.mts` with the three snippets in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
-   ESLint 10 loads a `.mts` config on its own. On ESLint 9, add `jiti` as a devDependency first.
+   ESLint loads a `.mts` config through `jiti`, so `jiti` must be a devDependency. A repository can
+   appear to work without it when another package already pulled `jiti` in; a clean install fails.
 3. Update your scripts to pass `-c`:
 
    ```json
    {
-     "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+     "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
      "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
    }
    ```

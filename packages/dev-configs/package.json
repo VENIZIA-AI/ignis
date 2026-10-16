@@ -106,6 +106,7 @@
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
+    "jiti": ">=2.2.0",
     "oxfmt": ">=0.73.0",
     "oxlint": ">=1.88.0",
     "oxlint-tsgolint": ">=7.0.2004",
@@ -114,6 +115,9 @@
   },
   "peerDependenciesMeta": {
     "eslint": {
+      "optional": true
+    },
+    "jiti": {
       "optional": true
     },
     "oxfmt": {
@@ -135,6 +139,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "eslint": "catalog:",
+    "jiti": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",

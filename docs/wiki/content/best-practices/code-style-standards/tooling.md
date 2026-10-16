@@ -20,7 +20,7 @@ export default defineConfig(oxlintConfigs);
 ## Installation
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint jiti typescript
 ```
 
 | Tool | Job |
@@ -177,7 +177,7 @@ In an application, add scripts that pass `-c`:
 ```json
 {
   "scripts": {
-    "lint": "oxlint -c .configs/oxlint.config.mts && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mts . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
     "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mts . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
   }
 }

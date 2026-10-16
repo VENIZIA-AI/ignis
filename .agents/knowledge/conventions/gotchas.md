@@ -24,6 +24,8 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
 - [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
 - [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
+- [ESLint needs `jiti` for an `eslint.config.mts`](#eslint-needs-jiti-for-an-eslintconfigmts)
+- [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
 
 **Browser purity**
 
@@ -608,6 +610,22 @@ sidebar layout.
 - A `$(call ...)` argument containing `{ts,js}` splits on the comma. Put such a glob in a variable.
 - Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `fmt-%` are static
   pattern rules (`$(LINT_PKG_TARGETS): lint-%:`), not plain `lint-%:` rules.
+
+## ESLint needs jiti for an eslint.config.mts
+
+ESLint 10 loads a TypeScript config through `jiti` and fails without it: "The 'jiti' library is
+required for loading TypeScript configuration files". A workspace can hide this - bun links `jiti` as
+ESLint's optional peer when any other package already pulled it in - so the repository ran green while
+a clean install of the packed `@venizia/dev-configs` failed. Every project with a
+`.configs/eslint.config.mts` declares `jiti` in its own devDependencies; `dev-configs` lists it as an
+optional peer.
+
+## oxlint exits 0 on warnings
+
+oxlint returns success when it finds only warnings (`oxlintConfigs` has `no-useless-escape: 'warn'`),
+so a warning would pass a gate that B-02 says must fail. Every oxlint call in `make/project.mk`,
+`lint-wiki` and the example `lint` scripts passes `--deny-warnings`; one deliberate warning makes
+`make lint-kernel` exit 2.
 
 ## Related
 

@@ -8,7 +8,7 @@ tags: [reference, make, build]
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**78 targets.**
+**79 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -89,4 +89,5 @@ tags: [reference, make, build]
 | `make purity-connectors` | - | Checking browser purity for @venizia/ignis-connectors |
 | `make purity-core-worker` | - | Checking browser purity for @venizia/ignis-worker |
 | `make clean-install` | - | Loading every published sub-path from a clean install |
+| `make clean-install-core` | - | ️  No runtime sub-path to load for this package - skipping. |
 | `make help` | - | Makefile for the @venizia/lib Monorepo |
