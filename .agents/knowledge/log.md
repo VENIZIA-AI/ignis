@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - agent rules, plugin skills and knowledge-tools re-checked
+
+Updated `.agents/rules.md`, the `knowledge-sync` and `update-wiki` skills, `PLUGIN.md`, `setup.ts`, the knowledge-tools README (issue #178).
+
+- S-03 names the real development set (`local`, `debug`, `development`, `dev`, `sit`); S-05 names `ModuleUtility.load`/`register`; P-03 splits generated from curated `reference/` files; P-14 points at the docs writing style concept (the `docs-writing` skill moved to VULCAN); W-01 lists `test/*`; the enforcement table says the pre-commit hook blocks lint.
+- `knowledge-sync` anchors on its own `knowledge-sync` log heading, not the last `log.md` edit (which made the scan range empty); its delta map follows the kernel/connectors split and scans `make/`.
+- `okf coverage` dropped the `booters` row, which pointed at a deleted directory and passed by accident.
+
 ## 2026-10-16 - async matchers without the cast
 
 Updated [testing conventions](/conventions/testing-conventions.md).

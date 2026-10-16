@@ -2,7 +2,8 @@
 /**
  * Per-developer agent setup: tool file -> tracked AGENTS.md symlink, tracked skills -> agent skills
  * dir, and for Claude the shared `.agents/plugin/claude/settings.json` merged into `.claude/settings.json`.
- * All targets are gitignored, so run it on every clone: `bun .agents/plugin/setup.ts [claude]`.
+ * `CLAUDE.md`, `GEMINI.md` and `.claude/` are gitignored (an "other" filename is not - add it), so run it
+ * on every clone: `bun .agents/plugin/setup.ts [claude]`.
  */
 import {
   existsSync,

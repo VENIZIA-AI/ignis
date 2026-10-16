@@ -28,7 +28,9 @@ do. Freshness is maintained by running knowledge sync periodically instead.
 | `config.ts` | **The only repo-specific file.** Paths, denylists, section order/labels. |
 | `okf.ts` | CLI. Source scanning, shared heuristics, renderers, `gen`/`check`/`coverage`. |
 | `lib.ts` | Bundle loader: frontmatter parsing, link extraction, concept model. |
-| `viz.ts` | Builds `.agents/knowledge/viz.html` from the vendored libs in `vendor/`. |
+| `viz.ts` | Builds `.agents/knowledge/viz.html` from `viz-template.html` and the vendored Cytoscape in `vendor/`. |
+| `knowledge-sync.workflow.js` | The workflow the `knowledge-sync` skill runs: verifiers per changed area, spot-auditors, one applier. |
+| `tsconfig.json` | Type-checks these scripts. |
 
 Porting this tooling to another repo should mean editing `config.ts` and the renderer list in
 `okf.ts`, nothing else.
@@ -42,7 +44,9 @@ Two mechanisms, both driven from source. Never hand-edit either.
    `<!-- okf:generated:<id> start -->` and `<!-- okf:generated:<id> end -->` inside an otherwise
    hand-authored file.
 
-Everything else in the bundle is hand-authored and never touched by `gen`.
+Everything else in the bundle is hand-authored and never touched by `gen` - except
+`reference/public-surface.md`, `symbols.json` and `releases.json`, which `scripts/public-surface.ts`,
+`atlas-symbols.ts` and `atlas-releases.ts` generate (`make surface-gen` / `symbols-gen` / `releases-gen`).
 
 Generated frontmatter deliberately carries no `timestamp:` - it is optional in OKF, and a fixed
 value is both untrue and a source of churn.
