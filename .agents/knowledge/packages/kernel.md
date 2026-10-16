@@ -359,7 +359,7 @@ concrete `AuthenticateComponent` and `AuthorizeComponent` stay in core. See
   across the package boundary the split introduced.
 - Application code should keep importing from `@venizia/ignis`. Install this package directly only
   when you want the framework skeleton WITHOUT the server layer - the browser case.
-- `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
+- `make build` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
 
 ## Related

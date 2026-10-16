@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - per-package Makefiles replace the build scripts
+
+Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [testing conventions](/conventions/testing-conventions.md), [testing](/process/testing.md), [adding a helper](/process/adding-a-helper.md), [atlas](/packages/atlas.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [kernel](/packages/kernel.md).
+
+- Each package has a `Makefile` that includes `make/project.mk` (`typecheck`, `build`, `clean`, `rebuild`, `lint`, `fmt`). `build.sh`, `clean.sh` and `rebuild.sh` are gone; `package.json` keeps only `force-update`, `prepublishOnly`, and `test` where it existed.
+- `rebuild` type-checks every emitted program before `clean`, for every package. The `dev-configs` exception no longer holds.
+- atlas copies its corpus with `scripts/corpus.sh` as `POST_BUILD`; boot does its `chmod` the same way.
+
 ## 2026-10-16 - ESLint preset owned here, target ES2025
 
 Updated [dev-configs](/packages/dev-configs.md), [core-worker](/packages/core-worker.md).

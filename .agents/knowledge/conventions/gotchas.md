@@ -83,19 +83,19 @@ Reading a failure list without checking the working directory first has already 
 
 ## An empty dist looks like a hundred unrelated import failures
 
-The build is honest: every `scripts/build.sh` starts with `set -e` and runs `tsc --noEmit -p
-tsconfig.json` as a gate, so a type error exits non-zero and never prints `DONE | Build completed
-successfully!`. Trust the exit code.
+The build is honest: the `build` target in `make/project.mk` type-checks `tsc --noEmit -p
+tsconfig.json` first and stops on failure, so a type error exits non-zero and never prints `DONE |
+Build completed successfully!`. Trust the exit code.
 
-`rebuild.sh` used to be the trap around it: `bun run clean` deleted `dist/` **before** the build's
-type-check gate ran, and that gate type-checks `src/__tests__` too, so a single broken test - often
-someone else's untracked, in-progress one - aborted the build with `dist/` already gone. That is
-closed. `make <package>` now runs `tsc --noEmit -p tsconfig.json` first and cleans only once the
-whole project compiles, so a broken test fails loudly with the last good `dist/` intact.
-`packages/dev-configs/scripts/rebuild.sh` is the one exception - it still cleans first, having no
-type-check gate to fail.
+`rebuild` used to be the trap around it: `clean` deleted `dist/` **before** the build's type-check
+gate ran, and that gate type-checks `src/__tests__` too, so a single broken test - often someone
+else's untracked, in-progress one - aborted the build with `dist/` already gone. That is closed.
+`make rebuild` (and `make <package>`) runs `typecheck` first and cleans only once every program
+compiles, so a broken test fails loudly with the last good `dist/` intact. This holds for every
+package, `dev-configs` included.
 
-Guard **every** program `build.sh` runs, not just the first. `inversion`, `filter` and `boot` emit
+Guard **every** program the build emits, not just the first. `typecheck` checks `tsconfig.json`, the
+CJS tsconfig and the ESM tsconfig. `inversion`, `filter` and `boot` emit
 CJS and ESM from two configs, and `.configs/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
 the same files under different rules and can fail where the CJS pass passed. Guarding one left a
 half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
@@ -581,7 +581,7 @@ reports success.
 
 `incremental` writes the cache next to the build tsconfig, so it now lands in `.configs/`. A stale
 `.configs/*.tsbuildinfo` made `tsc` skip emit: core-server printed "DONE" with an empty `dist`.
-`clean.sh` removes `.configs/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
+`make clean` removes `.configs/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
 green and `dist` is empty, delete those files by hand.
 
 ## ignorePatterns in a .configs file resolve against .configs

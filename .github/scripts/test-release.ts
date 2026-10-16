@@ -174,8 +174,8 @@ const main = async (): Promise<void> => {
 
   try {
     console.log("[1/8] Cleaning previous build");
-    if (fs.existsSync(path.join(pkgInfo.packagePath, "scripts", "clean.sh"))) {
-      await $`cd ${pkgInfo.packagePath} && sh ./scripts/clean.sh`.quiet();
+    if (fs.existsSync(path.join(pkgInfo.packagePath, "Makefile"))) {
+      await $`make --no-print-directory -C ${pkgInfo.packagePath} clean`.quiet();
       console.log("[1/8] Clean completed");
     } else {
       console.warn("[1/8] No clean script found");
@@ -183,8 +183,8 @@ const main = async (): Promise<void> => {
     console.log();
 
     console.log("[2/8] Building package");
-    if (fs.existsSync(path.join(pkgInfo.packagePath, "scripts", "build.sh"))) {
-      await $`cd ${pkgInfo.packagePath} && sh ./scripts/build.sh`.quiet();
+    if (fs.existsSync(path.join(pkgInfo.packagePath, "Makefile"))) {
+      await $`make --no-print-directory -C ${pkgInfo.packagePath} build`.quiet();
       console.log("[2/8] Build completed");
     } else {
       console.warn("[2/8] No build script found");

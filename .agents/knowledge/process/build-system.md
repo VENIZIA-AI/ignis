@@ -27,33 +27,44 @@ tags: [process, build]
    deliberately does not sit after `helpers`. `kernel` needs both `helpers` and `filter`. This
    concept is the canonical copy of the chain - other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
-   `cd packages/<name> && bun run rebuild`. `rebuild` is `sh ./scripts/rebuild.sh`:
-   `tsc --noEmit -p tsconfig.json`, then `clean`, then `build`. The type-check comes first on
-   purpose - see step 6.
-5. Each package's `build` script is `sh ./scripts/build.sh`. Every package but `filter` and
-   `dev-configs` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`),
-   then emits production output only via `tsc -p .configs/tsconfig.build.json` (which excludes `__tests__`,
-   `*.test.ts`, `*.spec.ts`), then `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path aliases. Every ESM pass runs `tsc-alias` with
-   `resolveFullPaths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and then
-   `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with `"type": "module"`
-   and the package's `sideEffects` re-rooted - without it Node parses every file as CommonJS first
-   (measured on `connectors/http`: 38.0 -> 30.7 ms). `filter` and `dev-configs`
-   emit directly with `tsc -p tsconfig.json` (no separate pre-check pass). Most packages build CJS
-   and ESM outputs as two passes; only `core`, `dev-configs`, and `atlas` emit a single pass. No
-   package ships its tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs
-   directly. A package that emits them into `dist` makes a bare `bun test` execute every test once
-   per copy - `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
-6. Every `build.sh` has `set -e` and every package's tsconfig inherits `noEmitOnError: true` from
-   `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error anywhere aborts the script
-   immediately and the closing `echo "DONE | Build completed successfully!"` never prints.
-   `rebuild.sh` type-checks *before* it runs `clean`, so a failure leaves the previous `dist/`
-   intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. Do not trust
-   a scrollback that got truncated; if a build's success is in doubt, rerun
+   `make -C packages/<name> rebuild`, or `make rebuild` inside the package. Every package has a
+   `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
+   `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
+   `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
+   longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
+   rebuild`), `force-update` and, for `atlas` and `boot`, `test`. Examples keep their own scripts.
+5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
+   (default `.configs/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
+   tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
+   `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `atlas` is `cjs` with
+   `POST_BUILD := sh scripts/corpus.sh`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
+   `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
+   `build` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`), then
+   the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)
+   and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
+   aliases. Every ESM pass runs `tsc -p .configs/tsconfig.esm.json`, then `tsc-alias` with
+   `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
+   then `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with
+   `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
+   as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
+   `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
+   `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
+   `*.tsbuildinfo`, `.configs/*.tsbuildinfo`, `.eslintcache` and `artifact.zip`. No package ships its
+   tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
+   package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
+   `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
+6. Make stops a recipe at the first failing command, and every package's tsconfig inherits
+   `noEmitOnError: true` from `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error
+   anywhere aborts the build and the closing `DONE | Build completed successfully!` never prints.
+   `rebuild` runs `typecheck` *before* `clean`, and `typecheck` covers `tsconfig.json` plus every
+   program `build` emits (the CJS and the ESM tsconfig). So a failure leaves the previous `dist/`
+   intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. There is
+   no exception: `dev-configs` (`FORMATS := plain`) type-checks `tsconfig.json` first like every
+   package. Do not trust a scrollback that got truncated; if a build's success is in doubt, rerun
    `tsc --noEmit -p tsconfig.json` directly in the package and check its exit code.
 7. Gotcha: the type-check pass covers `src/__tests__/` too, even though those tests never ship in
    `dist`. A type error in a test file blocks the build of production code that never touches it -
-   via `rebuild.sh` for every package, and again inside `build.sh` for every package but `filter`
-   and `dev-configs`.
+   in both `rebuild` and `build`, for every package.
 8. `make purity` bundles every entry in `scripts/purity/manifest.ts` with
    `bun build --target=browser` and fails on node builtins or node globals (`process.`,
    `__dirname`, `__filename`, `createRequire`). Six packages claim a browser-pure surface:

@@ -22,11 +22,11 @@ reaches `kernel` through `connectors`, so `make core` runs dev-configs -> invers
 no framework package depends on (an application declares `boot` itself, for the artifact
 generator), so `make build-all` names both explicitly.
 
-Each target builds its dependencies first, running `bun run --filter "@venizia/<name>" rebuild` -
-type-check, then clean, then build. The type-check runs *before* `clean` on purpose: `build.sh`
+Each target builds its dependencies first, running `make -C packages/<name> rebuild` -
+type-check, then clean, then build. The type-check runs *before* `clean` on purpose: it
 type-checks `__tests__` too, so ordering it first stops a broken test from wiping `dist/` and
 leaving an empty directory behind. To build one package alone:
-`cd packages/core-server && bun run rebuild`.
+`make -C packages/core-server rebuild`.
 
 ## Run
 
@@ -82,9 +82,9 @@ package by the release workflow, so a green commit says nothing about it.
   `packages/helpers/dist/...`, so skipping the build makes `bun test` in any downstream package
   fail with a wall of module-resolution errors unrelated to your change. Build in dependency order
   first (`make build`, or at least everything upstream of the package you're touching).
-- **`noEmitOnError: true` is set repo-wide**, and every `build.sh` runs under `set -e` - a type
-  error anywhere aborts the build immediately and `dist` is left exactly as it was, stale rather
-  than partially overwritten. For `core`/`helpers`, `build.sh` type-checks the whole `tsconfig.json`
+- **`noEmitOnError: true` is set repo-wide**, and every recipe in `make/project.mk` stops at the first failing
+  command - a type error anywhere aborts the build immediately and `dist` is left exactly as it was, stale rather
+  than partially overwritten. For every package, `make build` type-checks the whole `tsconfig.json`
   (including `src/__tests__/`) before the emit-only pass that excludes tests, so a broken test file
   blocks a build of code that never touches it. If a build seems like it should have succeeded, run
   `tsc --noEmit -p tsconfig.json` in the package directly and check its exit code.

@@ -28,6 +28,7 @@ install:
 
 clean:
 	@echo "🧹 Cleaning all packages..."
+	@$(foreach p,$(LINT_PACKAGES),$(MAKE) --no-print-directory -C packages/$(p) clean &&) true
 	@bun run --filter "*" clean
 
 # ----------------------------------------------------------------------------
@@ -118,48 +119,48 @@ build-all: core core-worker boot atlas docs surface-check symbols-check wiki-lin
 # it sits beside `boot`, not after it, so it never depends on boot's node-only glob discovery.
 # `core-worker` is the browser Worker host (envelope, transport, WorkerApplication) - it depends on
 # kernel only, sits beside `connectors`, and never on `core`.
-# Note: Using --filter directly to avoid triggering prerebuild scripts (Make handles deps)
+# Each package builds through its own Makefile (make/project.mk); this file only orders them.
 dev-configs:
 	@echo "📦 Rebuilding @venizia/dev-configs..."
-	@bun run --filter "@venizia/dev-configs" rebuild
+	@$(MAKE) --no-print-directory -C packages/dev-configs rebuild
 
 inversion: dev-configs
 	@echo "📦 Rebuilding @venizia/ignis-inversion..."
-	@bun run --filter "@venizia/ignis-inversion" rebuild
+	@$(MAKE) --no-print-directory -C packages/inversion rebuild
 
 filter: inversion
 	@echo "📦 Rebuilding @venizia/ignis-filter..."
-	@bun run --filter "@venizia/ignis-filter" rebuild
+	@$(MAKE) --no-print-directory -C packages/filter rebuild
 
 helpers: inversion
 	@echo "📦 Rebuilding @venizia/ignis-helpers..."
-	@bun run --filter "@venizia/ignis-helpers" rebuild
+	@$(MAKE) --no-print-directory -C packages/helpers rebuild
 
 boot: helpers
 	@echo "📦 Rebuilding @venizia/ignis-boot..."
-	@bun run --filter "@venizia/ignis-boot" rebuild
+	@$(MAKE) --no-print-directory -C packages/boot rebuild
 
 # `atlas` depends on helpers (transitively rebuilding dev-configs and inversion) and is consumed by
 # neither core nor examples - `build-all` names it explicitly, the same reason `boot` is above.
 atlas: helpers
 	@echo "📦 Rebuilding @venizia/ignis-atlas..."
-	@bun run --filter "@venizia/ignis-atlas" rebuild
+	@$(MAKE) --no-print-directory -C packages/atlas rebuild
 
 kernel: helpers filter
 	@echo "📦 Rebuilding @venizia/ignis-kernel..."
-	@bun run --filter "@venizia/ignis-kernel" rebuild
+	@$(MAKE) --no-print-directory -C packages/kernel rebuild
 
 connectors: kernel
 	@echo "📦 Rebuilding @venizia/ignis-connectors..."
-	@bun run --filter "@venizia/ignis-connectors" rebuild
+	@$(MAKE) --no-print-directory -C packages/connectors rebuild
 
 core-worker: kernel
 	@echo "📦 Rebuilding @venizia/ignis-worker..."
-	@bun run --filter "@venizia/ignis-worker" rebuild
+	@$(MAKE) --no-print-directory -C packages/core-worker rebuild
 
 core-server: connectors
 	@echo "📦 Rebuilding @venizia/ignis (core-server)..."
-	@bun run --filter "@venizia/ignis" rebuild
+	@$(MAKE) --no-print-directory -C packages/core-server rebuild
 
 # `core` is the historical name for this target and stays an alias - it is in muscle memory, in the
 # wiki, and in scripts outside this repository.
@@ -221,7 +222,6 @@ update-kernel:
 FMT_GLOB := "**/*.{ts,mts,js,mjs}"
 # $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
 LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mts $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
-FMT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --fix . && node_modules/.bin/eslint -c .configs/eslint.config.mts --fix . && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB)
 
 LINT_PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server atlas
 LINT_PKG_TARGETS := $(addprefix lint-,$(LINT_PACKAGES))
@@ -246,10 +246,10 @@ fmt-packages: $(FMT_PKG_TARGETS)
 # would never match. The release workflow calls `make lint-<package dir>`.
 $(LINT_PKG_TARGETS): lint-%:
 	@echo "🔍 Linting packages/$*..."
-	@$(call LINT_PROJECT,packages/$*)
+	@$(MAKE) --no-print-directory -C packages/$* lint
 
 $(FMT_PKG_TARGETS): fmt-%:
-	@$(call FMT_PROJECT,packages/$*)
+	@$(MAKE) --no-print-directory -C packages/$* fmt
 
 lint-core: lint-core-server
 

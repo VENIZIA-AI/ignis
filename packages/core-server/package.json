@@ -192,11 +192,7 @@
   "sideEffects": false,
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
-    "build": "sh ./scripts/build.sh",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "prepublishOnly": "bun run rebuild"
+    "prepublishOnly": "make rebuild"
   },
   "dependencies": {
     "@venizia/ignis-connectors": "^0.2.2-4",

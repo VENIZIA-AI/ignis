@@ -15,7 +15,7 @@ It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `
 `helpers` that only applications consume). `make connectors` needs `kernel`; `make core` needs
 `connectors`. It ships a **dual CJS + ESM build** - `dist/cjs` plus `dist/esm`, with every one of its
 `exports` entries carrying both `import` and `require` - as `kernel`, `inversion`, `filter`,
-`helpers`, and `boot` do. The ESM pass in `build.sh` is not cosmetic: it exists for the
+`helpers`, and `boot` do. The ESM pass in `make build` is not cosmetic: it exists for the
 browser-purity claim below, whose gate refuses any claimed sub-path that publishes no `import`
 condition, because a bundler would otherwise fall back to the CommonJS entry and meet a bare
 `require()`.
@@ -591,7 +591,7 @@ catch rather than prove it absent.
 - `drizzle-orm` and `drizzle-zod` are optional peers, yet the relational tier value-imports
   `getTableColumns`, `sql`, `relations` and `createSchemaFactory` - a relational sub-path needs them
   installed. Optional spares `./http` and the three search entries, which import neither. `@venizia/ignis` still requires them.
-- `build.sh` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
+- `make build` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
   the production build. See [build system](/process/build-system.md).
 - `isoTimestamp` (`relational/{postgres,sqlite}/models/common/columns.ts`) declares its column's
   `data` as `string | TIsoTimestamp`, not bare `string`. `TIsoTimestamp` is a branded type owned by

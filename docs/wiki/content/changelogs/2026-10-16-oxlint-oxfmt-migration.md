@@ -53,8 +53,10 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 | `make fmt-<pkg>` | The same with fixes applied |
 | `make lint-packages` / `make fmt` | Every package |
 | `make lint-all` | Packages, examples, example typecheck and `scripts/` |
+| `make build` / `make rebuild` / `make clean` / `make typecheck` | Inside a package: build, type-check then clean then build, clean, type-check |
+| `make <pkg>` | From the root: rebuild one package after its dependencies, as before |
 
-Packages no longer have `lint` or `prettier:*` scripts. Examples keep `lint` and `lint:fix`, because you copy them.
+Each package now has a two-to-four-line `Makefile` that includes the shared `make/project.mk`. Its `package.json` keeps only `force-update`, `prepublishOnly` (`make rebuild`) and, for `atlas` and `boot`, `test`. The `scripts/build.sh`, `clean.sh` and `rebuild.sh` files are gone, and so are the `lint` and `prettier:*` scripts. Examples keep their own scripts, because you copy them.
 
 Two things to know when you touch a build or lint config:
 

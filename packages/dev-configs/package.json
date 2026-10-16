@@ -94,10 +94,7 @@
   },
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
-    "build": "sh ./scripts/build.sh",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "prepublishOnly": "bun run rebuild"
+    "prepublishOnly": "make rebuild"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",

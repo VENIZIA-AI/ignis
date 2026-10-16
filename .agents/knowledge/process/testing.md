@@ -30,7 +30,7 @@ tags: [process, test, bun]
    package root.
 5. Gotcha: `helpers` and `core` build with `noEmitOnError: true` and a `tsc --noEmit -p
    tsconfig.json` pass that includes `src/__tests__/` (see [build system](/process/build-system.md)).
-   One broken test file's type error blocks the ENTIRE package build. `rebuild.sh` runs that
+   One broken test file's type error blocks the ENTIRE package build. `make rebuild` runs that
    type-check BEFORE `clean`, so a failure leaves `dist/` stale, never emptied - the next `bun test`
    silently runs sibling packages against the PREVIOUS build instead of the code you just changed.
    `dist/` is gitignored, so nothing in the working tree hints that the build never landed.

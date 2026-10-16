@@ -72,7 +72,7 @@ signature; the built declaration is.
   `surface-check`; run `make symbols-gen` after an intentional API change.
 - **The table is generated from `dist`, so a stale `dist` makes it stale.** Editing `src` without
   rebuilding moves a declaration's line and the table does not follow.
-- **The snapshot must carry it.** `packages/atlas/scripts/build.sh` copies the table into
+- **The snapshot must carry it.** `packages/atlas/scripts/corpus.sh` (the `POST_BUILD` step of its Makefile) copies the table into
   `dist/corpus/symbols.json` and fails when it is missing. A build with no table still starts; the
   tool answers `-32602 no symbol table in this build`.
 
@@ -102,7 +102,7 @@ things: every `chore(<package>): release v<version>` commit, keyed by the direct
   includes retired packages (`core`, `docs-mcp`) that still have release commits in the history.
 - **Drift is a build failure.** `make releases-check` runs inside `make build-all` beside
   `symbols-check`; run `make releases-gen` after a release commit or a new changelog page.
-- **The snapshot must carry it.** `packages/atlas/scripts/build.sh` copies the table into
+- **The snapshot must carry it.** `packages/atlas/scripts/corpus.sh` (the `POST_BUILD` step of its Makefile) copies the table into
   `dist/corpus/releases.json` and fails when it is missing. A build with no table still starts;
   both tools answer `-32602 no release table in this build`.
 

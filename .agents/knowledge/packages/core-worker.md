@@ -196,7 +196,7 @@ So the author-time defence is a `no-restricted-globals` and `no-restricted-impor
 `.configs/eslint.config.mts` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
 `src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/eslint.config.mts`) against
 committed fixtures. `.configs/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
-namespace. `scripts/rebuild.sh` type-checks the production graph **before** cleaning `dist/`.
+namespace. `make rebuild` type-checks the production graph **before** cleaning `dist/`.
 
 What no static rule reaches: computed member access (`globalThis['process']`), a variable import
 specifier, and an inline `eslint-disable`. `make purity` backstops the first two at bundle level;
