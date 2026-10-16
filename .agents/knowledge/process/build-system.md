@@ -53,7 +53,7 @@ tags: [process, build]
    as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
-   `*.tsbuildinfo`, `.configs/*.tsbuildinfo`, `.eslintcache` and `artifact.zip`. No package ships its
+   `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
    package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
    `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
