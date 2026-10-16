@@ -27,7 +27,11 @@ tags: [process, build]
    deliberately does not sit after `helpers`. `kernel` needs both `helpers` and `filter`. This
    concept is the canonical copy of the chain - other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
-   `make -C packages/<name> rebuild`, or `make rebuild` inside the package. Every package has a
+   `make -C packages/<name> rebuild`, or `make rebuild` inside the package. The root `Makefile` only
+   sets `PACKAGES` and includes one file per job: `make/build.mk`, `knowledge.mk`, `release.mk`,
+   `lint.mk`, `test.mk` and `help.mk`. Every per-package target (`<pkg>`, `update-`, `lint-`, `fmt-`,
+   `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
+   that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
    `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
@@ -80,13 +84,15 @@ tags: [process, build]
    `builtinModules`, so a bare `fs` import is caught as well as `node:fs`. And it passes
    `--env=disable`, because Bun otherwise inlines `process.env.NODE_ENV` at compile time and erases
    the exact read the gate exists to catch.
-10. `make lint` / `make lint-all` (packages only vs. packages + `examples/` + scripts) do not build
+10. `make lint` / `make lint-all` (packages only vs. packages + scripts) do not build
     anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
     `eslint` and `oxfmt --check`, each with `-c .configs/<tool>.config.mts`. `make fmt` and
     `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
     format-checks the wiki. Packages carry no lint scripts in `package.json`; examples keep
-    `lint` and `lint:fix` because they are templates a consumer copies. Each project lists
+    `lint` and `lint:fix` because they are templates a consumer copies. make does not drive the
+    examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
+    example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
     `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
     the root declares only `oxfmt` and `@venizia/dev-configs`, for `scripts/`. Versions are pinned in
     the root `workspaces.catalog`. Type-aware oxlint on `packages/kernel` (253 files) took about

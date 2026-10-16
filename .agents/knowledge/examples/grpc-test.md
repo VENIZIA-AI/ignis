@@ -40,8 +40,8 @@ bun test              # smoke test: GET /status over fetch, SayHello over a Conn
 - `GreeterService` is injected into `GreeterController` from `GreeterService` in
   `src/services/greeter.service.ts` - the business logic sits in a service like any REST controller,
   not inline in the gRPC handler.
-- This example is one of `EXAMPLES_SMOKE` in the root `Makefile` - `make examples-smoke` runs its
-  `bun test` in CI, no docker needed.
+- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
+  runs its `bun test` in CI, no docker needed.
 
 ## Related
 - [Controller system](/architecture/controller-system.md)

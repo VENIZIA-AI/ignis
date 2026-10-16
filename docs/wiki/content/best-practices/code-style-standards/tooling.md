@@ -190,7 +190,8 @@ In the IGNIS repository, the Makefile runs each package with its own tools:
 | `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then an oxfmt check |
 | `make fmt-<pkg>` | Same tools with `--fix` and write mode |
 | `make lint-packages` / `make fmt` | Every package |
-| `make lint-all` | Packages, examples, example typecheck and `scripts/` |
+| `make lint-all` | Packages and `scripts/` |
+| `bun scripts/examples.ts check` | The examples: artifact index, lint and typecheck - make does not drive them |
 | `make lint-wiki` | Lint and format-check `docs/wiki/scripts` |
 
 Packages carry no lint scripts of their own. Examples keep `lint` and `lint:fix` because they are templates you copy.

@@ -9,7 +9,7 @@ tags: [examples, reference-app]
 `rpc-api-server` is named for the frontend it feeds ([`rpc-client-app`](/examples/rpc-client-app.md)),
 but it is a plain REST application - no gRPC or ConnectRPC anywhere. It runs on PGlite so it needs no
 database server, which is what moved this pair into CI: the server's smoke test is in
-`EXAMPLES_SMOKE`.
+`SMOKE_EXAMPLES` (`scripts/examples.ts`).
 
 ## What it demonstrates
 
@@ -41,8 +41,8 @@ across restarts.
 
 ## Notable / non-obvious
 
-- This example is one of `EXAMPLES_SMOKE` in the root `Makefile` - `make examples-smoke` runs its
-  `bun test` in CI, no docker needed, because the smoke test boots with an in-memory PGlite database.
+- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
+  runs its `bun test` in CI, no docker needed, because the smoke test boots with an in-memory PGlite database.
 - [`rpc-client-app`](/examples/rpc-client-app.md)'s hooks are generated from this server's
   `/api/doc/openapi.json`; regenerate them after any route or schema change here.
 

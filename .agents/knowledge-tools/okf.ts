@@ -172,42 +172,56 @@ const collectBindingKeys = (): BindingClass[] => {
 
 type MakeTarget = { name: string; deps: string; description: string };
 
+/**
+ * Every root make target, read from make's own database (`make -pRrq`), so the targets generated
+ * from `PACKAGES` are listed too. The description comes from the target's `make help` row
+ * (make/help.mk): an exact name, a name in an `a / b` row, or a `<pkg>` row matching one package.
+ */
 const collectMakefileTargets = (): MakeTarget[] => {
   if (!existsSync(PATHS.makefile)) {
     return [];
   }
 
-  const lines = readFileSync(PATHS.makefile, 'utf8').split('\n');
-  const out: MakeTarget[] = [];
+  const db = Bun.spawnSync(['make', '--no-print-directory', '-pRrq', ':'], {
+    cwd: REPO,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  }).stdout.toString();
+  const lines = db.split('\n');
 
+  const packagesLine = lines.find((line) => line.startsWith('PACKAGES := ')) ?? '';
+  const packages = packagesLine.slice('PACKAGES := '.length).split(' ').filter(Boolean);
+  const pkgPattern = `(${[...packages, 'core'].join('|')})`;
+
+  const help: { pattern: RegExp; description: string }[] = [];
+  const helpFile = join(REPO, 'make/help.mk');
+  const helpText = existsSync(helpFile) ? readFileSync(helpFile, 'utf8') : '';
+  for (const row of helpText.matchAll(/HELP_ROW\) "((?:[^"\\]|\\.)+)" "((?:[^"\\]|\\.)*)"/g)) {
+    const description = row[2].replace(/\\"/g, '"');
+    for (const name of row[1].split(' / ')) {
+      const bare = name.replace(/ ARGS=.*$/, '').trim();
+      const escaped = bare.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace('<pkg>', pkgPattern);
+      help.push({ pattern: new RegExp(`^${escaped}$`), description });
+    }
+  }
+
+  const out: MakeTarget[] = [];
   for (let index = 0; index < lines.length; index++) {
-    const match = lines[index].match(/^([a-zA-Z][\w-]*):\s*(.*)$/);
+    if (lines[index] === '# Not a target:') {
+      index++;
+      continue;
+    }
+
+    const match = lines[index].match(/^([a-z][\w-]*):(?![:=])\s*(.*)$/);
     if (!match) {
       continue;
     }
 
-    // Description: the first `@echo "…"` of the recipe, stripped of emoji and trailing dots.
-    let description = '';
-    for (let cursor = index + 1; cursor < lines.length; cursor++) {
-      const line = lines[cursor];
-      if (!line.startsWith('\t') && line.trim() !== '') {
-        break;
-      }
-
-      const echo = line.match(/@echo\s+"([^"]*)"/);
-      if (echo) {
-        description = echo[1]
-          .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
-          .replace(/\.{3}$/, '')
-          .trim();
-        break;
-      }
-    }
-
+    const description = help.find((entry) => entry.pattern.test(match[1]))?.description ?? '';
     out.push({ name: match[1], deps: match[2].trim(), description });
   }
 
-  return out;
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 type SourceMapEntry = { pkg: string; total: number; subsystems: { name: string; files: number }[] };
