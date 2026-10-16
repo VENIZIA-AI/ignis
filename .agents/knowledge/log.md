@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-16 - React preset for oxlint
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `ReactOxlintConfigs.create()`, `reactNamingConventionConfigs` and `NoRestrictedPropertiesRule` added, from the rule list ARDOR sent; every lint preset stays in dev-configs and ARDOR consumes it.
+- Both React presets (oxlint and `ReactEslintConfigs`) are as strict as the base: the UI relaxations (floating promises, `void`, use before define, shadow, unused vars) are gone and `exhaustive-deps` is an error.
+
 ## 2026-10-16 - per-package Makefiles replace the build scripts
 
 Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [testing conventions](/conventions/testing-conventions.md), [testing](/process/testing.md), [adding a helper](/process/adding-a-helper.md), [atlas](/packages/atlas.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [kernel](/packages/kernel.md).

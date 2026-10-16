@@ -124,6 +124,7 @@ entry with the IGNIS defaults. Every `severity` defaults to `'error'`.
 | `NoUnusedVarsRule` | `no-unused-vars` | `vars` (`'all'`), `args` (`'none'`), `ignoreRestSiblings` (`false`) |
 | `SwitchCaseBracesRule` | `unicorn/switch-case-braces` | `mode`: `'always' \| 'avoid'` (`'always'`) |
 | `NoRestrictedImportsRule` | `no-restricted-imports` | `extraPaths`: `IRestrictedImportPath[]` (none), added to `PATHS` (lodash) |
+| `NoRestrictedPropertiesRule` | `no-restricted-properties` | `extraProperties`: `IRestrictedProperty[]` (none), added to `SECURE_CONTEXT` (`crypto.randomUUID`) |
 | `PreferNullishCoalescingRule` | `typescript/prefer-nullish-coalescing` | `ignoreConditionalTests`, `ignoreMixedLogicalExpressions`, `ignoreTernaryTests` (oxlint's own defaults) |
 | `NamingConventionRule` | `@typescript-eslint/naming-convention` | `extraSelectors`: `TNamingSelector[]` (none), added after `SELECTORS` |
 
@@ -202,13 +203,13 @@ export default [
 | :--- | :--- |
 | React correctness (`jsx-key`, `no-children-prop`, `no-deprecated`, ... - 14 rules) | `error`, `.jsx`/`.tsx` |
 | `jsx-a11y` basics (`alt-text`, `aria-props`, `aria-role`, ... - 9 rules) | `error`, `.jsx`/`.tsx` |
-| `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error` / `warn`, every source file |
+| `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error`, every source file |
 | `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
 | `naming-convention` | the base rule, plus PascalCase functions (`function App()`), `.jsx`/`.tsx` |
-| `no-floating-promises`, `no-void`, `no-invalid-this`, `no-use-before-define` | `off` - a UI fires promises from handlers and uses components above their declaration |
-| `no-explicit-any` | `warn` (the base has it `off`) |
-| `no-shadow` | `warn` |
-| `no-unused-vars` | `warn`, `_`-prefixed names ignored |
+| `no-restricted-properties` | `NoRestrictedPropertiesRule.build()` - bans `crypto.randomUUID` |
+
+Nothing in the base is relaxed: frontend code meets the backend's standard, so a floating promise, a
+`void`, a use before declaration or a shadowed name fails the lint as it does in a service.
 
 Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, `prop-types`,
 `jsx-no-undef`, ...) are left out.
@@ -218,6 +219,44 @@ Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, 
 - In an `eslint.config.ts`, `eslint-plugin-jsx-a11y` needs `@types/eslint-plugin-jsx-a11y`.
 - `consistent-type-imports` keeps the default `fixStyle`; a codebase that prefers
   `inline-type-imports` sets it on top.
+
+### ReactOxlintConfigs and reactNamingConventionConfigs
+
+The oxlint version of the React preset. oxlint runs the React, hooks and `jsx-a11y` rules natively, so
+nothing is passed in. Pair it with `reactNamingConventionConfigs` on the ESLint side:
+
+```ts
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(ReactOxlintConfigs.create());
+
+// .configs/eslint.config.mts
+import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
+
+export default reactNamingConventionConfigs;
+```
+
+`ReactOxlintConfigs.create()` is `oxlintConfigs` plus the same rules as the ESLint table above, as
+strict as the base. `react/no-deprecated` is left out: oxlint has no port of it. `crypto.randomUUID`
+is banned because it exists only in a secure context (https, localhost), and is `undefined` on a
+plain-http origin or in a WebView.
+
+The presets start strict. An application that wants less overrides the rule after the preset:
+
+```ts
+const base = ReactOxlintConfigs.create();
+
+export default defineConfig({
+  ...base,
+  rules: { ...base.rules, 'typescript/no-floating-promises': 'warn' },
+});
+```
+
+`reactNamingConventionConfigs` is `namingConventionConfigs` plus PascalCase functions in `.jsx` and
+`.tsx` files. To ban `crypto.randomUUID` in a project without React, add
+`[NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build()` to its rules.
 
 ### BunCompiler
 

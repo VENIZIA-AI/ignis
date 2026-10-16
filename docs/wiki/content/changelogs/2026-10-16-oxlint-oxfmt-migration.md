@@ -36,12 +36,16 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 | `oxlintConfigs` | `/linters` | The oxlint rules |
 | `namingConventionConfigs` | `/linters` | ESLint config with the naming-convention rule only |
 | `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`, `NamingConventionRule` | `/linters` | Rebuild one rule with `build()` to customize it |
+| `ReactOxlintConfigs` | `/linters` | The React preset for oxlint, as strict as the backend preset |
+| `reactNamingConventionConfigs` | `/linters` | The naming rule for a React project (PascalCase components) |
+| `NoRestrictedPropertiesRule` | `/linters` | Bans `crypto.randomUUID`, which a plain-http origin does not have |
 | `oxfmtConfigs` | `/formatters` | The oxfmt options |
 
 ## Who is affected
 
 - **Contributors to the IGNIS repository.** Use the new commands below. The `.prettierrc.mjs`, `.prettierignore` and root `eslint.config.mjs` files are gone.
 - **Consumers of `@venizia/dev-configs`.** No lint action needed. `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs`, `BunCompiler` and the two tsconfig exports keep their shape, and the root import still re-exports everything.
+- **Consumers of `ReactEslintConfigs`.** The preset no longer relaxes the base for a UI: `no-floating-promises`, `no-void`, `no-use-before-define`, `no-shadow` and `no-unused-vars` are errors again, `exhaustive-deps` is an error, and `crypto.randomUUID` is banned. Await or `.catch()` every promise a handler starts, and declare a component above its first use.
 - **Consumers that extend `tsconfig.common.json`.** Your target becomes ES2025. Your runtime needs ES2025 support (Bun 1.4 and Node 24 have it); a bundler that rejects ES2025 needs its own target, as the IGNIS wiki does for esbuild.
 - **Consumers who want the faster tools.** Switch with the steps below.
 

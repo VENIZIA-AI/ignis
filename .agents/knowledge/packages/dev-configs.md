@@ -41,6 +41,10 @@ NoRestrictedImportsRule.build({ extraPaths: [/* ... */] })
 
 Some classes carry defaults (`NamingConventionRule.SELECTORS`, `NoRestrictedImportsRule.PATHS`).
 
+### React preset for oxlint
+
+Every lint preset, backend and React, lives here; ARDOR consumes them. `ReactOxlintConfigs.create()` is `oxlintConfigs` plus the `react` / `jsx-a11y` rules of `ReactEslintConfigs` (minus `react/no-deprecated`, which oxlint lacks), the hooks rules, `consistent-type-imports` and `NoRestrictedPropertiesRule` (`crypto.randomUUID` is undefined outside a secure context). Nothing in the base is relaxed for a UI (decided 2026-10-16: frontend code meets the backend's standard - no floating promise, no `void`) and `exhaustive-deps` is an error; `ReactEslintConfigs` follows the same rule and bans `crypto.randomUUID` too. The values match what ARDOR measured for its strict variant. `reactNamingConventionConfigs` adds the PascalCase function selector on `.jsx` / `.tsx`. oxlint has no `no-restricted-syntax`, so the secure-context ban is `no-restricted-properties`.
+
 ## ESLint - naming convention only
 
 oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mts` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
