@@ -20,3 +20,22 @@ export const oxfmtConfigs: OxfmtConfig = {
   arrowParens: 'avoid',
   semi: true,
 };
+
+/**
+ * `oxfmtConfigs` for browser and React code: arrow parameters always in parentheses (`(x) => x`),
+ * and the closing `>` of a multi-line JSX element on its last attribute line, which keeps JSX diffs
+ * small. `bracketSameLine` changes nothing outside JSX.
+ *
+ * ```ts
+ * // .configs/oxfmt.config.mts
+ * import { defineConfig } from 'oxfmt';
+ * import { browserOxfmtConfigs } from '@venizia/dev-configs/formatters';
+ *
+ * export default defineConfig(browserOxfmtConfigs);
+ * ```
+ */
+export const browserOxfmtConfigs: OxfmtConfig = {
+  ...oxfmtConfigs,
+  arrowParens: 'always',
+  bracketSameLine: true,
+};
