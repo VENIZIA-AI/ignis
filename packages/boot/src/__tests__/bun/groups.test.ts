@@ -42,11 +42,13 @@ describe('IgnisArtifactsPlugin.rewriteGroups (builds)', () => {
     expect(rewritten).toContain(
       `from '${resolve(CORE, 'src', 'services', 'inventory', 'stock.service')}'`,
     );
-    expect(rewritten).toMatch(
-      /ArtifactGroup\.define\(\{ folder: 'inventory', content: \{[^}]*StockService/,
+    const local = (name: string): string | undefined =>
+      rewritten.match(new RegExp(`import \\{ ${name} as (\\w+) \\}`))?.[1];
+    expect(rewritten).toContain(
+      `define({ folder: 'inventory', content: { repositories: [${local('StockRepository')}], services: [${local('StockService')}] }`,
     );
-    expect(rewritten).toMatch(
-      /ArtifactGroup\.define\(\{ folder: 'commerce', content: \{[^}]*CategoryService/,
+    expect(rewritten).toContain(
+      `define({ folder: 'commerce', content: { services: [${local('CategoryService')}] }`,
     );
   });
 

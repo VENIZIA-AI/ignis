@@ -24,6 +24,7 @@ export class ArtifactGroup implements IArtifactGroup {
     return new ArtifactGroup(opts.folder, ArtifactGroup.callSite(), opts.content);
   }
 
+  /** Positional on purpose: a type predicate narrows its own parameter, and an options object would narrow the wrapper instead of `value`. */
   static isGroup(value: unknown): value is IArtifactGroup {
     return (
       typeof value === 'object' &&
@@ -79,16 +80,25 @@ export class ArtifactGroup implements IArtifactGroup {
     });
   }
 
-  /** The first stack frame outside this file: the module that declared the group. */
+  /** The module that declared the group, read from the call stack. */
   private static callSite(): string | undefined {
     // A stack trace, not a failure: reading the call site needs an Error object, and nothing is thrown.
     // eslint-disable-next-line venizia/no-new-error
-    const frames = (new Error().stack ?? '').split('\n').slice(1);
-    for (const frame of frames) {
-      const file = frame
-        .match(/\(?((?:file:\/\/)?\/[^():]+):\d+:\d+\)?$/)?.[1]
-        ?.replace(/^file:\/\//, '');
-      if (file && !/artifact-group\.(?:ts|js)$/.test(file)) {
+    return ArtifactGroup.siteFromStack({ stack: new Error().stack ?? '' });
+  }
+
+  /** The first frame outside the kernel's own `artifact-group` file: POSIX and Windows paths, `file://` URLs (decoded, drive kept), parentheses inside a path. */
+  static siteFromStack(opts: { stack: string }): string | undefined {
+    for (const raw of opts.stack.split('\n').slice(1)) {
+      const frame = raw.trim().replace(/^at\s+/, '');
+      const opening = frame.indexOf(' (');
+      const location = frame.endsWith(')') && opening >= 0 ? frame.slice(opening + 2, -1) : frame;
+      let file = location.replace(/:\d+:\d+$/, '');
+      if (file.startsWith('file://')) {
+        file = decodeURIComponent(file.slice('file://'.length)).replace(/^\/([A-Za-z]:\/)/, '$1');
+      }
+      const isPath = file.startsWith('/') || /^[A-Za-z]:[\\/]/.test(file);
+      if (isPath && !/(?:^|[\\/])artifact-group\.(?:ts|js)$/.test(file)) {
         return file;
       }
     }

@@ -85,3 +85,43 @@ describe('ArtifactIndexHelper.flatten - groups', () => {
     expect(resolved.controllers).toEqual([StockController]);
   });
 });
+
+describe('ArtifactGroup.siteFromStack', () => {
+  const stack = (...frames: string[]): string =>
+    ['Error', ...frames.map(frame => `    at ${frame}`)].join('\n');
+
+  test('skips only the kernel\x27s own artifact-group file, matched on a path separator', () => {
+    expect(
+      ArtifactGroup.siteFromStack({
+        stack: stack(
+          'define (/k/base/applications/artifact-group.js:20:5)',
+          '<anonymous> (/pkg/src/inventory-artifact-group.ts:3:9)',
+        ),
+      }),
+    ).toBe('/pkg/src/inventory-artifact-group.ts');
+  });
+
+  test('reads a Windows path and decodes a file URL with its drive', () => {
+    expect(
+      ArtifactGroup.siteFromStack({
+        stack: stack('define (C:\\k\\artifact-group.js:1:1)', 'x (C:\\pkg\\src\\groups.ts:3:4)'),
+      }),
+    ).toBe('C:\\pkg\\src\\groups.ts');
+    expect(
+      ArtifactGroup.siteFromStack({
+        stack: stack(
+          'define (file:///k/artifact-group.js:1:1)',
+          'x (file:///C:/pkg/src/my%20groups.ts:1:1)',
+        ),
+      }),
+    ).toBe('C:/pkg/src/my groups.ts');
+  });
+
+  test('keeps parentheses inside the path', () => {
+    expect(
+      ArtifactGroup.siteFromStack({
+        stack: stack('define (/k/artifact-group.ts:1:1)', 'x (/pkg/src/(domain)/groups.ts:2:2)'),
+      }),
+    ).toBe('/pkg/src/(domain)/groups.ts');
+  });
+});

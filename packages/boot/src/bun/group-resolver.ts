@@ -34,11 +34,12 @@ export class GroupArtifactsResolver {
 
   /** Fills the kernel's realm slot; the holder may already exist (the kernel created it empty), so it is mutated, never replaced. */
   static install(): void {
-    const realm = globalThis as Record<symbol, { resolve?: unknown } | undefined>;
-    const holder = realm[GroupArtifactsResolver.REALM_SLOT] ?? {};
+    const existing: unknown = Reflect.get(globalThis, GroupArtifactsResolver.REALM_SLOT);
+    const holder: { resolve?: unknown } =
+      typeof existing === 'object' && existing !== null ? existing : {};
     holder.resolve = (resolveOpts: {
       group: { folder: string | undefined; site: string | undefined };
     }) => GroupArtifactsResolver.resolve(resolveOpts);
-    realm[GroupArtifactsResolver.REALM_SLOT] = holder;
+    Reflect.set(globalThis, GroupArtifactsResolver.REALM_SLOT, holder);
   }
 }
