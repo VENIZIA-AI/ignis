@@ -16,10 +16,13 @@ generated:
 |---|---|---|
 | `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
+| `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
+| `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
-| `make build-all` | `core core-worker boot docs surface-check symbols-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
+| `make changelogs-migrate` | - | Write a packages: list into every changelog that declares none. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
@@ -56,6 +59,7 @@ generated:
 | `make install` | - | Install all dependencies with bun. |
 | `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
+| `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
 | `make lint-all` | `lint-packages lint-scripts` | lint-packages and lint-scripts. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
@@ -90,14 +94,10 @@ generated:
 | `make purity-test` | - | Run the purity probe's own regression tests. |
 | `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
-| `make releases-check` | - | Gate: the release table matches the release commits and the changelogs. |
-| `make releases-gen` | - | Regenerate .agents/knowledge/reference/releases.json for the Atlas version and changes tools. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
-| `make symbols-check` | - | Gate: the symbol table matches the built .d.ts. |
-| `make symbols-gen` | - | Regenerate .agents/knowledge/reference/symbols.json for the Atlas symbol tool. |
 | `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |

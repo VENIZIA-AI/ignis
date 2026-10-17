@@ -1,6 +1,7 @@
 ---
 title: EventBus Retry Gets Jitter, a Bounded Per-Registration Window, and a Tagged Handler Reference
 description: EventBus retries now jitter every backoff delay, let each registration tune its own bounded retry window, and take handler as a tagged binding-key-or-function reference instead of a bare handlerBindingKey string.
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-31

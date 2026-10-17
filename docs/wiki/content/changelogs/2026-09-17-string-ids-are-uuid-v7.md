@@ -1,6 +1,7 @@
 ---
 title: String Ids Are UUID v7
 description: "The default string primary key is now a time-ordered UUID v7: inserts 11-36% faster, a 27% smaller index, ordered paging ~2.5x faster."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-17

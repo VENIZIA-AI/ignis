@@ -1,6 +1,7 @@
 ---
 title: Upload Labels Move to the Body
 description: "principalType, principalId, variant, sequence and folderPath leave the query string. An identifier in a URL lands in every access log between the client and here."
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-16

@@ -1,6 +1,7 @@
 ---
 title: gRPC Controller System & Controller Architecture Refactor
 description: New gRPC controller system with ConnectRPC integration, controller architecture split into REST and gRPC base classes, AsyncLocalStorage for request context isolation, and unified IRpcRegistration type.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-03-15

@@ -1,6 +1,7 @@
 ---
 title: A Model Declares Each Fact Once
 description: "ModelFactory.defineEntity builds the entity class from a plain drizzle table, relations point at tables, and TEntityObject infers the row type - relations included."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
 # Changelog - 2026-09-19

@@ -1,6 +1,7 @@
 ---
 title: Refresh Access Token Endpoint
 description: Auth controller factory adds a JWT-protected POST /token/refresh route backed by an optional IAuthService.refreshToken
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-05

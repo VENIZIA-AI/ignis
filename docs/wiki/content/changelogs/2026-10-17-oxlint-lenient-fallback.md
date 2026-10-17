@@ -1,6 +1,7 @@
 ---
 title: lenientFallback for the oxlint Presets
 description: "OxlintConfigs.create({ lenientFallback: true }) allows || on string and number operands; the default stays strict."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-17

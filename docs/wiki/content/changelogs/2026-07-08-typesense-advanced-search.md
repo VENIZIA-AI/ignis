@@ -1,6 +1,7 @@
 ---
 title: Typesense Advanced Search - Vector/Semantic, Multi-Search, Synonyms
 description: The Typesense connector adds vector/semantic and hybrid search, cross-collection multi-search, declarative synonyms, and a search controller factory, with a typed default and a raw escape hatch at every layer.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-08

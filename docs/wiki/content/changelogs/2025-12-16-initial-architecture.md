@@ -1,6 +1,7 @@
 ---
 title: Initial Architecture
 description: Documentation of the original IGNIS architecture before the Model-Repository-DataSource refactor
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2025-12-16

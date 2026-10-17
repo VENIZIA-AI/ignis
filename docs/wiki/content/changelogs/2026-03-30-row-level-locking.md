@@ -1,6 +1,7 @@
 ---
 title: Row-Level Locking (FOR UPDATE)
 description: Add pessimistic row-level locking support to repository read operations via IExtraOptions
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-03-30

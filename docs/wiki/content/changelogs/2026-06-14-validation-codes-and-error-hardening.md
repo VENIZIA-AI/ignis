@@ -1,6 +1,7 @@
 ---
 title: Validation Message Codes, SQLSTATE-Class DB Errors & Production Error Hardening
 description: Zod 422 responses now derive messageCode/message from the schema; DB errors classify by SQLSTATE class; production responses no longer leak DB internals.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-06-14

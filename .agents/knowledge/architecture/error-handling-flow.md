@@ -6,6 +6,19 @@ resource: packages/kernel/src/base/middlewares/app-error
 tags: [architecture, errors, middleware, security, isomorphic]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Throwing: always `getError`](#throwing-always-geterror)
+- [Identity: use `isApplicationError`, not `instanceof`](#identity-use-isapplicationerror-not-instanceof)
+- [Where the handler lives: one class, two options](#where-the-handler-lives-one-class-two-options)
+- [Classification](#classification)
+- [The production boundary](#the-production-boundary)
+- [The response shape](#the-response-shape)
+- [The return trip: `fromError`](#the-return-trip-fromerror)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Every error in IGNIS ends at one place: the Hono `onError` handler that
 `registerDefaultMiddlewares()` installs before any user configuration runs. Nothing else needs to
 catch-and-shape for HTTP. On a Bun server that call is the first statement of `initialize()`; in a

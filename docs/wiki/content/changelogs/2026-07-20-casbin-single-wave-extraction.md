@@ -1,6 +1,7 @@
 ---
 title: Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave
 description: ScopedCasbinAdapter.loadFilteredPolicy now issues four statements in one Promise.all - a recursive CTE resolves the role closure in SQL - and holds no cache. Required indexes are documented in place of the removed structural cache.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-20

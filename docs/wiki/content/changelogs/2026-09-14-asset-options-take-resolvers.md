@@ -1,6 +1,7 @@
 ---
 title: Asset Options Take A Resolver Anywhere They Took A Value
 description: "controller.bucket, metaLink.model and metaLink.repository accept a value or a function returning one; TResolveObjectName is renamed TObjectNameResolver, following the verb-last naming the repository already uses."
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-14

@@ -6,6 +6,17 @@ resource: packages/filter
 tags: [packages, filter, query, isomorphic, browser]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [`TWhere<T>` types the value, not only the column](#twheret-types-the-value-not-only-the-column)
+- [`TOrderEntry<T>`, opt-in](#torderentryt-opt-in)
+- [Isomorphic by construction, and it is enforced](#isomorphic-by-construction-and-it-is-enforced)
+- [The `./schemas` sub-path](#the-schemas-sub-path)
+- [What stays behind in core](#what-stays-behind-in-core)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-filter` carries the filter vocabulary every connector translates from: the
 `{ where, order, limit, offset, skip, fields, include }` shape (`TFilter`, `TWhere`, `TFields`,
 `TInclusion`, and the scalar members), the operator set (`QueryOperators`, `TQueryOperator`) and the

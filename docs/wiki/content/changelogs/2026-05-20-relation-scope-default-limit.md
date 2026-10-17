@@ -1,6 +1,7 @@
 ---
 title: Consistent Default Limit for To-Many Relations
 description: To-many relations are now capped at DEFAULT_LIMIT by default (with or without order); default limit moved out of the Zod schema into the query layer
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-20

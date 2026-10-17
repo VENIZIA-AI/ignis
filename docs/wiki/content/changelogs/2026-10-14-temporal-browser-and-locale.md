@@ -1,6 +1,7 @@
 ---
 title: TemporalHelper Runs in Every Browser and Speaks a Locale
 description: "IntlTemporalAdapter needs no Temporal, so TemporalHelper works in every browser. Month and weekday names, 12-hour time, relative time, diff, compare, a non-throwing parse and duration formatting replace what a frontend kept dayjs for."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-10-14

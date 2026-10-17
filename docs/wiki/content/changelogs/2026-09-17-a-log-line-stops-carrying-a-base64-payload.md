@@ -1,6 +1,7 @@
 ---
 title: A Log Line Stops Carrying a Base64 Payload
 description: "Long strings are capped in the shared sanitiser, with the original length kept in the marker. Stack traces are exempt."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-17

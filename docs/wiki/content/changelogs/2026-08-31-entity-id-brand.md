@@ -1,6 +1,7 @@
 ---
 title: TEntityId Makes a String Id Impossible to Confuse With a String
 description: An opt-in branded string type so passing a name, code or email where an entity id belongs is a compile error instead of a silent lookup that returns nothing.
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-31

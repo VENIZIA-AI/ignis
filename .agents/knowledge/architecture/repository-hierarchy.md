@@ -6,6 +6,20 @@ resource: packages/kernel/src/base/repositories
 tags: [architecture, repositories, drizzle, connectors]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The engine-neutral base](#the-engine-neutral-base)
+- [The relational chain](#the-relational-chain)
+- [The search chain](#the-search-chain)
+- [Opt-in read retry (read-after-write)](#opt-in-read-retry-read-after-write)
+- [Hidden fields are excluded at query time](#hidden-fields-are-excluded-at-query-time)
+- [No mixins](#no-mixins)
+- [`@repository` auto-injects the DataSource](#repository-auto-injects-the-datasource)
+- [The `@repository` mixin never imports the connector](#the-repository-mixin-never-imports-the-connector)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 IGNIS repositories split across two layers: one engine-neutral abstract base, and one concrete chain
 per connector paradigm. There is no single universal `AbstractRepository -> ReadableRepository ->
 PersistableRepository -> DefaultCRUDRepository` chain - that shape exists, but **once per connector
@@ -174,9 +188,10 @@ and it is strict:
   behaviour. The recorded key is per class, process-wide: two applications binding one class under
   two keys share the last one recorded.
 - Only then is the first parameter checked: its `design:paramtypes` entry must extend
-  `AbstractDataSource` and be compatible with the declared class. `Object` (an interface or an
-  `import type` - what tsc emits for them, while esbuild/Vite emit nothing) is not checked, so two
-  builds of one codebase agree.
+  `AbstractDataSource` and be compatible with the declared class. `Object` and `Function` are not
+  checked: tsc emits `Object` for an interface and `Function` for a type-only class import
+  (`import { type X }`, which the house lint writes), bun emits `Object` for both, and esbuild/Vite
+  emit nothing - so every build of one codebase agrees.
 - An explicit `@inject` at index 0 decides for itself and must name a datasource: a `target` class
   by its brand (`isDataSourceClass`), whatever namespace its key sits in; a bare key by its
   `datasources.` prefix. Parameter 0 is always a datasource.

@@ -25,7 +25,7 @@ Both are mandatory, for every agent, on every task. The two rules that cost the 
 
 Nothing lives in two places. Every piece of project information has exactly one home:
 
-- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills and hooks.
+- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills and okf renderers.
 - **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
 
 Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
@@ -62,7 +62,8 @@ commit gate. The `knowledge-sync` skill re-verifies the bundle against the code 
 .agents/
 ├── rules.md          # THE rules - W · S · P · B · C, cited by ID
 ├── knowledge/        # THE knowledge bundle
-├── hooks/            # session-digest.ts - IGNIS's own SessionStart digest, registered in vulcan.config
+├── okf/              # renderer modules okf gen loads - the components and helpers catalogs
+├── vulcan.manifest.json  # written by vulcan sync; atlas reads it when another repo pulls IGNIS
 ├── skills/           # update-wiki - IGNIS-only; VULCAN ships knowledge-sync and docs-writing
 └── plans/            # gitignored - saved specs and plans, local to each developer
 ```
@@ -75,8 +76,8 @@ Code ships.
 
 This `AGENTS.md` is the single source. `make agent-setup` (`vulcan sync`) writes each tool's file as a
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
-and hooks (its base digest and the `guard-writes` check), the shipped and project skills, and the
-project hooks from `.configs/vulcan.config.ts` - here, `.agents/hooks/session-digest.ts`, which adds
-the most-dropped rule IDs and the minimap shape to the base digest. Re-run `make agent-setup` after a pull that touched
+and hooks (its session digest and the `guard-writes` check) and the shipped and project skills. The
+digest names the rules sessions drop most (`digest.oftenDropped` in `.configs/vulcan.config.ts`) and
+prints the minimap shape from `.agents/rules.md`. Re-run `make agent-setup` after a pull that touched
 `.configs/vulcan.config.ts`, `.agents/skills/` or the pinned VULCAN version; `make vulcan-doctor`
 says when you need to.

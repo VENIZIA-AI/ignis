@@ -6,6 +6,19 @@ resource: packages/inversion/src/modules/error
 tags: [conventions, errors]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Catalogue a domain failure, raise the rest free-form](#catalogue-a-domain-failure-raise-the-rest-free-form)
+- [Every ApplicationError carries `normalized`](#every-applicationerror-carries-normalized)
+- [Unknown keys ride into `extra`](#unknown-keys-ride-into-extra)
+- [The framework has its own catalog - use it, do not re-invent codes](#the-framework-has-its-own-catalog---use-it-do-not-re-invent-codes)
+- [Log an expected failure below `error`](#log-an-expected-failure-below-error)
+- [instanceof across packages is unreliable](#instanceof-across-packages-is-unreliable)
+- [Never leak internals in production responses](#never-leak-internals-in-production-responses)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Never throw a raw `new Error(...)`. Use `getError(opts: TError)` (or `ApplicationError.getError`).
 It builds an `ApplicationError`: a `message`, a `statusCode` (defaults to `400`), a `normalized`
 message, and an optional `extra` payload.

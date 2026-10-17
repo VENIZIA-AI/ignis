@@ -1,6 +1,7 @@
 ---
 title: Database Driver Bundling Fix - pg and postgres Are Truly Optional Now
 description: Applications that bundled with bun build --compile, esbuild, webpack, or rollup pulled in the unused Postgres driver package regardless of which one they installed. Datasources now name their driver as a class, which fixes bundling and needs a small config change.
+packages: ['@venizia/ignis-boot', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-14

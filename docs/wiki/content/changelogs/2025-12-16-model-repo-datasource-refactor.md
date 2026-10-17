@@ -1,6 +1,7 @@
 ---
 title: Model-Repository-DataSource Refactor
 description: Major architecture refactor following Loopback 4 patterns with auto-discovery
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2025-12-16

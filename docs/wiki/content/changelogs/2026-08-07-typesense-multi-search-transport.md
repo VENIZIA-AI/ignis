@@ -1,6 +1,7 @@
 ---
 title: One Transport for Every Typesense Search
 description: Large filters no longer fail, pages over 250 hits work, and an arbitrary skip is finally expressible - because every search now goes through /multi_search.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-07

@@ -6,6 +6,20 @@ resource: packages/core-worker
 tags: [packages, core-worker, browser, bff, worker, isomorphic]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The package is small on purpose](#the-package-is-small-on-purpose)
+- [The HTTP contract is the seam](#the-http-contract-is-the-seam)
+- [`SharedBffTransport` - one Worker per origin, not per tab](#sharedbfftransport---one-worker-per-origin-not-per-tab)
+- [`installBffFetch` - the seam that makes the swap invisible](#installbfffetch---the-seam-that-makes-the-swap-invisible)
+- [`listen()` and what it registers](#listen-and-what-it-registers)
+- [Browser purity is enforced by ESLint, not by tsc](#browser-purity-is-enforced-by-eslint-not-by-tsc)
+- [Testing without a browser](#testing-without-a-browser)
+- [Gotchas](#gotchas)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-worker` runs a whole IGNIS application inside a browser Worker. The UI calls it
 like an HTTP API; nothing crosses a network. It is the browser sibling of `packages/core-server`, and both
 sit on `@venizia/ignis-kernel`.

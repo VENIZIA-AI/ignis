@@ -1,6 +1,7 @@
 ---
 title: Connectors Consistency Hardening
 description: Strict find()/findOne() everywhere, engine-specific search tuning moved to engineParams, the memory connector removed, internal barrels unexported, plus filter and correctness fixes across Postgres, Typesense, and Meilisearch.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-11

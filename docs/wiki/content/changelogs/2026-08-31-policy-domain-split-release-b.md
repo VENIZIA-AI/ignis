@@ -1,6 +1,7 @@
 ---
 title: PolicyDefinition Reads the Domain Pair and the domain Column Is Gone (Release B)
 description: The adapter now builds the casbin domain token in SQL from domain_type and domain_id, the builder no longer writes the concatenated column, and domain is dropped.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-31

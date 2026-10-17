@@ -4,6 +4,19 @@ okf_version: "0.2"
 
 # IGNIS knowledge
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Start here](#start-here)
+- [Packages](#packages)
+- [Architecture](#architecture)
+- [Conventions](#conventions)
+- [Process](#process)
+- [Examples](#examples)
+- [Reference](#reference)
+- [Maintaining this bundle](#maintaining-this-bundle)
+<!-- okf:generated:contents end -->
+
 Curated knowledge about the IGNIS framework, for agents and for humans. Start here rather than
 re-deriving the project from the source each session.
 

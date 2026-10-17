@@ -1,6 +1,7 @@
 ---
 title: AES Keys Derive with PBKDF2, and Ciphertext Carries a Key Id
 description: AES key derivation moves from padding the secret to PBKDF2, the ciphertext gains a version and key-id header, and a keyring lets you rotate keys. Data written by an earlier IGNIS no longer decrypts with AES - read it with LegacyAES.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-08-06

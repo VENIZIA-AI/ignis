@@ -1,6 +1,7 @@
 ---
 title: Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading
 description: The logger was rebuilt behind an ILogger contract - five levels, two swappable providers loaded one at a time, a reworked HfLogger, and a redaction kill-switch.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-18

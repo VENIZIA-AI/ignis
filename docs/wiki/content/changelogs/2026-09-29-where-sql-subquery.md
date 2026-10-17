@@ -1,6 +1,7 @@
 ---
 title: A Where Can Restrict a Column by a SQL Subquery
 description: "New inSql and ninSql operators take a Drizzle SQL subquery built in server code, so a list filtered by another table runs as one query with no id list in between."
+packages: ['@venizia/ignis-filter']
 ---
 
 # Changelog - 2026-09-29

@@ -1,6 +1,7 @@
 ---
 title: The Deprecated Runtime Boot API Is Fully Removed
 description: boot(), bootOptions, IBootReport, IBootableApplication and BindingNamespaces.BOOTERS are gone from @venizia/ignis and @venizia/ignis-boot
+packages: ['@venizia/ignis-boot', '@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-03

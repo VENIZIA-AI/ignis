@@ -1,6 +1,7 @@
 ---
 title: Core Consolidation and Deduplication
 description: Registration mixin functions removed in favor of BaseApplication methods, default-filter merge now narrows instead of replacing, a new isApplicationError guard, plus fixes to datasource driver caching, Meilisearch, and Typesense.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-12

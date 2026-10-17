@@ -6,6 +6,21 @@ resource: packages/kernel/src/base/applications/rest.ts
 tags: [architecture, artifacts, registration, decorators, boot]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Stereotypes](#stereotypes)
+- [Three inputs to one binding](#three-inputs-to-one-binding)
+- [What `registerArtifacts` does](#what-registerartifacts-does)
+- [`@provide`](#provide)
+- [Composing indexes](#composing-indexes)
+- [Why an AST at build time, not a glob at run time](#why-an-ast-at-build-time-not-a-glob-at-run-time)
+- [Position in the boot sequence](#position-in-the-boot-sequence)
+- [Removed surface](#removed-surface)
+- [The common failures](#the-common-failures)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Four hops. `@service()` (or any stereotype) records `IArtifactMetadata` on the class through
 `MetadataRegistry.setArtifactMetadata`. `ignis-artifacts generate` lists the class in
 `src/generated/artifacts.ts` ([boot package](/packages/boot.md)). The application passes that

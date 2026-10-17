@@ -1,6 +1,7 @@
 ---
 title: Performance Optimizations
 description: Repository layer performance improvements reducing GC pressure and improving query speed
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-18

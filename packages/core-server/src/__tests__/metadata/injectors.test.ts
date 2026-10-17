@@ -150,6 +150,33 @@ describe('@repository - datasource auto-injection at param[0]', () => {
     }).toThrow(/must extend AbstractDataSource/);
   });
 
+  // tsc emits `Function` for a type-only class import (`import { type X }`, as the house lint writes it)
+  // and `Object` for an interface; neither names the class, so the decorator injects without judging.
+  for (const [label, emitted] of [
+    ['a type-only class import (tsc emits Function)', Function],
+    ['an interface (tsc emits Object)', Object],
+  ] as const) {
+    test(`a first parameter typed by ${label} is not judged, and the datasource is injected`, () => {
+      class TypeOnlyParameterRepository {
+        constructor(public dataSource: unknown) {}
+      }
+
+      declareParamTypes({ target: TypeOnlyParameterRepository, paramTypes: [emitted] });
+
+      expect(() => {
+        repository({ model: InjectorAccount, dataSource: InjectorPrimaryDataSource })(
+          TypeOnlyParameterRepository,
+        );
+      }).not.toThrow();
+      expect(registry.getInjectMetadata({ target: TypeOnlyParameterRepository })?.[0]).toEqual({
+        target: InjectorPrimaryDataSource,
+        key: 'datasources.InjectorPrimaryDataSource',
+        index: 0,
+        isOptional: false,
+      });
+    });
+  }
+
   test('a constructor DataSource type incompatible with @repository dataSource is rejected', () => {
     class MismatchedRepository {
       constructor(public dataSource: InjectorSecondaryDataSource) {}

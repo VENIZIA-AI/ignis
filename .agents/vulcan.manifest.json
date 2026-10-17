@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "name": "ignis",
+  "packages": [
+    {
+      "name": "@venizia/dev-configs",
+      "dir": "dev-configs",
+      "path": "packages/dev-configs",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-inversion",
+      "dir": "inversion",
+      "path": "packages/inversion",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-filter",
+      "dir": "filter",
+      "path": "packages/filter",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-helpers",
+      "dir": "helpers",
+      "path": "packages/helpers",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-boot",
+      "dir": "boot",
+      "path": "packages/boot",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-kernel",
+      "dir": "kernel",
+      "path": "packages/kernel",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-connectors",
+      "dir": "connectors",
+      "path": "packages/connectors",
+      "aliases": [],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-worker",
+      "dir": "core-worker",
+      "path": "packages/core-worker",
+      "aliases": [
+        "worker",
+        "@venizia/ignis-core-worker"
+      ],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis",
+      "dir": "core-server",
+      "path": "packages/core-server",
+      "aliases": [
+        "core"
+      ],
+      "retired": false
+    },
+    {
+      "name": "@venizia/ignis-docs",
+      "dir": "docs-mcp",
+      "path": "packages/docs-mcp",
+      "aliases": [
+        "docs"
+      ],
+      "retired": true
+    },
+    {
+      "name": "@venizia/ignis-atlas",
+      "dir": "atlas",
+      "path": "packages/atlas",
+      "aliases": [],
+      "retired": true
+    }
+  ],
+  "knowledge": {
+    "bundle": ".agents/knowledge",
+    "wiki": "docs/wiki/content",
+    "changelogs": "docs/wiki/content/changelogs",
+    "syncAreas": ".agents/knowledge/process/knowledge-sync-areas.md"
+  },
+  "release": {
+    "tagPattern": "<dir>-v<version>",
+    "legacyTagPrefixes": [],
+    "ignoreTags": []
+  },
+  "rules": {
+    "project": ".agents/rules.md",
+    "base": {
+      "V-W-01": "e5aa2a56",
+      "V-W-02": "fc20aa8b",
+      "V-W-03": "80b547ef",
+      "V-W-04": "2bf7c80e",
+      "V-S-01": "37e8ac4e",
+      "V-S-02": "01b4171f",
+      "V-S-03": "5ed13d6b",
+      "V-S-04": "807f8de3",
+      "V-S-05": "6f53b96f",
+      "V-S-06": "db487b5d",
+      "V-S-07": "5be02f91",
+      "V-P-01": "9f2db7e1",
+      "V-P-02": "ee3dd1ee",
+      "V-P-03": "b4494f6d",
+      "V-P-04": "ed62089c",
+      "V-P-05": "86732f8b",
+      "V-P-06": "248b065d",
+      "V-B-01": "1fb02376",
+      "V-B-02": "807709f8",
+      "V-B-03": "da8e7490",
+      "V-B-04": "6acb67ab",
+      "V-C-01": "ae67ab67",
+      "V-C-02": "caff2ff9",
+      "V-C-04": "bb21d93f",
+      "V-C-06": "9e678dd5",
+      "V-C-07": "096e2cb4",
+      "V-C-08": "f7f91c8c",
+      "V-C-09": "7964a048",
+      "V-C-10": "0555ce83",
+      "V-C-11": "6141c262",
+      "V-C-12": "5fd38b0d",
+      "V-C-13": "a1de7d60",
+      "V-C-14": "50c285f2",
+      "V-C-15": "f8148004",
+      "V-C-16": "a99d1b98",
+      "V-C-17": "6d50fbc3",
+      "V-C-18": "aaf8d03c"
+    }
+  }
+}

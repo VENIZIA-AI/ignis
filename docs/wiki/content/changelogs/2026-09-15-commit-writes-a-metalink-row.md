@@ -1,6 +1,7 @@
 ---
 title: A Direct Upload Lands a MetaLink Row Too
 description: "upload-commit now writes the MetaLink row the ordinary upload writes, takes the same label query, and reports a row failure in the body rather than as a 500."
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-15

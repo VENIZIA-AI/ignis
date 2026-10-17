@@ -1,6 +1,7 @@
 ---
 title: Error Module Redesign
 description: One message shape everywhere - a definition, a getError input and a normalized response now share {text, code, args}. The flat messageCode field and the extra.messageArgs mirror are gone, and the error middleware is now a class.
+packages: ['@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-17

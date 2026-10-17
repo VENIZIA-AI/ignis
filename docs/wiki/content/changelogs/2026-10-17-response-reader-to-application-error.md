@@ -1,6 +1,7 @@
 ---
 title: HttpResponseReader Maps a Failed Response to an ApplicationError
 description: "HttpResponseReader.toApplicationError gives any client of an IGNIS server the connector's own error mapping, without taking the connector."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-10-17

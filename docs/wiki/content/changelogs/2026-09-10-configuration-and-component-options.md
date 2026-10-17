@@ -1,6 +1,7 @@
 ---
 title: Application Configurations and Type-Safe Component Options
 description: Introduces @configuration with topological dependency ordering, and type-safe options pass-through in application.component() and application.dataSource().
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-10

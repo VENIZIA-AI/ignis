@@ -1,6 +1,7 @@
 ---
 title: Artifacts Register From a Generated Index, and the Runtime Boot System Is Retired
 description: Decorate a class, generate one index at build time, pass it in the config - application.ts lists nothing; Bootstrapper, booters and boot() are gone
+packages: ['@venizia/ignis-boot', '@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-02

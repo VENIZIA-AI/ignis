@@ -1,6 +1,7 @@
 ---
 title: JSON Path Filtering & Array Operators
 description: Added JSON/JSONB path filtering support and PostgreSQL array column operators
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-31

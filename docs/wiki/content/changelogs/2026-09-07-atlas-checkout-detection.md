@@ -1,6 +1,7 @@
 ---
 title: Atlas Recognises the IGNIS Checkout by Its Workspace Manifest
 description: A repository that copies the docs/wiki and .agents/knowledge layout was read as an IGNIS checkout, and the server died at startup on the first corpus directory it did not have. Repository mode now also requires the changelog directory and a root package.json named @venizia/ignis-workspace.
+packages: ['@venizia/ignis-atlas']
 ---
 
 # Changelog - 2026-09-07

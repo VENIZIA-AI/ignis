@@ -1,6 +1,7 @@
 ---
 title: One UUID Helper, Three Versions
 description: "UuidHelper is the single door for UUIDs: v7 for database keys, v5 for deterministic idempotency keys, v4 for public tokens - measured faster than the uuid package on all three."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-18

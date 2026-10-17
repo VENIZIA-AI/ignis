@@ -1,6 +1,7 @@
 ---
 title: Filter and Update Errors Quote the Rejected Key on One Line
 description: "Error messages that quote a key, field or order entry from the request now escape control characters and Unicode line terminators, so a crafted key can no longer split a log line."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-filter']
 ---
 
 # Changelog - 2026-09-29

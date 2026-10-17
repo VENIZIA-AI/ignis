@@ -1,6 +1,7 @@
 ---
 title: Paging, Bulk Writes and Relation Settings
 description: "Pages over a tied order no longer repeat or skip rows, bulk update and delete take where in the body, and an included relation keeps its hidden columns and row scope whatever its table is named."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-17

@@ -1,6 +1,7 @@
 ---
 title: Log Arguments Under `%j` No Longer Collapse to `[Circular]`
 description: A single cyclic reference in a `%j` argument used to erase the whole payload. The formatter now projects the argument first, so cycles collapse per branch, secret keys are redacted, and the walk is depth-capped.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-08-12

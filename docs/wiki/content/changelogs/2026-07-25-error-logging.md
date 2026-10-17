@@ -1,6 +1,7 @@
 ---
 title: Readable Error Logs and a logLevel Option on getError
 description: A thrown error now logs as a compact block instead of a raw object dump, and getError takes a logLevel so an expected 404 stops landing next to a real 500.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-25

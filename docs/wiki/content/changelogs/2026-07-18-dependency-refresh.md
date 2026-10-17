@@ -1,6 +1,7 @@
 ---
 title: Dependency Refresh & DI Cleanup
 description: All dependencies bumped to latest (TypeScript held at 6); helpers drops unused dependencies; optional property injection is fixed and the inert @injectable decorator is removed.
+packages: ['@venizia/ignis', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-18

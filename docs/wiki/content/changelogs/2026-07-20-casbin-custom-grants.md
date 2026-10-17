@@ -1,6 +1,7 @@
 ---
 title: Casbin Custom Grants - Operation-Subset Grants in One Row
 description: A PolicyDefinition grant row can now carry an arbitrary subset of a subject's operations via metadata.ops; ScopedCasbinAdapter expands it at read time and planGrant composes the smallest correct set of rows for any operation selection.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-20

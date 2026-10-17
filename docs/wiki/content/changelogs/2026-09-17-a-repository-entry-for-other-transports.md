@@ -1,6 +1,7 @@
 ---
 title: A Repository Entry for Other Transports
 description: "kernel/repository carries AbstractRepository, AbstractDataSource and the CRUD contract without the OpenAPI layer - 14.7 KB instead of 105 KB."
+packages: ['@venizia/ignis-filter', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-17

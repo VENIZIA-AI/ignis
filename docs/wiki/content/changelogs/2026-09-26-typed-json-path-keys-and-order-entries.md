@@ -1,6 +1,7 @@
 ---
 title: "Typed JSON-Path Keys in TWhere, and an Opt-In TOrderEntry"
 description: "A JSON-path key like 'metadata.a.b' now type-checks against T's JSON columns with no cast, and a new TOrderEntry<T> type checks an order list the same way. Both additive, no runtime change."
+packages: ['@venizia/ignis-filter']
 ---
 
 # Changelog - 2026-09-26

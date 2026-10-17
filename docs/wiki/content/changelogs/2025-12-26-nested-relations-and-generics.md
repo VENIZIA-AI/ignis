@@ -1,6 +1,7 @@
 ---
 title: Nested Relations & Generic Types
 description: Added support for deep nested inclusions and generic return types in repositories
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-26

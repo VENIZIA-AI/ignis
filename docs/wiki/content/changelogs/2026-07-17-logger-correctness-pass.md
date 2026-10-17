@@ -1,6 +1,7 @@
 ---
 title: Logger Correctness Pass
 description: ANSI-free log files, a real level floor via APP_ENV_LOGGER_LEVEL, opt-in file logging, fixed custom-logger caching, and a crash-proof UDP transport.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-17

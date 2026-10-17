@@ -1,6 +1,7 @@
 ---
 title: Redis Helpers Refactor - Abstract Base, Interfaces, Sentinel & Factory
 description: Redis module restructured into folder-per-topology with segregated interfaces, AbstractRedisHelper base, RedisSentinelHelper, and a three-mode createRedisHelper factory.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-06-25

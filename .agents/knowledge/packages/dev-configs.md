@@ -6,6 +6,18 @@ resource: packages/dev-configs
 tags: [packages, dev-configs, tooling]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Exports](#exports)
+- [oxlint and oxfmt](#oxlint-and-oxfmt)
+- [ESLint - naming convention only](#eslint---naming-convention-only)
+- [Per-project `.configs/` folder](#per-project-configs-folder)
+- [TypeScript - the critical setting](#typescript---the-critical-setting)
+- [Gotcha: changes here are monorepo-wide](#gotcha-changes-here-are-monorepo-wide)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/dev-configs` is the root of the IGNIS build dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`) - it has no dependency on any other IGNIS package, and every other package depends on it for lint, format, and compiler settings. It ships a single CommonJS build.
 
 ## Exports

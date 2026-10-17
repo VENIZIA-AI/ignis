@@ -6,6 +6,54 @@ resource: .
 tags: [conventions, gotchas, debugging]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Run `bun test` from the package root, never the repo root](#run-bun-test-from-the-package-root-never-the-repo-root)
+- [An empty dist looks like a hundred unrelated import failures](#an-empty-dist-looks-like-a-hundred-unrelated-import-failures)
+- [A node global in the kernel passes tsc and fails make purity](#a-node-global-in-the-kernel-passes-tsc-and-fails-make-purity)
+- [types: [] does not make process.env a compile error](#types-does-not-make-processenv-a-compile-error)
+- [make purity derives its rows from `exports`, never from a hand-written list](#make-purity-derives-its-rows-from-exports-never-from-a-hand-written-list)
+- [A purity verdict can change with the Bun version, and a waiver is exact both ways](#a-purity-verdict-can-change-with-the-bun-version-and-a-waiver-is-exact-both-ways)
+- [`bun update` rewrites peerDependencies floors, not only devDependencies](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
+- [Kernel state is realm-anchored, so never reach for `instanceof` across packages](#kernel-state-is-realm-anchored-so-never-reach-for-instanceof-across-packages)
+- [The PGlite pin lives in the root package.json](#the-pglite-pin-lives-in-the-root-packagejson)
+- [RedisClusterHelper deliberately skips buildDefaultOpts](#redisclusterhelper-deliberately-skips-builddefaultopts)
+- [Every constructor parameter needs @inject](#every-constructor-parameter-needs-inject)
+- [An error catalog code must be a literal, not MessageCode.build()](#an-error-catalog-code-must-be-a-literal-not-messagecodebuild)
+- [Stale .tsbuildinfo replays phantom errors](#stale-tsbuildinfo-replays-phantom-errors)
+- [bun install reformats the committed bun.lock](#bun-install-reformats-the-committed-bunlock)
+- [Bun can silently drop @inject when tsconfig extends isn't resolved](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved)
+- [Under bun-runs-source, a type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
+- [The artifact generator never executes a module](#the-artifact-generator-never-executes-a-module)
+- [A dynamic `import('./own-module')` in library code makes bun bundle the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
+- [`bun build` folds `process.env.NODE_ENV` into the BUILD machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
+- [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
+- [The health-check `stats` route is a security default, and `enable` overrides it silently](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
+- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [A self-refreshing cache must gate its retry on the last attempt, not the last success](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
+- [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
+- [bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
+- [Four transitive advisories stay by decision - do not "fix" them with an override](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+- [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
+- [Outside development, only the request spy's JSON check parses a body](#outside-development-only-the-request-spys-json-check-parses-a-body)
+- [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
+- [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
+- [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
+- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
+- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
+- [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
+- [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
+- [A stale .configs/*.tsbuildinfo makes tsc emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [ignorePatterns in a .configs file resolve against .configs](#ignorepatterns-in-a-configs-file-resolve-against-configs)
+- [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
+- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [Makefile: a $(call) glob with a comma, and .PHONY pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
+- [The ESLint config is .mjs: a TypeScript one needs jiti](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
+- [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Traps worth knowing before you hit them yourself. Look for yours here first.
 
 **Build and dist**

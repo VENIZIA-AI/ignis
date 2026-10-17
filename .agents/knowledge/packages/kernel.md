@@ -6,6 +6,24 @@ resource: packages/kernel
 tags: [packages, kernel, browser, isomorphic, di]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [What it owns](#what-it-owns)
+- [Browser purity is the design constraint, and it is measured](#browser-purity-is-the-design-constraint-and-it-is-measured)
+- [The seams core fills in](#the-seams-core-fills-in)
+- [One default middleware stack](#one-default-middleware-stack)
+- [Container and MetadataRegistry](#container-and-metadataregistry)
+- [Generated bulk routes take `where` in the query or the body](#generated-bulk-routes-take-where-in-the-query-or-the-body)
+- [TEntityId (`base/models/`)](#tentityid-basemodels)
+- [Repositories, datasources, and the query schemas](#repositories-datasources-and-the-query-schemas)
+- [Recursive tree SQL moved to connectors](#recursive-tree-sql-moved-to-connectors)
+- [EventBus (`base/events/`)](#eventbus-baseevents)
+- [Auth seams](#auth-seams)
+- [Gotchas](#gotchas)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-kernel` holds everything in the framework that needs neither a node builtin nor a
 server-only peer, so the same kernel serves a Bun server and a browser Worker. It sits beside `boot`
 in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`)

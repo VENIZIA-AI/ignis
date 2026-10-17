@@ -1,6 +1,7 @@
 ---
 title: Relational Connector Lift - Engine-Neutral SQL Tier
 description: The SQL repository and datasource tier splits into an engine-neutral connectors/relational and a Postgres branch, reachable at a new @venizia/ignis/relational export. Ten names leave @venizia/ignis/postgres for their Postgres spellings, and findById finally accepts options.retry.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-01

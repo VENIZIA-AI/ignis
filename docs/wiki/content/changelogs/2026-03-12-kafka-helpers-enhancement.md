@@ -1,6 +1,7 @@
 ---
 title: Kafka Helpers Enhancement - Health, Callbacks, Transactions, Schema Registry
 description: Major enhancement adding BaseKafkaHelper base class, health tracking, graceful shutdown, message callbacks, consumer group events, lag monitoring, transaction helper, and schema registry support.
+packages: ['@venizia/ignis-docs', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-03-12

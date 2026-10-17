@@ -1,6 +1,7 @@
 ---
 title: Const Values Stay Literal
 description: "TConstValue, TStringConstValue and TNumberConstValue no longer widen to string or number in an object literal, a let or an inferred generic. A test that compares one of these values with a plain string needs a type argument."
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-10-09

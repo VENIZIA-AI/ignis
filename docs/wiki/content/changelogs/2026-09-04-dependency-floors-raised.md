@@ -1,6 +1,7 @@
 ---
 title: Dependency floors raised across the chain, audit down to six accepted advisories
 description: Every catalog range moved to its latest compatible version, two Bun WebSocket mirror signatures narrowed for bun-types 1.4, and the six advisories that remain are named with the reason each one stays.
+packages: ['@venizia/ignis-boot', '@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-04

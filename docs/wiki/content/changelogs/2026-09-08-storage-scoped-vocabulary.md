@@ -1,6 +1,7 @@
 ---
 title: Every Storage Method Names Its Bucket and Its Object
 description: IStorageHelper takes { bucket, object } instead of { bucket, name }, presign expiry takes an IDuration instead of a seconds number, and IFileStat.metadata declares mimetype.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-08

@@ -1,6 +1,7 @@
 ---
 title: CRUD Route Toggles & Typed JSON Responses
 description: Enable/disable generated CRUD routes per controller, typed context.json() against route response schemas, and a d.ts size fix for the base controller
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-08

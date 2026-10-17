@@ -1,6 +1,7 @@
 ---
 title: SQLite and PGlite - Two Embedded Relational Engines
 description: A SQLite connector at @venizia/ignis/sqlite driven by libsql, and a PGliteDriver that runs Postgres in-process as WebAssembly. Both sit on the engine-neutral relational tier, proven by one repository conformance suite that runs against both.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-02

@@ -1,6 +1,7 @@
 ---
 title: ignis-docs-mcp Is Replaced by @venizia/ignis-atlas
 description: The local docs MCP server and the internal knowledge MCP are both retired. One new package, @venizia/ignis-atlas, indexes the wiki, the changelogs and the knowledge bundle with SQLite FTS5 and answers search and get over stdio JSON-RPC, with a citation on every hit.
+packages: ['@venizia/ignis-atlas', '@venizia/ignis-docs']
 ---
 
 # Changelog - 2026-09-06

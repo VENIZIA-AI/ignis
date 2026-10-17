@@ -1,6 +1,7 @@
 ---
 title: The Download Route Drops Its Plural
 description: GET /downloads/{objectName} becomes GET /download/{objectName}. A verb segment names one action, not a collection, and this reverses one row of the 2026-09-08 rename.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-14

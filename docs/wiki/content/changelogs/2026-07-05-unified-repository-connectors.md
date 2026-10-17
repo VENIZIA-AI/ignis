@@ -1,6 +1,7 @@
 ---
 title: Unified Repository & Connectors Architecture
 description: The persistence layer splits into an engine-neutral base plus Postgres, Typesense, and memory connectors. New storage engines slot in without touching the core repository contract.
+packages: ['@venizia/ignis', '@venizia/dev-configs', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-05

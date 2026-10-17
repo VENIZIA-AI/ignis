@@ -1,6 +1,7 @@
 ---
 title: "@venizia/ignis No Longer Depends on @venizia/ignis-boot"
 description: The core package dropped its unused dependency on the boot package. An application that runs the ignis-artifacts generator declares @venizia/ignis-boot as its own devDependency.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-05

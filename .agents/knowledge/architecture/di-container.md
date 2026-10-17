@@ -6,6 +6,18 @@ resource: packages/inversion/src
 tags: [architecture, di, container, inversion]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The three container tiers](#the-three-container-tiers)
+- [Binding: the fluent API](#binding-the-fluent-api)
+- [Injection is two-phase](#injection-is-two-phase)
+- [Hard rules that are not derivable from the code shape](#hard-rules-that-are-not-derivable-from-the-code-shape)
+- [Metadata registry](#metadata-registry)
+- [Two classes per name](#two-classes-per-name)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `inversion` is IGNIS's standalone IoC container. It is deliberately small - a container, a binding,
 a metadata registry, and one decorator (`@inject`, serving both constructor parameters and
 properties) - and everything else in the framework is built on it. The application class itself

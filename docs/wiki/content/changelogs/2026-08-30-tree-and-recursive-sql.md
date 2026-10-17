@@ -1,6 +1,7 @@
 ---
 title: "Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel"
 description: "TreeWalker and TreeBuilder bring pure in-memory tree walking and building to @venizia/ignis-helpers. RecursiveTreeSql builds a bounded, injection-safe WITH RECURSIVE query in @venizia/ignis-kernel, with maxDepth mandatory and validated at runtime."
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-30

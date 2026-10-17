@@ -6,6 +6,15 @@ resource: packages/kernel/src/base/components
 tags: [architecture, components, lifecycle, di]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [A real component](#a-real-component)
+- [How components get run](#how-components-get-run)
+- [Barrel-exported versus sub-path only](#barrel-exported-versus-sub-path-only)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 A component is IGNIS's unit of pluggable capability: a class that owns a set of default bindings and
 one `binding()` method that wires itself into the application. Health checks, the API reference UI,
 authentication, mail, static assets and Socket.IO are all components.

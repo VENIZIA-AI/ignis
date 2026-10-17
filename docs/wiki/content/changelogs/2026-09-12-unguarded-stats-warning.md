@@ -1,6 +1,7 @@
 ---
 title: An Open Stats Route Now Says So At Boot
 description: stats.enable true with no secretKey bypasses the environment gate. It stays legal, and now logs one warning naming the route and the environment.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-12

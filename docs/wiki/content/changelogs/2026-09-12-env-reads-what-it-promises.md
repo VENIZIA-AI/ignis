@@ -1,6 +1,7 @@
 ---
 title: An Env Read Now Does What It Promises
 description: A present-but-empty line finally falls back to defaultValue, and the two env names nothing ever read are deleted from EnvironmentKeys.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-12

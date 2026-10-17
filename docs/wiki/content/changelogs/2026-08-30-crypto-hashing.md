@@ -1,6 +1,7 @@
 ---
 title: "A Real Hash Class Replaces the Removed hash() Utility"
 description: "Added a Hash class (digests and HMACs, five algorithms, three output encodings) to the crypto module, and removed the old hash() utility outright. Every hash() call site must migrate - see the migration table."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-08-30

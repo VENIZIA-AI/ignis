@@ -1,6 +1,7 @@
 ---
 title: An Error Hands Out Its Filled Text
 description: "ApplicationError.toFilledText() fills the args into the message template, for a reader that only knows .message - a queue's failure reason, a third-party log. message itself stays the template."
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-10-14

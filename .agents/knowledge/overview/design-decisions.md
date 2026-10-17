@@ -6,6 +6,22 @@ resource: .
 tags: [overview, architecture, conventions]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Options objects everywhere](#options-objects-everywhere)
+- [Decorator-based dependency injection](#decorator-based-dependency-injection)
+- [`@repository` auto-injects the DataSource](#repository-auto-injects-the-datasource)
+- [Schema auto-discovery from `@repository` bindings](#schema-auto-discovery-from-repository-bindings)
+- [Namespace-based binding keys](#namespace-based-binding-keys)
+- [Mixin composition over inheritance - for assembly, not for repositories](#mixin-composition-over-inheritance---for-assembly-not-for-repositories)
+- [Hidden fields excluded at the SQL level](#hidden-fields-excluded-at-the-sql-level)
+- [Convention over configuration](#convention-over-configuration)
+- [A browser-pure kernel, proven by a gate](#a-browser-pure-kernel-proven-by-a-gate)
+- [Hono as the HTTP engine, Drizzle as the ORM](#hono-as-the-http-engine-drizzle-as-the-orm)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 These decisions are easy to violate by accident. Each one exists for a reason beyond taste.
 
 ## Options objects everywhere

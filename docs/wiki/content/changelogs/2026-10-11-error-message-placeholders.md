@@ -1,6 +1,7 @@
 ---
 title: Error Messages Fill Their Placeholders
 description: "The error response's message fills each %{key} from normalized.args, so a client with no translation for the code shows readable text. normalized.text, Error.message and the log keep the template."
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-10-11

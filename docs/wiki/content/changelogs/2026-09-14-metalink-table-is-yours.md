@@ -1,6 +1,7 @@
 ---
 title: The MetaLink Table Can Live In Your Own Postgres Schema
 description: TMetaLinkConfig pinned the MetaLink type to the exact table IGNIS ships, so a column-identical table under another Postgres schema was refused at compile time. The constraint is now the row, not the table.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-14

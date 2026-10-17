@@ -6,6 +6,19 @@ resource: packages/boot
 tags: [packages, boot, artifacts, generator]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Layout](#layout)
+- [Detection rules](#detection-rules)
+- [Output contract](#output-contract)
+- [Generated header names the command](#generated-header-names-the-command)
+- [CLI](#cli)
+- [Constraints the code cannot show](#constraints-the-code-cannot-show)
+- [Removed](#removed)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-boot` is a build-time tool, not a runtime dependency. `ignis-artifacts generate`
 walks a source root with the TypeScript compiler API, finds every named, non-abstract class that
 carries an IGNIS stereotype decorator, and writes `src/generated/artifacts.ts`: plain static imports

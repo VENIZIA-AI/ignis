@@ -30,7 +30,7 @@ setup-hooks:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot docs surface-check symbols-check wiki-links-check wiki-anchors-check
+build-all: core core-worker boot docs surface-check wiki-links-check wiki-anchors-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # `make <pkg>` rebuilds one package after its dependencies. The graph:

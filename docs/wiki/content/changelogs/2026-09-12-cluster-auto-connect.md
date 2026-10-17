@@ -1,6 +1,7 @@
 ---
 title: A Redis Cluster Takes autoConnect Like Every Other Topology
 description: RedisClusterHelper gains the autoConnect field that single and sentinel already had, and states enableOfflineQueue instead of inheriting it from ioredis. Your own clusterOptions still wins.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-12

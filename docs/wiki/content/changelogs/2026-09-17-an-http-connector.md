@@ -1,6 +1,7 @@
 ---
 title: An HTTP Connector
 description: "connectors/http reads an IGNIS REST server through the repository contract - same filter vocabulary in, same Content-Range envelope out, 12.8 KB with no SQL stack."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-filter']
 ---
 
 # Changelog - 2026-09-17

@@ -6,6 +6,18 @@ resource: packages/core-server/src
 tags: [conventions, structure, readability]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The soft threshold](#the-soft-threshold)
+- [The axis: lifecycle stage, not layer and not CRUD verb](#the-axis-lifecycle-stage-not-layer-and-not-crud-verb)
+- [Naming](#naming)
+- [The signal that a split went too far](#the-signal-that-a-split-went-too-far)
+- [Tools](#tools)
+- [Why this is written down](#why-this-is-written-down)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Length alone is not a defect. A file is too long when it serves **more than one stage of a
 lifecycle**, not when it passes a line count. A wrapper around a large external API is long because
 that API is large - splitting it by size makes eight files nobody can navigate instead of one file

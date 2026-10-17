@@ -1,6 +1,7 @@
 ---
 title: Fixes Found While Rebuilding the Examples
 description: "Valid OpenAPI error keys, path.isStrict that works, search controllers that inject their repository, nested JSON-path updates on PostgreSQL, the Socket.IO unauthenticated notice, postgres-js under Bun, one repository injection for controller factories, one ErrorResponse component, CRUD routes that ignore audit fields in the body, apps that import jose loading reliably, an honest change-password document, and stop() closing every datasource."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-23

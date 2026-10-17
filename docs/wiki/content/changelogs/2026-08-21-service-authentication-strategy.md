@@ -1,6 +1,7 @@
 ---
 title: Services Prove Themselves to Each Other, Without a Shared Password
 description: A built-in service strategy - one short-lived Ed25519 assertion per request, verified against the caller's own published key.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-21

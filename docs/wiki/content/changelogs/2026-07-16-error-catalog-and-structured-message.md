@@ -1,6 +1,7 @@
 ---
 title: Error Handling - Normalized Messages, Error Catalog, and a Recovered cause
 description: Every error now carries a normalized message ready for translation, you can declare reusable error definitions in a catalog, and the error layer moved to inversion so server and browser code share the same errors.
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-16

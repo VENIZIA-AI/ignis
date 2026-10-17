@@ -1,6 +1,7 @@
 ---
 title: lodash Is Gone
 description: "Five functions across 31 call sites, for 24 KB. isEmpty and omit now live in inversion; get, set and round were replaced where they were used."
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-17

@@ -1,6 +1,7 @@
 ---
 title: Mass Update/Delete Guards - Blank Id & Empty Where
 description: Persistable repository now rejects null/undefined ids and where clauses that resolve to no SQL condition, preventing accidental table-wide mutations
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-21

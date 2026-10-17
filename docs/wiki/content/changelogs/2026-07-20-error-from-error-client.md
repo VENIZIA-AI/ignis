@@ -1,6 +1,7 @@
 ---
 title: fromError - Rehydrate a Server Error on the Client
 description: A new fromError inverts the error response the middleware emits, turning a wire payload back into a live ApplicationError. The wire shape is now a shared type, TResponsedError, instead of a partial duplicate declared in each client.
+packages: ['@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-20

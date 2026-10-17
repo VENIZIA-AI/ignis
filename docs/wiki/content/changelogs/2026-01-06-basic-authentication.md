@@ -1,6 +1,7 @@
 ---
 title: Basic Authentication Strategy
 description: Added HTTP Basic Authentication strategy for API authentication
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-01-06

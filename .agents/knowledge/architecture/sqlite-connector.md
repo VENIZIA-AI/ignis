@@ -6,6 +6,18 @@ resource: packages/connectors/src/relational/sqlite
 tags: [architecture, connectors, drizzle, sqlite, libsql, relational]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [What the branch supplies](#what-the-branch-supplies)
+- [libsql, and why not `bun:sqlite`](#libsql-and-why-not-bunsqlite)
+- [BEGIN IMMEDIATE, and no isolation levels](#begin-immediate-and-no-isolation-levels)
+- [What SQLite refuses](#what-sqlite-refuses)
+- [What differs without refusing](#what-differs-without-refusing)
+- [The conformance suite proves both engines](#the-conformance-suite-proves-both-engines)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `connectors/sqlite` is the second engine branch on the engine-neutral relational tier. It is what
 falsifies that tier: every seam `connectors/relational` declares abstract now has two
 implementations, not one.

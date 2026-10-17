@@ -1,6 +1,7 @@
 ---
 title: IGNIS Lints with oxlint and Formats with oxfmt
 description: "The IGNIS repository replaces Prettier and most of ESLint with oxlint and oxfmt, and @venizia/dev-configs gains matching exports. Nothing was removed from the package."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-16

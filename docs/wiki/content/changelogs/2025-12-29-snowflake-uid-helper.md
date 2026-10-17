@@ -1,6 +1,7 @@
 ---
 title: Snowflake UID Helper
 description: New Snowflake ID generator with Base62 encoding for distributed systems
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2025-12-29

@@ -1,6 +1,7 @@
 ---
 title: A Build Stamps Itself, And Health Answers Twice
 description: ignis-build-info generates a build stamp every host can bake in; GET /health stays minimal and public while GET /health/stats reports build, process and memory behind a gate; and the datasource env variables that never selected anything are removed.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-11

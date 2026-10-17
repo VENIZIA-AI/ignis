@@ -1,6 +1,7 @@
 ---
 title: Per-Model Default Limit via @model Settings
 description: Configure a default query limit per model with settings.defaultLimit - applied to top-level find() and to-many relations, validated at boot time
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-25

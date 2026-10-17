@@ -1,6 +1,7 @@
 ---
 title: An Application Lists None Of Its Own Artifacts
 description: "configs.discoverArtifacts: true registers every decorated class in the import graph, so a stereotype is the whole declaration. when still keeps several applications in one process apart."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-14

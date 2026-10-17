@@ -1,6 +1,7 @@
 ---
 title: Log Lines Stop Carrying Color Outside Development
 description: The console transport now colorizes only in a development NODE_ENV. Production, staging and uat get plain text, so a log file or an aggregator no longer stores ANSI escape codes.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-08-22

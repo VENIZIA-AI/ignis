@@ -6,6 +6,17 @@ resource: packages/kernel/src/base/controllers
 tags: [architecture, controllers, rest, hono, openapi]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The class hierarchy](#the-class-hierarchy)
+- [Three ways to declare a route](#three-ways-to-declare-a-route)
+- [The CRUD controller factory](#the-crud-controller-factory)
+- [Mounting](#mounting)
+- [The decorator-semantics trap](#the-decorator-semantics-trap)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 An IGNIS controller owns an `OpenAPIHono` router. It does not wrap Hono behind an abstraction - it
 holds a real router instance, registers real Hono routes on it, and the application mounts that
 router onto the root router at the controller's path. There is no per-request framework layer between

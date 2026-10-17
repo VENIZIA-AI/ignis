@@ -1,6 +1,7 @@
 ---
 title: HttpResponseReader Moves Next to the Server Contract
 description: "HttpResponseReader is exported from @venizia/ignis-kernel/repository, so a client reads an IGNIS server's Content-Range and error envelope without taking the http connector. Connectors still re-exports it."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-10-07

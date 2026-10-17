@@ -1,6 +1,7 @@
 ---
 title: Scoped RBAC Authorization - Edge-Table Model, Pooled Enforcer, Redis-Only Cache
 description: Rework of the authorize module around a single PolicyDefinition edge table, a scoped Casbin model (g..g5), a per-request enforcer pool, and a Redis-only line cache. Removes DrizzleCasbinAdapter and the in-memory cache driver.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-06-02

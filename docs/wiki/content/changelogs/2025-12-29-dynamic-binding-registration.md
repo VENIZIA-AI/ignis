@@ -1,6 +1,7 @@
 ---
 title: Dynamic Binding Registration Fix
 description: Fix components registering datasources/controllers during configure() phase
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-29

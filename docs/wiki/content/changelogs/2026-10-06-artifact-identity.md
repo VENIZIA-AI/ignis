@@ -1,6 +1,7 @@
 ---
 title: Artifact Identity No Longer Rides on the Class Name
 description: "A minified build renames classes. Two classes that derive one binding key now fail registration, @repository injects a decorated datasource by its class, and the repository and datasource registries are keyed by class."
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-10-06

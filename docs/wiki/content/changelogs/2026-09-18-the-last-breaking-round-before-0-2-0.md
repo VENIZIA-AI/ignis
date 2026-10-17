@@ -1,6 +1,7 @@
 ---
 title: The Last Breaking Round Before 0.2.0
 description: "Four breaking changes, batched before 0.2.0 stable: ioredis becomes an optional peer, ErrorSchema leaves helpers, resolvers take an options object, and upload labels in the query are refused."
+packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-18

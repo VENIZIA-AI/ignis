@@ -1,6 +1,7 @@
 ---
 title: Two Repository Types, and CRUD Controllers Without a Constructor
 description: "@repository takes type: RepositoryTypes.REMOTE for data behind another service's API, defineCrudController injects the repository it names, and HttpDataSource accepts a relative baseUrl in a browser."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
 # Changelog - 2026-09-23

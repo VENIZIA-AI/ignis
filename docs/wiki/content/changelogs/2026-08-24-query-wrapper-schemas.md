@@ -1,6 +1,7 @@
 ---
 title: Two Query Shapes You No Longer Have to Rebuild
 description: FilterQuerySchema and WhereQuerySchema replace the query object every custom route was rebuilding by hand.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-24

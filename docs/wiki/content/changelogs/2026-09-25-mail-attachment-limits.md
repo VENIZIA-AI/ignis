@@ -1,6 +1,7 @@
 ---
 title: Mail Attachments Read Only Under a Root, and Stop at a Size Limit
 description: "An attachment path is read only inside the new attachmentRoot option and refused without it, a text or html body must be a string, a new maxAttachmentBytes option (default 25 MB) caps the attachments of one message, and a failed send no longer echoes the raw error text."
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-25

@@ -1,6 +1,7 @@
 ---
 title: A Second ID Generator, for IDs People Read
 description: OpaqueUidHelper mints short, prefixed IDs from a chosen alphabet - the counterpart to SnowflakeUidHelper, which is sortable but reveals when it was minted.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-08-18

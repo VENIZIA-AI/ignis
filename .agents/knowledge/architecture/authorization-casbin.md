@@ -6,6 +6,21 @@ resource: packages/kernel/src/base/auth/authorize
 tags: [architecture, authorization, casbin, rbac, scoped]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Where the code lives](#where-the-code-lives)
+- [Edges, not closures](#edges-not-closures)
+- [Policy effect: deny overrides allow](#policy-effect-deny-overrides-allow)
+- [The two special domain scopes](#the-two-special-domain-scopes)
+- [The `domain` column is a typed pair (both releases shipped)](#the-domain-column-is-a-typed-pair-both-releases-shipped)
+- [The adapter situation](#the-adapter-situation)
+- [Evaluation is per-request on a pooled enforcer](#evaluation-is-per-request-on-a-pooled-enforcer)
+- [Domain hierarchy edges reach all three axes through one overlay](#domain-hierarchy-edges-reach-all-three-axes-through-one-overlay)
+- [The request path](#the-request-path)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Authorization is Casbin-based and **scoped** - the model is domain-aware (`sub, dom, obj, act`), so a grant can be narrowed to a tenant. Casbin is an optional peer dependency, imported dynamically and reported as a clear error when absent.
 
 ## Where the code lives

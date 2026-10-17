@@ -1,6 +1,7 @@
 ---
 title: Customizable JWT Payload Field Codecs
 description: Pluggable serialization/deserialization for JWT payload fields with AuthenticationFieldCodecs builder
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-03-04

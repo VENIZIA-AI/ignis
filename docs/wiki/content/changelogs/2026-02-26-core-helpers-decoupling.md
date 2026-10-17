@@ -1,6 +1,7 @@
 ---
 title: Core/Helpers Decoupling
 description: Decoupled @venizia/ignis from runtime re-export of @venizia/ignis-helpers. Core now uses type-only re-exports for helpers types and explicit re-exports for DI-specific inversion symbols.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-02-26

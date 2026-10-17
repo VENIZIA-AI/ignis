@@ -1,6 +1,7 @@
 ---
 title: Boot Checks - Every Binding Resolves, No Hand Registration Beside the Generated Index, No Silent Key Override
 description: configs.bootChecks.binding holds three decisions - doVerify adds a verifyBindings boot step that resolves every service and repository once and fails the boot with the full list of broken keys, allowManual false rejects a hand registration inside preConfigure or postConfigure while configs.artifacts is set, and allowOverride false makes a same-key artifact registration throw.
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-05

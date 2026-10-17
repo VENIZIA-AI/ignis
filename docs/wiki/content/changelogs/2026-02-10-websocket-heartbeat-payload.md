@@ -1,6 +1,7 @@
 ---
 title: WebSocket Heartbeat & Payload Limit
 description: Add application-level heartbeat for auto-disconnecting unresponsive clients, reduce max payload to 128KB, and add wiki documentation for WebSocket helper and component
+packages: ['@venizia/ignis', '@venizia/ignis-docs', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-10

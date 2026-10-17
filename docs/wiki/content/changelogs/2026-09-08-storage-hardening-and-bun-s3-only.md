@@ -1,6 +1,7 @@
 ---
 title: Storage Serves Safely, Answers 404, and Runs on Bun S3 Alone
 description: A stored upload no longer renders on your API origin, a missing object answers 404, MinioHelper is removed, and BunS3Helper gains provider options, byte ranges and bounded concurrency.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-08

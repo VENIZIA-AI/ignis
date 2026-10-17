@@ -1,6 +1,7 @@
 ---
 title: ignis-artifacts check Compares the Index Body, Not Its Header Line
 description: checkArtifactIndex now ignores the first line of the generated index, so a change of CLI flags alone never reports the file as stale; only a different import list or artifact list does. generate still rewrites the header.
+packages: ['@venizia/ignis-boot']
 ---
 
 # Changelog - 2026-09-06

@@ -1,6 +1,7 @@
 ---
 title: A JSON-Path Segment Named null Now Reaches Its Key on Postgres
 description: "Postgres JSON-path literals now quote every element, so a key named null (any case) is read as a key in where, order and update, instead of as SQL NULL."
+packages: ['@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-09-29

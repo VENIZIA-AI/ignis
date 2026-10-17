@@ -1,6 +1,7 @@
 ---
 title: The HTTP Connector Follows the Session and Keeps the Server's Errors
 description: "connectors/http gains per-request hooks, per-call headers and abort, and an error that is the one the server threw - including under error.rootKey. Ids and baseUrls that name the wrong route are refused."
+packages: ['@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-10-06

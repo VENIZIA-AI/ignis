@@ -1,6 +1,7 @@
 ---
 title: A List Answers Extras Only When They Are Asked For
 description: "respond({ extra }) offers figures beside a list's rows - facets, counts - computed only when the client names them in x-request-extra, as one group pass when they are grouped, or always when they are a default. The http connector asks for them, typed."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-10-07

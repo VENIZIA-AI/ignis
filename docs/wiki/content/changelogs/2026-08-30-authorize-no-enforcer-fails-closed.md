@@ -1,6 +1,7 @@
 ---
 title: "authorize() Denies When No Enforcer Is Registered, Instead of Allowing Everything"
 description: "A route with authorize() declared but zero enforcers registered used to allow every request. It now denies, honoring defaultDecision like every other inconclusive check in the pipeline."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-30
