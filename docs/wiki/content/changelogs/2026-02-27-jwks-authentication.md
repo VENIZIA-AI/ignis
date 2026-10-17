@@ -1,6 +1,7 @@
 ---
 title: JWKS Authentication & Service Hierarchy Refactor
 description: Added JWKS (JSON Web Key Set) asymmetric authentication, refactored bearer token service hierarchy, introduced discriminated union options, and made AES payload encryption optional.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-02-27

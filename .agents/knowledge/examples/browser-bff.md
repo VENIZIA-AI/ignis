@@ -6,6 +6,16 @@ resource: examples/browser-bff
 tags: [examples, browser, bff, worker, pglite, opfs]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [What it demonstrates](#what-it-demonstrates)
+- [The one workaround left, and the two that were removed](#the-one-workaround-left-and-the-two-that-were-removed)
+- [Migrations are inlined, and the ledger is atomic](#migrations-are-inlined-and-the-ledger-is-atomic)
+- [Notable / non-obvious](#notable--non-obvious)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `browser-bff` is `examples/pglite-quickstart` moved into a browser tab. The model, repository and
 controller are copied across with **no change to a single line of class body, decorator, column
 definition or `super()` call** - only their import specifiers differ. That is the claim the example

@@ -1,6 +1,7 @@
 ---
 title: A Component Reads Its Options In binding(), Without Overriding configure()
 description: BaseComponent stores what application.component(Ctor, { options }) handed it on this.configuredOptions before binding() runs. StaticAssetComponent takes its options that way.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-14

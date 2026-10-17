@@ -1,7 +1,7 @@
 ---
 title: Order Entries Get One Parser, and toOrderBy Can Sort by an Expression
 description: "parseOrderEntry is now a public export every relational and search dialect shares, toOrderBy gains an expressions option for sorting by a joined column or a computed SQL expression, and a malformed order entry is now a 400 instead of a silent truncation."
-packages: [connectors, core-server, filter, kernel]
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-filter', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-26

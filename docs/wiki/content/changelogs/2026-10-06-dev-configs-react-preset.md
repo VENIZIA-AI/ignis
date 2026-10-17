@@ -1,6 +1,7 @@
 ---
 title: dev-configs Gains a React Preset
 description: "ReactEslintConfigs gives a React frontend the same lint base as its backend, plus React, hooks and accessibility rules. The base drops a duplicate rule and raises ban-ts-comment and no-namespace to error."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-06

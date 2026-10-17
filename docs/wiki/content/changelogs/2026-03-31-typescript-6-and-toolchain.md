@@ -1,6 +1,7 @@
 ---
 title: TypeScript 6 Upgrade & Toolchain Refresh
 description: Upgrade to TypeScript 6, ES2024 target, refreshed ESLint rules, and small helper fixes across all packages
+packages: ['@venizia/dev-configs', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-03-31

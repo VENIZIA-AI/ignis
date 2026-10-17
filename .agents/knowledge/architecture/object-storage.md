@@ -6,6 +6,17 @@ resource: packages/helpers/src/modules/storage
 tags: [architecture, storage, s3, upload, signing, security]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [What a signature actually covers](#what-a-signature-actually-covers)
+- [The three paths](#the-three-paths)
+- [Direct upload, and why it is three round trips](#direct-upload-and-why-it-is-three-round-trips)
+- [Storage endpoint audiences {#storage-endpoint-audiences}](#storage-endpoint-audiences-storage-endpoint-audiences)
+- [Serving is where the XSS lives](#serving-is-where-the-xss-lives)
+- [Deliberately not built](#deliberately-not-built)
+<!-- okf:generated:contents end -->
+
 S3 has no session. Every request carries its own SigV4 signature, and the server holds the secret
 key that makes one. A browser must never hold that key, so every browser-facing feature here is a way
 to hand out a **narrow, expiring permission** instead of the key.

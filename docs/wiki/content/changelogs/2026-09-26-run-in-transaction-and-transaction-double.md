@@ -1,6 +1,7 @@
 ---
 title: A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests
 description: "runInTransaction begins, commits, and rolls back for you; TransactionDouble from @venizia/ignis/testing stubs beginTransaction() with no database behind it. The real transaction handle is now backed by a shared class - behavior unchanged."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
 # Changelog - 2026-09-26

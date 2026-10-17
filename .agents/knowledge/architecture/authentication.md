@@ -6,6 +6,17 @@ resource: packages/kernel/src/base/auth/authenticate
 tags: [architecture, authentication, jwt, jwks, basic, service-assertion, components]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Where the code lives](#where-the-code-lives)
+- [AuthenticateComponent](#authenticatecomponent)
+- [Strategies are registered by the app, not the component](#strategies-are-registered-by-the-app-not-the-component)
+- [What a request goes through](#what-a-request-goes-through)
+- [Extension points](#extension-points)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Authentication in IGNIS is a component plus a strategy registry plus a Hono middleware. The three are deliberately separate: the component configures **token services**, the app registers **strategies**, and the middleware runs them per route.
 
 ## Where the code lives

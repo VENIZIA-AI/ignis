@@ -1,6 +1,7 @@
 ---
 title: Repository Read Retry - Predicate-Driven Retries for Replica Lag
 description: find/findOne/findById accept an opt-in retry option that re-reads until a predicate passes - fixes read-after-write staleness behind a replicated pool.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-18

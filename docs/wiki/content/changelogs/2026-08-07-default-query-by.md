@@ -1,6 +1,7 @@
 ---
 title: Call Sites No Longer Have to Know Which Fields Are Text
 description: A collection can declare the fields a keyword search matches, so query_by stops being repeated at every call site and the sidecars bolted onto models can go.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-07

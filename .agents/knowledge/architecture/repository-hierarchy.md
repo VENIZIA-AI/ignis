@@ -6,6 +6,20 @@ resource: packages/kernel/src/base/repositories
 tags: [architecture, repositories, drizzle, connectors]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The engine-neutral base](#the-engine-neutral-base)
+- [The relational chain](#the-relational-chain)
+- [The search chain](#the-search-chain)
+- [Opt-in read retry (read-after-write)](#opt-in-read-retry-read-after-write)
+- [Hidden fields are excluded at query time](#hidden-fields-are-excluded-at-query-time)
+- [No mixins](#no-mixins)
+- [`@repository` auto-injects the DataSource](#repository-auto-injects-the-datasource)
+- [The `@repository` mixin never imports the connector](#the-repository-mixin-never-imports-the-connector)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 IGNIS repositories split across two layers: one engine-neutral abstract base, and one concrete chain
 per connector paradigm. There is no single universal `AbstractRepository -> ReadableRepository ->
 PersistableRepository -> DefaultCRUDRepository` chain - that shape exists, but **once per connector

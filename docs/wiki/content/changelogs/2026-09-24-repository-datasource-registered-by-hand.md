@@ -1,6 +1,7 @@
 ---
 title: A Repository Can Inject a Datasource Registered by Hand
 description: "@inject({ target }) at a repository's parameter 0 accepts a datasource class that has no binding key yet, and still refuses anything that is not a datasource."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-24

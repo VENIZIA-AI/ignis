@@ -1,6 +1,7 @@
 ---
 title: Casbin Domain Matching Function - Wildcard/Pattern Domains in `g`
 description: CasbinAuthorizationEnforcer can now register a domain matching function (keyMatch, etc.) so wildcard/pattern domains in grouping policies work - enabling the canonical RBAC-with-domains model at scale
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-27

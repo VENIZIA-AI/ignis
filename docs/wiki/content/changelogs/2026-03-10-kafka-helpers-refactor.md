@@ -1,6 +1,7 @@
 ---
 title: Kafka Helpers Refactor & @platformatic/kafka v1.30.0
 description: Complete rewrite of Kafka helpers as thin wrappers, upgrade to @platformatic/kafka v1.30.0, generic type support, and constants extraction.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-03-10

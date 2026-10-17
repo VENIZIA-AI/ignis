@@ -6,6 +6,19 @@ resource: packages/core-server
 tags: [packages, core-server, framework]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Core and the kernel](#core-and-the-kernel)
+- [Application lifecycle](#application-lifecycle)
+- [Controllers](#controllers)
+- [Repository hierarchy](#repository-hierarchy)
+- [DataSources and connectors](#datasources-and-connectors)
+- [Components](#components)
+- [Gotchas](#gotchas)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis` is the main framework package - the top of the dependency chain
 (`dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`). `filter` is
 isomorphic and depends on `inversion` only; `kernel` is the browser-pure tree; `boot` is a leaf beside

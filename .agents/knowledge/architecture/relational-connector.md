@@ -6,6 +6,25 @@ resource: packages/connectors/src/relational
 tags: [architecture, connectors, drizzle, postgres, sqlite, relational]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The split](#the-split)
+- [The two ports](#the-two-ports)
+- [The seven-verb executor](#the-seven-verb-executor)
+- [`TTableSchemaWithId`: `PgTable` widened to `Table`](#ttableschemawithid-pgtable-widened-to-table)
+- [`buildBeginStatement` is abstract](#buildbeginstatement-is-abstract)
+- [The transaction handle is a shared state machine](#the-transaction-handle-is-a-shared-state-machine)
+- [`runInTransaction` - join or own, never both](#runintransaction---join-or-own-never-both)
+- [Relation building crosses the kernel boundary through a registry](#relation-building-crosses-the-kernel-boundary-through-a-registry)
+- [Rotation drains by capability, not by class](#rotation-drains-by-capability-not-by-class)
+- [What stays Postgres-only](#what-stays-postgres-only)
+- [`UpdateBuilder` is reachable two ways - use the dialect](#updatebuilder-is-reachable-two-ways---use-the-dialect)
+- [Historical names off `@venizia/ignis/postgres`](#historical-names-off-veniziaignispostgres)
+- [The tier is falsified by one suite, run twice](#the-tier-is-falsified-by-one-suite-run-twice)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `relational/core` is the engine-neutral SQL tier: datasource root, driver contract, entity
 base and the five-class repository chain, all free of `drizzle-orm/pg-core`. `relational/postgres`
 is the first branch built on it - it supplies the two ports the neutral tier declares abstract, plus

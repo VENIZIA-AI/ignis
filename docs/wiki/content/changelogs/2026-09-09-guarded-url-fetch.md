@@ -1,6 +1,7 @@
 ---
 title: A Url From User Input Can No Longer Reach Inside Your Network
 description: UrlPolicy and UrlIngest refuse non-public addresses, re-check every redirect hop and cap the body. AssetIngest.fromUrl stores a remote object without buffering it. IStorageHelper gains writeStream.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-09

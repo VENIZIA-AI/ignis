@@ -13,21 +13,12 @@
  *   bun scripts/release.ts --mode patch         # default is prerelease
  *   bun scripts/release.ts --yes                # skip the confirmation prompt
  *   bun scripts/release.ts --issue 80           # prefix every release commit with [#80]
- *
- * After the chain the symbol and release tables are regenerated and committed: they are generated
- * FROM release commits, and VULCAN's atlas (`@venizia/vulcan-atlas`) packages them from this repo.
  */
 
 import { parseReleaseArgs, type TReleaseMode } from './release-args';
 
 const WORKFLOW = 'package-release.yml';
 const BRANCH = 'develop';
-
-/** What `refreshGeneratedTables` regenerates and commits, relative to the repository root. */
-const TABLE_PATHS = [
-  '.agents/knowledge/reference/releases.json',
-  '.agents/knowledge/reference/symbols.json',
-];
 
 /**
  * Dependency order, not alphabetical. A package must publish after everything it depends on, or the
@@ -353,36 +344,6 @@ const releasePackage = async (opts: {
   await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', BRANCH] });
 };
 
-/**
- * Regenerates the symbol and release tables and commits them when they moved. Run after the chain:
- * the tables are generated FROM release commits, so they are always stale by exactly the chain that
- * just shipped.
- */
-const refreshGeneratedTables = async (opts: {
-  issue?: string;
-  subject?: string;
-}): Promise<void> => {
-  const subject = opts.subject ?? 'chore: refresh the generated tables for the release';
-  console.log(`\n▶ ${subject}`);
-  await run({ command: ['make', 'releases-gen'] });
-  await run({ command: ['make', 'symbols-gen'] });
-
-  const { stdout: dirty } = await run({
-    command: ['git', 'status', '--porcelain', '--', TABLE_PATHS[0], TABLE_PATHS[1]],
-  });
-  if (dirty.trim().length === 0) {
-    console.log('  tables already current');
-    return;
-  }
-
-  await run({ command: ['git', 'add', ...TABLE_PATHS] });
-  await run({
-    command: ['git', 'commit', '-m', opts.issue ? `[#${opts.issue}] ${subject}` : subject],
-  });
-  await run({ command: ['git', 'push', 'origin', BRANCH] });
-  console.log('  tables committed and pushed');
-};
-
 const main = async (): Promise<void> => {
   // `seeded`: resuming a chain that stopped - the packages an earlier run already published, so the
   // next ones trust their workspace version instead of waiting for npm to show them.
@@ -446,10 +407,6 @@ const main = async (): Promise<void> => {
     await releasePackage({ state, mode, issue, chainReleased });
     chainReleased.push(state.packageName);
   }
-
-  // The release commits just landed, so the tables are one chain behind until regenerated - and
-  // `make test-scripts` / `releases-check` fail meanwhile.
-  await refreshGeneratedTables({ issue });
 
   console.log(`\n✓ Released ${plan.length} package(s).`);
 };

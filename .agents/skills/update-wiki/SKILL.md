@@ -7,101 +7,81 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent
 
 # Update the IGNIS wiki
 
-The wiki is the human-facing VitePress site. It is one of the two homes for project information -
-`.agents/` is what agents read, `docs/wiki/` is what people read. Never conflate them, and never
-copy a page from one into the other.
+The wiki (`docs/wiki/`, package `@venizia/ignis-docs`) is what people read; `.agents/` is what agents
+read. Never copy a page from one into the other. **Source code is the ground truth**: when prose and
+code disagree, the prose is the bug (P-03).
 
-**Source code is the ground truth.** When prose and code disagree, the code wins and the prose is a
-bug (P-03).
+`$ARGUMENTS` says what to document - `add changelog for model authorize settings`, `update the storage
+helper reference`. With no arguments, ask what to document.
 
-## Arguments
+## Checklist
 
-`$ARGUMENTS` says what to document:
-
-- `/update-wiki add changelog for model authorize settings`
-- `/update-wiki update the storage helper reference`
-- `/update-wiki add a guide for direct S3 upload`
-
-With no arguments, ask what to document.
-
-## Where things live
-
-The wiki package is `@venizia/ignis-docs`, manifest at `docs/wiki/package.json`.
+Copy this into your status message and tick each step as it passes. Order matters.
 
 ```
-docs/wiki/
-├── content/              # every page
-│   ├── best-practices/   # + code-style-standards/
-│   ├── changelogs/       # date-prefixed YYYY-MM-DD-slug.md, plus template.md
-│   ├── extensions/       # components/, helpers/, atlas/
-│   ├── guides/           # get-started/, core-concepts/, tutorials/, migrations/, reference/
-│   ├── public/           # static assets
-│   └── references/       # base/, utilities/, configuration/, quick-reference.md
-├── scripts/              # docs-build.sh, check-sidebar.mts, docs-clean.sh, docs-rebuild.sh, force-update.sh
-└── site/.vitepress/      # config.mts - the sidebar is hand-maintained here
+- [ ] 1. Code read - the changed sources in packages/*/src, not a diff, not dist/, not another doc
+- [ ] 2. Page picked - edit the page that owns the topic before creating one
+- [ ] 3. Page written - from template.md for a changelog
+- [ ] 4. Self-review passed - every style rule below checked against the page
+- [ ] 5. New page wired in - sidebar + section index
+- [ ] 6. Gates green - make docs wiki-links-check wiki-anchors-check lint-wiki
 ```
 
-## Process
+## Where pages go
 
-### 1. Read the code first
-
-Read the source files that changed. `git log --oneline -20` and `git diff` orient you, but the
-current `packages/*/src` is what you document - never a diff, never `dist/`, never another doc.
-
-Identify: what changed, why, what breaks, what the new API surface is, what a reader must do to
-migrate.
-
-### 2. Pick the page type
-
-| Type | When | Where |
+| Type | When | Where (under `docs/wiki/content/`) |
 |---|---|---|
-| **Changelog** | a release-worthy change - new feature, breaking change, significant refactor | `content/changelogs/YYYY-MM-DD-slug.md` |
-| **Reference** | the API surface changed | `content/references/<area>/` |
-| **Extension** | a component or helper changed | `content/extensions/components/<name>/` or `extensions/helpers/<name>/` |
-| **Guide** | how-to, tutorial, concept | `content/guides/<area>/` |
-| **Best practice** | a rule or pattern people should follow | `content/best-practices/` |
+| **Changelog** | a release-worthy change - feature, breaking change, significant refactor | `changelogs/YYYY-MM-DD-slug.md` |
+| **Reference** | the API surface changed | `references/<area>/` |
+| **Extension** | a component or helper changed | `extensions/components/<name>/`, `extensions/helpers/<name>/` |
+| **Guide** | how-to, tutorial, concept | `guides/<area>/` |
+| **Best practice** | a rule or pattern people should follow | `best-practices/` |
 
-Prefer editing the page that already owns the topic. A second page on the same subject is how the
-wiki drifts.
+A second page on the same subject is how the wiki drifts. A changelog starts from
+`changelogs/template.md`, keeps only the sections that apply, and says what changed, who is affected
+and how to migrate - it is not a commit log.
 
-### 3. Write it
+## Style rules (step 4)
 
-**Style is not defined here.** The house rules live in
-[`.agents/knowledge/conventions/docs-writing-style.md`](../../knowledge/conventions/docs-writing-style.md),
-and `make okf-check-strict` machine-checks two of them. The ones that fail a review fastest:
+The full house style is
+[`.agents/knowledge/conventions/docs-writing-style.md`](../../knowledge/conventions/docs-writing-style.md).
+Check the page against each rule; fix and re-check until all pass:
 
-- The brand is **IGNIS**, always. Hyphen `-`, never an em-dash.
-- Never abbreviate identifiers (`Repository`, not `Repo`).
-- Every code sample must compile against the real source. Verify names and signatures in
-  `packages/` before you write them.
-- Native VitePress only - no custom components, no custom CSS.
-- `**Files:**` links use GitHub file-level URLs, no line anchors. The `wiki-links-check` gate
-  (`scripts/wiki-source-links.ts`) fails the build on a path that does not exist.
+- [ ] The brand is **IGNIS**, always. Hyphen `-`, never an em-dash.
+- [ ] No abbreviated identifiers (`Repository`, not `Repo`).
+- [ ] Every code sample compiles against the real source - names and signatures verified in
+      `packages/`.
+- [ ] Native VitePress only - no custom components, no custom CSS.
+- [ ] `**Files:**` links are GitHub file-level URLs, no line anchors.
+- [ ] The first screen says what the page is and shows the first example.
 
-For a changelog, start from `content/changelogs/template.md` and delete every section that does not
-apply. A changelog is user-facing: what changed, who is affected, how to migrate - not a commit log.
+`make okf-check-strict` machine-checks the brand and the dash rule only. The rest is this review.
 
-### 4. Wire a new page in
+## Wiring and gates (steps 5-6)
 
 A new file needs two edits, or the build fails:
 
 1. The sidebar in `docs/wiki/site/.vitepress/config.mts`.
 2. The `index.md` of its section, if it has one.
 
-`check-sidebar.mts` refuses both an orphan page (on disk, not in the sidebar) and a dead link (in
-the sidebar, not on disk).
-
-### 5. Gate it
+Then run:
 
 ```bash
 make docs wiki-links-check wiki-anchors-check lint-wiki
 ```
 
-`make docs` runs `docs-build.sh`: `check-sidebar.mts`, then the VitePress build, which fails on a
-dead link. `wiki-links-check` fails on a named source path that does not exist, `wiki-anchors-check`
-on a `#fragment` that resolves nowhere (it reads the build), and `lint-wiki` lints the wiki scripts.
+| Gate | Fails on |
+|---|---|
+| `make docs` | an orphan page or a dead sidebar link (`check-sidebar.mts`), then a dead link in the build |
+| `wiki-links-check` | a named source path that does not exist |
+| `wiki-anchors-check` | a `#fragment` that resolves nowhere (reads the build) |
+| `lint-wiki` | the wiki's own scripts |
+
+A red gate sends you back to the step that caused it. Fix it and re-run all four.
+
+## Done
 
 If the change also touched facts an agent reads, update the knowledge bundle in the same change
-(P-03) - that is the `knowledge-sync` skill's territory, not this one.
+(P-03) - that is the `knowledge-sync` skill's job, not this one.
 
 **Do not commit.** Leave the diff for the user (W-01).

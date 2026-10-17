@@ -1,6 +1,7 @@
 ---
 title: Casbin Domain Hierarchy - Parent Domains Reach Their Children
 description: A role assignment or a domain membership declared at a parent domain now reaches its child domains too, the same way a grant already did - all three casbin axes read the same g3 policy lines through one shared per-request overlay, no separate configuration required.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-29

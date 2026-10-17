@@ -1,6 +1,7 @@
 ---
 title: Dates Move Out, and Every Entry Loads On Its Own
 description: "The 0.2.0-48 prerelease: the dayjs date utility gives way to TemporalHelper, search controllers and RecursiveTreeSql move to their own entries, compiled binaries get a typed module option, Node ESM works, and a clean-install gate proves every sub-path loads."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-19

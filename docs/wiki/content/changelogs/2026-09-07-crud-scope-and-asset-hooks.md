@@ -1,6 +1,7 @@
 ---
 title: CRUD Controllers Narrow Their Rows; The Asset Controller Takes Two Hooks
 description: ReadableCrudController gains getBaseWhere, a per-controller scope that every read verb ANDs into the request filter. AssetControllerFactory gains resolveObjectName and defineExtraRoutes, so an application renames an upload or adds a route without copying the 450-line factory. Both default to today's behaviour.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-07

@@ -6,6 +6,16 @@ resource: packages/kernel/src/base/applications
 tags: [architecture, lifecycle, application, bootstrap]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Why datasources, then components, then controllers](#why-datasources-then-components-then-controllers)
+- [Environment seams](#environment-seams)
+- [Transports](#transports)
+- [Starting and stopping](#starting-and-stopping)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 An IGNIS application is a container that grows a router and then a server, one layer at a time. The
 base is a four-class chain split across two packages:
 

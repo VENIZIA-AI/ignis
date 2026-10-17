@@ -1,6 +1,7 @@
 ---
 title: One Endpoint Option, Two Audiences
 description: "BunS3Helper takes endpoint: { default, public? }. The default host is what this process talks to; the public host is what a browser is handed, and only signed URLs use it."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-15

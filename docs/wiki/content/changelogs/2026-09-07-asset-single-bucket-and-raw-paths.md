@@ -1,6 +1,7 @@
 ---
 title: The Asset Controller Serves One Bucket, And Raw Nested Object Paths
 description: The static-asset controller takes two new options. `bucket` pins one bucket and takes it out of the URL. `rawObjectPath` serves `photos/2024/f.jpg` raw instead of percent-encoded. Both default to off, and off is today's behaviour byte for byte.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-07

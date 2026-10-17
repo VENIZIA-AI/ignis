@@ -1,6 +1,7 @@
 ---
 title: PolicyDefinition Gets domain_type and domain_id (Release A - Both Forms Written)
 description: The concatenated domain token becomes a typed column pair, matching what subject and target already do. Release A adds and backfills the columns while domain stays the read source.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-31

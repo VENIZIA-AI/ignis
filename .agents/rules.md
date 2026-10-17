@@ -1,5 +1,16 @@
 # Agent rules - IGNIS
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [W - Write boundaries](#w---write-boundaries)
+- [S - Security](#s---security)
+- [P - Process](#p---process)
+- [B - Build and quality](#b---build-and-quality)
+- [C - Code and writing](#c---code-and-writing)
+- [What is actually enforced](#what-is-actually-enforced)
+<!-- okf:generated:contents end -->
+
 **The rules every agent follows in this repository. This is the only file that holds them.**
 [`AGENTS.md`](../AGENTS.md) and every per-developer tool file (`CLAUDE.md`, `GEMINI.md`, ...) point
 here and restate nothing - a rule changes in one place or not at all.
@@ -57,7 +68,7 @@ IGNIS is infrastructure other products stand on. A shortcut here ships to every 
 |---|---|
 | **P-01** | **Extends V-P-01.** Start at [`knowledge/index.md`](knowledge/index.md), open the concepts your task touches, then act. Query it with the `ignis-atlas` MCP server (`search` with `corpus: "knowledge"`, `get`). The code is ground truth: a concept that disagrees with the code is a bug, fix it. |
 | **P-02** | **Extends V-P-02.** For IGNIS the surface is decorators, signatures, types and options. IGNIS is LoopBack 4's architecture on Hono's speed: reason from how LoopBack 4, NestJS and Spring Boot solved the same problem, then pick what fits. Always weigh transaction support, type safety, DI integration and testability. |
-| **P-03** | **Extends V-P-04.** Append a line to `knowledge/log.md` in the same change. Generated content is never hand-edited: `reference/{source-map,components,helpers,binding-keys,makefile-targets}.md` and `<!-- okf:generated:... -->` regions come from `make okf-gen`; `public-surface.md`, `symbols.json`, `releases.json` from `make surface-gen` / `symbols-gen` / `releases-gen`. The rest of `reference/` (glossary, key source files, external links) is curated. `make okf-check-strict` validates (CI runs it); it is not a commit gate. |
+| **P-03** | **Extends V-P-04.** Append a line to `knowledge/log.md` in the same change. Generated content is never hand-edited: `reference/{source-map,components,helpers,binding-keys,makefile-targets}.md` and `<!-- okf:generated:... -->` regions come from `make okf-gen`; `public-surface.md` from `make surface-gen`. Atlas computes releases from the git tags and reads symbols from the built `.d.ts`, so neither is committed. The rest of `reference/` (glossary, key source files, external links) is curated. `make okf-check-strict` validates (CI runs it); it is not a commit gate. |
 | **P-04** | **Done climbs a fixed ladder, in order:** tests written and green -> build green and lint at zero -> BANA usage crosschecked -> `docs/wiki` updated -> knowledge bundle updated. Lay the ladder out as the step list at the start of every framework change (P-09). A rung skipped is reported as skipped, never as done. |
 | **P-05** | **Crosscheck BANA before calling a framework change finished.** Every changed public symbol is grepped in the BANA repository for the symbol and for the call shape (read-only, W-06). Usage hot paths: `inject` ~700 sites, `getError` ~444, `repository` ~204, `model` ~185 - a change to one of these breaks BANA repo-wide. |
 | **P-06** | **Public exports have consumers you cannot see.** "No usage in IGNIS or BANA" never justifies deleting or reshaping an exported symbol on its own - park it, or ask. Whether a change is breaking is decided by the tagged release, not by the working tree: `git merge-base --is-ancestor <sha> <pkg>-v<version>`. |
@@ -139,7 +150,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 | C-05, V-C-02, V-C-06, V-C-14 | ESLint `houseConfigs` (`venizia/no-new-error`, `venizia/max-params-own`, the naming convention) through `make lint-all` | Yes, at pre-commit |
 | P-03 | `make okf-check-strict` in CI; the `knowledge-sync` skill periodically | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
 | Agent setup | `make vulcan-doctor` in CI (after `make vulcan-sync`); locally by hand | Blocks a pull request; not run at pre-commit |
-| Every rule row | VULCAN's base SessionStart digest prints the base rules and every row of this file; `.agents/hooks/session-digest.ts` (registered in `.configs/vulcan.config.ts`) adds the most-dropped IDs and the minimap shape | Reminds, never blocks |
+| Every rule row | VULCAN's base SessionStart digest prints the base rules and every row of this file; it adds the most-dropped IDs (`digest.oftenDropped` in `.configs/vulcan.config.ts`) and the minimap shape | Reminds, never blocks |
 | everything else | this file | No |
 
 Git is deliberately not blocked: W-01 is a rule about *when*, not a deny list. Treat the session

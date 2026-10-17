@@ -1,6 +1,7 @@
 ---
 title: Atlas serves any VENIZIA family checkout
 description: The MCP server recognises a sibling framework's repository (@venizia/<family>-workspace) and names itself after it, so a sibling framework runs the same atlas over its own wiki, changelogs and knowledge bundle.
+packages: ['@venizia/ignis-atlas']
 ---
 
 # Changelog - 2026-09-11

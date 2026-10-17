@@ -1,6 +1,7 @@
 ---
 title: An Application Refuses to Start When scopeFilter Cannot Take Effect
 description: Two boot checks turn the two silent failure modes of settings.scopeFilter - a search-backed model returning more rows, a context-less one returning none - into a startup error that names the model.
+packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
 # Changelog - 2026-08-31

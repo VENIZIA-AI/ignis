@@ -1,6 +1,7 @@
 ---
 title: Controller Route Customization
 description: Enhanced request/response customization for CRUD controllers
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-01-07

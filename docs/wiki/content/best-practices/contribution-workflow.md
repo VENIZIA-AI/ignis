@@ -86,7 +86,7 @@ The project uses a Makefile for common development tasks:
 | `make install` | `bun install` |
 | `make update` | Alias for `make install` |
 | `make build` | Alias for `build-all` |
-| `make build-all` | Rebuild `core`, `core-worker`, `boot` and `docs`, then run `surface-check`, `symbols-check` and `wiki-links-check` |
+| `make build-all` | Rebuild `core`, `core-worker`, `boot` and `docs`, then run `surface-check`, `wiki-links-check` and `wiki-anchors-check` |
 | `make clean` | Clean build artifacts from all packages |
 | `make lint` | Lint all packages |
 | `make lint-all` | Lint packages and scripts - with `bun scripts/examples.ts check` for the examples, this is the bar a PR must clear |

@@ -1,6 +1,7 @@
 ---
 title: Storage Gains Presigned URLs and Object Tagging
 description: IStorageHelper adds presignPut, presignGet, getObjectTags and replaceObjectTags. MinioHelper and BunS3Helper implement all four; a backend with no transport for them throws instead of returning a fake result.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-07

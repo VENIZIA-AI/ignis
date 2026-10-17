@@ -1,6 +1,7 @@
 ---
 title: configs.server Passes idleTimeout and maxRequestBodySize to Bun.serve
 description: IServerApplicationConfigs gains a server group with idleTimeout and maxRequestBodySize; startBunModule spreads it into Bun.serve, unset keys keep Bun's defaults, and the node runtime warns and ignores the group. An application that copied startBunModule to change one option deletes the copy.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-06

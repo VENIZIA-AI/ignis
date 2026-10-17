@@ -1,6 +1,7 @@
 ---
 title: BullMQHelper and KafkaConsumerHelper Gain Extension Seams
 description: BullMQHelper takes queueOptions and workerOptions, and exposes a protected cluster duck-typing check. KafkaConsumerHelper adds onStreamError and onReconnectError, both falling back to onMessageError, and every member becomes protected instead of private. Two consumers had forked these classes to reach exactly this.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-06

@@ -1,6 +1,7 @@
 ---
 title: List Responses Share One Contract - respond Takes a Range on BaseRestController, and POST /search Gets Its Headers
 description: Every list endpoint answers with Content-Range, X-Response-Count and X-Response-Format through the one respond call on BaseRestController; POST /search now sends them too.
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-05

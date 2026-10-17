@@ -1,6 +1,7 @@
 ---
 title: A Browser Can Upload Straight To Storage
 description: directUpload signs a POST policy so the bytes never pass through IGNIS. The commit is claimed with a signed token, not a key, and the final key is never inside any policy.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-14

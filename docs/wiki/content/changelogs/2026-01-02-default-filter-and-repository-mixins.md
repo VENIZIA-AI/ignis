@@ -1,6 +1,7 @@
 ---
 title: Default Filter & Repository Mixins
 description: Added default filter support for models and refactored repository architecture with composable mixins
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-01-02

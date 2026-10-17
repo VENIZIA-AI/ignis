@@ -1,6 +1,7 @@
 ---
 title: TemporalHelper Covers What a dayjs Wrapper Did
 description: "null is no longer 1970, a quarter unit, set, the boolean comparisons and isBetween, clock-face durations, clone, your own names per locale, and diff counted as dayjs counts."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-10-15

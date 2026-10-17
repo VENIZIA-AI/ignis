@@ -1,6 +1,7 @@
 ---
 title: isApplicationError Checks the Whole Shape
 description: "isApplicationError() now also requires normalized.text, so a plain Error that only carries a statusCode - an HTTP client's, an engine's - is no longer taken for an ApplicationError."
+packages: ['@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-10-15

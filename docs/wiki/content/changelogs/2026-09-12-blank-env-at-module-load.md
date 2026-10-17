@@ -1,6 +1,7 @@
 ---
 title: A Blank Env Line No Longer Beats Its Default At Module Load
 description: Ten framework reads of process.env treated an empty line as a value. The worst of them turned the whole of process.env into the application environment map.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-12

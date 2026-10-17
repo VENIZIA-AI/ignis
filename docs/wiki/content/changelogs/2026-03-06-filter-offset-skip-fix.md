@@ -1,6 +1,7 @@
 ---
 title: Filter Offset/Skip Bug Fix
 description: Fixed offset field being ignored in FilterBuilder and removed incorrect .default(0) from Skip/Offset Zod schemas
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-03-06

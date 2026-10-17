@@ -1,6 +1,7 @@
 ---
 title: "Where Clauses Now Type-Check the Value, Not Just the Column"
 description: "TWhere<T> already rejected a column name that didn't exist on T. It did not check the value against that column's type at all - every value was any. It does now."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-filter']
 ---
 
 # Changelog - 2026-08-30

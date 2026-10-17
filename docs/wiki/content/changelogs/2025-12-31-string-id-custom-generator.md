@@ -1,6 +1,7 @@
 ---
 title: String ID with Custom Generator
 description: Text column with customizable ID generator for maximum database compatibility
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-31

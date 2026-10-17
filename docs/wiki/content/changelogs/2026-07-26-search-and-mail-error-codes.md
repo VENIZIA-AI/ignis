@@ -1,6 +1,7 @@
 ---
 title: Search and Mail Errors Join the Framework Catalog
 description: Five client-facing codes from the search connectors and the mail component are now catalogued definitions instead of hand-typed at each throw. Codes and statuses are unchanged on the wire.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-26

@@ -6,6 +6,25 @@ resource: packages/connectors
 tags: [packages, connectors, drizzle, relational, search, browser]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [The root barrel is the abstract tiers, and only those](#the-root-barrel-is-the-abstract-tiers-and-only-those)
+- [`./http` - a datasource whose transport is not a database](#http---a-datasource-whose-transport-is-not-a-database)
+- [`./testing` - test doubles, never a production import](#testing---test-doubles-never-a-production-import)
+- [The 15 published sub-paths](#the-15-published-sub-paths)
+- [`core` re-exports it, and the two roots carry different symbols](#core-re-exports-it-and-the-two-roots-carry-different-symbols)
+- [Two ways to declare a model, both supported](#two-ways-to-declare-a-model-both-supported)
+- [What it owns](#what-it-owns)
+- [Recursive tree SQL](#recursive-tree-sql)
+- [`scopeFilter` - a row scope, relational only](#scopefilter---a-row-scope-relational-only)
+- [Every published sub-path is probed, and eight rows are waived](#every-published-sub-path-is-probed-and-eight-rows-are-waived)
+- [Why the PGlite row uses `external`](#why-the-pglite-row-uses-external)
+- [A connectors-only process logs to the console](#a-connectors-only-process-logs-to-the-console)
+- [Gotchas](#gotchas)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-connectors` holds every datasource, driver, entity base and repository chain that
 reaches a backing engine. Wave 3 of the kernel refactor carved it out of
 `packages/core-server/src/connectors` - 168 source files outside `__tests__`, around 14,200 lines.

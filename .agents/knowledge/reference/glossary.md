@@ -6,6 +6,12 @@ resource: .
 tags: [reference, glossary]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 Alphabetical lookup table. See [what is IGNIS](/overview/what-is-ignis.md) for the narrative version.
 
 **Application / BaseApplication** - `BaseApplication` in `packages/core-server/src/base/applications/base.ts`

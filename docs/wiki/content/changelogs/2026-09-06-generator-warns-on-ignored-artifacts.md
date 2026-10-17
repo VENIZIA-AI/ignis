@@ -1,6 +1,7 @@
 ---
 title: ignis-artifacts Warns When an --ignore Pattern Hides a Decorated Class
 description: generate and check print one stderr line per decorated class that a user --ignore pattern excluded from the index. The default patterns for tests and generated files stay silent. Exit codes do not change.
+packages: ['@venizia/ignis-boot']
 ---
 
 # Changelog - 2026-09-06

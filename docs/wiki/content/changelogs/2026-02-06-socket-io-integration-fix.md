@@ -1,6 +1,7 @@
 ---
 title: Socket.IO Integration Fix - Lifecycle Timing & Bun Runtime Support
 description: Fix SocketIOComponent lifecycle timing, add dual-mode (Node/Bun) support to SocketIOServerHelper, add post-start hooks to AbstractApplication, and reimplement socket-io-test example
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-06

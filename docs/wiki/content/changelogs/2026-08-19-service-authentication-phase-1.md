@@ -1,6 +1,7 @@
 ---
 title: Your Own Authentication Strategies, and Tokens That Say Who They Are For
 description: Register a strategy beyond jwt and basic, check aud and iss when verifying, and stamp them when issuing.
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-19

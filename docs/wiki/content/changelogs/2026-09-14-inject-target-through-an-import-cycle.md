@@ -1,6 +1,7 @@
 ---
 title: A Dependency Reached Through An Import Cycle Can Still Name Its Class
 description: "@inject({ target }) takes a function returning the class. The function runs when the container resolves, so a class a barrel makes unreachable at module load is still nameable."
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-09-14

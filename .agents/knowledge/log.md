@@ -6,6 +6,17 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - IGNIS under VULCAN 0.2.0 Project Contract v1
+
+Added [knowledge-sync area map](/process/knowledge-sync-areas.md). Updated [release and publish](/process/release-publish.md), [build system](/process/build-system.md).
+
+- `.configs/vulcan.config.ts` declares the top-level `packages` list in release order, with renames as aliases (`core` for core-server, `worker` for core-worker) and `docs-mcp` and `atlas` retired. It also declares the `okf` renderers, sections, coverage and viz copy that used to live inside VULCAN.
+- The components and helpers catalogs are project renderer modules under `.agents/okf/`. Their output is byte-identical.
+- Every changelog declares its `packages` by npm name, which atlas reads to map an entry to a release.
+- `reference/releases.json` and `reference/symbols.json` are gone: atlas computes releases from the git tags and reads symbols from the built `.d.ts`. `release.ts` no longer commits tables after a chain, and `build-all` no longer runs `symbols-check`.
+- Agent-read files over 100 lines carry a generated contents list.
+- The session digest moved into VULCAN: `digest.oftenDropped` in the config names the most-dropped rules, and VULCAN prints the minimap shape from `.agents/rules.md`. `.agents/hooks/session-digest.ts` is gone.
+
 ## 2026-10-17 - @repository skips a Function first parameter
 
 - `@repository` judges its first constructor parameter only when it names a class: `Object` (an interface) and now `Function` (a type-only class import under tsc; bun emits `Object`) are skipped and the DataSource is injected. Before, a tsc-built repository with `import { type BasePostgresDataSource }` threw at import.
@@ -102,7 +113,6 @@ Updated [build system](/process/build-system.md), [build, run, test](/overview/b
 - A bare `make` prints `make help` (`.DEFAULT_GOAL`; the old `DEFAULT_GOAL` had no dot and did nothing). The help rows go through one `printf`, so they align.
 - The `makefile-targets` generator reads make's database (`make -pRrq`), so the generated targets are listed, and takes each description from the target's `make help` row.
 
-||||||| 0a41768d
 
 ## 2026-10-16 - dev-configs browser tier
 

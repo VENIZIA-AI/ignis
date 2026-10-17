@@ -1,6 +1,7 @@
 ---
 title: configs.artifacts Accepts { when, index } Entries - the Run-Mode Gate Lives in the Config
 description: TArtifactIndexInput gains a conditional entry. registerArtifacts evaluates when at boot step 5 and registers the entry's indexes only when it answers true, so a worker or a migration run keeps controllers and components out of the container without a hand-written filter.
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-06

@@ -1,6 +1,7 @@
 ---
 title: Authorization System & Auth Module Refactor
 description: Enforcer-based authorization with RBAC, voters, Casbin integration, filtered adapters, and comprehensive auth module restructuring
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-16 (Updated 2026-02-25)

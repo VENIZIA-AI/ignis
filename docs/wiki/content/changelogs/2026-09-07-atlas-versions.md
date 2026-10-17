@@ -1,6 +1,7 @@
 ---
 title: Atlas Gains version and changes Tools and a Generated Release Table
 description: A new generated table records every release commit and every dated changelog entry with the packages it names. The Atlas changes tool lists what shipped between two versions, and version compares an installed tree against what the build knows.
+packages: ['@venizia/ignis-atlas']
 ---
 
 # Changelog - 2026-09-07

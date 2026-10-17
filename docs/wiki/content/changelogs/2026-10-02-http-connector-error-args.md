@@ -1,6 +1,7 @@
 ---
 title: HTTP Connector Errors Keep the Server Message Args
 description: "A failed read or write through connectors/http now carries the server's normalized.args, so a translated error message can fill its placeholders."
+packages: ['@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-10-02

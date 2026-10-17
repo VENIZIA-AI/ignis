@@ -1,6 +1,7 @@
 ---
 title: WebSocket Encrypted Delivery
 description: Concurrent encrypted delivery for WebSocket sendToRoom/broadcast with outbound transformer and ECDH integration
+packages: ['@venizia/ignis', '@venizia/ignis-docs', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-11

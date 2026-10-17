@@ -1,6 +1,7 @@
 ---
 title: dev-configs Gains a Browser Tier
 description: "@venizia/dev-configs 0.4.0 adds lint, format and tsconfig presets for browser code without React, and the React preset now builds on them."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-16

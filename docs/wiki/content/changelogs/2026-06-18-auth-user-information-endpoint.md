@@ -1,6 +1,7 @@
 ---
 title: Current User Information Endpoint
 description: Auth controller adds GET /me and a withUserInformation flag on /who-am-i, backed by the optional IAuthService.getUserInformation
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-06-18

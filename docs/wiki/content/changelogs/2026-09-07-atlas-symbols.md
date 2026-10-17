@@ -1,6 +1,7 @@
 ---
 title: Atlas Gains a symbol Tool and a Generated Symbol Table
 description: A new generated table records every exported symbol of every package with its kind, one-line signature and source file:line. The Atlas symbol tool answers from it, and search adds a symbol field when the query is one identifier.
+packages: ['@venizia/ignis-atlas']
 ---
 
 # Changelog - 2026-09-07

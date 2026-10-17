@@ -1,6 +1,7 @@
 ---
 title: WorkerApplication Gains configs.projectRoot; BaseKafkaHelper Turns protected
 description: IWorkerApplicationConfigs gains an optional projectRoot, and WorkerApplication.getProjectRoot() resolves it the way ServerApplication does, minus the node_modules check a browser Worker cannot make. BaseKafkaHelper's connectedBrokers, onBrokerConnect, and onBrokerDisconnect turn protected, matching KafkaConsumerHelper.
+packages: ['@venizia/ignis-worker', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-07

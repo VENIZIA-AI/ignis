@@ -1,6 +1,7 @@
 ---
 title: configs.projectRoot Replaces the getProjectRoot() Override
 description: IServerApplicationConfigs gains projectRoot; ServerApplication.getProjectRoot() returns it when set and process.cwd() otherwise, binding CoreBindings.APPLICATION_PROJECT_ROOT as before. An application that overrode the method only to return __dirname deletes the override.
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-06

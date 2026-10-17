@@ -1,6 +1,7 @@
 ---
 title: setListHeaders Takes offset + total; toContentRange Is Exported
 description: BaseRestController.setListHeaders accepts { offset, total, count } beside { range, count } and derives the inclusive range with buildDataRange. toContentRange, the one Content-Range formatter, is exported from @venizia/ignis-kernel. Routes that formatted the header by hand delete the copy.
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-06

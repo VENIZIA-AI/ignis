@@ -1,6 +1,7 @@
 ---
 title: Search Filters Now Mean What Relational Filters Mean
 description: An empty `or` used to match everything instead of nothing. Search dialects gain a compiled where-result, query-time field checking, and a published operator table.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-05

@@ -1,6 +1,7 @@
 ---
 title: Secrets & Vault Integration
 description: A pluggable Secrets provider family - HashiCorp Vault, Dotenv Vault, and system env - with boot-time hydration, dynamic leases, and restart-free credential rotation. Fully additive; existing apps are unchanged.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-16

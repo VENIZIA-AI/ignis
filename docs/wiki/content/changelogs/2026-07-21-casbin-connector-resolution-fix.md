@@ -1,6 +1,7 @@
 ---
 title: BaseFilteredAdapter Connector Resolution Fix
 description: BaseFilteredAdapter now falls back from getConnector() to a pre-wired connector and throws a clear framework error instead of a bare TypeError when a datasource is cold.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-21

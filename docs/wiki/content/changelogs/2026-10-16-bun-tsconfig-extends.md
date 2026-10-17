@@ -1,6 +1,7 @@
 ---
 title: Restate the Decorator Options - Bun Ignores a Package tsconfig extends
 description: "Bun skips a tsconfig extends that names a package, so the dev-configs decorator options never reach bun run or bun test. Restate two options in your own tsconfig."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-16

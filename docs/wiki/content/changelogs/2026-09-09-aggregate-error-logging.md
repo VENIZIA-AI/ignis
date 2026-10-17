@@ -1,6 +1,7 @@
 ---
 title: The Log Names Every Reason An AggregateError Collected
 description: ErrorPrettier walked the cause chain but never read .errors, so a protocol client's AggregateError logged one generic sentence and lost every actual reason.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-09

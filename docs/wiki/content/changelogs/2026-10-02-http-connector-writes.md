@@ -1,6 +1,7 @@
 ---
 title: The HTTP Connector Writes
 description: "HttpRepository gains create, updateById, updateAll/updateBy, deleteById and deleteAll/deleteBy over the IGNIS CRUD routes, and HttpDataSource.request takes a body and headers on any method, PUT included."
+packages: ['@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-10-02

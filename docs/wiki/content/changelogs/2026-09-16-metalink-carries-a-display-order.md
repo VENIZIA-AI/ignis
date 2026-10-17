@@ -1,6 +1,7 @@
 ---
 title: MetaLink Carries a Display Order
 description: "A sequence column orders the rows of one principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic."
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-16

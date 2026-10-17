@@ -1,6 +1,7 @@
 ---
 title: Nested i18n Fields Become Filterable and Sortable
 description: Denormalised fields like merchantName.en were indexed and facetable but unreachable by any caller - they now filter and sort, and a bad order field is a 400 instead of an engine error.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-08-07

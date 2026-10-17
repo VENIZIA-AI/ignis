@@ -1,6 +1,7 @@
 ---
 title: The Container Can Name A Binding Nobody Resolves
 description: doVerify catches a dependency injected but never registered. The reverse - a class registered that nothing injects - was silent. The container now counts what it hands out.
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-14

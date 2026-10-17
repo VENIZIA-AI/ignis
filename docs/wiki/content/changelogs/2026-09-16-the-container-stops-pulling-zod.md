@@ -1,6 +1,7 @@
 ---
 title: The Container Stops Pulling zod
 description: "Importing Container alone cost 437 KB in a browser bundle, 423 KB of it zod, for a four-line const class. Splitting one file takes it to 64 KB."
+packages: ['@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-16

@@ -1,6 +1,7 @@
 ---
 title: Security and Reliability Hardening - SQL Injection, Filter Scope, and 11 More Fixes
 description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results, plus ten other bugs in errors, logging, uploads, and boot.
+packages: ['@venizia/ignis', '@venizia/ignis-boot', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-13

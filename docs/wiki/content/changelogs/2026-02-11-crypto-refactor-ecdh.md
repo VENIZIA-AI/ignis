@@ -1,6 +1,7 @@
 ---
 title: Crypto Algorithm Refactor & ECDH
 description: Unified type hierarchy for crypto algorithms, options-object API, ECDH P-256 key exchange, and 79 test cases
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-11

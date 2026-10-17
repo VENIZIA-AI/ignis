@@ -1,6 +1,7 @@
 ---
 title: Bundled and Compiled Apps - Helpers Exports Stay Defined, NODE_ENV Stays a Runtime Read, One Logger Provider Across Copies
 description: bun build no longer leaves Environment, applicationEnvironment and LoggerFactory undefined; NODE_ENV is read at run time through Environment.ambient; a compiled binary shares one logger provider between its two helpers copies
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-02

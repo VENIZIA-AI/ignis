@@ -1,6 +1,7 @@
 ---
 title: Empty Env Values Are Allowed By Default
 description: validateEnvs no longer refuses to boot over an empty environment value. Set ALLOW_EMPTY_ENV_VALUE to false or 0 to turn the check back on.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-12

@@ -1,6 +1,7 @@
 ---
 title: Postgres Driver Seam & Supabase
 description: The Postgres connector now supports two interchangeable drivers, ships a Supabase submodule, and makes failed transactions fail loudly instead of silently.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-07-11

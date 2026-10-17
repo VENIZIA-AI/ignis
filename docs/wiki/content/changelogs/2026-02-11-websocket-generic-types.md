@@ -1,6 +1,7 @@
 ---
 title: WebSocket Generic Type Parameters
 description: Type-safe generic parameters for WebSocket authentication payloads, client metadata, and callback types
+packages: ['@venizia/ignis-docs', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-02-11

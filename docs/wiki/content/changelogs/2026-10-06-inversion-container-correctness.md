@@ -1,6 +1,7 @@
 ---
 title: The Container Names a Cycle and Caches Any Singleton
 description: "A subclass property @inject no longer leaks into its parent, isOptional holds on the { target } form, a cycle throws with its path, the singleton cache holds falsy values, and two symbols with one description are two keys."
+packages: ['@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-10-06

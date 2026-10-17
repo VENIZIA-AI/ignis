@@ -6,12 +6,20 @@ resource: .github/workflows/package-release.yml
 tags: [process, release, ci]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Before a chain release](#before-a-chain-release)
+- [What atlas reads after a release](#what-atlas-reads-after-a-release)
+- [Steps](#steps)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## Before a chain release
 
 - Pass `--issue <N>` - the release issue - so the commits a release makes (the workflow's
-  `chore(<package>): release v...` and any table refresh) lead with `[#N]` like every other
-  commit. The workflow takes it as its optional `issue` input; VULCAN's release-table generator
-  (`make releases-gen`) reads release subjects with or without that prefix.
+  `chore(<package>): release v...`) lead with `[#N]` like every other commit. The workflow takes
+  it as its optional `issue` input.
 - Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
   workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
   kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
@@ -26,18 +34,13 @@ tags: [process, release, ci]
   finding. The public-surface snapshot tracks names and kinds only, so this is the check for
   signatures.
 
-## The generated tables
+## What atlas reads after a release
 
-`.agents/knowledge/reference/{public-surface.md, symbols.json, releases.json}` are written by VULCAN's
-`surface-gen`, `symbols-gen` and `releases-gen` targets (`make` includes them from
-`node_modules/@venizia/vulcan/base/make/vulcan.mk`). IGNIS no longer ships them in a package: atlas
-is not an IGNIS package, so it is not part of the release chain and has no tail step.
-
-- **Why they lag a release.** `releases.json` is generated FROM release commits and `symbols.json`
-  from built declarations, so they are always one chain behind until regenerated. `release.ts`
-  regenerates both after the last package of a chain and commits them when they moved.
-- **Why `releases-check` is not a build gate.** It is red between a release and that regeneration.
-  It stays a target a human runs, never part of `make build-all`.
+Nothing is regenerated or committed after a chain. VULCAN's atlas computes the releases from the
+git tags the workflow pushes, and reads symbols from the built or installed `.d.ts`. `make
+atlas-releases` and `make atlas-symbols` print what it sees (both come from
+`node_modules/@venizia/vulcan/base/make/vulcan.mk`). Only the public-surface snapshot
+(`reference/public-surface.md`, `make surface-gen`) is committed, and `make build-all` gates it.
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on". Before
   #172 the first name was dropped unless `--chain-released` was passed (`args[seedIndex + 1]` with
   `seedIndex = -1`); the parsing now lives in `scripts/release-args.ts` with its own test.

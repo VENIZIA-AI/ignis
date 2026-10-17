@@ -4,6 +4,8 @@ title: Public surface
 description: Every exported symbol of every package exports entry, from the built .d.ts (generated).
 resource: packages
 tags: [reference, exports, api]
+generated:
+  by: process:atlas-surface
 ---
 
 > Generated from dist - do not edit; run `make surface-gen` after an intentional API change. A wave of the file split must leave this file untouched.

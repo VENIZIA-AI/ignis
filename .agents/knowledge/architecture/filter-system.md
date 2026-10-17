@@ -6,6 +6,18 @@ resource: packages/connectors/src/relational/core/repositories/dialect/filter.ts
 tags: [architecture, filter, query, drizzle, postgres]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Operators](#operators)
+- [Order entries share one parser](#order-entries-share-one-parser)
+- [Translation](#translation)
+- [The dual query API](#the-dual-query-api)
+- [JSON path pitfalls](#json-path-pitfalls)
+- [mergeFilter and arrays](#mergefilter-and-arrays)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 A filter is a plain options object: `{ where, order, limit, offset, skip, fields, include }`. The vocabulary lives in its own package, [`@venizia/ignis-filter`](/packages/filter.md), and is **engine-neutral** - support differs per engine, and an unsupported operator throws at translation time rather than being quietly dropped from the list.
 
 The vocabulary is also **browser-safe**, and that is enforced rather than assumed - centrally, not per package. `scripts/purity/cli.ts` (with `probe.ts` and `manifest.ts`) bundles each claimed package's built `dist` entry with `bun build --target=browser` and fails on any leftover node builtin import, any unresolved external import, or any node global (`process.`, `__dirname`, `__filename`, `createRequire(`) surviving in the bundled text. `make purity` checks every entry in the manifest, `make purity-filter` only this package.

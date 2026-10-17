@@ -1,6 +1,7 @@
 ---
 title: Logger Optimization & HfLogger
 description: Performance optimizations for the Logger class and new high-frequency logger for performance-critical applications
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-01-11

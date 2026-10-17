@@ -1,6 +1,7 @@
 ---
 title: A Bare @repository() Inherits Its Parent's Model and Datasource; the Console Fallback Warns on the First Log Line; ignis-artifacts Runs Silently
 description: A subclass decorated with @repository() and no options reuses the model and datasource its parent declared, so the generated index can list it. The helpers console fallback warns when a line is actually logged, not when a helper acquires its logger, and the ignis-artifacts CLI installs a quiet provider.
+packages: ['@venizia/ignis-boot', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-06

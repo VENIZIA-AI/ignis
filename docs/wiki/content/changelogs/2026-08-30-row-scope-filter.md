@@ -1,6 +1,7 @@
 ---
 title: A Row Scope Every Query Carries, Denied by Default When It Cannot Be Resolved
 description: A new @model settings.scopeFilter ANDs a per-request row scope into every relational read and write - including restore() and every relation loaded via include - and refuses to guess when the scope cannot be resolved. A third state, ScopeFilters.UNRESTRICTED, lets a caller bypass scoping for one call. Search repositories are not covered.
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-30

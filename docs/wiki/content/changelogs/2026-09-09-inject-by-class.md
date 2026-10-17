@@ -1,6 +1,7 @@
 ---
 title: A Dependency Can Now Name Its Class Instead Of Its Key
 description: '@inject({ target: SomeService }) resolves through the key the registration recorded, so a call-site binding override and a class registered by hand both work. @inject({ key }) is untouched.'
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-09

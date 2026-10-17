@@ -6,6 +6,13 @@ resource: Makefile
 tags: [process, build]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Steps](#steps)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## Steps
 
 1. On a fresh clone or worktree, build before doing anything else. `dist/` is gitignored in every
@@ -13,8 +20,7 @@ tags: [process, build]
    `@venizia/ignis-helpers` resolves to `packages/helpers/dist/...`. Skip this and you get a wall
    of module-resolution errors that have nothing to do with your change.
 2. To rebuild everything: `make build` (alias `make build-all`). This runs
-   `core core-worker boot docs surface-check symbols-check wiki-links-check
-   wiki-anchors-check` - the `core`
+   `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` - the `core`
    target pulls in the full dependency chain first, so this also rebuilds `dev-configs`,
    `inversion`, `helpers`, `filter`, and `kernel`.
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs

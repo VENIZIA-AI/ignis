@@ -1,6 +1,7 @@
 ---
 title: Drizzle Casbin Adapter - Schema-Qualified Tables
 description: The Casbin policy adapter now qualifies its tables with a configurable schema name (default "public") instead of relying on the Postgres search_path
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-05-22

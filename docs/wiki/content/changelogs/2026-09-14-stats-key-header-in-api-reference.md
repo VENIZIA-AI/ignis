@@ -1,6 +1,7 @@
 ---
 title: The Stats Key Header Shows Up In The API Reference
 description: GET /health/stats now declares x-health-key in its OpenAPI definition, so the API reference renders an input for it instead of answering 404 with no way to send the key.
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-09-14

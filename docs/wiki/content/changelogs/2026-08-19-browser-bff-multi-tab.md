@@ -1,6 +1,7 @@
 ---
 title: A Browser BFF That Survives a Second Tab
 description: SharedBffTransport runs one Worker per origin instead of one per tab, and the framework audit fixes 18 defects - five of them breaking.
+packages: ['@venizia/ignis-worker']
 ---
 
 # Changelog - 2026-08-19

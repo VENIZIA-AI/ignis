@@ -1,6 +1,7 @@
 ---
 title: helpers Declares Its @hono/zod-openapi Peer; the Generated Index Header Names the Command That Produced It
 description: The helpers root barrel loads @hono/zod-openapi at import time and now declares it as a peer, with a test that fails on any undeclared load-time package. ignis-artifacts writes the real --root, --out, --ignore and --export flags into the generated file's header instead of a fixed path.
+packages: ['@venizia/ignis-boot', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-06

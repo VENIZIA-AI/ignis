@@ -1,6 +1,7 @@
 ---
 title: Repository Validation & Security
 description: Strict validation for @repository decorator and security fixes for filter operators
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-18

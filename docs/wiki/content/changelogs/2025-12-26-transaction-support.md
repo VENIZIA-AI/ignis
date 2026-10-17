@@ -1,6 +1,7 @@
 ---
 title: Transaction Support
 description: Explicit transaction support for atomic operations across repositories
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-26

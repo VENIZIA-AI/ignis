@@ -1,6 +1,7 @@
 ---
 title: dev-configs House Rules and Type-Only Imports
 description: "Two house ESLint rules - at most 5 positional parameters, errors through getError - and consistent-type-imports in the base oxlint preset."
+packages: ['@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-17

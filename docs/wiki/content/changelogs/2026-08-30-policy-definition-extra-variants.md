@@ -1,6 +1,7 @@
 ---
 title: "PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds"
 description: "kernel@0.2.0-6 narrowed the variant column to IGNIS's seven edge kinds only, with no way for an application to add its own. extraPolicyDefinitionColumns now takes an extraVariants option that widens the column's type for one call site, while every app that declares nothing sees no change at all."
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-30

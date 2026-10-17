@@ -1,6 +1,7 @@
 ---
 title: A Browser-Pure Kernel Under `@venizia/ignis`
 description: The half of IGNIS that never needed a server now lives in its own package, guarded by a build gate. Every import you already write keeps working.
+packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-13

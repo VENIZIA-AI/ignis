@@ -1,6 +1,7 @@
 ---
 title: Repository Enhancements
 description: Hidden properties, filter improvements, and code quality updates
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2025-12-30

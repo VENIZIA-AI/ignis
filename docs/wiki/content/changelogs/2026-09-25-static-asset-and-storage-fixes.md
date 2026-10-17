@@ -1,6 +1,7 @@
 ---
 title: Static Asset Scoping, a Real Body Limit, and Storage File Names
 description: "A shared bucket can be scoped per controller and per route, configs.middlewares.bodyLimit finally does what its type promised, a recreated MetaLink refreshes every row instead of one, non-ASCII file names survive a direct-upload commit, and office files resolve to their registered MIME type."
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-25

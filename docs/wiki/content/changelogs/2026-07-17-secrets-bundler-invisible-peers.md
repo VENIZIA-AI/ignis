@@ -1,6 +1,7 @@
 ---
 title: Secrets Peers Invisible to Bundlers - No More external node-vault
 description: Applications compiling a binary no longer need node-vault or @dotenvx/dotenvx installed, nor an external entry in their Bun.build call. Apps that do use a vault provider in a compiled binary must ship the peer next to the binary or inject the client.
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-07-17

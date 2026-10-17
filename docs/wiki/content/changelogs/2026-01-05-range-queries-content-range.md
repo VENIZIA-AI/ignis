@@ -1,6 +1,7 @@
 ---
 title: Range Queries & Content-Range Header
 description: Added shouldQueryRange option for paginated API responses with HTTP Content-Range standard support
+packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-01-05

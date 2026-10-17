@@ -1,6 +1,7 @@
 ---
 title: applicationEnvironment and the Module Registry Are Shared Across Module Copies; configs.path.base Is Checked at Construction
 description: A process that holds both the ESM and the CommonJS build of @venizia/ignis-helpers now sees one applicationEnvironment and one ModuleUtility registry. A RestApplication whose configs.path.base is not a string fails at construction with the key named.
+packages: ['@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-06

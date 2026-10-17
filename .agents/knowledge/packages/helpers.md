@@ -6,6 +6,18 @@ resource: packages/helpers
 tags: [packages, helpers, utilities]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Module map](#module-map)
+- [Sub-path exports isolate optional peers](#sub-path-exports-isolate-optional-peers)
+- [Retry utilities](#retry-utilities)
+- [Gotcha: Kafka and compiled binaries](#gotcha-kafka-and-compiled-binaries)
+- [Duration units and conversion](#duration-units-and-conversion)
+- [Conventions](#conventions)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 `@venizia/ignis-helpers` sits one layer above `inversion` in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`) - it depends on `inversion` alone, and `boot`, `kernel` and `core` all depend on it. It is a production-ready utility library designed to integrate with the IGNIS IoC container, and ships a dual CJS + ESM build. See the full catalog at [helpers catalog](/reference/helpers.md).
 
 ## Module map

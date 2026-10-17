@@ -1,6 +1,7 @@
 ---
 title: Model Authorize Settings
 description: Declare authorization principals directly on models via @model settings, with auto-populated AUTHORIZATION_SUBJECT and MetadataRegistry query methods
+packages: ['@venizia/ignis']
 ---
 
 # Changelog - 2026-03-02

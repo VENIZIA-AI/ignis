@@ -1,6 +1,7 @@
 ---
 title: "getHealth() Never Throws, Imports Keep Progress, and collectionExists() Never Lies About Absence"
 description: "Meilisearch's health probe used to throw instead of resolving { ok: false }, breaking ping(). Typesense's importDocuments() dropped partial progress on an already-shaped error, and its collectionExists() reported every failure as absence. All three now hold the ISearchConnector contract."
+packages: ['@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-08-30

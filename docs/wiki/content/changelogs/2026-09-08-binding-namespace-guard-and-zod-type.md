@@ -1,6 +1,7 @@
 ---
 title: A Binding Namespace That Would Lose Its Tag Is Refused
 description: BindingNamespaces.createNamespace now throws on a name holding a dot, whitespace, or nothing. BindingNamespaces.CONFIGURATION is new. The public types name z.ZodType where they named the deprecated z.ZodTypeAny.
+packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-08
