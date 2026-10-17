@@ -42,13 +42,13 @@ npm install @venizia/ignis-docs
 
 ## MCP Server
 
-The MCP server for AI assistants moved to `@venizia/ignis-atlas`.
+The MCP server for AI assistants now ships from VULCAN as `@venizia/vulcan-atlas`. `@venizia/ignis-atlas` is deprecated.
 
 ```bash
-bunx @venizia/ignis-atlas mcp
+bun x @venizia/vulcan-atlas mcp
 ```
 
-See the [migration changelog](https://ignis.venizia.ai/changelogs/2026-09-06-ignis-atlas) for what changed.
+See the [Atlas page](https://ignis.venizia.ai/extensions/atlas/) for the config and the tools.
 
 ---
 

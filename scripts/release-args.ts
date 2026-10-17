@@ -10,7 +10,6 @@ export type TReleaseMode =
 export interface IReleaseArgs {
   isDryRun: boolean;
   isConfirmed: boolean;
-  skipAtlas: boolean;
   mode: TReleaseMode;
   /** Resuming a chain that stopped: the packages an earlier run already published. */
   seeded: Array<string>;
@@ -41,7 +40,6 @@ export const parseReleaseArgs = (args: ReadonlyArray<string>): IReleaseArgs => {
   return {
     isDryRun: args.includes('--dry-run'),
     isConfirmed: args.includes('--yes'),
-    skipAtlas: args.includes('--no-atlas'),
     mode,
     seeded,
     issue,

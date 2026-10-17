@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - What moved to VULCAN is deleted from IGNIS
+
+Updated [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [testing](/process/testing.md). Removed the atlas package concept.
+
+- `packages/atlas`, `.agents/knowledge-tools`, `.agents/plugin` and the atlas/surface scripts are deleted: VULCAN ships them (`@venizia/vulcan`, `vulcan-okf`, `vulcan-atlas`). IGNIS has nine packages and atlas left the release chain; `release.ts` still regenerates the symbol and release tables after a chain.
+- `@venizia/ignis-atlas` is deprecated in favor of `@venizia/vulcan-atlas`.
+- `.agents/rules.md` keeps C-03 (`@inject`), C-05 (`getError`) and C-18 (the hard stack) as IGNIS rules after VULCAN retired them from its base.
+- [Options objects](/conventions/options-objects.md) states the maintainer's parameter policy: one options object first, a second parameter only where it cannot fold in, never more than 5 (`venizia/max-params-own`).
+
 ## 2026-10-17 - LINT_IGNORE and @venizia/dev-configs/testing
 
 Updated [build system](/process/build-system.md), [testing conventions](/conventions/testing-conventions.md).
@@ -108,7 +117,7 @@ Updated [dev-configs](/packages/dev-configs.md).
 
 ## 2026-10-16 - per-package Makefiles replace the build scripts
 
-Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [testing conventions](/conventions/testing-conventions.md), [testing](/process/testing.md), [adding a helper](/process/adding-a-helper.md), [atlas](/packages/atlas.md), [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [kernel](/packages/kernel.md).
+Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run, test](/overview/build-run-test.md), [testing conventions](/conventions/testing-conventions.md), [testing](/process/testing.md), [adding a helper](/process/adding-a-helper.md), atlas, [boot](/packages/boot.md), [connectors](/packages/connectors.md), [core-worker](/packages/core-worker.md), [kernel](/packages/kernel.md).
 
 - Each package has a `Makefile` that includes `make/project.mk` (`typecheck`, `build`, `clean`, `rebuild`, `lint`, `fmt`). `build.sh`, `clean.sh` and `rebuild.sh` are gone; `package.json` keeps only `force-update`, `prepublishOnly`, and `test` where it existed.
 - `rebuild` type-checks every emitted program before `clean`, for every package. The `dev-configs` exception no longer holds.
@@ -1526,7 +1535,7 @@ Both retrieval MCP servers are gone. `ignis-docs-mcp` (`docs/wiki/mcp-server`, 1
 
 Repo mode indexes the wiki, the changelogs and this bundle from the live tree, and re-checks freshness before every call (measured under 1 ms). Npm mode (`bunx @venizia/ignis-atlas`) runs the same engine over a packaged snapshot of the wiki and the changelogs only - this bundle is never shipped. Golden ranking test: 7 of 7 on the real corpus, 364 documents, 4165 chunks, an index build around 265 ms.
 
-`.mcp.json` now starts `ignis-atlas`. Every `okf_search`/`okf_list_concepts`/`okf_get_concept`/`ignis-docs-mcp` mention across `AGENTS.md`, this bundle and the wiki is updated to `search`/`get`. New concept: [atlas](/packages/atlas.md). Changelog: [ignis-docs-mcp is replaced by @venizia/ignis-atlas](/changelogs/2026-09-06-ignis-atlas).
+`.mcp.json` now starts `ignis-atlas`. Every `okf_search`/`okf_list_concepts`/`okf_get_concept`/`ignis-docs-mcp` mention across `AGENTS.md`, this bundle and the wiki is updated to `search`/`get`. New concept: atlas. Changelog: [ignis-docs-mcp is replaced by @venizia/ignis-atlas](/changelogs/2026-09-06-ignis-atlas).
 
 ## 2026-09-05 - core-server drops its unused `@venizia/ignis-boot` dependency; `make lint-scripts` covers `scripts/purity/`
 

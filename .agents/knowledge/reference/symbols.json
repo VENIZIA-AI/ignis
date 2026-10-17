@@ -1,17 +1,697 @@
 {
   "generatedFrom": "dist",
   "packages": [
+    "dev-configs",
     "inversion",
     "filter",
     "helpers",
     "boot",
     "kernel",
     "connectors",
-    "core-server",
     "core-worker",
-    "atlas"
+    "core-server"
   ],
   "symbols": [
+    {
+      "name": "AstNodeTypes",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 2,
+      "signature": "class AstNodeTypes"
+    },
+    {
+      "name": "BrowserOxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/browser.ts",
+      "line": 18,
+      "signature": "class BrowserOxlintConfigs"
+    },
+    {
+      "name": "BunCompiler",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/compilers/bun.ts",
+      "line": 6,
+      "signature": "class BunCompiler"
+    },
+    {
+      "name": "EqeqeqRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/eqeqeq.rule.ts",
+      "line": 4,
+      "signature": "class EqeqeqRule"
+    },
+    {
+      "name": "HOUSE_PLUGIN_NAMESPACE",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 11,
+      "signature": "HOUSE_PLUGIN_NAMESPACE = \"venizia\""
+    },
+    {
+      "name": "IReactEslintPlugins",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 11,
+      "signature": "interface IReactEslintPlugins"
+    },
+    {
+      "name": "IRestrictedImportPath",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-imports.rule.ts",
+      "line": 4,
+      "signature": "interface IRestrictedImportPath"
+    },
+    {
+      "name": "IRestrictedProperty",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-properties.rule.ts",
+      "line": 4,
+      "signature": "interface IRestrictedProperty"
+    },
+    {
+      "name": "MaxParamsOwnRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/max-params-own.rule.ts",
+      "line": 66,
+      "signature": "class MaxParamsOwnRule"
+    },
+    {
+      "name": "NamingConventionRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/naming-convention.rule.ts",
+      "line": 11,
+      "signature": "class NamingConventionRule"
+    },
+    {
+      "name": "NoNewErrorRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/no-new-error.rule.ts",
+      "line": 10,
+      "signature": "class NoNewErrorRule"
+    },
+    {
+      "name": "NoRestrictedImportsRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-imports.rule.ts",
+      "line": 11,
+      "signature": "class NoRestrictedImportsRule"
+    },
+    {
+      "name": "NoRestrictedPropertiesRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-properties.rule.ts",
+      "line": 16,
+      "signature": "class NoRestrictedPropertiesRule"
+    },
+    {
+      "name": "NoUnusedVarsRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-unused-vars.rule.ts",
+      "line": 4,
+      "signature": "class NoUnusedVarsRule"
+    },
+    {
+      "name": "PreferNullishCoalescingRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/prefer-nullish-coalescing.rule.ts",
+      "line": 4,
+      "signature": "class PreferNullishCoalescingRule"
+    },
+    {
+      "name": "ReactEslintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 34,
+      "signature": "class ReactEslintConfigs"
+    },
+    {
+      "name": "ReactOxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 129,
+      "signature": "class ReactOxlintConfigs"
+    },
+    {
+      "name": "SwitchCaseBracesRule",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/switch-case-braces.rule.ts",
+      "line": 4,
+      "signature": "class SwitchCaseBracesRule"
+    },
+    {
+      "name": "TNamingSelector",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/naming-convention.rule.ts",
+      "line": 5,
+      "signature": "type TNamingSelector = Record<string, unknown> & { selector: string | string[]; }"
+    },
+    {
+      "name": "TOxlintRuleEntry",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/common.ts",
+      "line": 7,
+      "signature": "type TOxlintRuleEntry<TName extends string> = NonNullable<NonNullable<OxlintConfig['rules']>[TName]>"
+    },
+    {
+      "name": "TRuleSeverity",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/common.ts",
+      "line": 4,
+      "signature": "type TRuleSeverity = 'off' | 'warn' | 'error'"
+    },
+    {
+      "name": "browserOxfmtConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/oxfmt.ts",
+      "line": 37,
+      "signature": "browserOxfmtConfigs: OxfmtConfig"
+    },
+    {
+      "name": "eslintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/eslint.ts",
+      "line": 95,
+      "signature": "eslintConfigs: Linter.Config[]"
+    },
+    {
+      "name": "houseConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/configs.ts",
+      "line": 40,
+      "signature": "houseConfigs: Linter.Config[]"
+    },
+    {
+      "name": "houseEslintPlugin",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/plugin.ts",
+      "line": 7,
+      "signature": "houseEslintPlugin: ESLint.Plugin"
+    },
+    {
+      "name": "namingConventionConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/eslint.ts",
+      "line": 145,
+      "signature": "namingConventionConfigs: Linter.Config[]"
+    },
+    {
+      "name": "nodeType",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 22,
+      "signature": "nodeType: (opts: { node: unknown; }) => string | undefined"
+    },
+    {
+      "name": "oxfmtConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/oxfmt.ts",
+      "line": 14,
+      "signature": "oxfmtConfigs: OxfmtConfig"
+    },
+    {
+      "name": "oxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 30,
+      "signature": "oxlintConfigs: OxlintConfig"
+    },
+    {
+      "name": "prettierConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/prettier.ts",
+      "line": 3,
+      "signature": "prettierConfigs: Config"
+    },
+    {
+      "name": "reactHouseConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/configs.ts",
+      "line": 43,
+      "signature": "reactHouseConfigs: Linter.Config[]"
+    },
+    {
+      "name": "reactNamingConventionConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 192,
+      "signature": "reactNamingConventionConfigs: Linter.Config[]"
+    },
+    {
+      "name": "readField",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 14,
+      "signature": "readField: (opts: { node: unknown; key: string; }) => unknown"
+    },
+    {
+      "name": "BunCompiler",
+      "package": "@venizia/dev-configs",
+      "subpath": "./compilers",
+      "specifier": "@venizia/dev-configs/compilers",
+      "kind": "class",
+      "file": "packages/dev-configs/src/compilers/bun.ts",
+      "line": 6,
+      "signature": "class BunCompiler"
+    },
+    {
+      "name": "browserOxfmtConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./formatters",
+      "specifier": "@venizia/dev-configs/formatters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/oxfmt.ts",
+      "line": 37,
+      "signature": "browserOxfmtConfigs: OxfmtConfig"
+    },
+    {
+      "name": "oxfmtConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./formatters",
+      "specifier": "@venizia/dev-configs/formatters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/oxfmt.ts",
+      "line": 14,
+      "signature": "oxfmtConfigs: OxfmtConfig"
+    },
+    {
+      "name": "prettierConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./formatters",
+      "specifier": "@venizia/dev-configs/formatters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/formatters/prettier.ts",
+      "line": 3,
+      "signature": "prettierConfigs: Config"
+    },
+    {
+      "name": "AstNodeTypes",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 2,
+      "signature": "class AstNodeTypes"
+    },
+    {
+      "name": "BrowserOxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/browser.ts",
+      "line": 18,
+      "signature": "class BrowserOxlintConfigs"
+    },
+    {
+      "name": "EqeqeqRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/eqeqeq.rule.ts",
+      "line": 4,
+      "signature": "class EqeqeqRule"
+    },
+    {
+      "name": "HOUSE_PLUGIN_NAMESPACE",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 11,
+      "signature": "HOUSE_PLUGIN_NAMESPACE = \"venizia\""
+    },
+    {
+      "name": "IReactEslintPlugins",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 11,
+      "signature": "interface IReactEslintPlugins"
+    },
+    {
+      "name": "IRestrictedImportPath",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-imports.rule.ts",
+      "line": 4,
+      "signature": "interface IRestrictedImportPath"
+    },
+    {
+      "name": "IRestrictedProperty",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-properties.rule.ts",
+      "line": 4,
+      "signature": "interface IRestrictedProperty"
+    },
+    {
+      "name": "MaxParamsOwnRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/max-params-own.rule.ts",
+      "line": 66,
+      "signature": "class MaxParamsOwnRule"
+    },
+    {
+      "name": "NamingConventionRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/naming-convention.rule.ts",
+      "line": 11,
+      "signature": "class NamingConventionRule"
+    },
+    {
+      "name": "NoNewErrorRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/house/no-new-error.rule.ts",
+      "line": 10,
+      "signature": "class NoNewErrorRule"
+    },
+    {
+      "name": "NoRestrictedImportsRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-imports.rule.ts",
+      "line": 11,
+      "signature": "class NoRestrictedImportsRule"
+    },
+    {
+      "name": "NoRestrictedPropertiesRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-restricted-properties.rule.ts",
+      "line": 16,
+      "signature": "class NoRestrictedPropertiesRule"
+    },
+    {
+      "name": "NoUnusedVarsRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/no-unused-vars.rule.ts",
+      "line": 4,
+      "signature": "class NoUnusedVarsRule"
+    },
+    {
+      "name": "PreferNullishCoalescingRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/prefer-nullish-coalescing.rule.ts",
+      "line": 4,
+      "signature": "class PreferNullishCoalescingRule"
+    },
+    {
+      "name": "ReactEslintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 34,
+      "signature": "class ReactEslintConfigs"
+    },
+    {
+      "name": "ReactOxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 129,
+      "signature": "class ReactOxlintConfigs"
+    },
+    {
+      "name": "SwitchCaseBracesRule",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/rules/switch-case-braces.rule.ts",
+      "line": 4,
+      "signature": "class SwitchCaseBracesRule"
+    },
+    {
+      "name": "TNamingSelector",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/naming-convention.rule.ts",
+      "line": 5,
+      "signature": "type TNamingSelector = Record<string, unknown> & { selector: string | string[]; }"
+    },
+    {
+      "name": "TOxlintRuleEntry",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/common.ts",
+      "line": 7,
+      "signature": "type TOxlintRuleEntry<TName extends string> = NonNullable<NonNullable<OxlintConfig['rules']>[TName]>"
+    },
+    {
+      "name": "TRuleSeverity",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "type",
+      "file": "packages/dev-configs/src/linters/rules/common.ts",
+      "line": 4,
+      "signature": "type TRuleSeverity = 'off' | 'warn' | 'error'"
+    },
+    {
+      "name": "eslintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/eslint.ts",
+      "line": 95,
+      "signature": "eslintConfigs: Linter.Config[]"
+    },
+    {
+      "name": "houseConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/configs.ts",
+      "line": 40,
+      "signature": "houseConfigs: Linter.Config[]"
+    },
+    {
+      "name": "houseEslintPlugin",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/plugin.ts",
+      "line": 7,
+      "signature": "houseEslintPlugin: ESLint.Plugin"
+    },
+    {
+      "name": "namingConventionConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/eslint.ts",
+      "line": 145,
+      "signature": "namingConventionConfigs: Linter.Config[]"
+    },
+    {
+      "name": "nodeType",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 22,
+      "signature": "nodeType: (opts: { node: unknown; }) => string | undefined"
+    },
+    {
+      "name": "oxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 30,
+      "signature": "oxlintConfigs: OxlintConfig"
+    },
+    {
+      "name": "reactHouseConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/configs.ts",
+      "line": 43,
+      "signature": "reactHouseConfigs: Linter.Config[]"
+    },
+    {
+      "name": "reactNamingConventionConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/react.ts",
+      "line": 192,
+      "signature": "reactNamingConventionConfigs: Linter.Config[]"
+    },
+    {
+      "name": "readField",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "const",
+      "file": "packages/dev-configs/src/linters/house/common.ts",
+      "line": 14,
+      "signature": "readField: (opts: { node: unknown; key: string; }) => unknown"
+    },
+    {
+      "name": "expectRejection",
+      "package": "@venizia/dev-configs",
+      "subpath": "./testing",
+      "specifier": "@venizia/dev-configs/testing",
+      "kind": "const",
+      "file": "packages/dev-configs/src/testing/rejection.helper.ts",
+      "line": 28,
+      "signature": "expectRejection: (opts: { task: Promise<unknown>; message: string | RegExp; }) => Promise<void>"
+    },
+    {
+      "name": "rejectionOf",
+      "package": "@venizia/dev-configs",
+      "subpath": "./testing",
+      "specifier": "@venizia/dev-configs/testing",
+      "kind": "const",
+      "file": "packages/dev-configs/src/testing/rejection.helper.ts",
+      "line": 12,
+      "signature": "rejectionOf: (task: Promise<unknown>) => Promise<unknown>"
+    },
     {
       "name": "AES",
       "package": "@venizia/ignis",
@@ -15583,66 +16263,6 @@
       "file": "packages/core-server/src/components/websocket/component.ts",
       "line": 29,
       "signature": "class WebSocketComponent extends BaseComponent"
-    },
-    {
-      "name": "AtlasConstants",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "class",
-      "file": "packages/atlas/src/common/constants.ts",
-      "line": 12,
-      "signature": "class AtlasConstants"
-    },
-    {
-      "name": "AtlasModes",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "class",
-      "file": "packages/atlas/src/common/constants.ts",
-      "line": 21,
-      "signature": "class AtlasModes"
-    },
-    {
-      "name": "Corpora",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "class",
-      "file": "packages/atlas/src/common/constants.ts",
-      "line": 30,
-      "signature": "class Corpora"
-    },
-    {
-      "name": "ProtocolVersions",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "class",
-      "file": "packages/atlas/src/common/constants.ts",
-      "line": 2,
-      "signature": "class ProtocolVersions"
-    },
-    {
-      "name": "TAtlasMode",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "type",
-      "file": "packages/atlas/src/common/types.ts",
-      "line": 4,
-      "signature": "type TAtlasMode = TConstValue<typeof AtlasModes>"
-    },
-    {
-      "name": "TCorpus",
-      "package": "@venizia/ignis-atlas",
-      "subpath": ".",
-      "specifier": "@venizia/ignis-atlas",
-      "kind": "type",
-      "file": "packages/atlas/src/common/types.ts",
-      "line": 5,
-      "signature": "type TCorpus = TConstValue<typeof Corpora>"
     },
     {
       "name": "ArtifactIndexEmitter",

@@ -10,8 +10,9 @@ re-deriving the project from the source each session.
 **The code is ground truth.** These concepts are curated prose over the code. When the two disagree,
 the code wins and the concept is a bug - fix it and note it in [log](/log.md).
 
-Served over MCP by [`ignis-atlas`](/packages/atlas.md), registered in `.mcp.json`: `search` with
-`corpus: "knowledge"` finds a concept, `get` reads one by the id a search hit returned.
+Served over MCP by `ignis-atlas`, registered in `.mcp.json`; it runs VULCAN's atlas (`bun x --no-install
+vulcan x atlas mcp`). `search` with `corpus: "knowledge"` finds a concept, `get` reads one by the id a
+search hit returned. Outside this repo the same server is `@venizia/vulcan-atlas`.
 
 ## Start here
 
@@ -26,7 +27,7 @@ Served over MCP by [`ignis-atlas`](/packages/atlas.md), registered in `.mcp.json
 
 ## Packages
 
-The framework ships ten packages, built in dependency order.
+The framework ships nine packages, built in dependency order.
 
 | Package | Role |
 |---|---|
@@ -39,7 +40,6 @@ The framework ships ten packages, built in dependency order.
 | [inversion](/packages/inversion.md) | The standalone IoC container |
 | [helpers](/packages/helpers.md) | Production utility modules |
 | [dev-configs](/packages/dev-configs.md) | Shared oxlint, oxfmt, naming-convention ESLint, and TypeScript config |
-| [atlas](/packages/atlas.md) | The MCP server: search and read the wiki, changelogs and knowledge bundle |
 
 ## Architecture
 

@@ -1,14 +1,25 @@
 ---
 type: Convention
 title: Options objects
-description: Every function takes a single options object, never positional parameters.
+description: Fold every argument into one options object first; a second parameter only where that object cannot carry it, never more than 5.
 resource: packages/core-server/src
 tags: [conventions, api-design]
 ---
 
-IGNIS functions and constructors take one options object, never a positional argument list.
-Write `fn(opts: { key: string })`, not `fn(key: string)`. This applies everywhere: helpers,
-repositories, controllers, the container, and internal utilities alike.
+IGNIS functions and constructors fold every argument they can into one options object in the first
+position. Write `fn(opts: { key: string })`, not `fn(key: string)`. This applies everywhere: helpers,
+repositories, controllers, the container, and internal utilities alike. It is the base rule `V-C-02`.
+
+## The limits
+
+- **A second parameter is allowed only where the first object cannot carry it.** The default is
+  still one object. A second parameter needs a reason the first object cannot hold it, not a
+  preference.
+- **Never more than 5 parameters.** `venizia/max-params-own` (`houseConfigs` in
+  `@venizia/dev-configs/linters`, default 5) enforces the cap in lint. It skips signatures that are not
+  ours: an inline callback handed to a call or a JSX prop, a function a declared type fixes, and a
+  constructor whose every parameter is `@inject`ed - the container fills those positionally
+  (C-03).
 
 ## A single parameter is not an exception
 

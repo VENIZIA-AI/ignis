@@ -10,20 +10,18 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**119 targets.**
+**112 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
 | `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
-| `make atlas` | `helpers` | Rebuild one package, after its dependencies. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
-| `make build-all` | `core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-all` | `core core-worker boot docs surface-check symbols-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
-| `make clean-install-atlas` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-connectors` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-core` | `clean-install-core-server` | Load one package's sub-paths from a clean install. Needs a build. |
@@ -42,7 +40,6 @@ generated:
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt` | `fmt-packages` | fmt-<pkg> for every package. |
-| `make fmt-atlas` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
 | `make fmt-boot` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
 | `make fmt-connectors` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
 | `make fmt-core` | `fmt-core-server` | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
@@ -53,7 +50,7 @@ generated:
 | `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
 | `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
 | `make fmt-kernel` | - | Apply oxlint --fix, ESLint --fix and oxfmt to one package. |
-| `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server fmt-atlas` | fmt-<pkg> for every package. |
+| `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server` | fmt-<pkg> for every package. |
 | `make help` | - | Show this help message (a bare 'make' does the same). |
 | `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
 | `make install` | - | Install all dependencies with bun. |
@@ -61,7 +58,6 @@ generated:
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
 | `make lint-all` | `lint-packages lint-scripts` | lint-packages and lint-scripts. |
-| `make lint-atlas` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
@@ -72,7 +68,7 @@ generated:
 | `make lint-helpers` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-kernel` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
-| `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server lint-atlas` | lint-<pkg> for every package. |
+| `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server` | lint-<pkg> for every package. |
 | `make lint-scripts` | - | Format check + tsc type-check of scripts/. |
 | `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
 | `make okf-check` | - | Gate: OKF v0.2 conformance. |
@@ -81,7 +77,6 @@ generated:
 | `make okf-gen` | - | Regenerate source-derived reference content. |
 | `make okf-viz` | - | Build the offline knowledge-graph explorer. |
 | `make purity` | - | Gate: every entry claimed browser-pure has no node builtin or global. |
-| `make purity-atlas` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-boot` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-connectors` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-core` | `purity-core-server` | Gate: one package's browser-pure entries. Needs a build. |
@@ -103,8 +98,7 @@ generated:
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
 | `make symbols-check` | - | Gate: the symbol table matches the built .d.ts. |
 | `make symbols-gen` | - | Regenerate .agents/knowledge/reference/symbols.json for the Atlas symbol tool. |
-| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server test-atlas` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
-| `make test-atlas` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
+| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
@@ -118,7 +112,6 @@ generated:
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make update` | `install` | Force update all packages from NPM registry. |
 | `make update-all` | `install` | Force update all packages from NPM registry. |
-| `make update-atlas` | - | Force update one package's dependencies from NPM. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

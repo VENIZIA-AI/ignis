@@ -51,7 +51,7 @@ The root barrel needs no optional peer at load time: `ioredis` is loaded lazily 
 and `@hono/zod-openapi` is not a peer at all since the duplicate `ErrorSchema` moved to the kernel.
 `src/__tests__/manifest/root-barrel-dependencies.test.ts` walks every static import reachable from
 `src/index.ts`, fails on any bare package that is neither a dependency nor a peer - the gate that
-would have caught the Atlas tarball dying on an import - and pins that neither `ioredis` nor
+would have caught a CLI tarball dying on an import - and pins that neither `ioredis` nor
 `@hono/zod-openapi` is reached.
 
 Helpers that depend on an optional peer package are never re-exported from the root barrel - they are reachable only via their own sub-path, so importing `@venizia/ignis-helpers` never forces that peer into a consumer's bundle. Confirmed sub-path-only exports: `@venizia/ignis-helpers/socket-io`, `/bullmq`, `/mqtt`, `/bun-s3`, `/minio`, `/axios`, `/cron`, `/kafka`, `/hashicorp-vault`, `/dotenv-vault`, `/winston`, and `/pino`. Dedicated tests assert the root barrel never re-exports the axios fetcher, never loads winston, and never resolves pino.

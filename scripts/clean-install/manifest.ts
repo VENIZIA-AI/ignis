@@ -88,7 +88,6 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
     },
     importedAfter: { '.': ['jose'], './postgres/postgres-js': ['postgres'] },
   },
-  { package: 'atlas' },
   // No grant: ESLint arrives as a required peer of the bundled plugins. The tsconfig exports are
   // JSON and get no row.
   // `./testing` imports `bun:test`: it loads under Bun only, as the test helpers it is.

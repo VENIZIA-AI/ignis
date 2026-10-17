@@ -30,15 +30,13 @@ setup-hooks:
 # ----------------------------------------------------------------------------
 build: build-all
 
-build-all: core core-worker boot atlas docs surface-check symbols-check wiki-links-check wiki-anchors-check
+build-all: core core-worker boot docs surface-check symbols-check wiki-links-check wiki-anchors-check
 	@echo "🚀 All packages rebuilt successfully."
 
 # `make <pkg>` rebuilds one package after its dependencies. The graph:
 # dev-configs → inversion → {filter, helpers} → kernel → connectors → core-server.
 # `boot` hangs off helpers and is consumed by applications only (the `ignis-artifacts` generator) -
 # core does not depend on it, so `build-all` names it explicitly.
-# `atlas` depends on helpers and is consumed by neither core nor the applications - `build-all`
-# names it explicitly too.
 # `filter` is isomorphic and depends on inversion only - it deliberately does NOT sit after helpers.
 # `kernel` is the browser-pure tree (DI container, base classes, REST controllers, auth seam) -
 # it sits beside `boot`, not after it, so it never depends on boot's node-only glob discovery.
@@ -46,7 +44,7 @@ build-all: core core-worker boot atlas docs surface-check symbols-check wiki-lin
 # kernel only, sits beside `connectors`, and never on `core`.
 inversion: dev-configs
 filter helpers: inversion
-boot atlas: helpers
+boot: helpers
 kernel: helpers filter
 connectors core-worker: kernel
 core-server: connectors

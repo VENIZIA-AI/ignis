@@ -11,7 +11,7 @@ all: build
 # Every package directory under packages/. Each per-package target (`<pkg>`, `update-<pkg>`,
 # `lint-<pkg>`, `fmt-<pkg>`, `test-<pkg>`, `purity-<pkg>`, `clean-install-<pkg>`) is generated
 # from this list - add a package here and every target exists for it.
-PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server atlas
+PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server
 
 # The npm name of a package directory, read from its package.json: $(call PKG_NAME,kernel).
 PKG_NAME = $(shell sed -n 's/^  "name": "\(.*\)",$$/\1/p' packages/$(1)/package.json)

@@ -23,7 +23,6 @@ export default {
       connectors: '@venizia/ignis-connectors',
       'core-worker': '@venizia/ignis-worker',
       'core-server': '@venizia/ignis',
-      atlas: '@venizia/ignis-atlas',
     },
     tagPattern: '<package>-v<version>',
     releaseCommit: '[#<issue>] chore(<package>): release v<version>',

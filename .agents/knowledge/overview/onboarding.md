@@ -12,7 +12,7 @@ Follow this order. Each step depends on the one before it.
 
 Start with [What is IGNIS](/overview/what-is-ignis.md) - LoopBack 4's architecture on Hono's
 speed, and why that combination exists. Then skim
-[Monorepo layout](/overview/monorepo-layout.md) to know where the ten packages live - note
+[Monorepo layout](/overview/monorepo-layout.md) to know where the nine packages live - note
 `connectors`, the datasource, driver and repository tier, which is where most data-access questions
 end up. They build in a fixed dependency order; read the chain in
 [build system](/process/build-system.md), which is its canonical copy.

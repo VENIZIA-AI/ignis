@@ -56,9 +56,9 @@ The main chain is:
 dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-server
 ```
 
-`boot`, `atlas` and `core-worker` hang off that chain rather than sitting in it. `core-server` depends on none of them, so `make build-all` names them separately.
+`boot` and `core-worker` hang off that chain rather than sitting in it. `core-server` depends on neither, so `make build-all` names them separately.
 
-**The ten packages.** The directory name and the npm name often differ:
+**The nine packages.** The directory name and the npm name often differ:
 
 | Directory | npm name | Depends on | Purpose |
 |-----------|----------|------------|---------|
@@ -71,7 +71,6 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-se
 | `core-server` | `@venizia/ignis` | connectors | The server framework. `make core` is an alias for `make core-server` |
 | `core-worker` | `@venizia/ignis-worker` | kernel | Browser Worker host. Sits beside connectors, never depends on core-server |
 | `boot` | `@venizia/ignis-boot` | helpers | The `ignis-artifacts` generator, consumed by applications |
-| `atlas` | `@venizia/ignis-atlas` | helpers | The MCP server over the wiki, changelogs and knowledge bundle |
 
 **Why this matters:**
 - If you modify `kernel`, you must rebuild `connectors` and `core-server`
@@ -87,7 +86,7 @@ The project uses a Makefile for common development tasks:
 | `make install` | `bun install` |
 | `make update` | Alias for `make install` |
 | `make build` | Alias for `build-all` |
-| `make build-all` | Rebuild `core`, `core-worker`, `boot`, `atlas` and `docs`, then run `surface-check`, `symbols-check` and `wiki-links-check` |
+| `make build-all` | Rebuild `core`, `core-worker`, `boot` and `docs`, then run `surface-check`, `symbols-check` and `wiki-links-check` |
 | `make clean` | Clean build artifacts from all packages |
 | `make lint` | Lint all packages |
 | `make lint-all` | Lint packages and scripts - with `bun scripts/examples.ts check` for the examples, this is the bar a PR must clear |
@@ -108,7 +107,6 @@ make filter        # @venizia/ignis-filter, through inversion
 make inversion     # @venizia/ignis-inversion, through dev-configs
 make dev-configs   # @venizia/dev-configs only
 make docs          # Build VitePress documentation (independent)
-make atlas         # The Atlas MCP server over the wiki, changelogs and knowledge bundle
 ```
 
 **Force update individual packages** (each fetches the latest published version from npm):
@@ -120,7 +118,6 @@ make update-helpers
 make update-filter
 make update-inversion
 make update-dev-configs
-make update-atlas
 ```
 
 ## 2. Development Workflow
@@ -191,7 +188,7 @@ make test-core-server
 ```
 
 > [!IMPORTANT]
-> Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). Two packages, `boot` and `atlas`, also own their own `test` script (`NODE_ENV=test bun test --env-file=.env.test`); a bare `bun test` there silently skips both the environment and the env file. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker`, `test-core-server` and `test-atlas`. `filter` has no suite.
+> Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). One package, `boot`, also owns its own `test` script (`NODE_ENV=test bun test --env-file=.env.test`); a bare `bun test` there silently skips both the environment and the env file. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker` and `test-core-server`. `filter` has no suite.
 
 > [!NOTE]
 > Tests load `dist/`, not `src/`, so a stale build tests stale code. `make <package>` handles the ordering for you: each package's `make rebuild` type-checks first and only then cleans `dist/`, so a broken test aborts the run before anything is deleted.

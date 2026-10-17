@@ -11,16 +11,17 @@ tags: [process, docs, wiki]
 1. Know the difference: `docs/wiki/` is the human-facing documentation site, a VitePress site built
    from markdown under `content/`. It lives at top-level `docs/wiki/` (sibling of `packages/`,
    package name `@venizia/ignis-docs`), not inside `packages/`. The MCP server that reads this same
-   content is a separate package, [`@venizia/ignis-atlas`](/packages/atlas.md)
-   (`packages/atlas`) - `docs/wiki` no longer ships one itself. This `.agents/knowledge/` bundle
+   content is VULCAN's atlas (`@venizia/vulcan-atlas`, run in this repo as
+   `bun x --no-install vulcan x atlas mcp`, registered in `.mcp.json` as `ignis-atlas`) - `docs/wiki`
+   no longer ships one itself. This `.agents/knowledge/` bundle
    (what this file is part of) is a separate, agent-facing artifact - editing one does not update
    the other.
 2. All prose lives under `docs/wiki/content/`: `guides/` (get started, core concepts, tutorials,
    migrations), `references/` (base API - application, dependency injection, models, repositories,
    datasources - plus `utilities/` and `configuration/`), `extensions/` (the per-component,
-   per-helper and Atlas references, under `extensions/components/`, `extensions/helpers/` and
+   per-helper and atlas references, under `extensions/components/`, `extensions/helpers/` and
    `extensions/atlas/`), `best-practices/` (architecture, testing, deployment), `changelogs/`
-   (feature announcements - indexed by `ignis-atlas` as their own `changelog` corpus).
+   (feature announcements - indexed by atlas as their own `changelog` corpus).
 3. To add a new doc page: create the `.md` file under the right `content/` subdirectory, then add
    it to the VitePress sidebar config at `docs/wiki/site/.vitepress/config.mts` - a page that
    exists but isn't in the sidebar config is unreachable from site navigation. This is enforced,
@@ -49,9 +50,9 @@ tags: [process, docs, wiki]
 6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The
    `mcp-server/` directory this step used to describe is deleted; the MCP server that answers over
-   this content is now `@venizia/ignis-atlas` (`packages/atlas`), built and released separately -
-   see its concept and the `changelog:2026-09-06-ignis-atlas` entry (atlas citation ids address
-   changelogs; a bundle-style `/changelogs/...` link resolves to nothing here).
+   this content is now `@venizia/vulcan-atlas`, built and released from the VULCAN repo (the old
+   `@venizia/ignis-atlas` package is deprecated) - see the `changelog:2026-09-06-ignis-atlas` entry
+   (atlas citation ids address changelogs; a bundle-style `/changelogs/...` link resolves to nothing here).
 7. Style rules for anything you write in `docs/wiki/content/`: hyphen `-` only, never an em-dash or
    en-dash; the brand is always written **IGNIS**, never the mixed-case form. These are content rules, not
    visual ones - do not introduce new UI components or theme CSS for a changelog or any other page;

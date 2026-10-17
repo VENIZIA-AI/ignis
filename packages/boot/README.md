@@ -158,7 +158,7 @@ const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifa
 
 ## Where it sits
 
-`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas`. Boot depends on `@venizia/ignis-helpers` only; no IGNIS package depends on boot, so the application declares it.
+`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}`. Boot depends on `@venizia/ignis-helpers` only; no IGNIS package depends on boot, so the application declares it.
 
 The generated index replaces the runtime booters IGNIS once took from LoopBack 4, which globbed the file system at startup.
 

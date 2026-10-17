@@ -10,21 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1104 source files across 10 packages.**
-
-## atlas  (45 source files)
-
-| Subsystem | Files |
-|---|---|
-| `tools/` | 8 |
-| `corpus/` | 7 |
-| `protocol/` | 6 |
-| `search/` | 6 |
-| `common/` | 5 |
-| `releases/` | 4 |
-| `symbols/` | 4 |
-| `cli/` | 1 |
-| `server/` | 1 |
+**1059 source files across 9 packages.**
 
 ## boot  (17 source files)
 

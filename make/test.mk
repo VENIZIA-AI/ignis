@@ -4,7 +4,7 @@
 NO_TEST := dev-configs filter
 # Packages whose package.json owns the test command (NODE_ENV=test + .env.test); `bun run` appends
 # the flags to it. The rest run `bun test` directly.
-TEST_SCRIPT := boot atlas
+TEST_SCRIPT := boot
 TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 
 # Packages with an entry claimed browser-pure (scripts/purity/manifest.ts); the rest skip.
