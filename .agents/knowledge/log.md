@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - Dependencies no package imports are gone
+
+Updated [inversion](/packages/inversion.md).
+
+- `zod` left the `dependencies` of `inversion`, `kernel` and `core-server`, `reflect-metadata` left `connectors`, and `drizzle-kit` and `tsx` left `core-server`'s dev dependencies. None of them was imported by the package declaring it; the kernel reaches zod only through `@hono/zod-openapi`, which carries it as its own peer.
+
 ## 2026-10-17 - IGNIS under VULCAN 0.2.0 Project Contract v1
 
 Added [knowledge-sync area map](/process/knowledge-sync-areas.md). Updated [release and publish](/process/release-publish.md), [build system](/process/build-system.md).

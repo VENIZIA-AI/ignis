@@ -341,7 +341,7 @@ Fill only where you choose to. A filled text carries every arg value inline, out
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
-share it. Its only dependencies are `reflect-metadata` and `zod`; it ships dual CJS+ESM, and pulls in no server module. A frontend
+share it. Its only dependency is `reflect-metadata`; it ships dual CJS+ESM, and pulls in no server module. A frontend
 throws its own failures with the same `getError` the server uses, and reads the server's with the
 same field names.
 

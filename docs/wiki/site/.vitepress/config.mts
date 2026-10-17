@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Dependencies No Package Imported Are Removed',
+                  link: '/changelogs/2026-10-17-unused-dependencies',
+                },
+                {
                   text: 'Repository With a Type-Only DataSource Import',
                   link: '/changelogs/2026-10-17-repository-type-only-datasource',
                 },
