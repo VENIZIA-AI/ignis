@@ -5015,6 +5015,17 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-10-17-response-reader-to-application-error",
+      "file": "2026-10-17-response-reader-to-application-error.md",
+      "date": "2026-10-17",
+      "title": "HttpResponseReader Maps a Failed Response to an ApplicationError",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Enhancement",
+      "order": 1695
+    },
+    {
       "id": "changelog:2026-10-16-oxlint-oxfmt-migration",
       "file": "2026-10-16-oxlint-oxfmt-migration.md",
       "date": "2026-10-16",
