@@ -26,6 +26,9 @@ const JS_TS_FILES = ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.jsx', ...TS_FILES]
  *
  * export default defineConfig(oxlintConfigs);
  * ```
+ *
+ * `OxlintConfigs.create({ lenientFallback: true })` is the same preset with `||` allowed on string
+ * and number operands.
  */
 export const oxlintConfigs: OxlintConfig = {
   plugins: ['typescript', 'unicorn'],
@@ -183,3 +186,41 @@ export const oxlintConfigs: OxlintConfig = {
     },
   ],
 };
+
+export interface IOxlintPresetOptions {
+  /**
+   * Allow `||` / `||=` where the left side is a string or a number, so `name || 'guest'` and
+   * `limit || 20` pass: `''` and `0` fall back on purpose. Off by default - the base catches a real
+   * `''` or `0` swallowed by `||`.
+   */
+  lenientFallback?: boolean;
+}
+
+/**
+ * Builds `oxlintConfigs` with options. Without any it returns the base preset unchanged.
+ *
+ * ```ts
+ * // .configs/oxlint.config.mts
+ * import { defineConfig } from 'oxlint';
+ * import { OxlintConfigs } from '@venizia/dev-configs/linters';
+ *
+ * export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
+ * ```
+ */
+export class OxlintConfigs {
+  static create(opts: IOxlintPresetOptions = {}): OxlintConfig {
+    if (!opts.lenientFallback) {
+      return oxlintConfigs;
+    }
+
+    return {
+      ...oxlintConfigs,
+      rules: {
+        ...oxlintConfigs.rules,
+        [PreferNullishCoalescingRule.NAME]: PreferNullishCoalescingRule.build({
+          ignorePrimitives: { string: true, number: true },
+        }),
+      },
+    };
+  }
+}

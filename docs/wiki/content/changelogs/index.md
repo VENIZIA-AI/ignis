@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [lenientFallback for the oxlint Presets](./2026-10-17-oxlint-lenient-fallback) | Feature |
 | 2026-10-17 | [LINT_IGNORE and Shared Test Helpers](./2026-10-17-lint-ignore-and-testing-helpers) | Feature |
 | 2026-10-17 | [dev-configs House Rules and Type-Only Imports](./2026-10-17-dev-configs-house-rules) | Feature, Behavior Change |
 | 2026-10-17 | [HttpResponseReader Maps a Failed Response to an ApplicationError](./2026-10-17-response-reader-to-application-error) | Enhancement |

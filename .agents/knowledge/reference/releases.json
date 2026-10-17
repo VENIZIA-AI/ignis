@@ -5025,6 +5025,15 @@
       "order": 1694
     },
     {
+      "id": "changelog:2026-10-17-oxlint-lenient-fallback",
+      "file": "2026-10-17-oxlint-lenient-fallback.md",
+      "date": "2026-10-17",
+      "title": "lenientFallback for the oxlint Presets",
+      "packages": [],
+      "kind": "New Feature",
+      "order": 9007199254740991
+    },
+    {
       "id": "changelog:2026-10-17-lint-ignore-and-testing-helpers",
       "file": "2026-10-17-lint-ignore-and-testing-helpers.md",
       "date": "2026-10-17",

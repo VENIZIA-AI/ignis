@@ -25,6 +25,7 @@ TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/ts
 oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced ESLint and Prettier for everything except one rule. They are optional peer dependencies: `oxlint >=1.88.0`, `oxfmt >=0.73.0`, `oxlint-tsgolint >=7.0.2004`. The ESLint config is `.mjs` so ESLint needs no `jiti`. `typescript-eslint` is a regular dependency.
 
 - `oxlintConfigs` is the oxlint port of `eslintConfigs`, generated with `@oxlint/migrate`. Three rules are not ported: `prefer-optional-chain` (oxlint nursery), `no-invalid-this` (covered by `noImplicitThis`), and `n/prefer-node-protocol` (now `unicorn/prefer-node-protocol`).
+- `prefer-nullish-coalescing` stays strict in every preset (decided by the maintainer, 2026-10-17). `OxlintConfigs.create({ lenientFallback: true })` - and the same option on the browser and React `create()` - allows `||` on string and number left sides only; BANA asked for it so its backend configs stay preset-only. The rule fires only on a nullable left side, so a probe needs `name?: string`, not `name: string`.
 - `oxfmtConfigs` carries the same seven options the old Prettier config did: `printWidth: 100`, `tabWidth: 2`, `singleQuote: true`, `semi: true`, `trailingComma: "all"`, `arrowParens: "avoid"`, `bracketSpacing: true`.
 - `prettierConfigs` is still exported for a consumer that has not moved. IGNIS itself no longer uses it.
 - `oxlint-tsgolint` is built on TypeScript 7. IGNIS is on TypeScript 6 and it works.

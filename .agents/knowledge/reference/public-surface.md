@@ -10,7 +10,7 @@ tags: [reference, exports, api]
 
 ## dev-configs
 
-### `@venizia/dev-configs` (33)
+### `@venizia/dev-configs` (35)
 
 - `AstNodeTypes` class
 - `browserOxfmtConfigs` const
@@ -21,6 +21,7 @@ tags: [reference, exports, api]
 - `HOUSE_PLUGIN_NAMESPACE` const
 - `houseConfigs` const
 - `houseEslintPlugin` const
+- `IOxlintPresetOptions` interface
 - `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
@@ -34,6 +35,7 @@ tags: [reference, exports, api]
 - `NoUnusedVarsRule` class
 - `oxfmtConfigs` const
 - `oxlintConfigs` const
+- `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
 - `prettierConfigs` const
 - `ReactEslintConfigs` class
@@ -56,7 +58,7 @@ tags: [reference, exports, api]
 - `oxfmtConfigs` const
 - `prettierConfigs` const
 
-### `@venizia/dev-configs/linters` (29)
+### `@venizia/dev-configs/linters` (31)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
@@ -65,6 +67,7 @@ tags: [reference, exports, api]
 - `HOUSE_PLUGIN_NAMESPACE` const
 - `houseConfigs` const
 - `houseEslintPlugin` const
+- `IOxlintPresetOptions` interface
 - `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
@@ -77,6 +80,7 @@ tags: [reference, exports, api]
 - `NoRestrictedPropertiesRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
+- `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const

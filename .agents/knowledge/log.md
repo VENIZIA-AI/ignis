@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - lenientFallback on the oxlint presets
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `OxlintConfigs.create({ lenientFallback })`; `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take the same option. The default stays strict.
+
 ## 2026-10-17 - What moved to VULCAN is deleted from IGNIS
 
 Updated [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [testing](/process/testing.md). Removed the atlas package concept.
