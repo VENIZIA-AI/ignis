@@ -72,7 +72,7 @@ export class ArtifactStereotypes {
     return this.SCHEME_SET.has(value);
   }
 
-  static readonly SOURCE_MODULES = /^@venizia\/ignis(-kernel)?$/;
+  static readonly SOURCE_MODULES = /^@venizia\/ignis(?:-kernel)?(?:\/.+)?$/;
 
   static readonly DEFAULT_IGNORE = [
     '**/__tests__/**',

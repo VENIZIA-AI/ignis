@@ -1,5 +1,7 @@
+import { ArtifactStereotypes } from '@/generator/common';
 import { ArtifactScanner } from '@/generator/scanner';
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
+import { StereotypeReexportResolver } from '@/generator/reexport';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'artifacts');
@@ -136,5 +138,35 @@ describe('ArtifactScanner - skipped report', () => {
     expect(skipped).toContainEqual(
       expect.objectContaining({ className: 'GreeterService', reason: 'ignored' }),
     );
+  });
+});
+
+describe('ArtifactScanner - followReexports cost', () => {
+  test('only an import used as a class decorator is followed, never a plain value import', () => {
+    const originOf = spyOn(StereotypeReexportResolver.prototype, 'originOf');
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
+      root: REEXPORT_APP,
+      followReexports: true,
+    });
+
+    expect(artifacts.map(a => a.className)).toContain('MixedService');
+    expect(originOf.mock.calls.map(([opts]) => opts.name)).not.toContain('helper');
+    originOf.mockRestore();
+  });
+});
+
+describe('ArtifactScanner - kernel sub-paths', () => {
+  test('a re-export from a kernel sub-path (@venizia/ignis-kernel/metadata) counts', () => {
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
+      root: REEXPORT_APP,
+      followReexports: true,
+    });
+    expect(artifacts.map(a => a.className)).toContain('SubpathService');
+  });
+
+  test('a sibling package sharing the prefix (@venizia/ignis-boot) is not a source module', () => {
+    expect(ArtifactStereotypes.SOURCE_MODULES.test('@venizia/ignis-boot')).toBe(false);
+    expect(ArtifactStereotypes.SOURCE_MODULES.test('@venizia/ignis-helpers/common')).toBe(false);
+    expect(ArtifactStereotypes.SOURCE_MODULES.test('@venizia/ignis-kernel/metadata')).toBe(true);
   });
 });

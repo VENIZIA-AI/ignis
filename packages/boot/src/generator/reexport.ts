@@ -10,6 +10,10 @@ export class StereotypeReexportResolver extends BaseHelper {
 
   private readonly options: ts.CompilerOptions;
   private readonly sourceModules: Set<string>;
+  /** One scan reads the same barrels many times: resolutions, parsed files and answers are memoized per resolver. */
+  private readonly resolutions = new Map<string, string | undefined>();
+  private readonly sources = new Map<string, ts.SourceFile>();
+  private readonly origins = new Map<string, string | undefined>();
 
   constructor(opts: { root: string; sourceModules: Set<string> }) {
     super({ scope: StereotypeReexportResolver.name });
@@ -39,7 +43,37 @@ export class StereotypeReexportResolver extends BaseHelper {
 
   /** The kernel name `name` (exported by `specifier`, as seen from `fromFile`) originates as, or `undefined` when the chain never reaches a source module. */
   originOf(opts: { fromFile: string; specifier: string; name: string }): string | undefined {
-    return this.follow({ ...opts, depth: 0, seen: new Set<string>() });
+    const key = `${dirname(opts.fromFile)}|${opts.specifier}|${opts.name}`;
+    if (!this.origins.has(key)) {
+      this.origins.set(key, this.follow({ ...opts, depth: 0, seen: new Set<string>() }));
+    }
+    return this.origins.get(key);
+  }
+
+  private resolveFile(opts: { fromFile: string; specifier: string }): string | undefined {
+    const key = `${dirname(opts.fromFile)}|${opts.specifier}`;
+    if (!this.resolutions.has(key)) {
+      this.resolutions.set(
+        key,
+        ts.resolveModuleName(opts.specifier, opts.fromFile, this.options, ts.sys).resolvedModule
+          ?.resolvedFileName,
+      );
+    }
+    return this.resolutions.get(key);
+  }
+
+  private parse(opts: { file: string }): ts.SourceFile {
+    let source = this.sources.get(opts.file);
+    if (!source) {
+      source = ts.createSourceFile(
+        opts.file,
+        readFileSync(opts.file, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+      );
+      this.sources.set(opts.file, source);
+    }
+    return source;
   }
 
   private isSourceModule(opts: { specifier: string }): boolean {
@@ -64,20 +98,14 @@ export class StereotypeReexportResolver extends BaseHelper {
       return undefined;
     }
 
-    const resolved = ts.resolveModuleName(specifier, fromFile, this.options, ts.sys).resolvedModule
-      ?.resolvedFileName;
+    const resolved = this.resolveFile({ fromFile, specifier });
     const visit = `${resolved}#${name}`;
     if (!resolved || seen.has(visit)) {
       return undefined;
     }
     seen.add(visit);
 
-    const source = ts.createSourceFile(
-      resolved,
-      readFileSync(resolved, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-    );
+    const source = this.parse({ file: resolved });
     const next = (target: { specifier: string; name: string }): string | undefined =>
       this.follow({ fromFile: resolved, ...target, depth: depth + 1, seen });
 

@@ -188,6 +188,10 @@ export class ArtifactScanner extends BaseHelper {
     resolver?: StereotypeReexportResolver;
   }): Map<string, string> {
     const result = new Map<string, string>();
+    // Only a name a class actually wears as a decorator is worth following through re-exports.
+    const decoratorNames = opts.resolver
+      ? this.collectClassDecoratorNames({ source: opts.source })
+      : new Set<string>();
 
     for (const statement of opts.source.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
@@ -207,6 +211,9 @@ export class ArtifactScanner extends BaseHelper {
 
       for (const element of bindings.elements) {
         const name = (element.propertyName ?? element.name).text;
+        if (!isSourceModule && !decoratorNames.has(element.name.text)) {
+          continue;
+        }
         const imported = isSourceModule
           ? name
           : opts.resolver?.originOf({ fromFile: opts.source.fileName, specifier, name });
@@ -223,6 +230,23 @@ export class ArtifactScanner extends BaseHelper {
     }
 
     return result;
+  }
+
+  /** The identifiers called as decorators on the file's top-level classes (`@service()`, `@kit.service()` is not followed). */
+  private collectClassDecoratorNames(opts: { source: ts.SourceFile }): Set<string> {
+    const names = new Set<string>();
+    for (const statement of opts.source.statements) {
+      if (!ts.isClassDeclaration(statement)) {
+        continue;
+      }
+      for (const decorator of ts.getDecorators(statement) ?? []) {
+        const expression = decorator.expression;
+        if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
+          names.add(expression.expression.text);
+        }
+      }
+    }
+    return names;
   }
 
   private collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {
