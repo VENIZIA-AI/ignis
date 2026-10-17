@@ -1,10 +1,15 @@
 import './kernel-stub';
-import { ArtifactSources, GroupArtifactsResolver, IgnisArtifactsPlugin } from '@/bun';
+import {
+  ArtifactScanCache,
+  ArtifactSources,
+  GroupArtifactsResolver,
+  IgnisArtifactsPlugin,
+} from '@/bun';
 import { ArtifactScanner } from '@/generator';
 import { describe, expect, spyOn, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 const CORE = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'groups', 'core');
 const GROUPS_FILE = resolve(CORE, 'src', 'groups.ts');
@@ -87,6 +92,7 @@ describe('GroupArtifactsResolver - a compiled tree with no compiled classes', ()
 describe('ArtifactSources - one scan per package', () => {
   test('two groups of one package scan it once', () => {
     ArtifactSources.clear();
+    rmSync(ArtifactScanCache.location({ root: dirname(GROUPS_FILE) }), { force: true });
     const scan = spyOn(ArtifactScanner.prototype, 'scanWithReport');
     ArtifactSources.folderArtifacts({ folder: 'inventory', site: GROUPS_FILE });
     ArtifactSources.folderArtifacts({ folder: 'commerce', site: GROUPS_FILE });

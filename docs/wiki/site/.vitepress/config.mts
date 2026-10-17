@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Scan Cache and Lazy Auto Module',
+                  link: '/changelogs/2026-10-18-auto-artifacts-scan-cache',
+                },
+                {
                   text: 'Auto Artifacts Load the Running Tree',
                   link: '/changelogs/2026-10-18-auto-artifacts-running-tree',
                 },

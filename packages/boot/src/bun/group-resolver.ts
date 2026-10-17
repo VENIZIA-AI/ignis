@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers';
 import type { AnyType, TClass } from '@venizia/ignis-helpers';
-import { ArtifactStereotypes, type TGeneratedArtifactIndex } from '../generator';
+import { ArtifactStereotypes, type TGeneratedArtifactIndex } from '../generator/common';
+import { dirname } from 'node:path';
 import { ArtifactSources } from './sources';
 
 /** Fills an `ArtifactGroup` defined without content, from source: the defining package is the nearest `package.json` above the group's call site, and the group is every decorated class under a directory named `folder` in its `src`. */
@@ -16,6 +17,14 @@ export class GroupArtifactsResolver {
       throw getError({
         message: `[ArtifactGroup] '${folder ?? '<application>'}' has no call site to resolve from | Define it with ArtifactGroup.define in the shared package's own source`,
       });
+    }
+
+    if (
+      !ArtifactSources.isCached({
+        packageSource: ArtifactSources.packageSource({ from: dirname(site) }),
+      })
+    ) {
+      await ArtifactSources.loadScanner();
     }
 
     const index: Record<string, Array<TClass<AnyType>>> = {};

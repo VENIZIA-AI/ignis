@@ -1103,8 +1103,9 @@ generated:
 - `TGeneratedArtifactIndex` type
 - `TScanSkipReason` type
 
-### `@venizia/ignis-boot/bun` (5)
+### `@venizia/ignis-boot/bun` (6)
 
+- `ArtifactScanCache` class
 - `ArtifactSources` class
 - `AutoArtifactGroup` class
 - `AutoArtifactsLoader` class

@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - Scan cache; lazy auto module in binaries
+
+Updated [boot](/packages/boot.md).
+
+- A source start reuses the previous scan while no `.ts` under `src`, the manifest or the lockfile changed, and then never loads TypeScript. In a plugin-built binary, importing `@venizia/ignis-boot/auto` loads no class until artifacts are resolved.
+
 ## 2026-10-18 - VULCAN 0.2.0-5
 
 Updated nothing else - tooling only.

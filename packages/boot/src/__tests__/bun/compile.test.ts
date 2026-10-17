@@ -1,7 +1,7 @@
 import { IgnisArtifactsPlugin } from '@/bun';
 import type { BunPlugin } from 'bun';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -43,6 +43,28 @@ const compile = async (opts: { app: string; plugins: BunPlugin[] }) =>
   });
 
 describe('a compiled binary', () => {
+  test('importing the auto module loads no class until artifacts are resolved', async () => {
+    const app = stage({ name: 'lazy-auto', app: join('compile', 'app') });
+    writeFileSync(
+      join(app, 'src', 'loud.service.ts'),
+      "import { service } from '@venizia/ignis-kernel';\nconsole.log('evaluated');\n@service()\nexport class LoudService {}\n",
+    );
+    writeFileSync(
+      join(app, 'src', 'lazy.ts'),
+      "import auto from '@venizia/ignis-boot/auto';\nconsole.log('imported');\nawait auto.resolve();\nconsole.log('resolved');\n",
+    );
+    const result = await Bun.build({
+      entrypoints: [join(app, 'src', 'lazy.ts')],
+      compile: { outfile: join(app, 'bin', 'lazy') },
+      plugins: [frameworkSources, IgnisArtifactsPlugin.create({ root: join(app, 'src') })],
+      throw: false,
+    });
+    expect(result.success).toBe(true);
+
+    const output = Bun.spawnSync([join(app, 'bin', 'lazy')], { cwd: tmpdir() }).stdout.toString();
+    expect(output.split('\n').filter(Boolean)).toEqual(['imported', 'evaluated', 'resolved']);
+  });
+
   test('carries the app\x27s own classes and each borrowed group, with the source deleted', async () => {
     const app = stage({ name: 'with-plugin', app: join('compile', 'app') });
     const result = await compile({
