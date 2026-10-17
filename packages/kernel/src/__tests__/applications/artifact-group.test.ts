@@ -181,3 +181,26 @@ describe('ArtifactGroup.pick', () => {
     ]);
   });
 });
+
+describe('ArtifactGroup.application', () => {
+  test('covers the calling package: no folder, the call site recorded, resolved through the installed resolver', async () => {
+    const group = ArtifactGroup.application();
+    expect(group.folder).toBeUndefined();
+    expect(group.site).toEndWith('artifact-group.test.ts');
+
+    ArtifactGroup.setResolver({
+      resolve: async ({ group: target }) =>
+        target.folder === undefined ? { services: [StockService] } : {},
+    });
+    expect(await helper.flatten({ input: group, application })).toEqual([
+      { services: [StockService] },
+    ]);
+  });
+
+  test('takes content inlined by a build', async () => {
+    const group = ArtifactGroup.application({ content: { controllers: [StockController] } });
+    expect(await helper.flatten({ input: group, application })).toEqual([
+      { controllers: [StockController] },
+    ]);
+  });
+});

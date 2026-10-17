@@ -186,6 +186,19 @@ A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
+### Several applications in one process
+
+`AutoArtifacts` is one module per process, rooted at the entry module's package. A process that loads several applications - a test harness that boots every service, a gateway hosting modules - gives each application its own group, picked by where it is called:
+
+```typescript
+// services/inventory/src/application.ts
+import { ArtifactGroup } from '@venizia/ignis';
+
+artifacts: [ArtifactGroup.application(), InventoryArtifacts],
+```
+
+A build with `IgnisArtifactsPlugin` inlines it, exactly like a borrowed group.
+
 ### Borrowing from a shared package
 
 In a monorepo, a shared package declares one group per domain, once, and each application borrows the domains it may use:

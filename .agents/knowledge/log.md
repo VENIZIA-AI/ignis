@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - Auto artifacts root at the entry module; ArtifactGroup.application
+
+Updated [boot](/packages/boot.md).
+
+- The auto root is the entry module's package (`Bun.main`), not the working directory, and a missing `src` is a clear error. `ArtifactGroup.application()` covers the calling package for processes that load several applications; the build plugin inlines it.
+
 ## 2026-10-17 - ArtifactGroup.pick
 
 Updated [boot lifecycle](/architecture/boot-lifecycle.md).

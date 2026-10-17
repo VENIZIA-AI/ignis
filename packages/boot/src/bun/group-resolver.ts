@@ -12,7 +12,7 @@ export class GroupArtifactsResolver {
     group: { folder: string | undefined; site: string | undefined };
   }): Promise<TGeneratedArtifactIndex> {
     const { folder, site } = opts.group;
-    if (!folder || !site) {
+    if (!site) {
       throw getError({
         message: `[ArtifactGroup] '${folder ?? '<application>'}' has no call site to resolve from | Define it with ArtifactGroup.define in the shared package's own source`,
       });
