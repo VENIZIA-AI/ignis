@@ -88,7 +88,7 @@ package by the release workflow, so a green commit says nothing about it.
   than partially overwritten. For every package, `make build` type-checks the whole `tsconfig.json`
   (including `src/__tests__/`) before the emit-only pass that excludes tests, so a broken test file
   blocks a build of code that never touches it. If a build seems like it should have succeeded, run
-  `tsc --noEmit -p tsconfig.json` in the package directly and check its exit code.
+  `bun check -p tsconfig.json` in the package directly and check its exit code.
 
 ## Related
 

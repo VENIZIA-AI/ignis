@@ -133,7 +133,7 @@ Reading a failure list without checking the working directory first has already 
 
 ## An empty dist looks like a hundred unrelated import failures
 
-The build is honest: the `build` target in `make/project.mk` type-checks `tsc --noEmit -p
+The build is honest: the `build` target in `make/project.mk` type-checks with `bun check -p
 tsconfig.json` first and stops on failure, so a type error exits non-zero and never prints `DONE |
 Build completed successfully!`. Trust the exit code.
 

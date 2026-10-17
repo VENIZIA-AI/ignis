@@ -41,7 +41,8 @@ tags: [process, debugging]
    (`packages/dev-configs/src/tsconfig/tsconfig.base.json`), and each package's `tsconfig.tsbuildinfo` /
    `.configs/tsconfig.build.tsbuildinfo` can replay diagnostics for errors that no longer exist (e.g. after
    changing a package's `exports` map) - `rm` the `.tsbuildinfo` files in the affected package
-   before re-running `tsc --noEmit` if the reported errors don't match the current source.
+   before re-running `tsc` if the reported errors don't match the current source. `bun check` keeps no
+   `.tsbuildinfo`, so a type check through `make typecheck` cannot replay stale diagnostics.
 
 ## Related
 

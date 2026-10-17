@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The Repository Type-Checks With bun check',
+                  link: '/changelogs/2026-10-17-bun-check',
+                },
+                {
                   text: 'The Wiki Uses the docs-update Skill',
                   link: '/changelogs/2026-10-17-docs-update-skill',
                 },

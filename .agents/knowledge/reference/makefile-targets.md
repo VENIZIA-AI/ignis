@@ -73,7 +73,7 @@ generated:
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-kernel` | - | oxlint + ESLint (naming-convention) + oxfmt check of one package. |
 | `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server` | lint-<pkg> for every package. |
-| `make lint-scripts` | - | Format check + tsc type-check of scripts/. |
+| `make lint-scripts` | - | Format check + bun check type-check of scripts/. |
 | `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
 | `make okf-check` | - | Gate: OKF v0.2 conformance. |
 | `make okf-check-strict` | - | Gate: OKF v0.2 plus the house rules - links, style, coverage, freshness. |

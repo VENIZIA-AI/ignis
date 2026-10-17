@@ -42,7 +42,7 @@ help:
 	@$(HELP_ROW) "clean-install" "Load every published sub-path from packed tarballs in an empty project."
 	@echo ""
 	@echo "Repository scripts and wiki:"
-	@$(HELP_ROW) "lint-scripts" "Format check + tsc type-check of scripts/."
+	@$(HELP_ROW) "lint-scripts" "Format check + bun check type-check of scripts/."
 	@$(HELP_ROW) "lint-wiki" "Lint docs/wiki scripts and check its format."
 	@$(HELP_ROW) "test-scripts" "Run the repository gate scripts' own regression tests."
 	@$(HELP_ROW) "purity-test" "Run the purity probe's own regression tests."

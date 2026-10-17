@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - Type checking is bun check
+
+Updated [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [boot](/packages/boot.md), [testing](/process/testing.md), [build, run, test](/overview/build-run-test.md), [debugging](/process/debugging.md).
+
+- `make typecheck`, the first step of `make build` and `make lint-scripts` type-check with `bun check` (Bun 1.4.3+, root `engines.bun` raised to `>=1.4.3`). Measured on every package: the same diagnostics as `tsc --noEmit`, including errors that come only from options inherited through the `extends` chain; kernel's three programs went from 3.5 s to 0.7 s. `tsc` still emits the JS and the `.d.ts`.
+
 ## 2026-10-17 - VULCAN 0.2.0-2 and the shipped docs-update skill
 
 Updated [monorepo layout](/overview/monorepo-layout.md).
