@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - The browser auto index is eager again
+
+Updated [boot](/packages/boot.md).
+
+- `IgnisArtifactsPlugin.create({ lazyIndex })`: lazy by default for server targets, eager for `target: 'browser'`, where the lazy graph doubled a minified frontend bundle (50 -> 100 KB).
+
 ## 2026-10-18 - Scan cache; lazy auto module in binaries
 
 Updated [boot](/packages/boot.md).
