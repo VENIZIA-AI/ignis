@@ -14,7 +14,7 @@ describe('@venizia/ignis-boot/auto', () => {
         '--preload',
         STUB,
         '-e',
-        `const group = (await import('${AUTO}')).default; if (group.isArtifactGroup !== true || group.content !== undefined) throw new Error('not a group'); const index = await group.resolve(); console.log(JSON.stringify(Object.fromEntries(Object.entries(index).map(([k, v]) => [k, v.map(c => c.name)]))));`,
+        `const group = (await import('${AUTO}')).default; if (group.isArtifactGroup !== true || group.content !== undefined) throw new Error('not a group'); const index = await group.resolve(); const slot = globalThis[Symbol.for('@venizia/ignis-kernel:artifact-group-resolver')]; if (typeof slot?.resolve !== 'function') throw new Error('group resolver not installed'); console.log(JSON.stringify(Object.fromEntries(Object.entries(index).map(([k, v]) => [k, v.map(c => c.name)]))));`,
       ],
       { cwd: APP },
     );

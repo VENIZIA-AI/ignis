@@ -1,7 +1,10 @@
 import type { BunPlugin } from 'bun';
-import { existsSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { ArtifactIndexEmitter, ArtifactScanner } from '../generator';
+import { getError } from '@venizia/ignis-helpers';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { dirname, join, resolve, sep } from 'node:path';
+import ts from 'typescript';
+import { ArtifactIndexEmitter, ArtifactScanner, ArtifactStereotypes } from '../generator';
+import { ArtifactSources } from './sources';
 
 /** Serves `ignis:artifacts` - the application's generated index, rendered in memory from the scanner. At run time it is a virtual module (`build.module`); in `Bun.build` it is resolved and loaded (`onResolve`/`onLoad`), so a binary carries the list and never scans. */
 export class IgnisArtifactsPlugin {
@@ -17,15 +20,7 @@ export class IgnisArtifactsPlugin {
 
   /** The `src` beside the nearest `package.json` at or above `from` (default: the working directory). */
   static defaultRoot(opts: { from?: string } = {}): string {
-    let directory = resolve(opts.from ?? process.cwd());
-    while (!existsSync(join(directory, 'package.json'))) {
-      const parent = dirname(directory);
-      if (parent === directory) {
-        return join(resolve(opts.from ?? process.cwd()), 'src');
-      }
-      directory = parent;
-    }
-    return join(directory, 'src');
+    return ArtifactSources.packageSource(opts);
   }
 
   /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. */
@@ -46,6 +41,99 @@ export class IgnisArtifactsPlugin {
   }
 
   /** For `Bun.build({ plugins: [IgnisArtifactsPlugin.create()] })`; `isRuntime` is set by `registerRuntime`, which serves a virtual module instead. */
+  /** Rewrites every `ArtifactGroup.define({ folder })` in a shared package's source to carry its classes as `content`, imported by absolute path - a binary then holds each group's list and never scans. A folder with no decorated class fails the build. */
+  static rewriteGroups(opts: { filePath: string; source: string }): string {
+    const { filePath, source } = opts;
+    const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
+    const edits: Array<{ at: number; text: string }> = [];
+    const imports: string[] = [];
+
+    const visit = (node: ts.Node): void => {
+      const isDefineCall =
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.expression) &&
+        node.expression.expression.text === 'ArtifactGroup' &&
+        node.expression.name.text === 'define';
+      const [argument] = isDefineCall ? node.arguments : [];
+      if (argument && ts.isObjectLiteralExpression(argument)) {
+        const folderProperty = argument.properties.find(
+          (entry): entry is ts.PropertyAssignment =>
+            ts.isPropertyAssignment(entry) &&
+            ts.isIdentifier(entry.name) &&
+            entry.name.text === 'folder',
+        );
+        if (folderProperty && ts.isStringLiteral(folderProperty.initializer)) {
+          const folder = folderProperty.initializer.text;
+          const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath });
+          if (artifacts.length === 0) {
+            throw getError({
+              message: `[IgnisArtifactsPlugin] ArtifactGroup '${folder}' resolved to no class | ${filePath} - check the folder name and that its classes carry a stereotype decorator`,
+            });
+          }
+
+          const fields: string[] = [];
+          for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
+            const locals = artifacts
+              .filter(artifact => artifact.type === type)
+              .map(artifact => {
+                const local = `__ignis_${edits.length}_${artifact.className}`;
+                const path = artifact.filePath.split(sep).join('/').replace(/\.ts$/, '');
+                imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
+                return local;
+              });
+            if (locals.length > 0) {
+              fields.push(`${field}: [${locals.join(', ')}]`);
+            }
+          }
+          edits.push({ at: argument.getEnd() - 1, text: `, content: { ${fields.join(', ')} } ` });
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    let rewritten = source;
+    for (const edit of [...edits].sort((a, b) => b.at - a.at)) {
+      rewritten = rewritten.slice(0, edit.at).trimEnd() + edit.text + rewritten.slice(edit.at);
+    }
+    return imports.length > 0 ? `${imports.join('\n')}\n${rewritten}` : rewritten;
+  }
+
+  /** The source files of the application's workspace dependencies that define groups - the only files the build plugin rewrites. */
+  static groupDefinitionFiles(opts: { root: string }): string[] {
+    const packageDirectory = dirname(resolve(opts.root));
+    const manifestPath = join(packageDirectory, 'package.json');
+    if (!existsSync(manifestPath)) {
+      return [];
+    }
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const names = Object.keys({
+      ...manifest.dependencies,
+      ...manifest.devDependencies,
+      ...manifest.peerDependencies,
+    });
+
+    const files: string[] = [];
+    for (const name of names) {
+      const linked = join(packageDirectory, 'node_modules', name);
+      const source = existsSync(linked) ? join(realpathSync(linked), 'src') : undefined;
+      if (!source || !existsSync(source)) {
+        continue;
+      }
+      for (const relativePath of new Bun.Glob('**/*.ts').scanSync({ cwd: source })) {
+        const file = join(source, relativePath);
+        if (
+          !relativePath.includes('__tests__') &&
+          readFileSync(file, 'utf8').includes('ArtifactGroup.define(')
+        ) {
+          files.push(file);
+        }
+      }
+    }
+    return files;
+  }
+
   static create(opts: { root?: string; isRuntime?: boolean } = {}): BunPlugin {
     const root = opts.root ?? IgnisArtifactsPlugin.defaultRoot();
     const isRuntime = opts.isRuntime ?? false;
@@ -68,6 +156,17 @@ export class IgnisArtifactsPlugin {
           contents: contents(),
           loader: 'ts',
         }));
+        const groupFiles = IgnisArtifactsPlugin.groupDefinitionFiles({ root });
+        if (groupFiles.length > 0) {
+          const escaped = groupFiles.map(file => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
+          build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, args => ({
+            contents: IgnisArtifactsPlugin.rewriteGroups({
+              filePath: args.path,
+              source: readFileSync(args.path, 'utf8'),
+            }),
+            loader: 'ts',
+          }));
+        }
         build.onLoad({ filter: IgnisArtifactsPlugin.AUTO_MODULE }, () => ({
           contents: `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nimport { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ content: ${IgnisArtifactsPlugin.EXPORT_NAME} });\n`,
           loader: 'ts',
