@@ -8,7 +8,7 @@ HELP_ROW = printf "  %-$(HELP_WIDTH)s %s\n"
 .PHONY: help
 
 help:
-	@echo "Makefile for the @venizia/lib Monorepo"
+	@echo "Makefile for the IGNIS monorepo"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""

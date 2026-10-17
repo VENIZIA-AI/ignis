@@ -1,6 +1,8 @@
 /**
- * SessionStart hook: prints the rules that cost the most when skipped. Everything is extracted from
- * `.agents/rules.md` at run time, never copied, so the digest cannot drift. Stdout becomes session context.
+ * SessionStart hook, after VULCAN's base digest. The base digest already prints every rule row of
+ * `.agents/rules.md`, so this adds only what it cannot: which IGNIS rules sessions drop most, and the
+ * minimap shape (P-09). Both are extracted from `.agents/rules.md` at run time, never copied, so the
+ * digest cannot drift. Stdout becomes session context.
  */
 const ROOT = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
 const RULES = `${ROOT}/.agents/rules.md`;
@@ -13,19 +15,6 @@ if (!(await file.exists())) {
 
 const lines = (await file.text()).split('\n');
 
-/** The body of one `## ` section, up to the next `## ` heading. */
-const section = (opts: { heading: string }): string[] => {
-  const start = lines.findIndex(line => line.startsWith(`## ${opts.heading}`));
-  if (start === -1) {
-    return [];
-  }
-
-  const rest = lines.slice(start + 1);
-  const end = rest.findIndex(line => line.startsWith('## '));
-
-  return (end === -1 ? rest : rest.slice(0, end)).filter(line => line.trim() !== '');
-};
-
 /** The lines between two HTML-comment markers, markers excluded. */
 const marked = (opts: { name: string }): string[] => {
   const start = lines.findIndex(line => line.includes(`<!-- ${opts.name}:start -->`));
@@ -37,50 +26,20 @@ const marked = (opts: { name: string }): string[] => {
   return lines.slice(start + 1, end);
 };
 
-/** The contiguous markdown table starting at `start`. */
-const tableAt = (opts: { start: number }): string[] => {
-  const out: string[] = [];
-  for (let index = opts.start; index < lines.length && lines[index].startsWith('|'); index++) {
-    out.push(lines[index]);
-  }
-
-  return out;
-};
-
-const groupStart = lines.findIndex(line => line.startsWith('| Group'));
-const groupTable = groupStart === -1 ? [] : tableAt({ start: groupStart });
-const writeBoundaries = section({ heading: 'W - Write boundaries' }).filter(line =>
-  line.startsWith('|'),
-);
-
-/** The rules sessions drop most, quoted from the rule file so they cannot drift. */
+/** The rules sessions drop most. Only the IDs that still exist in the rule file are named. */
 const OFTEN_DROPPED = ['P-09', 'P-10', 'B-03', 'B-05', 'P-05', 'P-15', 'W-02'];
-const oftenDropped = OFTEN_DROPPED.map(id => lines.find(line => line.startsWith(`| **${id}**`))).filter(
-  (line): line is string => Boolean(line),
-);
+const oftenDropped = OFTEN_DROPPED.filter(id => lines.some(line => line.startsWith(`| **${id}**`)));
 
 const minimapShape = marked({ name: 'minimap-shape' });
 
-console.log('# IGNIS project rules - read this before acting');
+console.log('# IGNIS - what sessions drop most');
 console.log();
-console.log('The full rule set lives in `.agents/rules.md`. Facts live in `.agents/knowledge/`');
-console.log('(query it with the `ignis-atlas` MCP). Open the rule file itself before a task that');
-console.log('touches an area you have not worked in this session - this digest is the floor, not the');
-console.log('whole floor.');
-console.log();
-console.log(groupTable.join('\n'));
-console.log();
-console.log('## Write boundaries - the default is: produce the change, hand it over');
-console.log();
-console.log(writeBoundaries.join('\n'));
+console.log('The rule rows are in the digest above. Facts live in `.agents/knowledge/` (query them');
+console.log('with the `ignis-atlas` MCP server).');
 
 if (oftenDropped.length) {
   console.log();
-  console.log('## The rules sessions drop most - reread these before writing anything');
-  console.log();
-  console.log('| ID | Rule |');
-  console.log('|---|---|');
-  console.log(oftenDropped.join('\n'));
+  console.log(`Reread these before writing anything: ${oftenDropped.join(', ')}.`);
 }
 
 if (minimapShape.length) {

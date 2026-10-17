@@ -129,6 +129,6 @@ Generated from source - never hand-edited, run `make okf-gen`:
 Change a fact in the code, update its concept in the same change, and append to [log](/log.md).
 A bundle that drifts is worse than none, because it is believed.
 
-`make okf-check` validates it: frontmatter, links, docs style, one concept per package and example,
+`make okf-check-strict` validates it: frontmatter, links, docs style, one concept per package and example,
 and freshness of everything generated. `make okf-coverage` reports the gaps. Neither is a commit
 gate - the bundle is re-verified against the code by running knowledge sync periodically.

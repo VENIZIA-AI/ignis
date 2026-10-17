@@ -1,11 +1,12 @@
 import type { VulcanConfig } from '@venizia/vulcan';
 
-// IGNIS consumes VULCAN's knowledge, atlas and agent tooling. `okf.renderers` and `atlas` are
-// validated by VULCAN 0.1.0 but not consumed yet: IGNIS keeps its own `okf gen` renderers until then.
+// IGNIS consumes VULCAN's knowledge, atlas and agent tooling. `atlas.packages` drives the surface and
+// symbols tables; `okf gen` uses VULCAN's built-in renderers. Move `atlas.packages` to the top-level
+// `packages` key when VULCAN 0.2.0 ships.
 export default {
   agents: ['claude'],
   rules: { 'V-W-01': 'on-user-word' },
-  // IGNIS's own digest (its W rules, P-09 minimap, B-05, P-05, P-15), after VULCAN's base digest.
+  // After VULCAN's base digest, which already prints every rule row: the most-dropped IDs and the minimap shape.
   hooks: [{ event: 'SessionStart', command: 'bun "${CLAUDE_PROJECT_DIR}"/.agents/hooks/session-digest.ts' }],
   knowledge: {
     bundle: '.agents/knowledge',

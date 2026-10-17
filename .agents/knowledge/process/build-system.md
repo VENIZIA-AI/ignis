@@ -99,7 +99,8 @@ tags: [process, build]
     examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
     example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
     `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
-    the root declares only `oxfmt` and `@venizia/dev-configs`, for `scripts/`. Versions are pinned in
+    the root declares `oxfmt` and `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
+    knowledge, atlas and agent tooling. Versions are pinned in
     the root `workspaces.catalog`. Type-aware oxlint on `packages/kernel` (253 files) took about
     0.8s against 8.16s for ESLint; oxfmt 0.06s against 2.16s for Prettier.
     `--report-unused-disable-directives` is not used: oxlint does not run the naming rule, so it

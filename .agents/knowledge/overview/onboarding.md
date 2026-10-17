@@ -20,7 +20,7 @@ end up. They build in a fixed dependency order; read the chain in
 ## 2. Install and build
 
 ```bash
-git clone https://github.com/venizia-ai/ignis.git
+git clone https://github.com/VENIZIA-AI/ignis.git
 cd ignis
 bun install
 make setup-hooks   # enables the repo's pre-commit hook (git config core.hooksPath .githooks)
@@ -61,7 +61,8 @@ resolves its sibling packages through `dist`, not `src`.
 ## 5. Know where knowledge lives
 
 An agent reads two homes, and neither restates the other. `.agents/rules.md` holds the behaviour
-rules - W write boundaries, S security, P process, B build and quality, C code and writing -
+rules - W write boundaries, S security, P process, B build and quality, C code and writing (the
+VULCAN base `V-C-*` plus IGNIS's C-03, C-04, C-05, C-18) -
 numbered so they are cited by ID in reviews and reports. The two that cost the most when skipped are
 P-09, every status message opens with the minimap, and B-05, a downstream test suite runs `dist`,
 not `src`. `make agent-setup` links the per-tool files (`CLAUDE.md`, `GEMINI.md`, ...) to the one
@@ -72,11 +73,11 @@ it over the VitePress wiki (`docs/wiki/`) when the two disagree, since this bund
 against source. Before proposing that something is missing or wrong, run:
 
 ```bash
-make okf-check      # gate: frontmatter, links, structural coverage, freshness
+make okf-check-strict # gate: frontmatter, links, structural coverage, freshness
 make okf-coverage    # how much of the source this bundle actually documents
 ```
 
-`okf-check` is not a commit gate - the pre-commit hook only runs lint. Run it yourself when you touch
+`okf-check-strict` is not a commit gate - the pre-commit hook only runs lint. Run it yourself when you touch
 the bundle. Keeping the curated concepts true to the code is done by running knowledge sync
 periodically, since only re-reading the source can catch prose that quietly went stale.
 

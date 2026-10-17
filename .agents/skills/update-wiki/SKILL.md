@@ -67,8 +67,8 @@ wiki drifts.
 ### 3. Write it
 
 **Style is not defined here.** The house rules live in
-[`.agents/knowledge/conventions/docs-writing-style.md`](../../../knowledge/conventions/docs-writing-style.md),
-and `make okf-check` machine-checks two of them. The ones that fail a review fastest:
+[`.agents/knowledge/conventions/docs-writing-style.md`](../../knowledge/conventions/docs-writing-style.md),
+and `make okf-check-strict` machine-checks two of them. The ones that fail a review fastest:
 
 - The brand is **IGNIS**, always. Hyphen `-`, never an em-dash.
 - Never abbreviate identifiers (`Repository`, not `Repo`).

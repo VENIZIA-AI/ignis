@@ -34,8 +34,8 @@ $(addprefix test-,$(TEST_PACKAGES)): test-%:
 $(addprefix test-,$(NO_TEST)):
 	@echo "ℹ️  No test suite in this package - skipping."
 
-# The repository gate scripts' own regression tests (module-cycles, split-report, public-surface,
-# wiki-source-links) - same reasoning as purity-test, nothing else runs them.
+# The repository gate scripts' own regression tests (module-cycles, split-report, wiki-source-links,
+# wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
 	@bun test scripts/__tests__

@@ -25,7 +25,7 @@ Both are mandatory, for every agent, on every task. The two rules that cost the 
 
 Nothing lives in two places. Every piece of project information has exactly one home:
 
-- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills, the setup.
+- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills and hooks.
 - **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
 
 Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
@@ -76,7 +76,7 @@ Code ships.
 This `AGENTS.md` is the single source. `make agent-setup` (`vulcan sync`) writes each tool's file as a
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
 and hooks (its base digest and the `guard-writes` check), the shipped and project skills, and the
-project hooks from `.configs/vulcan.config.ts` - here, `.agents/hooks/session-digest.ts`, which prints
-IGNIS's write boundaries and the minimap rule. Re-run `make agent-setup` after a pull that touched
+project hooks from `.configs/vulcan.config.ts` - here, `.agents/hooks/session-digest.ts`, which adds
+the most-dropped rule IDs and the minimap shape to the base digest. Re-run `make agent-setup` after a pull that touched
 `.configs/vulcan.config.ts`, `.agents/skills/` or the pinned VULCAN version; `make vulcan-doctor`
 says when you need to.

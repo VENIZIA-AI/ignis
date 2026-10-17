@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
         with:
-          # The release table (releases-check) is generated from release commits; a shallow clone has none.
+          # The release table is generated from release commits; a shallow clone has none.
           fetch-depth: 0
 
       - name: Setup Bun
@@ -47,6 +47,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make okf-check-strict
 
+      - name: Agent setup (VULCAN)
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make vulcan-sync vulcan-doctor
+
       - name: Browser purity probe
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make purity-test
@@ -63,7 +67,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
         with:
-          # The release table (releases-check) is generated from release commits; a shallow clone has none.
+          # The release table is generated from release commits; a shallow clone has none.
           fetch-depth: 0
 
       # The clean-install gate loads every sub-path under Node as well as Bun.
