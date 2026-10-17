@@ -196,12 +196,13 @@ An application that builds with tsc and runs `dist` (`bun .` with `main` in `dis
 
 ```typescript
 // services/inventory/src/application.ts
+import '@venizia/ignis-boot/auto'; // installs the resolver groups use from source - once per process is enough
 import { ArtifactGroup } from '@venizia/ignis';
 
 artifacts: [ArtifactGroup.application(), InventoryArtifacts],
 ```
 
-A build with `IgnisArtifactsPlugin` inlines it, exactly like a borrowed group.
+The kernel never imports `@venizia/ignis-boot`, so a group with no inlined content needs that import somewhere in the process before artifacts are registered; without it registration stops with an error naming it. A build with `IgnisArtifactsPlugin` inlines the group, exactly like a borrowed one, and needs no resolver.
 
 ### Borrowing from a shared package
 
