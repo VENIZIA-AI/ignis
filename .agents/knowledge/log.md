@@ -12,11 +12,11 @@ Updated [boot](/packages/boot.md).
 
 - A source start reuses the previous scan while no `.ts` under `src`, the manifest or the lockfile changed, and then never loads TypeScript. In a plugin-built binary, importing `@venizia/ignis-boot/auto` loads no class until artifacts are resolved.
 
-## 2026-10-18 - VULCAN 0.2.0-5
+## 2026-10-18 - VULCAN 0.2.0-6
 
 Updated nothing else - tooling only.
 
-- `@venizia/vulcan` is pinned at 0.2.0-5: an okf renderer may return several pages, coverage counts a concept whose frontmatter `resource` is the axis directory, and a `packages` entry repeating a dir, name or path is a config error. VULCAN prereleases go to `next` only.
+- `@venizia/vulcan` is pinned at 0.2.0-6 (0.2.0-5 plus atlas finding typescript on disk and `changes` answering a declared package with no release on the ref). Since 0.2.0-5: an okf renderer may return several pages, coverage counts a concept whose frontmatter `resource` is the axis directory, and a `packages` entry repeating a dir, name or path is a config error. VULCAN prereleases go to `next` only.
 
 ## 2026-10-18 - Auto artifacts load the running tree
 
