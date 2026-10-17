@@ -13,7 +13,7 @@ tags: [conventions, style]
 - [No silent catch](#no-silent-catch)
 - [Always use braces](#always-use-braces)
 - [Early return over nesting](#early-return-over-nesting)
-- [switch + default over if-else chains](#switch-default-over-if-else-chains)
+- [switch + default over if-else chains](#switch--default-over-if-else-chains)
 - [Strict TypeScript, avoid any](#strict-typescript-avoid-any)
 - [State belongs to a class, not to the module](#state-belongs-to-a-class-not-to-the-module)
 - [Comments state constraints, not history or narration](#comments-state-constraints-not-history-or-narration)

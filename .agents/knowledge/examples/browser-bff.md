@@ -12,7 +12,7 @@ tags: [examples, browser, bff, worker, pglite, opfs]
 - [What it demonstrates](#what-it-demonstrates)
 - [The one workaround left, and the two that were removed](#the-one-workaround-left-and-the-two-that-were-removed)
 - [Migrations are inlined, and the ledger is atomic](#migrations-are-inlined-and-the-ledger-is-atomic)
-- [Notable / non-obvious](#notable-non-obvious)
+- [Notable / non-obvious](#notable--non-obvious)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
