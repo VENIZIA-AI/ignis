@@ -8,9 +8,12 @@
 #
 # Every tool comes from the package's node_modules/.bin, by absolute path: a recipe never depends on
 # PATH (`sh ./scripts/build.sh` once died at `tsc-alias: not found` with CJS emitted and ESM stale).
+# The one exception is bun itself, which runs every recipe. Type checking is `bun check` (same
+# diagnostics as `tsc --noEmit`, a fraction of the time); tsc still emits the JS and the .d.ts.
 
 BIN := $(CURDIR)/node_modules/.bin
 TSC := $(BIN)/tsc
+TYPECHECK := bun check --no-pretty
 TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
@@ -38,14 +41,14 @@ FMT_IGNORE_GLOBS = $(foreach glob,$(LINT_IGNORE),"!$(glob)")
 
 # tsconfig.json covers the tests too, so a broken test fails here, before anything is emitted.
 typecheck:
-	@$(TSC) --noEmit -p tsconfig.json
-	@for config in $(filter-out tsconfig.json,$(EMIT_TSCONFIGS)); do $(TSC) --noEmit -p $$config || exit 1; done
+	@$(TYPECHECK) -p tsconfig.json
+	@for config in $(filter-out tsconfig.json,$(EMIT_TSCONFIGS)); do $(TYPECHECK) -p $$config || exit 1; done
 
 # tsc-alias reads the ROOT tsconfig: pointed at a .configs/ file it resolves `paths` against
 # .configs/ and leaves every `@/` import unrewritten.
 build:
 	@echo "START | Building $(notdir $(CURDIR))..."
-	@$(TSC) --noEmit -p tsconfig.json
+	@$(TYPECHECK) -p tsconfig.json
 ifneq ($(filter plain,$(FORMATS)),)
 	@$(TSC) -p tsconfig.json --extendedDiagnostics
 endif

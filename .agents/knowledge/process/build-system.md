@@ -51,7 +51,8 @@ tags: [process, build]
    tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
    `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
    `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
-   `build` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`), then
+   `build` runs `bun check -p tsconfig.json` first (type-checks `src` AND `src/__tests__`; same
+   diagnostics as `tsc --noEmit`, about 10x faster), then
    the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)
    and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
    aliases. Every ESM pass runs `tsc -p .configs/tsconfig.esm.json`, then `tsc-alias` with
@@ -76,7 +77,7 @@ tags: [process, build]
    intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. There is
    no exception: `dev-configs` (`FORMATS := plain`) type-checks `tsconfig.json` first like every
    package. Do not trust a scrollback that got truncated; if a build's success is in doubt, rerun
-   `tsc --noEmit -p tsconfig.json` directly in the package and check its exit code.
+   `bun check -p tsconfig.json` directly in the package and check its exit code.
 7. Gotcha: the type-check pass covers `src/__tests__/` too, even though those tests never ship in
    `dist`. A type error in a test file blocks the build of production code that never touches it -
    in both `rebuild` and `build`, for every package.

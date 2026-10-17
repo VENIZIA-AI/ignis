@@ -115,7 +115,7 @@ exit 2.
   `src/__tests__/fixtures/artifacts/**`. The fixtures import `@venizia/ignis`, so they are excluded
   from `tsconfig.json` and the linters - the boot build stays independent of core. Tests locate fixtures
   with `resolve(process.cwd(), ...)`; `import.meta` is unavailable in the CJS type-check.
-- **Build:** `make build` (`packages/boot/Makefile`) type-checks `tsconfig.json` (tests included) with `--noEmit`, then
+- **Build:** `make build` (`packages/boot/Makefile`) type-checks `tsconfig.json` (tests included) with `bun check`, then
   emits from `.configs/tsconfig.build.json`, then `chmod +x` on `dist/cjs/clis/*.js`; `dist` carries `build-info`, `clis`, `common` and `generator`.
 
 ## Removed

@@ -28,7 +28,7 @@ tags: [process, test, bun]
 4. Set `NODE_ENV=test` (or use `--env-file=.env.test`, as `boot` does) so each package's
    `.env.test` loads - it points log/audit output at `./app_data/` (gitignored) instead of the
    package root.
-5. Gotcha: `helpers` and `core` build with `noEmitOnError: true` and a `tsc --noEmit -p
+5. Gotcha: `helpers` and `core` build with `noEmitOnError: true` and a `bun check -p
    tsconfig.json` pass that includes `src/__tests__/` (see [build system](/process/build-system.md)).
    One broken test file's type error blocks the ENTIRE package build. `make rebuild` runs that
    type-check BEFORE `clean`, so a failure leaves `dist/` stale, never emptied - the next `bun test`

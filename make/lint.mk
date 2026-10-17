@@ -47,4 +47,4 @@ lint-wiki:
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
 	@node_modules/.bin/oxfmt -c scripts/.configs/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
-	@node_modules/.bin/tsc -p scripts/tsconfig.json
+	@bun check --no-pretty -p scripts/tsconfig.json
