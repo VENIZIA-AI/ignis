@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - @repository skips a Function first parameter
+
+- `@repository` judges its first constructor parameter only when it names a class: `Object` (an interface) and now `Function` (a type-only class import under tsc; bun emits `Object`) are skipped and the DataSource is injected. Before, a tsc-built repository with `import { type BasePostgresDataSource }` threw at import.
+
 ## 2026-10-17 - ignis-artifacts --source-module
 
 Updated [boot](/packages/boot.md), [boot lifecycle](/architecture/boot-lifecycle.md).

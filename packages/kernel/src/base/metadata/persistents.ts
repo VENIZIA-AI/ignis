@@ -177,10 +177,11 @@ const registerDataSourceInjection = (opts: {
     return;
   }
 
-  // Checked only when this decorator writes the injection: an explicit @inject decides for itself,
-  // and an interface or `import type` parameter emits `Object`, which says nothing.
+  // Checked only when this decorator writes the injection: an explicit @inject decides for itself.
+  // An interface emits `Object` and a type-only class import emits `Function` under tsc (`Object`
+  // under bun); neither names the class, so neither is judged.
   const firstParamType = Reflect.getMetadata('design:paramtypes', target)?.[0];
-  if (firstParamType && firstParamType !== Object) {
+  if (firstParamType && firstParamType !== Object && firstParamType !== Function) {
     validateFirstConstructorParameter({ target, firstParamType, resolvedDataSource });
   }
 

@@ -174,9 +174,10 @@ and it is strict:
   behaviour. The recorded key is per class, process-wide: two applications binding one class under
   two keys share the last one recorded.
 - Only then is the first parameter checked: its `design:paramtypes` entry must extend
-  `AbstractDataSource` and be compatible with the declared class. `Object` (an interface or an
-  `import type` - what tsc emits for them, while esbuild/Vite emit nothing) is not checked, so two
-  builds of one codebase agree.
+  `AbstractDataSource` and be compatible with the declared class. `Object` and `Function` are not
+  checked: tsc emits `Object` for an interface and `Function` for a type-only class import
+  (`import { type X }`, which the house lint writes), bun emits `Object` for both, and esbuild/Vite
+  emit nothing - so every build of one codebase agrees.
 - An explicit `@inject` at index 0 decides for itself and must name a datasource: a `target` class
   by its brand (`isDataSourceClass`), whatever namespace its key sits in; a bare key by its
   `datasources.` prefix. Parameter 0 is always a datasource.
