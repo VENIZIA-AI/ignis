@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Repository With a Type-Only DataSource Import',
+                  link: '/changelogs/2026-10-17-repository-type-only-datasource',
+                },
+                {
                   text: 'ignis-artifacts Finds Re-Exported Decorators',
                   link: '/changelogs/2026-10-17-artifacts-source-module',
                 },
