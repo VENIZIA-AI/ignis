@@ -7,6 +7,7 @@
 - [S - Security](#s---security)
 - [P - Process](#p---process)
 - [B - Build and quality](#b---build-and-quality)
+- [D - Docs](#d---docs)
 - [C - Code and writing](#c---code-and-writing)
 - [What is actually enforced](#what-is-actually-enforced)
 <!-- okf:generated:contents end -->
@@ -119,6 +120,18 @@ Chặn: <what blocks, or "không có">
 | **B-06** | **Do not trust an exit code or a green summary alone.** Read the output for `error TS`, for the test counts, and for what actually ran. A stale `tsbuildinfo` replays ghost diagnostics after an exports change - purge it before trusting `tsc`. A build that emits `__tests__` into `dist` makes `bun test` run every test once per copy - a count that is a clean multiple of the file count is that, not coverage (inversion reported 111 for 37 tests until its build excluded them). |
 | **B-07** | **Agent scripting uses `bun`** (`bun -e '…'`, `bun file.ts`, `Bun.file()`), never Python. |
 | **B-08** | **Test-only concerns go through the committed `.env.test`,** never through a framework default or a source change made for a test's convenience. Tests run on the Bun test runner only - never Jest, Vitest or Mocha. |
+
+## D - Docs
+
+The wiki (`docs/wiki/`, package `@venizia/ignis-docs`) is what people read. VULCAN's `docs-update` skill
+reads its paths from the manifest and applies these rules.
+
+| ID | Rule |
+|---|---|
+| **D-01** | **One page per topic, in its section.** Under `docs/wiki/content/`: a release-worthy change is a `changelogs/YYYY-MM-DD-slug.md` from `changelogs/template.md`; a changed API surface updates `references/<area>/`; a component or helper updates `extensions/components/<name>/` or `extensions/helpers/<name>/`; a how-to or concept is a `guides/<area>/` page; a rule people should follow is a `best-practices/` page. Edit the page that owns the topic before creating one. |
+| **D-02** | **House style, checked page by page.** The brand is **IGNIS**; a hyphen, never an em-dash; no abbreviated identifiers (`Repository`, not `Repo`); every code sample compiles against the real source, names and signatures verified in `packages/`; native VitePress only, no custom components or CSS; `**Files:**` links are GitHub file-level URLs with no line anchors; the first screen says what the page is and shows the first example. The full style is [docs writing style](knowledge/conventions/docs-writing-style.md). `make okf-check-strict` checks only the brand and the dash. |
+| **D-03** | **A new page is wired in twice:** the sidebar in `docs/wiki/site/.vitepress/config.mts`, and the `index.md` of its section when it has one. A changelog also gets a row at the top of `changelogs/index.md`. |
+| **D-04** | **Four docs gates, all green:** `make docs` (an orphan page or a dead sidebar link via `check-sidebar.mts`, then a dead link in the build), `make wiki-links-check` (a named source path that does not exist), `make wiki-anchors-check` (a `#fragment` that resolves nowhere; it reads the build), `make lint-wiki` (the wiki's own scripts). A red gate sends you back to the step that caused it; then re-run all four. |
 
 ## C - Code and writing
 

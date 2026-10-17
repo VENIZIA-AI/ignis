@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - VULCAN 0.2.0-2 and the shipped docs-update skill
+
+Updated [monorepo layout](/overview/monorepo-layout.md).
+
+- `@venizia/vulcan` is pinned at 0.2.0-2. Its shipped `docs-update` skill replaces the project copy `.agents/skills/update-wiki`; what is IGNIS-specific about the wiki (where pages go, the style checks, the wiring, the four gates) is the new D group in `.agents/rules.md`, which the skill applies.
+
 ## 2026-10-17 - Dependencies no package imports are gone
 
 Updated [inversion](/packages/inversion.md).

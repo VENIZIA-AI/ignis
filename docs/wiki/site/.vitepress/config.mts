@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The Wiki Uses the docs-update Skill',
+                  link: '/changelogs/2026-10-17-docs-update-skill',
+                },
+                {
                   text: 'Dependencies No Package Imported Are Removed',
                   link: '/changelogs/2026-10-17-unused-dependencies',
                 },
