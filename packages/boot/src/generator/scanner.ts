@@ -5,11 +5,14 @@ import ts from 'typescript';
 import {
   ArtifactStereotypes,
   ArtifactTypes,
+  ScanSkipReasons,
   type IScanOptions,
   type IScanReport,
+  type IScanSkipped,
   type IScannedArtifact,
   type TArtifactType,
 } from './common';
+import { StereotypeReexportResolver } from './reexport';
 
 /** Finds exported classes carrying a stereotype decorator by reading the source, never by running it. */
 export class ArtifactScanner extends BaseHelper {
@@ -34,21 +37,33 @@ export class ArtifactScanner extends BaseHelper {
     const userGlobs = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
     const { kept, hidden } = this.partitionSourceFiles({ root, defaultGlobs, userGlobs });
     const sourceModules = new Set(opts.sourceModules);
+    const resolver = opts.followReexports
+      ? new StereotypeReexportResolver({ root, sourceModules })
+      : undefined;
+    const skipped: IScanSkipped[] = [];
 
-    return {
-      artifacts: this.sortArtifacts(
-        kept.flatMap(filePath => this.scanFile({ filePath, sourceModules })),
-      ),
-      ignored: this.sortArtifacts(
-        hidden.flatMap(filePath => this.scanHiddenFile({ filePath, sourceModules })),
-      ),
-    };
+    const artifacts = this.sortArtifacts(
+      kept.flatMap(filePath => this.scanFile({ filePath, sourceModules, resolver, skipped })),
+    );
+    const ignored = this.sortArtifacts(
+      hidden.flatMap(filePath => this.scanHiddenFile({ filePath, sourceModules, resolver })),
+    );
+    for (const artifact of ignored) {
+      skipped.push({
+        className: artifact.className,
+        filePath: artifact.filePath,
+        reason: ScanSkipReasons.IGNORED,
+      });
+    }
+
+    return { artifacts, ignored, skipped };
   }
 
   /** A hidden file is only reported on, never a reason to fail: a scan error becomes one warning and the file contributes nothing. */
   private scanHiddenFile(opts: {
     filePath: string;
     sourceModules: Set<string>;
+    resolver?: StereotypeReexportResolver;
   }): IScannedArtifact[] {
     try {
       return this.scanFile({ ...opts, isHidden: true });
@@ -89,9 +104,11 @@ export class ArtifactScanner extends BaseHelper {
   private scanFile(opts: {
     filePath: string;
     sourceModules: Set<string>;
+    resolver?: StereotypeReexportResolver;
+    skipped?: IScanSkipped[];
     isHidden?: boolean;
   }): IScannedArtifact[] {
-    const { filePath, sourceModules, isHidden = false } = opts;
+    const { filePath, sourceModules, resolver, skipped, isHidden = false } = opts;
     const source = ts.createSourceFile(
       filePath,
       readFileSync(filePath, 'utf8'),
@@ -99,7 +116,11 @@ export class ArtifactScanner extends BaseHelper {
       true,
     );
 
-    const stereotypeByLocalName = this.collectStereotypeImports({ source, sourceModules });
+    const stereotypeByLocalName = this.collectStereotypeImports({
+      source,
+      sourceModules,
+      resolver,
+    });
     if (stereotypeByLocalName.size === 0) {
       return [];
     }
@@ -137,6 +158,11 @@ export class ArtifactScanner extends BaseHelper {
 
       if (!isNamedExport || isAbstract) {
         if (!isHidden) {
+          skipped?.push({
+            className,
+            filePath,
+            reason: isAbstract ? ScanSkipReasons.ABSTRACT : ScanSkipReasons.NOT_EXPORTED,
+          });
           this.logger
             .for('scanFile')
             .warn(
@@ -159,18 +185,22 @@ export class ArtifactScanner extends BaseHelper {
   private collectStereotypeImports(opts: {
     source: ts.SourceFile;
     sourceModules: Set<string>;
+    resolver?: StereotypeReexportResolver;
   }): Map<string, string> {
     const result = new Map<string, string>();
+    // Only a name a class actually wears as a decorator is worth following through re-exports.
+    const decoratorNames = opts.resolver
+      ? this.collectClassDecoratorNames({ source: opts.source })
+      : new Set<string>();
 
     for (const statement of opts.source.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
         continue;
       }
       const specifier = statement.moduleSpecifier.text;
-      if (
-        !ArtifactStereotypes.SOURCE_MODULES.test(specifier) &&
-        !opts.sourceModules.has(specifier)
-      ) {
+      const isSourceModule =
+        ArtifactStereotypes.SOURCE_MODULES.test(specifier) || opts.sourceModules.has(specifier);
+      if (!isSourceModule && !opts.resolver) {
         continue;
       }
 
@@ -180,7 +210,16 @@ export class ArtifactScanner extends BaseHelper {
       }
 
       for (const element of bindings.elements) {
-        const imported = (element.propertyName ?? element.name).text;
+        const name = (element.propertyName ?? element.name).text;
+        if (!isSourceModule && !decoratorNames.has(element.name.text)) {
+          continue;
+        }
+        const imported = isSourceModule
+          ? name
+          : opts.resolver?.originOf({ fromFile: opts.source.fileName, specifier, name });
+        if (!imported) {
+          continue;
+        }
         const isStereotype =
           imported in ArtifactStereotypes.BY_DECORATOR ||
           imported === ArtifactStereotypes.ROOT_DECORATOR;
@@ -191,6 +230,23 @@ export class ArtifactScanner extends BaseHelper {
     }
 
     return result;
+  }
+
+  /** The identifiers called as decorators on the file's top-level classes (`@service()`, `@kit.service()` is not followed). */
+  private collectClassDecoratorNames(opts: { source: ts.SourceFile }): Set<string> {
+    const names = new Set<string>();
+    for (const statement of opts.source.statements) {
+      if (!ts.isClassDeclaration(statement)) {
+        continue;
+      }
+      for (const decorator of ts.getDecorators(statement) ?? []) {
+        const expression = decorator.expression;
+        if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression)) {
+          names.add(expression.expression.text);
+        }
+      }
+    }
+    return names;
   }
 
   private collectExportClauseNames(opts: { source: ts.SourceFile }): Set<string> {

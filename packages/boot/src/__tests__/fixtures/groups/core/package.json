@@ -1,0 +1,5 @@
+{
+  "name": "@fixture/core",
+  "private": true,
+  "main": "src/groups.ts"
+}

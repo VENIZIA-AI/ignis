@@ -196,14 +196,68 @@ interface IConditionalArtifactIndex {
   index: TArtifactIndexInput;
 }
 
-type TArtifactIndexInput = IArtifactIndex | IConditionalArtifactIndex | TArtifactIndexInput[];
+interface IArtifactGroup extends Partial<Record<keyof IArtifactIndex, never>> {
+  readonly isArtifactGroup: true;
+  readonly folder: string | undefined; // undefined for the application's own root
+  readonly site: string | undefined; // the module that defined the group
+  readonly content: IArtifactIndex | undefined; // inlined by a build
+  resolve?(): Promise<IArtifactIndex>;
+}
+
+type TArtifactIndexInput =
+  | IArtifactIndex
+  | IConditionalArtifactIndex
+  | IArtifactGroup
+  | TArtifactIndexInput[];
 ```
 
-`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, or arrays of them nested to any depth. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order.
+`IApplicationConfigs.artifacts?: TArtifactIndexInput` - one index, a conditional entry, a group, or arrays of them nested to any depth. A group (`ArtifactGroup`, `@venizia/ignis-boot/auto`) carries its classes only once artifacts are registered: its kind fields are typed `never`, and reading one throws, so a function that walks the input must pass an entry with `isArtifactGroup: true` through untouched. A conditional entry registers its `index` only when `when` answers true; a false answer drops the whole subtree. Use it for the run-mode gate: `{ when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } }` keeps a worker's routes out of the container. The field names are the const class `ArtifactIndexFields` (`CONFIGURATIONS`, `DATA_SOURCES`, `COMPONENTS`, `REPOSITORIES`, `SERVICES`, `CONTROLLERS`, with `SCHEME_SET` and `isValid`); `registerArtifacts` reads the index through it, never through a string literal. Field order is registration order.
 
 ```typescript
 artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }],
 ```
+
+## `ArtifactGroup`
+
+A typed slice of a shared package's artifacts, from `@venizia/ignis-kernel` (re-exported by `@venizia/ignis`). Browser-safe: no `node:*`, no `Bun.*`.
+
+```typescript
+class ArtifactGroup implements IArtifactGroup {
+  static define(opts: { folder: string; content?: IArtifactIndex }): ArtifactGroup;
+  static isGroup(value: unknown): value is IArtifactGroup;
+  static setResolver(opts: { resolve: ((opts: { group: IArtifactGroup }) => Promise<IArtifactIndex>) | undefined }): void;
+  readonly folder: string;
+  readonly site: string | undefined;
+  readonly content: IArtifactIndex | undefined;
+}
+```
+
+| Member | Meaning |
+|---|---|
+| `define({ folder })` | Declares a group: every decorated class under a directory named `folder` in the defining package's `src`. Records the defining module (`site`) from the call stack |
+| `content` | Written by `IgnisArtifactsPlugin` at build time; a hand-written group leaves it out |
+| `isGroup(value)` | Checks the `isArtifactGroup` brand, so the CommonJS and ESM copies of the kernel agree |
+| `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
+
+When artifacts are registered, a group resolves to its `content`, else its own `resolve()`, else the installed resolver. No resolver: an error naming `@venizia/ignis-boot/auto`. A group that resolves to no class: an error naming the folder and the defining module. Each group logs one line with its class names.
+
+## `@venizia/ignis-boot/auto`
+
+The default export is the application's own index as a group (`AutoArtifactGroup`): every decorated class under the `src` beside the nearest `package.json`. From source, the first registration registers the run-time plugin (`Bun.plugin`) and imports the virtual module `ignis:artifacts`; in a binary built with `IgnisArtifactsPlugin`, the module is replaced by one holding the built index. Importing it also installs the `ArtifactGroup` resolver. Bun only: on Node it fails with a message naming `ignis-artifacts generate`.
+
+## `IgnisArtifactsPlugin` (`@venizia/ignis-boot/bun`)
+
+```typescript
+class IgnisArtifactsPlugin {
+  static readonly VIRTUAL: 'ignis:artifacts';
+  static create(opts?: { root?: string }): BunPlugin; // for Bun.build
+  static registerRuntime(opts?: { root?: string }): Promise<void>; // once per process
+  static defaultRoot(opts?: { from?: string }): string; // nearest package.json directory + src
+  static render(opts: { root: string }): string; // the index as module source, absolute imports
+}
+```
+
+In `Bun.build` the plugin serves `ignis:artifacts`, replaces `@venizia/ignis-boot/auto` with the built index, and rewrites each `ArtifactGroup.define({ folder })` in the application's workspace dependencies to carry its classes - the binary never scans. A folder with no decorated class fails the build.
 
 ## `registerArtifacts`
 
@@ -384,7 +438,7 @@ A class is emitted when all of the following hold:
 
 - It is a **named export** of a `.ts` file under `--root` (not `export default`, not module-private).
 - It is **not `abstract`**.
-- It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis`, `@venizia/ignis-kernel` or a `--source-module`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from any other module is ignored.
+- It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis`, `@venizia/ignis-kernel` (or one of their sub-paths), or a `--source-module`**. The programmatic `followReexports: true` (what auto artifacts use) also accepts any module whose exports lead there through `export *` and renaming re-exports; only identifiers a class wears as a decorator are followed. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from any other module is ignored.
 - Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
 
 `@model` classes are recognised and never emitted. Every skip is logged with its reason.
@@ -405,6 +459,9 @@ interface IGenerateOptions {
   exportName?: string; // default 'GeneratedArtifacts'
   sourceModules?: string[]; // the --source-module flags
 }
+
+// scanWithReport({ root, ignore?, sourceModules?, followReexports? }) also returns
+// skipped: Array<{ className; filePath; reason: 'abstract' | 'not-exported' | 'ignored' }> (ScanSkipReasons)
 
 const generateArtifactIndex: (opts: IGenerateOptions) => {
   content: string;

@@ -19,6 +19,6 @@
     "node_modules",
     "dist",
     "app_data",
-    "src/__tests__/fixtures/artifacts"
+    "src/__tests__/fixtures"
   ]
 }

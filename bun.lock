@@ -439,6 +439,7 @@
         "@types/nodemailer": "^8.0.1",
         "@types/pg": "catalog:",
         "@venizia/dev-configs": "^0.3.1-0",
+        "@venizia/ignis-boot": "^0.2.1-0",
         "casbin": "^5.51.1",
         "eslint": "catalog:",
         "meilisearch": "^0.60.0",

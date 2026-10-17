@@ -22,8 +22,20 @@ export interface IConditionalArtifactIndex extends Partial<Record<keyof IArtifac
   index: TArtifactIndexInput;
 }
 
-/** One index, a conditional entry, or any nesting of arrays of them - a library exports one, an application composes several. */
+/** A slice of artifacts whose classes are known only when they are registered: a shared package's `ArtifactGroup`, or `@venizia/ignis-boot/auto`. `content` is inlined by a build; otherwise `resolve` (or the resolver `@venizia/ignis-boot` installs) supplies it. The kind fields are typed never so a walker that destructures kinds still compiles - reading one throws. */
+export interface IArtifactGroup extends Partial<Record<keyof IArtifactIndex, never>> {
+  readonly isArtifactGroup: true;
+  /** The directory name the group covers; undefined for the application's own root. */
+  readonly folder: string | undefined;
+  /** The module that defined the group, for the resolver and the error messages. */
+  readonly site: string | undefined;
+  readonly content: IArtifactIndex | undefined;
+  resolve?(): Promise<IArtifactIndex>;
+}
+
+/** One index, a conditional entry, a group, or any nesting of arrays of them - a library exports one, an application composes several. */
 export type TArtifactIndexInput =
   | IArtifactIndex
   | IConditionalArtifactIndex
+  | IArtifactGroup
   | TArtifactIndexInput[];

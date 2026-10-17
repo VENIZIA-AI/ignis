@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [Auto Artifacts - No Generated Index on Bun, and Typed Groups From a Shared Package](./2026-10-17-auto-artifacts) | Feature |
 | 2026-10-17 | [The Repository Type-Checks With bun check](./2026-10-17-bun-check) | Enhancement |
 | 2026-10-17 | [The Wiki Is Updated With VULCAN's docs-update Skill](./2026-10-17-docs-update-skill) | Enhancement |
 | 2026-10-17 | [Dependencies No Package Imported Are Removed](./2026-10-17-unused-dependencies) | Enhancement |

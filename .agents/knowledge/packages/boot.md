@@ -14,6 +14,7 @@ tags: [packages, boot, artifacts, generator]
 - [Output contract](#output-contract)
 - [Generated header names the command](#generated-header-names-the-command)
 - [CLI](#cli)
+- [Auto artifacts and groups (`src/bun/`)](#auto-artifacts-and-groups-srcbun)
 - [Constraints the code cannot show](#constraints-the-code-cannot-show)
 - [Removed](#removed)
 - [Related](#related)
@@ -99,6 +100,14 @@ change alone never reads as drift; `generate` still rewrites the file when the h
 `generate` writes only when the content changed (exit 0). `check` renders in memory and compares
 (exit 0 fresh, 1 stale, with the `generate` command in the message). Anything else prints usage,
 exit 2.
+
+## Auto artifacts and groups (`src/bun/`)
+
+- `IgnisArtifactsPlugin` (`/bun`) serves the virtual module `ignis:artifacts`: `render({ root })` = scan with `followReexports` + the emitter with `absoluteImports` (a virtual module has no directory). Run time: `registerRuntime()` -> `Bun.plugin` + `build.module` (runtime-only API; `Bun.build` throws on it). Build: `create()` -> `onResolve`/`onLoad`, plus two rewrites: `@venizia/ignis-boot/auto` becomes a static re-export of the built index, and every `ArtifactGroup.define({ folder })` in the app's workspace dependencies (pre-scanned files, exact-path filter) gets `content` inlined. A folder with no class fails the build.
+- `@venizia/ignis-boot/auto` default-exports `AutoArtifactGroup` (the kernel's group protocol, built structurally - boot does not depend on the kernel) and installs `GroupArtifactsResolver` into the kernel realm slot `artifact-group-resolver`. Its loader imports `ignis:artifacts` with a STATIC specifier on purpose: a build without the plugin must fail to resolve it (`src/bun/virtual.d.ts` types it). The plugin itself is imported through a non-static specifier so a bundle never pulls the scanner and TypeScript.
+- `GroupArtifactsResolver` (source runs): defining package = nearest `package.json` above the group's `site` (the call site the kernel records); classes loaded by dynamic import of their real paths - the same module instance the package import resolves to.
+- Build-time group rewrite rules: only `ArtifactGroup.define({ folder: '<literal>' })` with the class imported under its own name; an aliased `ArtifactGroup`, a non-literal folder or a non-object argument FAILS the build (never a silent skip that would fail at binary start); `content` is inserted after the last property (trailing commas are fine), a define that already has `content` is left alone. Group files are found in the app's own `src` and in each workspace dependency, walking the `node_modules` chain upward (hoisted installs) and keeping only realpaths outside `node_modules`. A group whose `site` lies outside its package `src` (a `dist` copy) is refused: it would load a second identity of the classes. `ArtifactSources` scans each package once per process (`clear()` for watch modes).
+- `followReexports` follows only identifiers a class wears as a decorator, memoized per scan (resolutions, parsed files, answers); without that it hung for minutes on a large monorepo. `SOURCE_MODULES` accepts the kernel's sub-paths (`@venizia/ignis-kernel/metadata` is where a frontend framework re-exports from).
 
 ## Constraints the code cannot show
 

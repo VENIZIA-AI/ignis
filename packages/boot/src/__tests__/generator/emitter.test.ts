@@ -129,3 +129,19 @@ describe('ArtifactIndexEmitter - header names the command that was run', () => {
     expect(content).not.toContain('src/generated/artifacts.ts');
   });
 });
+
+describe('ArtifactIndexEmitter - absoluteImports', () => {
+  test('absoluteImports writes every import as an absolute path without the .ts extension', () => {
+    const content = ArtifactIndexEmitter.render({
+      outFile: join(ROOT, '__virtual__.ts'),
+      exportName: 'GeneratedArtifacts',
+      command: { root: ROOT, out: join(ROOT, '__virtual__.ts') },
+      absoluteImports: true,
+      artifacts: [artifact('service', 'AlphaService', 'services/alpha.service.ts')],
+    });
+
+    expect(content).toContain(
+      "import { AlphaService } from '/repo/app/src/services/alpha.service';",
+    );
+  });
+});

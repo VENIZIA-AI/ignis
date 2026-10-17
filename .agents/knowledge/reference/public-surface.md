@@ -1055,7 +1055,7 @@ generated:
 
 ## boot
 
-### `@venizia/ignis-boot` (21)
+### `@venizia/ignis-boot` (25)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1075,11 +1075,15 @@ generated:
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `IScanReport` interface
+- `IScanSkipped` interface
+- `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
 - `TBuildInfoFormat` type
+- `TGeneratedArtifactIndex` type
+- `TScanSkipReason` type
 
-### `@venizia/ignis-boot/generator` (13)
+### `@venizia/ignis-boot/generator` (17)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1092,8 +1096,24 @@ generated:
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `IScanReport` interface
+- `IScanSkipped` interface
+- `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
+- `TGeneratedArtifactIndex` type
+- `TScanSkipReason` type
+
+### `@venizia/ignis-boot/bun` (5)
+
+- `ArtifactSources` class
+- `AutoArtifactGroup` class
+- `AutoArtifactsLoader` class
+- `GroupArtifactsResolver` class
+- `IgnisArtifactsPlugin` class
+
+### `@venizia/ignis-boot/auto` (1)
+
+- `default` const
 
 ### `@venizia/ignis-boot/build-info` (8)
 
@@ -1108,7 +1128,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (412)
+### `@venizia/ignis-kernel` (414)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1119,6 +1139,7 @@ generated:
 - `AbstractRestController` class
 - `AnyObjectSchema` const
 - `api` const
+- `ArtifactGroup` class
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
@@ -1209,6 +1230,7 @@ generated:
 - `IApplication` interface
 - `IApplicationConfigs` interface
 - `IApplicationInfo` interface
+- `IArtifactGroup` interface
 - `IArtifactIndex` interface
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationMixin` interface
@@ -2220,7 +2242,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1025)
+### `@venizia/ignis` (1027)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2258,6 +2280,7 @@ generated:
 - `ApplicationEnvironment` class
 - `ApplicationError` class
 - `ApplicationLogger` const
+- `ArtifactGroup` class
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
@@ -2475,6 +2498,7 @@ generated:
 - `IApplicationConfigs` interface
 - `IApplicationEnvironment` interface
 - `IApplicationInfo` interface
+- `IArtifactGroup` interface
 - `IArtifactIndex` interface
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationMixin` interface

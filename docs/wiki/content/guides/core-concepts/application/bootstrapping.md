@@ -22,6 +22,8 @@ export const configs: IApplicationConfigs = {
 };
 ```
 
+On Bun you can skip the generated file entirely: [auto artifacts](#auto-artifacts-on-bun) build the same index in memory, at start and at build time.
+
 This page is the how-to. The [reference](/references/base/bootstrapping) has every option, and the [changelog](/changelogs/2026-09-02-decorator-artifact-registration) has the migration from `boot()`. For the other binary `@venizia/ignis-boot` ships, see [Stamping a build](/guides/core-concepts/application/build-info).
 
 ## Before you start
@@ -152,6 +154,62 @@ export class PlatformComponent extends BaseComponent {
 ```
 
 Each `@provide` key is bound to a lazy provider when the component is registered. The component is resolved and the method called on the first `get`, so a provided value may read a datasource or a secret that does not exist yet at registration time. The value is a `SINGLETON` unless `@provide({ scope })` says otherwise.
+
+## Auto artifacts on Bun
+
+`@venizia/ignis-boot/auto` is the same index with no file, no script and no `check`: a Bun plugin scans `src` when the application starts, and inlines the list when you build a binary.
+
+```typescript
+// src/application.ts
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
+```
+
+`bun src/index.ts` and `bun test` need nothing else. A binary adds the plugin to its build script:
+
+```typescript
+// scripts/build.ts
+import { IgnisArtifactsPlugin } from '@venizia/ignis-boot/bun';
+
+await Bun.build({
+  entrypoints: ['src/index.ts'],
+  compile: { outfile: 'dist/app' },
+  plugins: [IgnisArtifactsPlugin.create()],
+});
+```
+
+A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"` - it never ships a binary with missing classes. On Node there is no plugin API: keep `ignis-artifacts generate`.
+
+The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
+
+### Borrowing from a shared package
+
+In a monorepo, a shared package declares one group per domain, once, and each application borrows the domains it may use:
+
+```typescript
+// packages/core/src/groups.ts
+import { ArtifactGroup } from '@venizia/ignis';
+
+export const InventoryArtifacts = ArtifactGroup.define({ folder: 'inventory' });
+export const CommerceArtifacts = ArtifactGroup.define({ folder: 'commerce' });
+```
+
+```typescript
+// services/inventory/src/application.ts
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+import { CategoryRepository, InventoryArtifacts } from '@acme/core';
+
+artifacts: [AutoArtifacts, InventoryArtifacts, { repositories: [CategoryRepository] }],
+```
+
+A group is every decorated class under a directory named `folder` in the package that defined it (`repositories/inventory/`, `services/inventory/`, ...). Adding a class to that directory adds it to the group. Auto artifacts never scan a dependency wholesale: an application gets only the groups and classes it names, which is the allow-list a shared package needs. The start-up log names each group's classes, and a group that resolves to no class stops the start.
+
+> [!WARNING]
+> A function that walks `configs.artifacts` and reads `entry.services` throws on a group or on `AutoArtifacts` - their classes exist only when artifacts are registered. Pass an entry whose `isArtifactGroup` is `true` through untouched.
 
 ## Conditional and ordered registration
 
