@@ -125,3 +125,59 @@ describe('ArtifactGroup.siteFromStack', () => {
     ).toBe('/pkg/src/(domain)/groups.ts');
   });
 });
+
+describe('ArtifactGroup.pick', () => {
+  test('slices an inlined group to the named kinds', async () => {
+    const group = ArtifactGroup.define({
+      folder: 'inventory',
+      content: { services: [StockService], controllers: [StockController] },
+    });
+    const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
+    expect(await helper.flatten({ input: slice, application })).toEqual([
+      { controllers: [StockController] },
+    ]);
+  });
+
+  test('a resolver-backed group is resolved when artifacts are registered, not when picked', async () => {
+    let calls = 0;
+    ArtifactGroup.setResolver({
+      resolve: async () => {
+        calls += 1;
+        return { services: [StockService], controllers: [StockController] };
+      },
+    });
+    const slice = ArtifactGroup.pick({
+      group: ArtifactGroup.define({ folder: 'inventory' }),
+      kinds: ['services'],
+    });
+    expect(calls).toBe(0);
+    expect(await helper.flatten({ input: slice, application })).toEqual([
+      { services: [StockService] },
+    ]);
+    expect(calls).toBe(1);
+  });
+
+  test('a slice whose kinds hold no class is an empty index, not an error', async () => {
+    const group = ArtifactGroup.define({
+      folder: 'inventory',
+      content: { services: [StockService] },
+    });
+    const slice = ArtifactGroup.pick({ group, kinds: ['controllers'] });
+    expect(await helper.flatten({ input: slice, application })).toEqual([{}]);
+  });
+
+  test('slices a protocol object with its own resolve (the auto group), and stays a group', async () => {
+    const auto: IArtifactGroup = {
+      isArtifactGroup: true,
+      folder: undefined,
+      site: undefined,
+      content: undefined,
+      resolve: async () => ({ services: [StockService], controllers: [StockController] }),
+    };
+    const slice = ArtifactGroup.pick({ group: auto, kinds: ['services'] });
+    expect(ArtifactGroup.isGroup(slice)).toBe(true);
+    expect(await helper.flatten({ input: [slice], application })).toEqual([
+      { services: [StockService] },
+    ]);
+  });
+});

@@ -209,7 +209,18 @@ artifacts: [AutoArtifacts, InventoryArtifacts, { repositories: [CategoryReposito
 A group is every decorated class under a directory named `folder` in the package that defined it (`repositories/inventory/`, `services/inventory/`, ...). Adding a class to that directory adds it to the group. Auto artifacts never scan a dependency wholesale: an application gets only the groups and classes it names, which is the allow-list a shared package needs. The start-up log names each group's classes, and a group that resolves to no class stops the start.
 
 > [!WARNING]
-> A function that walks `configs.artifacts` and reads `entry.services` throws on a group or on `AutoArtifacts` - their classes exist only when artifacts are registered. Pass an entry whose `isArtifactGroup` is `true` through untouched.
+> A function that walks `configs.artifacts` and reads `entry.services` throws on a group or on `AutoArtifacts` - their classes exist only when artifacts are registered. To split artifacts by run mode, slice a group with `ArtifactGroup.pick` instead of reading its kinds:
+
+```typescript
+const slice = (entry: TArtifactIndexInput, kinds: Array<keyof IArtifactIndex>): TArtifactIndexInput =>
+  ArtifactGroup.isGroup(entry) ? ArtifactGroup.pick({ group: entry, kinds }) : /* an index: pick its kinds */ entry;
+
+artifacts: [
+  slice(AutoArtifacts, ['configurations', 'dataSources', 'repositories']),
+  { when: () => runMode !== 'migrate', index: slice(AutoArtifacts, ['components', 'services']) },
+  { when: () => runMode === 'server', index: slice(AutoArtifacts, ['controllers']) },
+],
+```
 
 ## Conditional and ordered registration
 

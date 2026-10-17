@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - ArtifactGroup.pick
+
+Updated [boot lifecycle](/architecture/boot-lifecycle.md).
+
+- `ArtifactGroup.pick({ group, kinds })` slices a group for a run-mode splitter without reading its kinds; the slice is resolved at registration and may be empty. `ArtifactGroup.resolveContent` centralises the content order.
+
 ## 2026-10-17 - Auto artifacts build for the browser
 
 Updated [boot](/packages/boot.md).

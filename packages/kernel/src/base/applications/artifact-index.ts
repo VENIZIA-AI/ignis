@@ -216,21 +216,12 @@ export class ArtifactIndexHelper extends BaseHelper {
   /** A group's classes: inlined at build time, else the resolver `@venizia/ignis-boot/auto` installs. Never empty - a group that names nothing is a typo or a moved folder. */
   private async contentOf(opts: { group: IArtifactGroup }): Promise<IArtifactIndex> {
     const { group } = opts;
-    let content = group.content ?? (group.resolve ? await group.resolve() : undefined);
-    if (!content) {
-      const resolve = ArtifactGroup.getResolver();
-      if (!resolve) {
-        throw getError({
-          message: `[ArtifactGroup] '${group.folder ?? '<application>'}' has no content | Import @venizia/ignis-boot/auto in the application (it resolves groups from source), or add IgnisArtifactsPlugin to the build's plugins`,
-        });
-      }
-      content = await resolve({ group });
-    }
+    const content = await ArtifactGroup.resolveContent({ group });
 
     const names = Object.values(content).flatMap(classes =>
       (classes ?? []).map(target => target.name),
     );
-    if (names.length === 0) {
+    if (names.length === 0 && !group.kinds) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
       });
