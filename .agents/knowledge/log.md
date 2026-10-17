@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - HttpResponseReader.toApplicationError
+
+Updated [connectors](/packages/connectors.md).
+
+- The connector's error mapping (status, normalized code/args/text, `extra.requestId` and the `upstreamRequestIds` chain, `details.cause`) moved into `HttpResponseReader.toApplicationError` in the browser-pure kernel reader; `HttpDataSource.toResponseError` delegates to it. ARDOR drops its copy (issue #181).
+
 ## 2026-10-16 - agent rules, plugin skills and knowledge-tools re-checked
 
 Updated `.agents/rules.md`, the `knowledge-sync` and `update-wiki` skills, `PLUGIN.md`, `setup.ts`, the knowledge-tools README (issue #178).

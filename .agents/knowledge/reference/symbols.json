@@ -17381,7 +17381,7 @@
       "specifier": "@venizia/ignis-connectors/http",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/response-reader.ts",
-      "line": 8,
+      "line": 9,
       "signature": "class HttpResponseReader"
     },
     {
@@ -34983,7 +34983,7 @@
       "specifier": "@venizia/ignis-kernel/repository",
       "kind": "class",
       "file": "packages/kernel/src/base/repositories/common/response-reader.ts",
-      "line": 8,
+      "line": 9,
       "signature": "class HttpResponseReader"
     },
     {

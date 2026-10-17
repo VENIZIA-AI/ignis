@@ -1,5 +1,6 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import type { TResponsedError } from '@venizia/ignis-helpers/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import type { ApplicationError, TResponsedError } from '@venizia/ignis-helpers/core';
 
 /**
  * What an IGNIS server answers - `Content-Range`, the error envelope - read once, here, for every
@@ -93,6 +94,48 @@ export class HttpResponseReader {
     }
 
     return HttpResponseReader.readErrorEnvelope({ body, rootKey: opts.rootKey });
+  }
+
+  /**
+   * A failed response as the error the server threw: its status, code, args and text, and its
+   * `extra` with the `requestId` added. `message` is `context` plus the server's text, for logs;
+   * `normalized.text` stays the server's, for display - `HTTP <status>` when the server sent none.
+   * `cause` is the server's `details.cause` - a 422's per-field issues, `{ path, message, code }`.
+   *
+   * `requestId` names the request this client made. A relaying server's `extra` carries the id of
+   * the request it made upstream: it joins `upstreamRequestIds`, nearest first, at every hop.
+   */
+  static async toApplicationError(opts: {
+    response: Response;
+    /** Where it failed, for logs - e.g. `[HttpDataSource][read] 404 | /tickets`. */
+    context: string;
+    rootKey?: string;
+  }): Promise<ApplicationError> {
+    const { response, context, rootKey } = opts;
+    const server = await HttpResponseReader.readError({ response, rootKey });
+    const serverText = server.normalized?.text ?? server.message;
+    const displayText = serverText ?? `HTTP ${response.status}`;
+
+    const extra: Record<string, unknown> = { ...server.extra };
+    if (server.requestId) {
+      const upstreamRequestId = extra.requestId;
+      extra.requestId = server.requestId;
+
+      if (upstreamRequestId !== undefined && upstreamRequestId !== server.requestId) {
+        const known = Array.isArray(extra.upstreamRequestIds) ? extra.upstreamRequestIds : [];
+        extra.upstreamRequestIds = [upstreamRequestId, ...known];
+      }
+    }
+
+    return getError({
+      statusCode: response.status,
+      message: serverText ? `${context} | ${serverText}` : context,
+      messageCode: server.normalized?.code,
+      messageArgs: server.normalized?.args,
+      extra: Object.keys(extra).length > 0 ? extra : undefined,
+      cause: server.details?.cause,
+      transform: ({ message }) => ({ ...message, text: displayText }),
+    });
   }
 
   /**
