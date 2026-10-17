@@ -26,6 +26,14 @@ EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter e
 
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 
+# Paths this package must not lint or format, relative to the package - generated files, bundles:
+#   LINT_IGNORE := src/_build_info.ts dev-dist/** public/**
+# Set it in the package Makefile before the include. `ignorePatterns` inside .configs/ cannot do this:
+# they resolve against .configs/ and match nothing.
+LINT_IGNORE ?=
+LINT_IGNORE_FLAGS = $(foreach glob,$(LINT_IGNORE),--ignore-pattern "$(glob)")
+FMT_IGNORE_GLOBS = $(foreach glob,$(LINT_IGNORE),"!$(glob)")
+
 .PHONY: build typecheck clean rebuild lint fmt
 
 # tsconfig.json covers the tests too, so a broken test fails here, before anything is emitted.
@@ -66,11 +74,11 @@ rebuild: typecheck clean
 	@$(MAKE) --no-print-directory build
 
 lint:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB)
+	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
 
 fmt:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --fix .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs --fix .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB)
+	@$(BIN)/oxlint -c .configs/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB) $(FMT_IGNORE_GLOBS)

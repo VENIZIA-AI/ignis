@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
-import { expectRejection } from '@/__tests__/rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 import type { ISearchConnector } from '@/search/core';
 
 interface IConformanceDocument extends Record<string, unknown> {

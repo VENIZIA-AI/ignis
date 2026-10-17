@@ -5,7 +5,7 @@ import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
 import { DefaultSearchRepository } from '@/search/core/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
-import { expectRejection } from '@/__tests__/rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 import { FakeSearchDataSource } from './fake-search-connector';
 
 /**

@@ -5,7 +5,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { expectRejection } from '@/__tests__/rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 /**
  * The columns every engine's conformance table declares. Types differ per engine - `tags` is a

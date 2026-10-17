@@ -6,7 +6,7 @@ import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { FakePool } from './fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
-import { expectRejection } from '../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 @datasource({ driver: NodePostgresDriver })
 class ProbeDataSource extends BasePostgresDataSource<{}> {

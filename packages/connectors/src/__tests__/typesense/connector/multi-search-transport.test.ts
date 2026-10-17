@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { makeHelper } from './fake-client';
-import { expectRejection } from '@/__tests__/rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 /**
  * `/multi_search` is the single transport: `search()` is its arity-1 case and `multiSearch()` its

@@ -5015,6 +5015,35 @@
   },
   "changelogs": [
     {
+      "id": "changelog:2026-10-17-response-reader-to-application-error",
+      "file": "2026-10-17-response-reader-to-application-error.md",
+      "date": "2026-10-17",
+      "title": "HttpResponseReader Maps a Failed Response to an ApplicationError",
+      "packages": [
+        "kernel"
+      ],
+      "kind": "Enhancement",
+      "order": 1694
+    },
+    {
+      "id": "changelog:2026-10-17-lint-ignore-and-testing-helpers",
+      "file": "2026-10-17-lint-ignore-and-testing-helpers.md",
+      "date": "2026-10-17",
+      "title": "LINT_IGNORE and Shared Test Helpers",
+      "packages": [],
+      "kind": "New Feature",
+      "order": 9007199254740991
+    },
+    {
+      "id": "changelog:2026-10-17-dev-configs-house-rules",
+      "file": "2026-10-17-dev-configs-house-rules.md",
+      "date": "2026-10-17",
+      "title": "dev-configs House Rules and Type-Only Imports",
+      "packages": [],
+      "kind": "New Feature",
+      "order": 1695
+    },
+    {
       "id": "changelog:2026-10-16-oxlint-oxfmt-migration",
       "file": "2026-10-16-oxlint-oxfmt-migration.md",
       "date": "2026-10-16",

@@ -54,8 +54,7 @@ Call `spawnSyncBounded` from the package's `src/__tests__/spawn.helper.ts`, neve
 `spawnSync` blocks the worker thread, so bun's own test timeout cannot fire while it waits, and the
 `timeout` option sends only SIGTERM, which a stuck child can outlive - `compiled-binary.test.ts` once
 stalled the helpers suite for 770s that way. The helper defaults to a 120s bound, always kills with
-SIGKILL and throws naming the command. Each package with spawning tests carries its own copy, like
-`rejection.helper.ts`.
+SIGKILL and throws naming the command. Each package with spawning tests carries its own copy.
 
 ## Asserting a rejection or a resolution
 
@@ -63,8 +62,8 @@ bun types `expect(task).rejects` / `.resolves` as `void`, so type-aware lint (`a
 refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) breaks C-10. Await the
 task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
 `await expectRejection({ task, message })` or `expect(await rejectionOf(task)).toBeInstanceOf(Error)`
-from the package's `src/__tests__/rejection.helper.ts` (connectors, core-server, core-worker - one
-identical copy each). `rejectionOf` throws when the task resolves. `expectRejection` compares the
+from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and BANA (issue #187; the per-package
+copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. `rejectionOf` throws when the task resolves. `expectRejection` compares the
 message as a string on purpose: bun 1.4.2 `toMatchObject` with an asymmetric matcher
 (`expect.stringMatching`) overwrites the matched property on the object it checks, so a later
 `error.message` read returns the matcher - a test that reads the same error twice then fails with

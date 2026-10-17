@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:tes
 import { asc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/libsql';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { expectRejection } from '../../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),

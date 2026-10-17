@@ -78,6 +78,10 @@
       "types": "./dist/linters/index.d.ts",
       "default": "./dist/linters/index.js"
     },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
+    },
     "./tsconfig.base.json": "./src/tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./src/tsconfig/tsconfig.common.json",
     "./tsconfig.browser.json": "./src/tsconfig/tsconfig.browser.json",
