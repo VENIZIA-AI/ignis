@@ -89,6 +89,10 @@ jobs:
         id: build
         run: make build-all
 
+      # Bun links a package bin only when its target exists, and the workspace bins (ignis-artifacts) point into dist - link them now that the build wrote it.
+      - name: Link workspace bins
+        run: bun install --frozen-lockfile
+
       # Boots each example that needs no external service and calls its endpoints against the build.
       - name: Examples smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
