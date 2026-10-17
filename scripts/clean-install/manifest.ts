@@ -91,7 +91,8 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
   { package: 'atlas' },
   // No grant: ESLint arrives as a required peer of the bundled plugins. The tsconfig exports are
   // JSON and get no row.
-  { package: 'dev-configs' },
+  // `./testing` imports `bun:test`: it loads under Bun only, as the test helpers it is.
+  { package: 'dev-configs', bunOnly: ['./testing'] },
 ];
 
 export interface IPackageManifest {

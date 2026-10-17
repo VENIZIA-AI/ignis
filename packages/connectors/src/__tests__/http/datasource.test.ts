@@ -1,4 +1,4 @@
-import { expectRejection } from '../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 import type { IHttpRequestContext, THttpHeaders } from '@/http/common/types';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, test } from 'bun:test';

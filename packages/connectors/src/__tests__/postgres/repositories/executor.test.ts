@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
-import { expectRejection } from '../../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 const usersTable = pgTable('users', {
   id: serial('id').primaryKey(),

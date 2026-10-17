@@ -1,4 +1,4 @@
-import { expectRejection } from '../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
 import { isApplicationError } from '@venizia/ignis-helpers/core';

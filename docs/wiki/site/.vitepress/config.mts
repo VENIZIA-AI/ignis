@@ -459,6 +459,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-17-dev-configs-house-rules',
                 },
                 {
+                  text: 'LINT_IGNORE and Shared Test Helpers',
+                  link: '/changelogs/2026-10-17-lint-ignore-and-testing-helpers',
+                },
+                {
                   text: 'HttpResponseReader Maps a Failed Response to an ApplicationError',
                   link: '/changelogs/2026-10-17-response-reader-to-application-error',
                 },

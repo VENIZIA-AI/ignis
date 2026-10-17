@@ -14,7 +14,7 @@ import type { IServiceAuthOptions } from '@venizia/ignis-kernel';
 import { ServiceAssertionSignerService } from '@/components/auth/authenticate/services/service/signer.service';
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import { rejectionOf } from '../rejection.helper';
+import { rejectionOf } from '@venizia/dev-configs/testing';
 
 /**
  * Real Ed25519 keys, a real JWK set served over HTTP, and verification through
