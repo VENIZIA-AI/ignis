@@ -267,7 +267,7 @@ extra.facets.status; // keys typed from what was asked for
 
 Without `shouldQueryRange`, `find` with `extra` answers `{ data, extra }`; asked for, `extra` is always present, and each entry is optional. `read({ extra })` and `write({ extra })` take the same request. The connector unwraps `{ data, extra }` only when the response carries `x-response-extra`. `count`, `existsWith` and `findOne` ask for the rows alone (`-*`), so no default is computed for them. A client without the connector builds the header with `HttpExtraRequest.toHeader` and reads the body with `HttpResponseReader.readExtra`, both from `@venizia/ignis-kernel/repository`.
 
-The connector's readers are exported for a client that talks to the same server - from `@venizia/ignis-kernel/repository`, so that client needs no connector, and re-exported from `/http`: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })` and `HttpResponseReader.readError({ response, rootKey })`.
+The connector's readers are exported for a client that talks to the same server - from `@venizia/ignis-kernel/repository`, so that client needs no connector, and re-exported from `/http`: `HttpResponseReader.parseContentRange({ header })`, `HttpResponseReader.readErrorEnvelope({ body, rootKey })`, `HttpResponseReader.readError({ response, rootKey })` and `HttpResponseReader.toApplicationError({ response, context, rootKey })`. The last one is the connector's own error mapping: the status, the normalized code, args and text (`HTTP <status>` when the server sent none), `extra` with `requestId` and the relayed `upstreamRequestIds`, and `details.cause` as `cause`. `context` is your log prefix, for example `[Client][read] 404 | /tickets`.
 
 ## See also
 
