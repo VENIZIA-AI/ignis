@@ -6,6 +6,13 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - LINT_IGNORE and @venizia/dev-configs/testing
+
+Updated [build system](/process/build-system.md), [testing conventions](/conventions/testing-conventions.md).
+
+- `make/project.mk` takes `LINT_IGNORE`: paths a package must not lint or format, resolved from the package root (issue #187, so IGNIS, ARDOR and BANA skip generated files the same way).
+- `rejectionOf` / `expectRejection` ship from `@venizia/dev-configs/testing`; the three per-package `rejection.helper.ts` copies are deleted. `rejectionOf` fails through `expect.unreachable` - dev-configs cannot import `getError`.
+
 ## 2026-10-17 - house ESLint rules and consistent-type-imports in the base preset
 
 Updated [dev-configs](/packages/dev-configs.md), [gotchas](/conventions/gotchas.md).

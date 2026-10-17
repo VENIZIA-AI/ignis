@@ -114,6 +114,7 @@ Every IGNIS package and example does.
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
+| `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |

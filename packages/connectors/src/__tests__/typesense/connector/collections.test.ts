@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
-import { expectRejection } from '@/__tests__/rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };

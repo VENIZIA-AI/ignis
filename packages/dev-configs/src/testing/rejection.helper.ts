@@ -16,7 +16,7 @@ export const rejectionOf = async (task: Promise<unknown>): Promise<unknown> => {
     return error;
   }
 
-  throw new Error('Expected the task to reject, but it resolved');
+  return expect.unreachable('Expected the task to reject, but it resolved');
 };
 
 /**

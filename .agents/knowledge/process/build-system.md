@@ -53,7 +53,10 @@ tags: [process, build]
    as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
-   `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. No package ships its
+   `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
+   (generated files, bundles) sets `LINT_IGNORE := src/_build_info.ts dev-dist/**` before the include:
+   `--ignore-pattern` for oxlint and ESLint, `"!<glob>"` for oxfmt, all resolved from the package root
+   (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
    package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
    `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.

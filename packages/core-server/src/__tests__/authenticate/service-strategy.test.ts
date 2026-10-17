@@ -11,7 +11,7 @@ import { ServiceAssertionSignerService } from '@/components/auth/authenticate/se
 import { ServiceAssertionVerifierService } from '@/components/auth/authenticate/services/service/verifier.service';
 import { ServiceAuthenticationStrategy } from '@/components/auth/authenticate/strategies/service.strategy';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import { expectRejection } from '../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 /**
  * The seam an application owns: `resolvePrincipal` returning `null`, a principal with no `userId`,

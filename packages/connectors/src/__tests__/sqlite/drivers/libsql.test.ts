@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
-import { expectRejection } from '../../rejection.helper';
+import { expectRejection } from '@venizia/dev-configs/testing';
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
