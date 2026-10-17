@@ -10,7 +10,7 @@ tags: [packages, atlas, mcp, search, retrieval]
 say" over three corpora - the wiki, the changelogs, and the agent-facing knowledge bundle - with a
 citation on every answer. It replaces two retired servers, `ignis-docs-mcp`
 (`docs/wiki/mcp-server`) and `ignis-knowledge` (`.agents/knowledge-tools`'s `mcp.ts`, now deleted);
-see the [changelog](/changelogs/2026-09-06-ignis-atlas).
+see the [changelog](https://ignis.venizia.ai/changelogs/2026-09-06-ignis-atlas.html).
 
 Position in the chain: `helpers -> atlas`, a leaf like `boot` - nothing in the framework depends on
 it. Runtime dependencies: `@venizia/ignis-helpers`, `zod` and `@hono/zod-openapi` - the last one because the helpers root barrel (the only entry that exports `LoggerFactory`) needs it; helpers lists it only as a peer dependency, and atlas, a leaf with nothing downstream to satisfy that peer from, pins it directly. `scripts/atlas-pack-smoke.ts` proves the packed tarball starts in an empty directory, and the release workflow runs it for `atlas`. Single CJS build, no ESM pass -

@@ -59,7 +59,7 @@ SIGKILL and throws naming the command. Each package with spawning tests carries 
 ## Asserting a rejection or a resolution
 
 bun types `expect(task).rejects` / `.resolves` as `void`, so type-aware lint (`await-thenable`)
-refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) breaks C-10. Await the
+refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) breaks V-C-10. Await the
 task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
 `await expectRejection({ task, message })` or `expect(await rejectionOf(task)).toBeInstanceOf(Error)`
 from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and BANA (issue #187; the per-package

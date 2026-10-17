@@ -104,7 +104,7 @@ Every IGNIS package and example does.
 | Flag | Base value | Why |
 | :--- | :--- | :--- |
 | `experimentalDecorators` | `true` | `@inject`, `@controller`, `@repository` and the other decorators need it |
-| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import, so import such names with `import type` |
+| `emitDecoratorMetadata` | `true` | Optional - restate it only if your code reads `design:*` metadata. IGNIS reads `design:paramtypes` once, to validate a `@repository` constructor, and skips the check when the metadata is absent. Under Bun it turns an interface-typed constructor parameter into a runtime import (`Export named 'X' not found`), so import such names with `import type`; `tsc --noEmit --isolatedModules` (TS1272) finds most of them, loading `src/index.ts` under Bun the rest |
 | `useDefineForClassFields` | `false` | Class fields are assigned, not defined, so a subclass field initializer does not shadow a value the base constructor set |
 
 ## Entry points

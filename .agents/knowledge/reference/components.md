@@ -4,6 +4,8 @@ title: Components catalog
 description: Every component under packages/core-server/src/components and its exported classes (generated).
 resource: packages/core-server/src/components
 tags: [reference, components, core]
+generated:
+  by: process:okf-gen
 ---
 
 > Generated from source - do not edit; run `make okf-gen`. Model: [component model](/architecture/component-model.md).

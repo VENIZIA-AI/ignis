@@ -95,6 +95,7 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "oxfmt": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@venizia/vulcan": "0.1.0-0"
   }
 }

@@ -5023,7 +5023,7 @@
         "kernel"
       ],
       "kind": "Enhancement",
-      "order": 1694
+      "order": 1695
     },
     {
       "id": "changelog:2026-10-17-lint-ignore-and-testing-helpers",
@@ -5041,7 +5041,7 @@
       "title": "dev-configs House Rules and Type-Only Imports",
       "packages": [],
       "kind": "New Feature",
-      "order": 1695
+      "order": 1697
     },
     {
       "id": "changelog:2026-10-16-oxlint-oxfmt-migration",

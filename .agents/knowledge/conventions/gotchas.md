@@ -360,6 +360,10 @@ declare `experimentalDecorators: true` and `useDefineForClassFields: false` dire
 only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
 constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
 core-server's `tsconfig.json` declares `experimentalDecorators` alone (its former `tsconfig.core.json` was merged into it).
+The failure reads `Export named 'X' not found` at load time. To find every such value import before
+Bun does: `tsc --noEmit --isolatedModules` reports most as TS1272, and loading each package's
+`src/index.ts` under Bun finds the rest - BANA swept its 19 backend tsconfigs this way when it
+restated the flags (2026-10-17).
 
 ## Under bun-runs-source, a type used on a decorated member must come from `import type`
 
