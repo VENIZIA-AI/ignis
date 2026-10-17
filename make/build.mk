@@ -42,12 +42,13 @@ build-all: core core-worker boot docs surface-check wiki-links-check wiki-anchor
 # it sits beside `boot`, not after it, so it never depends on boot's node-only glob discovery.
 # `core-worker` is the browser Worker host (envelope, transport, WorkerApplication) - it depends on
 # kernel only, sits beside `connectors`, and never on `core`.
+# `core-server` also builds after `boot`: its tests check boot's auto artifacts against the real kernel.
 inversion: dev-configs
 filter helpers: inversion
 boot: helpers
 kernel: helpers filter
 connectors core-worker: kernel
-core-server: connectors
+core-server: connectors boot
 
 # Each package builds through its own Makefile (make/project.mk); this file only orders them.
 $(PACKAGES):
