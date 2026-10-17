@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - VULCAN 0.2.0-5
+
+Updated nothing else - tooling only.
+
+- `@venizia/vulcan` is pinned at 0.2.0-5: an okf renderer may return several pages, coverage counts a concept whose frontmatter `resource` is the axis directory, and a `packages` entry repeating a dir, name or path is a config error. VULCAN prereleases go to `next` only.
+
 ## 2026-10-18 - Auto artifacts load the running tree
 
 Updated [boot](/packages/boot.md).
