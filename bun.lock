@@ -348,17 +348,18 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.2.1-0",
+      "version": "0.2.1-1",
       "bin": {
         "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
         "ignis-build-info": "./dist/cjs/clis/build-info.js",
       },
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.2.2-5",
+        "@venizia/ignis-helpers": "^0.2.2-6",
+        "@venizia/ignis-inversion": "^0.2.2-3",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.3.1-0",
+        "@venizia/dev-configs": "^0.3.1-1",
         "eslint": "catalog:",
         "oxfmt": "catalog:",
         "oxlint": "catalog:",
@@ -372,7 +373,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.2.2-5",
+      "version": "0.2.2-6",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.2-2",
         "@venizia/ignis-helpers": "^0.2.2-5",
@@ -418,7 +419,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.2.2-5",
+      "version": "0.2.2-6",
       "dependencies": {
         "@venizia/ignis-connectors": "^0.2.2-5",
         "@venizia/ignis-filter": "^0.2.2-2",
@@ -504,7 +505,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.2.2-5",
+      "version": "0.2.2-6",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.2.2-5",
         "@venizia/ignis-inversion": "^0.2.2-2",
@@ -528,7 +529,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.3.1-0",
+      "version": "0.3.1-1",
       "dependencies": {
         "@eslint/js": "^10.0.1",
         "eslint-config-prettier": "^10.1.8",
@@ -565,7 +566,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.2.2-2",
+      "version": "0.2.2-3",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.2.2-2",
         "zod": "catalog:",
@@ -583,9 +584,9 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.2.2-5",
+      "version": "0.2.2-6",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.2.2-2",
+        "@venizia/ignis-inversion": "^0.2.2-3",
         "reflect-metadata": "catalog:",
         "zod": "catalog:",
       },
@@ -597,7 +598,7 @@
         "@socket.io/redis-emitter": "catalog:",
         "@types/bun": "catalog:",
         "@types/luxon": "^3.7.5",
-        "@venizia/dev-configs": "^0.3.1-0",
+        "@venizia/dev-configs": "^0.3.1-1",
         "axios": "^1.20.0",
         "bullmq": "catalog:",
         "cron": "^4.4.0",
@@ -670,13 +671,13 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.2.2-2",
+      "version": "0.2.2-3",
       "dependencies": {
         "reflect-metadata": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
-        "@venizia/dev-configs": "^0.3.1-0",
+        "@venizia/dev-configs": "^0.3.1-1",
         "eslint": "catalog:",
         "oxfmt": "catalog:",
         "oxlint": "catalog:",
@@ -687,7 +688,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.2.2-5",
+      "version": "0.2.2-6",
       "dependencies": {
         "@venizia/ignis-filter": "^0.2.2-2",
         "@venizia/ignis-helpers": "^0.2.2-5",

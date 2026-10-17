@@ -76,4 +76,18 @@ describe('a compiled binary', () => {
     const run = Bun.spawnSync([join(app, 'bin', 'app')], { cwd: tmpdir() });
     expect(run.stdout.toString()).toContain('plain=PlainService');
   }, 60_000);
+
+  test('a browser bundle of an app using the auto module builds with the plugin', async () => {
+    const app = stage({ name: 'browser', app: join('compile', 'app') });
+    const result = await Bun.build({
+      entrypoints: [join(app, 'src', 'index.ts')],
+      target: 'browser',
+      outdir: join(app, 'out'),
+      plugins: [frameworkSources, IgnisArtifactsPlugin.create({ root: join(app, 'src') })],
+      throw: false,
+    });
+
+    expect(result.logs.map(log => log.message).join('\n')).not.toContain('node:');
+    expect(result.success).toBe(true);
+  }, 60_000);
 });

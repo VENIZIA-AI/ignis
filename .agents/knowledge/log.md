@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - Auto artifacts build for the browser
+
+Updated [boot](/packages/boot.md).
+
+- `auto-group.ts` takes `getError` from `@venizia/ignis-inversion`: a browser `Bun.build` with `IgnisArtifactsPlugin` failed on `node:net` through the helpers barrel. `@venizia/ignis-boot` now depends on `@venizia/ignis-inversion`.
+
 ## 2026-10-17 - Auto artifacts and ArtifactGroup
 
 Updated [boot](/packages/boot.md), [boot lifecycle](/architecture/boot-lifecycle.md).

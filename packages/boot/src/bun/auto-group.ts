@@ -1,4 +1,5 @@
-import { getError } from '@venizia/ignis-helpers';
+// The inversion package, not the helpers barrel: a browser bundle reaches this module, and the barrel loads node builtins.
+import { getError } from '@venizia/ignis-inversion';
 import type { TGeneratedArtifactIndex } from '../generator';
 
 /** The application's own artifacts as the kernel's group protocol (`isArtifactGroup`), built without depending on the kernel: inlined `content` in a binary, `resolve()` from source. Reading a kind throws, so a function that walks `configs.artifacts` cannot drop it as an empty index. */

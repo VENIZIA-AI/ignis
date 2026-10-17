@@ -37,7 +37,7 @@ generated:
 | `make clean-install-kernel` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make connectors` | `kernel` | Rebuild one package, after its dependencies. |
 | `make core` | `core-server` | Rebuild one package, after its dependencies. |
-| `make core-server` | `connectors` | Rebuild one package, after its dependencies. |
+| `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
