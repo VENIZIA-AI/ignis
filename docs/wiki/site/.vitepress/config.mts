@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Browser Auto Index Tree-Shaken Again',
+                  link: '/changelogs/2026-10-18-auto-index-eager-in-browser',
+                },
+                {
                   text: 'Scan Cache and Lazy Auto Module',
                   link: '/changelogs/2026-10-18-auto-artifacts-scan-cache',
                 },

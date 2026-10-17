@@ -260,7 +260,9 @@ export class IgnisArtifactsPlugin {
   }
 
   /** For `Bun.build({ plugins: [IgnisArtifactsPlugin.create()] })`; `isRuntime` is set by `registerRuntime`, which serves a virtual module instead. `entry` (default: the build's first entrypoint, or `Bun.main` at run time) decides which tree the classes are imported from. */
-  static create(opts: { root?: string; entry?: string; isRuntime?: boolean } = {}): BunPlugin {
+  static create(
+    opts: { root?: string; entry?: string; isRuntime?: boolean; lazyIndex?: boolean } = {},
+  ): BunPlugin {
     const isRuntime = opts.isRuntime ?? false;
 
     return {
@@ -298,9 +300,13 @@ export class IgnisArtifactsPlugin {
             loader: args.path.endsWith('.ts') ? 'ts' : 'js',
           }));
         }
+        // Lazy (a dynamic import on the first resolve) for a server: a library importing this module must not evaluate the app's classes inside its own half-loaded graph. Eager for a browser bundle: a lazily evaluated graph is not tree-shaken, which doubled a measured frontend bundle.
+        const isLazy = opts.lazyIndex ?? build.config.target !== 'browser';
+        const autoModule = isLazy
+          ? `import { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ resolve: async () => (await import('${IgnisArtifactsPlugin.VIRTUAL}')).${IgnisArtifactsPlugin.EXPORT_NAME} });\n`
+          : `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nimport { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ content: ${IgnisArtifactsPlugin.EXPORT_NAME} });\n`;
         build.onLoad({ filter: IgnisArtifactsPlugin.AUTO_MODULE }, () => ({
-          // A dynamic import: the index (and every class it imports) loads when artifacts are resolved, not when a library imports this module - a static import here evaluated the app's classes inside the importer's half-evaluated module graph.
-          contents: `import { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ resolve: async () => (await import('${IgnisArtifactsPlugin.VIRTUAL}')).${IgnisArtifactsPlugin.EXPORT_NAME} });\n`,
+          contents: autoModule,
           loader: 'ts',
         }));
       },

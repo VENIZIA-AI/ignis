@@ -250,6 +250,9 @@ The default export is the application's own index as a group (`AutoArtifactGroup
 
 ## `IgnisArtifactsPlugin` (`@venizia/ignis-boot/bun`)
 
+`create({ root?, entry?, lazyIndex? })`. `lazyIndex` decides how a build replaces `@venizia/ignis-boot/auto`: lazily (the index loads when artifacts are resolved, so a shared library may import the module at the top of a file) or eagerly (the index is a static import, which keeps a browser bundle tree-shaken). Default: lazy for a server target, eager for `target: 'browser'`.
+
+
 ```typescript
 class IgnisArtifactsPlugin {
   static readonly VIRTUAL: 'ignis:artifacts';

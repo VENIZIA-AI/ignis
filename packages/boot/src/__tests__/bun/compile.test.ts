@@ -99,6 +99,41 @@ describe('a compiled binary', () => {
     expect(run.stdout.toString()).toContain('plain=PlainService');
   }, 60_000);
 
+  test('a browser bundle imports the auto index eagerly (tree-shaken), and lazyIndex opts back in', async () => {
+    const app = stage({ name: 'browser-eager', app: join('compile', 'app') });
+    writeFileSync(
+      join(app, 'src', 'loud.service.ts'),
+      "import { service } from '@venizia/ignis-kernel';\nconsole.log('evaluated');\n@service()\nexport class LoudService {}\n",
+    );
+    writeFileSync(
+      join(app, 'src', 'lazy.ts'),
+      "import auto from '@venizia/ignis-boot/auto';\nconsole.log('imported');\nawait auto.resolve();\nconsole.log('resolved');\n",
+    );
+    const order = async (opts: { lazyIndex?: boolean; out: string }): Promise<string[]> => {
+      const result = await Bun.build({
+        entrypoints: [join(app, 'src', 'lazy.ts')],
+        target: 'browser',
+        outdir: join(app, opts.out),
+        plugins: [
+          frameworkSources,
+          IgnisArtifactsPlugin.create({ root: join(app, 'src'), lazyIndex: opts.lazyIndex }),
+        ],
+        throw: false,
+      });
+      expect(result.success).toBe(true);
+      return Bun.spawnSync(['bun', join(app, opts.out, 'lazy.js')], { cwd: tmpdir() })
+        .stdout.toString()
+        .split('\n')
+        .filter(Boolean);
+    };
+    expect(await order({ out: 'out-default' })).toEqual(['evaluated', 'imported', 'resolved']);
+    expect(await order({ lazyIndex: true, out: 'out-lazy' })).toEqual([
+      'imported',
+      'evaluated',
+      'resolved',
+    ]);
+  }, 60_000);
+
   test('a browser bundle of an app using the auto module builds with the plugin', async () => {
     const app = stage({ name: 'browser', app: join('compile', 'app') });
     const result = await Bun.build({
