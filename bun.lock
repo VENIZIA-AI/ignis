@@ -378,7 +378,6 @@
         "@venizia/ignis-helpers": "^0.2.2-5",
         "@venizia/ignis-inversion": "^0.2.2-2",
         "@venizia/ignis-kernel": "^0.2.2-5",
-        "reflect-metadata": "catalog:",
         "zod": "catalog:",
       },
       "devDependencies": {
@@ -427,7 +426,6 @@
         "@venizia/ignis-inversion": "^0.2.2-2",
         "@venizia/ignis-kernel": "^0.2.2-5",
         "reflect-metadata": "catalog:",
-        "zod": "catalog:",
       },
       "devDependencies": {
         "@asteasolutions/zod-to-openapi": "^9.1.0",
@@ -442,7 +440,6 @@
         "@types/pg": "catalog:",
         "@venizia/dev-configs": "^0.3.1-0",
         "casbin": "^5.51.1",
-        "drizzle-kit": "catalog:",
         "eslint": "catalog:",
         "meilisearch": "^0.60.0",
         "oxfmt": "catalog:",
@@ -450,7 +447,6 @@
         "oxlint-tsgolint": "catalog:",
         "postgres": "catalog:",
         "tsc-alias": "catalog:",
-        "tsx": "catalog:",
         "typescript": "catalog:",
         "typesense": "catalog:",
       },
@@ -676,7 +672,6 @@
       "version": "0.2.2-2",
       "dependencies": {
         "reflect-metadata": "catalog:",
-        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",
@@ -697,7 +692,6 @@
         "@venizia/ignis-helpers": "^0.2.2-5",
         "@venizia/ignis-inversion": "^0.2.2-2",
         "reflect-metadata": "catalog:",
-        "zod": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "catalog:",

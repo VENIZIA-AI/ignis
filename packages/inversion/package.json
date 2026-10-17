@@ -97,8 +97,7 @@
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
-    "reflect-metadata": "catalog:",
-    "zod": "catalog:"
+    "reflect-metadata": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

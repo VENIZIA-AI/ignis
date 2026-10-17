@@ -128,7 +128,6 @@
     "@venizia/ignis-helpers": "^0.2.2-5",
     "@venizia/ignis-inversion": "^0.2.2-2",
     "@venizia/ignis-kernel": "^0.2.2-5",
-    "reflect-metadata": "catalog:",
     "zod": "catalog:"
   },
   "peerDependencies": {
