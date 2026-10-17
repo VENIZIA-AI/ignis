@@ -14,7 +14,7 @@ make agent-setup      # = bun x --no-install vulcan sync
 
 | Read before you touch anything | What lives there |
 |---|---|
-| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), cited by ID. They extend the shared VULCAN base (`node_modules/@venizia/vulcan/base/rules.md`, IDs `V-*`), which also holds the code and writing rules `V-C-01` … `V-C-18`. |
+| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), docs (D), cited by ID. They extend the shared VULCAN base (`node_modules/@venizia/vulcan/base/rules.md`, IDs `V-*`), which also holds the code and writing rules `V-C-01` … `V-C-18`. |
 | **[`.agents/knowledge/index.md`](.agents/knowledge/index.md)** | **THE facts** - what IGNIS is and why, the monorepo layout, design decisions, the gotchas, per-package concepts, conventions, playbooks. |
 
 Both are mandatory, for every agent, on every task. The two rules that cost the most when skipped:
@@ -25,7 +25,7 @@ Both are mandatory, for every agent, on every task. The two rules that cost the 
 
 Nothing lives in two places. Every piece of project information has exactly one home:
 
-- **`.agents/`** - what agents read: the rules, the knowledge bundle, the project skills and okf renderers.
+- **`.agents/`** - what agents read: the rules, the knowledge bundle and the okf renderers.
 - **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
 
 Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
@@ -60,11 +60,10 @@ commit gate. The `knowledge-sync` skill re-verifies the bundle against the code 
 
 ```
 .agents/
-├── rules.md          # THE rules - W · S · P · B · C, cited by ID
+├── rules.md          # THE rules - W · S · P · B · D · C, cited by ID
 ├── knowledge/        # THE knowledge bundle
 ├── okf/              # renderer modules okf gen loads - the components and helpers catalogs
 ├── vulcan.manifest.json  # written by vulcan sync; atlas reads it when another repo pulls IGNIS
-├── skills/           # update-wiki - IGNIS-only; VULCAN ships knowledge-sync and docs-writing
 └── plans/            # gitignored - saved specs and plans, local to each developer
 ```
 
@@ -76,8 +75,9 @@ Code ships.
 
 This `AGENTS.md` is the single source. `make agent-setup` (`vulcan sync`) writes each tool's file as a
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
-and hooks (its session digest and the `guard-writes` check) and the shipped and project skills. The
+and hooks (its session digest and the `guard-writes` check) and the shipped skills - `docs-update`
+(it applies the D rules in `.agents/rules.md`), `docs-writing` and `knowledge-sync`. The
 digest names the rules sessions drop most (`digest.oftenDropped` in `.configs/vulcan.config.ts`) and
 prints the minimap shape from `.agents/rules.md`. Re-run `make agent-setup` after a pull that touched
-`.configs/vulcan.config.ts`, `.agents/skills/` or the pinned VULCAN version; `make vulcan-doctor`
+`.configs/vulcan.config.ts` or the pinned VULCAN version; `make vulcan-doctor`
 says when you need to.

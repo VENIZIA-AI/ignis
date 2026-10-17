@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [The Wiki Is Updated With VULCAN's docs-update Skill](./2026-10-17-docs-update-skill) | Enhancement |
 | 2026-10-17 | [Dependencies No Package Imported Are Removed](./2026-10-17-unused-dependencies) | Enhancement |
 | 2026-10-17 | [A Repository With a Type-Only DataSource Import Loads Under tsc](./2026-10-17-repository-type-only-datasource) | Bug Fix |
 | 2026-10-17 | [ignis-artifacts Finds Decorators Another Package Re-Exports](./2026-10-17-artifacts-source-module) | Enhancement |
