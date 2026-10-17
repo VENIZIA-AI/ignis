@@ -42,6 +42,23 @@ describe('ArtifactScanner', () => {
     }
   });
 
+  test('a source module the caller names adds to the defaults: its stereotypes count, IGNIS ones still do', () => {
+    const names = ArtifactScanner.getInstance()
+      .scan({ root: ROOT, sourceModules: ['some-other-lib'] })
+      .map(a => a.className);
+
+    expect(names).toContain('ForeignService');
+    expect(names).toContain('GreeterService');
+  });
+
+  test('a source module matches its specifier exactly, never a prefix', () => {
+    const names = ArtifactScanner.getInstance()
+      .scan({ root: ROOT, sourceModules: ['some-other'] })
+      .map(a => a.className);
+
+    expect(names).not.toContain('ForeignService');
+  });
+
   test('a caller-supplied ignore list adds to the defaults, never replaces them', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: ROOT, ignore: ['**/legacy/**'] })

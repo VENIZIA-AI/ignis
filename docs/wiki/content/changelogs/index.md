@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [ignis-artifacts Finds Decorators Another Package Re-Exports](./2026-10-17-artifacts-source-module) | Enhancement |
 | 2026-10-17 | [lenientFallback for the oxlint Presets](./2026-10-17-oxlint-lenient-fallback) | Feature |
 | 2026-10-17 | [LINT_IGNORE and Shared Test Helpers](./2026-10-17-lint-ignore-and-testing-helpers) | Feature |
 | 2026-10-17 | [dev-configs House Rules and Type-Only Imports](./2026-10-17-dev-configs-house-rules) | Feature, Behavior Change |

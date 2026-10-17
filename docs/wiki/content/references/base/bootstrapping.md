@@ -359,7 +359,7 @@ code - read the list, do not automate a deletion from it.
 Shipped by `@venizia/ignis-boot` as a binary. Requires `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 no longer exports the JS API the scanner calls) and runs under bun.
 
 ```
-ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]
+ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts] [--source-module <specifier>]...
 ```
 
 | Flag | Default | Meaning |
@@ -368,11 +368,12 @@ ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts]
 | `--out` | `src/generated/artifacts.ts` | Path of the generated file; import paths are relative to it |
 | `--ignore` | `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**` | Comma-separated globs, merged with the default ignore list - never replaces it. A decorated class hidden by one of YOUR globs is named in a `warning:` line on stderr; the defaults stay silent |
 | `--export` | `GeneratedArtifacts` | Name of the exported constant |
+| `--source-module` | none | A module that re-exports the stereotype decorators, matched exactly - for example a frontend framework built on the kernel. Repeat the flag for each module. Adds to `@venizia/ignis` and `@venizia/ignis-kernel`, never replaces them. The header records every one, so `check` must be given the same set |
 
 | Command | Effect | Exit code |
 |---|---|---|
 | `generate` | Writes `--out` when its content changed; prints `wrote <out> \| N artifact(s)` or `up to date <out>` | `0` |
-| `check` | Renders in memory and compares with the file; prints `fresh <out>` or `stale <out> - run: ...` | `0` fresh, `1` stale |
+| `check` | Renders in memory and compares with the file; prints `fresh <out>`, or `stale <out> - run: <the full generate command>` with every flag that was passed | `0` fresh, `1` stale |
 | anything else | Prints usage | `2` |
 
 Default ignore list: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`.
@@ -383,7 +384,7 @@ A class is emitted when all of the following hold:
 
 - It is a **named export** of a `.ts` file under `--root` (not `export default`, not module-private).
 - It is **not `abstract`**.
-- It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis` or `@venizia/ignis-kernel`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from another module is ignored.
+- It carries a stereotype decorator - `configuration`, `component`, `controller`, `service`, `repository`, `datasource` - **imported from `@venizia/ignis`, `@venizia/ignis-kernel` or a `--source-module`**. Import aliases (`import { service as svc }`) are resolved. A same-named decorator from any other module is ignored.
 - Or it carries `@injectable({ type })` where `type` is a string literal or `ArtifactTypes.<NAME>`.
 
 `@model` classes are recognised and never emitted. Every skip is logged with its reason.
@@ -402,6 +403,7 @@ interface IGenerateOptions {
   out: string;
   ignore?: string[];
   exportName?: string; // default 'GeneratedArtifacts'
+  sourceModules?: string[]; // the --source-module flags
 }
 
 const generateArtifactIndex: (opts: IGenerateOptions) => {
@@ -424,11 +426,13 @@ interface IScannedArtifact {
 
 class ArtifactScanner {
   static getInstance(): ArtifactScanner;
-  scan(opts: { root: string; ignore?: string[] }): IScannedArtifact[];
+  scan(opts: { root: string; ignore?: string[]; sourceModules?: string[] }): IScannedArtifact[];
 }
 
 class ArtifactIndexEmitter {
   static render(opts: { artifacts: IScannedArtifact[]; outFile: string; exportName: string }): string;
+  /** The `ignis-artifacts generate ...` command for these options - the header and the stale hint print it. */
+  static renderCommand(opts: IGenerateOptions): string;
 }
 ```
 

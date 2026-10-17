@@ -46,7 +46,8 @@ A class is emitted when every rule holds; every miss is logged with its reason.
 - Named export (`export class`), not `export default`, not module-private.
 - Not `abstract`.
 - Decorated with `configuration`, `component`, `controller`, `service`, `repository` or `datasource` **imported from
-  `@venizia/ignis` or `@venizia/ignis-kernel`** (aliases resolved), or with `injectable({ type })`
+  `@venizia/ignis`, `@venizia/ignis-kernel` or a `--source-module`** (aliases resolved; a source module is
+  matched as an exact specifier, for a package that re-exports the decorators), or with `injectable({ type })`
   where `type` is a string literal or `ArtifactTypes.<NAME>`.
 - Not under an ignored glob: `**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`,
   plus `--ignore`. A decorated class under a USER pattern is still scanned and reported in
@@ -66,9 +67,10 @@ the repo's `oxfmt --check` untouched. No IGNIS import in the file - the object i
 
 ## Generated header names the command
 
-The first line of a generated index is `ArtifactIndexEmitter.renderHeader({ root, out, ignore, exportName })`:
-the flags the CLI actually received, `--ignore` only when non-empty, `--export` only when the name is
-not `GeneratedArtifacts`. `ignis-artifacts check` compares only the body below that line (`checkArtifactIndex`), so a flag
+The first line of a generated index is `ArtifactIndexEmitter.renderHeader(...)`, which wraps
+`renderCommand({ root, out, ignore, exportName, sourceModules })`: the flags the CLI actually received,
+`--ignore` only when non-empty, `--export` only when the name is not `GeneratedArtifacts`, one
+`--source-module` per entry. `check`'s stale message prints the same `renderCommand`. `ignis-artifacts check` compares only the body below that line (`checkArtifactIndex`), so a flag
 change alone never reads as drift; `generate` still rewrites the file when the header differs.
 
 ## CLI
@@ -79,6 +81,7 @@ change alone never reads as drift; `generate` still rewrites the file when the h
 | `--out` | `src/generated/artifacts.ts` | Output path; import paths are relative to it |
 | `--ignore` | `DEFAULT_IGNORE` (4 globs) | Comma-separated globs, merged with `DEFAULT_IGNORE` - never replaces it |
 | `--export` | `GeneratedArtifacts` | Exported constant name |
+| `--source-module` | none | Repeatable. Adds a module whose stereotype imports count (`sourceModules`), on top of `SOURCE_MODULES`. `check` needs the same set as `generate` |
 
 `generate` writes only when the content changed (exit 0). `check` renders in memory and compares
 (exit 0 fresh, 1 stale, with the `generate` command in the message). Anything else prints usage,

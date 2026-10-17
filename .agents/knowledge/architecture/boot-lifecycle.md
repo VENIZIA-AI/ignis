@@ -118,8 +118,7 @@ is also one of those 3. Every site fails to compile until it is deleted.
 - **In the index, not bound:** `when` returned `false` (look for the debug skip line) or the index
   is stale (`check:artifacts`).
 - **Decorated, not in the index:** not a named export, `abstract`, the decorator imported from a
-  wrapper module instead of `@venizia/ignis`/`@venizia/ignis-kernel`, or the file under an ignored
-  glob.
+  wrapper module that was not passed as `--source-module`, or the file under an ignored glob.
 - **`@configuration` never registers:** the index predates the generator learning the stereotype.
   It emits a `configurations` field now, first, so regenerate after a boot upgrade - an older index
   has no such field and `check:artifacts` calls it stale. Hand-listing still works for a class the

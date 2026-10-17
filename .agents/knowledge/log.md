@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - ignis-artifacts --source-module
+
+Updated [boot](/packages/boot.md), [boot lifecycle](/architecture/boot-lifecycle.md).
+
+- `ignis-artifacts generate|check` take a repeatable `--source-module <specifier>` (`sourceModules` in the generator and scanner options): stereotype decorators imported from that exact module count too, for a package that re-exports them. The default stays `SOURCE_MODULES`; the header and the stale hint print the full command through `ArtifactIndexEmitter.renderCommand`.
+
 ## 2026-10-17 - Rules extend the VULCAN base; knowledge polished after the move
 
 Updated [onboarding](/overview/onboarding.md), [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [git workflow](/process/git-workflow.md), [docs writing style](/conventions/docs-writing-style.md), [splitting a hub file](/process/splitting-a-hub-file.md), [connectors](/packages/connectors.md), [key source files](/reference/key-source-files.md).

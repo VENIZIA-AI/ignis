@@ -11,6 +11,8 @@ export interface IScanOptions {
   root: string;
   /** Glob patterns relative to `root`; defaults to `ArtifactStereotypes.DEFAULT_IGNORE`. */
   ignore?: string[];
+  /** Module specifiers, matched exactly, whose stereotype imports also count - a package that re-exports the decorators. Adds to `ArtifactStereotypes.SOURCE_MODULES`. */
+  sourceModules?: string[];
 }
 
 /** The index content plus what a caller's `ignore` silently left out: decorated classes under a user pattern, never under a default one. */
