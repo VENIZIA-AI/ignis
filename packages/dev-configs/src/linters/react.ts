@@ -2,6 +2,7 @@ import type { ESLint, Linter } from 'eslint';
 import type { OxlintConfig } from 'oxlint';
 import tseslint from 'typescript-eslint';
 import { BrowserOxlintConfigs } from './browser';
+import type { IOxlintPresetOptions } from './oxlint';
 import { eslintConfigs, namingConventionConfigs } from './eslint';
 import { NamingConventionRule, NoRestrictedPropertiesRule } from './rules';
 
@@ -116,7 +117,7 @@ const COMPONENT_FUNCTION_SELECTOR = { selector: 'function', format: ['camelCase'
  * port and is left out.
  *
  * Nothing in the base is relaxed - frontend code meets the backend's standard - and
- * `exhaustive-deps` is an error.
+ * `exhaustive-deps` is an error. Takes the same options as `OxlintConfigs`.
  *
  * ```ts
  * // .configs/oxlint.config.mts
@@ -127,8 +128,8 @@ const COMPONENT_FUNCTION_SELECTOR = { selector: 'function', format: ['camelCase'
  * ```
  */
 export class ReactOxlintConfigs {
-  static create(): OxlintConfig {
-    const browserConfigs = BrowserOxlintConfigs.create();
+  static create(opts: IOxlintPresetOptions = {}): OxlintConfig {
+    const browserConfigs = BrowserOxlintConfigs.create(opts);
 
     return {
       ...browserConfigs,

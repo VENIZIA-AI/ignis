@@ -63,13 +63,23 @@
       "signature": "HOUSE_PLUGIN_NAMESPACE = \"venizia\""
     },
     {
+      "name": "IOxlintPresetOptions",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 190,
+      "signature": "interface IOxlintPresetOptions"
+    },
+    {
       "name": "IReactEslintPlugins",
       "package": "@venizia/dev-configs",
       "subpath": ".",
       "specifier": "@venizia/dev-configs",
       "kind": "interface",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 11,
+      "line": 12,
       "signature": "interface IReactEslintPlugins"
     },
     {
@@ -153,6 +163,16 @@
       "signature": "class NoUnusedVarsRule"
     },
     {
+      "name": "OxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": ".",
+      "specifier": "@venizia/dev-configs",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 210,
+      "signature": "class OxlintConfigs"
+    },
+    {
       "name": "PreferNullishCoalescingRule",
       "package": "@venizia/dev-configs",
       "subpath": ".",
@@ -169,7 +189,7 @@
       "specifier": "@venizia/dev-configs",
       "kind": "class",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 34,
+      "line": 35,
       "signature": "class ReactEslintConfigs"
     },
     {
@@ -179,7 +199,7 @@
       "specifier": "@venizia/dev-configs",
       "kind": "class",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 129,
+      "line": 130,
       "signature": "class ReactOxlintConfigs"
     },
     {
@@ -299,7 +319,7 @@
       "specifier": "@venizia/dev-configs",
       "kind": "const",
       "file": "packages/dev-configs/src/linters/oxlint.ts",
-      "line": 30,
+      "line": 33,
       "signature": "oxlintConfigs: OxlintConfig"
     },
     {
@@ -329,7 +349,7 @@
       "specifier": "@venizia/dev-configs",
       "kind": "const",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 192,
+      "line": 193,
       "signature": "reactNamingConventionConfigs: Linter.Config[]"
     },
     {
@@ -423,13 +443,23 @@
       "signature": "HOUSE_PLUGIN_NAMESPACE = \"venizia\""
     },
     {
+      "name": "IOxlintPresetOptions",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "interface",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 190,
+      "signature": "interface IOxlintPresetOptions"
+    },
+    {
       "name": "IReactEslintPlugins",
       "package": "@venizia/dev-configs",
       "subpath": "./linters",
       "specifier": "@venizia/dev-configs/linters",
       "kind": "interface",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 11,
+      "line": 12,
       "signature": "interface IReactEslintPlugins"
     },
     {
@@ -513,6 +543,16 @@
       "signature": "class NoUnusedVarsRule"
     },
     {
+      "name": "OxlintConfigs",
+      "package": "@venizia/dev-configs",
+      "subpath": "./linters",
+      "specifier": "@venizia/dev-configs/linters",
+      "kind": "class",
+      "file": "packages/dev-configs/src/linters/oxlint.ts",
+      "line": 210,
+      "signature": "class OxlintConfigs"
+    },
+    {
       "name": "PreferNullishCoalescingRule",
       "package": "@venizia/dev-configs",
       "subpath": "./linters",
@@ -529,7 +569,7 @@
       "specifier": "@venizia/dev-configs/linters",
       "kind": "class",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 34,
+      "line": 35,
       "signature": "class ReactEslintConfigs"
     },
     {
@@ -539,7 +579,7 @@
       "specifier": "@venizia/dev-configs/linters",
       "kind": "class",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 129,
+      "line": 130,
       "signature": "class ReactOxlintConfigs"
     },
     {
@@ -639,7 +679,7 @@
       "specifier": "@venizia/dev-configs/linters",
       "kind": "const",
       "file": "packages/dev-configs/src/linters/oxlint.ts",
-      "line": 30,
+      "line": 33,
       "signature": "oxlintConfigs: OxlintConfig"
     },
     {
@@ -659,7 +699,7 @@
       "specifier": "@venizia/dev-configs/linters",
       "kind": "const",
       "file": "packages/dev-configs/src/linters/react.ts",
-      "line": 192,
+      "line": 193,
       "signature": "reactNamingConventionConfigs: Linter.Config[]"
     },
     {
