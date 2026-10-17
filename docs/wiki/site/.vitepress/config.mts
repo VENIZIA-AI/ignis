@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'ArtifactGroup.pick',
+                  link: '/changelogs/2026-10-17-artifact-group-pick',
+                },
+                {
                   text: 'Auto Artifacts Build for the Browser',
                   link: '/changelogs/2026-10-17-auto-artifacts-browser',
                 },

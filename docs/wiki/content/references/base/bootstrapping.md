@@ -238,6 +238,8 @@ class ArtifactGroup implements IArtifactGroup {
 | `content` | Written by `IgnisArtifactsPlugin` at build time; a hand-written group leaves it out |
 | `isGroup(value)` | Checks the `isArtifactGroup` brand, so the CommonJS and ESM copies of the kernel agree |
 | `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
+| `pick({ group, kinds })` | A slice of any group (a borrowed one or `AutoArtifacts`) carrying only `kinds`, resolved when artifacts are registered. An empty slice is not an error. For a function that splits `configs.artifacts` by run mode |
+| `resolveContent({ group })` | The group's classes: inlined `content`, else its own `resolve()`, else the installed resolver |
 
 When artifacts are registered, a group resolves to its `content`, else its own `resolve()`, else the installed resolver. No resolver: an error naming `@venizia/ignis-boot/auto`. A group that resolves to no class: an error naming the folder and the defining module. Each group logs one line with its class names.
 

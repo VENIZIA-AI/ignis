@@ -12,16 +12,72 @@ export class ArtifactGroup implements IArtifactGroup {
   static readonly SINGLETON_REALM_KEY = 'artifact-group-resolver';
 
   readonly isArtifactGroup = true as const;
+  readonly resolve: (() => Promise<IArtifactIndex>) | undefined;
+  readonly kinds: ReadonlyArray<keyof IArtifactIndex> | undefined;
 
-  private constructor(
-    readonly folder: string,
-    readonly site: string | undefined,
-    readonly content: IArtifactIndex | undefined,
-  ) {}
+  private constructor(opts: {
+    folder: string | undefined;
+    site: string | undefined;
+    content: IArtifactIndex | undefined;
+    resolve?: () => Promise<IArtifactIndex>;
+    kinds?: ReadonlyArray<keyof IArtifactIndex>;
+  }) {
+    this.folder = opts.folder;
+    this.site = opts.site;
+    this.content = opts.content;
+    this.resolve = opts.resolve;
+    this.kinds = opts.kinds;
+  }
+
+  readonly folder: string | undefined;
+  readonly site: string | undefined;
+  readonly content: IArtifactIndex | undefined;
 
   /** `content` is written by the build plugin; a hand-written group passes only `folder`. */
   static define(opts: { folder: string; content?: IArtifactIndex }): ArtifactGroup {
-    return new ArtifactGroup(opts.folder, ArtifactGroup.callSite(), opts.content);
+    return new ArtifactGroup({
+      folder: opts.folder,
+      site: ArtifactGroup.callSite(),
+      content: opts.content,
+    });
+  }
+
+  /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. The source group is resolved when artifacts are registered, never here. */
+  static pick(opts: {
+    group: IArtifactGroup;
+    kinds: ReadonlyArray<keyof IArtifactIndex>;
+  }): ArtifactGroup {
+    const { group, kinds } = opts;
+    const slice = (index: IArtifactIndex): IArtifactIndex =>
+      Object.fromEntries(
+        kinds.filter(kind => index[kind] !== undefined).map(kind => [kind, index[kind]]),
+      );
+
+    return new ArtifactGroup({
+      folder: group.folder,
+      site: group.site,
+      content: group.content ? slice(group.content) : undefined,
+      resolve: async () => slice(await ArtifactGroup.resolveContent({ group })),
+      kinds,
+    });
+  }
+
+  /** A group's classes: inlined by a build, else its own `resolve()`, else the resolver `@venizia/ignis-boot/auto` installs. */
+  static async resolveContent(opts: { group: IArtifactGroup }): Promise<IArtifactIndex> {
+    const { group } = opts;
+    if (group.content) {
+      return group.content;
+    }
+    if (group.resolve) {
+      return group.resolve();
+    }
+    const resolve = ArtifactGroup.getResolver();
+    if (!resolve) {
+      throw getError({
+        message: `[ArtifactGroup] '${group.folder ?? '<application>'}' has no content | Import @venizia/ignis-boot/auto in the application (it resolves groups from source), or add IgnisArtifactsPlugin to the build's plugins`,
+      });
+    }
+    return resolve({ group });
   }
 
   /** Positional on purpose: a type predicate narrows its own parameter, and an options object would narrow the wrapper instead of `value`. */
