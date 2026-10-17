@@ -113,7 +113,6 @@ Updated [build system](/process/build-system.md), [build, run, test](/overview/b
 - A bare `make` prints `make help` (`.DEFAULT_GOAL`; the old `DEFAULT_GOAL` had no dot and did nothing). The help rows go through one `printf`, so they align.
 - The `makefile-targets` generator reads make's database (`make -pRrq`), so the generated targets are listed, and takes each description from the target's `make help` row.
 
-||||||| 0a41768d
 
 ## 2026-10-16 - dev-configs browser tier
 
