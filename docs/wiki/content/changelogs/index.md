@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [Auto Artifacts Root at the Entry Module, and ArtifactGroup.application](./2026-10-17-auto-artifacts-entry-root) | Bug Fix |
 | 2026-10-17 | [Slice an Artifact Group by Kind With ArtifactGroup.pick](./2026-10-17-artifact-group-pick) | Feature |
 | 2026-10-17 | [Auto Artifacts Build for the Browser](./2026-10-17-auto-artifacts-browser) | Bug Fix |
 | 2026-10-17 | [Auto Artifacts - No Generated Index on Bun, and Typed Groups From a Shared Package](./2026-10-17-auto-artifacts) | Feature |

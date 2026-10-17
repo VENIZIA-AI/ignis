@@ -42,6 +42,15 @@ export class ArtifactGroup implements IArtifactGroup {
     });
   }
 
+  /** Every decorated class of the calling package - an application's own artifacts, picked by its call site, so several applications in one process each get their own. `content` is written by the build plugin. */
+  static application(opts: { content?: IArtifactIndex } = {}): ArtifactGroup {
+    return new ArtifactGroup({
+      folder: undefined,
+      site: ArtifactGroup.callSite(),
+      content: opts.content,
+    });
+  }
+
   /** A group carrying only `kinds` - for a slicer that splits `configs.artifacts` by run mode. The source group is resolved when artifacts are registered, never here. */
   static pick(opts: {
     group: IArtifactGroup;

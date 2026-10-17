@@ -22,11 +22,11 @@ export class ArtifactSources {
   }
 
   /** The decorated classes under a directory named `folder` in the package whose source holds `site`. A site outside that source (a `dist` copy) is refused: its classes would be a second identity of the ones the package runs. */
-  static folderArtifacts(opts: { folder: string; site: string }): IScannedArtifact[] {
+  static folderArtifacts(opts: { folder: string | undefined; site: string }): IScannedArtifact[] {
     const packageSource = ArtifactSources.packageSource({ from: dirname(opts.site) });
     if (!resolve(opts.site).startsWith(`${packageSource}${sep}`)) {
       throw getError({
-        message: `[ArtifactGroup] '${opts.folder}' is defined at ${opts.site}, outside the package source ${packageSource} | A package consumed through dist must ship its groups filled by its own build (IgnisArtifactsPlugin), or be consumed from source`,
+        message: `[ArtifactGroup] '${opts.folder ?? '<application>'}' is defined at ${opts.site}, outside the package source ${packageSource} | A package consumed through dist must ship its groups filled by its own build (IgnisArtifactsPlugin), or be consumed from source`,
       });
     }
 
@@ -39,8 +39,12 @@ export class ArtifactSources {
       ArtifactSources.scans.set(packageSource, artifacts);
     }
 
+    const { folder } = opts;
+    if (folder === undefined) {
+      return artifacts;
+    }
     return artifacts.filter(artifact =>
-      relative(packageSource, artifact.filePath).split(sep).slice(0, -1).includes(opts.folder),
+      relative(packageSource, artifact.filePath).split(sep).slice(0, -1).includes(folder),
     );
   }
 

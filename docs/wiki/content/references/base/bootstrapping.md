@@ -238,6 +238,7 @@ class ArtifactGroup implements IArtifactGroup {
 | `content` | Written by `IgnisArtifactsPlugin` at build time; a hand-written group leaves it out |
 | `isGroup(value)` | Checks the `isArtifactGroup` brand, so the CommonJS and ESM copies of the kernel agree |
 | `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
+| `application({ content? })` | Every decorated class of the calling package's `src` - an application's own artifacts picked by its call site, so several applications loaded into one process each get their own. The build plugin inlines it like `define` |
 | `pick({ group, kinds })` | A slice of any group (a borrowed one or `AutoArtifacts`) carrying only `kinds`, resolved when artifacts are registered. An empty slice is not an error. For a function that splits `configs.artifacts` by run mode |
 | `resolveContent({ group })` | The group's classes: inlined `content`, else its own `resolve()`, else the installed resolver |
 
@@ -245,7 +246,7 @@ When artifacts are registered, a group resolves to its `content`, else its own `
 
 ## `@venizia/ignis-boot/auto`
 
-The default export is the application's own index as a group (`AutoArtifactGroup`): every decorated class under the `src` beside the nearest `package.json`. From source, the first registration registers the run-time plugin (`Bun.plugin`) and imports the virtual module `ignis:artifacts`; in a binary built with `IgnisArtifactsPlugin`, the module is replaced by one holding the built index. Importing it also installs the `ArtifactGroup` resolver. Bun only: on Node it fails with a message naming `ignis-artifacts generate`.
+The default export is the application's own index as a group (`AutoArtifactGroup`): every decorated class under the `src` beside the `package.json` of the entry module (`Bun.main`; the working directory only for `bun -e`). One module serves one application per process - for a process that loads several applications, use `ArtifactGroup.application()` in each one. From source, the first registration registers the run-time plugin (`Bun.plugin`) and imports the virtual module `ignis:artifacts`; in a binary built with `IgnisArtifactsPlugin`, the module is replaced by one holding the built index. Importing it also installs the `ArtifactGroup` resolver. Bun only: on Node it fails with a message naming `ignis-artifacts generate`.
 
 ## `IgnisArtifactsPlugin` (`@venizia/ignis-boot/bun`)
 

@@ -17,18 +17,31 @@ export class IgnisArtifactsPlugin {
     /[\\/](?:@venizia[\\/]ignis-boot|packages[\\/]boot)[\\/](?:dist[\\/](?:esm|cjs)|src)[\\/]bun[\\/]auto\.(?:ts|js)$/;
 
   /** A text test for a file worth parsing: `ArtifactGroup.define(`, with any spacing or line break around the dot. */
-  static readonly DEFINE_CALL = /ArtifactGroup\s*\.\s*define\s*\(/;
+  static readonly DEFINE_CALL = /ArtifactGroup\s*\.\s*(?:define|application)\s*\(/;
 
   private static readonly RUNTIME_KEY = Symbol.for('@venizia/ignis-boot:artifacts-runtime-plugin');
 
-  /** The `src` beside the nearest `package.json` at or above `from` (default: the working directory). */
+  /** The `src` beside the nearest `package.json` at or above `from` (default: the entry module's directory). */
   static defaultRoot(opts: { from?: string } = {}): string {
-    return ArtifactSources.packageSource(opts);
+    return ArtifactSources.packageSource({
+      from: opts.from ?? IgnisArtifactsPlugin.entryDirectory(),
+    });
+  }
+
+  /** The entry module's directory (`Bun.main`), so the root never depends on where the process was started; the working directory only when there is no entry file (`bun -e`, a REPL). */
+  static entryDirectory(): string {
+    const entry = typeof Bun === 'undefined' ? undefined : Bun.main;
+    return entry && existsSync(entry) ? dirname(entry) : process.cwd();
   }
 
   /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. */
   static render(opts: { root: string }): string {
     const root = resolve(opts.root);
+    if (!existsSync(root)) {
+      throw getError({
+        message: `[IgnisArtifactsPlugin] ${dirname(root)} has no src directory (${root}) | Auto artifacts scan the src beside the package.json of the entry module; pass IgnisArtifactsPlugin.create({ root }), or use ArtifactGroup.application() in the application's own source`,
+      });
+    }
     const outFile = join(root, '__ignis_artifacts__.ts');
     const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
       root,
@@ -43,7 +56,7 @@ export class IgnisArtifactsPlugin {
     });
   }
 
-  /** Rewrites every `ArtifactGroup.define({ folder: '<literal>' })` in a source file to carry its classes as `content`, imported by absolute path - a binary then holds each group's list and never scans. A folder with no decorated class, or a define the plugin cannot read (an aliased `ArtifactGroup`, a folder that is not a string literal), fails the build. */
+  /** Rewrites every `ArtifactGroup.define({ folder: '<literal>' })` and `ArtifactGroup.application()` in a source file to carry its classes as `content`, imported by absolute path - a binary then holds each group's list and never scans. A group with no decorated class, or a call the plugin cannot read (an aliased `ArtifactGroup`, a folder that is not a string literal), fails the build. */
   static rewriteGroups(opts: { filePath: string; source: string }): string {
     const { filePath, source } = opts;
     const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true);
@@ -65,77 +78,101 @@ export class IgnisArtifactsPlugin {
     const edits: Array<{ at: number; text: string }> = [];
     const imports: string[] = [];
     let counter = 0;
+
     const refuse = (node: ts.Node, reason: string): never => {
       const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
       throw getError({
-        message: `[IgnisArtifactsPlugin] An ArtifactGroup.define at ${filePath}:${line + 1} cannot be rewritten | ${reason} - write ArtifactGroup.define({ folder: '<name>' }) with the class imported under its own name`,
+        message: `[IgnisArtifactsPlugin] An ArtifactGroup call at ${filePath}:${line + 1} cannot be rewritten | ${reason} - write ArtifactGroup.define({ folder: '<name>' }) or ArtifactGroup.application() with the class imported under its own name`,
       });
     };
 
-    const visit = (node: ts.Node): void => {
-      if (
-        ts.isCallExpression(node) &&
-        ts.isPropertyAccessExpression(node.expression) &&
-        node.expression.name.text === 'define' &&
-        ts.isIdentifier(node.expression.expression)
-      ) {
-        const callee = node.expression.expression.text;
-        if (aliases.has(callee)) {
-          refuse(node, `ArtifactGroup is imported as ${callee}`);
-        }
-        if (callee === 'ArtifactGroup') {
-          const [argument] = node.arguments;
-          if (!argument || !ts.isObjectLiteralExpression(argument)) {
-            refuse(node, 'the argument is not an object literal');
-          }
-          const literal = argument as ts.ObjectLiteralExpression;
-          const named = (name: string) =>
-            literal.properties.find(
-              entry => entry.name && ts.isIdentifier(entry.name) && entry.name.text === name,
-            );
-          const folderProperty = named('folder');
-          if (!named('content')) {
-            if (
-              !folderProperty ||
-              !ts.isPropertyAssignment(folderProperty) ||
-              !ts.isStringLiteral(folderProperty.initializer)
-            ) {
-              refuse(node, 'folder is not a string literal');
-            }
-            const folder = (
-              (folderProperty as ts.PropertyAssignment).initializer as ts.StringLiteral
-            ).text;
-            const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath });
-            if (artifacts.length === 0) {
-              throw getError({
-                message: `[IgnisArtifactsPlugin] ArtifactGroup '${folder}' resolved to no class | ${filePath} - check the folder name and that its classes carry a stereotype decorator`,
-              });
-            }
+    const contentLiteral = (folder: string | undefined): string => {
+      const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath });
+      if (artifacts.length === 0) {
+        throw getError({
+          message: `[IgnisArtifactsPlugin] ArtifactGroup '${folder ?? '<application>'}' resolved to no class | ${filePath} - check the folder name and that its classes carry a stereotype decorator`,
+        });
+      }
 
-            const fields: string[] = [];
-            for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
-              const locals = artifacts
-                .filter(artifact => artifact.type === type)
-                .map(artifact => {
-                  counter += 1;
-                  const local = `__ignis_group_${counter}`;
-                  const path = artifact.filePath.split(sep).join('/').replace(/\.ts$/, '');
-                  imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
-                  return local;
-                });
-              if (locals.length > 0) {
-                fields.push(`${field}: [${locals.join(', ')}]`);
-              }
-            }
-            const last = literal.properties[literal.properties.length - 1];
-            edits.push({
-              at: last ? last.getEnd() : literal.getStart() + 1,
-              text: `${last ? ', ' : ''}content: { ${fields.join(', ')} }`,
-            });
-          }
+      const fields: string[] = [];
+      for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
+        const locals = artifacts
+          .filter(artifact => artifact.type === type)
+          .map(artifact => {
+            counter += 1;
+            const local = `__ignis_group_${counter}`;
+            const path = artifact.filePath.split(sep).join('/').replace(/\.ts$/, '');
+            imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
+            return local;
+          });
+        if (locals.length > 0) {
+          fields.push(`${field}: [${locals.join(', ')}]`);
         }
       }
-      ts.forEachChild(node, visit);
+      return `{ ${fields.join(', ')} }`;
+    };
+
+    const visit = (node: ts.Node): void => {
+      const isGroupCall =
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression) &&
+        ts.isIdentifier(node.expression.expression) &&
+        (node.expression.name.text === 'define' || node.expression.name.text === 'application');
+      if (!isGroupCall) {
+        ts.forEachChild(node, visit);
+        return;
+      }
+
+      const call = node as ts.CallExpression;
+      const access = call.expression as ts.PropertyAccessExpression;
+      const callee = (access.expression as ts.Identifier).text;
+      const isApplication = access.name.text === 'application';
+      if (aliases.has(callee)) {
+        refuse(call, `ArtifactGroup is imported as ${callee}`);
+      }
+      if (callee !== 'ArtifactGroup') {
+        ts.forEachChild(node, visit);
+        return;
+      }
+
+      const [argument] = call.arguments;
+      if (isApplication && !argument) {
+        edits.push({ at: call.arguments.pos, text: `{ content: ${contentLiteral(undefined)} }` });
+        return;
+      }
+      if (!argument || !ts.isObjectLiteralExpression(argument)) {
+        refuse(call, 'the argument is not an object literal');
+      }
+
+      const literal = argument as ts.ObjectLiteralExpression;
+      const named = (name: string): ts.ObjectLiteralElementLike | undefined =>
+        literal.properties.find(
+          entry =>
+            entry.name !== undefined && ts.isIdentifier(entry.name) && entry.name.text === name,
+        );
+      if (named('content')) {
+        return;
+      }
+
+      const folderProperty = named('folder');
+      if (isApplication && folderProperty) {
+        refuse(call, 'ArtifactGroup.application() takes no folder');
+      }
+      const folderLiteral =
+        folderProperty &&
+        ts.isPropertyAssignment(folderProperty) &&
+        ts.isStringLiteral(folderProperty.initializer)
+          ? folderProperty.initializer.text
+          : undefined;
+      if (!isApplication && folderLiteral === undefined) {
+        refuse(call, 'folder is not a string literal');
+      }
+
+      const last = literal.properties[literal.properties.length - 1];
+      edits.push({
+        at: last ? last.getEnd() : literal.getStart() + 1,
+        text: `${last ? ', ' : ''}content: ${contentLiteral(folderLiteral)}`,
+      });
     };
     visit(sourceFile);
 

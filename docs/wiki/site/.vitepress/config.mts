@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Auto Artifacts Root and ArtifactGroup.application',
+                  link: '/changelogs/2026-10-17-auto-artifacts-entry-root',
+                },
+                {
                   text: 'ArtifactGroup.pick',
                   link: '/changelogs/2026-10-17-artifact-group-pick',
                 },
