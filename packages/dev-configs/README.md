@@ -115,7 +115,7 @@ Every IGNIS package and example does.
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
-| `@venizia/dev-configs/linters` | `oxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode with `noImplicitAny`, `strictPropertyInitialization` and `useUnknownInCatchVariables` off, `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
@@ -140,6 +140,24 @@ Not ported:
 | `@typescript-eslint/prefer-optional-chain` | In oxlint's nursery |
 | `no-invalid-this` | `noImplicitThis` in `tsconfig.base.json` covers it |
 | `n/prefer-node-protocol` | Maps to `unicorn/prefer-node-protocol` |
+
+#### lenientFallback
+
+`prefer-nullish-coalescing` flags `||` on any nullable left side, so `opts.name || 'guest'` fails when
+`name` is `string | undefined`. That is the default: `||` also swallows a real `''` or `0`. A project
+where `''` and `0` fall back on purpose opts out in one line:
+
+```ts
+// .configs/oxlint.config.mts
+import { defineConfig } from 'oxlint';
+import { OxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
+```
+
+It allows `||` where the left side is a string or a number, and still flags it on objects and
+booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take the same option.
+`OxlintConfigs.create()` with no option is `oxlintConfigs`.
 
 ### houseConfigs and the house rules
 

@@ -15,6 +15,12 @@ Updated [onboarding](/overview/onboarding.md), [monorepo layout](/overview/monor
 - The session digest now adds only the most-dropped IDs and the minimap shape: VULCAN's base digest already prints every rule row.
 - CI runs `make vulcan-sync vulcan-doctor`.
 
+## 2026-10-17 - lenientFallback on the oxlint presets
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `OxlintConfigs.create({ lenientFallback })`; `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take the same option. The default stays strict.
+
 ## 2026-10-17 - What moved to VULCAN is deleted from IGNIS
 
 Updated [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [testing](/process/testing.md). Removed the atlas package concept.
