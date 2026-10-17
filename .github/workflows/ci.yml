@@ -21,7 +21,7 @@ env:
 jobs:
   gates:
     name: Source gates
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
 
   build-and-test:
     name: Build, test and lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Checkout
@@ -88,6 +88,10 @@ jobs:
       - name: Build
         id: build
         run: make build-all
+
+      # Bun links a package bin only when its target exists, and the workspace bins (ignis-artifacts) point into dist - link them now that the build wrote it.
+      - name: Link workspace bins
+        run: bun install --frozen-lockfile
 
       # Boots each example that needs no external service and calls its endpoints against the build.
       - name: Examples smoke
