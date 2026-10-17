@@ -15,7 +15,7 @@ export interface IGenerateOptions {
 }
 
 const render = (opts: IGenerateOptions): { content: string } & IScanReport => {
-  const { artifacts, ignored } = ArtifactScanner.getInstance().scanWithReport({
+  const { artifacts, ignored, skipped } = ArtifactScanner.getInstance().scanWithReport({
     root: opts.root,
     ignore: opts.ignore,
     sourceModules: opts.sourceModules,
@@ -32,25 +32,25 @@ const render = (opts: IGenerateOptions): { content: string } & IScanReport => {
     },
   });
 
-  return { content, artifacts, ignored };
+  return { content, artifacts, ignored, skipped };
 };
 
 /** Writes the index only when its content changed, so an unchanged tree leaves the file's mtime alone. */
 export const generateArtifactIndex = (
   opts: IGenerateOptions,
 ): { content: string; written: boolean } & IScanReport => {
-  const { content, artifacts, ignored } = render(opts);
+  const { content, artifacts, ignored, skipped } = render(opts);
   const out = resolve(opts.out);
   const current = existsSync(out) ? readFileSync(out, 'utf8') : undefined;
 
   if (current === content) {
-    return { content, artifacts, ignored, written: false };
+    return { content, artifacts, ignored, skipped, written: false };
   }
 
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, content);
 
-  return { content, artifacts, ignored, written: true };
+  return { content, artifacts, ignored, skipped, written: true };
 };
 
 /** Everything below the first line: the header only records the command, so a flag change alone must not read as drift. */

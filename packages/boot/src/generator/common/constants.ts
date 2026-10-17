@@ -96,3 +96,18 @@ export class ArtifactStereotypes {
     { type: ArtifactTypes.CONTROLLER, field: ArtifactIndexFields.CONTROLLERS },
   ];
 }
+
+/** Why a decorated class was left out of the index - reported, never silent. */
+export class ScanSkipReasons {
+  static readonly ABSTRACT = 'abstract';
+  static readonly NOT_EXPORTED = 'not-exported';
+  static readonly IGNORED = 'ignored';
+
+  static readonly SCHEME_SET = new Set<string>([this.ABSTRACT, this.NOT_EXPORTED, this.IGNORED]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TScanSkipReason = TConstValue<typeof ScanSkipReasons>;

@@ -3,6 +3,15 @@ import { describe, expect, test } from 'bun:test';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'artifacts');
+const REEXPORT_APP = resolve(
+  process.cwd(),
+  'src',
+  '__tests__',
+  'fixtures',
+  'reexport',
+  'app',
+  'src',
+);
 
 describe('ArtifactScanner', () => {
   test('finds every exported class carrying an IGNIS stereotype, and nothing else', () => {
@@ -73,6 +82,59 @@ describe('ArtifactScanner', () => {
     expect(ArtifactScanner.getInstance().scan({ root: ROOT })).toEqual(first);
     expect(first.find(a => a.className === 'GreeterService')?.filePath).toBe(
       join(ROOT, 'services', 'greeter.service.ts'),
+    );
+  });
+});
+
+describe('ArtifactScanner - followReexports', () => {
+  test('a stereotype reached through a chain of re-exports (export *, then a renaming export) counts', () => {
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
+      root: REEXPORT_APP,
+      followReexports: true,
+    });
+    expect(artifacts.map(a => `${a.type}:${a.className}`)).toContain('service:KitService');
+  });
+
+  test('without followReexports the re-exported stereotype is not recognised (positive control)', () => {
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({ root: REEXPORT_APP });
+    expect(artifacts.map(a => a.className)).not.toContain('KitService');
+  });
+
+  test('a decorator from a module that does not lead to the kernel still does not count', () => {
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
+      root: REEXPORT_APP,
+      followReexports: true,
+    });
+    expect(artifacts.map(a => a.className)).not.toContain('StillForeignService');
+  });
+
+  test('a class re-exported by a barrel is never registered from the barrel', () => {
+    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
+      root: REEXPORT_APP,
+      followReexports: true,
+    });
+    expect(artifacts.map(a => a.className)).not.toContain('GreeterService');
+  });
+});
+
+describe('ArtifactScanner - skipped report', () => {
+  test('every decorated class left out is listed with its reason', () => {
+    const { skipped } = ArtifactScanner.getInstance().scanWithReport({ root: ROOT });
+    expect(skipped).toContainEqual(
+      expect.objectContaining({ className: 'AbstractService', reason: 'abstract' }),
+    );
+    expect(skipped).toContainEqual(
+      expect.objectContaining({ className: 'HiddenService', reason: 'not-exported' }),
+    );
+  });
+
+  test('a class hidden by a user ignore pattern is listed as ignored', () => {
+    const { skipped } = ArtifactScanner.getInstance().scanWithReport({
+      root: ROOT,
+      ignore: ['services/greeter.service.ts'],
+    });
+    expect(skipped).toContainEqual(
+      expect.objectContaining({ className: 'GreeterService', reason: 'ignored' }),
     );
   });
 });

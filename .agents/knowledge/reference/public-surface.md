@@ -1055,7 +1055,7 @@ generated:
 
 ## boot
 
-### `@venizia/ignis-boot` (21)
+### `@venizia/ignis-boot` (24)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1075,11 +1075,14 @@ generated:
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `IScanReport` interface
+- `IScanSkipped` interface
+- `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
 - `TBuildInfoFormat` type
+- `TScanSkipReason` type
 
-### `@venizia/ignis-boot/generator` (13)
+### `@venizia/ignis-boot/generator` (16)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1092,8 +1095,11 @@ generated:
 - `IScannedArtifact` interface
 - `IScanOptions` interface
 - `IScanReport` interface
+- `IScanSkipped` interface
+- `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
+- `TScanSkipReason` type
 
 ### `@venizia/ignis-boot/build-info` (8)
 
