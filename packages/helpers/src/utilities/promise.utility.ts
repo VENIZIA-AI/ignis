@@ -40,9 +40,9 @@ export const executePromiseWithLimit = async <T>(opts: {
   return Promise.all(results);
 };
 
-/** Normalize an unknown thrown value into an Error instance. */
+/** Normalize an unknown thrown value into an Error instance - an ApplicationError when it was not one. */
 export const toError = (error: unknown): Error => {
-  return error instanceof Error ? error : new Error(String(error));
+  return error instanceof Error ? error : getError({ message: String(error) });
 };
 
 /** Check if a value is a promise. */

@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import { App } from './app/App';
 import { BrowserBffRaApplication } from './app/application';
+import { getError } from '@venizia/ignis-helpers/core';
 import { installBffFetch } from '@venizia/ignis-worker';
 import { BFF_BASE_PATH, bff } from './bff';
 
@@ -18,7 +19,7 @@ const application = new BrowserBffRaApplication();
 
 const container = document.getElementById('root');
 if (!container) {
-  throw new Error('[main] #root is missing from index.html');
+  throw getError({ message: '[main] #root is missing from index.html' });
 }
 
 const root = createRoot(container);

@@ -10,6 +10,13 @@ export class PreferNullishCoalescingRule {
       ignoreConditionalTests?: boolean;
       ignoreMixedLogicalExpressions?: boolean;
       ignoreTernaryTests?: boolean;
+      /** Allow `||` / `||=` where the left side is this primitive, e.g. `{ string: true, number: true }`. */
+      ignorePrimitives?: {
+        bigint?: boolean;
+        boolean?: boolean;
+        number?: boolean;
+        string?: boolean;
+      };
     } = {},
   ): TOxlintRuleEntry<'typescript/prefer-nullish-coalescing'> {
     const { severity = 'error', ...options } = opts;

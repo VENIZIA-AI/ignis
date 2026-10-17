@@ -35,10 +35,10 @@ export default defineConfig(oxfmtConfigs);
 ```
 
 ```typescript
-// .configs/eslint.config.mjs - the one rule oxlint cannot run yet
-import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+// .configs/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
+import { houseConfigs } from '@venizia/dev-configs/linters';
 
-export default namingConventionConfigs;
+export default houseConfigs;
 ```
 
 ```bash
@@ -76,7 +76,7 @@ browser version. A React project swaps it for the React version, which builds on
 | :--- | :--- | :--- | :--- |
 | oxlint | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
 | oxfmt | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
-| ESLint | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
+| ESLint | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
 | tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
 ## Restate the runtime options in your own tsconfig
@@ -137,6 +137,17 @@ Not ported:
 | `no-invalid-this` | `noImplicitThis` in `tsconfig.base.json` covers it |
 | `n/prefer-node-protocol` | Maps to `unicorn/prefer-node-protocol` |
 
+### houseConfigs and the house rules
+
+`houseConfigs` is `namingConventionConfigs` plus the house rules oxlint cannot express;
+`reactHouseConfigs` is the same over `reactNamingConventionConfigs`. The rules ship as the ESLint plugin
+`houseEslintPlugin`, registered as `venizia`:
+
+| Class | Rule | Default | What it enforces |
+| :--- | :--- | :--- | :--- |
+| `MaxParamsOwnRule` | `venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
+| `NoNewErrorRule` | `venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
+
 ### namingConventionConfigs
 
 `namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
@@ -152,11 +163,11 @@ entry with the IGNIS defaults. Every `severity` defaults to `'error'`.
 | Class | Rule name | `build` options (default) |
 | :--- | :--- | :--- |
 | `EqeqeqRule` | `eqeqeq` | `mode`: `'always' \| 'smart'` (`'smart'`) |
-| `NoUnusedVarsRule` | `no-unused-vars` | `vars` (`'all'`), `args` (`'none'`), `ignoreRestSiblings` (`false`) |
+| `NoUnusedVarsRule` | `no-unused-vars` | `vars` (`'all'`), `args` (`'none'`), `ignoreRestSiblings` (`false`), `argsIgnorePattern` / `varsIgnorePattern` / `caughtErrorsIgnorePattern` / `destructuredArrayIgnorePattern` (none) |
 | `SwitchCaseBracesRule` | `unicorn/switch-case-braces` | `mode`: `'always' \| 'avoid'` (`'always'`) |
 | `NoRestrictedImportsRule` | `no-restricted-imports` | `extraPaths`: `IRestrictedImportPath[]` (none), added to `PATHS` (lodash) |
 | `NoRestrictedPropertiesRule` | `no-restricted-properties` | `extraProperties`: `IRestrictedProperty[]` (none), added to `SECURE_CONTEXT` (`crypto.randomUUID`) |
-| `PreferNullishCoalescingRule` | `typescript/prefer-nullish-coalescing` | `ignoreConditionalTests`, `ignoreMixedLogicalExpressions`, `ignoreTernaryTests` (oxlint's own defaults) |
+| `PreferNullishCoalescingRule` | `typescript/prefer-nullish-coalescing` | `ignoreConditionalTests`, `ignoreMixedLogicalExpressions`, `ignoreTernaryTests`, `ignorePrimitives` (`{ string: true, ... }`; oxlint's own defaults) |
 | `NamingConventionRule` | `@typescript-eslint/naming-convention` | `extraSelectors`: `TNamingSelector[]` (none), added after `SELECTORS` |
 
 Types: `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector`, `IRestrictedImportPath`.

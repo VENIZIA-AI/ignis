@@ -95,12 +95,12 @@ import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 export default defineConfig(oxfmtConfigs);
 ```
 
-`.configs/eslint.config.mjs` runs the naming-convention rule, the one rule oxlint cannot run yet:
+`.configs/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
 
 ```typescript
-import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 
-export default namingConventionConfigs;
+export default houseConfigs;
 ```
 
 oxlint and oxfmt skip `dist` and `node_modules` through your `.gitignore`, so no ignore file is needed.
