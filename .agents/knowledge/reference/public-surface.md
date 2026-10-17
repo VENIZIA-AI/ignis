@@ -1103,8 +1103,9 @@ generated:
 - `TGeneratedArtifactIndex` type
 - `TScanSkipReason` type
 
-### `@venizia/ignis-boot/bun` (2)
+### `@venizia/ignis-boot/bun` (3)
 
+- `AutoArtifactGroup` class
 - `AutoArtifactsLoader` class
 - `IgnisArtifactsPlugin` class
 
@@ -1125,7 +1126,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (412)
+### `@venizia/ignis-kernel` (414)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1136,6 +1137,7 @@ generated:
 - `AbstractRestController` class
 - `AnyObjectSchema` const
 - `api` const
+- `ArtifactGroup` class
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
@@ -1226,6 +1228,7 @@ generated:
 - `IApplication` interface
 - `IApplicationConfigs` interface
 - `IApplicationInfo` interface
+- `IArtifactGroup` interface
 - `IArtifactIndex` interface
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationMixin` interface
@@ -2237,7 +2240,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1025)
+### `@venizia/ignis` (1027)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2275,6 +2278,7 @@ generated:
 - `ApplicationEnvironment` class
 - `ApplicationError` class
 - `ApplicationLogger` const
+- `ArtifactGroup` class
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
@@ -2492,6 +2496,7 @@ generated:
 - `IApplicationConfigs` interface
 - `IApplicationEnvironment` interface
 - `IApplicationInfo` interface
+- `IArtifactGroup` interface
 - `IArtifactIndex` interface
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationMixin` interface

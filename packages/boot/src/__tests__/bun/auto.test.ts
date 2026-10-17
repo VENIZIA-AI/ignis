@@ -1,4 +1,4 @@
-import { AutoArtifactsLoader } from '@/bun';
+import { AutoArtifactGroup, AutoArtifactsLoader } from '@/bun';
 import { describe, expect, test } from 'bun:test';
 import { resolve } from 'node:path';
 
@@ -14,7 +14,7 @@ describe('@venizia/ignis-boot/auto', () => {
         '--preload',
         STUB,
         '-e',
-        `const index = await (await import('${AUTO}')).default; console.log(JSON.stringify(Object.fromEntries(Object.entries(index).map(([k, v]) => [k, v.map(c => c.name)]))));`,
+        `const group = (await import('${AUTO}')).default; if (group.isArtifactGroup !== true || group.content !== undefined) throw new Error('not a group'); const index = await group.resolve(); console.log(JSON.stringify(Object.fromEntries(Object.entries(index).map(([k, v]) => [k, v.map(c => c.name)]))));`,
       ],
       { cwd: APP },
     );
@@ -22,6 +22,11 @@ describe('@venizia/ignis-boot/auto', () => {
     const index = JSON.parse(result.stdout.toString().trim().split('\n').at(-1) ?? '{}');
     expect(index.services).toEqual(['AlphaService']);
     expect(index.repositories).toEqual(['BetaRepository']);
+  });
+
+  test('reading a kind off the auto group throws instead of reading as empty', () => {
+    const group = new AutoArtifactGroup({ resolve: async () => ({}) });
+    expect(() => group.services).toThrow(/resolved when artifacts are registered/);
   });
 
   test('without Bun it fails with the CLI fallback named', () => {

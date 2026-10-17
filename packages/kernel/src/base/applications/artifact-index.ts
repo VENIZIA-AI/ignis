@@ -3,7 +3,13 @@ import { SingletonRealm } from '@/helpers/singleton-realm';
 import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { ArtifactTypes, isClass } from '@/helpers/inversion';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import type { IArtifactIndex, IConditionalArtifactIndex, TArtifactIndexInput } from './common';
+import { ArtifactGroup } from './artifact-group';
+import type {
+  IArtifactGroup,
+  IArtifactIndex,
+  IConditionalArtifactIndex,
+  TArtifactIndexInput,
+} from './common';
 import { ArtifactIndexFields } from './common';
 
 /** Turns a `configs.artifacts` input into the classes to register: flattens nested indexes, drops the classes whose `when` says no, orders the rest. It never touches the container - `registerArtifacts` does the binding. */
@@ -184,6 +190,9 @@ export class ArtifactIndexHelper extends BaseHelper {
     application: unknown;
   }): Promise<IArtifactIndex[]> {
     const { input, application } = opts;
+    if (ArtifactGroup.isGroup(input)) {
+      return this.flatten({ input: await this.contentOf({ group: input }), application });
+    }
     if (Array.isArray(input)) {
       const nested = await Promise.all(
         input.map(entry => this.flatten({ input: entry, application })),
@@ -202,6 +211,32 @@ export class ArtifactIndexHelper extends BaseHelper {
     }
 
     return [input];
+  }
+
+  /** A group's classes: inlined at build time, else the resolver `@venizia/ignis-boot/auto` installs. Never empty - a group that names nothing is a typo or a moved folder. */
+  private async contentOf(opts: { group: IArtifactGroup }): Promise<IArtifactIndex> {
+    const { group } = opts;
+    let content = group.content ?? (group.resolve ? await group.resolve() : undefined);
+    if (!content) {
+      const resolve = ArtifactGroup.getResolver();
+      if (!resolve) {
+        throw getError({
+          message: `[ArtifactGroup] '${group.folder ?? '<application>'}' has no content | Import @venizia/ignis-boot/auto in the application (it resolves groups from source), or add IgnisArtifactsPlugin to the build's plugins`,
+        });
+      }
+      content = await resolve({ group });
+    }
+
+    const names = Object.values(content).flatMap(classes =>
+      (classes ?? []).map(target => target.name),
+    );
+    if (names.length === 0) {
+      throw getError({
+        message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
+      });
+    }
+    this.logger.info('[ArtifactGroup] %s -> %s', group.folder ?? '<application>', names.join(', '));
+    return content;
   }
 
   /** Positional on purpose: a type predicate narrows its own parameter, and an options object would narrow the wrapper instead of `input`. */

@@ -69,7 +69,7 @@ export class IgnisArtifactsPlugin {
           loader: 'ts',
         }));
         build.onLoad({ filter: IgnisArtifactsPlugin.AUTO_MODULE }, () => ({
-          contents: `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nexport default Promise.resolve(${IgnisArtifactsPlugin.EXPORT_NAME});\n`,
+          contents: `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nimport { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ content: ${IgnisArtifactsPlugin.EXPORT_NAME} });\n`,
           loader: 'ts',
         }));
       },
