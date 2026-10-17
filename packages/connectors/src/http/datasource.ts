@@ -245,37 +245,12 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
    */
   protected async toResponseError(opts: { response: Response; url: string; verb: string }) {
     const { response, url, verb } = opts;
-    const server = await HttpResponseReader.readError({
-      response,
-      rootKey: this.settings.errorRootKey,
-    });
-    const serverText = server.normalized?.text ?? server.message;
-    const displayText = serverText ?? `HTTP ${response.status}`;
     const described = HttpWire.describeUrl({ url, status: response.status });
 
-    // `requestId` names the request this client made. A relaying server's `extra` carries the id
-    // of the request it made upstream: it joins `upstreamRequestIds`, nearest first, at every hop.
-    const extra: Record<string, unknown> = { ...server.extra };
-    if (server.requestId) {
-      const upstreamRequestId = extra.requestId;
-      extra.requestId = server.requestId;
-
-      if (upstreamRequestId !== undefined && upstreamRequestId !== server.requestId) {
-        const known = Array.isArray(extra.upstreamRequestIds) ? extra.upstreamRequestIds : [];
-        extra.upstreamRequestIds = [upstreamRequestId, ...known];
-      }
-    }
-
-    return getError({
-      statusCode: response.status,
-      message: serverText
-        ? `[${this.name}][${verb}] ${response.status} | ${described} | ${serverText}`
-        : `[${this.name}][${verb}] ${response.status} | ${described}`,
-      messageCode: server.normalized?.code,
-      messageArgs: server.normalized?.args,
-      extra: Object.keys(extra).length > 0 ? extra : undefined,
-      cause: server.details?.cause,
-      transform: ({ message }) => ({ ...message, text: displayText }),
+    return HttpResponseReader.toApplicationError({
+      response,
+      rootKey: this.settings.errorRootKey,
+      context: `[${this.name}][${verb}] ${response.status} | ${described}`,
     });
   }
 

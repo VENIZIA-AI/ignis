@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-17',
+              collapsed: true,
+              items: [
+                {
+                  text: 'HttpResponseReader Maps a Failed Response to an ApplicationError',
+                  link: '/changelogs/2026-10-17-response-reader-to-application-error',
+                },
+              ],
+            },
+            {
               text: '2026-10-16',
               collapsed: true,
               items: [
