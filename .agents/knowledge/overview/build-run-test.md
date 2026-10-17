@@ -18,9 +18,9 @@ The dependency graph is a DAG, not a single line. `filter` hangs off `inversion`
 isomorphic and deliberately does not sit after `helpers`. `kernel` sits beside `boot` rather than
 after it, on `helpers` plus `filter`, so it never picks up boot's node-only discovery. `core`
 reaches `kernel` through `connectors`, so `make core` runs dev-configs -> inversion ->
-{filter, helpers} -> kernel -> connectors -> core. `boot` and `atlas` are leaves off `helpers` that
+{filter, helpers} -> kernel -> connectors -> core. `boot` is a leaf off `helpers` that
 no framework package depends on (an application declares `boot` itself, for the artifact
-generator), so `make build-all` names both explicitly.
+generator), so `make build-all` names it explicitly.
 
 Each target builds its dependencies first, running `make -C packages/<name> rebuild` -
 type-check, then clean, then build. The type-check runs *before* `clean` on purpose: it
@@ -48,7 +48,7 @@ cd packages/core-server && bun test       # the same suite, without those flags
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
 step for the tests, and `.configs/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
-package's `.env.test` automatically. Only `boot` and `atlas` define a `test` script of their own
+package's `.env.test` automatically. Only `boot` defines a `test` script of its own
 (`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
 script stays the single owner of the package's environment.
 
@@ -69,7 +69,7 @@ make setup-hooks      # git config core.hooksPath .githooks
 ```
 
 `purity` probes the built `dist/`, so build the package first; the packages with no browser-pure
-entry claimed (`dev-configs`, `boot`, `core`, `core-server`, `atlas`) have a target that just skips.
+entry claimed (`dev-configs`, `boot`, `core`, `core-server`) have a target that just skips.
 
 `.githooks/pre-commit` runs **only** `make lint-all` and `bun scripts/examples.ts check` - nothing else. Purity is a CI gate, run per
 package by the release workflow, so a green commit says nothing about it.

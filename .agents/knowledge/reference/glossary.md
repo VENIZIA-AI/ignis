@@ -101,9 +101,9 @@ with a Drizzle or document schema via `getSchema()`, plus `@model` settings (`hi
 `controllers`, `configurations`). See [binding key namespaces](/conventions/binding-key-namespaces.md).
 
 **OKF** - The knowledge-bundle format this directory (`.agents/knowledge/`) is written in:
-frontmattered markdown concept files, generated and gated by `.agents/knowledge-tools/okf.ts`
-(`gen`, `check`, `coverage`, `viz` subcommands). The separate `ignis-atlas` package serves the same
-bundle over MCP. See [atlas](/packages/atlas.md).
+frontmattered markdown concept files, generated and gated by VULCAN's okf tooling
+(`vulcan x okf`: `gen`, `check`, `coverage`, `viz`; the `make okf-*` targets). VULCAN's atlas
+(`vulcan x atlas mcp`, `@venizia/vulcan-atlas` outside this repo) serves the same bundle over MCP.
 
 **Provider** - `BaseProvider<T>` in `packages/kernel/src/base/providers/base.ts`, implementing
 `IProvider<T>` - a class that produces a bound value (e.g. a middleware handler) rather than being

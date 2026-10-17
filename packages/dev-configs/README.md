@@ -336,7 +336,7 @@ await BunCompiler.compile({ entrypoint: './src/index.ts', outfile: './dist/app' 
 ## Where it sits
 
 The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion -> {filter, helpers}
--> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas.
+-> {boot, kernel} -> connectors -> {core-worker, core-server}.
 
 ## Links
 

@@ -95,7 +95,7 @@ A binary must also call `LoggerFactory.use()` explicitly - the winston fallback 
 
 ## Where it sits
 
-`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas`. It depends on `@venizia/ignis-inversion`; `boot`, `kernel` and everything later depend on it.
+`dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}`. It depends on `@venizia/ignis-inversion`; `boot`, `kernel` and everything later depend on it.
 
 ## Links
 

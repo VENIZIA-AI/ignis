@@ -137,7 +137,7 @@ build, `require` the CommonJS one. The ES build is what a browser bundle takes.
 ## Where it sits
 
 Depends on nothing in IGNIS. Used by filter, helpers and kernel: dev-configs -> **inversion** ->
-{filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas.
+{filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}.
 
 ## Links
 

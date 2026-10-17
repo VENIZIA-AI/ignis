@@ -13,35 +13,37 @@ tags: [process, build]
    `@venizia/ignis-helpers` resolves to `packages/helpers/dist/...`. Skip this and you get a wall
    of module-resolution errors that have nothing to do with your change.
 2. To rebuild everything: `make build` (alias `make build-all`). This runs
-   `core core-worker boot atlas docs surface-check symbols-check wiki-links-check
+   `core core-worker boot docs surface-check symbols-check wiki-links-check
    wiki-anchors-check` - the `core`
    target pulls in the full dependency chain first, so this also rebuilds `dev-configs`,
    `inversion`, `helpers`, `filter`, and `kernel`.
 3. To build one package plus its dependencies: `make <package>`, e.g. `make helpers` runs
    `dev-configs -> inversion -> helpers` in order (each Makefile target declares its dependencies
    as prerequisites). The chain is a DAG, not a line:
-   `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot` and
-   `atlas` hanging off `helpers` and `core-worker` off `kernel` beside `connectors`, as leaves that
-   `core` does not reach - only applications and agents consume them, which is why `make build-all`
-   names all three explicitly. `filter` branches off `inversion` alone - it is isomorphic and
+   `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core`, with `boot`
+   hanging off `helpers` and `core-worker` off `kernel` beside `connectors`, as leaves that
+   `core` does not reach - only applications consume them, which is why `make build-all`
+   names both explicitly. `filter` branches off `inversion` alone - it is isomorphic and
    deliberately does not sit after `helpers`. `kernel` needs both `helpers` and `filter`. This
    concept is the canonical copy of the chain - other concepts link here rather than restate it.
 4. To build a single package without walking its dependency chain (they're already built):
    `make -C packages/<name> rebuild`, or `make rebuild` inside the package. The root `Makefile` only
    sets `PACKAGES` and includes one file per job: `make/build.mk`, `knowledge.mk`, `release.mk`,
-   `lint.mk`, `test.mk` and `help.mk`. Every per-package target (`<pkg>`, `update-`, `lint-`, `fmt-`,
+   `lint.mk`, `test.mk` and `help.mk`. The root `Makefile` also includes
+   `node_modules/@venizia/vulcan/base/make/vulcan.mk` (with `-include`, so a fresh clone can still
+   `bun install`), which supplies `okf-*`, `surface-*`, `symbols-*`, `releases-*`, `agent-setup` and
+   `vulcan-doctor` from the pinned `@venizia/vulcan` package. Every per-package target (`<pkg>`, `update-`, `lint-`, `fmt-`,
    `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
    that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
    `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
-   rebuild`), `force-update` and, for `atlas` and `boot`, `test`. Examples keep their own scripts.
+   rebuild`), `force-update` and, for `boot`, `test`. Examples keep their own scripts.
 5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
    (default `.configs/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
    tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
-   `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `atlas` is `cjs` with
-   `POST_BUILD := sh scripts/corpus.sh`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
+   `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
    `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
    `build` runs `tsc --noEmit -p tsconfig.json` first (type-checks `src` AND `src/__tests__`), then
    the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)

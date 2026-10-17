@@ -94,7 +94,7 @@ so it accepts any field name in `where`.
 ## Where it sits
 
 Depends on inversion. Used by kernel and connectors: dev-configs -> inversion -> {**filter**,
-helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server} -> atlas.
+helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}.
 
 ## Links
 

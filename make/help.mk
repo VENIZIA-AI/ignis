@@ -2,7 +2,7 @@
 # Every row goes through HELP_ROW, so the descriptions start in one column; widen HELP_WIDTH when
 # a longer name is added.
 
-HELP_WIDTH := 34
+HELP_WIDTH := 38
 HELP_ROW = printf "  %-$(HELP_WIDTH)s %s\n"
 
 .PHONY: help
@@ -72,4 +72,4 @@ help:
 	@echo ""
 	@echo "Development (use bun run directly):"
 	@$(HELP_ROW) "bun run docs:dev" "Start documentation site in development mode."
-	@$(HELP_ROW) "bun packages/atlas/src/cli.ts mcp" "Start the Atlas MCP server (repo mode)."
+	@$(HELP_ROW) "bun x --no-install vulcan x atlas mcp" "Start the atlas MCP server over this repo (VULCAN)."

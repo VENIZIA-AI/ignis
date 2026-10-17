@@ -16,8 +16,6 @@ FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-# lint-packages covers atlas too: the release workflow lints it, so leaving it out of `all` hides a
-# failure until release time.
 lint-all: lint-packages lint-scripts
 	@echo "✅ All linting completed."
 

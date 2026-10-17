@@ -27,7 +27,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
         with:
-          # The atlas release table is generated from release commits; a shallow clone has none.
+          # The release table (releases-check) is generated from release commits; a shallow clone has none.
           fetch-depth: 0
 
       - name: Setup Bun
@@ -63,7 +63,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.3
         with:
-          # The atlas release table is generated from release commits; a shallow clone has none.
+          # The release table (releases-check) is generated from release commits; a shallow clone has none.
           fetch-depth: 0
 
       # The clean-install gate loads every sub-path under Node as well as Bun.
@@ -119,10 +119,6 @@ jobs:
       - name: Test - core-server
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
-
-      - name: Test - atlas
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: make test-atlas
 
       - name: Lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

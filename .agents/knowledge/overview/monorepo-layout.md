@@ -17,7 +17,6 @@ versions churn on every release and would make the bundle stale for no gain.
 <!-- okf:generated:packages-table start -->
 | Package | npm name | Description |
 |---|---|---|
-| [`atlas`](/packages/atlas.md) | `@venizia/ignis-atlas` | MCP server for IGNIS: search and read the wiki, changelogs and knowledge bundle by section, with citations. |
 | [`boot`](/packages/boot.md) | `@venizia/ignis-boot` | Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports. |
 | [`connectors`](/packages/connectors.md) | `@venizia/ignis-connectors` | Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths. |
 | [`core-server`](/packages/core-server.md) | `@venizia/ignis` | High-performance TypeScript server infrastructure combining LoopBack 4 enterprise architecture (decorator-based DI, repository pattern, component system) with Hono speed (~140k req/s). |
@@ -33,12 +32,12 @@ Packages build in a fixed dependency order - see [build system](/process/build-s
 
 ```
 dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core
-                                      helpers -> {boot, atlas}   (applications only)
+                                      helpers -> boot            (applications only)
                                        kernel -> core-worker     (applications only)
 ```
 
 `filter` is isomorphic and depends on `inversion` only - it deliberately does not sit after
-`helpers`. `kernel` is the browser-pure tree; `boot`, `atlas` and `core-worker` are leaves no
+`helpers`. `kernel` is the browser-pure tree; `boot` and `core-worker` are leaves no
 framework package depends on - `core-worker` hangs off `kernel` beside `connectors`, never off
 `core`.
 
@@ -49,8 +48,8 @@ framework package depends on - `core-worker` hangs off `kernel` beside `connecto
 | `examples/` | Runnable apps exercising the framework - see [examples](/examples/vert.md) |
 | `docs/wiki/` | The human-facing VitePress site. Not part of this bundle. |
 | `.agents/knowledge/` | This bundle - the agent-facing source of truth |
-| `.agents/knowledge-tools/` | Generator, gate, and graph explorer for the bundle |
-| `scripts/` | Every repo-wide gate - `check-catalog.ts` (`make catalog-check`), `purity/` (the browser-purity bundler probe, `make purity`), `public-surface.ts` (`surface-gen` / `surface-check`), `atlas-symbols.ts` and `atlas-releases.ts` (the Atlas snapshots), `wiki-source-links.ts`, `wiki-anchors.ts` (`make wiki-anchors-check`, reads the built html so it needs `make docs` first), `module-cycles.ts`, `split-report.ts`, `atlas-pack-smoke.ts`, and `release.ts`. Nothing runs `scripts/__tests__` but `make test-scripts`, or `purity/__tests__` but `make purity-test`. |
+| `.agents/hooks/`, `.agents/skills/` | IGNIS's own SessionStart digest hook and the `update-wiki` skill. The knowledge tooling (`vulcan x okf`), atlas (`vulcan x atlas`) and agent setup (`vulcan sync`) live in VULCAN, consumed as `@venizia/vulcan` from npm; its make targets come from `node_modules/@venizia/vulcan/base/make/vulcan.mk`. |
+| `scripts/` | Every repo-wide gate - `check-catalog.ts` (`make catalog-check`), `purity/` (the browser-purity bundler probe, `make purity`), `wiki-source-links.ts`, `wiki-anchors.ts` (`make wiki-anchors-check`, reads the built html so it needs `make docs` first), `module-cycles.ts`, `split-report.ts`, and `release.ts`. Nothing runs `scripts/__tests__` but `make test-scripts`, or `purity/__tests__` but `make purity-test`. |
 | `.githooks/` | Repo-managed git hooks, enabled via `make setup-hooks` |
 
 ## Dependency versions are pinned by the root catalog

@@ -39,8 +39,8 @@ in the knowledge bundle instead.
 Canonical, tool-neutral facts for IGNIS, in Open Knowledge Format (markdown + YAML frontmatter, one
 concept per file, links are the graph edges). Start at `.agents/knowledge/index.md`.
 
-It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`; VULCAN's atlas,
-`bun x --no-install vulcan x atlas mcp`), the same server that answers over the wiki and the changelogs:
+It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`; it runs VULCAN's atlas with
+`bun x --no-install vulcan x atlas mcp`; consumers outside this repo use `@venizia/vulcan-atlas`), the same server that answers over the wiki and the changelogs:
 
 | Tool | Use it for |
 |---|---|
@@ -52,7 +52,7 @@ It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`; VULC
 
 Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
 change. Generated reference files come from `make okf-gen` (and `surface-gen`, `symbols-gen`,
-`releases-gen` for the public surface and the atlas tables) - VULCAN targets, included from
+`releases-gen` for the public surface, symbol and release tables) - VULCAN targets, included from
 `vulcan.mk`. `make okf-check-strict` validates (OKF v0.2 plus the house rules); it is a CI gate, not a
 commit gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
 
@@ -64,8 +64,6 @@ commit gate. The `knowledge-sync` skill re-verifies the bundle against the code 
 ├── knowledge/        # THE knowledge bundle
 ├── hooks/            # session-digest.ts - IGNIS's own SessionStart digest, registered in vulcan.config
 ├── skills/           # update-wiki - IGNIS-only; VULCAN ships knowledge-sync and docs-writing
-├── knowledge-tools/  # the pre-VULCAN copy of okf; removed once IGNIS runs green on VULCAN
-├── plugin/           # the pre-VULCAN setup; removed once IGNIS runs green on VULCAN
 └── plans/            # gitignored - saved specs and plans, local to each developer
 ```
 

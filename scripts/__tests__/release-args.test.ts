@@ -33,7 +33,6 @@ describe('parseReleaseArgs', () => {
     expect(parseReleaseArgs([])).toEqual({
       isDryRun: false,
       isConfirmed: false,
-      skipAtlas: false,
       mode: 'prerelease',
       seeded: [],
       issue: undefined,
@@ -42,9 +41,9 @@ describe('parseReleaseArgs', () => {
   });
 
   test('the boolean flags are read', () => {
-    const parsed = parseReleaseArgs(['--dry-run', '--yes', '--no-atlas']);
+    const parsed = parseReleaseArgs(['--dry-run', '--yes']);
 
-    expect([parsed.isDryRun, parsed.isConfirmed, parsed.skipAtlas]).toEqual([true, true, true]);
+    expect([parsed.isDryRun, parsed.isConfirmed]).toEqual([true, true]);
   });
 
   test('an --issue that is not a number throws', () => {

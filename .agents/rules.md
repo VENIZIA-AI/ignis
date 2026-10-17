@@ -15,7 +15,7 @@ reviews, pull requests and reports ("breaks B-05").
 | [S - Security](#s---security) | S-01 … S-06 | Secrets, injected content, leaks, auth defaults, dependencies |
 | [P - Process](#p---process) | P-01 … P-15 | How work starts, how it is tracked, how it is measured, how it is judged done |
 | [B - Build and quality](#b---build-and-quality) | B-01 … B-08 | Build, lint, verify, what a test suite really loads |
-| [C - Code and writing](#c---code-and-writing) | V-C-01 … V-C-18 | Style in code and in prose - the shared VULCAN base |
+| [C - Code and writing](#c---code-and-writing) | V-C-01 … V-C-18, C-03, C-05, C-18 | Style in code and in prose - the shared VULCAN base, plus three IGNIS rules |
 
 ---
 
@@ -108,8 +108,18 @@ Chặn: <what blocks, or "không có">
 ## C - Code and writing
 
 The code and writing rules are the shared VULCAN base, `V-C-01` … `V-C-18`, in
-`node_modules/@venizia/vulcan/base/rules.md` - IGNIS's own C rules, moved upstream verbatim so every
-project codes the same way. Cite them as `V-C-xx`; this file adds no C rule of its own.
+`node_modules/@venizia/vulcan/base/rules.md` - IGNIS's own C rules, moved upstream so every project
+codes the same way. Cite them as `V-C-xx`.
+
+Three rules stay IGNIS's own: they bind the framework and its stack, not every project, so the base
+retired `V-C-03` and `V-C-05` and kept only the last clause of `V-C-18`. They keep the IDs they had
+before the move, so an old citation still means the same rule.
+
+| ID | Rule |
+|---|---|
+| **C-03** | **Every constructor parameter of a container-instantiated class carries `@inject`.** Mixing decorated and undecorated parameters is refused at boot - the container has no channel to supply an undecorated one. Options a controller needs go in `super({ scope: X.name })`, never as an undecorated parameter. |
+| **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - the dual CJS+ESM build gives the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
+| **C-18** | **The hard stack.** Drizzle only (never TypeORM, Prisma, Sequelize); Hono only (never Express, Fastify, Koa); Zod only (never Joi, Yup, class-validator); PostgreSQL primary with SQLite alongside, the repository tier engine-neutral (`pgTable` and `sqliteTable` both). REST is default framework behavior, not a component. |
 
 ---
 
@@ -121,7 +131,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 |---|---|---|
 | B-02 | `.githooks/pre-commit` runs `make lint-all` and `bun scripts/examples.ts check` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
 | P-03 | `make okf-check` when the bundle is touched; the `knowledge-sync` skill periodically | No, by decision - a per-commit check cannot tell whether prose is still true |
-| W group, P-09, P-10, B-03, B-05, P-05, P-15, W-02 | `.agents/plugin/claude/hooks/session-start.ts` prints them into every Claude session, extracted from this file at run time | Reminds, never blocks |
+| W group, P-09, P-10, B-03, B-05, P-05, P-15, W-02 | `.agents/hooks/session-digest.ts` (a SessionStart hook registered in `.configs/vulcan.config.ts`) prints them into every Claude session, extracted from this file at run time | Reminds, never blocks |
 | everything else | this file | No |
 
 Git is deliberately not blocked: W-01 is a rule about *when*, not a deny list. Treat the session

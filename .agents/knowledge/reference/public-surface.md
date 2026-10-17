@@ -8,6 +8,91 @@ tags: [reference, exports, api]
 
 > Generated from dist - do not edit; run `make surface-gen` after an intentional API change. A wave of the file split must leave this file untouched.
 
+## dev-configs
+
+### `@venizia/dev-configs` (33)
+
+- `AstNodeTypes` class
+- `browserOxfmtConfigs` const
+- `BrowserOxlintConfigs` class
+- `BunCompiler` class
+- `EqeqeqRule` class
+- `eslintConfigs` const
+- `HOUSE_PLUGIN_NAMESPACE` const
+- `houseConfigs` const
+- `houseEslintPlugin` const
+- `IReactEslintPlugins` interface
+- `IRestrictedImportPath` interface
+- `IRestrictedProperty` interface
+- `MaxParamsOwnRule` class
+- `namingConventionConfigs` const
+- `NamingConventionRule` class
+- `nodeType` const
+- `NoNewErrorRule` class
+- `NoRestrictedImportsRule` class
+- `NoRestrictedPropertiesRule` class
+- `NoUnusedVarsRule` class
+- `oxfmtConfigs` const
+- `oxlintConfigs` const
+- `PreferNullishCoalescingRule` class
+- `prettierConfigs` const
+- `ReactEslintConfigs` class
+- `reactHouseConfigs` const
+- `reactNamingConventionConfigs` const
+- `ReactOxlintConfigs` class
+- `readField` const
+- `SwitchCaseBracesRule` class
+- `TNamingSelector` type
+- `TOxlintRuleEntry` type
+- `TRuleSeverity` type
+
+### `@venizia/dev-configs/compilers` (1)
+
+- `BunCompiler` class
+
+### `@venizia/dev-configs/formatters` (3)
+
+- `browserOxfmtConfigs` const
+- `oxfmtConfigs` const
+- `prettierConfigs` const
+
+### `@venizia/dev-configs/linters` (29)
+
+- `AstNodeTypes` class
+- `BrowserOxlintConfigs` class
+- `EqeqeqRule` class
+- `eslintConfigs` const
+- `HOUSE_PLUGIN_NAMESPACE` const
+- `houseConfigs` const
+- `houseEslintPlugin` const
+- `IReactEslintPlugins` interface
+- `IRestrictedImportPath` interface
+- `IRestrictedProperty` interface
+- `MaxParamsOwnRule` class
+- `namingConventionConfigs` const
+- `NamingConventionRule` class
+- `nodeType` const
+- `NoNewErrorRule` class
+- `NoRestrictedImportsRule` class
+- `NoRestrictedPropertiesRule` class
+- `NoUnusedVarsRule` class
+- `oxlintConfigs` const
+- `PreferNullishCoalescingRule` class
+- `ReactEslintConfigs` class
+- `reactHouseConfigs` const
+- `reactNamingConventionConfigs` const
+- `ReactOxlintConfigs` class
+- `readField` const
+- `SwitchCaseBracesRule` class
+- `TNamingSelector` type
+- `TOxlintRuleEntry` type
+- `TRuleSeverity` type
+
+### `@venizia/dev-configs/testing` (2)
+
+- `expectRejection` const
+- `rejectionOf` const
+
 ## inversion
 
 ### `@venizia/ignis-inversion` (70)
@@ -2104,6 +2189,29 @@ tags: [reference, exports, api]
 - `TransactionStates` class
 - `TTransactionState` type
 
+## core-worker
+
+### `@venizia/ignis-worker` (18)
+
+- `BFF_SYNTHETIC_ORIGIN` const
+- `BffEnvelope` class
+- `BffRoles` class
+- `IBffErrorEnvelope` interface
+- `IBffRequestEnvelope` interface
+- `IBffResponseEnvelope` interface
+- `IBffTransport` interface
+- `IInstallBffFetchOptions` interface
+- `InProcessBffTransport` class
+- `installBffFetch` const
+- `ISharedBffTransportOptions` interface
+- `IWorkerApplicationConfigs` interface
+- `IWorkerMessageScope` interface
+- `SharedBffTransport` class
+- `TBffRole` type
+- `TEnvelopeHeaders` type
+- `WorkerApplication` class
+- `WorkerBffTransport` class
+
 ## core-server
 
 ### `@venizia/ignis` (1025)
@@ -3721,38 +3829,4 @@ tags: [reference, exports, api]
 - `TransactionDouble` class
 - `TransactionStates` class
 - `TTransactionState` type
-
-## core-worker
-
-### `@venizia/ignis-worker` (18)
-
-- `BFF_SYNTHETIC_ORIGIN` const
-- `BffEnvelope` class
-- `BffRoles` class
-- `IBffErrorEnvelope` interface
-- `IBffRequestEnvelope` interface
-- `IBffResponseEnvelope` interface
-- `IBffTransport` interface
-- `IInstallBffFetchOptions` interface
-- `InProcessBffTransport` class
-- `installBffFetch` const
-- `ISharedBffTransportOptions` interface
-- `IWorkerApplicationConfigs` interface
-- `IWorkerMessageScope` interface
-- `SharedBffTransport` class
-- `TBffRole` type
-- `TEnvelopeHeaders` type
-- `WorkerApplication` class
-- `WorkerBffTransport` class
-
-## atlas
-
-### `@venizia/ignis-atlas` (6)
-
-- `AtlasConstants` class
-- `AtlasModes` class
-- `Corpora` class
-- `ProtocolVersions` class
-- `TAtlasMode` type
-- `TCorpus` type
 

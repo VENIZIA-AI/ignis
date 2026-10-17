@@ -1,6 +1,5 @@
 {
   "livePackages": [
-    "atlas",
     "boot",
     "connectors",
     "core-server",
@@ -5023,7 +5022,7 @@
         "kernel"
       ],
       "kind": "Enhancement",
-      "order": 1695
+      "order": 1694
     },
     {
       "id": "changelog:2026-10-17-lint-ignore-and-testing-helpers",
@@ -5032,7 +5031,7 @@
       "title": "LINT_IGNORE and Shared Test Helpers",
       "packages": [],
       "kind": "New Feature",
-      "order": 9007199254740991
+      "order": 1696
     },
     {
       "id": "changelog:2026-10-17-dev-configs-house-rules",
@@ -5041,7 +5040,7 @@
       "title": "dev-configs House Rules and Type-Only Imports",
       "packages": [],
       "kind": "New Feature",
-      "order": 1697
+      "order": 1695
     },
     {
       "id": "changelog:2026-10-16-oxlint-oxfmt-migration",

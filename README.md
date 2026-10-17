@@ -155,7 +155,7 @@ Each package builds on the ones it depends on, so a change in `inversion` reache
 
 ```
 dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> ignis
-                                      helpers -> {boot, atlas}
+                                      helpers -> boot
                                        kernel -> worker
 ```
 
@@ -170,12 +170,12 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> ignis
 | [`@venizia/ignis-connectors`](packages/connectors/) | Relational (PostgreSQL, SQLite), search (Typesense, Meilisearch) and HTTP datasources and repositories | [![npm](https://img.shields.io/npm/v/@venizia/ignis-connectors.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-connectors) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-connectors/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-connectors) |
 | [`@venizia/ignis-worker`](packages/core-worker/) | Runs an IGNIS application inside a browser Worker, with no server | [![npm](https://img.shields.io/npm/v/@venizia/ignis-worker.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-worker) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-worker/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-worker) |
 | [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun or Node, the components; re-exports the kernel and the connector sub-paths | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis) |
-| [`@venizia/ignis-atlas`](packages/atlas/) | MCP server: search the wiki, changelogs and knowledge bundle, look up a symbol, diff two versions | [![npm](https://img.shields.io/npm/v/@venizia/ignis-atlas.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-atlas) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-atlas/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-atlas) |
 
 **Latest** is the older stable line. **Next** is the newest release, prerelease included, and the
 tag this repository publishes to today. An application installs `@venizia/ignis` and adds `boot`
 for the artifact generator; the other framework packages come with it. The documentation site lives
 in [`docs/wiki`](docs/wiki/) and is not published to npm.
+The MCP server and the knowledge and agent tooling live in VULCAN: install `@venizia/vulcan-atlas` (`bun x @venizia/vulcan-atlas mcp`) to search the wiki, changelogs and knowledge bundle from an MCP client.
 
 ## Is IGNIS for you?
 
@@ -221,7 +221,6 @@ takes, and the projects it runs on.
 | [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) | `ignis` authorize component |
 | [jose](https://github.com/panva/jose) | JWT signing and verification, JWKS | `kernel` and `ignis` authentication |
 | [Scalar](https://scalar.com/) and [Swagger UI](https://swagger.io/tools/swagger-ui/) | The API reference page (optional peers) | `ignis` API reference component |
-| [Model Context Protocol](https://modelcontextprotocol.io/) | The protocol atlas serves over stdio, with its own transport | `atlas` |
 
 NestJS appears in the [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy) page as
 a point of comparison, not as a source.
