@@ -45,7 +45,7 @@ jobs:
 
       - name: Knowledge bundle
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: make okf-check
+        run: make okf-check-strict
 
       - name: Browser purity probe
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

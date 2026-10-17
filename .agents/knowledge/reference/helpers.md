@@ -4,6 +4,8 @@ title: Helpers catalog
 description: Every helper module and utility in packages/helpers (generated).
 resource: packages/helpers/src
 tags: [reference, helpers, catalog]
+generated:
+  by: process:okf-gen
 ---
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).

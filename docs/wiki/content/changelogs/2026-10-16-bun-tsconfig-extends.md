@@ -37,4 +37,4 @@ description: "Bun skips a tsconfig extends that names a package, so the dev-conf
 
 - **An application or package that Bun runs and whose `tsconfig.json` only extends dev-configs.** Add `"experimentalDecorators": true` and `"useDefineForClassFields": false` to its `compilerOptions`.
 - **A project that already restates `experimentalDecorators`.** Add `useDefineForClassFields: false` so its tests run the class-field semantics it ships.
-- **`emitDecoratorMetadata`.** Restate it only if your code reads `design:*` metadata. Under Bun it turns an interface-typed constructor parameter into a runtime import, so import such names with `import type`.
+- **`emitDecoratorMetadata`.** Restate it only if your code reads `design:*` metadata. Under Bun it turns an interface-typed constructor parameter into a runtime import that fails with `Export named 'X' not found`, so import such names with `import type`. `tsc --noEmit --isolatedModules` reports most of them as TS1272; loading each package's `src/index.ts` under Bun finds the rest.

@@ -4,15 +4,17 @@ title: Makefile targets
 description: Every make target, its prerequisites, and what it does (generated).
 resource: Makefile
 tags: [reference, make, build]
+generated:
+  by: process:okf-gen
 ---
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**116 targets.**
+**119 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
-| `make agent-setup` | - | Link your agent's tool file + skills to the tracked AGENTS.md. |
+| `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
 | `make atlas` | `helpers` | Rebuild one package, after its dependencies. |
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
@@ -73,7 +75,8 @@ tags: [reference, make, build]
 | `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server lint-atlas` | lint-<pkg> for every package. |
 | `make lint-scripts` | - | Format check + tsc type-check of scripts/. |
 | `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
-| `make okf-check` | - | Gate: frontmatter, links, coverage, freshness. |
+| `make okf-check` | - | Gate: OKF v0.2 conformance. |
+| `make okf-check-strict` | - | Gate: OKF v0.2 plus the house rules - links, style, coverage, freshness. |
 | `make okf-coverage` | - | Report bundle coverage against the source inventory. |
 | `make okf-gen` | - | Regenerate source-derived reference content. |
 | `make okf-viz` | - | Build the offline knowledge-graph explorer. |
@@ -126,5 +129,7 @@ tags: [reference, make, build]
 | `make update-helpers` | - | Force update one package's dependencies from NPM. |
 | `make update-inversion` | - | Force update one package's dependencies from NPM. |
 | `make update-kernel` | - | Force update one package's dependencies from NPM. |
+| `make vulcan-doctor` | - | Gate: the project follows VULCAN (config, Makefile include, rules, adapters). |
+| `make vulcan-sync` | - | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make wiki-anchors-check` | - | Gate: every wiki '#fragment' link resolves. Needs a build (make docs). |
 | `make wiki-links-check` | - | Gate: every source path the wiki and knowledge bundle name exists. |

@@ -63,8 +63,8 @@ Two things this key check cannot tell apart, both pinned by tests rather than fi
   excluded by accident - the plain `string` member alone made the distributive conditional land on
   "not JSON" - so this case is invisible until a column is typed with the bare brand.
 
-See the [2026-09-26 changelog](/changelogs/2026-09-26-typed-json-path-keys-and-order-entries) and
-[JSON/JSONB Filtering](/references/base/filter-system/json-filtering.md#typed-json-path-keys).
+See the [2026-09-26 changelog](https://ignis.venizia.ai/changelogs/2026-09-26-typed-json-path-keys-and-order-entries.html) and
+[JSON/JSONB Filtering](https://ignis.venizia.ai/references/base/filter-system/json-filtering.html#typed-json-path-keys).
 
 ## `TOrderEntry<T>`, opt-in
 
@@ -89,7 +89,7 @@ on `connectors` and the brand is a pure type; `connectors` sets its `isoTimestam
 `string | TIsoTimestamp` (a union, not a bare brand) specifically so `$inferInsert` still accepts a
 plain string literal - drizzle infers insert and select from the SAME `data` field, so a brand
 required on every value there (no plain-string member) would have broken inserting a string literal.
-See the [2026-08-30 changelog](/changelogs/2026-08-30-typed-where-clauses) for the reasoning in
+See the [2026-08-30 changelog](https://ignis.venizia.ai/changelogs/2026-08-30-typed-where-clauses.html) for the reasoning in
 full and `core-server/src/__tests__/filter-builder/iso-timestamp-where.test.ts` for the compile-time
 and runtime proofs (a `Date` and its `.toISOString()` compile to identical SQL and params).
 

@@ -465,7 +465,7 @@ with one include from 870 to 446 ns.
 
 **Each entry is read through `parseOrderEntry` (`@venizia/ignis-filter`), not a private parser.**
 `FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
-copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (C-16
+copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (V-C-16
 in `.agents/rules.md`). It throws a `400` naming the whole entry for an empty field, an invalid
 direction, or more than two tokens - the last one is a genuine behavior change: an entry like
 `'createdAt DESC NULLS LAST'` used to silently sort on `createdAt DESC` and drop the tail, since

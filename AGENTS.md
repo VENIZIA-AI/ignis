@@ -4,17 +4,17 @@ How to work in the IGNIS repository. **This file is routing only** - it holds no
 facts, it points to where both live.
 
 This is the **only tracked instruction file**. Tool-specific files (`CLAUDE.md`, `GEMINI.md`, ...)
-are gitignored symlinks to this one, created per developer by:
+are gitignored adapters that point at this one, written per developer by VULCAN:
 
 ```bash
-make agent-setup      # or: bun .agents/plugin/setup.ts
+make agent-setup      # = bun x --no-install vulcan sync
 ```
 
 ## Must read first
 
 | Read before you touch anything | What lives there |
 |---|---|
-| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), code and writing (C). Numbered, cited by ID. |
+| **[`.agents/rules.md`](.agents/rules.md)** | **THE rules** - write boundaries (W), security (S), process (P), build (B), cited by ID. They extend the shared VULCAN base (`node_modules/@venizia/vulcan/base/rules.md`, IDs `V-*`), which also holds the code and writing rules `V-C-01` … `V-C-18`. |
 | **[`.agents/knowledge/index.md`](.agents/knowledge/index.md)** | **THE facts** - what IGNIS is and why, the monorepo layout, design decisions, the gotchas, per-package concepts, conventions, playbooks. |
 
 Both are mandatory, for every agent, on every task. The two rules that cost the most when skipped:
@@ -29,7 +29,7 @@ Nothing lives in two places. Every piece of project information has exactly one 
 - **`docs/wiki/`** - the human-facing VitePress site: guides, references, changelogs.
 
 Source code is the ground truth for both. When prose and code disagree, the code wins and the prose
-is a bug (P-03). The wiki and the bundle are separate audiences; never conflate them (C-13).
+is a bug (P-03). The wiki and the bundle are separate audiences; never conflate them (V-C-13).
 
 There are **no per-package agent files** - a package carries no local `CLAUDE.md`. Read its concept
 in the knowledge bundle instead.
@@ -39,8 +39,8 @@ in the knowledge bundle instead.
 Canonical, tool-neutral facts for IGNIS, in Open Knowledge Format (markdown + YAML frontmatter, one
 concept per file, links are the graph edges). Start at `.agents/knowledge/index.md`.
 
-It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`, package
-`@venizia/ignis-atlas`), the same server that answers over the wiki and the changelogs:
+It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`; VULCAN's atlas,
+`bun x --no-install vulcan x atlas mcp`), the same server that answers over the wiki and the changelogs:
 
 | Tool | Use it for |
 |---|---|
@@ -52,7 +52,8 @@ It is also served over MCP by **`ignis-atlas`** (registered in `.mcp.json`, pack
 
 Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
 change. Generated reference files come from `make okf-gen` (and `surface-gen`, `symbols-gen`,
-`releases-gen` for the public surface and the atlas tables); `make okf-check` validates and is not a
+`releases-gen` for the public surface and the atlas tables) - VULCAN targets, included from
+`vulcan.mk`. `make okf-check-strict` validates (OKF v0.2 plus the house rules); it is a CI gate, not a
 commit gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
 
 ## Shared agent assets (`.agents/`)
@@ -61,10 +62,10 @@ commit gate. The `knowledge-sync` skill re-verifies the bundle against the code 
 .agents/
 ├── rules.md          # THE rules - W · S · P · B · C, cited by ID
 ├── knowledge/        # THE knowledge bundle
-├── knowledge-tools/  # okf.ts gen · check · coverage · viz, and the knowledge-sync workflow
-├── plugin/           # setup.ts, the project skills, the shared Claude settings and session hook
-│   ├── skills/       # knowledge-sync · update-wiki - symlinked into your agent by setup
-│   └── claude/       # settings.json + hooks/session-start.ts - merged into .claude/ by setup
+├── hooks/            # session-digest.ts - IGNIS's own SessionStart digest, registered in vulcan.config
+├── skills/           # update-wiki - IGNIS-only; VULCAN ships knowledge-sync and docs-writing
+├── knowledge-tools/  # the pre-VULCAN copy of okf; removed once IGNIS runs green on VULCAN
+├── plugin/           # the pre-VULCAN setup; removed once IGNIS runs green on VULCAN
 └── plans/            # gitignored - saved specs and plans, local to each developer
 ```
 
@@ -74,9 +75,10 @@ Code ships.
 
 ## Per-tool files (CLAUDE.md, GEMINI.md, ...)
 
-This `AGENTS.md` is the single source. Each tool that needs its own filename gets a **symlink** to
-it, never a copy; `make agent-setup` creates it. `.claude/` is gitignored, so the parts everyone
-must share are tracked under `.agents/plugin/claude/` and merged into your `.claude/settings.json`
-by the same setup - today that is one hook, which prints the write boundaries and the minimap rule
-into every session. Nothing in it blocks a command. Re-run `make agent-setup` after a pull that
-touched `.agents/plugin/`.
+This `AGENTS.md` is the single source. `make agent-setup` (`vulcan sync`) writes each tool's file as a
+pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
+and hooks (its base digest and the `guard-writes` check), the shipped and project skills, and the
+project hooks from `.configs/vulcan.config.ts` - here, `.agents/hooks/session-digest.ts`, which prints
+IGNIS's write boundaries and the minimap rule. Re-run `make agent-setup` after a pull that touched
+`.configs/vulcan.config.ts`, `.agents/skills/` or the pinned VULCAN version; `make vulcan-doctor`
+says when you need to.

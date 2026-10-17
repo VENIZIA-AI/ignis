@@ -111,7 +111,7 @@ the runtime boot system on 2026-09-02. `isClass` still lives in `inversion`.
 `src/common/` and its deprecated `IBootOptions`, `IArtifactOptions`, `TBootPhase`, `IBootPhaseReport`,
 `IBootReport`, `IBootableApplication` and `BootPhases` left on 2026-09-03, with `BaseApplication.boot()`
 and `IApplicationConfigs.bootOptions` in `core-server` and `kernel`. See the
-[changelog](/changelogs/2026-09-03-deprecated-boot-api-removed).
+[changelog](https://ignis.venizia.ai/changelogs/2026-09-03-deprecated-boot-api-removed.html).
 
 ## Related
 

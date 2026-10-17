@@ -144,7 +144,7 @@ The permission join in `queryPrincipalPolicies` is a `LEFT JOIN`: a grant whose 
 
 ### No cache
 
-**There is no cache in the adapter.** Extraction re-reads both statements on every `loadFilteredPolicy()` call. A short-lived structural cache existed briefly earlier on this branch and was never released - see the [2026-07-20 changelog](/changelogs/2026-07-20-casbin-single-wave-extraction) for the removed API surface. Adding a cache back is the wrong answer to extraction cost - the framework authors these queries, so it owns saying what they need, and what they need is indexes on `PolicyDefinition` the framework does not create (the consumer owns its schema):
+**There is no cache in the adapter.** Extraction re-reads both statements on every `loadFilteredPolicy()` call. A short-lived structural cache existed briefly earlier on this branch and was never released - see the [2026-07-20 changelog](https://ignis.venizia.ai/changelogs/2026-07-20-casbin-single-wave-extraction.html) for the removed API surface. Adding a cache back is the wrong answer to extraction cost - the framework authors these queries, so it owns saying what they need, and what they need is indexes on `PolicyDefinition` the framework does not create (the consumer owns its schema):
 
 - `(variant, subject_type, subject_id)` - the anchor term of both CTEs (`role_closure`'s seed, `domain_closure`'s seed) and the `direct` branch.
 - `(variant, subject_id)` - the `role_closure` recursive term's join and the role-grant branch.

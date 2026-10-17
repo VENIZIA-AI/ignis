@@ -1,7 +1,5 @@
 ---
-okf_version: "0.1"
-title: IGNIS knowledge bundle
-description: The curated, agent-facing source of truth for the IGNIS framework.
+okf_version: "0.2"
 ---
 
 # IGNIS knowledge
