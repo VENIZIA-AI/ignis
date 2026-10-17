@@ -14,6 +14,7 @@ tags: [architecture, artifacts, registration, decorators, boot]
 - [What `registerArtifacts` does](#what-registerartifacts-does)
 - [`@provide`](#provide)
 - [Composing indexes](#composing-indexes)
+- [Groups and auto artifacts](#groups-and-auto-artifacts)
 - [Why an AST at build time, not a glob at run time](#why-an-ast-at-build-time-not-a-glob-at-run-time)
 - [Position in the boot sequence](#position-in-the-boot-sequence)
 - [Removed surface](#removed-surface)
@@ -99,6 +100,10 @@ shape. The application lists it beside its own and hand-lists the framework comp
 once: `artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }]`.
 There is no `imports` option and no auto-discovery of a package's components; a library that wants
 IGNIS components registered says so in its index.
+
+## Groups and auto artifacts
+
+`configs.artifacts` also takes groups (`IArtifactGroup`, brand `isArtifactGroup`): `ArtifactGroup.define({ folder })` in a shared package, and `@venizia/ignis-boot/auto` (the app's own root). `ArtifactIndexHelper.flatten` resolves a group to its inlined `content`, else its own `resolve()`, else the resolver boot installs; no resolver or zero classes is an error, and each group logs its class names. Kind fields are typed `never` with throwing getters: a walker over `configs.artifacts` that reads `entry[kind]` (a run-mode slicer) fails loudly instead of turning a group into an empty index. No promise in `TArtifactIndexInput` for the same reason. The call site is read from `new Error().stack` at `define` time - measured reliable under `bun test --isolate --parallel` with symlinked workspace packages.
 
 ## Why an AST at build time, not a glob at run time
 

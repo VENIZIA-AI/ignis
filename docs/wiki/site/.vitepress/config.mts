@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Auto Artifacts and Artifact Groups',
+                  link: '/changelogs/2026-10-17-auto-artifacts',
+                },
+                {
                   text: 'The Repository Type-Checks With bun check',
                   link: '/changelogs/2026-10-17-bun-check',
                 },
