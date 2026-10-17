@@ -74,13 +74,13 @@ describe('groupDefinitionFiles - workspace layouts', () => {
   });
 });
 
-describe('GroupArtifactsResolver - site outside the package source', () => {
-  test('a group defined in a dist copy refuses to load src classes', async () => {
+describe('GroupArtifactsResolver - a compiled tree with no compiled classes', () => {
+  test('a group defined in a dist copy never falls back to the src classes', async () => {
     expect(
       GroupArtifactsResolver.resolve({
         group: { folder: 'inventory', site: resolve(CORE, 'dist', 'esm', 'groups.js') },
       }),
-    ).rejects.toThrow(/outside the package source/);
+    ).rejects.toThrow(/has no compiled copy/);
   });
 });
 
