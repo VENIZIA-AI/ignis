@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Auto Artifacts Load the Running Tree',
+                  link: '/changelogs/2026-10-18-auto-artifacts-running-tree',
+                },
+                {
                   text: 'Auto Artifacts Root and ArtifactGroup.application',
                   link: '/changelogs/2026-10-17-auto-artifacts-entry-root',
                 },

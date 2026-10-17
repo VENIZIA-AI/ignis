@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - Auto artifacts load the running tree
+
+Updated [boot](/packages/boot.md).
+
+- An application that runs its tsc `dist` registers the classes it runs: the list comes from `src`, each class loads from the compiled tree beside the entry or the group's call site. A missing compiled copy is a stale-build error. The build plugin inlines groups in compiled CommonJS.
+
 ## 2026-10-17 - Auto artifacts root at the entry module; ArtifactGroup.application
 
 Updated [boot](/packages/boot.md).

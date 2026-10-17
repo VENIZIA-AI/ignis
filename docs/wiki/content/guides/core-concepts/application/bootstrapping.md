@@ -186,6 +186,10 @@ A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
+### An application built with tsc
+
+An application that builds with tsc and runs `dist` (`bun .` with `main` in `dist`, tests on `dist/__tests__`, a binary bundled from `dist/index.js`) keeps doing so. The list of classes is read from `src`, and each class is loaded from `dist`, so the application registers the very classes its code runs. Rebuild before starting: a class that has no compiled copy stops the start with an error naming the rebuild. A binary needs only `IgnisArtifactsPlugin.create()` in its `Bun.build` plugins.
+
 ### Several applications in one process
 
 `AutoArtifacts` is one module per process, rooted at the entry module's package. A process that loads several applications - a test harness that boots every service, a gateway hosting modules - gives each application its own group, picked by where it is called:

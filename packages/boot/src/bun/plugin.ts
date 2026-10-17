@@ -1,6 +1,6 @@
 import type { BunPlugin } from 'bun';
 import { getError } from '@venizia/ignis-helpers';
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { ArtifactIndexEmitter, ArtifactScanner, ArtifactStereotypes } from '../generator';
@@ -34,8 +34,8 @@ export class IgnisArtifactsPlugin {
     return entry && existsSync(entry) ? dirname(entry) : process.cwd();
   }
 
-  /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. */
-  static render(opts: { root: string }): string {
+  /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. With `entry` in a compiled tree, each class is imported from that tree (`ArtifactSources.runningArtifacts`). */
+  static render(opts: { root: string; entry?: string }): string {
     const root = resolve(opts.root);
     if (!existsSync(root)) {
       throw getError({
@@ -48,7 +48,9 @@ export class IgnisArtifactsPlugin {
       followReexports: true,
     });
     return ArtifactIndexEmitter.render({
-      artifacts,
+      artifacts: opts.entry
+        ? ArtifactSources.runningArtifacts({ artifacts, from: opts.entry })
+        : artifacts,
       outFile,
       exportName: IgnisArtifactsPlugin.EXPORT_NAME,
       command: { root, out: outFile },
@@ -86,6 +88,7 @@ export class IgnisArtifactsPlugin {
       });
     };
 
+    const isCompiled = !filePath.endsWith('.ts');
     const contentLiteral = (folder: string | undefined): string => {
       const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath });
       if (artifacts.length === 0) {
@@ -99,6 +102,9 @@ export class IgnisArtifactsPlugin {
         const locals = artifacts
           .filter(artifact => artifact.type === type)
           .map(artifact => {
+            if (isCompiled) {
+              return `require(${JSON.stringify(artifact.filePath)}).${artifact.className}`;
+            }
             counter += 1;
             const local = `__ignis_group_${counter}`;
             const path = artifact.filePath.split(sep).join('/').replace(/\.ts$/, '');
@@ -116,7 +122,8 @@ export class IgnisArtifactsPlugin {
       const isGroupCall =
         ts.isCallExpression(node) &&
         ts.isPropertyAccessExpression(node.expression) &&
-        ts.isIdentifier(node.expression.expression) &&
+        (ts.isIdentifier(node.expression.expression) ||
+          ts.isPropertyAccessExpression(node.expression.expression)) &&
         (node.expression.name.text === 'define' || node.expression.name.text === 'application');
       if (!isGroupCall) {
         ts.forEachChild(node, visit);
@@ -125,9 +132,12 @@ export class IgnisArtifactsPlugin {
 
       const call = node as ts.CallExpression;
       const access = call.expression as ts.PropertyAccessExpression;
-      const callee = (access.expression as ts.Identifier).text;
+      const target = access.expression;
+      const callee = ts.isIdentifier(target)
+        ? target.text
+        : (target as ts.PropertyAccessExpression).name.text;
       const isApplication = access.name.text === 'application';
-      if (aliases.has(callee)) {
+      if (ts.isIdentifier(target) && aliases.has(callee)) {
         refuse(call, `ArtifactGroup is imported as ${callee}`);
       }
       if (callee !== 'ArtifactGroup') {
@@ -215,13 +225,28 @@ export class IgnisArtifactsPlugin {
       }
     }
 
-    const files: string[] = [];
+    // A package that runs from its compiled tree (`main` in dist) defines its groups there too.
+    const trees: Array<{ directory: string; pattern: string }> = [];
     for (const source of sources) {
       if (!existsSync(source)) {
         continue;
       }
-      for (const relativePath of new Bun.Glob('**/*.ts').scanSync({ cwd: source })) {
-        const file = join(source, relativePath);
+      trees.push({ directory: source, pattern: '**/*.ts' });
+      for (const entry of readdirSync(dirname(source), { withFileTypes: true })) {
+        if (
+          entry.isDirectory() &&
+          !['src', 'node_modules'].includes(entry.name) &&
+          !entry.name.startsWith('.')
+        ) {
+          trees.push({ directory: join(dirname(source), entry.name), pattern: '**/*.js' });
+        }
+      }
+    }
+
+    const files: string[] = [];
+    for (const { directory, pattern } of trees) {
+      for (const relativePath of new Bun.Glob(pattern).scanSync({ cwd: directory })) {
+        const file = join(directory, relativePath);
         if (
           !relativePath.includes('__tests__') &&
           IgnisArtifactsPlugin.DEFINE_CALL.test(readFileSync(file, 'utf8'))
@@ -233,15 +258,22 @@ export class IgnisArtifactsPlugin {
     return files;
   }
 
-  /** For `Bun.build({ plugins: [IgnisArtifactsPlugin.create()] })`; `isRuntime` is set by `registerRuntime`, which serves a virtual module instead. */
-  static create(opts: { root?: string; isRuntime?: boolean } = {}): BunPlugin {
-    const root = opts.root ?? IgnisArtifactsPlugin.defaultRoot();
+  /** For `Bun.build({ plugins: [IgnisArtifactsPlugin.create()] })`; `isRuntime` is set by `registerRuntime`, which serves a virtual module instead. `entry` (default: the build's first entrypoint, or `Bun.main` at run time) decides which tree the classes are imported from. */
+  static create(opts: { root?: string; entry?: string; isRuntime?: boolean } = {}): BunPlugin {
     const isRuntime = opts.isRuntime ?? false;
-    const contents = (): string => IgnisArtifactsPlugin.render({ root });
 
     return {
       name: IgnisArtifactsPlugin.NAME,
       setup(build) {
+        const [entrypoint] = isRuntime ? [] : build.config.entrypoints;
+        const runningEntry =
+          typeof Bun !== 'undefined' && existsSync(Bun.main) ? Bun.main : undefined;
+        const entry = opts.entry ?? (entrypoint ? resolve(entrypoint) : runningEntry);
+        const root =
+          opts.root ??
+          ArtifactSources.packageSource({ from: entry ? dirname(entry) : process.cwd() });
+        const contents = (): string => IgnisArtifactsPlugin.render({ root, entry });
+
         if (isRuntime) {
           build.module(IgnisArtifactsPlugin.VIRTUAL, () => ({
             contents: contents(),
@@ -264,7 +296,7 @@ export class IgnisArtifactsPlugin {
               filePath: args.path,
               source: readFileSync(args.path, 'utf8'),
             }),
-            loader: 'ts',
+            loader: args.path.endsWith('.ts') ? 'ts' : 'js',
           }));
         }
         build.onLoad({ filter: IgnisArtifactsPlugin.AUTO_MODULE }, () => ({
