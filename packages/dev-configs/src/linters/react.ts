@@ -88,7 +88,14 @@ export class ReactEslintConfigs {
       },
       {
         rules: {
-          '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+          '@typescript-eslint/consistent-type-imports': [
+            'error',
+            {
+              prefer: 'type-imports',
+              fixStyle: 'inline-type-imports',
+              disallowTypeAnnotations: false,
+            },
+          ],
           [NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build() as Linter.RuleEntry,
         },
       },
@@ -163,7 +170,14 @@ export class ReactOxlintConfigs {
           rules: {
             'react/rules-of-hooks': 'error',
             'react/exhaustive-deps': 'error',
-            'typescript/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+            'typescript/consistent-type-imports': [
+              'error',
+              {
+                prefer: 'type-imports',
+                fixStyle: 'inline-type-imports',
+                disallowTypeAnnotations: false,
+              },
+            ],
           },
         },
       ],

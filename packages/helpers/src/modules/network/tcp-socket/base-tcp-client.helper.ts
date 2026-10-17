@@ -1,12 +1,15 @@
 import { isEmpty } from '@venizia/ignis-inversion';
 import { redactSecrets } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
-import { ValueOrPromise } from '@/common';
+import { type ValueOrPromise } from '@/common';
 import {
-  TcpSocketConnectOpts as PlainConnectionOptions,
-  Socket as PlainSocketClient,
+  type TcpSocketConnectOpts as PlainConnectionOptions,
+  type Socket as PlainSocketClient,
 } from 'node:net';
-import { ConnectionOptions as TlsConnectionOptions, TLSSocket as TlsSocketClient } from 'node:tls';
+import {
+  type ConnectionOptions as TlsConnectionOptions,
+  type TLSSocket as TlsSocketClient,
+} from 'node:tls';
 
 const DEFAULT_MAX_RETRY = 5;
 

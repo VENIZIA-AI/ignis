@@ -1,4 +1,4 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import { BullMQHelper } from '@/modules/queue/bullmq';
 import { Cluster } from 'ioredis';

@@ -3,8 +3,8 @@ import {
   ApiReferenceComponent,
   BaseApplication,
   HealthCheckComponent,
-  IApplicationInfo,
-  ValueOrPromise,
+  type IApplicationInfo,
+  type ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
 import { RedisSingleHelper } from '@venizia/ignis-helpers';

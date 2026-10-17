@@ -1,4 +1,4 @@
-import { ValueOrPromise } from '@/common';
+import { type ValueOrPromise } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { voidExecution } from '@/utilities/promise.utility';
 import dgram from 'node:dgram';

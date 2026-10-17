@@ -1,4 +1,4 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { getError, isApplicationError } from '@/modules/error';
 import { invokeHook } from '@/modules/queue/common';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';

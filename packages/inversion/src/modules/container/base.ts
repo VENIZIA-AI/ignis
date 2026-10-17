@@ -1,4 +1,4 @@
-import { TBindingKey, TClass, TNullable } from '@/common/types';
+import { type TBindingKey, type TClass, type TNullable } from '@/common/types';
 import { Binding } from '../binding/binding';
 import { BindingKeys } from '../binding/common/constants';
 import { getError } from '../error';

@@ -1,4 +1,4 @@
-import { DurationMultipliers, IDuration } from '@/common';
+import { DurationMultipliers, type IDuration } from '@/common';
 import { getError } from '@/modules/error';
 import { StoragePresignLimits } from './constants';
 

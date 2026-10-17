@@ -4,7 +4,7 @@ import type {
   IBffRequestEnvelope,
   IBffResponseEnvelope,
 } from '@/envelope/common';
-import { BffRoles, ChannelMessageKinds } from './constants';
+import { type BffRoles, type ChannelMessageKinds } from './constants';
 
 export type TBffRole = TConstValue<typeof BffRoles>;
 

@@ -4,7 +4,7 @@ import {
   generateTzColumnDefs,
   ModelFactory,
   one,
-  TEntityObject,
+  type TEntityObject,
 } from '@venizia/ignis/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';

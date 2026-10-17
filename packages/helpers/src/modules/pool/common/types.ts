@@ -1,4 +1,4 @@
-import { TNullable, ValueOrPromise } from '@/common/types';
+import { type TNullable, type ValueOrPromise } from '@/common/types';
 
 export interface IPoolStats {
   size: number;

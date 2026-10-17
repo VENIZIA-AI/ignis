@@ -1,4 +1,4 @@
-import { TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
 export class SocketIOConstants {
   static readonly EVENT_PING = 'ping';

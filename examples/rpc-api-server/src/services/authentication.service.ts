@@ -1,19 +1,23 @@
-import { TChangePasswordResponse, TSignInResponse, TSignUpResponse } from '@/models/auth.schema';
+import {
+  type TChangePasswordResponse,
+  type TSignInResponse,
+  type TSignUpResponse,
+} from '@/models/auth.schema';
 import { UserRepository } from '@/repositories/user.repository';
 import {
   Authentication,
   BaseService,
-  IAuthService,
+  type IAuthService,
   inject,
   JWSTokenService,
   service,
-  TChangePasswordRequest,
-  TContext,
-  TSignInRequest,
-  TSignUpRequest,
+  type TChangePasswordRequest,
+  type TContext,
+  type TSignInRequest,
+  type TSignUpRequest,
 } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+import { type Env } from 'hono';
 
 /** What the auth controller calls. Passwords are hashed with `Bun.password` (argon2id). */
 @service()

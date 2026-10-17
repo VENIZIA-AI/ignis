@@ -1,6 +1,6 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { IWorkerMessageBusHandler } from '../../common';
+import { type IWorkerMessageBusHandler } from '../../common';
 
 export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
   extends BaseHelper

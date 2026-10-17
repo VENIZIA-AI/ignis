@@ -4,8 +4,8 @@ import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import type { IRedisHelper } from '@/modules/redis';
 import {
-  IWebSocketClient,
-  IWebSocketServerOptions,
+  type IWebSocketClient,
+  type IWebSocketServerOptions,
   WebSocketClientStates,
   WebSocketEvents,
   WebSocketServerHelper,

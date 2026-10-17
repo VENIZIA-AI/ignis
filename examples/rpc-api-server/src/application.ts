@@ -10,13 +10,13 @@ import {
   BindingNamespaces,
   ChangePasswordRequestSchema,
   HealthCheckComponent,
-  IApplicationInfo,
+  type IApplicationInfo,
   JOSEStandards,
   JWSAuthenticationStrategy,
   SignInRequestSchema,
   SignUpRequestSchema,
-  TAuthenticationRestOptions,
-  TJWTTokenServiceOptions,
+  type TAuthenticationRestOptions,
+  type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import { blankToUndefined } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';

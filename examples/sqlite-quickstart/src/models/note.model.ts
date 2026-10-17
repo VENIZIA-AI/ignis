@@ -5,9 +5,9 @@ import {
   many,
   ModelFactory,
   one,
-  TEntityObject,
+  type TEntityObject,
 } from '@venizia/ignis/sqlite';
-import { AnySQLiteColumn, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { type AnySQLiteColumn, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // SQLite has no `jsonb` or `timestamptz` storage class, so both become text columns.
 export const noteTable = sqliteTable('notes', {

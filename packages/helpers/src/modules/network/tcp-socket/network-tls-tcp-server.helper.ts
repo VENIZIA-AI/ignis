@@ -1,5 +1,10 @@
-import { createServer, Server, TLSSocket as SocketClient, TlsOptions } from 'node:tls';
-import { BaseNetworkTcpServer, ITcpSocketServerOptions } from './base-tcp-server.helper';
+import {
+  createServer,
+  type Server,
+  type TLSSocket as SocketClient,
+  type TlsOptions,
+} from 'node:tls';
+import { BaseNetworkTcpServer, type ITcpSocketServerOptions } from './base-tcp-server.helper';
 
 type TTlsTcpServerOptions = Omit<
   ITcpSocketServerOptions<TlsOptions, Server, SocketClient>,

@@ -1,9 +1,9 @@
-import { TConstValue, ValueOrPromise } from '@/common/types';
-import { IncomingHttpHeaders } from 'node:http';
-import { ParsedUrlQuery } from 'node:querystring';
+import { type TConstValue, type ValueOrPromise } from '@/common/types';
+import { type IncomingHttpHeaders } from 'node:http';
+import { type ParsedUrlQuery } from 'node:querystring';
 import type { Socket as IOSocket } from 'socket.io';
 import type { SocketOptions } from 'socket.io-client';
-import { SocketIOClientStates } from '../constants';
+import { type SocketIOClientStates } from '../constants';
 
 export interface IHandshake {
   headers: IncomingHttpHeaders;

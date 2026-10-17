@@ -6,13 +6,17 @@ import { throwNotSupported } from '@/utilities';
 import { AnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   ChangePasswordRequestSchema,
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '@venizia/ignis-kernel';
-import { Authentication, IAuthService, TDefineAuthControllerOpts } from '@venizia/ignis-kernel';
+import {
+  Authentication,
+  type IAuthService,
+  type TDefineAuthControllerOpts,
+} from '@venizia/ignis-kernel';
 
 export const JWTTokenPayloadSchema = z.object({
   userId: z.string().or(z.number()),

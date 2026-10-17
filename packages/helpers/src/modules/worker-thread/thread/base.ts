@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
 import { isMainThread } from 'node:worker_threads';
-import { IWorkerBus } from '../common';
+import { type IWorkerBus } from '../common';
 import { AbstractWorkerThreadHelper } from './abstract';
 
 export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {

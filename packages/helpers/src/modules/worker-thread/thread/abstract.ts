@@ -1,6 +1,6 @@
-import { AnyType, ValueOrPromise } from '@/common/types';
+import { type AnyType, type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { IWorkerBus, IWorkerThread } from '../common';
+import { type IWorkerBus, type IWorkerThread } from '../common';
 
 export abstract class AbstractWorkerThreadHelper extends BaseHelper implements IWorkerThread {
   buses: {

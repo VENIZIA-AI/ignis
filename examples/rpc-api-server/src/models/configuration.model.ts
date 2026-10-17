@@ -3,7 +3,7 @@ import {
   generateIdColumnDefs,
   generateUserAuditColumnDefs,
   ModelFactory,
-  TEntityObject,
+  type TEntityObject,
 } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 

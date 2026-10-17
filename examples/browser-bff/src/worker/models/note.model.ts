@@ -4,9 +4,9 @@ import {
   many,
   ModelFactory,
   one,
-  TEntityObject,
+  type TEntityObject,
 } from '@venizia/ignis-connectors/postgres';
-import { AnyPgColumn, jsonb, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
+import { type AnyPgColumn, jsonb, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 // PGlite is real Postgres, so `jsonb` and `timestamptz` work unchanged.
 export const noteTable = pgTable('notes', {

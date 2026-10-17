@@ -11,6 +11,7 @@ export class MessageCode {
 
   // The one permitted raw `new Error`, used only until `src/index.ts` registers `getError`.
   private static errorFactory: TErrorFactory = opts =>
+    // eslint-disable-next-line venizia/no-new-error -- the bootstrap factory, replaced by getError at init
     new Error(typeof opts.message === 'string' ? opts.message : JSON.stringify(opts.message));
 
   /**

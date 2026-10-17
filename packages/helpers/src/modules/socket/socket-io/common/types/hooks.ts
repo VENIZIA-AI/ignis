@@ -1,6 +1,6 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import type { Socket as IOSocket } from 'socket.io';
-import { IHandshake } from './client';
+import { type IHandshake } from './client';
 
 export type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
 export type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;

@@ -3,14 +3,14 @@ import {
   ApiReferenceComponent,
   BaseApplication,
   HealthCheckComponent,
-  IApplicationInfo,
-  ValueOrPromise,
+  type IApplicationInfo,
+  type ValueOrPromise,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websocket';
 import {
   RedisSingleHelper,
-  TWebSocketAuthenticateFn,
-  WebSocketServerHelper,
+  type TWebSocketAuthenticateFn,
+  type WebSocketServerHelper,
 } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 

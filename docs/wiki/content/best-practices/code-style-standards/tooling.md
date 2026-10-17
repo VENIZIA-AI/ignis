@@ -101,27 +101,26 @@ export default defineConfig({
 
 The rule classes and their options are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
 
-## ESLint Configuration (naming conventions only)
+## ESLint Configuration (what oxlint cannot run)
 
-oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint runs that one rule.
+ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the two house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object) and `venizia/no-new-error` (throw through `getError`, never `new Error`).
 
 **`.configs/eslint.config.mjs`:**
 ```typescript
-import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 
-export default namingConventionConfigs;
+export default houseConfigs;
 ```
 
-To change the allowed names, build the rule with extra selectors. Extra selectors go last, so they win over a base selector they overlap:
+`max-params-own` does not count a signature that belongs to someone else: a callback passed inline to a call (`map`, `sort`, a library handler) or to a JSX prop, a function a declared type fixes, or a constructor whose parameters are all `@inject`. A hook callback (`useCallback(...)`) is yours, so it counts. Tests are exempt from `no-new-error`, because a test throws a plain `Error` to stand in for a driver. For a bootstrap that cannot import `getError`, disable the rule on that line and give the reason.
+
+To change the allowed names, build the rule with extra selectors. An extra selector beats a base selector of the same kind only when it is more specific, so give it a `filter` - `{ selector: 'property', format: ['snake_case'] }` alone changes nothing, because the base `property` selector still wins:
 
 ```typescript
-import {
-  NamingConventionRule,
-  namingConventionConfigs,
-} from '@venizia/dev-configs/linters';
+import { NamingConventionRule, houseConfigs } from '@venizia/dev-configs/linters';
 
 export default [
-  ...namingConventionConfigs,
+  ...houseConfigs,
   {
     files: ['**/*.{ts,tsx,mts,cts}'],
     rules: {
@@ -204,7 +203,7 @@ The presets so far target a backend. Code that runs in a browser swaps them for 
 |---|---|---|---|
 | `.configs/oxlint.config.mts` | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
 | `.configs/oxfmt.config.mts` | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
-| `.configs/eslint.config.mjs` | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
+| `.configs/eslint.config.mjs` | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
 | `tsconfig.json` extends | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
 A React app's lint files look like this. oxlint runs the React, hooks and accessibility rules natively, so there is no plugin to install:

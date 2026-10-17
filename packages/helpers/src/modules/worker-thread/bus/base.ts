@@ -1,7 +1,7 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { voidExecution } from '@/utilities/promise.utility';
-import { MessagePort, Transferable } from 'node:worker_threads';
-import { IWorkerMessageBusHandler } from '../common';
+import { type MessagePort, type Transferable } from 'node:worker_threads';
+import { type IWorkerMessageBusHandler } from '../common';
 import { AbstractWorkerBusHelper } from './abstract';
 
 export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends AbstractWorkerBusHelper<

@@ -370,7 +370,8 @@ restated the flags (2026-10-17).
 `bun src/index.ts` transpiles each file alone. A decorated member whose type is imported by value -
 `@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
 keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
-found` against the CJS dist. `import type { ... }` fixes it. `tsc` output is unaffected (types are
+found` against the CJS dist. `import type { ... }` fixes it, and since issue #184 the base oxlint preset enforces
+it (`typescript/consistent-type-imports`, `fixStyle: inline-type-imports`), so a value import of a type fails lint. `tsc` output is unaffected (types are
 elided), so an application that builds first and runs `bun dist/index.js` never sees it - only a
 source-run probe does. The 2026-09-23 examples refresh removed the last value-imported
 `IControllerOptions` in `examples/rpc-api-server`; check a new example's constructors before

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { ILogger } from '@/modules/logger/common/types';
+import { type ILogger } from '@/modules/logger/common/types';
 import { LoggerResolver } from '@/modules/logger/resolver';
 
 beforeEach(() => {

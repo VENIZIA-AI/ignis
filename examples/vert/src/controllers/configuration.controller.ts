@@ -5,8 +5,8 @@ import {
   Authentication,
   controller,
   ControllerFactory,
-  TInferSchema,
-  TRouteContext,
+  type TInferSchema,
+  type TRouteContext,
 } from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';

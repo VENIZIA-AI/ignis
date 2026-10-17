@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
-import { TBindingKey, TInjectTarget } from '@/common/types';
-import { MetadataRegistry, metadataRegistry } from '@/modules/registry';
+import { type TBindingKey, type TInjectTarget } from '@/common/types';
+import { type MetadataRegistry, metadataRegistry } from '@/modules/registry';
 
 /** Either a key, or the class bound under it - never both. The class may be named directly or through a function, which defers the reference past an import cycle. */
 export type TInjectOptions = {

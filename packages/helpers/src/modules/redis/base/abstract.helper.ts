@@ -2,11 +2,11 @@ import { isEmpty } from '@venizia/ignis-inversion';
 import type { AnyType } from '@/common/types';
 import { executePromiseWithLimit, voidExecution } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
-import { EventEmitter } from 'node:events';
+import { type EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
 import { RedisConcurrency } from './../common/constants';
-import { IRedisHelper } from './../common/interfaces';
-import { IRedisHelperCallbacks, TRedisClient } from './../common/types';
+import { type IRedisHelper } from './../common/interfaces';
+import { type IRedisHelperCallbacks, type TRedisClient } from './../common/types';
 
 export const REDIS_HELPER_BRAND = Symbol.for('@venizia/ignis-helpers:abstract-redis-helper');
 

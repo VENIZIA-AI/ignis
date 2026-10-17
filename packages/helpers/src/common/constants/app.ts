@@ -1,4 +1,4 @@
-import { TConstValue } from '../types';
+import { type TConstValue } from '../types';
 
 export class Defaults {
   static readonly APPLICATION_NAME = globalThis.process?.env?.APP_ENV_APPLICATION_NAME ?? 'APP';

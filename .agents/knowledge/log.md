@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - house ESLint rules and consistent-type-imports in the base preset
+
+Updated [dev-configs](/packages/dev-configs.md), [gotchas](/conventions/gotchas.md).
+
+- `houseConfigs` / `reactHouseConfigs` (naming convention + the `venizia/*` house rules) replace `namingConventionConfigs` in every project's `.configs/eslint.config.mjs` (issue #183, decided by the maintainer): `venizia/max-params-own` (at most 5 positional parameters on a function we write; inline callbacks, typed signatures and all-`@inject` constructors are not counted, hook callbacks are) and `venizia/no-new-error` (throw through `getError`; tests exempt). IGNIS had 0 functions over 5 and 4 `new Error`: two now use `getError`, two bootstrap sites (dev-configs' BunCompiler, inversion's MessageCode factory) keep a reasoned disable.
+- The base oxlint preset enforces `typescript/consistent-type-imports` (`inline-type-imports`, `import()` annotations allowed) - the Bun `Export named 'X' not found` class (issue #184). 435 imports rewritten by `--fix` (packages 357, examples 78); every suite, examples check and smoke, and purity stay green.
+- Builder options: `PreferNullishCoalescingRule` `ignorePrimitives`; `NoUnusedVarsRule` `*IgnorePattern`s.
+
 ## 2026-10-17 - HttpResponseReader.toApplicationError
 
 Updated [connectors](/packages/connectors.md).

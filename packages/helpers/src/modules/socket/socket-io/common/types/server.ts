@@ -1,11 +1,11 @@
-import { RuntimeModules } from '@/common/constants';
-import { IRedisHelper } from '@/modules/redis';
-import { Server as HTTPServer } from 'node:http';
+import { type RuntimeModules } from '@/common/constants';
+import { type IRedisHelper } from '@/modules/redis';
+import { type Server as HTTPServer } from 'node:http';
 import type { ServerOptions } from 'socket.io';
 import {
-  TSocketIOAuthenticateFn,
-  TSocketIOClientConnectedFn,
-  TSocketIOValidateRoomFn,
+  type TSocketIOAuthenticateFn,
+  type TSocketIOClientConnectedFn,
+  type TSocketIOValidateRoomFn,
 } from './hooks';
 
 export interface ISocketIOServerBaseOptions {

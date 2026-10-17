@@ -2,7 +2,7 @@ import { HTTP } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 import { voidExecution } from '@/utilities/promise.utility';
-import { EventEmitter } from 'node:events';
+import { type EventEmitter } from 'node:events';
 import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;

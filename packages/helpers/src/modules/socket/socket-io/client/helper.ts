@@ -1,16 +1,16 @@
 import { HTTP } from '@/common/constants/http';
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Socket } from 'socket.io-client';
 import {
-  IOptions,
-  ISocketIOClientOptions,
+  type IOptions,
+  type ISocketIOClientOptions,
   SocketIOClientStates,
   SocketIOConstants,
-  TSocketIOEventHandler,
-  TSocketIOClientState,
+  type TSocketIOEventHandler,
+  type TSocketIOClientState,
 } from '../common';
 
 export class SocketIOClientHelper extends BaseHelper {

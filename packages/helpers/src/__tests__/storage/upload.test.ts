@@ -1,8 +1,8 @@
 /** Storage Upload Characterization Test Suite */
 
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
-import { IUploadFile } from '@/modules/storage/common';
+import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';

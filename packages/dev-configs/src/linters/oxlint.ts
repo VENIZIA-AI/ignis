@@ -155,6 +155,17 @@ export const oxlintConfigs: OxlintConfig = {
         'prefer-const': 'error',
         'prefer-rest-params': 'error',
         'prefer-spread': 'error',
+        // A value import of a type becomes a runtime import when Bun runs a decorated class's source
+        // (emitDecoratorMetadata) and fails with `Export named 'X' not found`. `import('pkg').T` type
+        // annotations stay allowed: they are type-only by construction, and type an optional peer.
+        'typescript/consistent-type-imports': [
+          'error',
+          {
+            prefer: 'type-imports',
+            fixStyle: 'inline-type-imports',
+            disallowTypeAnnotations: false,
+          },
+        ],
       },
     },
     {

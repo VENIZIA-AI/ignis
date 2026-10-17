@@ -13,7 +13,7 @@ tags: [packages, dev-configs, tooling]
 ```typescript
 import { oxlintConfigs } from '@venizia/dev-configs/linters';       // oxlint config object
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';      // oxfmt config object
-import { namingConventionConfigs } from '@venizia/dev-configs/linters'; // ESLint, naming rule only
+import { houseConfigs } from '@venizia/dev-configs/linters'; // ESLint: naming + house rules
 ```
 
 The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
@@ -75,7 +75,7 @@ Every project (each package, `docs/wiki`, each example except `examples/rpc-clie
 |---|---|
 | `oxlint.config.mts` | `defineConfig(oxlintConfigs)` |
 | `oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
-| `eslint.config.mjs` | `namingConventionConfigs`, plus project rules where needed |
+| `eslint.config.mjs` | `houseConfigs` (naming convention + house rules), plus project rules where needed |
 
 No tool finds `.configs/` on its own, so every call passes `-c .configs/<tool>.config.mts`. See [build system](/process/build-system.md) for the commands.
 

@@ -1,5 +1,5 @@
-import { AnyType } from '@/common/types';
-import { ILogger, LogLevels, SHOULD_LOG_DEBUG, TLogLevel } from '../common';
+import { type AnyType } from '@/common/types';
+import { type ILogger, LogLevels, SHOULD_LOG_DEBUG, type TLogLevel } from '../common';
 import { AbstractLogger } from './abstract';
 
 /** Provider-independent plumbing: scope, prefix, DEBUG gate, for(). Every level method funnels into ONE abstract write() sink; child() lets each provider keep its own caching policy. */

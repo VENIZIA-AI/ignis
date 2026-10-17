@@ -1,4 +1,4 @@
-import winston from 'winston';
+import type winston from 'winston';
 import { WinstonFormatFactory } from './formats';
 import { WinstonLoggerFactory } from './logger-factory';
 

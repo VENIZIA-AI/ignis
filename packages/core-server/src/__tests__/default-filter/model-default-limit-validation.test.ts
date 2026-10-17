@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { model } from '@/base/metadata';
-import { IModelSettings } from '@venizia/ignis-kernel';
+import { type IModelSettings } from '@venizia/ignis-kernel';
 
 /** `@model({ settings: { defaultLimit } })` validates at decoration (boot) time: a provided defaultLimit MUST be a positive integer, failing fast before the query layer. */
 describe('@model - defaultLimit validation', () => {

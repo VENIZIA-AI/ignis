@@ -1,4 +1,4 @@
-import { TConstValue } from '../types';
+import { type TConstValue } from '../types';
 
 /** The time units a duration can be expressed in, smallest first. */
 export class DurationUnits {

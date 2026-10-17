@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'dev-configs House Rules and Type-Only Imports',
+                  link: '/changelogs/2026-10-17-dev-configs-house-rules',
+                },
+                {
                   text: 'HttpResponseReader Maps a Failed Response to an ApplicationError',
                   link: '/changelogs/2026-10-17-response-reader-to-application-error',
                 },

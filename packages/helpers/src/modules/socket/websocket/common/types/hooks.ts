@@ -1,7 +1,7 @@
-import { ValueOrPromise } from '@/common/types';
-import { TNullable } from '@venizia/ignis-inversion';
-import { IWebSocketClient } from './client';
-import { IWebSocketMessage } from './message';
+import { type ValueOrPromise } from '@/common/types';
+import { type TNullable } from '@venizia/ignis-inversion';
+import { type IWebSocketClient } from './client';
+import { type IWebSocketMessage } from './message';
 
 export type TWebSocketAuthenticateFn<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,

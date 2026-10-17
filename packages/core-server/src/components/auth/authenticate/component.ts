@@ -1,5 +1,5 @@
 import type { BaseApplication } from '@/base/applications/base';
-import { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { Binding } from '@venizia/ignis-inversion';
 import {
@@ -9,20 +9,20 @@ import {
   BaseComponent,
   controller,
   CoreBindings,
-  IAuthenticateOptions,
-  IJWKSIssuerOptions,
-  IJWKSVerifierOptions,
-  IJWSTokenServiceOptions,
+  type IAuthenticateOptions,
+  type IJWKSIssuerOptions,
+  type IJWKSVerifierOptions,
+  type IJWSTokenServiceOptions,
   inject,
-  IServiceAuthOptions,
+  type IServiceAuthOptions,
   JOSEStandards,
   JWKSKeyFormats,
   JWKSModes,
   ServiceAssertion,
-  TAuthenticationRestOptions,
-  TBasicTokenServiceOptions,
-  TJWKSTokenServiceOptions,
-  TJWTTokenServiceOptions,
+  type TAuthenticationRestOptions,
+  type TBasicTokenServiceOptions,
+  type TJWKSTokenServiceOptions,
+  type TJWTTokenServiceOptions,
 } from '@venizia/ignis-kernel';
 import { defineAuthController, JWKSController } from './controllers';
 import { ServiceCertsController } from './controllers/service-certs';

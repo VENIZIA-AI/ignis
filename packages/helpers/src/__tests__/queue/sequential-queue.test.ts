@@ -1,9 +1,9 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import {
   QueueStatuses,
   SequentialQueueHelper,
-  TQueueStatus,
+  type TQueueStatus,
 } from '@/modules/queue/internal/sequential';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 

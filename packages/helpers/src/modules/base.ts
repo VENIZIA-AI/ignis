@@ -1,4 +1,4 @@
-import { ILogger } from '@/modules/logger/common/types';
+import { type ILogger } from '@/modules/logger/common/types';
 import { pinHelperLogger, resolveHelperLogger } from '@/modules/logger/slot';
 
 export class BaseHelper {

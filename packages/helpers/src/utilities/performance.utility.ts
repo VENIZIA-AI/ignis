@@ -1,4 +1,4 @@
-import { ILogger } from '@/modules/logger';
+import { type ILogger } from '@/modules/logger';
 import { float } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;

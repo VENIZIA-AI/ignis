@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
-import { SecFetchSiteValues } from '../constants';
+import { type SecFetchSiteValues } from '../constants';
 
 export interface IBaseMiddlewareOptions {
   enable: boolean;

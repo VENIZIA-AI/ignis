@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { getError } from '@/modules/error';
-import { ITcpSocketServerOptions, NetworkTcpServer } from '@/modules/network';
-import { AddressInfo, connect, Socket } from 'node:net';
+import { type ITcpSocketServerOptions, NetworkTcpServer } from '@/modules/network';
+import { type AddressInfo, connect, Socket } from 'node:net';
 
 interface IDeferred<T> {
   promise: Promise<T>;

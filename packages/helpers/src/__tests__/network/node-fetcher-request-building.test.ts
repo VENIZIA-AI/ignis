@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { NodeFetcher } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;

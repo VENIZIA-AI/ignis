@@ -1,9 +1,9 @@
-import { BaseRestController, TRouteContext } from '@/base/controllers';
+import { BaseRestController, type TRouteContext } from '@/base/controllers';
 import { api, inject } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   HealthCheckBindingKeys,
   HealthCheckHeaders,

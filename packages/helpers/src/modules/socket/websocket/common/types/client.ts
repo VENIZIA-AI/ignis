@@ -1,5 +1,5 @@
-import { TConstValue } from '@/common/types';
-import { WebSocketClientStates } from '../constants';
+import { type TConstValue } from '@/common/types';
+import { type WebSocketClientStates } from '../constants';
 
 export interface IWebSocket<T = unknown> {
   readonly data: T;

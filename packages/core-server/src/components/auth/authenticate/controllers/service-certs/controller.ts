@@ -4,7 +4,7 @@ import {
   BindingNamespaces,
   inject,
 } from '@venizia/ignis-kernel';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { ServiceAssertionSignerService } from '../../services/service/signer.service';
 import { ServiceCertsRouteConfigs } from './definitions';

@@ -7,15 +7,15 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
 import {
-  IBucketInfo,
-  IBucketRef,
-  IFileStat,
-  IListObjectsOptions,
-  IObjectInfo,
-  IObjectLocation,
-  IObjectRef,
-  IStorageHelperOptions,
-  IUploadFile,
+  type IBucketInfo,
+  type IBucketRef,
+  type IFileStat,
+  type IListObjectsOptions,
+  type IObjectInfo,
+  type IObjectLocation,
+  type IObjectRef,
+  type IStorageHelperOptions,
+  type IUploadFile,
   StorageErrors,
 } from '../common';
 

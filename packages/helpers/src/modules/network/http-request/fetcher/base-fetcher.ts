@@ -1,9 +1,9 @@
-import { HTTP, THttpMethod } from '@/common/constants/http';
-import { AnyObject } from '@/common/types';
+import { HTTP, type THttpMethod } from '@/common/constants/http';
+import { type AnyObject } from '@/common/types';
 // The leaf file, never the logger BARREL: that barrel reaches `node:module` and would drag this
 // browser-pure fetcher contract with it.
 import type { ILogger } from '@/modules/logger/common/types';
-import { TFetcherVariant } from '../common';
+import { type TFetcherVariant } from '../common';
 
 export interface IRequestOptions {
   url: string;

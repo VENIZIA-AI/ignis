@@ -1,4 +1,4 @@
-import { ValueOf, ValueOrPromise } from '@/common/types';
+import { type ValueOf, type ValueOrPromise } from '@/common/types';
 
 export class QueueStatuses {
   static readonly WAITING = '000_WAITING';

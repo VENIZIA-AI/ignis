@@ -4,22 +4,22 @@ import type {
   MessagesStreamModeValue,
   SchemaRegistry,
 } from '@platformatic/kafka';
-import { TKafkaGroupProtocol } from '../constants';
+import { type TKafkaGroupProtocol } from '../constants';
 import {
-  TKafkaBrokerEventCallback,
-  TKafkaGroupJoinCallback,
-  TKafkaGroupLeaveCallback,
-  TKafkaGroupRebalanceCallback,
-  TKafkaHeartbeatErrorCallback,
-  TKafkaLagCallback,
-  TKafkaLagErrorCallback,
-  TKafkaMessageCallback,
-  TKafkaMessageDoneCallback,
-  TKafkaMessageErrorCallback,
-  TKafkaReconnectErrorCallback,
-  TKafkaStreamErrorCallback,
+  type TKafkaBrokerEventCallback,
+  type TKafkaGroupJoinCallback,
+  type TKafkaGroupLeaveCallback,
+  type TKafkaGroupRebalanceCallback,
+  type TKafkaHeartbeatErrorCallback,
+  type TKafkaLagCallback,
+  type TKafkaLagErrorCallback,
+  type TKafkaMessageCallback,
+  type TKafkaMessageDoneCallback,
+  type TKafkaMessageErrorCallback,
+  type TKafkaReconnectErrorCallback,
+  type TKafkaStreamErrorCallback,
 } from './callbacks';
-import { IKafkaConnectionOptions } from './connection';
+import { type IKafkaConnectionOptions } from './connection';
 
 export interface IKafkaConsumerOptions<
   KeyType = string,

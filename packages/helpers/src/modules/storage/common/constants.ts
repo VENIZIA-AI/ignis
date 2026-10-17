@@ -1,4 +1,4 @@
-import { DurationUnits, IDuration, TConstValue } from '@/common';
+import { DurationUnits, type IDuration, type TConstValue } from '@/common';
 
 /** Presign expiry defaults - a PUT or a POST form carries a file and needs more time; a GET is a redirect. */
 export class StoragePresignDefaults {

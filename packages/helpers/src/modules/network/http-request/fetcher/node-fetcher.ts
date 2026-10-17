@@ -1,11 +1,11 @@
 import { redactSecrets } from '@/common/redact';
-import { HTTP, THttpMethod } from '@/common/constants/http';
-import { AnyObject } from '@/common/types';
+import { HTTP, type THttpMethod } from '@/common/constants/http';
+import { type AnyObject } from '@/common/types';
 import { QueryStringSeparators, toQueryString } from '../../utilities/query-string';
 
 import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
-import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
+import { AbstractNetworkFetchableHelper, type IRequestOptions } from './base-fetcher';
 
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;

@@ -1,4 +1,4 @@
-import { AnyObject } from '@/common';
+import { type AnyObject } from '@/common';
 import { BaseHelper } from '@/modules/base';
 
 /** An in-process keyed container, NOT an `IStorageHelper`: it stores values, not objects in a bucket. */

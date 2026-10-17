@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { toBoolean } from '@/utilities/parse.utility';
-import { BaseLogger, ILogger, TLogLevel } from '@/modules/logger';
+import { BaseLogger, type ILogger, type TLogLevel } from '@/modules/logger';
 
 /** Minimal recording sink - the same shape a future provider (pino) would implement. */
 class RecordingLogger extends BaseLogger {

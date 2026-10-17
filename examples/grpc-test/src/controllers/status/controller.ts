@@ -1,5 +1,5 @@
-import { BaseRestController, controller, jsonResponse, TRouteContext } from '@venizia/ignis';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseRestController, controller, jsonResponse, type TRouteContext } from '@venizia/ignis';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 const RouteConfigs = {

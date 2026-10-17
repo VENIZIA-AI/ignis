@@ -1,4 +1,4 @@
-import { BaseApplication } from '@/base/applications';
+import { type BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { controller, inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';

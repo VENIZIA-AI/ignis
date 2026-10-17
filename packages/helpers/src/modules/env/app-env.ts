@@ -1,7 +1,7 @@
 import { blankToUndefined } from '@/utilities/parse.utility';
 import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
-import { IApplicationEnvironment } from './common';
+import { type IApplicationEnvironment } from './common';
 
 /** Adds the `NODE_ENV` reads to {@link EnvironmentNames}. Every name and set is inherited, so `Environment.PRODUCTION`, `Environment.COMMON_ENVS` and `Environment.DEVELOPMENT_ENVS` keep resolving here; only these two members need a `process`. */
 export class Environment extends EnvironmentNames {

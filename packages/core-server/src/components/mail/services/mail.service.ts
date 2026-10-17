@@ -11,7 +11,7 @@ import type {
 import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
-import { AnyType } from '@venizia/ignis-helpers/common';
+import { type AnyType } from '@venizia/ignis-helpers/common';
 import { executePromiseWithLimit } from '@venizia/ignis-helpers';
 import { releaseAttachmentStreams, resolveMailAttachments } from '../utilities/attachment.utility';
 import { assertMailBodyIsText } from '../utilities/body.utility';

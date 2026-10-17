@@ -1,5 +1,5 @@
 import { createClient, type Client } from '@libsql/client';
-import { datasource, TAnyDataSourceSchema } from '@venizia/ignis';
+import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis';
 import { blankToUndefined } from '@venizia/ignis-helpers';
 import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
 import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';

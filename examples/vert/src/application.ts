@@ -13,8 +13,8 @@ import {
   CasbinAuthorizationEnforcer,
   CasbinEnforcerModelDrivers,
   HealthCheckComponent,
-  IApplicationConfigs,
-  IApplicationInfo,
+  type IApplicationConfigs,
+  type IApplicationInfo,
   JWKSIssuerAuthenticationStrategy,
   ScopedCasbinAdapter,
 } from '@venizia/ignis';

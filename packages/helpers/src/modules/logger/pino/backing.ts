@@ -1,9 +1,9 @@
 import { Defaults } from '@/common/constants';
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import pino from 'pino';
 import { resolveLoggerLevel } from '../common';
 
-import { PINO_CUSTOM_LEVELS, TPinoInstance } from './common';
+import { PINO_CUSTOM_LEVELS, type TPinoInstance } from './common';
 import { PinoDestination } from './destination';
 
 /** Owns the single pino instance every scope writes through, and the transport thread behind it. */
