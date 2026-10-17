@@ -18,7 +18,7 @@ Rules for anything written in the wiki or in this knowledge bundle:
 
 ## Enforcement
 
-`make okf-check` checks the first two rules and nothing else about the prose: a dash character or a
+`make okf-check-strict` checks the first two rules and nothing else about the prose: a dash character or a
 mis-cased brand fails it, alongside frontmatter shape, link validity, coverage against the source
 inventory, and freshness of the generated regions. It reads prose only - code spans and fences are
 stripped first, which is how this concept can name the characters it forbids.
@@ -26,7 +26,7 @@ stripped first, which is how this concept can name the characters it forbids.
 The English-only and no-version-number rules are convention, not code. Nothing catches a version
 pinned in prose, so the only check on those two is your own eye.
 
-Nothing runs `okf-check` for you either. The pre-commit hook runs `make lint-all` and `bun scripts/examples.ts check`, and nothing more,
+Nothing runs `okf-check-strict` for you either. The pre-commit hook runs `make lint-all` and `bun scripts/examples.ts check`, and nothing more,
 and the CI workflow that calls it is `workflow_dispatch` only and is not a required status check -
 so running it before you land a bundle change is on the author. See
 [onboarding](/overview/onboarding.md) for the commands and [build system](/process/build-system.md)

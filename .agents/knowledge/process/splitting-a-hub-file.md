@@ -35,7 +35,7 @@ criterion is topics. A file whose exports all serve one concept stays (the kept 
    must show `types/` and no `types.js`.
 6. Gates: the package suite and every downstream suite (they load `dist/esm`), `make lint-<package>`,
    `bun scripts/module-cycles.ts packages/<package>/dist/esm --max 0`, `make surface-check` (never
-   `surface-gen` for a split - a changed snapshot means a leak or a loss), `make okf-gen && make okf-check`,
+   `surface-gen` for a split - a changed snapshot means a leak or a loss), `make okf-gen && make okf-check-strict`,
    `make wiki-links-check` (repoint every doc link at the topic file that declares the named symbol).
 7. Commit the move and the doc repoints separately: `refactor(<package>): <scope> types split by topic`
    and `docs(wiki): ...`. One line each.

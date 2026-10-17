@@ -11,7 +11,7 @@ generated file inventory.
 
 | Path | Why it matters |
 |---|---|
-| `Makefile` | Root entry point for build, lint, and OKF (`okf-check`/`okf-gen`) targets across every package. |
+| `Makefile` | Root entry point for build, lint, test and release targets across every package; it includes VULCAN's okf, atlas-table and agent-setup targets from `vulcan.mk`. |
 | `packages/dev-configs/src/tsconfig/tsconfig.base.json` | Shared compiler base; sets `experimentalDecorators` + `emitDecoratorMetadata`, without which no `@inject`/`@controller`/`@repository` decorator works. |
 | `packages/inversion/src/modules/container/abstract.ts` | `AbstractContainer` - the bottom of the container class chain, extends `BaseHelper`. |
 | `packages/inversion/src/modules/container/base.ts` | `BaseContainer` - adds binding storage/resolution on top of `AbstractContainer`. |

@@ -6,6 +6,15 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-17 - Rules extend the VULCAN base; knowledge polished after the move
+
+Updated [onboarding](/overview/onboarding.md), [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [git workflow](/process/git-workflow.md), [docs writing style](/conventions/docs-writing-style.md), [splitting a hub file](/process/splitting-a-hub-file.md), [connectors](/packages/connectors.md), [key source files](/reference/key-source-files.md).
+
+- `.agents/rules.md`: the rows that repeated a base rule now say **Extends V-X** and state only IGNIS's delta (W-01, W-04, S-01, S-02, S-04, S-05, S-06, P-01, P-02, P-03, P-08, B-02, B-03). C-04 restores the PO's `tz` exception that V-C-04 leaves to each project. The enforcement table lists the house lint and `vulcan-doctor`.
+- `okf-check-strict` is named wherever the strict gate is meant; `okf-check` is OKF conformance only.
+- The session digest now adds only the most-dropped IDs and the minimap shape: VULCAN's base digest already prints every rule row.
+- CI runs `make vulcan-sync vulcan-doctor`.
+
 ## 2026-10-17 - What moved to VULCAN is deleted from IGNIS
 
 Updated [monorepo layout](/overview/monorepo-layout.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [testing](/process/testing.md). Removed the atlas package concept.

@@ -28,8 +28,8 @@ tags: [process, git, contributing]
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of
    `.git/hooks/`.
 6. `.githooks/pre-commit` then runs on every commit: it `cd`s to the repo root and runs `make
-   lint-all` (packages AND examples) under `set -e` - any lint failure aborts the commit before it
-   is created. That is the hook's only check. The browser purity gates (`make purity`) are NOT
+   lint-all` (packages and `scripts/`) and `bun scripts/examples.ts check` (the examples) under
+   `set -e` - any failure aborts the commit before it is created. Those are the hook's only checks. The browser purity gates (`make purity`) are NOT
    wired into it - they run only in the manually triggered release workflow (see
    [release and publish](/process/release-publish.md)), so run purity by hand after a build if you
    care about it. There is no test step either; passing the rest of the suite is not enforced
