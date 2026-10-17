@@ -1,4 +1,4 @@
-import { AnyObject } from './types';
+import { type AnyObject } from './types';
 
 /** Keys whose VALUES must never reach a log line - matched case-insensitively on the key name, at any depth. */
 const SECRET_KEY_PATTERN = new RegExp(

@@ -2,18 +2,18 @@ import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { model, repository } from '@/base/metadata';
-import { ITransaction } from '@venizia/ignis-kernel';
-import { AbstractRepository } from '@venizia/ignis-kernel';
-import { ICrudRepository, IExtraOptions } from '@venizia/ignis-kernel';
+import { type ITransaction } from '@venizia/ignis-kernel';
+import { type AbstractRepository } from '@venizia/ignis-kernel';
+import { type ICrudRepository, type IExtraOptions } from '@venizia/ignis-kernel';
 import {
   BasePostgresDataSource,
   BasePostgresEntity,
   DefaultCRUDRepository,
-  IDatabaseExtraOptions,
-  IDatabaseTransaction,
+  type IDatabaseExtraOptions,
+  type IDatabaseTransaction,
   IsolationLevels,
-  TTableInsert,
-  TTableObject,
+  type TTableInsert,
+  type TTableObject,
 } from '@venizia/ignis-connectors/postgres';
 
 /** Pins the transaction type naming: neutral `ITransaction` vs postgres's `IDatabaseTransaction` (narrowed via `IDatabaseExtraOptions`). `tsc --noEmit` is the real check here. */

@@ -1,7 +1,7 @@
-import winston from 'winston';
-import { AnyType } from '@/common/types';
+import type winston from 'winston';
+import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
-import { ILogger, TLogLevel } from '../common';
+import { type ILogger, type TLogLevel } from '../common';
 import { defaultWinstonLogger } from './define';
 
 export class WinstonLogger extends BaseLogger {

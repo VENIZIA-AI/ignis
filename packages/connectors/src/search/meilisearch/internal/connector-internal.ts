@@ -1,6 +1,6 @@
 import type { ISearchResult } from '@/search/core';
 import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
-import { Meilisearch } from 'meilisearch';
+import { type Meilisearch } from 'meilisearch';
 import type { IMeilisearchClientLike } from '../common';
 
 /** Meilisearch error bodies carry `{ message, code, type, link }`; classification keys off `code`. */

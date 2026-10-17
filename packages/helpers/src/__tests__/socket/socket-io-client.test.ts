@@ -2,15 +2,15 @@
 
 import type { AnyType } from '@/common/types';
 import {
-  IOptions,
+  type IOptions,
   SocketIOClientHelper,
   SocketIOClientStates,
   SocketIOConstants,
 } from '@/modules/socket/socket-io';
 import { afterEach, beforeEach, describe, expect, mock, test } from 'bun:test';
-import { createServer, Server as HTTPServer } from 'node:http';
+import { createServer, type Server as HTTPServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { Server as IOServer, Socket as IOSocket } from 'socket.io';
+import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
 
 const AUTHENTICATED_USER = 'user-a';
 

@@ -1,4 +1,4 @@
-import { TConstValue } from '@/common';
+import { type TConstValue } from '@/common';
 
 export class KafkaGroupProtocol {
   static readonly CLASSIC = 'classic';

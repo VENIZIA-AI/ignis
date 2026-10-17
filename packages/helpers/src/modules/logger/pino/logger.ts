@@ -1,6 +1,6 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { BaseLogger } from '../base';
-import { ILogger, TLogLevel } from '../common';
+import { type ILogger, type TLogLevel } from '../common';
 import { formatLogMessage } from '../formatting';
 import { PinoBackingLogger } from './backing';
 

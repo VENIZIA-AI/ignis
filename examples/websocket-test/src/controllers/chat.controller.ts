@@ -1,16 +1,21 @@
 import { z } from '@hono/zod-openapi';
 import {
-  BaseApplication,
+  type BaseApplication,
   BaseRestController,
   controller,
   CoreBindings,
   inject,
   jsonContent,
   jsonResponse,
-  TRouteContext,
+  type TRouteContext,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
-import { getError, HTTP, WebSocketDefaults, WebSocketServerHelper } from '@venizia/ignis-helpers';
+import {
+  getError,
+  HTTP,
+  WebSocketDefaults,
+  type WebSocketServerHelper,
+} from '@venizia/ignis-helpers';
 
 const MessageRequestSchema = z.object({ message: z.string().min(1) });
 const MessageResponseSchema = z.object({ sent: z.boolean(), room: z.string() });

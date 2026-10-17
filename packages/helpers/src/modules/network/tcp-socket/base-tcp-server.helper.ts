@@ -1,13 +1,13 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { getUID } from '@/utilities/parse.utility';
 import { voidExecution } from '@/utilities/promise.utility';
 import {
-  ListenOptions,
-  ServerOpts,
-  Socket as SocketClient,
-  Server as SocketServer,
+  type ListenOptions,
+  type ServerOpts,
+  type Socket as SocketClient,
+  type Server as SocketServer,
 } from 'node:net';
 
 export interface ITcpSocketClient<SocketClientType> {

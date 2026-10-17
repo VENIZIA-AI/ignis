@@ -1,5 +1,5 @@
 import {
-  BaseApplication,
+  type BaseApplication,
   BaseService,
   BindingNamespaces,
   CoreBindings,
@@ -9,7 +9,7 @@ import {
 import {
   AdvancedFilterQueryTestService,
   ArrayOperatorTestService,
-  BaseTestService,
+  type BaseTestService,
   ComprehensiveOperatorTestService,
   CrudTestService,
   DefaultFilterTestService,

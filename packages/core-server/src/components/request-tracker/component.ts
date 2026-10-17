@@ -1,12 +1,12 @@
-import { BaseApplication } from '@/base/applications';
+import { type BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { RequestSpyMiddleware } from '@/base/middlewares';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { Binding, BindingScopes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { MiddlewareHandler } from 'hono/types';
+import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type MiddlewareHandler } from 'hono/types';
 
 export class RequestTrackerComponent extends BaseComponent {
   static readonly REQUEST_TRACKER_MW_BINDING_KEY = [

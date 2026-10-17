@@ -3,7 +3,7 @@ import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  TSearchDocument,
+  type TSearchDocument,
 } from '@venizia/ignis/typesense';
 
 // A search collection replaces a Drizzle pgTable: `field.*` declares the wire shape instead of

@@ -16,7 +16,7 @@ import {
 } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { IUploadFile } from '@/modules/storage/common';
+import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 import { MinioHelper } from '@/modules/storage/minio';
 

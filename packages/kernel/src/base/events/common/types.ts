@@ -1,5 +1,5 @@
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { EventHandlerTypes } from './constants';
+import { type EventHandlerTypes } from './constants';
 
 /** One occurrence of a named domain event, decoupled from whatever publishes or handles it. */
 export interface IDomainEvent<TPayload = unknown> {

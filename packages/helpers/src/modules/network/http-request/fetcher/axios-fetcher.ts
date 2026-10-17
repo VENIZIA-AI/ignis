@@ -1,11 +1,11 @@
-import { AnyObject, HTTP, THttpMethod } from '@/common';
+import { type AnyObject, HTTP, type THttpMethod } from '@/common';
 import { redactSecrets } from '@/common/redact';
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
 import { BaseNetworkRequest } from '../base-network-request.helper';
 import type { ILogger } from '@/modules/logger/common/types';
-import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
+import { AbstractNetworkFetchableHelper, type IRequestOptions } from './base-fetcher';
 
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;

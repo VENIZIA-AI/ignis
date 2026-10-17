@@ -1,5 +1,5 @@
-import { IDuration } from '@/common';
-import { Readable } from 'node:stream';
+import { type IDuration } from '@/common';
+import { type Readable } from 'node:stream';
 
 export interface IUploadFile {
   originalName: string;

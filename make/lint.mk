@@ -3,7 +3,7 @@
 # Each project lints itself, from its own .configs/ and with its own tools (its node_modules/.bin).
 # oxlint owns the rules, ESLint runs only naming-convention (oxlint has no port yet), oxfmt formats.
 # Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
-FMT_GLOB := "**/*.{ts,mts,js,mjs}"
+FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 # $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
 LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mjs $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
 

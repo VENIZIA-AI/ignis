@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-17 | [dev-configs House Rules and Type-Only Imports](./2026-10-17-dev-configs-house-rules) | Feature, Behavior Change |
 | 2026-10-17 | [HttpResponseReader Maps a Failed Response to an ApplicationError](./2026-10-17-response-reader-to-application-error) | Enhancement |
 | 2026-10-16 | [Restate the Decorator Options - Bun Ignores a Package tsconfig extends](./2026-10-16-bun-tsconfig-extends) | Bug Fix |
 | 2026-10-16 | [dev-configs Gains a Browser Tier](./2026-10-16-dev-configs-browser-tier) | Feature |

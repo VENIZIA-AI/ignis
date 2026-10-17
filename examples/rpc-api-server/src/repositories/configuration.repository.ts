@@ -1,5 +1,5 @@
 import { PGliteDataSource } from '@/datasources/pglite.datasource';
-import { Configuration, configurationTable } from '@/models/configuration.model';
+import { Configuration, type configurationTable } from '@/models/configuration.model';
 import { repository } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 

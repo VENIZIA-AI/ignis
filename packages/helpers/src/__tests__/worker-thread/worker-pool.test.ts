@@ -1,7 +1,7 @@
 /** WorkerPoolHelper Test Suite */
 
 import { getError } from '@/modules/error';
-import { IWorker, WorkerPoolHelper } from '@/modules/worker-thread';
+import { type IWorker, WorkerPoolHelper } from '@/modules/worker-thread';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 

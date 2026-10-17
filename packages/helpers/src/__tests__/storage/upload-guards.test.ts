@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
-import { AnyType } from '@/common';
-import { IUploadFile } from '@/modules/storage/common';
+import { type AnyType } from '@/common';
+import { type IUploadFile } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 
 /** Runs the upload and returns the thrown message - "" when it did NOT throw, which fails the match. */

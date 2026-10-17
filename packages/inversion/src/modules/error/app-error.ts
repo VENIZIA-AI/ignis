@@ -1,4 +1,4 @@
-import { TNullable } from '@/common/types';
+import { type TNullable } from '@/common/types';
 import { omit } from '@/common/utilities';
 import { MessageCode } from './message-code';
 import { MessageTemplate } from './message-template';

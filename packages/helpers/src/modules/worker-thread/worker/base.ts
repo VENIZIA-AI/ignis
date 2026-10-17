@@ -1,9 +1,9 @@
 import { toError, voidExecution } from '@/utilities/promise.utility';
-import { Worker, WorkerOptions } from 'node:worker_threads';
+import { Worker, type WorkerOptions } from 'node:worker_threads';
 
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { getError } from '@/modules/error';
-import { IWorker } from '../common';
+import { type IWorker } from '../common';
 import { AbstractWorkerHelper } from './abstract';
 
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {

@@ -1,4 +1,4 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { AbstractWorkerMessageBusHandlerHelper } from './abstract';
 
 export class BaseWorkerMessageBusHandlerHelper<

@@ -7,16 +7,16 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { datasource, model, repository } from '@venizia/ignis-kernel';
 import { BaseSearchDataSource } from '@/search/core/datasources';
-import { ISearchConnector } from '@/search/core';
-import { ISearchDataSourceOptions } from '@/search/core/datasources';
+import { type ISearchConnector } from '@/search/core';
+import { type ISearchDataSourceOptions } from '@/search/core/datasources';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  ISearchCollectionDefinition,
+  type ISearchCollectionDefinition,
 } from '@/search/core/models';
-import { ISearchQueryDialect, SearchFilterOutcomes } from '@/search/core/repositories/common';
+import { type ISearchQueryDialect, SearchFilterOutcomes } from '@/search/core/repositories/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 
 /** Records every `ensureCollection` call so provisioning can be asserted on. */

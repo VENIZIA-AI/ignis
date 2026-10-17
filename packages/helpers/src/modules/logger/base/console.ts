@@ -1,5 +1,5 @@
-import { AnyType } from '@/common/types';
-import { ILogger, LogLevels, TLogLevel } from '../common/types';
+import { type AnyType } from '@/common/types';
+import { type ILogger, LogLevels, type TLogLevel } from '../common/types';
 import { AbstractLogger } from './abstract';
 
 /** The resolver's default when no provider is registered - the only logger a browser bundle can reach. Extends AbstractLogger rather than BaseLogger because BaseLogger's DEBUG gate reads process.env at module load. */

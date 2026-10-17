@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { getError } from '@/modules/error';
 import { NetworkUdpClient } from '@/modules/network';
 import dgram from 'node:dgram';

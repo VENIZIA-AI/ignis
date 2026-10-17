@@ -1,6 +1,6 @@
 /** CronHelper Test Suite */
 
-import { CronHelper, ICronHelperOptions } from '@/modules/cron';
+import { CronHelper, type ICronHelperOptions } from '@/modules/cron';
 import { isApplicationError } from '@/modules/error';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 

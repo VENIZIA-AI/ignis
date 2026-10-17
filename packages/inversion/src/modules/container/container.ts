@@ -1,5 +1,5 @@
 import { getError } from '../error';
-import { AnyType, TBindingKey, TClass, TInjectTarget } from '@/common/types';
+import { type AnyType, type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
 import { resolveInjectTarget } from '@/common/utilities';
 import { BaseContainer } from './base';
 

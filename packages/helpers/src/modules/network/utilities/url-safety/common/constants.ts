@@ -1,4 +1,4 @@
-import { TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
 /** The only schemes a guarded fetch will speak. `file:` and `gopher:` are the classic SSRF pivots. */
 export class UrlSchemes {

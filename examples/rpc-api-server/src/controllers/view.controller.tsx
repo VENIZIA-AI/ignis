@@ -1,7 +1,7 @@
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
 import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
 
 /** Server-rendered pages: each handler returns `context.html(<Page />)`. */
 @controller({ path: '/' })

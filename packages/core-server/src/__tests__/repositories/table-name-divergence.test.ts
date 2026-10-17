@@ -7,20 +7,20 @@ import {
   BasePostgresDataSource,
   BasePostgresEntity,
   DefaultCRUDRepository,
-  TTableInsert,
-  TTableObject,
+  type TTableInsert,
+  type TTableObject,
 } from '@venizia/ignis-connectors/postgres';
 import {
   BaseSearchDataSource,
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  ISearchCollectionDefinition,
-  ISearchConnector,
-  ISearchDataSourceOptions,
-  ISearchQueryDialect,
+  type ISearchCollectionDefinition,
+  type ISearchConnector,
+  type ISearchDataSourceOptions,
+  type ISearchQueryDialect,
 } from '@venizia/ignis-connectors/search';
-import { ICrudRepository } from '@venizia/ignis-kernel';
+import { type ICrudRepository } from '@venizia/ignis-kernel';
 import { TypesenseQueryDialect } from '@venizia/ignis-connectors/typesense';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 

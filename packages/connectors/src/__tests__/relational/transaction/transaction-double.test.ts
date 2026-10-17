@@ -22,8 +22,8 @@ import {
   SqliteTransactionEntity,
   SqliteTransactionRepository,
   TransactionSqliteDataSource,
-  postgresItemTable,
-  sqliteItemTable,
+  type postgresItemTable,
+  type sqliteItemTable,
 } from './engine-fixtures';
 import { captureRejection } from './parity-suite';
 

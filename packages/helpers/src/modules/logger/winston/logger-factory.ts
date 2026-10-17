@@ -3,7 +3,7 @@ import path from 'node:path';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
 import { DgramTransport } from './transports';
-import { ICustomLoggerOptions, IDgramTransportOptions } from './common';
+import { type ICustomLoggerOptions, type IDgramTransportOptions } from './common';
 import {
   LOGGER_FILE_DATE_PATTERN,
   LOGGER_FILE_FREQUENCY,
@@ -12,7 +12,7 @@ import {
   LOGGER_FORMAT,
   LOGGER_PREFIX,
 } from './common/constants';
-import { resolveLoggerColorize, resolveLoggerLevel, TLoggerFormat } from '../common';
+import { resolveLoggerColorize, resolveLoggerLevel, type TLoggerFormat } from '../common';
 import { WinstonFormatFactory } from './formats';
 
 /**

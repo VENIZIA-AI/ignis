@@ -10,9 +10,20 @@ export class NoUnusedVarsRule {
       vars?: 'all' | 'local';
       args?: 'all' | 'after-used' | 'none';
       ignoreRestSiblings?: boolean;
+      /** Names that may stay unused, e.g. `^_` - a placeholder a signature needs. */
+      argsIgnorePattern?: string;
+      varsIgnorePattern?: string;
+      caughtErrorsIgnorePattern?: string;
+      destructuredArrayIgnorePattern?: string;
     } = {},
   ): TOxlintRuleEntry<'no-unused-vars'> {
-    const { severity = 'error', vars = 'all', args = 'none', ignoreRestSiblings = false } = opts;
-    return [severity, { vars, args, ignoreRestSiblings }];
+    const {
+      severity = 'error',
+      vars = 'all',
+      args = 'none',
+      ignoreRestSiblings = false,
+      ...patterns
+    } = opts;
+    return [severity, { vars, args, ignoreRestSiblings, ...patterns }];
   }
 }

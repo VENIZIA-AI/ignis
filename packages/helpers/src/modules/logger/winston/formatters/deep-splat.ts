@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { formatLogMessage } from '../../formatting';
 
 /** Winston stashes the extra arguments of `logger.error(msg, ...args)` under this well-known key. */

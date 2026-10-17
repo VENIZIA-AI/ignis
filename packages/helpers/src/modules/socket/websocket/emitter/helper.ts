@@ -1,11 +1,15 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
-import { EventEmitter } from 'node:events';
 import {
-  IRedisSocketMessage,
-  IWebSocketEmitterOptions,
+  ensureRedisClientsConnecting,
+  type TRedisClient,
+  waitForRedisReady,
+} from '@/modules/redis';
+import { type EventEmitter } from 'node:events';
+import {
+  type IRedisSocketMessage,
+  type IWebSocketEmitterOptions,
   WebSocketChannels,
   WebSocketMessageTypes,
 } from '../common';

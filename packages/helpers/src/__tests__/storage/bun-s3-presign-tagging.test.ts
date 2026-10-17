@@ -1,6 +1,6 @@
 /** BunS3Helper - presignPut/presignGet (real S3Client, no network) and getObjectTags/replaceObjectTags (stubbed fetch) (Task 4) */
 
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { DurationUnits } from '@/common';
 import { StoragePresignDefaults, toExpirySeconds } from '@/modules/storage/common';

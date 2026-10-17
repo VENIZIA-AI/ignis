@@ -1,5 +1,5 @@
 import { getError } from '@/modules/error';
-import { AbstractRedisHelper } from './base';
+import { type AbstractRedisHelper } from './base';
 import { RedisClusterHelper } from './cluster';
 import { RedisModes } from './common';
 import type {

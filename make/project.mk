@@ -24,7 +24,7 @@ ESM_TSCONFIG := .configs/tsconfig.esm.json
 # leaves a dist with cjs/ and no esm/.
 EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
-FMT_GLOB := "**/*.{ts,mts,js,mjs}"
+FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 
 .PHONY: build typecheck clean rebuild lint fmt
 

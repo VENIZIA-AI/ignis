@@ -1,6 +1,6 @@
 import dgram from 'node:dgram';
 import Transport from 'winston-transport';
-import { IDgramTransportOptions } from '../common';
+import { type IDgramTransportOptions } from '../common';
 
 export class DgramTransport extends Transport {
   private label: string;

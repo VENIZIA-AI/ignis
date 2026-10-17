@@ -5,18 +5,18 @@ import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  IImportResult,
-  ISearchAliasScoped,
-  ISearchCollectionScoped,
-  ISearchConnector,
-  ISearchDocumentScoped,
-  ISearchResult,
-  ISearchSynonymSetScoped,
-  ISynonym,
+  type IImportResult,
+  type ISearchAliasScoped,
+  type ISearchCollectionScoped,
+  type ISearchConnector,
+  type ISearchDocumentScoped,
+  type ISearchResult,
+  type ISearchSynonymSetScoped,
+  type ISynonym,
 } from '@venizia/ignis-connectors/search';
 import {
-  ITypesenseDataSourceSettings,
-  TypesenseConnector,
+  type ITypesenseDataSourceSettings,
+  type TypesenseConnector,
   TypesenseDataSource,
 } from '@venizia/ignis-connectors/typesense';
 

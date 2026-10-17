@@ -1,4 +1,4 @@
-import { namingConventionConfigs } from '@venizia/dev-configs/linters';
+import { houseConfigs } from '@venizia/dev-configs/linters';
 import { builtinModules } from 'node:module';
 
 /**
@@ -84,5 +84,5 @@ const browserPurity = {
   },
 };
 
-// oxlint (.configs/oxlint.config.mts) runs the shared preset; ESLint keeps the naming rule and this block.
-export default [...namingConventionConfigs, browserPurity];
+// oxlint (.configs/oxlint.config.mts) runs the shared preset; ESLint keeps the naming rule, the house rules and this block.
+export default [...houseConfigs, browserPurity];

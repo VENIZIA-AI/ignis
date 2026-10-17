@@ -1,5 +1,5 @@
 import { PGliteDataSource } from '@/datasources/pglite.datasource';
-import { Comment, commentTable } from '@/models/note.model';
+import { Comment, type commentTable } from '@/models/note.model';
 import { repository } from '@venizia/ignis-kernel';
 import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 

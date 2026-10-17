@@ -1,26 +1,30 @@
 import { HTTP } from '@/common';
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
+import {
+  ensureRedisClientsConnecting,
+  type TRedisClient,
+  waitForRedisReady,
+} from '@/modules/redis';
 import { UuidHelper } from '@/modules/uid';
 import { voidExecution } from '@/utilities/promise.utility';
-import { EventEmitter } from 'node:events';
+import { type EventEmitter } from 'node:events';
 import {
-  IBunWebSocketConfig,
-  IBunWebSocketHandler,
-  IRedisSocketMessage,
-  IWebSocket,
-  IWebSocketClient,
-  IWebSocketData,
-  IWebSocketMessage,
-  IWebSocketServerOptions,
-  TWebSocketAuthenticateFn,
-  TWebSocketClientConnectedFn,
-  TWebSocketClientDisconnectedFn,
-  TWebSocketHandshakeFn,
-  TWebSocketMessageHandler,
-  TWebSocketValidateRoomFn,
+  type IBunWebSocketConfig,
+  type IBunWebSocketHandler,
+  type IRedisSocketMessage,
+  type IWebSocket,
+  type IWebSocketClient,
+  type IWebSocketData,
+  type IWebSocketMessage,
+  type IWebSocketServerOptions,
+  type TWebSocketAuthenticateFn,
+  type TWebSocketClientConnectedFn,
+  type TWebSocketClientDisconnectedFn,
+  type TWebSocketHandshakeFn,
+  type TWebSocketMessageHandler,
+  type TWebSocketValidateRoomFn,
   WebSocketChannels,
   WebSocketClientStates,
   WebSocketDefaults,

@@ -40,6 +40,7 @@ export class BunCompiler {
     if (!built.success) {
       // `getError` lives in `inversion`, which depends on `dev-configs` - importing it here would
       // create a circular workspace dependency, so a failed compile throws a plain `Error` instead.
+      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
         [
           `[BunCompiler] compile failed for entrypoint "${entrypoint}":`,

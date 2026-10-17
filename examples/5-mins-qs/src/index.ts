@@ -4,12 +4,12 @@ import {
   BaseRestController,
   controller,
   get,
-  IApplicationInfo,
+  type IApplicationInfo,
   jsonContent,
   ApiReferenceComponent,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import { type Context } from 'hono';
 
 @controller({ path: '/hello' })
 class HelloController extends BaseRestController {

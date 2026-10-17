@@ -1,4 +1,4 @@
-import { TWebSocketMessageType } from '../constants';
+import { type TWebSocketMessageType } from '../constants';
 
 /** Client <-> Server message envelope */
 export interface IWebSocketMessage<DataType = unknown> {

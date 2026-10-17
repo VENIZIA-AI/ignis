@@ -12,7 +12,7 @@ import type {
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import {
   BaseRelationalEntity,
-  DefaultCRUDRepository,
+  type DefaultCRUDRepository,
   generateIdColumnDefs,
   generateTzColumnDefs,
 } from '@venizia/ignis-connectors/postgres';

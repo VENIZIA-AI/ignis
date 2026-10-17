@@ -1,6 +1,6 @@
 import type { TClass, TConstValue, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { TBindingScope } from '@venizia/ignis-inversion';
-import { ArtifactTypes } from '../constants';
+import { type ArtifactTypes } from '../constants';
 
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;

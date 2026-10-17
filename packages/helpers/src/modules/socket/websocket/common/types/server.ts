@@ -1,13 +1,13 @@
-import { IRedisHelper } from '@/modules/redis';
-import { IWebSocket } from './client';
+import { type IRedisHelper } from '@/modules/redis';
+import { type IWebSocket } from './client';
 import {
-  TWebSocketAuthenticateFn,
-  TWebSocketClientConnectedFn,
-  TWebSocketClientDisconnectedFn,
-  TWebSocketHandshakeFn,
-  TWebSocketMessageHandler,
-  TWebSocketOutboundTransformer,
-  TWebSocketValidateRoomFn,
+  type TWebSocketAuthenticateFn,
+  type TWebSocketClientConnectedFn,
+  type TWebSocketClientDisconnectedFn,
+  type TWebSocketHandshakeFn,
+  type TWebSocketMessageHandler,
+  type TWebSocketOutboundTransformer,
+  type TWebSocketValidateRoomFn,
 } from './hooks';
 
 export interface IBunServer {

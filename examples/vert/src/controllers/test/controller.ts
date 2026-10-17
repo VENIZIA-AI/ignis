@@ -2,7 +2,7 @@ import { Authentication, BaseRestController, controller, get, post } from '@veni
 import type { TRouteContext, ValueOrPromise } from '@venizia/ignis';
 import { Environment, HTTP } from '@venizia/ignis-helpers';
 import { uuidV7 } from '@venizia/ignis-helpers/uuid';
-import { RouteConfigs, TRoute5Body } from './definitions';
+import { RouteConfigs, type TRoute5Body } from './definitions';
 
 @controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
 export class TestController extends BaseRestController {

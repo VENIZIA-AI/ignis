@@ -1,5 +1,9 @@
-import { AnyType } from '@/common';
-import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
+import { type AnyType } from '@/common';
+import {
+  ensureRedisClientsConnecting,
+  type TRedisClient,
+  waitForRedisReady,
+} from '@/modules/redis';
 import { describe, expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 

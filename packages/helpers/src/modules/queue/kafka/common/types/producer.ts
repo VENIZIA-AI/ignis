@@ -1,7 +1,7 @@
 import type { CompressionAlgorithmValue, SchemaRegistry, Serializers } from '@platformatic/kafka';
-import { TKafkaAcks } from '../constants';
-import { TKafkaBrokerEventCallback } from './callbacks';
-import { IKafkaConnectionOptions } from './connection';
+import { type TKafkaAcks } from '../constants';
+import { type TKafkaBrokerEventCallback } from './callbacks';
+import { type IKafkaConnectionOptions } from './connection';
 
 export interface IKafkaProducerOptions<
   KeyType = string,

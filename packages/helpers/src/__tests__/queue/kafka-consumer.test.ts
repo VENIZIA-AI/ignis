@@ -1,4 +1,4 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { KafkaConsumerHelper } from '@/modules/queue/kafka/consumer';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';

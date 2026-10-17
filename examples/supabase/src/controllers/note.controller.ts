@@ -1,4 +1,4 @@
-import { NoteService } from '@/services/note.service';
+import { type NoteService } from '@/services/note.service';
 import {
   Authentication,
   AuthenticateStrategy,

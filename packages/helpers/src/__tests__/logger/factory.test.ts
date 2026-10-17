@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import {
   AbstractLogger,
   ApplicationLogger,
-  ILogger,
-  ILoggerProvider,
+  type ILogger,
+  type ILoggerProvider,
   LoggerFactory,
-  TLogLevel,
+  type TLogLevel,
 } from '@/modules/logger';
 import { WinstonLogger } from '@/modules/logger/winston';
 

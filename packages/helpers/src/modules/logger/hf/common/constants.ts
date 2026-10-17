@@ -1,4 +1,4 @@
-import { TLogLevel } from '../../common';
+import { type TLogLevel } from '../../common';
 
 /** BYTES per ring entry. Every entry occupies exactly this many bytes, used or not. */
 export const ENTRY_SIZE = 256;
