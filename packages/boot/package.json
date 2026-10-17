@@ -49,6 +49,18 @@
       "require": "./dist/cjs/generator/index.js",
       "default": "./dist/cjs/generator/index.js"
     },
+    "./bun": {
+      "types": "./dist/cjs/bun/index.d.ts",
+      "import": "./dist/esm/bun/index.js",
+      "require": "./dist/cjs/bun/index.js",
+      "default": "./dist/cjs/bun/index.js"
+    },
+    "./auto": {
+      "types": "./dist/cjs/bun/auto.d.ts",
+      "import": "./dist/esm/bun/auto.js",
+      "require": "./dist/cjs/bun/auto.js",
+      "default": "./dist/cjs/bun/auto.js"
+    },
     "./build-info": {
       "types": "./dist/cjs/build-info/index.d.ts",
       "import": "./dist/esm/build-info/index.js",

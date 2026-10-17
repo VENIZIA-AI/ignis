@@ -1,4 +1,5 @@
-import type { TArtifactType, TScanSkipReason } from './constants';
+import type { AnyType, TClass } from '@venizia/ignis-helpers';
+import type { TArtifactIndexField, TArtifactType, TScanSkipReason } from './constants';
 
 export interface IScannedArtifact {
   className: string;
@@ -31,3 +32,8 @@ export interface IScanReport {
   /** Every decorated class left out - abstract, not a named export, or under a user ignore pattern. */
   skipped: IScanSkipped[];
 }
+
+/** The object a generated index exports - structurally the kernel's `IArtifactIndex` (boot does not depend on the kernel). */
+export type TGeneratedArtifactIndex = Partial<
+  Record<TArtifactIndexField, ReadonlyArray<TClass<AnyType>>>
+>;

@@ -45,6 +45,8 @@ export class ArtifactIndexEmitter {
     artifacts: IScannedArtifact[];
     outFile: string;
     exportName: string;
+    /** Absolute import paths - for a virtual module, which has no directory to resolve a relative one from. */
+    absoluteImports?: boolean;
     /** The CLI arguments as given, for the header; `outFile` above is the resolved path used for import specifiers. */
     command: { root: string; out: string; ignore?: string[]; sourceModules?: string[] };
   }): string {
@@ -54,7 +56,11 @@ export class ArtifactIndexEmitter {
     const imports = emitted
       .map(artifact => ({
         name: artifact.className,
-        path: ArtifactIndexEmitter.importPath({ from: outFile, to: artifact.filePath }),
+        path: ArtifactIndexEmitter.importPath({
+          from: outFile,
+          to: artifact.filePath,
+          isAbsolute: opts.absoluteImports ?? false,
+        }),
       }))
       .sort((a, b) => a.path.localeCompare(b.path) || a.name.localeCompare(b.name))
       .map(entry => `import { ${entry.name} } from '${entry.path}';`);
@@ -91,7 +97,10 @@ export class ArtifactIndexEmitter {
     return [`  ${field}: [`, ...names.map(name => `    ${name},`), '  ],'];
   }
 
-  private static importPath(opts: { from: string; to: string }): string {
+  private static importPath(opts: { from: string; to: string; isAbsolute: boolean }): string {
+    if (opts.isAbsolute) {
+      return opts.to.split(sep).join('/').replace(/\.ts$/, '');
+    }
     const raw = relative(dirname(opts.from), opts.to).split(sep).join('/').replace(/\.ts$/, '');
     return raw.startsWith('.') ? raw : `./${raw}`;
   }

@@ -1055,7 +1055,7 @@ generated:
 
 ## boot
 
-### `@venizia/ignis-boot` (24)
+### `@venizia/ignis-boot` (25)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1080,9 +1080,10 @@ generated:
 - `TArtifactIndexField` type
 - `TArtifactType` type
 - `TBuildInfoFormat` type
+- `TGeneratedArtifactIndex` type
 - `TScanSkipReason` type
 
-### `@venizia/ignis-boot/generator` (16)
+### `@venizia/ignis-boot/generator` (17)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
@@ -1099,7 +1100,17 @@ generated:
 - `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
+- `TGeneratedArtifactIndex` type
 - `TScanSkipReason` type
+
+### `@venizia/ignis-boot/bun` (2)
+
+- `AutoArtifactsLoader` class
+- `IgnisArtifactsPlugin` class
+
+### `@venizia/ignis-boot/auto` (1)
+
+- `default` const
 
 ### `@venizia/ignis-boot/build-info` (8)
 
