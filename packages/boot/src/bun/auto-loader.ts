@@ -15,13 +15,13 @@ export class AutoArtifactsLoader {
   static async load(): Promise<TGeneratedArtifactIndex> {
     AutoArtifactsLoader.assertRuntime({ hasBun: typeof Bun !== 'undefined' });
 
-    // Non-static specifiers: a bundler must not pull the scanner (and TypeScript) into a binary.
+    // A non-static specifier: a bundler must not pull the scanner (and TypeScript) into a binary.
     const pluginModule = './plugin';
     const { IgnisArtifactsPlugin } = await import(pluginModule);
     await IgnisArtifactsPlugin.registerRuntime();
 
-    const virtualModule: string = IgnisArtifactsPlugin.VIRTUAL;
-    const loaded = await import(virtualModule);
-    return loaded[IgnisArtifactsPlugin.EXPORT_NAME];
+    // A static specifier on purpose: a build without IgnisArtifactsPlugin then fails to resolve it, instead of shipping a binary with no classes.
+    const { GeneratedArtifacts } = await import('ignis:artifacts');
+    return GeneratedArtifacts;
   }
 }
