@@ -5026,6 +5026,15 @@
       "order": 1695
     },
     {
+      "id": "changelog:2026-10-17-dev-configs-house-rules",
+      "file": "2026-10-17-dev-configs-house-rules.md",
+      "date": "2026-10-17",
+      "title": "dev-configs House Rules and Type-Only Imports",
+      "packages": [],
+      "kind": "New Feature",
+      "order": 1697
+    },
+    {
       "id": "changelog:2026-10-16-oxlint-oxfmt-migration",
       "file": "2026-10-16-oxlint-oxfmt-migration.md",
       "date": "2026-10-16",

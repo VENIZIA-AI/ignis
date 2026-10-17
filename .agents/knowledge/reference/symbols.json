@@ -759,7 +759,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts",
-      "line": 36,
+      "line": 39,
       "signature": "class BaseNetworkTcpClient<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient> extends BaseHelper"
     },
     {
@@ -909,7 +909,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts",
-      "line": 11,
+      "line": 15,
       "signature": "class BasicAuthenticationStrategy<E extends Env = Env> extends BaseHelper implements IAuthenticationStrategy<E>"
     },
     {
@@ -3031,7 +3031,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts",
-      "line": 13,
+      "line": 16,
       "signature": "interface INetworkTcpClientProps<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient>"
     },
     {
@@ -4311,7 +4311,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 4,
+      "line": 9,
       "signature": "interface IWorker<MessageType>"
     },
     {
@@ -4321,7 +4321,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 29,
+      "line": 34,
       "signature": "interface IWorkerBus<IConsumePayload, IPublishPayload>"
     },
     {
@@ -4331,7 +4331,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 21,
+      "line": 26,
       "signature": "interface IWorkerMessageBusHandler<IConsumePayload>"
     },
     {
@@ -4341,7 +4341,7 @@
       "specifier": "@venizia/ignis",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 15,
+      "line": 20,
       "signature": "interface IWorkerThread"
     },
     {
@@ -4511,7 +4511,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/core-server/src/components/auth/authenticate/controllers/factory.ts",
-      "line": 17,
+      "line": 21,
       "signature": "JWTTokenPayloadSchema: z.ZodObject<{ userId: z.ZodUnion<[z.ZodString, z.ZodNumber]>; roles: z.ZodArray<z.ZodObject<{ id: z.ZodUnion<[z.ZodString, z.ZodNumber]>; identifier: z.ZodString; priority: z.ZodNumber; }, z.core.$strip>>; clientId: z.ZodOptional<z.ZodString>; provider: z.ZodOptional<z.ZodStri"
     },
     {
@@ -4771,7 +4771,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/network-tcp-server.helper.ts",
-      "line": 4,
+      "line": 9,
       "signature": "class NetworkTcpServer extends BaseNetworkTcpServer<ServerOpts, SocketServer, SocketClient>"
     },
     {
@@ -4791,7 +4791,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts",
-      "line": 9,
+      "line": 14,
       "signature": "class NetworkTlsTcpServer extends BaseNetworkTcpServer<TlsOptions, Server, SocketClient>"
     },
     {
@@ -5492,7 +5492,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/queue/internal/sequential/helper.ts",
-      "line": 7,
+      "line": 12,
       "signature": "class SequentialQueueHelper<TElementPayload> extends BaseHelper"
     },
     {
@@ -8732,7 +8732,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/websocket/emitter/helper.ts",
-      "line": 15,
+      "line": 19,
       "signature": "class WebSocketEmitter extends BaseHelper"
     },
     {
@@ -8762,7 +8762,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/websocket/server/helper.ts",
-      "line": 32,
+      "line": 36,
       "signature": "class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper"
     },
     {
@@ -9052,7 +9052,7 @@
       "specifier": "@venizia/ignis",
       "kind": "const",
       "file": "packages/core-server/src/components/auth/authenticate/controllers/factory.ts",
-      "line": 31,
+      "line": 35,
       "signature": "defineAuthController: (opts: TDefineAuthControllerOpts) => { new (authService: IAuthService): { service: IAuthService; binding(): ValueOrPromise<void>; measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R>; }): Promise<any>; normalizeCountData<ResponseSchema extends unknown, Reques"
     },
     {
@@ -22270,7 +22270,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts",
-      "line": 36,
+      "line": 39,
       "signature": "class BaseNetworkTcpClient<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient> extends BaseHelper"
     },
     {
@@ -23152,7 +23152,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/network/tcp-socket/base-tcp-client.helper.ts",
-      "line": 13,
+      "line": 16,
       "signature": "interface INetworkTcpClientProps<SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions, SocketClientType extends PlainSocketClient | TlsSocketClient>"
     },
     {
@@ -23932,7 +23932,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 4,
+      "line": 9,
       "signature": "interface IWorker<MessageType>"
     },
     {
@@ -23942,7 +23942,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 29,
+      "line": 34,
       "signature": "interface IWorkerBus<IConsumePayload, IPublishPayload>"
     },
     {
@@ -23952,7 +23952,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 21,
+      "line": 26,
       "signature": "interface IWorkerMessageBusHandler<IConsumePayload>"
     },
     {
@@ -23962,7 +23962,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "interface",
       "file": "packages/helpers/src/modules/worker-thread/common/types.ts",
-      "line": 15,
+      "line": 20,
       "signature": "interface IWorkerThread"
     },
     {
@@ -24172,7 +24172,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/network-tcp-server.helper.ts",
-      "line": 4,
+      "line": 9,
       "signature": "class NetworkTcpServer extends BaseNetworkTcpServer<ServerOpts, SocketServer, SocketClient>"
     },
     {
@@ -24192,7 +24192,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/network/tcp-socket/network-tls-tcp-server.helper.ts",
-      "line": 9,
+      "line": 14,
       "signature": "class NetworkTlsTcpServer extends BaseNetworkTcpServer<TlsOptions, Server, SocketClient>"
     },
     {
@@ -24453,7 +24453,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/queue/internal/sequential/helper.ts",
-      "line": 7,
+      "line": 12,
       "signature": "class SequentialQueueHelper<TElementPayload> extends BaseHelper"
     },
     {
@@ -25703,7 +25703,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/websocket/emitter/helper.ts",
-      "line": 15,
+      "line": 19,
       "signature": "class WebSocketEmitter extends BaseHelper"
     },
     {
@@ -25733,7 +25733,7 @@
       "specifier": "@venizia/ignis-helpers",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/websocket/server/helper.ts",
-      "line": 32,
+      "line": 36,
       "signature": "class WebSocketServerHelper<AuthDataType extends Record<string, unknown> = Record<string, unknown>, MetadataType extends Record<string, unknown> = Record<string, unknown>> extends BaseHelper"
     },
     {
@@ -29293,7 +29293,7 @@
       "specifier": "@venizia/ignis-helpers/socket-io",
       "kind": "class",
       "file": "packages/helpers/src/modules/socket/socket-io/server/helper.ts",
-      "line": 28,
+      "line": 32,
       "signature": "class SocketIOServerHelper extends BaseHelper"
     },
     {
