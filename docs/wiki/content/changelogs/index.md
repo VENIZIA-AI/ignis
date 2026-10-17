@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-18 | [Faster Source Starts and a Lazy Auto Module in Binaries](./2026-10-18-auto-artifacts-scan-cache) | Performance |
 | 2026-10-18 | [Auto Artifacts Register the Classes a tsc-Built Application Runs](./2026-10-18-auto-artifacts-running-tree) | Bug Fix |
 | 2026-10-17 | [Auto Artifacts Root at the Entry Module, and ArtifactGroup.application](./2026-10-17-auto-artifacts-entry-root) | Bug Fix |
 | 2026-10-17 | [Slice an Artifact Group by Kind With ArtifactGroup.pick](./2026-10-17-artifact-group-pick) | Feature |

@@ -1,11 +1,71 @@
 import { getError } from '@venizia/ignis-helpers';
 import { existsSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import { ArtifactScanner, type IScannedArtifact } from '../generator';
+import type { IScannedArtifact } from '../generator/common';
+import { ArtifactScanCache } from './scan-cache';
 
-/** Where a package's artifacts live: the `src` beside its nearest `package.json`, and the classes under one of its directories. One scan per package per process. */
+interface IArtifactScanner {
+  scanWithReport(opts: { root: string; followReexports: boolean }): {
+    artifacts: IScannedArtifact[];
+  };
+}
+
+/** Where a package's artifacts live: the `src` beside its nearest `package.json`, and the classes under one of its directories. One scan per package per process, served from `ArtifactScanCache` when no source file changed - so this module never loads the scanner (and TypeScript) itself. */
 export class ArtifactSources {
   private static readonly scans = new Map<string, IScannedArtifact[]>();
+  private static scanner: IArtifactScanner | undefined;
+
+  /** Called by the modules that already hold the scanner (the build plugin). */
+  static useScanner(opts: { scanner: IArtifactScanner }): void {
+    ArtifactSources.scanner = opts.scanner;
+  }
+
+  /** Loads the scanner - only on a cache miss. A non-static specifier, so a bundle never pulls TypeScript in. */
+  static async loadScanner(): Promise<void> {
+    if (ArtifactSources.scanner) {
+      return;
+    }
+    const generatorModule = '../generator';
+    const { ArtifactScanner } = await import(generatorModule);
+    ArtifactSources.scanner = ArtifactScanner.getInstance();
+  }
+
+  /** Whether `packageSource` can be listed without the scanner: scanned in this process, or a valid disk cache. */
+  static isCached(opts: { packageSource: string }): boolean {
+    if (ArtifactSources.scans.has(opts.packageSource)) {
+      return true;
+    }
+    const cached = ArtifactScanCache.read({ root: opts.packageSource });
+    if (cached) {
+      ArtifactSources.scans.set(opts.packageSource, cached);
+    }
+    return cached !== undefined;
+  }
+
+  /** Every decorated class under `packageSource`: this process's scan, else the disk cache, else the scanner (which must be loaded), written back to the cache. */
+  static scan(opts: { packageSource: string }): IScannedArtifact[] {
+    const { packageSource } = opts;
+    if (ArtifactSources.isCached({ packageSource })) {
+      return ArtifactSources.scans.get(packageSource) ?? [];
+    }
+    if (!ArtifactSources.scanner) {
+      throw getError({
+        message: `[ArtifactSources] ${packageSource} is not cached and the scanner is not loaded | Call ArtifactSources.loadScanner() first`,
+      });
+    }
+    const { artifacts } = ArtifactSources.scanner.scanWithReport({
+      root: packageSource,
+      followReexports: true,
+    });
+    ArtifactSources.scans.set(packageSource, artifacts);
+    ArtifactScanCache.write({ root: packageSource, artifacts });
+    return artifacts;
+  }
+
+  /** The entry module (`Bun.main`), or `undefined` when there is no entry file (`bun -e`, a REPL). */
+  static entry(): string | undefined {
+    return typeof Bun !== 'undefined' && existsSync(Bun.main) ? Bun.main : undefined;
+  }
 
   /** The `src` beside the nearest `package.json` at or above `from` (default: the working directory). */
   static packageSource(opts: { from?: string } = {}): string {
@@ -25,14 +85,7 @@ export class ArtifactSources {
   static folderArtifacts(opts: { folder: string | undefined; site: string }): IScannedArtifact[] {
     const packageSource = ArtifactSources.packageSource({ from: dirname(opts.site) });
 
-    let artifacts = ArtifactSources.scans.get(packageSource);
-    if (!artifacts) {
-      artifacts = ArtifactScanner.getInstance().scanWithReport({
-        root: packageSource,
-        followReexports: true,
-      }).artifacts;
-      ArtifactSources.scans.set(packageSource, artifacts);
-    }
+    const artifacts = ArtifactSources.scan({ packageSource });
 
     const { folder } = opts;
     const picked =

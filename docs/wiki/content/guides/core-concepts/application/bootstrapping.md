@@ -186,6 +186,10 @@ A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
+### Start-up cost from source
+
+The first start scans `src` (TypeScript parses every file). The answer is cached under the package's `node_modules/.cache/ignis-artifacts/`, keyed on the size and modification time of every `.ts` file under `src`, the package manifest and the lockfile, so the next start skips the scan and never loads TypeScript; any edit makes the next start scan again. A binary never scans.
+
 ### An application built with tsc
 
 An application that builds with tsc and runs `dist` (`bun .` with `main` in `dist`, tests on `dist/__tests__`, a binary bundled from `dist/index.js`) keeps doing so. The list of classes is read from `src`, and each class is loaded from `dist`, so the application registers the very classes its code runs. Rebuild before starting: a class that has no compiled copy stops the start with an error naming the rebuild. A binary needs only `IgnisArtifactsPlugin.create()` in its `Bun.build` plugins.
@@ -202,7 +206,7 @@ import { ArtifactGroup } from '@venizia/ignis';
 artifacts: [ArtifactGroup.application(), InventoryArtifacts],
 ```
 
-The kernel never imports `@venizia/ignis-boot`, so a group with no inlined content needs that import somewhere in the process before artifacts are registered; without it registration stops with an error naming it. A build with `IgnisArtifactsPlugin` inlines the group, exactly like a borrowed one, and needs no resolver.
+The kernel never imports `@venizia/ignis-boot`, so a group with no inlined content needs that import somewhere in the process before artifacts are registered; without it registration stops with an error naming it. A shared bootstrap (the function every service calls to start) is a good single place for it - importing the module loads no class; the classes load when artifacts are registered. A build with `IgnisArtifactsPlugin` inlines the group, exactly like a borrowed one, and needs no resolver.
 
 ### Borrowing from a shared package
 

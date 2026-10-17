@@ -21,6 +21,10 @@ export class IgnisArtifactsPlugin {
 
   private static readonly RUNTIME_KEY = Symbol.for('@venizia/ignis-boot:artifacts-runtime-plugin');
 
+  static {
+    ArtifactSources.useScanner({ scanner: ArtifactScanner.getInstance() });
+  }
+
   /** The `src` beside the nearest `package.json` at or above `from` (default: the entry module's directory). */
   static defaultRoot(opts: { from?: string } = {}): string {
     return ArtifactSources.packageSource({
@@ -30,8 +34,8 @@ export class IgnisArtifactsPlugin {
 
   /** The entry module's directory (`Bun.main`), so the root never depends on where the process was started; the working directory only when there is no entry file (`bun -e`, a REPL). */
   static entryDirectory(): string {
-    const entry = typeof Bun === 'undefined' ? undefined : Bun.main;
-    return entry && existsSync(entry) ? dirname(entry) : process.cwd();
+    const entry = ArtifactSources.entry();
+    return entry ? dirname(entry) : process.cwd();
   }
 
   /** The index as module source: every import absolute, since a virtual module has no directory to resolve from. With `entry` in a compiled tree, each class is imported from that tree (`ArtifactSources.runningArtifacts`). */
@@ -43,10 +47,7 @@ export class IgnisArtifactsPlugin {
       });
     }
     const outFile = join(root, '__ignis_artifacts__.ts');
-    const { artifacts } = ArtifactScanner.getInstance().scanWithReport({
-      root,
-      followReexports: true,
-    });
+    const artifacts = ArtifactSources.scan({ packageSource: root });
     return ArtifactIndexEmitter.render({
       artifacts: opts.entry
         ? ArtifactSources.runningArtifacts({ artifacts, from: opts.entry })
@@ -266,9 +267,7 @@ export class IgnisArtifactsPlugin {
       name: IgnisArtifactsPlugin.NAME,
       setup(build) {
         const [entrypoint] = isRuntime ? [] : build.config.entrypoints;
-        const runningEntry =
-          typeof Bun !== 'undefined' && existsSync(Bun.main) ? Bun.main : undefined;
-        const entry = opts.entry ?? (entrypoint ? resolve(entrypoint) : runningEntry);
+        const entry = opts.entry ?? (entrypoint ? resolve(entrypoint) : ArtifactSources.entry());
         const root =
           opts.root ??
           ArtifactSources.packageSource({ from: entry ? dirname(entry) : process.cwd() });
@@ -300,7 +299,8 @@ export class IgnisArtifactsPlugin {
           }));
         }
         build.onLoad({ filter: IgnisArtifactsPlugin.AUTO_MODULE }, () => ({
-          contents: `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nimport { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ content: ${IgnisArtifactsPlugin.EXPORT_NAME} });\n`,
+          // A dynamic import: the index (and every class it imports) loads when artifacts are resolved, not when a library imports this module - a static import here evaluated the app's classes inside the importer's half-evaluated module graph.
+          contents: `import { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ resolve: async () => (await import('${IgnisArtifactsPlugin.VIRTUAL}')).${IgnisArtifactsPlugin.EXPORT_NAME} });\n`,
           loader: 'ts',
         }));
       },
