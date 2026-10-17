@@ -1,10 +1,10 @@
-import { BaseApplication } from '@/base/applications';
+import { type BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
-import { ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
+import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { StaticAssetComponentBindingKeys, type TStaticAssetsComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
 import { AssetControllerFactory, buildObjectLink } from './controller';
 

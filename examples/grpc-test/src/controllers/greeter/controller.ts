@@ -1,4 +1,4 @@
-import { GreeterService } from '@/services/greeter.service';
+import { type GreeterService } from '@/services/greeter.service';
 import { create } from '@bufbuild/protobuf';
 import {
   BaseGrpcController,

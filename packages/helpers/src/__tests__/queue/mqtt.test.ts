@@ -1,6 +1,6 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import { IMQTTClientOptions, MQTTClientHelper } from '@/modules/queue/mqtt';
+import { type IMQTTClientOptions, MQTTClientHelper } from '@/modules/queue/mqtt';
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 

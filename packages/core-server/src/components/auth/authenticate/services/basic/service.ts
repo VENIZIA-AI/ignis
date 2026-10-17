@@ -1,15 +1,15 @@
-import { TContext } from '@venizia/ignis-kernel';
+import { type TContext } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { BaseService } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { Env } from 'hono';
+import { type Env } from 'hono';
 import {
   Authentication,
   AuthenticationErrors,
   AuthenticateBindingKeys,
-  IAuthUser,
-  TBasicTokenServiceOptions,
+  type IAuthUser,
+  type TBasicTokenServiceOptions,
 } from '@venizia/ignis-kernel';
 
 /** Extracts and verifies Basic auth credentials from the Authorization header. */

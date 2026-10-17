@@ -2,12 +2,12 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
-  IJWKSVerifierOptions,
-  IJWTTokenPayload,
+  type IJWKSVerifierOptions,
+  type IJWTTokenPayload,
   inject,
-  TGetTokenExpiresFn,
+  type TGetTokenExpiresFn,
 } from '@venizia/ignis-kernel';
-import { Env } from 'hono';
+import { type Env } from 'hono';
 import type { createRemoteJWKSet, SignJWT } from 'jose';
 import { JoseLoader } from '../../jose-loader';
 import { AbstractJWKSTokenService } from './abstract.service';

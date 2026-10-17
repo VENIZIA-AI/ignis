@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@/common';
 import {
   AbstractNetworkFetchableHelper,
-  IRequestOptions,
+  type IRequestOptions,
   NodeFetcher,
   NodeFetchNetworkRequest,
 } from '@/modules/network';

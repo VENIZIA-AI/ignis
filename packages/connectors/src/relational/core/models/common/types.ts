@@ -1,5 +1,5 @@
 import type { IdType } from '@venizia/ignis-kernel';
-import { RelationTypes } from '@venizia/ignis-kernel';
+import { type RelationTypes } from '@venizia/ignis-kernel';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TValueOrResolver } from '@venizia/ignis-helpers/common';
 import type {

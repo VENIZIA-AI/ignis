@@ -1,6 +1,6 @@
-import { SupabaseDataSource } from '@/datasources/supabase.datasource';
+import { type SupabaseDataSource } from '@/datasources/supabase.datasource';
 import type { TNote } from '@/models/note.model';
-import { NoteRepository } from '@/repositories/note.repository';
+import { type NoteRepository } from '@/repositories/note.repository';
 import { BaseService, inject, service } from '@venizia/ignis';
 import type { IDatabaseTransaction } from '@venizia/ignis/postgres';
 import { withAuthContext } from '@venizia/ignis/postgres/supabase';

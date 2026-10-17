@@ -2,18 +2,23 @@ import { getError } from '@venizia/ignis-helpers/core';
 
 import { model } from '@venizia/ignis-kernel';
 import { TypesenseDataSource } from '@/search/typesense/datasources';
-import { TypesenseConnector } from '@/search/typesense/connector';
+import { type TypesenseConnector } from '@/search/typesense/connector';
 import {
-  IImportResult,
-  ISearchAliasScoped,
-  ISearchCollectionScoped,
-  ISearchConnector,
-  ISearchDocumentScoped,
-  ISearchResult,
-  ISearchSynonymSetScoped,
+  type IImportResult,
+  type ISearchAliasScoped,
+  type ISearchCollectionScoped,
+  type ISearchConnector,
+  type ISearchDocumentScoped,
+  type ISearchResult,
+  type ISearchSynonymSetScoped,
 } from '@/search/core';
-import { BaseSearchEntity, defineSearchCollection, field, ISynonym } from '@/search/core/models';
-import { ITypesenseDataSourceSettings } from '@/search/typesense/common';
+import {
+  BaseSearchEntity,
+  defineSearchCollection,
+  field,
+  type ISynonym,
+} from '@/search/core/models';
+import { type ITypesenseDataSourceSettings } from '@/search/typesense/common';
 
 /** Records every connector call and serves canned responses; shared across the repository test suites so the fake stays in one place. */
 export class FakeSearchEngineHelper implements ISearchConnector {

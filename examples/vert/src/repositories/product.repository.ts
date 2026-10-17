@@ -1,5 +1,5 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { Product, productTable } from '@/models/entities';
+import { Product, type productTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
 import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 

@@ -1,4 +1,4 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import type { ILogger } from '@/modules/logger';
 import { voidExecution } from '@/utilities/promise.utility';
 

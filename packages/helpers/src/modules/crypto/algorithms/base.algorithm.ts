@@ -7,7 +7,7 @@ import {
   DEFAULT_KDF_DIGEST,
   DEFAULT_KDF_ITERATIONS,
   DEFAULT_KDF_SALT,
-  ICryptoAlgorithm,
+  type ICryptoAlgorithm,
   MINIMUM_KDF_SALT_BYTES,
 } from '../common';
 

@@ -1,4 +1,4 @@
-import { AnyType, TConstValue } from '@/common/types';
+import { type AnyType, type TConstValue } from '@/common/types';
 
 export class LogLevels {
   static readonly ERROR = 'error';

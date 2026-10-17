@@ -1,5 +1,5 @@
 import { getError } from '../../error';
-import { TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 
 export class BindingScopes {
   static readonly SINGLETON = 'singleton';

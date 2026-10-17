@@ -1,7 +1,7 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { Worker, WorkerOptions } from 'node:worker_threads';
-import { IWorker } from '../common';
+import { type Worker, type WorkerOptions } from 'node:worker_threads';
+import { type IWorker } from '../common';
 
 export abstract class AbstractWorkerHelper<MessageType>
   extends BaseHelper

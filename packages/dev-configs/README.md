@@ -126,7 +126,10 @@ Every IGNIS package and example does.
 
 `oxlintConfigs` (type `OxlintConfig`) is a static port of the `eslintConfigs` rules, generated with
 `@oxlint/migrate`. It enables the `typescript` and `unicorn` plugins and type-aware linting, so it needs
-`oxlint-tsgolint`.
+`oxlint-tsgolint`. It also enforces `typescript/consistent-type-imports` (`prefer: type-imports`,
+`fixStyle: inline-type-imports`; `import('pkg').T` annotations stay allowed): a value import of a type
+becomes a runtime import when Bun runs a decorated class's source, and loading fails with
+`Export named 'X' not found`. `oxlint --fix` rewrites them.
 
 Not ported:
 
@@ -253,7 +256,7 @@ export default [
 | React correctness (`jsx-key`, `no-children-prop`, `no-deprecated`, ... - 14 rules) | `error`, `.jsx`/`.tsx` |
 | `jsx-a11y` basics (`alt-text`, `aria-props`, `aria-role`, ... - 9 rules) | `error`, `.jsx`/`.tsx` |
 | `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error`, every source file |
-| `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
+| `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false }]` |
 | `naming-convention` | the base rule, plus PascalCase functions (`function App()`), `.jsx`/`.tsx` |
 | `no-restricted-properties` | `NoRestrictedPropertiesRule.build()` - bans `crypto.randomUUID` |
 
@@ -266,8 +269,7 @@ Rules the automatic JSX runtime or `tsc` already enforce (`react-in-jsx-scope`, 
 - `reactVersion` defaults to `'detect'`. Under ESLint 10, eslint-plugin-react 7 cannot detect it and
   aborts - pass the version: `create({ plugins, reactVersion: '19.2' })`.
 - In an `eslint.config.ts`, `eslint-plugin-jsx-a11y` needs `@types/eslint-plugin-jsx-a11y`.
-- `consistent-type-imports` keeps the default `fixStyle`; a codebase that prefers
-  `inline-type-imports` sets it on top.
+- `consistent-type-imports` uses `fixStyle: inline-type-imports`, the same as the base preset.
 
 ### BrowserOxlintConfigs
 

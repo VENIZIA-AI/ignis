@@ -1,17 +1,17 @@
 import { getError } from '@/modules/error';
-import { Client, ClientOptions } from 'minio';
+import { Client, type ClientOptions } from 'minio';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
 import {
-  IBucketInfo,
-  IBucketRef,
-  IFileStat,
-  IListObjectsOptions,
-  IObjectInfo,
-  IObjectLocation,
-  IObjectRef,
-  IStorageHelperOptions,
-  IUploadFile,
+  type IBucketInfo,
+  type IBucketRef,
+  type IFileStat,
+  type IListObjectsOptions,
+  type IObjectInfo,
+  type IObjectLocation,
+  type IObjectRef,
+  type IStorageHelperOptions,
+  type IUploadFile,
 } from '../common';
 
 /** @deprecated Use `IBunS3HelperOptions` from `@venizia/ignis-helpers/bun-s3`. */

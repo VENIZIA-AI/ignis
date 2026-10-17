@@ -1,4 +1,4 @@
-import { TConstValue } from '@/common/types';
+import { type TConstValue } from '@/common/types';
 import { Environment } from '@/modules/env';
 import { toBoolean } from '@/utilities/parse.utility';
 import { LogLevels, type TLogLevel } from './types';

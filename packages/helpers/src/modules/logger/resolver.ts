@@ -1,7 +1,7 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { AbstractLogger } from './base/abstract';
 import { ConsoleLogger } from './base/console';
-import { ILogger, TLogLevel } from './common/types';
+import { type ILogger, type TLogLevel } from './common/types';
 import { loggerSlot } from './slot';
 
 export type TLoggerResolver = (opts: { scopes: Array<string> }) => ILogger;

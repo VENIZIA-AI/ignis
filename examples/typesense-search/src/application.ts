@@ -3,7 +3,7 @@ import {
   ApiReferenceComponent,
   BaseApplication,
   HealthCheckComponent,
-  IApplicationInfo,
+  type IApplicationInfo,
 } from '@venizia/ignis';
 import appInfo from '../package.json';
 

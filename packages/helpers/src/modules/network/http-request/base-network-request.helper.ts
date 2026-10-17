@@ -2,9 +2,9 @@ import { HTTP } from '@/common/constants/http';
 import { isEmpty } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TFetcherVariant } from './common';
-import { IFetchable, IRequestOptions } from './fetcher/base-fetcher';
-import { TFetcherResponse, TFetcherWorker } from './fetcher/common';
+import { type TFetcherVariant } from './common';
+import { type IFetchable, type IRequestOptions } from './fetcher/base-fetcher';
+import { type TFetcherResponse, type TFetcherWorker } from './fetcher/common';
 
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;

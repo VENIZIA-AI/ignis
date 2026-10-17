@@ -1,5 +1,5 @@
 import type { IContainer } from '../../container/common/types';
-import { TClass, TConstValue } from '@/common/types';
+import { type TClass, type TConstValue } from '@/common/types';
 import type { BindingValueTypes, TBindingScope } from './constants';
 
 export interface IProvider<T> {

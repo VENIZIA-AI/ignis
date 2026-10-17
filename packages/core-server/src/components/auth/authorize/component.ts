@@ -3,11 +3,11 @@ import { BaseComponent } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   AuthorizationEnforcerRegistry,
   AuthorizeBindingKeys,
-  IAuthorizeOptions,
+  type IAuthorizeOptions,
 } from '@venizia/ignis-kernel';
 
 export class AuthorizeComponent extends BaseComponent {

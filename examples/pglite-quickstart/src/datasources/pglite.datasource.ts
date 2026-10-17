@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { datasource, TAnyDataSourceSchema } from '@venizia/ignis';
+import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis';
 import { blankToUndefined } from '@venizia/ignis-helpers';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PGliteDriver } from '@venizia/ignis/postgres/pglite';

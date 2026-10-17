@@ -2,7 +2,7 @@ import { ModuleUtility } from '@/utilities/module.utility';
 import { int } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { IRedisSingleHelperOptions } from './../common';
+import { type IRedisSingleHelperOptions } from './../common';
 
 export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
   constructor(opts: IRedisSingleHelperOptions) {

@@ -1,4 +1,4 @@
-import { BUFFER_SIZE, ENTRY_SIZE, TRingState } from './common';
+import { BUFFER_SIZE, ENTRY_SIZE, type TRingState } from './common';
 
 /** One ring per process, allocated on FIRST use. Plain ArrayBuffer on purpose - single hot thread design, so shared memory/atomics would only tax the hot path. */
 export class HfLogRing {

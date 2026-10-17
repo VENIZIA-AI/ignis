@@ -5,7 +5,7 @@ import path from 'node:path';
 import pino from 'pino';
 import { LoggerFormats, resolveLoggerColorize } from '../common';
 
-import { TFrequency } from './common';
+import { type TFrequency } from './common';
 
 /** Pure description of where pino should write, derived from env; `PinoDestination.build()` is the impure half that acts on it. */
 export type TDestinationPlan =

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { isPromiseLike } from '@/utilities/promise.utility';
 import {
   BUFFER_SIZE,
@@ -7,14 +7,14 @@ import {
   HF_DEFAULT_BATCH_SIZE,
   HF_DEFAULT_FLUSH_INTERVAL_MS,
   HF_LEVEL_NAMES,
-  IHfLogFlusherOptions,
+  type IHfLogFlusherOptions,
   OFFSET_LEVEL,
   OFFSET_MESSAGE,
   OFFSET_MESSAGE_LENGTH,
   OFFSET_SCOPE,
   OFFSET_SCOPE_LENGTH,
-  THfSink,
-  TRingState,
+  type THfSink,
+  type TRingState,
 } from './common';
 import { HfLogRing } from './ring';
 

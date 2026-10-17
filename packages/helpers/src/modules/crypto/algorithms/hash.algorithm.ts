@@ -4,8 +4,8 @@ import { getError } from '@/modules/error';
 import {
   DEFAULT_HASH_OUTPUT_ENCODING,
   HashAlgorithms,
-  THashAlgorithm,
-  THashOutputEncoding,
+  type THashAlgorithm,
+  type THashOutputEncoding,
 } from '../common';
 
 interface IHashExtraOptions {

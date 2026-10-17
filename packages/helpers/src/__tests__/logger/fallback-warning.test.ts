@@ -1,4 +1,4 @@
-import { LoggerResolver } from '@/modules/logger/resolver';
+import { type LoggerResolver } from '@/modules/logger/resolver';
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
 /** Two loads through the CommonJS cache give a resolver with no provider installed, the state of a script that only imports the barrel. */

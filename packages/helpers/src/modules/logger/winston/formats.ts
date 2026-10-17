@@ -2,7 +2,7 @@ import { getError } from '@venizia/ignis-inversion';
 import winston from 'winston';
 import { deepSplat } from './formatters';
 import { LOGGER_FORMAT, LOGGER_PREFIX } from './common/constants';
-import { LoggerFormats, resolveLoggerColorize, TLoggerFormat } from '../common';
+import { LoggerFormats, resolveLoggerColorize, type TLoggerFormat } from '../common';
 
 const f = winston.format;
 

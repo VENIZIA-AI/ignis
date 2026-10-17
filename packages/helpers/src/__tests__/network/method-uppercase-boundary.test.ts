@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType, HTTP, THttpMethod } from '@/common';
+import { type AnyType, HTTP, type THttpMethod } from '@/common';
 import { NodeFetcher } from '@/modules/network';
 // Module path, never the barrel: axios is an optional peer.
 import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';

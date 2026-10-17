@@ -1,6 +1,6 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { AbstractLogger } from '../base';
-import { ILogger, LogLevels, SHOULD_LOG_DEBUG, TLogLevel } from '../common';
+import { type ILogger, LogLevels, SHOULD_LOG_DEBUG, type TLogLevel } from '../common';
 import { formatLogMessage } from '../formatting';
 import {
   BUFFER_SIZE,
@@ -14,7 +14,7 @@ import {
   OFFSET_MESSAGE_LENGTH,
   OFFSET_SCOPE,
   OFFSET_SCOPE_LENGTH,
-  TRingState,
+  type TRingState,
 } from './common';
 import { HfLogRing } from './ring';
 

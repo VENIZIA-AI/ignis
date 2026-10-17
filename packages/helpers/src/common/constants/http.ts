@@ -1,4 +1,4 @@
-import { ValueOf } from '../types';
+import { type ValueOf } from '../types';
 
 export class HTTP {
   /** Standard and common HTTP headers (lowercase per HTTP/2 convention). */

@@ -2,19 +2,19 @@
 
 import { BaseStorageHelper } from '@/modules/storage/base';
 import {
-  IBucketInfo,
-  IBucketRef,
-  IFileStat,
-  IListObjectsOptions,
-  IObjectInfo,
-  IObjectLocation,
-  IObjectRef,
-  IUploadFile,
+  type IBucketInfo,
+  type IBucketRef,
+  type IFileStat,
+  type IListObjectsOptions,
+  type IObjectInfo,
+  type IObjectLocation,
+  type IObjectRef,
+  type IUploadFile,
 } from '@/modules/storage/common';
 import { DiskHelper } from '@/modules/storage/disk';
 import { describe, expect, spyOn, test } from 'bun:test';
 import fs from 'node:fs';
-import { Readable } from 'node:stream';
+import { type Readable } from 'node:stream';
 
 /** Minimal concrete subclass - proves the thrown message names THIS class, not a hardcoded one. */
 class BareStorageHelper extends BaseStorageHelper {

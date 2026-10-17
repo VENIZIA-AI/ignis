@@ -939,7 +939,7 @@
       "specifier": "@venizia/ignis",
       "kind": "class",
       "file": "packages/inversion/src/modules/binding/binding.ts",
-      "line": 8,
+      "line": 13,
       "signature": "class Binding<T = any> extends BaseHelper implements IBinding<T>"
     },
     {
@@ -29943,7 +29943,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "class",
       "file": "packages/inversion/src/modules/binding/binding.ts",
-      "line": 8,
+      "line": 13,
       "signature": "class Binding<T = any> extends BaseHelper implements IBinding<T>"
     },
     {
@@ -30123,7 +30123,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "class",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 8,
+      "line": 12,
       "signature": "class MetadataRegistry extends BaseHelper"
     },
     {
@@ -30543,7 +30543,7 @@
       "specifier": "@venizia/ignis-inversion",
       "kind": "const",
       "file": "packages/inversion/src/modules/registry/registry.ts",
-      "line": 164,
+      "line": 168,
       "signature": "metadataRegistry: MetadataRegistry"
     },
     {
@@ -31003,7 +31003,7 @@
       "specifier": "@venizia/ignis-kernel",
       "kind": "class",
       "file": "packages/inversion/src/modules/binding/binding.ts",
-      "line": 8,
+      "line": 13,
       "signature": "class Binding<T = any> extends BaseHelper implements IBinding<T>"
     },
     {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { connect, createServer, Socket } from 'node:net';
+import { connect, createServer, type Socket } from 'node:net';
 import { NetworkTcpServer } from '@/modules/network';
 
 /** server.close() never resolves while a client is attached (node holds the handle until every socket is destroyed), so shutdown() must tear clients down itself - getServer().close() alone hangs. */

@@ -13,7 +13,7 @@ import {
   AuthenticateBindingKeys,
   Authentication,
   AuthorizeBindingKeys,
-  BaseApplication,
+  type BaseApplication,
   BaseComponent,
   BindingKeys,
   BindingNamespaces,

@@ -1,4 +1,4 @@
-import { AnyObject } from '@/common/types';
+import { type AnyObject } from '@/common/types';
 
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {

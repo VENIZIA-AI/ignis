@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { AnyType } from '@/common';
+import { type AnyType } from '@/common';
 import { NetworkTcpClient, NetworkTcpServer } from '@/modules/network';
-import { AddressInfo } from 'node:net';
+import { type AddressInfo } from 'node:net';
 
 interface IDeferred<T> {
   promise: Promise<T>;

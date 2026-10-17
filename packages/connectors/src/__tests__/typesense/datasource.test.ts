@@ -5,7 +5,11 @@ import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 import { model, repository } from '@venizia/ignis-kernel';
-import { TypesenseDataSource, TypesenseConnector, TypesenseQueryDialect } from '@/search/typesense';
+import {
+  TypesenseDataSource,
+  type TypesenseConnector,
+  TypesenseQueryDialect,
+} from '@/search/typesense';
 import { compileTypesenseCollection } from '@/search/typesense/compiler';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';

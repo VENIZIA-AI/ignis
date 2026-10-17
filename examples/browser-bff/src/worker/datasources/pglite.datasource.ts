@@ -1,8 +1,8 @@
 import { PGlite } from '@electric-sql/pglite';
 import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
-import { IMigration, RelationalMigrationRunner } from '@venizia/ignis-connectors/relational';
-import { datasource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import { type IMigration, RelationalMigrationRunner } from '@venizia/ignis-connectors/relational';
+import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 import notesMigration from '../../../migration/0000_mushy_chimera.sql?raw';
 import commentsMigration from '../../../migration/0001_silly_lightspeed.sql?raw';
 

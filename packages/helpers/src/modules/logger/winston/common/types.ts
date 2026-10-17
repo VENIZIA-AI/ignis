@@ -1,7 +1,7 @@
-import dgram from 'node:dgram';
-import winston from 'winston';
-import Transport from 'winston-transport';
-import { TLogLevel, TLoggerFormat } from '../../common';
+import type dgram from 'node:dgram';
+import type winston from 'winston';
+import type Transport from 'winston-transport';
+import { type TLogLevel, type TLoggerFormat } from '../../common';
 
 export interface IDgramTransportOptions extends Transport.TransportStreamOptions {
   label: string;

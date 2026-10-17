@@ -1,9 +1,14 @@
 import { getError } from '../error';
 import { BaseHelper } from '@/common/base-helper';
-import { TClass, TConstValue } from '@/common/types';
+import { type TClass, type TConstValue } from '@/common/types';
 import type { IContainer } from '../container/common/types';
-import { BindingScopes, BindingValueTypes, TBindingScope } from './common/constants';
-import { IBinding, isClassProvider, TBindingProvider, TBindingResolverValue } from './common/types';
+import { BindingScopes, BindingValueTypes, type TBindingScope } from './common/constants';
+import {
+  type IBinding,
+  isClassProvider,
+  type TBindingProvider,
+  type TBindingResolverValue,
+} from './common/types';
 
 export class Binding<T = any> extends BaseHelper implements IBinding<T> {
   key: string;

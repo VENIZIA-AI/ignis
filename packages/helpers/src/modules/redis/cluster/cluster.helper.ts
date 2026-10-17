@@ -2,7 +2,7 @@ import { int } from '@/utilities';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Cluster, ClusterOptions } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
-import { IRedisClusterHelperOptions } from './../common';
+import { type IRedisClusterHelperOptions } from './../common';
 
 export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   private startupNodes: Array<{ host: string; port: number; password?: string }>;

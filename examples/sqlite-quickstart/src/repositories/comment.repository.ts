@@ -1,5 +1,5 @@
 import { SqliteDataSource } from '@/datasources/sqlite.datasource';
-import { Comment, commentTable } from '@/models/note.model';
+import { Comment, type commentTable } from '@/models/note.model';
 import { repository } from '@venizia/ignis';
 import { DefaultSqliteRepository } from '@venizia/ignis/sqlite';
 

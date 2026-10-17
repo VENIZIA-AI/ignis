@@ -3,8 +3,8 @@ import {
   BaseRelationalEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  TTableObject,
-  TTableSchemaWithId,
+  type TTableObject,
+  type TTableSchemaWithId,
 } from '@venizia/ignis-connectors/postgres';
 import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 

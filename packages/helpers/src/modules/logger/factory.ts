@@ -1,8 +1,8 @@
-import { AnyType } from '@/common/types';
+import { type AnyType } from '@/common/types';
 import { getError } from '@venizia/ignis-inversion';
 import { createRequire } from 'node:module';
 import { AbstractLogger } from './base/abstract';
-import { ILogger, ILoggerProvider, TLogLevel } from './common/types';
+import { type ILogger, type ILoggerProvider, type TLogLevel } from './common/types';
 import { LoggerResolver } from './resolver';
 
 /** Stable wrapper the factory hands out; the delegate resolves lazily (first log call or `use()`), never at construction, so no provider loads until needed. Mutual reference with LoggerFactory is by design - hence the `no-use-before-define` disables. */

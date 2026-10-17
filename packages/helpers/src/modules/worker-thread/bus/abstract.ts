@@ -1,7 +1,7 @@
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { MessagePort, Transferable } from 'node:worker_threads';
-import { IWorkerBus, IWorkerMessageBusHandler } from '../common';
+import { type MessagePort, type Transferable } from 'node:worker_threads';
+import { type IWorkerBus, type IWorkerMessageBusHandler } from '../common';
 
 export abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>
   extends BaseHelper

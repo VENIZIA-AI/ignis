@@ -1,13 +1,13 @@
-import { BaseApplication } from '@/base/applications';
+import { type BaseApplication } from '@/base/applications';
 import { inject } from '@/base/metadata';
-import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
+import { type OpenAPIObjectConfigure } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { BaseComponent, Binding, CoreBindings } from '@venizia/ignis-kernel';
 import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { ServiceAssertion } from '@venizia/ignis-kernel';
-import { ApiReferenceBindingKeys, DocumentUITypes, IApiReferenceOptions } from './common';
+import { ApiReferenceBindingKeys, DocumentUITypes, type IApiReferenceOptions } from './common';
 import { UIProviderFactory } from './ui';
 
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {

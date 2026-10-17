@@ -1,4 +1,4 @@
-import { ValueOrPromise } from '@/common';
+import { type ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
 

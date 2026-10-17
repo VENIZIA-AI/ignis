@@ -1,5 +1,5 @@
-import { TKafkaBrokerEventCallback } from './callbacks';
-import { IKafkaConnectionOptions } from './connection';
+import { type TKafkaBrokerEventCallback } from './callbacks';
+import { type IKafkaConnectionOptions } from './connection';
 
 export interface IKafkaAdminOptions extends IKafkaConnectionOptions {
   identifier?: string;

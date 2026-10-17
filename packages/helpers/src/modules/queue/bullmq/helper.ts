@@ -1,10 +1,10 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { IRedisHelper } from '@/modules/redis';
+import { type IRedisHelper } from '@/modules/redis';
 import { toError } from '@/utilities/promise.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
-import { invokeHook, TBullQueueRole } from '../common';
+import { invokeHook, type TBullQueueRole } from '../common';
 
 export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;

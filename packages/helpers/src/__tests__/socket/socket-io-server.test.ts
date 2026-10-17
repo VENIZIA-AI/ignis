@@ -5,16 +5,16 @@ import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
 import type { IRedisHelper } from '@/modules/redis';
 import {
-  ISocketIOClient,
+  type ISocketIOClient,
   SocketIOClientStates,
   SocketIOConstants,
   SocketIOServerHelper,
-  TSocketIOServerOptions,
+  type TSocketIOServerOptions,
 } from '@/modules/socket/socket-io';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import { createServer, Server as HTTPServer } from 'node:http';
-import { Server as IOServer, Socket as IOSocket } from 'socket.io';
+import { createServer, type Server as HTTPServer } from 'node:http';
+import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
 import { io as connectClient } from 'socket.io-client';
 
 const wait = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));

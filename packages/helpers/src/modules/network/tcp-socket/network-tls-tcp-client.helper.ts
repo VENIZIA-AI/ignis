@@ -1,5 +1,5 @@
-import { connect, ConnectionOptions, TLSSocket } from 'node:tls';
-import { BaseNetworkTcpClient, INetworkTcpClientProps } from './base-tcp-client.helper';
+import { connect, type ConnectionOptions, type TLSSocket } from 'node:tls';
+import { BaseNetworkTcpClient, type INetworkTcpClientProps } from './base-tcp-client.helper';
 
 export class NetworkTlsTcpClient extends BaseNetworkTcpClient<ConnectionOptions, TLSSocket> {
   constructor(opts: Omit<INetworkTcpClientProps<ConnectionOptions, TLSSocket>, 'createClientFn'>) {

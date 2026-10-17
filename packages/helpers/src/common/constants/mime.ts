@@ -1,4 +1,4 @@
-import { TConstValue } from '../types';
+import { type TConstValue } from '../types';
 
 export class MimeTypes {
   static readonly UNKNOWN = 'unknown';

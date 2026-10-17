@@ -7,8 +7,8 @@
  */
 import 'dotenv-flow/config';
 
-import { readFileSync } from 'fs';
-import path from 'path';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { Pool } from 'pg';
 import type { IdType } from '@venizia/ignis';
 import {

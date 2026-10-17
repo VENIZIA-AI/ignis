@@ -8,7 +8,7 @@ import {
   DefaultCRUDRepository,
   PostgresFilterBuilder,
 } from '@venizia/ignis-connectors/postgres';
-import { TFilter } from '@venizia/ignis-kernel';
+import { type TFilter } from '@venizia/ignis-kernel';
 
 /** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`: a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant scoping), regardless of the value shape it carries. */
 

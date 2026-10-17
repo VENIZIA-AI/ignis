@@ -1,8 +1,12 @@
 import { BaseHelper } from '@/common/base-helper';
 import { Logger } from '@/common/logger';
-import { TBindingKey, TClass } from '@/common/types';
+import { type TBindingKey, type TClass } from '@/common/types';
 import { MetadataKeys } from '../metadata/common/constants';
-import { IBindingKeyRecord, IInjectMetadata, IPropertyMetadata } from './common/types';
+import {
+  type IBindingKeyRecord,
+  type IInjectMetadata,
+  type IPropertyMetadata,
+} from './common/types';
 
 /** Central metadata registry for storing and retrieving decorator metadata. */
 export class MetadataRegistry extends BaseHelper {

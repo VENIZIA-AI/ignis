@@ -1,8 +1,13 @@
 import { isEmpty } from '@venizia/ignis-inversion';
-import { ValueOrPromise } from '@/common/types';
+import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { awaitHook, invokeHook } from '../../common';
-import { IQueueCallback, QueueStatuses, TQueueElement, TQueueStatus } from './common';
+import {
+  type IQueueCallback,
+  QueueStatuses,
+  type TQueueElement,
+  type TQueueStatus,
+} from './common';
 
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
