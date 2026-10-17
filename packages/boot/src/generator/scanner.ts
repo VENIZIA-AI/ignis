@@ -33,17 +33,25 @@ export class ArtifactScanner extends BaseHelper {
     const defaultGlobs = ArtifactStereotypes.DEFAULT_IGNORE.map(pattern => new Bun.Glob(pattern));
     const userGlobs = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
     const { kept, hidden } = this.partitionSourceFiles({ root, defaultGlobs, userGlobs });
+    const sourceModules = new Set(opts.sourceModules);
 
     return {
-      artifacts: this.sortArtifacts(kept.flatMap(filePath => this.scanFile({ filePath }))),
-      ignored: this.sortArtifacts(hidden.flatMap(filePath => this.scanHiddenFile({ filePath }))),
+      artifacts: this.sortArtifacts(
+        kept.flatMap(filePath => this.scanFile({ filePath, sourceModules })),
+      ),
+      ignored: this.sortArtifacts(
+        hidden.flatMap(filePath => this.scanHiddenFile({ filePath, sourceModules })),
+      ),
     };
   }
 
   /** A hidden file is only reported on, never a reason to fail: a scan error becomes one warning and the file contributes nothing. */
-  private scanHiddenFile(opts: { filePath: string }): IScannedArtifact[] {
+  private scanHiddenFile(opts: {
+    filePath: string;
+    sourceModules: Set<string>;
+  }): IScannedArtifact[] {
     try {
-      return this.scanFile({ filePath: opts.filePath, isHidden: true });
+      return this.scanFile({ ...opts, isHidden: true });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       this.logger.for('scanHiddenFile').warn('Skipped hidden file %s | %s', opts.filePath, reason);
@@ -78,8 +86,12 @@ export class ArtifactScanner extends BaseHelper {
     return { kept: kept.sort(), hidden: hidden.sort() };
   }
 
-  private scanFile(opts: { filePath: string; isHidden?: boolean }): IScannedArtifact[] {
-    const { filePath, isHidden = false } = opts;
+  private scanFile(opts: {
+    filePath: string;
+    sourceModules: Set<string>;
+    isHidden?: boolean;
+  }): IScannedArtifact[] {
+    const { filePath, sourceModules, isHidden = false } = opts;
     const source = ts.createSourceFile(
       filePath,
       readFileSync(filePath, 'utf8'),
@@ -87,7 +99,7 @@ export class ArtifactScanner extends BaseHelper {
       true,
     );
 
-    const stereotypeByLocalName = this.collectStereotypeImports({ source });
+    const stereotypeByLocalName = this.collectStereotypeImports({ source, sourceModules });
     if (stereotypeByLocalName.size === 0) {
       return [];
     }
@@ -143,15 +155,22 @@ export class ArtifactScanner extends BaseHelper {
     return found;
   }
 
-  /** local identifier -> stereotype name, for named imports from an IGNIS module (aliases resolved). */
-  private collectStereotypeImports(opts: { source: ts.SourceFile }): Map<string, string> {
+  /** local identifier -> stereotype name, for named imports from an IGNIS module or a caller-named source module (aliases resolved). */
+  private collectStereotypeImports(opts: {
+    source: ts.SourceFile;
+    sourceModules: Set<string>;
+  }): Map<string, string> {
     const result = new Map<string, string>();
 
     for (const statement of opts.source.statements) {
       if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
         continue;
       }
-      if (!ArtifactStereotypes.SOURCE_MODULES.test(statement.moduleSpecifier.text)) {
+      const specifier = statement.moduleSpecifier.text;
+      if (
+        !ArtifactStereotypes.SOURCE_MODULES.test(specifier) &&
+        !opts.sourceModules.has(specifier)
+      ) {
         continue;
       }
 

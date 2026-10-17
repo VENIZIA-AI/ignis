@@ -2,11 +2,11 @@
 import '../common/install-quiet-logger';
 import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
-import { checkArtifactIndex, generateArtifactIndex } from '../generator';
+import { ArtifactIndexEmitter, checkArtifactIndex, generateArtifactIndex } from '../generator';
 import type { IScannedArtifact } from '../generator';
 
 const USAGE =
-  'ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts]';
+  'ignis-artifacts <generate|check> [--root src] [--out src/generated/artifacts.ts] [--ignore a,b] [--export GeneratedArtifacts] [--source-module <specifier>]...';
 
 const { positionals, values } = parseArgs({
   args: process.argv.slice(2),
@@ -16,6 +16,7 @@ const { positionals, values } = parseArgs({
     out: { type: 'string', default: 'src/generated/artifacts.ts' },
     ignore: { type: 'string' },
     export: { type: 'string', default: 'GeneratedArtifacts' },
+    'source-module': { type: 'string', multiple: true },
   },
 });
 
@@ -27,6 +28,7 @@ const options = {
     .map(pattern => pattern.trim())
     .filter(Boolean),
   exportName: values.export,
+  sourceModules: values['source-module'],
 };
 
 /** One stderr line per decorated class a user `--ignore` pattern hid; silence when nothing is hidden. */
@@ -56,9 +58,7 @@ const run = (): number => {
         console.log(`fresh ${options.out}`);
         return 0;
       }
-      console.error(
-        `stale ${options.out} - run: ignis-artifacts generate --root ${options.root} --out ${options.out}`,
-      );
+      console.error(`stale ${options.out} - run: ${ArtifactIndexEmitter.renderCommand(options)}`);
       return 1;
     }
     default: {

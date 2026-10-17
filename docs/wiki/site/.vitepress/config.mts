@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'ignis-artifacts Finds Re-Exported Decorators',
+                  link: '/changelogs/2026-10-17-artifacts-source-module',
+                },
+                {
                   text: 'dev-configs House Rules and Type-Only Imports',
                   link: '/changelogs/2026-10-17-dev-configs-house-rules',
                 },

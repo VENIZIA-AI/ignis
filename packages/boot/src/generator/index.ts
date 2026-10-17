@@ -10,18 +10,26 @@ export interface IGenerateOptions {
   ignore?: string[];
   /** Name of the exported constant; default `GeneratedArtifacts`. */
   exportName?: string;
+  /** Extra module specifiers whose stereotype imports count; see `IScanOptions.sourceModules`. */
+  sourceModules?: string[];
 }
 
 const render = (opts: IGenerateOptions): { content: string } & IScanReport => {
   const { artifacts, ignored } = ArtifactScanner.getInstance().scanWithReport({
     root: opts.root,
     ignore: opts.ignore,
+    sourceModules: opts.sourceModules,
   });
   const content = ArtifactIndexEmitter.render({
     artifacts,
     outFile: resolve(opts.out),
     exportName: opts.exportName ?? ArtifactIndexEmitter.DEFAULT_EXPORT_NAME,
-    command: { root: opts.root, out: opts.out, ignore: opts.ignore },
+    command: {
+      root: opts.root,
+      out: opts.out,
+      ignore: opts.ignore,
+      sourceModules: opts.sourceModules,
+    },
   });
 
   return { content, artifacts, ignored };

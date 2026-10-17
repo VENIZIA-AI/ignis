@@ -133,3 +133,86 @@ describe('a broken file under a user --ignore never fails the run', () => {
     rmSync(root, { recursive: true, force: true });
   });
 });
+
+describe('generate / check with --source-module', () => {
+  test('a named source module indexes its classes, the header records it, and check needs the same set', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+
+    const generated = generateArtifactIndex({
+      root: FIXTURES,
+      out,
+      sourceModules: ['some-other-lib'],
+    });
+
+    expect(generated.content).toContain('import { ForeignService } from');
+    expect(generated.content.split('\n')[0]).toContain('--source-module some-other-lib');
+    expect(
+      checkArtifactIndex({ root: FIXTURES, out, sourceModules: ['some-other-lib'] }).isFresh,
+    ).toBe(true);
+    expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
+
+    rmSync(out, { force: true });
+  });
+
+  test('without --source-module the header and the index are unchanged (positive control)', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+
+    const generated = generateArtifactIndex({ root: FIXTURES, out });
+
+    expect(generated.content).not.toContain('ForeignService');
+    expect(generated.content.split('\n')[0]).not.toContain('--source-module');
+
+    rmSync(out, { force: true });
+  });
+
+  test('the CLI takes --source-module more than once', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ignis-artifacts-'));
+    const out = join(directory, 'artifacts.ts');
+    const cli = resolve(process.cwd(), 'src', 'clis', 'artifacts.ts');
+
+    const result = Bun.spawnSync([
+      'bun',
+      cli,
+      'generate',
+      '--root',
+      FIXTURES,
+      '--out',
+      out,
+      '--source-module',
+      'some-other-lib',
+      '--source-module',
+      '@acme/kit',
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    const header = readFileSync(out, 'utf8').split('\n')[0];
+    expect(header).toContain('--source-module some-other-lib --source-module @acme/kit');
+
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  test('a stale check prints the full regenerate command, --source-module included', () => {
+    const directory = mkdtempSync(join(tmpdir(), 'ignis-artifacts-'));
+    const out = join(directory, 'artifacts.ts');
+    const cli = resolve(process.cwd(), 'src', 'clis', 'artifacts.ts');
+
+    const result = Bun.spawnSync([
+      'bun',
+      cli,
+      'check',
+      '--root',
+      FIXTURES,
+      '--out',
+      out,
+      '--source-module',
+      'some-other-lib',
+    ]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain(
+      `run: ignis-artifacts generate --root ${FIXTURES} --out ${out} --source-module some-other-lib`,
+    );
+
+    rmSync(directory, { recursive: true, force: true });
+  });
+});
