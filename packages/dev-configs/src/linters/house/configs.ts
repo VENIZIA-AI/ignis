@@ -3,10 +3,12 @@ import { namingConventionConfigs } from '../eslint';
 import { reactNamingConventionConfigs } from '../react';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { MaxParamsOwnRule } from './max-params-own.rule';
+import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
+const JSX_FILES = ['**/*.{jsx,tsx}'];
 const TEST_FILES = ['**/__tests__/**', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'];
 
 /**
@@ -39,8 +41,21 @@ const houseRuleConfigs: Linter.Config[] = [
  */
 export const houseConfigs: Linter.Config[] = [...namingConventionConfigs, ...houseRuleConfigs];
 
-/** `houseConfigs` for a React project: `reactNamingConventionConfigs` plus the house rules. */
+/**
+ * The React house rule: a JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which
+ * draws `0` when `cond` is `0`.
+ */
+const reactRuleConfigs: Linter.Config[] = [
+  {
+    files: JSX_FILES,
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
+    rules: { [NoLeakedRenderRule.NAME]: NoLeakedRenderRule.build() },
+  },
+];
+
+/** `houseConfigs` for a React project: `reactNamingConventionConfigs`, the house rules and `no-leaked-render`. */
 export const reactHouseConfigs: Linter.Config[] = [
   ...reactNamingConventionConfigs,
   ...houseRuleConfigs,
+  ...reactRuleConfigs,
 ];

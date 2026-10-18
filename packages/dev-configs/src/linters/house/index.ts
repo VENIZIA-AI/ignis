@@ -1,5 +1,7 @@
 export * from './common';
+export * from './const-class-values.rule';
 export * from './max-params-own.rule';
+export * from './no-leaked-render.rule';
 export * from './no-new-error.rule';
 export * from './plugin';
 export * from './configs';

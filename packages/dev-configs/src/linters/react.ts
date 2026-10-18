@@ -2,6 +2,7 @@ import type { ESLint, Linter } from 'eslint';
 import type { OxlintConfig } from 'oxlint';
 import tseslint from 'typescript-eslint';
 import { BrowserOxlintConfigs } from './browser';
+import { LintIgnore } from './ignore';
 import type { IOxlintPresetOptions } from './oxlint';
 import { eslintConfigs, namingConventionConfigs } from './eslint';
 import { NamingConventionRule, NoRestrictedPropertiesRule } from './rules';
@@ -76,6 +77,12 @@ export class ReactEslintConfigs {
           'jsx-a11y/role-has-required-aria-props': 'error',
           'jsx-a11y/role-supports-aria-props': 'error',
           'jsx-a11y/tabindex-no-positive': 'error',
+          'jsx-a11y/anchor-is-valid': 'error',
+          'jsx-a11y/click-events-have-key-events': 'error',
+          'jsx-a11y/heading-has-content': 'error',
+          'jsx-a11y/label-has-associated-control': 'error',
+          'jsx-a11y/no-noninteractive-element-interactions': 'error',
+          'jsx-a11y/no-static-element-interactions': 'error',
         },
       },
       {
@@ -129,9 +136,9 @@ const COMPONENT_FUNCTION_SELECTOR = { selector: 'function', format: ['camelCase'
  */
 export class ReactOxlintConfigs {
   static create(opts: IOxlintPresetOptions = {}): OxlintConfig {
-    const browserConfigs = BrowserOxlintConfigs.create(opts);
+    const browserConfigs = BrowserOxlintConfigs.create({ lenientFallback: opts.lenientFallback });
 
-    return {
+    const config: OxlintConfig = {
       ...browserConfigs,
       plugins: [...new Set([...(browserConfigs.plugins ?? []), 'react', 'jsx-a11y'] as const)],
       overrides: [
@@ -163,6 +170,12 @@ export class ReactOxlintConfigs {
             'jsx-a11y/role-has-required-aria-props': 'error',
             'jsx-a11y/role-supports-aria-props': 'error',
             'jsx-a11y/tabindex-no-positive': 'error',
+            'jsx-a11y/anchor-is-valid': 'error',
+            'jsx-a11y/click-events-have-key-events': 'error',
+            'jsx-a11y/heading-has-content': 'error',
+            'jsx-a11y/label-has-associated-control': 'error',
+            'jsx-a11y/no-noninteractive-element-interactions': 'error',
+            'jsx-a11y/no-static-element-interactions': 'error',
           },
         },
         {
@@ -183,6 +196,8 @@ export class ReactOxlintConfigs {
         },
       ],
     };
+
+    return LintIgnore.oxlint({ config, patterns: opts.ignore ?? [] });
   }
 }
 

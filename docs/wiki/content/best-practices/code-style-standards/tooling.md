@@ -235,7 +235,8 @@ The React tier adds these on top of the browser tier:
 
 | Adds | Setting |
 |---|---|
-| React correctness (`jsx-key`, `no-children-prop`, ... - 13 rules) and `jsx-a11y` basics (9 rules) | `error`, `.jsx`/`.tsx` |
+| React correctness (`jsx-key`, `no-children-prop`, ... - 13 rules) and `jsx-a11y` (15 rules) | `error`, `.jsx`/`.tsx` |
+| `venizia/no-leaked-render` (ESLint, `reactHouseConfigs`) | `error`; `{count && <X />}` draws `0`, write `count ? <X /> : null` |
 | `react/rules-of-hooks`, `react/exhaustive-deps` | `error`, every source file |
 | `typescript/consistent-type-imports` | `['error', { prefer: 'type-imports' }]` |
 | `naming-convention` (ESLint) | the base rule, plus PascalCase functions (`function App()`) on `.jsx`/`.tsx` |
@@ -251,6 +252,8 @@ export default defineConfig({
   rules: { ...base.rules, 'typescript/no-floating-promises': 'warn' },
 });
 ```
+
+Generated or vendored paths go in one list for both tools: `ReactOxlintConfigs.create({ ignore })` for oxlint (it cannot ignore a project path from `.configs/`) and `LintIgnore.eslint({ patterns })` for ESLint.
 
 A project that stays on ESLint uses `ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` instead - the same rules, with the plugins passed in. The full tables are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
 

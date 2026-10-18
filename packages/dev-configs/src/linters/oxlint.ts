@@ -1,4 +1,5 @@
 import type { OxlintConfig } from 'oxlint';
+import { LintIgnore } from './ignore';
 import {
   EqeqeqRule,
   NoRestrictedImportsRule,
@@ -194,6 +195,12 @@ export interface IOxlintPresetOptions {
    * `''` or `0` swallowed by `||`.
    */
   lenientFallback?: boolean;
+  /**
+   * Project paths to skip - generated files, vendored code - as in `--ignore-pattern`: `src/gen/**`.
+   * Every rule is turned off for them (oxlint cannot ignore a project path from `.configs/`).
+   * Share the list with ESLint through `LintIgnore`.
+   */
+  ignore?: string[];
 }
 
 /**
@@ -209,18 +216,18 @@ export interface IOxlintPresetOptions {
  */
 export class OxlintConfigs {
   static create(opts: IOxlintPresetOptions = {}): OxlintConfig {
-    if (!opts.lenientFallback) {
-      return oxlintConfigs;
-    }
+    const config: OxlintConfig = opts.lenientFallback
+      ? {
+          ...oxlintConfigs,
+          rules: {
+            ...oxlintConfigs.rules,
+            [PreferNullishCoalescingRule.NAME]: PreferNullishCoalescingRule.build({
+              ignorePrimitives: { string: true, number: true },
+            }),
+          },
+        }
+      : oxlintConfigs;
 
-    return {
-      ...oxlintConfigs,
-      rules: {
-        ...oxlintConfigs.rules,
-        [PreferNullishCoalescingRule.NAME]: PreferNullishCoalescingRule.build({
-          ignorePrimitives: { string: true, number: true },
-        }),
-      },
-    };
+    return LintIgnore.oxlint({ config, patterns: opts.ignore ?? [] });
   }
 }

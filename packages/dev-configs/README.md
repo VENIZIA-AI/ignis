@@ -115,7 +115,7 @@ Every IGNIS package and example does.
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
-| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
@@ -131,6 +131,14 @@ Every IGNIS package and example does.
 `fixStyle: inline-type-imports`; `import('pkg').T` annotations stay allowed): a value import of a type
 becomes a runtime import when Bun runs a decorated class's source, and loading fails with
 `Export named 'X' not found`. `oxlint --fix` rewrites them.
+
+oxlint (1.88) does not read decorator metadata, so it also rewrites the import of a decorated
+constructor parameter's class to `import { type X }`. tsc then emits `Function` (or `Object` under Bun)
+as that parameter's `design:paramtypes` entry. IGNIS never injects by that entry - `@inject` names its
+key, and `@repository` skips `Object` and `Function` - so nothing breaks. Code that does read
+`design:paramtypes` must not take this rule's fix there; typescript-eslint's
+`consistent-type-imports` leaves decorated classes alone when `emitDecoratorMetadata` and
+`experimentalDecorators` are in its `parserOptions`.
 
 Not ported:
 
@@ -169,6 +177,11 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 | :--- | :--- | :--- | :--- |
 | `MaxParamsOwnRule` | `venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
 | `NoNewErrorRule` | `venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
+| `NoLeakedRenderRule` | `venizia/no-leaked-render` | `error`, in `reactHouseConfigs` only | A JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which draws `0` when `cond` is `0`. `--fix` rewrites it. `disabled={a && b}` is a value, not a child, and passes. |
+| `ConstClassValuesRule` | `venizia/const-class-values` | off; `build({ namePattern })` | An exported type named like a logic value (`State`, `Status`, `Stage`, `Mode`, `Kind`, `Type` by default) is a const class plus `TConstValue<typeof X>`, not a union of string literals. |
+
+`const-class-values` is registered in the plugin but no preset turns it on: a few IGNIS types still
+break it. Enable it with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build()`.
 
 ### namingConventionConfigs
 
@@ -273,7 +286,7 @@ export default [
 | Adds | Setting |
 | :--- | :--- |
 | React correctness (`jsx-key`, `no-children-prop`, `no-deprecated`, ... - 14 rules) | `error`, `.jsx`/`.tsx` |
-| `jsx-a11y` basics (`alt-text`, `aria-props`, `aria-role`, ... - 9 rules) | `error`, `.jsx`/`.tsx` |
+| `jsx-a11y` (`alt-text`, `aria-props`, `aria-role`, `click-events-have-key-events`, `label-has-associated-control`, ... - 15 rules) | `error`, `.jsx`/`.tsx` |
 | `react-hooks/rules-of-hooks` / `exhaustive-deps` | `error`, every source file |
 | `@typescript-eslint/consistent-type-imports` | `['error', { prefer: 'type-imports', fixStyle: 'inline-type-imports', disallowTypeAnnotations: false }]` |
 | `naming-convention` | the base rule, plus PascalCase functions (`function App()`), `.jsx`/`.tsx` |
@@ -326,6 +339,11 @@ export default reactNamingConventionConfigs;
 `ReactOxlintConfigs.create()` is `BrowserOxlintConfigs.create()` plus the same rules as the ESLint
 table above, as strict as the base. `react/no-deprecated` is left out: oxlint has no port of it.
 
+Both React presets run the same fifteen `jsx-a11y` rules, including the six that need a human
+decision (`click-events-have-key-events`, `no-static-element-interactions`,
+`no-noninteractive-element-interactions`, `label-has-associated-control`, `heading-has-content`,
+`anchor-is-valid`). `reactHouseConfigs` adds `venizia/no-leaked-render`, which oxlint has no port of.
+
 The presets start strict. An application that wants less overrides the rule after the preset:
 
 ```ts
@@ -339,6 +357,29 @@ export default defineConfig({
 
 `reactNamingConventionConfigs` is `namingConventionConfigs` plus PascalCase functions in `.jsx` and
 `.tsx` files.
+
+### Ignoring generated or vendored paths
+
+A project that lints generated files or vendored code lists them once and gives the list to both tools.
+oxlint cannot do it alone: its `ignorePatterns` resolve against the folder of the config file, so one
+in `.configs/` never reaches a project path. The `ignore` option of any oxlint preset turns every rule
+off for the paths instead, and `LintIgnore.eslint` is the ESLint `ignores` entry. A package with a
+Makefile can set `LINT_IGNORE` instead (`make/project.mk` passes it as `--ignore-pattern`).
+
+```ts
+// .configs/lint-ignore.mjs
+export const LINT_IGNORE = ['src/components/shadcn/**', 'dev-dist/**'];
+
+// .configs/oxlint.config.mts
+export default defineConfig(ReactOxlintConfigs.create({ ignore: LINT_IGNORE }));
+
+// .configs/eslint.config.mjs
+export default [LintIgnore.eslint({ patterns: LINT_IGNORE }), ...reactHouseConfigs];
+```
+
+A pattern is a project path, as in `--ignore-pattern`. The off-override comes after the preset's own
+overrides, so a rule you add after the preset is on again in an ignored path. Wrap the finished config
+instead: `LintIgnore.oxlint({ config, patterns: LINT_IGNORE })`.
 
 ### BunCompiler
 
