@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
+import { IgnisArtifactsVitePlugin } from '@venizia/ignis-boot/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
@@ -23,5 +24,6 @@ export default defineConfig({
     // Vite's dependency pre-bundling mangles PGlite's WASM asset resolution.
     exclude: ['@electric-sql/pglite'],
   },
-  worker: { format: 'es' },
+  // The Worker registers its decorated classes through AutoArtifacts; the plugin builds their list into the bundle.
+  worker: { format: 'es', plugins: () => [IgnisArtifactsVitePlugin.create()] },
 });

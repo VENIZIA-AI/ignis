@@ -1,6 +1,6 @@
 import type { BunPlugin } from 'bun';
 import { getError } from '@venizia/ignis-helpers';
-import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, globSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
 import ts from 'typescript';
 import { ArtifactIndexEmitter, ArtifactScanner, ArtifactStereotypes } from '../generator';
@@ -261,7 +261,7 @@ export class IgnisArtifactsPlugin {
 
     const files: string[] = [];
     for (const { directory, pattern } of trees) {
-      for (const relativePath of new Bun.Glob(pattern).scanSync({ cwd: directory })) {
+      for (const relativePath of globSync(pattern, { cwd: directory })) {
         const file = join(directory, relativePath);
         if (
           !relativePath.includes('__tests__') &&

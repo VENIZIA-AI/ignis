@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Auto Artifacts in Vite',
+                  link: '/changelogs/2026-10-18-auto-artifacts-vite',
+                },
+                {
                   text: '_name Omitted Variables',
                   link: '/changelogs/2026-10-18-omitted-underscore-variables',
                 },
