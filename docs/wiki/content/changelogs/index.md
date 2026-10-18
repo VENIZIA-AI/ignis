@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-18 | [A `_name` Variable May Name an Omitted Value](./2026-10-18-omitted-underscore-variables) | Enhancement |
 | 2026-10-18 | [noImplicitAny Is On in dev-configs, and Sibling Packages Pin Each Other Exactly](./2026-10-18-exact-sibling-pins-no-implicit-any) | Behavior Change |
 | 2026-10-18 | [FilterSchema Has a Real Type, and IGNIS Compiles Under noImplicitAny](./2026-10-18-no-implicit-any-gaps) | Type Change |
 | 2026-10-18 | [Auto Artifacts Register Classes in .tsx Files](./2026-10-18-artifacts-scan-tsx) | Bug Fix |

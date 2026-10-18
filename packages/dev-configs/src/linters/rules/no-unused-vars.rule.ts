@@ -1,6 +1,6 @@
 import type { TOxlintRuleEntry, TRuleSeverity } from './common';
 
-/** `no-unused-vars`. Unused arguments pass by default: an override keeps its signature. */
+/** `no-unused-vars`. Unused arguments pass by default: an override keeps its signature. A `_name` variable is an omitted value (`{ page: _page, ...rest }`) and passes too. */
 export class NoUnusedVarsRule {
   static readonly NAME = 'no-unused-vars';
 
@@ -22,8 +22,9 @@ export class NoUnusedVarsRule {
       vars = 'all',
       args = 'none',
       ignoreRestSiblings = false,
+      varsIgnorePattern = '^_',
       ...patterns
     } = opts;
-    return [severity, { vars, args, ignoreRestSiblings, ...patterns }];
+    return [severity, { vars, args, ignoreRestSiblings, varsIgnorePattern, ...patterns }];
   }
 }
