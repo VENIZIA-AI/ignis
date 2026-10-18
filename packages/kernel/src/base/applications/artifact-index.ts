@@ -184,6 +184,19 @@ export class ArtifactIndexHelper extends BaseHelper {
     return sorted;
   }
 
+  /** Every entry of a kind must be a class. `undefined` is what an import cycle leaves - the index was read before a class's module finished loading - so it gets a message that names the cause instead of a crash on `.name`. */
+  private assertClasses(opts: {
+    field: string;
+    classes: ReadonlyArray<unknown> | undefined;
+  }): void {
+    const position = (opts.classes ?? []).findIndex(target => typeof target !== 'function');
+    if (position >= 0) {
+      throw getError({
+        message: `[ArtifactIndex] '${opts.field}' lists an entry that is not a class (position ${position}) | Usually an import cycle: the index was read before that class's module finished loading. The module that imports the index (or @venizia/ignis-boot/auto) must not define decorated classes or be imported by them`,
+      });
+    }
+  }
+
   /** One index, or arrays nested to any depth, as a flat list in input order; a conditional entry contributes its subtree only when its `when` answers true. */
   async flatten(opts: {
     input: TArtifactIndexInput;
@@ -219,6 +232,9 @@ export class ArtifactIndexHelper extends BaseHelper {
     const content = await ArtifactGroup.resolveContent({ group });
 
     // One element type for the six kinds, so `.map` is callable on every member of the union.
+    for (const [field, classes] of Object.entries(content)) {
+      this.assertClasses({ field, classes });
+    }
     const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
     const names = kinds.flatMap(classes => (classes ?? []).map(target => target.name));
     if (names.length === 0 && !group.kinds) {
@@ -249,6 +265,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     // De-duplicated: discovery and a declared index can name the same class, and registering it
     // twice trips `bootChecks.binding.allowOverride: false`. First mention wins its position.
     const listed = [...new Set(indexes.flatMap(index => [...(index[field] ?? [])]))];
+    this.assertClasses({ field, classes: listed });
     const decisions = await Promise.all(
       listed.map(target => this.isSelected({ target, application })),
     );

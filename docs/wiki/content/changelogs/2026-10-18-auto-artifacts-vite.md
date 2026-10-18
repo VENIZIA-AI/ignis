@@ -16,6 +16,7 @@ packages: ['@venizia/ignis-boot']
 
 - **`@venizia/ignis-boot/vite`.** The plugin serves `ignis:artifacts`, swaps the auto module for an eager import of it (a browser bundle is tree-shaken only when eager), and inlines `ArtifactGroup.define` / `application` calls - what `IgnisArtifactsPlugin` does for `Bun.build`.
 - **Names survive minification.** The plugin sets `output.keepNames`: binding keys are built from `Class.name`, so a renamed class would bind under the wrong key.
+- **An import cycle is named.** An index entry that is not a class - what a cycle leaves when the module importing the index also defines a decorated class - stops registration with a message naming the cause, instead of a crash on `.name`.
 - **The scanner runs under Node.** It globs with `node:fs` instead of `Bun.Glob`, so the plugin works in a Vite process started by Node.
 
 ## Who is affected
