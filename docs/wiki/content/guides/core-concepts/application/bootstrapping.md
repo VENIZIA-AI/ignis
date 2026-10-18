@@ -186,6 +186,22 @@ A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
+### A browser bundle built with Vite
+
+A frontend (an ARDOR application, a Web Worker running IGNIS) built with Vite uses the same `AutoArtifacts` import with the Vite plugin:
+
+```typescript
+// vite.config.ts
+import { IgnisArtifactsVitePlugin } from '@venizia/ignis-boot/vite';
+
+export default defineConfig({
+  plugins: [IgnisArtifactsVitePlugin.create()],
+  // a Worker bundle has its own list: worker: { plugins: () => [IgnisArtifactsVitePlugin.create()] },
+});
+```
+
+The plugin scans the `src` beside the `package.json` of Vite's root (pass `root` to choose another), builds the class list into the bundle and inlines every `ArtifactGroup` call, as `IgnisArtifactsPlugin` does for `Bun.build`. It runs under Node or Bun. It keeps class names in the production build (`output.keepNames`), because binding keys are built from `Class.name` and a minifier renames classes, and it keeps `@venizia/ignis-boot` out of dependency pre-bundling. A new or edited file under `src` is picked up on the next load in `vite dev`.
+
 ### Start-up cost from source
 
 The first start scans `src` (TypeScript parses every file). The answer is cached under the package's `node_modules/.cache/ignis-artifacts/`, keyed on the size and modification time of every `.ts` file under `src`, the package manifest and the lockfile, so the next start skips the scan and never loads TypeScript; any edit makes the next start scan again. A binary never scans.

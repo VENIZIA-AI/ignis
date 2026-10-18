@@ -10,10 +10,8 @@
   "scripts": {
     "build": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite build",
     "clean": "sh ./scripts/clean.sh",
-    "generate:artifacts": "ignis-artifacts generate --root src/worker --out src/worker/generated/artifacts.ts",
-    "check:artifacts": "ignis-artifacts check --root src/worker --out src/worker/generated/artifacts.ts",
     "dev": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite",
-    "lint": "bun run check:artifacts && oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
     "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "preview": "vite preview",
     "rebuild": "bun run clean && bun run build",

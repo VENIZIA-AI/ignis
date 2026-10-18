@@ -10,9 +10,9 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1070 source files across 9 packages.**
+**1072 source files across 9 packages.**
 
-## boot  (26 source files)
+## boot  (28 source files)
 
 | Subsystem | Files |
 |---|---|
@@ -21,6 +21,7 @@ generated:
 | `build-info/` | 6 |
 | `clis/` | 2 |
 | `common/` | 2 |
+| `vite/` | 2 |
 
 ## connectors  (228 source files)
 

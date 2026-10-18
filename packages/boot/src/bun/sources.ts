@@ -1,6 +1,6 @@
 import { getError } from '@venizia/ignis-helpers';
 import { existsSync } from 'node:fs';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, join, matchesGlob, relative, resolve, sep } from 'node:path';
 import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
 import { ArtifactScanCache } from './scan-cache';
 
@@ -92,12 +92,12 @@ export class ArtifactSources {
     const artifacts = ArtifactSources.scan({ packageSource });
 
     const { folder } = opts;
-    const ignored = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
+    const ignored = opts.ignore ?? [];
     const picked = artifacts.filter(artifact => {
       const path = relative(packageSource, artifact.filePath);
       return (
         (folder === undefined || path.split(sep).slice(0, -1).includes(folder)) &&
-        !ignored.some(glob => glob.match(path))
+        !ignored.some(pattern => matchesGlob(path, pattern))
       );
     });
     return ArtifactSources.runningArtifacts({ artifacts: picked, from: opts.site });

@@ -61,6 +61,12 @@
       "require": "./dist/cjs/bun/auto.js",
       "default": "./dist/cjs/bun/auto.js"
     },
+    "./vite": {
+      "types": "./dist/cjs/vite/index.d.ts",
+      "import": "./dist/esm/vite/index.js",
+      "require": "./dist/cjs/vite/index.js",
+      "default": "./dist/cjs/vite/index.js"
+    },
     "./build-info": {
       "types": "./dist/cjs/build-info/index.d.ts",
       "import": "./dist/esm/build-info/index.js",

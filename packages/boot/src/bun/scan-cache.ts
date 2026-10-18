@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  globSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
@@ -17,9 +25,7 @@ export class ArtifactScanCache {
   static fingerprint(opts: { root: string }): string {
     const root = resolve(opts.root);
     const entries: string[] = [];
-    for (const relativePath of new Bun.Glob(ArtifactStereotypes.SOURCE_GLOB).scanSync({
-      cwd: root,
-    })) {
+    for (const relativePath of globSync(ArtifactStereotypes.SOURCE_GLOB, { cwd: root })) {
       const stats = statSync(join(root, relativePath));
       entries.push(`${relativePath}:${stats.size}:${stats.mtimeMs}`);
     }

@@ -1,6 +1,6 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import { readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { globSync, readFileSync } from 'node:fs';
+import { join, matchesGlob, resolve } from 'node:path';
 import ts from 'typescript';
 import {
   ArtifactStereotypes,
@@ -33,9 +33,11 @@ export class ArtifactScanner extends BaseHelper {
   /** `scan` plus the decorated classes a caller's own `ignore` pattern hid - the generator prints them so a stale pattern cannot drop an artifact in silence. */
   scanWithReport(opts: IScanOptions): IScanReport {
     const root = resolve(opts.root);
-    const defaultGlobs = ArtifactStereotypes.DEFAULT_IGNORE.map(pattern => new Bun.Glob(pattern));
-    const userGlobs = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
-    const { kept, hidden } = this.partitionSourceFiles({ root, defaultGlobs, userGlobs });
+    const { kept, hidden } = this.partitionSourceFiles({
+      root,
+      defaultGlobs: ArtifactStereotypes.DEFAULT_IGNORE,
+      userGlobs: opts.ignore ?? [],
+    });
     const sourceModules = new Set(opts.sourceModules);
     const resolver = opts.followReexports
       ? new StereotypeReexportResolver({ root, sourceModules })
@@ -83,18 +85,21 @@ export class ArtifactScanner extends BaseHelper {
   /** `kept` feeds the index; `hidden` is what only a user pattern excluded (a default pattern wins, so tests and generated files are never reported). */
   private partitionSourceFiles(opts: {
     root: string;
-    defaultGlobs: Bun.Glob[];
-    userGlobs: Bun.Glob[];
+    defaultGlobs: ReadonlyArray<string>;
+    userGlobs: ReadonlyArray<string>;
   }): { kept: string[]; hidden: string[] } {
     const kept: string[] = [];
     const hidden: string[] = [];
 
-    const sync = new Bun.Glob(ArtifactStereotypes.SOURCE_GLOB).scanSync({ cwd: opts.root });
-    for (const relative of sync) {
-      if (relative.endsWith('.d.ts') || opts.defaultGlobs.some(glob => glob.match(relative))) {
+    const sources = globSync(ArtifactStereotypes.SOURCE_GLOB, { cwd: opts.root });
+    for (const relative of sources) {
+      if (
+        relative.endsWith('.d.ts') ||
+        opts.defaultGlobs.some(pattern => matchesGlob(relative, pattern))
+      ) {
         continue;
       }
-      const target = opts.userGlobs.some(glob => glob.match(relative)) ? hidden : kept;
+      const target = opts.userGlobs.some(pattern => matchesGlob(relative, pattern)) ? hidden : kept;
       target.push(join(opts.root, relative));
     }
 
