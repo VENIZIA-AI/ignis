@@ -23,6 +23,7 @@
     "@connectrpc/connect-web": "^2.1.2",
     "@hono/zod-openapi": "catalog:",
     "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "hono": "catalog:"
   },

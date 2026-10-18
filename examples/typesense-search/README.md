@@ -22,8 +22,8 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 | `src/controllers/article.controller.ts` | Factory CRUD from `ControllerFactory.defineCrudController` - indexes and reads documents |
 | `src/controllers/search.controller.ts` | `POST /articles/search` and `/multi-search` from `SearchControllerFactory.defineSearchController` |
 | `src/datasources/search.datasource.ts` | The only Typesense-specific file: node/API key config, `autoProvision: true` |
-| `src/application.ts` | Imports each decorated class; `discoverArtifacts: true` registers them |
-| `src/index.ts` | Starts the server |
+| `src/application.ts` | The application class: it turns on the API docs and health check components |
+| `src/index.ts` | Starts the server; `artifacts: AutoArtifacts` registers every decorated class under `src` |
 
 ## Endpoints
 

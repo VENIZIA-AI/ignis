@@ -1,66 +1,11 @@
-import { z } from '@hono/zod-openapi';
-import {
-  BaseApplication,
-  BaseRestController,
-  controller,
-  get,
-  type IApplicationInfo,
-  jsonContent,
-  ApiReferenceComponent,
-} from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
-import { type Context } from 'hono';
+import { application } from './application';
 
-@controller({ path: '/hello' })
-class HelloController extends BaseRestController {
-  constructor() {
-    super({ scope: 'HelloController', path: '/hello' });
-  }
+const main = async () => {
+  application.init();
+  await application.start();
+};
 
-  // binding() is abstract - leave it empty when every route uses @get/@post decorators.
-  override binding() {}
-
-  @get({
-    configs: {
-      path: '/',
-      responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: 'Says hello',
-          schema: z.object({ message: z.string() }),
-        }),
-      },
-    },
-  })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
-  }
-}
-
-class App extends BaseApplication {
-  getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
-  }
-
-  staticConfigure() {}
-
-  preConfigure() {
-    this.component(ApiReferenceComponent);
-    this.controller(HelloController);
-  }
-
-  postConfigure() {}
-
-  setupMiddlewares() {}
-}
-
-const app = new App({
-  scope: 'App',
-  config: {
-    host: '0.0.0.0',
-    port: Number(process.env.PORT ?? 3000),
-    path: { base: '/api', isStrict: false },
-  },
+main().catch((error: unknown) => {
+  console.error('[main] Application start failed | Error:', error);
+  process.exit(1);
 });
-
-app.init();
-await app.start();

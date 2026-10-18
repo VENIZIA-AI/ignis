@@ -1,3 +1,4 @@
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from './application';
 
 const application = new Application({
@@ -6,7 +7,7 @@ const application = new Application({
     host: '0.0.0.0',
     port: Number(process.env.PORT ?? 3000),
     path: { base: '/api', isStrict: false },
-    discoverArtifacts: true,
+    artifacts: AutoArtifacts,
   },
 });
 

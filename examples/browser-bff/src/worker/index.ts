@@ -1,10 +1,11 @@
 import { Application } from './application';
+import { GeneratedArtifacts } from './generated/artifacts';
 
 const application = new Application({
   scope: 'Application',
   config: {
     path: { base: '/api', isStrict: false },
-    discoverArtifacts: true,
+    artifacts: GeneratedArtifacts,
     // A hot reload re-evaluates a module, decorating a second class of the same name; in development
     // that is expected, so it warns instead of failing. A production build has no `import.meta.hot`.
     bootChecks: { allowDerivedKeyCollision: import.meta.hot !== undefined },

@@ -4,6 +4,7 @@
 // localhost:16380.
 import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { SocketIOClientHelper, SocketIOConstants } from '@venizia/ignis-helpers/socket-io';
 import { Application } from '../application';
 
@@ -94,7 +95,7 @@ describe('socket-io-test', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        artifacts: AutoArtifacts,
       },
     });
     application.init();

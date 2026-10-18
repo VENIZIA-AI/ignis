@@ -6,6 +6,7 @@ import { createClient } from '@connectrpc/connect';
 import { createConnectTransport } from '@connectrpc/connect-web';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { ControllerTransports } from '@venizia/ignis';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from '../application';
 import { GreeterService, SayHelloRequestSchema } from '../controllers/greeter/definition';
 
@@ -24,7 +25,7 @@ describe('grpc-test', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        artifacts: AutoArtifacts,
         transports: [ControllerTransports.REST, ControllerTransports.GRPC],
       },
     });

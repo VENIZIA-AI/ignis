@@ -14,9 +14,6 @@ import {
 } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
-// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
-import './controllers/chat.controller';
-
 export class Application extends BaseApplication {
   private redisHelper?: RedisSingleHelper;
 

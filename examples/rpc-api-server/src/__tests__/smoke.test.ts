@@ -2,7 +2,9 @@
 // signs in over HTTP, then calls the protected CRUD routes and a JSX page.
 import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from '../application';
+import { ViewController } from '../controllers/view.controller';
 
 const HOST = '127.0.0.1';
 
@@ -45,7 +47,8 @@ describe('rpc-api-server', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        // The scanner reads `.ts` files only, so the `.tsx` controller is listed by hand.
+        artifacts: [AutoArtifacts, { controllers: [ViewController] }],
       },
     });
     application.init();

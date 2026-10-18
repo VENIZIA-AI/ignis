@@ -24,6 +24,7 @@
     "@socket.io/redis-adapter": "catalog:",
     "@socket.io/redis-emitter": "catalog:",
     "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "hono": "catalog:",
     "ioredis": "catalog:",
