@@ -335,7 +335,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       .info(
         'Starting application... | Name: %s | Env: %s | Runtime: %s',
         read(EnvironmentKeys.APP_ENV_APPLICATION_NAME, 'PNT'),
-        process.env.NODE_ENV,
+        Environment.ambient,
         this.runtime,
       );
     this.logger

@@ -19,6 +19,7 @@ packages: ['@venizia/ignis-boot']
 - **An import cycle is named.** An index entry that is not a class - what a cycle leaves when the module importing the index also defines a decorated class - stops registration with a message naming the cause, instead of a crash on `.name`.
 - **Borrowed classes keep their names; a kit can define groups in the browser.** The plugin also scans the src of every package that defines a group, so classes borrowed from a shared kit are pinned like the application's own. `ArtifactGroup` is exported from `@venizia/ignis-kernel/metadata`, so a browser kit defines its groups without the root barrel and its server peers.
 - **Adding a class needs a dev server restart.** The class list is built once, when `vite dev` starts; editing a class keeps hot reload.
+- **`Bun.build` pins names too.** `IgnisArtifactsPlugin` pins the scanned classes' names the same way, so a registered class that subclasses a same-name class (Bun's scope hoisting renames it `StockService2`) keeps its key. The binary guide now also says how `Bun.build` keeps `NODE_ENV` a runtime read (`define`, since `env: 'disable'` alone does not).
 - **The scanner runs under Node.** It globs with `node:fs` instead of `Bun.Glob`, so the plugin works in a Vite process started by Node.
 
 ## Who is affected

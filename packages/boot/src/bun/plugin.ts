@@ -209,6 +209,64 @@ export class IgnisArtifactsPlugin {
     return imports.length > 0 ? `${imports.join('\n')}\n${rewritten}` : rewritten;
   }
 
+  /** Opens each named class with `static { Object.defineProperty(this, 'name', ...) }`. Binding keys are built from `Class.name`, and a bundler renames classes - a minifier, or Bun's scope hoisting when a registered class shadows a same-name class it extends (`StockService` becomes `StockService2`). A string literal survives both, and a static block runs before the class's decorators. Only these classes are touched; the rest of the bundle is left alone. */
+  static pinClassNames(opts: {
+    filePath: string;
+    source: string;
+    classNames: ReadonlySet<string>;
+  }): string {
+    const sourceFile = ts.createSourceFile(
+      opts.filePath,
+      opts.source,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const positions: Array<{ at: number; name: string }> = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isClassDeclaration(node) && node.name && opts.classNames.has(node.name.text)) {
+        positions.push({ at: node.members.pos, name: node.name.text });
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+
+    let pinned = opts.source;
+    for (const { at, name } of positions.sort((left, right) => right.at - left.at)) {
+      const block = ` static { Object.defineProperty(this, 'name', { value: ${JSON.stringify(name)} }); }`;
+      pinned = pinned.slice(0, at) + block + pinned.slice(at);
+    }
+    return pinned;
+  }
+
+  /** The classes whose names a build must pin, by the file the build loads: the app's own (from the tree `entry` runs, see `runningArtifacts`) and those of every package that defines a group the app can borrow (from the tree the group file sits in). */
+  static pinnedClasses(opts: {
+    root: string;
+    groupFiles: ReadonlyArray<string>;
+    entry?: string;
+  }): Map<string, Set<string>> {
+    const byFile = new Map<string, Set<string>>();
+    const add = (artifacts: ReadonlyArray<{ filePath: string; className: string }>): void => {
+      for (const { filePath, className } of artifacts) {
+        byFile.set(filePath, (byFile.get(filePath) ?? new Set()).add(className));
+      }
+    };
+    const own = ArtifactSources.scan({ packageSource: opts.root });
+    add(opts.entry ? ArtifactSources.runningArtifacts({ artifacts: own, from: opts.entry }) : own);
+    for (const groupFile of opts.groupFiles) {
+      const packageSource = ArtifactSources.packageSource({ from: dirname(groupFile) });
+      if (packageSource === opts.root || !existsSync(packageSource)) {
+        continue;
+      }
+      add(
+        ArtifactSources.runningArtifacts({
+          artifacts: ArtifactSources.scan({ packageSource }),
+          from: groupFile,
+        }),
+      );
+    }
+    return byFile;
+  }
+
   /** The source files that define groups: the application's own `src` and the `src` of each workspace dependency (a dependency whose real path is outside every `node_modules`), found by walking up the `node_modules` chain as Node resolution does. */
   static groupDefinitionFiles(opts: { root: string }): string[] {
     const root = resolve(opts.root);
@@ -305,15 +363,28 @@ export class IgnisArtifactsPlugin {
           loader: 'ts',
         }));
         const groupFiles = IgnisArtifactsPlugin.groupDefinitionFiles({ root });
-        if (groupFiles.length > 0) {
-          const escaped = groupFiles.map(file => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
-          build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, args => ({
-            contents: IgnisArtifactsPlugin.rewriteGroups({
-              filePath: args.path,
-              source: readFileSync(args.path, 'utf8'),
-            }),
-            loader: args.path.endsWith('.tsx') ? 'tsx' : args.path.endsWith('.ts') ? 'ts' : 'js',
-          }));
+        const groupFileSet = new Set(groupFiles);
+        const pinned = IgnisArtifactsPlugin.pinnedClasses({ root, groupFiles, entry });
+        const loaded = [...new Set([...groupFiles, ...pinned.keys()])];
+        if (loaded.length > 0) {
+          const escaped = loaded.map(file => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
+          build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, args => {
+            const source = readFileSync(args.path, 'utf8');
+            const grouped = groupFileSet.has(args.path)
+              ? IgnisArtifactsPlugin.rewriteGroups({ filePath: args.path, source })
+              : source;
+            const classNames = pinned.get(args.path);
+            return {
+              contents: classNames
+                ? IgnisArtifactsPlugin.pinClassNames({
+                    filePath: args.path,
+                    source: grouped,
+                    classNames,
+                  })
+                : grouped,
+              loader: args.path.endsWith('.tsx') ? 'tsx' : args.path.endsWith('.ts') ? 'ts' : 'js',
+            };
+          });
         }
         // Lazy (a dynamic import on the first resolve) for a server: a library importing this module must not evaluate the app's classes inside its own half-loaded graph. Eager for a browser bundle: a lazily evaluated graph is not tree-shaken, which doubled a measured frontend bundle.
         const isLazy = opts.lazyIndex ?? build.config.target !== 'browser';
