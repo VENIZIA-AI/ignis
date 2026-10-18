@@ -217,3 +217,19 @@ describe('ArtifactGroup.application', () => {
     ]);
   });
 });
+
+describe('an index entry that is not a class', () => {
+  // `undefined` is what an import cycle leaves: the index was read before the class's module finished loading.
+  const cycle = /lists an entry that is not a class.*import cycle/;
+  const unloaded = Reflect.get({}, 'cycle');
+
+  test('in a plain index is a clear error, not a crash on .name', async () => {
+    const input: TArtifactIndexInput = { services: [StockService, unloaded] };
+    expect(helper.resolve({ input, application })).rejects.toThrow(cycle);
+  });
+
+  test('in a group\x27s content is the same clear error', async () => {
+    const group = ArtifactGroup.application({ content: { controllers: [unloaded] } });
+    expect(helper.resolve({ input: group, application })).rejects.toThrow(cycle);
+  });
+});
