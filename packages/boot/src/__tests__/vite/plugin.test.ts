@@ -1,6 +1,8 @@
 import { IgnisArtifactsVitePlugin } from '@/vite';
-import { describe, expect, test } from 'bun:test';
-import { resolve } from 'node:path';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 
 const APP = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'tsx', 'app');
 const GROUPS = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'groups', 'core');
@@ -61,5 +63,34 @@ describe('IgnisArtifactsVitePlugin', () => {
         resolve(GROUPS, 'src', 'other.ts'),
       ),
     ).toBeUndefined();
+  });
+});
+
+describe('IgnisArtifactsVitePlugin and a shared package', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'ignis-vite-'));
+  afterAll(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  test('pins the names of the classes an app borrows from a workspace dependency through a group', () => {
+    cpSync(
+      join(process.cwd(), 'src', '__tests__', 'fixtures', 'compile', 'app'),
+      join(workspace, 'app'),
+      {
+        recursive: true,
+      },
+    );
+    cpSync(GROUPS, join(workspace, 'core'), { recursive: true });
+    mkdirSync(join(workspace, 'app', 'node_modules', '@fixture'), { recursive: true });
+    symlinkSync(
+      join(workspace, 'core'),
+      join(workspace, 'app', 'node_modules', '@fixture', 'core'),
+    );
+
+    const file = join(workspace, 'core', 'src', 'services', 'inventory', 'stock.service.ts');
+    const source =
+      "import { service } from '@venizia/ignis-kernel';\n\n@service()\nexport class StockService {}\n";
+    const output = plugin({ viteRoot: join(workspace, 'app') }).transform(source, file) ?? '';
+    expect(output).toContain(`Object.defineProperty(this, 'name', { value: "StockService" })`);
   });
 });

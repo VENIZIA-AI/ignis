@@ -17,6 +17,8 @@ packages: ['@venizia/ignis-boot']
 - **`@venizia/ignis-boot/vite`.** The plugin serves `ignis:artifacts`, swaps the auto module for an eager import of it (a browser bundle is tree-shaken only when eager), and inlines `ArtifactGroup.define` / `application` calls - what `IgnisArtifactsPlugin` does for `Bun.build`.
 - **Names survive minification, for the scanned classes only.** Binding keys are built from `Class.name`, so the plugin opens each scanned class with a static block that pins its name; the rest of the bundle minifies as usual (a bundle-wide `keepNames` cost about 100 KB on a measured frontend).
 - **An import cycle is named.** An index entry that is not a class - what a cycle leaves when the module importing the index also defines a decorated class - stops registration with a message naming the cause, instead of a crash on `.name`.
+- **Borrowed classes keep their names; a kit can define groups in the browser.** The plugin also scans the src of every package that defines a group, so classes borrowed from a shared kit are pinned like the application's own. `ArtifactGroup` is exported from `@venizia/ignis-kernel/metadata`, so a browser kit defines its groups without the root barrel and its server peers.
+- **Adding a class needs a dev server restart.** The class list is built once, when `vite dev` starts; editing a class keeps hot reload.
 - **The scanner runs under Node.** It globs with `node:fs` instead of `Bun.Glob`, so the plugin works in a Vite process started by Node.
 
 ## Who is affected

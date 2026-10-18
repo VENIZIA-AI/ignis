@@ -19,6 +19,10 @@ export { datasource, model, repository } from '@/base/metadata/persistents';
 export { inject } from '@/base/metadata/injectors';
 export { ArtifactBindingKeys } from '@/base/metadata/artifact-keys';
 
+// A group of a package's classes, borrowed by an application - a browser kit defines its groups from here, not from the root barrel.
+export { ArtifactGroup } from '@/base/applications/artifact-group';
+export type { IArtifactGroup, IArtifactIndex } from '@/base/applications/common';
+
 export { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
 export type { TBindingNamespace } from '@/common/bindings';
 
