@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'FilterSchema Typed, noImplicitAny',
+                  link: '/changelogs/2026-10-18-no-implicit-any-gaps',
+                },
+                {
                   text: 'Auto Artifacts Read .tsx',
                   link: '/changelogs/2026-10-18-artifacts-scan-tsx',
                 },

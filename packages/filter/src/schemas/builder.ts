@@ -99,7 +99,7 @@ export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }) => {
           relation: decorate(z.string(), { description: 'Model relation name' }),
           scope: decorate(
             z
-              .lazy(() => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
+              .lazy((): z.ZodType<any> => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
               .optional(),
             { description: 'Model relation filter' },
           ),

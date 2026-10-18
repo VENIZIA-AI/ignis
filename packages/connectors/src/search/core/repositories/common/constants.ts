@@ -23,7 +23,7 @@ export class SearchModes {
 }
 export type TSearchMode = TConstValue<typeof SearchModes>;
 
-/** Reassembled from FilterSchema's atomic pieces minus `include` (search has no relations) so `z.infer` stays finite - embedding the recursive FilterSchema collapses optional-key inference for every sibling field, silently turning `filter` into a required `any`. */
+/** Reassembled from FilterSchema's atomic pieces minus `include`: search has no relations. */
 const SearchFilterSchema = z
   .object({
     where: WhereSchema.optional(),

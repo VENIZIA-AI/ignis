@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-18 | [FilterSchema Has a Real Type, and IGNIS Compiles Under noImplicitAny](./2026-10-18-no-implicit-any-gaps) | Type Change |
 | 2026-10-18 | [Auto Artifacts Register Classes in .tsx Files](./2026-10-18-artifacts-scan-tsx) | Bug Fix |
 | 2026-10-18 | [An Application Without casbin Compiles Again](./2026-10-18-casbin-optional-build) | Bug Fix |
 | 2026-10-18 | [ArtifactGroup.application Leaves Out Ignored Files](./2026-10-18-application-group-ignore) | Feature |

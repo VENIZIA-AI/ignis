@@ -145,17 +145,21 @@ export abstract class FilterBuilder extends BaseHelper {
   private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
     const { defaultWhere, userWhere } = opts;
 
+    // Read by runtime key, which the column-keyed `TWhere<T>` does not index.
+    const defaults: TWhere = defaultWhere;
+    const users: TWhere = userWhere;
+
     const merged: TWhere = { ...defaultWhere };
     const composed: TWhere[] = [];
 
-    for (const key in userWhere) {
-      const userValue = userWhere[key];
+    for (const key in users) {
+      const userValue = users[key];
 
       if (userValue === undefined) {
         continue;
       }
 
-      const defaultValue = defaultWhere[key];
+      const defaultValue = defaults[key];
 
       // Scalar-over-scalar is a plain override - the soft-delete opt-out. Everything else
       // AND-composes, so a user operator object cannot swallow a scalar default.

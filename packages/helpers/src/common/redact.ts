@@ -123,12 +123,11 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
       stack: value.stack,
     };
 
-    const sourceKeys = Object.keys(source);
-    for (const key of sourceKeys) {
+    for (const [key, entry] of Object.entries(source)) {
       result[key] =
         doRedact && SECRET_KEY_PATTERN.test(key)
           ? REDACTED
-          : deepSanitize(source[key], { ...nested, key });
+          : deepSanitize(entry, { ...nested, key });
     }
 
     return result;
@@ -141,14 +140,13 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   const source = value;
   const result: AnyObject = {};
 
-  const sourceKeys = Object.keys(source);
-  for (const key of sourceKeys) {
+  for (const [key, entry] of Object.entries(source)) {
     if (doRedact && SECRET_KEY_PATTERN.test(key)) {
       result[key] = REDACTED;
       continue;
     }
 
-    result[key] = deepSanitize(source[key], { ...nested, key });
+    result[key] = deepSanitize(entry, { ...nested, key });
   }
 
   return result;
