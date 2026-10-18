@@ -16,7 +16,7 @@ export const createRelations = <Schema extends TTableSchemaWithId = TTableSchema
   const ones = new OneRelations({ source, relations });
 
   return {
-    definitions: relations.reduce((curr, def) => {
+    definitions: relations.reduce<Record<string, TRelationConfig>>((curr, def) => {
       if (!def) {
         return curr;
       }

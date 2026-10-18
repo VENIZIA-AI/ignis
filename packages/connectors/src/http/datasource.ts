@@ -120,12 +120,22 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     return headers;
   }
 
+  /** The browser global `location` is not declared for a server build, so it is probed, not assumed. */
+  protected resolveLocationOrigin(): string | undefined {
+    const location: unknown = Reflect.get(globalThis, 'location');
+    if (typeof location !== 'object' || location === null || !('origin' in location)) {
+      return undefined;
+    }
+
+    return typeof location.origin === 'string' ? location.origin : undefined;
+  }
+
   buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
     const { paths, query } = opts;
     const requestUrl = this.network.getRequestUrl({ paths });
 
     // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
-    const origin = this.isRelativeBaseUrl ? globalThis.location?.origin : undefined;
+    const origin = this.isRelativeBaseUrl ? this.resolveLocationOrigin() : undefined;
     if (this.isRelativeBaseUrl && !origin) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

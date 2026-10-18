@@ -888,14 +888,16 @@ export class TypesenseConnector extends BaseSearchConnector {
       windows.length === 1
         ? [{ ...params, collection }]
         : windows.map(window => {
+            // Each window carries its own offset/limit, so the caller's page keys are left out.
+            const rest = Object.fromEntries(
+              Object.entries(paramsRecord).filter(([key]) => key !== 'page' && key !== 'per_page'),
+            );
             const entry = {
-              ...paramsRecord,
+              ...rest,
               collection,
               offset: window.offset,
               limit: window.limit,
             };
-            delete entry['page'];
-            delete entry['per_page'];
             return entry as { collection: string } & Partial<TSearchParams>;
           });
 
