@@ -455,6 +455,14 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'HttpRepository Query, Limit, Search',
+                  link: '/changelogs/2026-10-18-http-repository-query-limit-search',
+                },
+                {
+                  text: 'Decorators Without reflect-metadata First',
+                  link: '/changelogs/2026-10-18-inversion-imports-reflect-metadata',
+                },
+                {
                   text: 'Auto Artifacts in Vite',
                   link: '/changelogs/2026-10-18-auto-artifacts-vite',
                 },

@@ -89,3 +89,13 @@ export interface IHttpWriteResult<R> {
 }
 
 export type THttpQuery<E extends object> = { filter?: TFilter<E> };
+
+/** Query parameters a route takes beside `filter` or `where` - a keyword, a scope. The filter and `where` win over a key of the same name. */
+export type THttpExtraQuery = Record<string, unknown>;
+
+/** What the IGNIS search route answers: the total as `found` (`isFoundExact` is false when it is an estimate) and the hits. */
+export interface IHttpSearchResult<R> {
+  found: number;
+  isFoundExact: boolean;
+  hits: Array<{ document: R; score?: number; highlight?: unknown; highlights?: Array<unknown> }>;
+}

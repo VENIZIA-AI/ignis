@@ -1,3 +1,5 @@
+import 'reflect-metadata';
+
 import { BaseHelper } from '@/common/base-helper';
 import { Logger } from '@/common/logger';
 import { type TBindingKey, type TClass } from '@/common/types';

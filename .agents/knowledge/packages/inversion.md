@@ -24,7 +24,7 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## MetadataRegistry
 
-`src/modules/registry/` centralizes metadata storage on top of `reflect-metadata`: generic `define`/`get`/`has`/`delete`, constructor injection via `setInjectMetadata`/`getInjectMetadata`, and property injection via `setPropertyMetadata`/`getPropertiesMetadata`. A shared `metadataRegistry` singleton is exported for framework-wide access.
+`src/modules/registry/` centralizes metadata storage on top of `reflect-metadata`: generic `define`/`get`/`has`/`delete`, constructor injection via `setInjectMetadata`/`getInjectMetadata`, and property injection via `setPropertyMetadata`/`getPropertiesMetadata`. A shared `metadataRegistry` singleton is exported for framework-wide access. `registry.ts` - the only module here that calls `Reflect.*Metadata` - imports `reflect-metadata` itself, besides the entry: a Vite 8 / Rolldown split chunk can evaluate decorated code before the entry (vitejs/vite#21866) and then `Reflect.getMetadata` is not a function. `reflect-metadata-first.test.ts` runs a probe that reaches `@inject` through the registry alone, in its own process, and fails without the import. Kernel mixins that call `Reflect.*Metadata` do not import it themselves yet.
 
 ## Decorators
 
