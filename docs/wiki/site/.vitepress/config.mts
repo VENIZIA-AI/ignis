@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Compiles Without casbin',
+                  link: '/changelogs/2026-10-18-casbin-optional-build',
+                },
+                {
                   text: 'application() Takes ignore',
                   link: '/changelogs/2026-10-18-application-group-ignore',
                 },
