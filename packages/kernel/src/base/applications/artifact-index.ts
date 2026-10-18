@@ -218,9 +218,9 @@ export class ArtifactIndexHelper extends BaseHelper {
     const { group } = opts;
     const content = await ArtifactGroup.resolveContent({ group });
 
-    const names = Object.values(content).flatMap(classes =>
-      (classes ?? []).map(target => target.name),
-    );
+    // One element type for the six kinds, so `.map` is callable on every member of the union.
+    const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
+    const names = kinds.flatMap(classes => (classes ?? []).map(target => target.name));
     if (names.length === 0 && !group.kinds) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
