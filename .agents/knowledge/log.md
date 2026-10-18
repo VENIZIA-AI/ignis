@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - VULCAN 0.2.0-7
+
+Updated nothing else - tooling only.
+
+- `@venizia/vulcan` is pinned at 0.2.0-7: `vulcan x atlas --help` prints usage and `vulcan x atlas tools` lists the MCP tools without a client; `init` skips root lint configs in a workspaces project; `doctor` fails on an unfilled scaffold; a renderer's default see-also links appear only when the target concept exists.
+
 ## 2026-10-18 - Scan cache figure measured on a real service
 
 Updated [boot](/packages/boot.md): the warm-start saving is ~140 ms, not ~350.
