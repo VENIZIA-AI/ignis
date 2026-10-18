@@ -82,9 +82,9 @@
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-filter": "^0.2.2-4",
-    "@venizia/ignis-helpers": "^0.2.2-7",
-    "@venizia/ignis-inversion": "^0.2.2-4",
+    "@venizia/ignis-filter": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
     "reflect-metadata": "catalog:"
   },
   "peerDependencies": {
@@ -113,7 +113,7 @@
   },
   "devDependencies": {
     "@types/bun": "catalog:",
-    "@venizia/dev-configs": "^0.3.1-2",
+    "@venizia/dev-configs": "workspace:*",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
     "oxfmt": "catalog:",

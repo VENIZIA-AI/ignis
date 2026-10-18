@@ -219,7 +219,7 @@
   },
   "dependencies": {
     "zod": "catalog:",
-    "@venizia/ignis-inversion": "^0.2.2-4",
+    "@venizia/ignis-inversion": "workspace:*",
     "reflect-metadata": "catalog:"
   },
   "peerDependencies": {
@@ -314,7 +314,7 @@
     "@socket.io/redis-emitter": "catalog:",
     "@types/bun": "catalog:",
     "@types/luxon": "^3.7.5",
-    "@venizia/dev-configs": "^0.3.1-2",
+    "@venizia/dev-configs": "workspace:*",
     "axios": "^1.20.0",
     "bullmq": "catalog:",
     "cron": "^4.4.0",

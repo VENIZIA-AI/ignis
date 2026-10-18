@@ -62,7 +62,7 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
    built, and is not currently republished through this workflow.
 3. `bun run --filter "@venizia/*" force-update "highest"` runs BEFORE `bun install`, and over the
    WHOLE workspace rather than the one package being released.
-   - It pins a package of this repository EXACTLY (`"@venizia/ignis-kernel": "0.2.2-12"`) and keeps a caret for anything else: a caret let a fresh install pair one release with the next release's sibling.
+   - It skips a sibling of this repository: manifests name siblings `workspace:*`, which `bun publish` writes as the sibling's exact version in the tarball (a caret let a fresh install pair one release with the next release's sibling), while development keeps linking the workspace copy. An exact version in the manifest would stop linking the moment the sibling bumps.
    - Before the install, because `force-update` rewrites the internal version ranges and an install
      that ran first has already resolved the old ones. When a sibling has moved past a declared
      range, that range no longer covers the workspace copy, so bun downloads the published tarball

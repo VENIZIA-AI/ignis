@@ -195,11 +195,11 @@
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-connectors": "^0.2.2-12",
-    "@venizia/ignis-filter": "^0.2.2-4",
-    "@venizia/ignis-helpers": "^0.2.2-7",
-    "@venizia/ignis-inversion": "^0.2.2-4",
-    "@venizia/ignis-kernel": "^0.2.2-12",
+    "@venizia/ignis-connectors": "workspace:*",
+    "@venizia/ignis-filter": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
+    "@venizia/ignis-kernel": "workspace:*",
     "reflect-metadata": "catalog:"
   },
   "peerDependencies": {
@@ -303,8 +303,8 @@
     "@types/bun": "catalog:",
     "@types/nodemailer": "^8.0.1",
     "@types/pg": "catalog:",
-    "@venizia/dev-configs": "^0.3.1-2",
-    "@venizia/ignis-boot": "^0.2.1-8",
+    "@venizia/dev-configs": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
     "meilisearch": "^0.60.0",
