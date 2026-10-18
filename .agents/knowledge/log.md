@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - Scan cache figure measured on a real service
+
+Updated [boot](/packages/boot.md): the warm-start saving is ~140 ms, not ~350.
+
 ## 2026-10-18 - ArtifactGroup.application takes ignore
 
 Updated [boot](/packages/boot.md): `application({ ignore })` and where the auto import belongs.

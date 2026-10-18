@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-boot']
 
 ## What changed
 
-- **The scan is cached.** The classes found under `src` are stored in `node_modules/.cache/ignis-artifacts/`, keyed on the size and modification time of every `.ts` file under `src`, the package manifest and the lockfile. The next start uses them without loading TypeScript (about 350 ms saved on a 290-file service); any edit makes the next start scan again. A corrupt cache is ignored.
+- **The scan is cached.** The classes found under `src` are stored in `node_modules/.cache/ignis-artifacts/`, keyed on the size and modification time of every `.ts` file under `src`, the package manifest and the lockfile. The next start uses them without loading TypeScript (a real service measured 723 ms cold, 585 ms warm); any edit makes the next start scan again. A corrupt cache is ignored.
 - **Importing the auto module loads nothing in a binary.** `IgnisArtifactsPlugin` used to replace `@venizia/ignis-boot/auto` with a static import of the inlined index, so importing it from a shared library evaluated every application class inside the library's half-loaded module graph - a binary could crash with `The superclass is not a constructor`. The index now loads when artifacts are registered.
 
 ## Who is affected
