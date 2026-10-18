@@ -160,6 +160,10 @@ override configure(): ValueOrPromise<void> {
 
 `size` is not an option. One slot **is** the mutual exclusion PGlite lacks, so it is pinned at 1.
 
+### Not in a compiled binary
+
+PGlite does not run as a `bun build --compile` binary out of the box: its WebAssembly data files are not embedded, and the first query fails with `ENOENT: no such file or directory, open '/$bunfs/root/pglite.data'`. Ship a binary on [Postgres](./datasources.md); run PGlite from source and in tests.
+
 ## Schema and migrations
 
 drizzle-kit works here - `driver: 'pglite'` means it opens the data directory itself - but that is the catch: PGlite allows one writer on the directory at a time, so `drizzle-kit migrate` cannot reach a database your app has already opened. Generate the SQL offline, and let your own process apply it at boot.

@@ -278,6 +278,10 @@ Three components declare their models as `pgTable` and are Postgres-only for now
 
 Everything else - your own models, repositories, services, controllers, REST routes - works on either engine.
 
+### Not in a compiled binary
+
+A SQLite application does not run as a `bun build --compile` binary out of the box. libsql loads its native addon through a computed `require`, which Bun cannot follow, so the binary stops at start-up with `Cannot find module @libsql/linux-x64-gnu`. The migrations folder is not embedded either, and a relative `migrationsFolder` resolves against the working directory. Ship a binary on [Postgres](./datasources.md); run SQLite from source.
+
 ## Runnable example
 
 `examples/sqlite-quickstart/` is this page as an app: a `sqliteTable` model with a `text` id and `text({ mode: 'json' })` metadata, `generateTzColumnDefs` for the timestamp default, and the same repository and controller the PGlite example uses.

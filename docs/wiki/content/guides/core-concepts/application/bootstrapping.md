@@ -363,6 +363,7 @@ Four rules, each backed by a measurement:
 
    Without it the first log call throws `[LoggerFactory] No logger provider is registered and the default (winston) could not be loaded`.
 4. Build every binding key from `Class.name`. bun renames a bundled decorated class (`UserService` -> `UserService2`), so a literal `'services.UserService'` matches nothing.
+5. Use a Postgres datasource. [SQLite](/guides/core-concepts/persistent/sqlite#not-in-a-compiled-binary) and [PGlite](/guides/core-concepts/persistent/pglite#not-in-a-compiled-binary) load native or WebAssembly files a binary does not embed; run them from source.
 
 ```json
 "compile:linux": "bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ./src/index.ts --outfile ./dist/app"
