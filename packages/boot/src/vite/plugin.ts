@@ -1,4 +1,5 @@
-import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
 import { ArtifactScanner } from '../generator';
 import { IgnisArtifactsPlugin } from '../bun/plugin';
@@ -13,7 +14,6 @@ export interface IIgnisVitePlugin {
   resolveId: (id: string) => string | undefined;
   load: (id: string) => string | undefined;
   transform: (code: string, id: string) => string | undefined;
-  watchChange: (id: string) => void;
 }
 
 /** `IgnisArtifactsPlugin` for Vite: serves `ignis:artifacts`, replaces `@venizia/ignis-boot/auto` with an eager import of it (a browser bundle is tree-shaken only when eager), inlines every `ArtifactGroup.define` / `application` call, and pins the name of every scanned class - binding keys are built from `Class.name`, and a minifier renames classes. */
@@ -58,10 +58,20 @@ export class IgnisArtifactsVitePlugin {
     let root = opts.root ? resolve(opts.root) : '';
     let groupFiles = new Set<string>();
     let classesByFile = new Map<string, Set<string>>();
+    // The app's own src, and the src of every package that defines a group the app can borrow from: a borrowed class is bundled from there, and it needs its name pinned too.
     const scan = (): void => {
       classesByFile = new Map();
-      for (const { filePath, className } of ArtifactSources.scan({ packageSource: root })) {
-        classesByFile.set(filePath, (classesByFile.get(filePath) ?? new Set()).add(className));
+      const sources = new Set([
+        root,
+        ...[...groupFiles].map(file => ArtifactSources.packageSource({ from: dirname(file) })),
+      ]);
+      for (const packageSource of sources) {
+        if (!existsSync(packageSource)) {
+          continue;
+        }
+        for (const { filePath, className } of ArtifactSources.scan({ packageSource })) {
+          classesByFile.set(filePath, (classesByFile.get(filePath) ?? new Set()).add(className));
+        }
       }
     };
     const autoModule = `import { ${IgnisArtifactsPlugin.EXPORT_NAME} } from '${IgnisArtifactsPlugin.VIRTUAL}';\nimport { AutoArtifactGroup } from './auto-group';\nexport default new AutoArtifactGroup({ content: ${IgnisArtifactsPlugin.EXPORT_NAME} });\n`;
@@ -95,13 +105,6 @@ export class IgnisArtifactsVitePlugin {
         return classNames
           ? IgnisArtifactsVitePlugin.pinClassNames({ filePath: id, source: grouped, classNames })
           : grouped;
-      },
-      // A file added, removed or edited under the root can change the index: rescan on the next load.
-      watchChange: id => {
-        if (id.startsWith(root)) {
-          ArtifactSources.clear();
-          scan();
-        }
       },
     };
   }
