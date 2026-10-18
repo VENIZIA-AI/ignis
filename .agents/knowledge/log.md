@@ -14,6 +14,12 @@ Updated [connectors](/packages/connectors.md) (extra `query`, `buildQuery`, `def
 
 Updated [dev-configs](/packages/dev-configs.md): `venizia/no-leaked-render` in `reactHouseConfigs`, `venizia/const-class-values` registered but off, six more `jsx-a11y` rules in both React presets, `ignore` / `LintIgnore`. Recorded why BANA's `pascal-case-tsx` and `typescript/no-deprecated` were not taken and what oxlint does with decorator metadata.
 
+## 2026-10-18 - VULCAN 0.2.0-8
+
+Updated nothing else - tooling only.
+
+- `@venizia/vulcan` is pinned at 0.2.0-8: a shipped remote-host guard (`remoteHosts`), the read-only slot denies the full git write surface, okf globs and per-axis `exclude`, `atlas.packages` removed (IGNIS uses top-level `packages`), `concepts check` locks whole declarations.
+
 ## 2026-10-18 - useUnknownInCatchVariables on
 
 Updated [dev-configs](/packages/dev-configs.md); strictPropertyInitialization stays off for DI properties.
