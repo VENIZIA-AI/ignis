@@ -53,6 +53,10 @@ export class ArtifactIndexFields {
 export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
 
 export class ArtifactStereotypes {
+  /** The source files the scanner reads: TypeScript, with or without JSX. */
+  static readonly SOURCE_GLOB = '**/*.{ts,tsx}';
+  /** The extension of a source file - stripped for an import specifier, replaced by `.js` for its compiled copy. */
+  static readonly SOURCE_EXTENSION = /\.tsx?$/;
   /** Decorator name as imported from `@venizia/ignis` or `@venizia/ignis-kernel` -> artifact type. */
   static readonly BY_DECORATOR: Readonly<Record<string, TArtifactType>> = {
     configuration: ArtifactTypes.CONFIGURATION,
@@ -76,8 +80,8 @@ export class ArtifactStereotypes {
 
   static readonly DEFAULT_IGNORE = [
     '**/__tests__/**',
-    '**/*.test.ts',
-    '**/*.spec.ts',
+    '**/*.test.{ts,tsx}',
+    '**/*.spec.{ts,tsx}',
     '**/generated/**',
   ];
 

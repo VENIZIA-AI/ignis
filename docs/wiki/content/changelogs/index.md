@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-18 | [Auto Artifacts Register Classes in .tsx Files](./2026-10-18-artifacts-scan-tsx) | Bug Fix |
 | 2026-10-18 | [An Application Without casbin Compiles Again](./2026-10-18-casbin-optional-build) | Bug Fix |
 | 2026-10-18 | [ArtifactGroup.application Leaves Out Ignored Files](./2026-10-18-application-group-ignore) | Feature |
 | 2026-10-18 | [The Browser Auto Index Is Tree-Shaken Again](./2026-10-18-auto-index-eager-in-browser) | Performance |

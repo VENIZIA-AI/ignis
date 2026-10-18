@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Auto Artifacts Read .tsx',
+                  link: '/changelogs/2026-10-18-artifacts-scan-tsx',
+                },
+                {
                   text: 'Compiles Without casbin',
                   link: '/changelogs/2026-10-18-casbin-optional-build',
                 },

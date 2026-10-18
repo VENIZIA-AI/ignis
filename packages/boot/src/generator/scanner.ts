@@ -89,7 +89,7 @@ export class ArtifactScanner extends BaseHelper {
     const kept: string[] = [];
     const hidden: string[] = [];
 
-    const sync = new Bun.Glob('**/*.ts').scanSync({ cwd: opts.root });
+    const sync = new Bun.Glob(ArtifactStereotypes.SOURCE_GLOB).scanSync({ cwd: opts.root });
     for (const relative of sync) {
       if (relative.endsWith('.d.ts') || opts.defaultGlobs.some(glob => glob.match(relative))) {
         continue;

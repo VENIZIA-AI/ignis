@@ -1,11 +1,11 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
-import type { IScannedArtifact } from '../generator/common';
+import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
 
 /** The scanner's answer for one `src`, kept under the package's `node_modules/.cache` and valid while no `.ts` file under `src`, the package manifest or the lockfile changed - a hit skips TypeScript entirely. */
 export class ArtifactScanCache {
-  static readonly VERSION = 1;
+  static readonly VERSION = 2;
 
   static location(opts: { root: string }): string {
     const root = resolve(opts.root);
@@ -13,11 +13,13 @@ export class ArtifactScanCache {
     return join(dirname(root), 'node_modules', '.cache', 'ignis-artifacts', `${key}.json`);
   }
 
-  /** Path, size and mtime of every `.ts` under `root`, plus the package manifest and the nearest lockfile (a dependency upgrade can change which decorators count). */
+  /** Path, size and mtime of every `.ts`/`.tsx` under `root`, plus the package manifest and the nearest lockfile (a dependency upgrade can change which decorators count). */
   static fingerprint(opts: { root: string }): string {
     const root = resolve(opts.root);
     const entries: string[] = [];
-    for (const relativePath of new Bun.Glob('**/*.ts').scanSync({ cwd: root })) {
+    for (const relativePath of new Bun.Glob(ArtifactStereotypes.SOURCE_GLOB).scanSync({
+      cwd: root,
+    })) {
       const stats = statSync(join(root, relativePath));
       entries.push(`${relativePath}:${stats.size}:${stats.mtimeMs}`);
     }
