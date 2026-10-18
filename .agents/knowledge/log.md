@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - HttpRepository query, default limit, search; inversion imports reflect-metadata; browser-globals guard
+
+Updated [connectors](/packages/connectors.md) (extra `query`, `buildQuery`, `defaultLimit`, `search`), [inversion](/packages/inversion.md) (registry imports `reflect-metadata`) and [helpers](/packages/helpers.md) (`browser-globals.test.ts`; no lodash or `global` in any IGNIS browser entry).
+
 ## 2026-10-18 - useUnknownInCatchVariables on
 
 Updated [dev-configs](/packages/dev-configs.md); strictPropertyInitialization stays off for DI properties.

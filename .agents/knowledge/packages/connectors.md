@@ -142,6 +142,8 @@ The 401 retry rebuilds headers through the SAME builder: a second header-buildin
 `x-auth-provider` would be set unguarded, and `fetch` turns an `undefined` value into the literal
 string "undefined".
 
+Reads take an extra `query` (`THttpExtraQuery`) beside `filter`/`where`, and every read builds its query string in the protected `buildQuery({ method, query, params })` - `params` (`filter`, `where`) win - so a subclass reshapes one verb. `defaultLimit` (constructor, a positive integer or a 500) is added to a `find` filter that names no `limit`; `findOne`/`count`/`existsWith` keep their own limit of 1. `search({ input, query?, options? })` POSTs a `TSearchInput` to `getSearchPaths()` (`[resource, searchPath ?? 'search']`) - the route `SearchControllerFactory` generates - and answers `{ found, isFoundExact, hits }`; anything else throws a 502. IGNIS has `POST /search` and `POST /multi-search` and NO `search/count` route (a search's total is `found`), so there is no `searchCount`; `multi-search` is cross-collection and stays a `dataSource.request` call. A server whose search is `GET <resource>/search` with its own params is not this route.
+
 12.8 KB gzipped against the root barrel's 144.2 KB, with no drizzle and no zod - guarded by
 `__tests__/http/weight.test.ts`.
 
