@@ -1,7 +1,7 @@
 import { getError } from '@venizia/ignis-helpers';
 import { existsSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import type { IScannedArtifact } from '../generator/common';
+import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
 import { ArtifactScanCache } from './scan-cache';
 
 interface IArtifactScanner {
@@ -117,7 +117,13 @@ export class ArtifactSources {
 
     const packageRoot = dirname(packageSource);
     const compiledPath = (target: { tree: string; artifact: IScannedArtifact }): string =>
-      join(target.tree, relative(packageSource, target.artifact.filePath).replace(/\.ts$/, '.js'));
+      join(
+        target.tree,
+        relative(packageSource, target.artifact.filePath).replace(
+          ArtifactStereotypes.SOURCE_EXTENSION,
+          '.js',
+        ),
+      );
     const segments = relative(packageRoot, dirname(from)).split(sep);
     const tree = segments
       .map((_segment, index) => join(packageRoot, ...segments.slice(0, index + 1)))

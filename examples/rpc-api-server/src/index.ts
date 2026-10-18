@@ -1,6 +1,5 @@
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from './application';
-import { ViewController } from './controllers/view.controller';
 
 const application = new Application({
   scope: 'Application',
@@ -8,8 +7,7 @@ const application = new Application({
     host: '0.0.0.0',
     port: Number(process.env.PORT ?? 3000),
     path: { base: '/api', isStrict: false },
-    // The scanner reads `.ts` files only, so the `.tsx` controller is listed by hand.
-    artifacts: [AutoArtifacts, { controllers: [ViewController] }],
+    artifacts: AutoArtifacts,
   },
 });
 

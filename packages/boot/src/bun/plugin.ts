@@ -89,7 +89,7 @@ export class IgnisArtifactsPlugin {
       });
     };
 
-    const isCompiled = !filePath.endsWith('.ts');
+    const isCompiled = !ArtifactStereotypes.SOURCE_EXTENSION.test(filePath);
     const contentLiteral = (folder: string | undefined, ignore?: string[]): string => {
       const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath, ignore });
       if (artifacts.length === 0) {
@@ -108,7 +108,10 @@ export class IgnisArtifactsPlugin {
             }
             counter += 1;
             const local = `__ignis_group_${counter}`;
-            const path = artifact.filePath.split(sep).join('/').replace(/\.ts$/, '');
+            const path = artifact.filePath
+              .split(sep)
+              .join('/')
+              .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
             imports.push(`import { ${artifact.className} as ${local} } from '${path}';`);
             return local;
           });
@@ -244,7 +247,7 @@ export class IgnisArtifactsPlugin {
       if (!existsSync(source)) {
         continue;
       }
-      trees.push({ directory: source, pattern: '**/*.ts' });
+      trees.push({ directory: source, pattern: ArtifactStereotypes.SOURCE_GLOB });
       for (const entry of readdirSync(dirname(source), { withFileTypes: true })) {
         if (
           entry.isDirectory() &&
@@ -309,7 +312,7 @@ export class IgnisArtifactsPlugin {
               filePath: args.path,
               source: readFileSync(args.path, 'utf8'),
             }),
-            loader: args.path.endsWith('.ts') ? 'ts' : 'js',
+            loader: args.path.endsWith('.tsx') ? 'tsx' : args.path.endsWith('.ts') ? 'ts' : 'js',
           }));
         }
         // Lazy (a dynamic import on the first resolve) for a server: a library importing this module must not evaluate the app's classes inside its own half-loaded graph. Eager for a browser bundle: a lazily evaluated graph is not tree-shaken, which doubled a measured frontend bundle.

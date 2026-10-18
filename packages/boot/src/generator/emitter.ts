@@ -99,9 +99,12 @@ export class ArtifactIndexEmitter {
 
   private static importPath(opts: { from: string; to: string; isAbsolute: boolean }): string {
     if (opts.isAbsolute) {
-      return opts.to.split(sep).join('/').replace(/\.ts$/, '');
+      return opts.to.split(sep).join('/').replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
     }
-    const raw = relative(dirname(opts.from), opts.to).split(sep).join('/').replace(/\.ts$/, '');
+    const raw = relative(dirname(opts.from), opts.to)
+      .split(sep)
+      .join('/')
+      .replace(ArtifactStereotypes.SOURCE_EXTENSION, '');
     return raw.startsWith('.') ? raw : `./${raw}`;
   }
 }
