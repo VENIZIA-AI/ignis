@@ -1,4 +1,5 @@
 import type { OxlintConfig } from 'oxlint';
+import { LintIgnore } from './ignore';
 import { type IOxlintPresetOptions, OxlintConfigs } from './oxlint';
 import { NoRestrictedPropertiesRule } from './rules';
 
@@ -17,14 +18,17 @@ import { NoRestrictedPropertiesRule } from './rules';
  */
 export class BrowserOxlintConfigs {
   static create(opts: IOxlintPresetOptions = {}): OxlintConfig {
-    const baseConfigs = OxlintConfigs.create(opts);
+    const baseConfigs = OxlintConfigs.create({ lenientFallback: opts.lenientFallback });
 
-    return {
-      ...baseConfigs,
-      rules: {
-        ...baseConfigs.rules,
-        [NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build(),
+    return LintIgnore.oxlint({
+      config: {
+        ...baseConfigs,
+        rules: {
+          ...baseConfigs.rules,
+          [NoRestrictedPropertiesRule.NAME]: NoRestrictedPropertiesRule.build(),
+        },
       },
-    };
+      patterns: opts.ignore ?? [],
+    });
   }
 }

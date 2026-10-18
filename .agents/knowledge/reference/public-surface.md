@@ -12,12 +12,13 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (35)
+### `@venizia/dev-configs` (38)
 
 - `AstNodeTypes` class
 - `browserOxfmtConfigs` const
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
+- `ConstClassValuesRule` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -27,10 +28,12 @@ generated:
 - `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
+- `LintIgnore` class
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `nodeType` const
+- `NoLeakedRenderRule` class
 - `NoNewErrorRule` class
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
@@ -60,10 +63,11 @@ generated:
 - `oxfmtConfigs` const
 - `prettierConfigs` const
 
-### `@venizia/dev-configs/linters` (31)
+### `@venizia/dev-configs/linters` (34)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
+- `ConstClassValuesRule` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -73,10 +77,12 @@ generated:
 - `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
+- `LintIgnore` class
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `nodeType` const
+- `NoLeakedRenderRule` class
 - `NoNewErrorRule` class
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
@@ -1116,6 +1122,11 @@ generated:
 
 - `default` const
 
+### `@venizia/ignis-boot/vite` (2)
+
+- `IgnisArtifactsVitePlugin` class
+- `IIgnisVitePlugin` interface
+
 ### `@venizia/ignis-boot/build-info` (8)
 
 - `BuildInfoEmitter` class
@@ -1738,7 +1749,7 @@ generated:
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/http` (18)
+### `@venizia/ignis-connectors/http` (20)
 
 - `HttpDataSource` class
 - `HttpRepository` class
@@ -1749,11 +1760,13 @@ generated:
 - `IHttpDataSourceSettings` interface
 - `IHttpReadResult` interface
 - `IHttpRequestContext` interface
+- `IHttpSearchResult` interface
 - `IHttpWriteResult` interface
 - `TAuthTokenResolver` type
 - `TExtraRequest` type
 - `TExtraResult` type
 - `THttpBody` type
+- `THttpExtraQuery` type
 - `THttpHeaders` type
 - `THttpHeadersResolver` type
 - `THttpQuery` type

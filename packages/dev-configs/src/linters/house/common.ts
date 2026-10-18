@@ -5,6 +5,7 @@ export class AstNodeTypes {
   static readonly FUNCTION_DECLARATION = 'FunctionDeclaration';
   static readonly FUNCTION_EXPRESSION = 'FunctionExpression';
   static readonly ARROW_FUNCTION_EXPRESSION = 'ArrowFunctionExpression';
+  static readonly EXPORT_NAMED_DECLARATION = 'ExportNamedDeclaration';
 }
 
 /** The ESLint namespace the house rules live under: `venizia/<rule>`. */

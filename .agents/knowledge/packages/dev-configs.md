@@ -11,6 +11,8 @@ tags: [packages, dev-configs, tooling]
 
 - [Exports](#exports)
 - [oxlint and oxfmt](#oxlint-and-oxfmt)
+- [House rules](#house-rules)
+- [Ignoring generated paths](#ignoring-generated-paths)
 - [ESLint - naming convention only](#eslint---naming-convention-only)
 - [Per-project `.configs/` folder](#per-project-configs-folder)
 - [TypeScript - the critical setting](#typescript---the-critical-setting)
@@ -72,13 +74,38 @@ Moving the ban into the browser tier changed the React preset in one way. The ba
 
 Every lint preset (backend, browser and React) lives here, and ARDOR consumes them. `ReactOxlintConfigs.create()` is `BrowserOxlintConfigs.create()` plus three groups of rules: the `react` / `jsx-a11y` rules of `ReactEslintConfigs`, the hooks rules, and `consistent-type-imports`. `react/no-deprecated` is the one `ReactEslintConfigs` rule left out, because oxlint lacks it. The browser preset supplies the `crypto.randomUUID` ban, because that method is undefined outside a secure context. Nothing in the base is relaxed for a UI (decided 2026-10-16: frontend code meets the backend's standard - no floating promise, no `void`) and `exhaustive-deps` is an error; `ReactEslintConfigs` follows the same rule and bans `crypto.randomUUID` too. The values match what ARDOR measured for its strict variant. `reactNamingConventionConfigs` adds the PascalCase function selector on `.jsx` / `.tsx`. oxlint has no `no-restricted-syntax`, so the secure-context ban is `no-restricted-properties`.
 
+## House rules
+
+`houseEslintPlugin` (namespace `venizia`) carries what oxlint cannot express. One class per rule in `linters/house/`, each with `NAME`, `RULE` and `build()`.
+
+| Rule | In | Notes |
+|---|---|---|
+| `max-params-own` | `houseConfigs`, `reactHouseConfigs` | At most 5 positional parameters on a function we write |
+| `no-new-error` | both | `getError`, never `new Error` / `Error()`; off in tests |
+| `no-leaked-render` | `reactHouseConfigs` only, `.jsx`/`.tsx` | `cond && <X />` draws `0`; fixer writes `cond ? <X /> : null` |
+| `const-class-values` | registered, enabled by no preset | exported `*State`/`*Status`/`*Stage`/`*Mode`/`*Kind`/`*Type` string-literal union (V-C-08). Three IGNIS types still match (`helpers` `TFieldMappingDataType` and `AESAlgorithmType`, `kernel` `TIdSchemaType`), so a preset at `error` would break `lint-helpers` and `lint-kernel` |
+
+Checked against the BANA copies (2026-10-18): `max-params-own` gave the same hits on a 6-case snippet and on the BANA frontend; `no-leaked-render` gave the same 48 hits and the same fixed output on 3755 `.tsx` files; `no-new-error` differs only in also catching a bare `Error('x')` call. BANA's `pascal-case-tsx` was not taken: IGNIS and ARDOR name `.tsx` files in kebab-case (`about.page.tsx`, `product-list.tsx`), so PascalCase is a BANA product rule.
+
+Both React presets (`ReactEslintConfigs`, `ReactOxlintConfigs`) run 15 `jsx-a11y` rules: the nine basics plus `anchor-is-valid`, `click-events-have-key-events`, `heading-has-content`, `label-has-associated-control`, `no-noninteractive-element-interactions`, `no-static-element-interactions`.
+
+`typescript/no-deprecated` (type-aware, BANA turns it on) is not in the base: `core-server` uses `MinioHelper` and `SpawnOptions`, both deprecated on purpose, and would fail lint.
+
+### consistent-type-imports and decorated parameters
+
+oxlint 1.88 ignores decorator metadata (its schema says "except when referenced by decorator metadata", but a decorated constructor parameter, property or method parameter is flagged all the same, and `--fix` writes `import { type X }`). There is no rule option. tsc then emits `Function` (`Object` under Bun) for that `design:paramtypes` entry. That is accepted: IGNIS never injects by the entry (`@inject` names a key, `@repository` skips `Object` and `Function`), so the preset keeps `fixStyle: 'inline-type-imports'` and `disallowTypeAnnotations: false`. typescript-eslint's rule does honour it when `emitDecoratorMetadata` + `experimentalDecorators` are in `parserOptions` (measured: decorated class clean, undecorated flagged), which is the way out for code that reads the paramtypes.
+
+## Ignoring generated paths
+
+oxlint resolves `ignorePatterns` against the config file's folder and rejects `..`, so `.configs/` can never ignore a project path. `IOxlintPresetOptions.ignore` (every oxlint preset) appends an override that turns every rule off for `**/<pattern>`. It lands after the preset's overrides, so a caller's later override can undo it; `LintIgnore.oxlint({ config, patterns })` wraps a finished config. `LintIgnore.eslint({ patterns })` is `{ ignores }`. Packages with a Makefile still use `LINT_IGNORE` (`make/project.mk`).
+
 ## ESLint - naming convention only
 
 oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
-`ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` basics, hooks and `consistent-type-imports`, with no UI relaxation (decided 2026-10-16: frontend code meets the backend's standard), `exhaustive-deps` an error and `crypto.randomUUID` banned. Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule comes from `NamingConventionRule.build({ extraSelectors })`, extended for `.jsx`/`.tsx` only.
+`ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` is the frontend preset: the base, plus React correctness, `jsx-a11y` (15 rules), hooks and `consistent-type-imports`, with no UI relaxation (decided 2026-10-16: frontend code meets the backend's standard), `exhaustive-deps` an error and `crypto.randomUUID` banned. Plugins are options, never dependencies - the same seam IGNIS uses for optional peers - so a backend installs nothing. `reactVersion` defaults to `detect`, which aborts under ESLint 10 with eslint-plugin-react 7 - the option exists for that. The plugin type omits `configs`: each plugin types its presets differently (react-hooks 7 fails `ESLint.Plugin`), and only `rules` are used. The naming rule comes from `NamingConventionRule.build({ extraSelectors })`, extended for `.jsx`/`.tsx` only.
 
 ## Per-project `.configs/` folder
 

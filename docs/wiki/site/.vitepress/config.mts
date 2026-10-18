@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'dev-configs React House Rules',
+                  link: '/changelogs/2026-10-18-dev-configs-react-house-rules',
+                },
+                {
                   text: 'HttpRepository Query, Limit, Search',
                   link: '/changelogs/2026-10-18-http-repository-query-limit-search',
                 },

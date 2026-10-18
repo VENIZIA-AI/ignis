@@ -10,6 +10,10 @@ counted as concepts.
 
 Updated [connectors](/packages/connectors.md) (extra `query`, `buildQuery`, `defaultLimit`, `search`), [inversion](/packages/inversion.md) (registry imports `reflect-metadata`) and [helpers](/packages/helpers.md) (`browser-globals.test.ts`; no lodash or `global` in any IGNIS browser entry).
 
+## 2026-10-18 - dev-configs: no-leaked-render, const-class-values, six jsx-a11y rules, ignore
+
+Updated [dev-configs](/packages/dev-configs.md): `venizia/no-leaked-render` in `reactHouseConfigs`, `venizia/const-class-values` registered but off, six more `jsx-a11y` rules in both React presets, `ignore` / `LintIgnore`. Recorded why BANA's `pascal-case-tsx` and `typescript/no-deprecated` were not taken and what oxlint does with decorator metadata.
+
 ## 2026-10-18 - useUnknownInCatchVariables on
 
 Updated [dev-configs](/packages/dev-configs.md); strictPropertyInitialization stays off for DI properties.
