@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'noImplicitAny On, Exact Sibling Pins',
+                  link: '/changelogs/2026-10-18-exact-sibling-pins-no-implicit-any',
+                },
+                {
                   text: 'FilterSchema Typed, noImplicitAny',
                   link: '/changelogs/2026-10-18-no-implicit-any-gaps',
                 },
