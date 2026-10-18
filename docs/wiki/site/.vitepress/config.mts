@@ -467,6 +467,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-18-inversion-imports-reflect-metadata',
                 },
                 {
+                  text: 'Same-Name Inject Target Is an Error',
+                  link: '/changelogs/2026-10-18-inject-target-same-name',
+                },
+                {
                   text: 'Auto Artifacts in Vite',
                   link: '/changelogs/2026-10-18-auto-artifacts-vite',
                 },

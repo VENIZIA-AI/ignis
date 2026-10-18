@@ -50,3 +50,5 @@ Inversion ships both a CJS build (`dist/cjs/`) and an ESM build (`dist/esm/`), u
 - [Binding key namespaces](/conventions/binding-key-namespaces.md)
 - [boot](/packages/boot.md)
 - [helpers](/packages/helpers.md)
+
+- **Same-name guard:** resolving `@inject({ target: X })` checks the key's `toClass` binding (`Binding.boundClass()`) is `X` or a subclass; a different same-name class throws (two classes of one name derive one key - pinned names make this reachable in bundles). Value and provider bindings are not checked.

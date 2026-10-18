@@ -20,6 +20,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-10-18 | [dev-configs Gains no-leaked-render, Six More Accessibility Rules and a Shared Ignore List](./2026-10-18-dev-configs-react-house-rules) | Enhancement |
 | 2026-10-18 | [HttpRepository Takes an Extra Query, a Default Limit and Searches](./2026-10-18-http-repository-query-limit-search) | Enhancement |
 | 2026-10-18 | [Decorators Work in a Split Chunk Without Importing reflect-metadata First](./2026-10-18-inversion-imports-reflect-metadata) | Bug Fix |
+| 2026-10-18 | [Injecting a Class That Shares Its Name With the Bound One Is an Error](./2026-10-18-inject-target-same-name) | Bug Fix |
 | 2026-10-18 | [Auto Artifacts in Vite Builds](./2026-10-18-auto-artifacts-vite) | Feature |
 | 2026-10-18 | [A `_name` Variable May Name an Omitted Value](./2026-10-18-omitted-underscore-variables) | Enhancement |
 | 2026-10-18 | [noImplicitAny Is On in dev-configs, and Sibling Packages Pin Each Other Exactly](./2026-10-18-exact-sibling-pins-no-implicit-any) | Behavior Change |
