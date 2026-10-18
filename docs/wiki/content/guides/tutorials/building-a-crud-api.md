@@ -289,6 +289,8 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 | `deleteAll()` | Delete multiple records |
 | `count()` | Count matching records |
 
+Reads return their result directly: `find()` returns an array of rows, `findOne()` and `findById()` return a row or `null`. The `{ count, data }` shape is what the generated HTTP routes answer (and what write methods such as `create()` return), not what `find()` returns.
+
 > **Deep Dive:** See [Repositories Reference](/references/base/repositories/) for query options and advanced filtering.
 
 ## Step 5: Create the Controller
@@ -362,55 +364,20 @@ export * from './todo.controller';
 
 ## Step 6: Register Components
 
-Update `src/application.ts` to register all components:
+There is nothing to write. `@datasource`, `@repository` and `@controller` already mark the three classes, and the `artifacts: AutoArtifacts` line in `src/application.ts` (from [Complete Installation](./complete-installation.md)) scans `src` at start-up and registers every marked class. `application.ts` stays as it was:
 
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
-import { HelloController } from './controllers/hello';
-import packageJson from '../package.json';
-
-// Import our new components
-import { PostgresDataSource } from './datasources/postgres.datasource';
-import { TodoRepository } from './repositories/todo.repository';
-import { TodoController } from './controllers/todo';
-
 export const appConfigs: IApplicationConfigs = {
   host: process.env.HOST ?? '0.0.0.0',
   port: +(process.env.PORT ?? 3000),
   path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts, // finds PostgresDataSource, TodoRepository, TodoController, HelloController
 };
-
-export class Application extends BaseApplication {
-  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
-    return packageJson;
-  }
-
-  staticConfigure(): void {}
-
-  setupMiddlewares(): ValueOrPromise<void> {}
-
-  preConfigure(): ValueOrPromise<void> {
-    // 1. Register ApiReferenceComponent for API docs
-    this.component(ApiReferenceComponent);
-
-    // 2. Register datasource
-    this.dataSource(PostgresDataSource);
-
-    // 3. Register repository
-    this.repository(TodoRepository);
-
-    // 4. Register controllers
-    this.controller(HelloController);
-    this.controller(TodoController);
-  }
-
-  postConfigure(): ValueOrPromise<void> {}
-}
 ```
 
 > [!NOTE] Registration Order
-> The order of these calls inside `preConfigure()` does not matter. Each one only creates a binding; nothing is resolved yet. The boot sequence then configures datasources, then components, then controllers, so a repository always finds its datasource however you ordered the registrations. Grouping them datasources first, then repositories, services and controllers, is a readability convention.
+> Registration order does not matter. Each registration only creates a binding; nothing is resolved yet. The boot sequence then configures datasources, then components, then controllers, so a repository always finds its datasource.
 
 ## Step 7: Run Database Migration
 
@@ -534,15 +501,13 @@ Open `http://localhost:3000/api/doc/explorer` to see an interactive Scalar API r
 
 ### Error: "Binding 'datasources.PostgresDataSource' not found"
 
-**Cause:** Forgot to register DataSource in `application.ts`
+**Cause:** The class is not registered. Either `@datasource` is missing, the file is outside `src`, or `artifacts: AutoArtifacts` is missing from `appConfigs`.
 
 **Fix:**
 ```typescript
-// In application.ts preConfigure():
-this.dataSource(PostgresDataSource);  // ← Make sure this is here!
+@datasource({ driver: NodePostgresDriver })  // ← Make sure this is here!
+export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {}
 ```
-
-**Order matters:** DataSource must be registered before Repository.
 
 
 ### Error: "connection refused" or "ECONNREFUSED"
@@ -585,8 +550,9 @@ You should see `Todo` in the list.
 
 **Fix:**
 ```typescript
-// In application.ts preConfigure():
-this.controller(TodoController);  // ← Make sure this is here!
+// On the class:
+@controller({ path: BASE_PATH })  // ← Make sure this is here!
+export class TodoController extends _Controller {}
 
 // Check appConfigs:
 path: { base: '/api', isStrict: true },  // All routes start with /api
@@ -624,7 +590,7 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 | 1 | Create `src/models/user.model.ts` |
 | 2 | Create `src/repositories/user.repository.ts` (auto-registers User with PostgresDataSource) |
 | 3 | Create `src/controllers/user/` (definitions.ts, user.controller.ts, index.ts) |
-| 4 | Register repository and controller in `application.ts` |
+| 4 | Decorate the repository (`@repository`) and the controller (`@controller`) - `AutoArtifacts` registers them |
 | 5 | Push schema: `bun run db:push` |
 | 6 | Test with curl |
 
@@ -641,13 +607,14 @@ For complex validation or business rules, create a Service layer:
 
 ```typescript
 // src/services/todo.service.ts
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, service } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { TodoRepository } from '@/repositories/todo.repository';
 
+@service()
 export class TodoService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.TodoRepository' })
+    @inject({ target: TodoRepository })
     private todoRepository: TodoRepository,
   ) {
     super({ scope: TodoService.name });
@@ -672,10 +639,7 @@ export class TodoService extends BaseService {
 }
 ```
 
-Register in `application.ts`:
-```typescript
-this.service(TodoService);
-```
+`@service()` marks the class and `AutoArtifacts` registers it - no line in `application.ts`.
 
 > **Deep Dive:** See [Services Reference](../core-concepts/services.md) for best practices and advanced patterns.
 

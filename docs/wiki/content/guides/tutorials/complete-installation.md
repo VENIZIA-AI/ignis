@@ -14,12 +14,15 @@ cd my-app
 bun init -y
 ```
 
+`bun init` writes `"type": "module"` into `package.json`. Delete that line - an IGNIS app stays CommonJS (see [Stay CommonJS](#stay-commonjs) below).
+
 ## 2. Install Dependencies
 
 ### Production Dependencies
 
 ```bash
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers \
+  @venizia/ignis-boot winston winston-transport winston-daily-rotate-file
 ```
 
 **What each package does:**
@@ -28,6 +31,8 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 - `@scalar/hono-api-reference` - Interactive API documentation UI
 - `@venizia/ignis` - Core IGNIS framework (application, controllers, repositories, DI)
 - `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
+- `@venizia/ignis-boot` - `AutoArtifacts`, which finds your decorated classes so you never register them by hand (Bun only)
+- `winston` and its two companions - the default logger; the application refuses to start without a logger provider
 
 ### Development Dependencies
 
@@ -59,11 +64,11 @@ Create `tsconfig.json` in your project root:
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"]
     },
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "useDefineForClassFields": false
   },
   "include": ["src"],
@@ -71,7 +76,14 @@ Create `tsconfig.json` in your project root:
 }
 ```
 
-> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. `tsc` reads it, but Bun ignores an `extends` that names a package - so the two options that change the emitted code, `experimentalDecorators` and `useDefineForClassFields`, are restated here. Without them `bun run` drops `@inject` silently. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. `tsc` reads it, but Bun ignores an `extends` that names a package - so the three options that change the emitted code, `experimentalDecorators`, `emitDecoratorMetadata` and `useDefineForClassFields`, are restated here. Without them `bun run` drops `@inject` silently. `paths` stands alone, with no `baseUrl`. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
+
+### Stay CommonJS
+
+An app that extends `@venizia/dev-configs/tsconfig.common.json` (module `nodenext`) and has no `"type": "module"` in `package.json` is CommonJS. Keep it that way: with `"type": "module"`, tsc no longer resolves the `@/` alias or extensionless imports. In a CommonJS app:
+
+- Use `__dirname`, not `import.meta.dir`.
+- Write no top-level `await` in an entry or a script. Wrap the work in an async function and end it with `.catch`, as the entry point below does.
 
 ### Tool configs
 
@@ -171,7 +183,7 @@ Create `src/application.ts` - this is where you configure and register all your 
 
 ```typescript
 import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
-import { HelloController } from './controllers';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import packageJson from '../package.json';
 
 // Define application configurations
@@ -179,6 +191,7 @@ export const appConfigs: IApplicationConfigs = {
   host: process.env.HOST ?? '0.0.0.0',        // Where your server listens
   port: +(process.env.PORT ?? 3000),          // Port number
   path: { base: '/api', isStrict: true },      // All routes will be under /api
+  artifacts: AutoArtifacts,                   // Registers every decorated class found under src
 };
 
 export class Application extends BaseApplication {
@@ -218,14 +231,9 @@ export class Application extends BaseApplication {
     // Register ApiReferenceComponent for API documentation at /api/doc/explorer
     this.component(ApiReferenceComponent);
 
-    // As your app grows, you'll add:
-    // this.dataSource(PostgresDataSource);      // Database connection
-    // this.repository(UserRepository);          // Data access layer
-    // this.service(UserService);                // Business logic
-    // this.component(AuthenticateComponent);    // Authentication setup
-
-    // Register our controller
-    this.controller(HelloController);
+    // Controllers, services, repositories and datasources need no call here:
+    // their decorators mark them and AutoArtifacts registers them.
+    // Framework components such as the one above are not your classes, so you register them here.
   }
 
   // Hook 4: Do cleanup or extra work after everything is set up
@@ -245,7 +253,7 @@ export class Application extends BaseApplication {
 >
 > **Recommendation:** Read from `package.json` for consistency between app metadata and API docs.
 
-**Key takeaway:** You'll mostly work in `preConfigure()` when building your app. The other hooks are there when you need them.
+**Key takeaway:** Your classes carry decorators (`@controller`, `@service`, `@repository`, `@datasource`, `@model`) and `artifacts: AutoArtifacts` registers them, so `preConfigure()` stays short. The other hooks are there when you need them.
 
 **Boot sequence.** `initialize()` runs sixteen steps in this fixed order. You override a handful; the framework runs the rest.
 
@@ -376,7 +384,10 @@ const main = async () => {
   return application;
 };
 
-export default main();
+main().catch((error: unknown) => {
+  logger.error('[main] Application start failed | Error: %s', error);
+  process.exit(1);
+});
 ```
 
 > [!WARNING]

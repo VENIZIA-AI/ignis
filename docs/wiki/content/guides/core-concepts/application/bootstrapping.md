@@ -182,7 +182,7 @@ await Bun.build({
 });
 ```
 
-A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"` - it never ships a binary with missing classes. On Node there is no plugin API: keep `ignis-artifacts generate`.
+A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"` - it never ships a binary with missing classes. The entry must also register its logger - see [rule 3 below](#compiling-with-bun-build-compile). On Node there is no plugin API: keep `ignis-artifacts generate`.
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
@@ -351,7 +351,17 @@ Four rules, each backed by a measurement:
 
 1. Pass `--env=disable`. Without it `process.env.NODE_ENV` is a literal baked in at build time. Read the environment through `Environment.ambient` or `Environment.current`, never the dot form.
 2. Do not pass `--minify`. It minifies identifiers and every class name becomes two letters. Use `--minify-whitespace --minify-syntax`.
-3. Register a logger provider at the entrypoint: `LoggerFactory.use({ provider: WinstonLogger })` from `@venizia/ignis-helpers/winston`. The winston default is loaded with `createRequire`, which cannot resolve inside a binary.
+3. Register a logger provider at the top of the entrypoint. The winston default is loaded with `createRequire`, which cannot resolve inside a binary, so name the class yourself:
+
+   ```typescript
+   // src/index.ts
+   import { LoggerFactory } from '@venizia/ignis-helpers';
+   import { WinstonLogger } from '@venizia/ignis-helpers/winston';
+
+   LoggerFactory.use({ provider: WinstonLogger });
+   ```
+
+   Without it the first log call throws `[LoggerFactory] No logger provider is registered and the default (winston) could not be loaded`.
 4. Build every binding key from `Class.name`. bun renames a bundled decorated class (`UserService` -> `UserService2`), so a literal `'services.UserService'` matches nothing.
 
 ```json
