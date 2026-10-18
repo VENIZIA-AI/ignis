@@ -81,19 +81,25 @@ export class ArtifactSources {
     return join(directory, 'src');
   }
 
-  /** The decorated classes under a directory named `folder` in the package whose source holds `site`, each pointing at the copy that runs beside `site` (see `runningArtifacts`). */
-  static folderArtifacts(opts: { folder: string | undefined; site: string }): IScannedArtifact[] {
+  /** The decorated classes under a directory named `folder` in the package whose source holds `site`, less those under an `ignore` glob (relative to `src`), each pointing at the copy that runs beside `site` (see `runningArtifacts`). */
+  static folderArtifacts(opts: {
+    folder: string | undefined;
+    site: string;
+    ignore?: ReadonlyArray<string>;
+  }): IScannedArtifact[] {
     const packageSource = ArtifactSources.packageSource({ from: dirname(opts.site) });
 
     const artifacts = ArtifactSources.scan({ packageSource });
 
     const { folder } = opts;
-    const picked =
-      folder === undefined
-        ? artifacts
-        : artifacts.filter(artifact =>
-            relative(packageSource, artifact.filePath).split(sep).slice(0, -1).includes(folder),
-          );
+    const ignored = (opts.ignore ?? []).map(pattern => new Bun.Glob(pattern));
+    const picked = artifacts.filter(artifact => {
+      const path = relative(packageSource, artifact.filePath);
+      return (
+        (folder === undefined || path.split(sep).slice(0, -1).includes(folder)) &&
+        !ignored.some(glob => glob.match(path))
+      );
+    });
     return ArtifactSources.runningArtifacts({ artifacts: picked, from: opts.site });
   }
 

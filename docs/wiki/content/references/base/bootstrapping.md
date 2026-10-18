@@ -238,7 +238,7 @@ class ArtifactGroup implements IArtifactGroup {
 | `content` | Written by `IgnisArtifactsPlugin` at build time; a hand-written group leaves it out |
 | `isGroup(value)` | Checks the `isArtifactGroup` brand, so the CommonJS and ESM copies of the kernel agree |
 | `setResolver({ resolve })` | The resolver for a group with no `content`. `@venizia/ignis-boot/auto` installs it when imported |
-| `application({ content? })` | From source it needs `@venizia/ignis-boot/auto` imported once in the process (the resolver). Every decorated class of the calling package's `src` - an application's own artifacts picked by its call site, so several applications loaded into one process each get their own. The build plugin inlines it like `define` |
+| `application({ ignore?, content? })` | From source it needs `@venizia/ignis-boot/auto` imported once in the process (the resolver). Every decorated class of the calling package's `src` - an application's own artifacts picked by its call site, so several applications loaded into one process each get their own. `ignore` leaves out the classes under its globs, relative to `src` (the patterns `ignis-artifacts --ignore` takes); the build plugin reads them from the call, so they must be string literals. The build plugin inlines it like `define` |
 | `pick({ group, kinds })` | A slice of any group (a borrowed one or `AutoArtifacts`) carrying only `kinds`, resolved when artifacts are registered. An empty slice is not an error. For a function that splits `configs.artifacts` by run mode |
 | `resolveContent({ group })` | The group's classes: inlined `content`, else its own `resolve()`, else the installed resolver |
 

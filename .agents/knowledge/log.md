@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - ArtifactGroup.application takes ignore
+
+Updated [boot](/packages/boot.md): `application({ ignore })` and where the auto import belongs.
+
 ## 2026-10-18 - The browser auto index is eager again
 
 Updated [boot](/packages/boot.md).

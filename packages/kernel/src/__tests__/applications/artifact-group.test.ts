@@ -197,6 +197,19 @@ describe('ArtifactGroup.application', () => {
     ]);
   });
 
+  test('hands its ignore patterns to the resolver', async () => {
+    const group = ArtifactGroup.application({ ignore: ['repositories/clickhouse/**'] });
+    expect(group.ignore).toEqual(['repositories/clickhouse/**']);
+
+    ArtifactGroup.setResolver({
+      resolve: async ({ group: target }) =>
+        target.ignore?.includes('repositories/clickhouse/**') ? { services: [StockService] } : {},
+    });
+    expect(await helper.flatten({ input: group, application })).toEqual([
+      { services: [StockService] },
+    ]);
+  });
+
   test('takes content inlined by a build', async () => {
     const group = ArtifactGroup.application({ content: { controllers: [StockController] } });
     expect(await helper.flatten({ input: group, application })).toEqual([
