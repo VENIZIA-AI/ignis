@@ -67,14 +67,20 @@ for pkg in $PACKAGES; do
 
   echo "[$pkg] $TAG version: $VERSION"
 
+  # A package of this repository is pinned exactly - the chain releases together, so a caret would let
+  # a fresh install mix one release's package with the next release's sibling. Anything else keeps a caret.
+  RANGE="^${VERSION}"
+  if [ -n "$(jq -r --arg p "$pkg" 'select(.name == $p) | .name' ../*/package.json 2>/dev/null | head -n 1)" ]; then
+    RANGE="${VERSION}"
+  fi
+
   # Escape package name for sed (replace @ and / with escaped versions)
   PACKAGE_NAME=$(echo "$pkg" | sed 's/[\/&]/\\&/g')
 
-  # This handles both dependencies and devDependencies
-  # Matches: "package-name": "any-version" and replaces with specific version
-  sed -i "s/\"${PACKAGE_NAME}\": \"[^\"]*\"/\"${PACKAGE_NAME}\": \"^${VERSION}\"/g" package.json
+  # Matches "package-name": "any-version" in dependencies, devDependencies and peerDependencies
+  sed -i "s/\"${PACKAGE_NAME}\": \"[^\"]*\"/\"${PACKAGE_NAME}\": \"${RANGE}\"/g" package.json
 
-  echo "[$pkg] Updated to version ^$VERSION"
+  echo "[$pkg] Updated to version $RANGE"
 done
 
 echo "DONE | Force update completed successfully!"

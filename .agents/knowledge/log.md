@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - noImplicitAny on, exact sibling pins
+
+Updated [dev-configs](/packages/dev-configs.md) and [release-publish](/process/release-publish.md).
+
 ## 2026-10-18 - Auto artifacts read .tsx
 
 Updated [boot](/packages/boot.md): one source glob for scanner, cache and plugin; cache format 2.
