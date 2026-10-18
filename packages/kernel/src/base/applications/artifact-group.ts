@@ -21,17 +21,20 @@ export class ArtifactGroup implements IArtifactGroup {
     content: IArtifactIndex | undefined;
     resolve?: () => Promise<IArtifactIndex>;
     kinds?: ReadonlyArray<keyof IArtifactIndex>;
+    ignore?: ReadonlyArray<string>;
   }) {
     this.folder = opts.folder;
     this.site = opts.site;
     this.content = opts.content;
     this.resolve = opts.resolve;
     this.kinds = opts.kinds;
+    this.ignore = opts.ignore;
   }
 
   readonly folder: string | undefined;
   readonly site: string | undefined;
   readonly content: IArtifactIndex | undefined;
+  readonly ignore: ReadonlyArray<string> | undefined;
 
   /** `content` is written by the build plugin; a hand-written group passes only `folder`. */
   static define(opts: { folder: string; content?: IArtifactIndex }): ArtifactGroup {
@@ -42,12 +45,15 @@ export class ArtifactGroup implements IArtifactGroup {
     });
   }
 
-  /** Every decorated class of the calling package - an application's own artifacts, picked by its call site, so several applications in one process each get their own. `content` is written by the build plugin. */
-  static application(opts: { content?: IArtifactIndex } = {}): ArtifactGroup {
+  /** Every decorated class of the calling package - an application's own artifacts, picked by its call site, so several applications in one process each get their own. `ignore` takes the globs `ignis-artifacts --ignore` takes, relative to the package `src`. `content` is written by the build plugin. */
+  static application(
+    opts: { ignore?: ReadonlyArray<string>; content?: IArtifactIndex } = {},
+  ): ArtifactGroup {
     return new ArtifactGroup({
       folder: undefined,
       site: ArtifactGroup.callSite(),
       content: opts.content,
+      ignore: opts.ignore,
     });
   }
 
@@ -68,6 +74,7 @@ export class ArtifactGroup implements IArtifactGroup {
       content: group.content ? slice(group.content) : undefined,
       resolve: async () => slice(await ArtifactGroup.resolveContent({ group })),
       kinds,
+      ignore: group.ignore,
     });
   }
 

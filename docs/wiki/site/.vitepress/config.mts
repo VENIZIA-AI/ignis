@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'application() Takes ignore',
+                  link: '/changelogs/2026-10-18-application-group-ignore',
+                },
+                {
                   text: 'Browser Auto Index Tree-Shaken Again',
                   link: '/changelogs/2026-10-18-auto-index-eager-in-browser',
                 },

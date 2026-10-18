@@ -10,9 +10,13 @@ export class GroupArtifactsResolver {
   static readonly REALM_SLOT = Symbol.for('@venizia/ignis-kernel:artifact-group-resolver');
 
   static async resolve(opts: {
-    group: { folder: string | undefined; site: string | undefined };
+    group: {
+      folder: string | undefined;
+      site: string | undefined;
+      ignore?: ReadonlyArray<string>;
+    };
   }): Promise<TGeneratedArtifactIndex> {
-    const { folder, site } = opts.group;
+    const { folder, site, ignore } = opts.group;
     if (!site) {
       throw getError({
         message: `[ArtifactGroup] '${folder ?? '<application>'}' has no call site to resolve from | Define it with ArtifactGroup.define in the shared package's own source`,
@@ -28,7 +32,7 @@ export class GroupArtifactsResolver {
     }
 
     const index: Record<string, Array<TClass<AnyType>>> = {};
-    for (const artifact of ArtifactSources.folderArtifacts({ folder, site })) {
+    for (const artifact of ArtifactSources.folderArtifacts({ folder, site, ignore })) {
       const field = ArtifactStereotypes.EMIT_ORDER.find(
         entry => entry.type === artifact.type,
       )?.field;
@@ -47,7 +51,11 @@ export class GroupArtifactsResolver {
     const holder: { resolve?: unknown } =
       typeof existing === 'object' && existing !== null ? existing : {};
     holder.resolve = (resolveOpts: {
-      group: { folder: string | undefined; site: string | undefined };
+      group: {
+        folder: string | undefined;
+        site: string | undefined;
+        ignore?: ReadonlyArray<string>;
+      };
     }) => GroupArtifactsResolver.resolve(resolveOpts);
     Reflect.set(globalThis, GroupArtifactsResolver.REALM_SLOT, holder);
   }

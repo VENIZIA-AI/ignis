@@ -206,7 +206,17 @@ import { ArtifactGroup } from '@venizia/ignis';
 artifacts: [ArtifactGroup.application(), InventoryArtifacts],
 ```
 
-The kernel never imports `@venizia/ignis-boot`, so a group with no inlined content needs that import somewhere in the process before artifacts are registered; without it registration stops with an error naming it. A shared bootstrap (the function every service calls to start) is a good single place for it - importing the module loads no class; the classes load when artifacts are registered. A build with `IgnisArtifactsPlugin` inlines the group, exactly like a borrowed one, and needs no resolver.
+The kernel never imports `@venizia/ignis-boot`, so a group with no inlined content needs that import somewhere in the process before artifacts are registered; without it registration stops with an error naming it. Put it in the application module that uses the group, not in a shared library: every `Bun.build` that pulls the auto module in needs `IgnisArtifactsPlugin` (without it the build fails instead of shipping a binary with no classes), so an import in a shared library forces the plugin on applications that never use it. Importing the module loads no class; the classes load when artifacts are registered. A build with `IgnisArtifactsPlugin` inlines the group, exactly like a borrowed one, and needs no resolver.
+
+An application whose classes are partly registered elsewhere - repositories a component binds itself, controllers mounted by hand - leaves them out with `ignore`, the globs `ignis-artifacts --ignore` takes, relative to the package `src`:
+
+```typescript
+artifacts: [
+  ArtifactGroup.application({ ignore: ['repositories/clickhouse/**', 'repositories/postgres/**'] }),
+],
+```
+
+A build reads the patterns from the call, so they must be string literals.
 
 ### Borrowing from a shared package
 

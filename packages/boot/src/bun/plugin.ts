@@ -90,8 +90,8 @@ export class IgnisArtifactsPlugin {
     };
 
     const isCompiled = !filePath.endsWith('.ts');
-    const contentLiteral = (folder: string | undefined): string => {
-      const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath });
+    const contentLiteral = (folder: string | undefined, ignore?: string[]): string => {
+      const artifacts = ArtifactSources.folderArtifacts({ folder, site: filePath, ignore });
       if (artifacts.length === 0) {
         throw getError({
           message: `[IgnisArtifactsPlugin] ArtifactGroup '${folder ?? '<application>'}' resolved to no class | ${filePath} - check the folder name and that its classes carry a stereotype decorator`,
@@ -179,10 +179,22 @@ export class IgnisArtifactsPlugin {
         refuse(call, 'folder is not a string literal');
       }
 
+      const ignoreProperty = named('ignore');
+      const ignoreList =
+        ignoreProperty &&
+        ts.isPropertyAssignment(ignoreProperty) &&
+        ts.isArrayLiteralExpression(ignoreProperty.initializer) &&
+        ignoreProperty.initializer.elements.every(element => ts.isStringLiteral(element))
+          ? ignoreProperty.initializer.elements.map(element => (element as ts.StringLiteral).text)
+          : undefined;
+      if (ignoreProperty && ignoreList === undefined) {
+        refuse(call, 'ignore is not an array of string literals');
+      }
+
       const last = literal.properties[literal.properties.length - 1];
       edits.push({
         at: last ? last.getEnd() : literal.getStart() + 1,
-        text: `${last ? ', ' : ''}content: ${contentLiteral(folderLiteral)}`,
+        text: `${last ? ', ' : ''}content: ${contentLiteral(folderLiteral, ignoreList)}`,
       });
     };
     visit(sourceFile);

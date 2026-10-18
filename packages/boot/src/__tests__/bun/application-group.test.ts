@@ -38,6 +38,38 @@ describe('the application group', () => {
     );
     expect(() => new Bun.Transpiler({ loader: 'ts' }).transformSync(output)).not.toThrow();
   });
+
+  test('ignore leaves out the classes under its patterns, relative to src', async () => {
+    const index = await GroupArtifactsResolver.resolve({
+      group: { folder: undefined, site: GROUPS_FILE, ignore: ['services/duplicates/**'] },
+    });
+    const names = Object.values(index)
+      .flat()
+      .map(target => target.name)
+      .sort();
+    expect(names).toEqual(['CategoryService', 'StockRepository', 'StockService']);
+  });
+
+  test('a build honours ignore and keeps it in the call', () => {
+    const output = IgnisArtifactsPlugin.rewriteGroups({
+      filePath: GROUPS_FILE,
+      source:
+        "import { ArtifactGroup } from '@venizia/ignis-kernel';\nexport const Own = ArtifactGroup.application({ ignore: ['services/**'] });\n",
+    });
+    expect(output).toMatch(
+      /ArtifactGroup\.application\(\{ ignore: \['services\/\*\*'\], content: \{ repositories: \[__ignis_group_\d+\] \}/,
+    );
+  });
+
+  test('a build refuses an ignore that is not a list of string literals', () => {
+    expect(() =>
+      IgnisArtifactsPlugin.rewriteGroups({
+        filePath: GROUPS_FILE,
+        source:
+          "import { ArtifactGroup } from '@venizia/ignis-kernel';\nconst patterns = ['services/**'];\nexport const Own = ArtifactGroup.application({ ignore: patterns });\n",
+      }),
+    ).toThrow(/ignore is not an array of string literals/);
+  });
 });
 
 describe('the auto module\x27s root', () => {

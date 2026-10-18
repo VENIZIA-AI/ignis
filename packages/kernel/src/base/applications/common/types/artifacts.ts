@@ -30,6 +30,8 @@ export interface IArtifactGroup extends Partial<Record<keyof IArtifactIndex, nev
   /** The module that defined the group, for the resolver and the error messages. */
   readonly site: string | undefined;
   readonly content: IArtifactIndex | undefined;
+  /** Globs relative to the package `src` whose classes the group leaves out (`ArtifactGroup.application`). */
+  readonly ignore?: ReadonlyArray<string>;
   resolve?(): Promise<IArtifactIndex>;
   /** Set on a slice (`ArtifactGroup.pick`): only these kinds are registered, and an empty slice is not an error. */
   readonly kinds?: ReadonlyArray<keyof IArtifactIndex>;

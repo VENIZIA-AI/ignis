@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-18 | [ArtifactGroup.application Leaves Out Ignored Files](./2026-10-18-application-group-ignore) | Feature |
 | 2026-10-18 | [The Browser Auto Index Is Tree-Shaken Again](./2026-10-18-auto-index-eager-in-browser) | Performance |
 | 2026-10-18 | [Faster Source Starts and a Lazy Auto Module in Binaries](./2026-10-18-auto-artifacts-scan-cache) | Performance |
 | 2026-10-18 | [Auto Artifacts Register the Classes a tsc-Built Application Runs](./2026-10-18-auto-artifacts-running-tree) | Bug Fix |
