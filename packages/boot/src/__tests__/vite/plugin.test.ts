@@ -1,6 +1,7 @@
+import { IgnisArtifactsPlugin } from '@/bun';
 import { IgnisArtifactsVitePlugin } from '@/vite';
 import { afterAll, describe, expect, test } from 'bun:test';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -92,5 +93,44 @@ describe('IgnisArtifactsVitePlugin and a shared package', () => {
       "import { service } from '@venizia/ignis-kernel';\n\n@service()\nexport class StockService {}\n";
     const output = plugin({ viteRoot: join(workspace, 'app') }).transform(source, file) ?? '';
     expect(output).toContain(`Object.defineProperty(this, 'name', { value: "StockService" })`);
+  });
+});
+
+describe('name pinning and a workspace library that defines no group', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'ignis-pin-'));
+  afterAll(() => {
+    rmSync(workspace, { recursive: true, force: true });
+  });
+
+  test('pins a decorated class of a workspace dependency even when it is in no group', () => {
+    cpSync(
+      join(process.cwd(), 'src', '__tests__', 'fixtures', 'compile', 'app'),
+      join(workspace, 'app'),
+      {
+        recursive: true,
+      },
+    );
+    mkdirSync(join(workspace, 'asset', 'src', 'repositories'), { recursive: true });
+    writeFileSync(
+      join(workspace, 'asset', 'package.json'),
+      JSON.stringify({ name: '@fixture/asset' }),
+    );
+    writeFileSync(
+      join(workspace, 'asset', 'src', 'repositories', 'meta-link.repository.ts'),
+      "import { repository } from '@venizia/ignis-kernel';\n@repository({})\nexport class MetaLinkRepository {}\nexport class PlainHelper {}\n",
+    );
+    writeFileSync(
+      join(workspace, 'app', 'package.json'),
+      JSON.stringify({ name: 'pin-app', dependencies: { '@fixture/asset': 'workspace:*' } }),
+    );
+    mkdirSync(join(workspace, 'app', 'node_modules', '@fixture'), { recursive: true });
+    symlinkSync(
+      join(workspace, 'asset'),
+      join(workspace, 'app', 'node_modules', '@fixture', 'asset'),
+    );
+
+    const pinned = IgnisArtifactsPlugin.pinnedClasses({ root: join(workspace, 'app', 'src') });
+    const file = join(workspace, 'asset', 'src', 'repositories', 'meta-link.repository.ts');
+    expect([...(pinned.get(file) ?? [])]).toEqual(['MetaLinkRepository']);
   });
 });

@@ -209,6 +209,41 @@ export class IgnisArtifactsPlugin {
     return imports.length > 0 ? `${imports.join('\n')}\n${rewritten}` : rewritten;
   }
 
+  /** A text test for a file worth parsing for decorated classes: an IGNIS stereotype decorator call. */
+  static readonly DECORATED =
+    /@(?:configuration|component|controller|service|repository|datasource|model|injectable)\s*\(/;
+
+  /** The classes of a source file that carry an IGNIS stereotype decorator (`@service()`, `@repository(...)`, `@injectable(...)`...). */
+  static decoratedClasses(opts: { filePath: string; source: string }): string[] {
+    const names = new Set([
+      ...Object.keys(ArtifactStereotypes.BY_DECORATOR),
+      ArtifactStereotypes.ROOT_DECORATOR,
+    ]);
+    const sourceFile = ts.createSourceFile(
+      opts.filePath,
+      opts.source,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    const found: string[] = [];
+    const visit = (node: ts.Node): void => {
+      if (ts.isClassDeclaration(node) && node.name) {
+        const isDecorated = (ts.getDecorators(node) ?? []).some(decorator => {
+          const expression = ts.isCallExpression(decorator.expression)
+            ? decorator.expression.expression
+            : decorator.expression;
+          return ts.isIdentifier(expression) && names.has(expression.text);
+        });
+        if (isDecorated) {
+          found.push(node.name.text);
+        }
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+    return found;
+  }
+
   /** Opens each named class with `static { Object.defineProperty(this, 'name', ...) }`. Binding keys are built from `Class.name`, and a bundler renames classes - a minifier, or Bun's scope hoisting when a registered class shadows a same-name class it extends (`StockService` becomes `StockService2`). A string literal survives both, and a static block runs before the class's decorators. Only these classes are touched; the rest of the bundle is left alone. */
   static pinClassNames(opts: {
     filePath: string;
@@ -241,7 +276,7 @@ export class IgnisArtifactsPlugin {
   /** The classes whose names a build must pin, by the file the build loads: the app's own (from the tree `entry` runs, see `runningArtifacts`) and those of every package that defines a group the app can borrow (from the tree the group file sits in). */
   static pinnedClasses(opts: {
     root: string;
-    groupFiles: ReadonlyArray<string>;
+    groupFiles?: ReadonlyArray<string>;
     entry?: string;
   }): Map<string, Set<string>> {
     const byFile = new Map<string, Set<string>>();
@@ -252,7 +287,23 @@ export class IgnisArtifactsPlugin {
     };
     const own = ArtifactSources.scan({ packageSource: opts.root });
     add(opts.entry ? ArtifactSources.runningArtifacts({ artifacts: own, from: opts.entry }) : own);
-    for (const groupFile of opts.groupFiles) {
+    // Every class carrying an IGNIS decorator in the workspace sources: a class nothing scans (a library that defines no group) is still an injection target, and still renamed by a bundler when its name collides.
+    for (const file of IgnisArtifactsPlugin.workspaceSourceFiles({ root: opts.root })) {
+      if (!ArtifactStereotypes.SOURCE_EXTENSION.test(file)) {
+        continue;
+      }
+      const source = readFileSync(file, 'utf8');
+      if (!IgnisArtifactsPlugin.DECORATED.test(source)) {
+        continue;
+      }
+      add(
+        IgnisArtifactsPlugin.decoratedClasses({ filePath: file, source }).map(className => ({
+          filePath: file,
+          className,
+        })),
+      );
+    }
+    for (const groupFile of opts.groupFiles ?? []) {
       const packageSource = ArtifactSources.packageSource({ from: dirname(groupFile) });
       if (packageSource === opts.root || !existsSync(packageSource)) {
         continue;
@@ -269,6 +320,13 @@ export class IgnisArtifactsPlugin {
 
   /** The source files that define groups: the application's own `src` and the `src` of each workspace dependency (a dependency whose real path is outside every `node_modules`), found by walking up the `node_modules` chain as Node resolution does. */
   static groupDefinitionFiles(opts: { root: string }): string[] {
+    return IgnisArtifactsPlugin.workspaceSourceFiles(opts).filter(file =>
+      IgnisArtifactsPlugin.DEFINE_CALL.test(readFileSync(file, 'utf8')),
+    );
+  }
+
+  /** The source files of the application and of each workspace dependency (a dependency whose real path is outside every `node_modules`), found by walking up the `node_modules` chain as Node resolution does - plus the compiled trees beside each `src`, for a package that runs from `dist`. Tests excluded. */
+  static workspaceSourceFiles(opts: { root: string }): string[] {
     const root = resolve(opts.root);
     const packageDirectory = dirname(root);
     const manifestPath = join(packageDirectory, 'package.json');
@@ -320,12 +378,8 @@ export class IgnisArtifactsPlugin {
     const files: string[] = [];
     for (const { directory, pattern } of trees) {
       for (const relativePath of globSync(pattern, { cwd: directory })) {
-        const file = join(directory, relativePath);
-        if (
-          !relativePath.includes('__tests__') &&
-          IgnisArtifactsPlugin.DEFINE_CALL.test(readFileSync(file, 'utf8'))
-        ) {
-          files.push(file);
+        if (!relativePath.includes('__tests__')) {
+          files.push(join(directory, relativePath));
         }
       }
     }
