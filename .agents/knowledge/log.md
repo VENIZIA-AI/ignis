@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-18 - useUnknownInCatchVariables on
+
+Updated [dev-configs](/packages/dev-configs.md); strictPropertyInitialization stays off for DI properties.
+
 ## 2026-10-18 - Auto artifacts in Vite builds
 
 Updated [boot](/packages/boot.md): `IgnisArtifactsVitePlugin`, scanner globbing through node:fs.

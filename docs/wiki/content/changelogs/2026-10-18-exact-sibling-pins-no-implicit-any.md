@@ -15,6 +15,7 @@ packages: ['@venizia/dev-configs', '@venizia/ignis']
 ## What changed
 
 - **`noImplicitAny` is on in `tsconfig.base.json`.** With it off, TypeScript gives up inferring the callback parameters of a method called on a union of array types (`Object.values(index).flatMap(classes => classes.map(target => ...))`), and editors flag hundreds of `implicitly has an 'any' type` hints that the compiler never reports. With it on, those parameters infer, and only real gaps fail.
+- **`useUnknownInCatchVariables` is on too.** A `catch (error)` variable is `unknown`, so code narrows it before reading `error.message`. `strictPropertyInitialization` stays off: a property injected by a DI decorator has no initializer.
 - **Siblings are pinned exactly.** A release wrote `^x.y.z` for the packages of this repository, so a project pinning one package could install the next release's sibling - and a breaking prerelease change with it. The repository's manifests now name each sibling `workspace:*`: `bun publish` writes the sibling's exact version into the tarball, and development keeps linking the workspace copy. Other dependencies keep a caret.
 
 ## Who is affected
