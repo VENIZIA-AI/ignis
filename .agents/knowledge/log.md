@@ -14,6 +14,10 @@ Updated [connectors](/packages/connectors.md) (extra `query`, `buildQuery`, `def
 
 Updated [dev-configs](/packages/dev-configs.md): `venizia/no-leaked-render` in `reactHouseConfigs`, `venizia/const-class-values` registered but off, six more `jsx-a11y` rules in both React presets, `ignore` / `LintIgnore`. Recorded why BANA's `pascal-case-tsx` and `typescript/no-deprecated` were not taken and what oxlint does with decorator metadata.
 
+## 2026-10-18 - Same-name inject target guard
+
+Updated [inversion](/packages/inversion.md): `@inject({ target })` checks the bound class.
+
 ## 2026-10-18 - Pin every decorated class
 
 Updated [boot](/packages/boot.md): workspace libraries without groups are covered.

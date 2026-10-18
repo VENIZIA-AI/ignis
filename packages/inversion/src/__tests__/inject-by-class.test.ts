@@ -185,3 +185,49 @@ describe('@inject({ target: () => Class })', () => {
     expect(author.noteService.find()).toBe('note');
   });
 });
+
+/** Two classes, one name: a library's own copy records the same derived key as the registered one. */
+const sameName = (): {
+  Registered: new () => { kind: string };
+  Library: new () => { kind: string };
+} => {
+  const registered = class MetaLinkRepository {
+    kind = 'core';
+  };
+  const library = class MetaLinkRepository {
+    kind = 'library';
+  };
+  return { Registered: registered, Library: library };
+};
+
+describe('@inject({ target }) and a same-name class', () => {
+  test('a key bound to a different class of the same name is an error, not a silent wrong instance', () => {
+    const container = new Container({ scope: 'same-name-test' });
+    const { Registered, Library } = sameName();
+    metadataRegistry.setBindingKey({ target: Registered, key: 'repositories.MetaLinkRepository' });
+    metadataRegistry.setBindingKey({ target: Library, key: 'repositories.MetaLinkRepository' });
+    container.bind({ key: 'repositories.MetaLinkRepository' }).toClass(Registered);
+
+    class ImageQueue {
+      constructor(@inject({ target: Library }) readonly links: { kind: string }) {}
+    }
+
+    expect(() => container.instantiate(ImageQueue)).toThrow(
+      /bound to a different class named 'MetaLinkRepository'/,
+    );
+  });
+
+  test('a subclass bound under the base class key still resolves', () => {
+    const container = new Container({ scope: 'subclass-test' });
+    class BaseStore {}
+    class OverrideStore extends BaseStore {}
+    metadataRegistry.setBindingKey({ target: BaseStore, key: 'services.BaseStore' });
+    container.bind({ key: 'services.BaseStore' }).toClass(OverrideStore);
+
+    class Reader {
+      constructor(@inject({ target: BaseStore }) readonly store: BaseStore) {}
+    }
+
+    expect(container.instantiate(Reader).store).toBeInstanceOf(OverrideStore);
+  });
+});

@@ -1557,9 +1557,10 @@ generated:
 - `WhereQuerySchema` const
 - `WhereSchema` const
 
-### `@venizia/ignis-kernel/metadata` (20)
+### `@venizia/ignis-kernel/metadata` (23)
 
 - `ArtifactBindingKeys` class
+- `ArtifactGroup` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `BindingKeys` class
@@ -1567,6 +1568,8 @@ generated:
 - `component` const
 - `configuration` const
 - `datasource` const
+- `IArtifactGroup` interface
+- `IArtifactIndex` interface
 - `IArtifactMetadata` interface
 - `IArtifactRegistrationOptions` interface
 - `inject` const

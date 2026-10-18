@@ -55,6 +55,11 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
     return this;
   }
 
+  /** The class a `toClass` binding instantiates; `undefined` for a value or a provider. */
+  boundClass(): TClass<T> | undefined {
+    return this.resolver.type === BindingValueTypes.CLASS ? this.resolver.value : undefined;
+  }
+
   getBindingMeta(opts: { type: TConstValue<typeof BindingValueTypes> }): TBindingResolverValue<T> {
     if (this.resolver.type !== opts.type) {
       throw getError({
