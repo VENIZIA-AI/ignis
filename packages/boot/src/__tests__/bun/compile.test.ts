@@ -82,6 +82,40 @@ describe('a compiled binary', () => {
     );
   }, 60_000);
 
+  test('keeps the source name of a registered class that subclasses a same-name base', async () => {
+    const app = stage({ name: 'same-name', app: join('compile', 'app') });
+    // A plain base and the registered subclass share a name: the subclass's module scope would shadow the base, so Bun renames it to StockService2.
+    // Legacy decorators, as every IGNIS application compiles.
+    writeFileSync(
+      join(app, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          experimentalDecorators: true,
+          emitDecoratorMetadata: true,
+          useDefineForClassFields: false,
+        },
+      }),
+    );
+    mkdirSync(join(app, 'src', 'base'), { recursive: true });
+    writeFileSync(join(app, 'src', 'base', 'stock.ts'), 'export class StockService {}\n');
+    writeFileSync(
+      join(app, 'src', 'services', 'stock.service.ts'),
+      "import { service } from '@venizia/ignis-kernel';\nimport { StockService as BaseStockService } from '../base/stock';\n@service()\nexport class StockService extends BaseStockService {}\n",
+    );
+    // Unminified, as the binary guide asks.
+    const result = await Bun.build({
+      entrypoints: [join(app, 'src', 'index.ts')],
+      compile: { outfile: join(app, 'bin', 'app') },
+      plugins: [frameworkSources, IgnisArtifactsPlugin.create({ root: join(app, 'src') })],
+      throw: false,
+    });
+    expect(result.success).toBe(true);
+
+    const run = Bun.spawnSync([join(app, 'bin', 'app')], { cwd: tmpdir() });
+    // Anchored: StockService2 contains StockService.
+    expect(run.stdout.toString()).toMatch(/own=OwnService,StockService inventory=/);
+  }, 60_000);
+
   test('fails to build when the plugin is missing, instead of shipping without classes', async () => {
     const app = stage({ name: 'without-plugin', app: join('compile', 'app') });
     const result = await compile({ app, plugins: [frameworkSources] });

@@ -367,7 +367,7 @@ export const configs: IApplicationConfigs = {
 
 Four rules, each backed by a measurement:
 
-1. Pass `--env=disable`. Without it `process.env.NODE_ENV` is a literal baked in at build time. Read the environment through `Environment.ambient` or `Environment.current`, never the dot form.
+1. Keep `process.env.NODE_ENV` a runtime read. The CLI needs `--env=disable`; `Bun.build` needs `define: { 'process.env.NODE_ENV': 'process.env.NODE_ENV' }` - its `env: 'disable'` alone still bakes the build-time value in (measured on Bun 1.4.3). Read the environment through `Environment.ambient` or `Environment.current`, never the dot form: a destructured read stays a runtime read either way.
 2. Do not pass `--minify`. It minifies identifiers and every class name becomes two letters. Use `--minify-whitespace --minify-syntax`.
 3. Register a logger provider at the top of the entrypoint. The winston default is loaded with `createRequire`, which cannot resolve inside a binary, so name the class yourself:
 
