@@ -27,6 +27,7 @@ import {
   type TCasbinDomainMatchingFunction,
 } from '@venizia/ignis-kernel';
 import { DomainHierarchyRoleManager } from '../role-managers/domain-hierarchy';
+import { CasbinModule } from './casbin-module';
 import { MembershipRoleManager } from '../role-managers/membership';
 import { ResourceRoleManager } from '../role-managers/resource';
 import { PolicyLineCodec } from './policy-line-codec';
@@ -76,15 +77,7 @@ export class CasbinAuthorizationEnforcer<
   // Lifecycle
 
   async configure(): Promise<void> {
-    let casbin: typeof import('casbin');
-
-    try {
-      casbin = await import('casbin');
-    } catch {
-      throw getError({
-        message: '[CasbinAuthorizationEnforcer] "casbin" is not installed',
-      });
-    }
+    const casbin = await CasbinModule.load();
 
     if (!this.options.model) {
       throw getError({
@@ -449,7 +442,7 @@ export class CasbinAuthorizationEnforcer<
 
   /** Resolves this enforcer's model, then delegates the isolated-enforcer extraction (own model + adapter, never a pooled serving one, so concurrent requests cannot change what we cache) to PolicyLineCodec. */
   protected async extractUserLines(opts: { user: IAuthorizationUser }): Promise<string[]> {
-    const casbin = await import('casbin');
+    const casbin = await CasbinModule.load();
     const model = this.resolveModel({ casbin, model: this.options.model });
 
     return PolicyLineCodec.extractUserLines({

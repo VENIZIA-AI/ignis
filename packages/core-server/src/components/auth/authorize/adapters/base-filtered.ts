@@ -2,6 +2,7 @@ import { readResultRows } from '@/utilities';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
+import { CasbinModule } from '../enforcers/casbin-module';
 import { PolicyConnectorResolver } from './connector';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './common';
 
@@ -48,7 +49,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
 
   /** Parse + load casbin policy lines into a model. Shared by subclasses' loadFilteredPolicy. */
   protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void> {
-    const { Helper } = await import('casbin');
+    const { Helper } = await CasbinModule.load();
     for (const line of opts.lines) {
       Helper.loadPolicyLine(line, opts.model);
     }
