@@ -455,6 +455,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: '_name Omitted Variables',
+                  link: '/changelogs/2026-10-18-omitted-underscore-variables',
+                },
+                {
                   text: 'noImplicitAny On, Exact Sibling Pins',
                   link: '/changelogs/2026-10-18-exact-sibling-pins-no-implicit-any',
                 },

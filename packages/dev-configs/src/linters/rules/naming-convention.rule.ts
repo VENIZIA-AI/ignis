@@ -15,6 +15,13 @@ export class NamingConventionRule {
     { selector: 'default', format: ['camelCase'] },
     { selector: 'variable', format: ['camelCase', 'UPPER_CASE', 'PascalCase'] },
     { selector: 'variable', format: null, filter: '^_$' },
+    // A `_name` variable names an omitted value (`{ page: _page, ...rest }`); its case is still checked.
+    {
+      selector: 'variable',
+      filter: { regex: '^_.', match: true },
+      format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+      leadingUnderscore: 'allow',
+    },
     { selector: 'function', format: ['PascalCase'], filter: 'Mixin$' },
     { selector: 'parameter', format: ['camelCase'], leadingUnderscore: 'allow' },
     {

@@ -44,7 +44,7 @@ oxlint (lint, type-aware through `oxlint-tsgolint`) and oxfmt (format) replaced 
 
 ### Rule classes
 
-`linters/rules/` holds one class per rule: `NamingConventionRule`, `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`. Each has `static readonly NAME` and `static build(opts)`, which returns a rule entry. The types `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector` and `IRestrictedImportPath` are exported too.
+`linters/rules/` holds one class per rule: `NamingConventionRule`, `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`. Each has `static readonly NAME` and `static build(opts)`, which returns a rule entry. A `_name` variable (an omitted value, `{ page: _page, ...rest }`) passes both `NamingConventionRule` (underscore allowed, case still checked) and `NoUnusedVarsRule` (`varsIgnorePattern: ^_` by default). The types `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector` and `IRestrictedImportPath` are exported too.
 
 ```typescript
 rules: { [EqeqeqRule.NAME]: EqeqeqRule.build({ mode: 'always' }) }
