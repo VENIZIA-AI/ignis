@@ -13,10 +13,21 @@ const plugin = (opts: { root?: string; viteRoot: string }) => {
 };
 
 describe('IgnisArtifactsVitePlugin', () => {
-  test('keeps class names in the build and keeps ignis-boot out of pre-bundling', () => {
+  test('keeps ignis-boot out of pre-bundling and leaves the minifier alone', () => {
     const config = IgnisArtifactsVitePlugin.create().config();
-    expect(config.build.rolldownOptions.output.keepNames).toBe(true);
     expect(config.optimizeDeps.exclude).toContain('@venizia/ignis-boot');
+    expect(Object.keys(config)).toEqual(['optimizeDeps']);
+  });
+
+  test('pins the name of a scanned class only, inside the class so it runs before its decorators', () => {
+    const file = resolve(APP, 'src', 'controllers', 'list.controller.ts');
+    const source =
+      "@controller({ path: '/list' })\nexport class ListController {}\nclass Helper {}\n";
+    const output = plugin({ viteRoot: APP }).transform(source, file) ?? '';
+    expect(output).toContain(
+      'export class ListController { static { Object.defineProperty(this, \'name\', { value: "ListController" }); }}',
+    );
+    expect(output).toContain('class Helper {}');
   });
 
   test('serves ignis:artifacts with the classes of the src beside the root package.json', () => {
