@@ -14,6 +14,12 @@ Updated [connectors](/packages/connectors.md) (extra `query`, `buildQuery`, `def
 
 Updated [dev-configs](/packages/dev-configs.md): `venizia/no-leaked-render` in `reactHouseConfigs`, `venizia/const-class-values` registered but off, six more `jsx-a11y` rules in both React presets, `ignore` / `LintIgnore`. Recorded why BANA's `pascal-case-tsx` and `typescript/no-deprecated` were not taken and what oxlint does with decorator metadata.
 
+## 2026-10-18 - VULCAN 0.2.0-9
+
+Updated nothing else - tooling only.
+
+- `@venizia/vulcan` is pinned at 0.2.0-9: the remote-host guard also reads HTTP clients, piped shells, nested ssh, loop bodies and `docker -H`.
+
 ## 2026-10-18 - VULCAN 0.2.0-8
 
 Updated nothing else - tooling only.
