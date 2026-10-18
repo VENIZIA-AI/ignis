@@ -3,6 +3,7 @@
 // `bun test` stays green with no docker running - `docker compose up -d` first turns them on.
 import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { getError } from '@venizia/ignis-helpers';
 import { uuidV4 } from '@venizia/ignis-helpers/uuid';
 import { Application } from '../application';
@@ -90,7 +91,7 @@ describe('typesense-search', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        artifacts: AutoArtifacts,
       },
     });
     application.init();

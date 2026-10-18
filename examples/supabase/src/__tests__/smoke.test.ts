@@ -4,6 +4,7 @@
 // `describe` callback before collecting its tests, so the reachability probe can gate
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { uuidV4 } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
@@ -80,7 +81,7 @@ describe('supabase-example', async () => {
           host: HOST,
           port: 0,
           path: { base: '/api', isStrict: false },
-          discoverArtifacts: true,
+          artifacts: AutoArtifacts,
         },
       });
       application.init();

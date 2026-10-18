@@ -20,8 +20,8 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 | `src/controllers/greeter/controller.ts` | `@controller({ transport: ControllerTransports.GRPC, service })` plus `@unary` on the handler |
 | `src/controllers/status/controller.ts` | A plain REST controller, `GET /status` |
 | `src/services/greeter.service.ts` | The business logic, injected into the gRPC controller |
-| `src/application.ts` | Imports each decorated class; `discoverArtifacts: true` registers them |
-| `src/index.ts` | Starts the server; `config.transports` turns REST and gRPC on together |
+| `src/application.ts` | The application class: it turns on the API docs and health check components |
+| `src/index.ts` | Starts the server; `artifacts: AutoArtifacts` registers every decorated class under `src`; `config.transports` turns REST and gRPC on together |
 
 ## Endpoints
 

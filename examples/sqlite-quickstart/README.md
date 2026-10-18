@@ -20,8 +20,8 @@ The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the
 | `src/repositories/*.repository.ts` | An empty class under `@repository({ model, dataSource })` |
 | `src/controllers/*.controller.ts` | The CRUD routes from `ControllerFactory.defineCrudController` |
 | `src/datasources/sqlite.datasource.ts` | The only libsql-specific file: opens the client and applies migrations |
-| `src/application.ts` | Imports each decorated class; `discoverArtifacts: true` registers them |
-| `src/index.ts` | Starts the server |
+| `src/application.ts` | The application class: it turns on the API docs and health check components |
+| `src/index.ts` | Starts the server; `artifacts: AutoArtifacts` registers every decorated class under `src` |
 
 Swap the datasource for a PGlite or `node-postgres` one and the models, repositories and
 controllers stay as they are - see the [PGlite quickstart](../pglite-quickstart).

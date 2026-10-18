@@ -16,12 +16,6 @@ import {
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
-// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
-import './datasources/supabase.datasource';
-import './repositories/note.repository';
-import './services/note.service';
-import './controllers/note.controller';
-
 export class Application extends BaseApplication {
   override getAppInfo(): IApplicationInfo {
     return appInfo;

@@ -19,7 +19,8 @@ The note is still there after the reload. The database lives in the origin priva
 |---|---|
 | `src/worker/models`, `repositories`, `controllers` | The `pglite-quickstart` files, with `@venizia/ignis-kernel` and `@venizia/ignis-connectors` in place of `@venizia/ignis` |
 | `src/worker/datasources/pglite.datasource.ts` | Opens PGlite on OPFS and applies the migrations, inlined by `?raw` |
-| `src/worker/application.ts` | `WorkerApplication` in place of `BaseApplication`; `discoverArtifacts: true` registers the imported classes |
+| `src/worker/application.ts` | `WorkerApplication` in place of `BaseApplication` |
+| `src/worker/generated/artifacts.ts` | The artifact index `bun run generate:artifacts` writes; Vite has no auto-artifacts plugin, so the Worker passes this file as `artifacts` |
 | `src/worker/index.ts` | The Worker entry: `listen()` in place of `start()` |
 | `src/bff.ts` | The page side: a `SharedBffTransport` that starts the Worker |
 | `src/main.tsx` | `installBffFetch` routes `fetch('/api/...')` to the Worker, then renders the react-admin page |

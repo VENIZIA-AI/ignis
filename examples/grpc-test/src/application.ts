@@ -7,11 +7,6 @@ import {
 } from '@venizia/ignis';
 import appInfo from '../package.json';
 
-// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
-import './services/greeter.service';
-import './controllers/greeter/controller';
-import './controllers/status/controller';
-
 export class Application extends BaseApplication {
   override getAppInfo(): IApplicationInfo {
     return appInfo;

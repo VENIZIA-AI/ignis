@@ -28,7 +28,8 @@ cd ecommerce-api
 bun init -y
 
 # Install dependencies
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers \
+  @venizia/ignis-boot winston winston-transport winston-daily-rotate-file
 bun add drizzle-orm drizzle-zod pg stripe
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 ```
@@ -532,11 +533,11 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
 
 ```typescript
 // src/services/product.service.ts
-import { inject } from '@venizia/ignis';
-import { BaseService } from '@venizia/ignis';
+import { BaseService, inject, service } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
 import { getError } from '@venizia/ignis-helpers';
 
+@service()
 export class ProductService extends BaseService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
@@ -600,8 +601,7 @@ export class ProductService extends BaseService {
 
 ```typescript
 // src/services/cart.service.ts
-import { inject } from '@venizia/ignis';
-import { BaseService } from '@venizia/ignis';
+import { BaseService, inject, service } from '@venizia/ignis';
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductService } from './product.service';
 import { getError } from '@venizia/ignis-helpers';
@@ -611,6 +611,7 @@ interface ICartItem {
   quantity: number;
 }
 
+@service()
 export class CartService extends BaseService {
   constructor(
     @inject({ key: 'repositories.CartRepository' })
@@ -737,8 +738,7 @@ export class CartService extends BaseService {
 
 ```typescript
 // src/services/order.service.ts
-import { inject } from '@venizia/ignis';
-import { BaseService } from '@venizia/ignis';
+import { BaseService, inject, service } from '@venizia/ignis';
 import { OrderRepository } from '../repositories/order.repository';
 import { CartService } from './cart.service';
 import { ProductService } from './product.service';
@@ -762,6 +762,7 @@ interface ICreateOrderInput {
   billingAddress?: IOrderAddress;
 }
 
+@service()
 export class OrderService extends BaseService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
@@ -909,10 +910,11 @@ export class OrderService extends BaseService {
 
 ```typescript
 // src/services/payment.service.ts
-import { BaseService } from '@venizia/ignis';
+import { BaseService, service } from '@venizia/ignis';
 import Stripe from 'stripe';
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 
+@service()
 export class PaymentService extends BaseService {
   private _stripe: Stripe;
 
@@ -1309,25 +1311,21 @@ export class OrderController extends BaseRestController {
 
 ## 10. Application Setup
 
+Nothing here registers a class. `@datasource`, `@repository`, `@service` and `@controller` already mark everything you wrote, and `artifacts: AutoArtifacts` scans `src` at start-up and registers every marked class - including `CategoryRepository`, `CartItemRepository` and `OrderItemRepository`, which the services and controllers inject. `preConfigure()` keeps only what a decorator cannot express: the framework components you turn on.
+
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationInfo } from '@venizia/ignis';
-import { HealthCheckComponent, ApiReferenceComponent } from '@venizia/ignis';
+import { ApiReferenceComponent, BaseApplication, HealthCheckComponent } from '@venizia/ignis';
+import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 
-import { ProductController } from './controllers/product';
-import { CartController } from './controllers/cart';
-import { OrderController } from './controllers/order';
-
-import { ProductService } from './services/product.service';
-import { CartService } from './services/cart.service';
-import { OrderService } from './services/order.service';
-import { PaymentService } from './services/payment.service';
-
-import { ProductRepository } from './repositories/product.repository';
-import { CartRepository } from './repositories/cart.repository';
-import { OrderRepository } from './repositories/order.repository';
-
-import { PostgresDataSource } from './datasources/postgres.datasource';
+export const appConfigs: IApplicationConfigs = {
+  host: process.env.HOST ?? '0.0.0.0',
+  port: +(process.env.PORT ?? 3000),
+  path: { base: '/api', isStrict: true },
+  // Finds PostgresDataSource, the repositories, the services and the controllers
+  artifacts: AutoArtifacts,
+};
 
 export class EcommerceApp extends BaseApplication {
   getAppInfo(): IApplicationInfo {
@@ -1342,25 +1340,6 @@ export class EcommerceApp extends BaseApplication {
   staticConfigure() {}
 
   preConfigure() {
-    // DataSources
-    this.dataSource(PostgresDataSource);
-
-    // Repositories
-    this.repository(ProductRepository);
-    this.repository(CartRepository);
-    this.repository(OrderRepository);
-
-    // Services
-    this.service(ProductService);
-    this.service(CartService);
-    this.service(OrderService);
-    this.service(PaymentService);
-
-    // Controllers
-    this.controller(ProductController);
-    this.controller(CartController);
-    this.controller(OrderController);
-
     // Components
     this.component(HealthCheckComponent);
     this.component(ApiReferenceComponent);
@@ -1371,6 +1350,8 @@ export class EcommerceApp extends BaseApplication {
   setupMiddlewares() {}
 }
 ```
+
+Create `src/index.ts` as in [Complete Installation](./complete-installation.md#create-entry-point), with `new EcommerceApp({ scope: 'EcommerceApp', config: appConfigs })`.
 
 ## 11. Running the Application
 

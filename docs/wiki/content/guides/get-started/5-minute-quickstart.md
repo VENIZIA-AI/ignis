@@ -57,7 +57,7 @@ Create `src/hello.controller.ts`:
 import { z } from '@hono/zod-openapi';
 import { BaseRestController, controller, get, jsonContent } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import { type Context } from 'hono';
 
 @controller({ path: '/hello' })
 export class HelloController extends BaseRestController {
@@ -88,7 +88,7 @@ export class HelloController extends BaseRestController {
 Create `src/application.ts`:
 
 ```typescript
-import { ApiReferenceComponent, BaseApplication, IApplicationInfo } from '@venizia/ignis';
+import { ApiReferenceComponent, BaseApplication, type IApplicationInfo } from '@venizia/ignis';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import packageJson from '../package.json';
 

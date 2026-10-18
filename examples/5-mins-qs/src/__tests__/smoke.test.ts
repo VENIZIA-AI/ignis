@@ -51,7 +51,7 @@ describe('5-mins-qs', () => {
     baseUrl = `http://${HOST}:${port}/api`;
 
     server = Bun.spawn(['bun', 'run', 'src/index.ts'], {
-      cwd: path.resolve(import.meta.dir, '../..'),
+      cwd: path.resolve(__dirname, '../..'),
       env: { ...process.env, PORT: String(port) },
       stdout: 'ignore',
       stderr: 'inherit',

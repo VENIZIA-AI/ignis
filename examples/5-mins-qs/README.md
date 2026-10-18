@@ -1,8 +1,8 @@
 # 5-minute quickstart
 
-The IGNIS hello world in one file: one controller, one route and generated API docs. `src/index.ts`
-is the code from the [5-Minute Quickstart](../../docs/wiki/content/guides/get-started/5-minute-quickstart.md)
-page, word for word.
+The IGNIS hello world: one controller, one route and generated API docs. `src/hello.controller.ts`,
+`src/application.ts` and `src/index.ts` are the code from the [5-Minute Quickstart](../../docs/wiki/content/guides/get-started/5-minute-quickstart.md)
+page, word for word. `artifacts: AutoArtifacts` finds `HelloController`, so nothing registers it by hand.
 
 ```bash
 bun install

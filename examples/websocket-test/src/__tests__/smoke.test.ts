@@ -4,6 +4,7 @@
 // expect on localhost:16381.
 import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { WebSocketDefaults } from '@venizia/ignis-helpers';
 import { Application } from '../application';
 
@@ -96,7 +97,7 @@ describe('websocket-test', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        artifacts: AutoArtifacts,
       },
     });
     application.init();

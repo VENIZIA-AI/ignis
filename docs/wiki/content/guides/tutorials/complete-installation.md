@@ -312,7 +312,7 @@ Create `src/controllers/hello/hello.controller.ts` - the controller class:
 ```typescript
 import { BaseRestController, controller, api } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import { type Context } from 'hono';
 import { BASE_PATH, helloRouteConfigs } from './definitions';
 
 // All routes in this controller will be under /api/hello (remember path.base: '/api')

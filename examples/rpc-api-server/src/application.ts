@@ -27,13 +27,6 @@ import {
 } from './models/auth.schema';
 import { AuthenticationService } from './services/authentication.service';
 
-// Importing a decorated class is what registers it: `discoverArtifacts: true` binds every one.
-import './datasources/pglite.datasource';
-import './repositories/user.repository';
-import './repositories/configuration.repository';
-import './controllers/configuration.controller';
-import './controllers/view.controller';
-
 const ONE_DAY_IN_SECONDS = 86_400;
 
 export class Application extends BaseApplication {

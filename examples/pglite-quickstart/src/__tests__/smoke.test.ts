@@ -2,6 +2,7 @@
 // endpoints over HTTP.
 import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { Application } from '../application';
 
 const HOST = '127.0.0.1';
@@ -41,7 +42,7 @@ describe('pglite-quickstart', () => {
         host: HOST,
         port: 0,
         path: { base: '/api', isStrict: false },
-        discoverArtifacts: true,
+        artifacts: AutoArtifacts,
       },
     });
     application.init();

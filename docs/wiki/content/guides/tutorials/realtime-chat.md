@@ -25,7 +25,8 @@ cd chat-api
 bun init -y
 
 # Install dependencies
-bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
+bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers \
+  @venizia/ignis-boot winston winston-transport winston-daily-rotate-file
 bun add drizzle-orm drizzle-zod pg
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 
@@ -481,6 +482,7 @@ import {
   BaseService,
   CoreBindings,
   inject,
+  service,
   SocketIOBindingKeys,
   BindingKeys,
   BindingNamespaces,
@@ -492,6 +494,7 @@ import { MessageRepository } from '../repositories/message.repository';
 import { RoomRepository } from '../repositories/room.repository';
 import { UserRepository } from '../repositories/user.repository';
 
+@service()
 export class ChatService extends BaseService {
   private _socketIOHelper: SocketIOServerHelper | null = null;
   private _typingTimeouts: Map<string, NodeJS.Timeout> = new Map();
@@ -983,7 +986,7 @@ export class ChatService extends BaseService {
 
 ## 6. Application Setup
 
-The application binds Redis, authentication, and the client connected handler via `SocketIOBindingKeys`, then registers `SocketIOComponent`. No manual Socket.IO server creation needed.
+The application binds Redis, authentication, and the client connected handler via `SocketIOBindingKeys`, then registers `SocketIOComponent`. No manual Socket.IO server creation needed. Repositories, `ChatService` and `ChatController` carry decorators, and `artifacts: AutoArtifacts` registers them - `preConfigure()` names none of them.
 
 ```typescript
 // src/application.ts
@@ -997,6 +1000,7 @@ import {
   SocketIOComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { applicationEnvironment, RedisSingleHelper } from '@venizia/ignis-helpers';
 // Socket.IO symbols are sub-path only - the root barrel does not re-export them.
 import {
@@ -1004,10 +1008,14 @@ import {
   SocketIOServerHelper,
 } from '@venizia/ignis-helpers/socket-io';
 import { ChatService } from './services/chat.service';
-import { ChatController } from './controllers/chat';
-import { UserRepository } from './repositories/user.repository';
-import { RoomRepository, RoomMemberRepository } from './repositories/room.repository';
-import { MessageRepository, DirectMessageRepository } from './repositories/message.repository';
+
+export const appConfigs: IApplicationConfigs = {
+  host: process.env.HOST ?? '0.0.0.0',
+  port: +(process.env.PORT ?? 3000),
+  path: { base: '/api', isStrict: true },
+  // Finds the repositories, ChatService and ChatController
+  artifacts: AutoArtifacts,
+};
 
 export class ChatApp extends BaseApplication {
   private redisHelper: RedisSingleHelper;
@@ -1024,18 +1032,7 @@ export class ChatApp extends BaseApplication {
   staticConfigure() {}
 
   preConfigure(): ValueOrPromise<void> {
-    // Register repositories
-    this.repository(UserRepository);
-    this.repository(RoomRepository);
-    this.repository(RoomMemberRepository);
-    this.repository(MessageRepository);
-    this.repository(DirectMessageRepository);
-
-    // Register services
-    this.service(ChatService);
-
-    // Register controllers
-    this.controller(ChatController);
+    // Repositories, ChatService and ChatController need no call here: AutoArtifacts registers them.
 
     // Setup Socket.IO
     this.setupSocketIO();
@@ -1151,7 +1148,6 @@ Application Lifecycle
 ═════════════════════
 
 preConfigure()
-  ├── Register repositories, services, controllers
   └── setupSocketIO()
         ├── Bind RedisSingleHelper → REDIS_CONNECTION
         ├── Bind authenticateFn → AUTHENTICATE_HANDLER
