@@ -451,9 +451,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
-              text: '2026-10-17',
+              text: '2026-10-18',
               collapsed: true,
               items: [
+                {
+                  text: 'IGNIS 0.2.2 Is Stable',
+                  link: '/changelogs/2026-10-18-stable-0-2-2',
+                },
                 {
                   text: 'dev-configs React House Rules',
                   link: '/changelogs/2026-10-18-dev-configs-react-house-rules',
@@ -510,6 +514,12 @@ const config = defineConfig({
                   text: 'Auto Artifacts Load the Running Tree',
                   link: '/changelogs/2026-10-18-auto-artifacts-running-tree',
                 },
+              ],
+            },
+            {
+              text: '2026-10-17',
+              collapsed: true,
+              items: [
                 {
                   text: 'Auto Artifacts Root and ArtifactGroup.application',
                   link: '/changelogs/2026-10-17-auto-artifacts-entry-root',

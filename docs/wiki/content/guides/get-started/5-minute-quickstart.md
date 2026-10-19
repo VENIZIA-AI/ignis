@@ -113,7 +113,7 @@ export const application = new Application({
   config: {
     host: '0.0.0.0',
     port: Number(process.env.PORT ?? 3000),
-    path: { base: '/api', isStrict: false },
+    path: { base: '/api', isStrict: false }, // false answers /hello and /hello/; the default is true
     artifacts: AutoArtifacts,
   },
 });

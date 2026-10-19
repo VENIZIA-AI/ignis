@@ -207,16 +207,19 @@ console.log('Created by:', configWithCreator?.creator.name);
 
 ## Registering Repositories
 
+`@repository` marks the class. `artifacts: AutoArtifacts` in the application config registers every decorated repository and datasource at boot, before `preConfigure()`:
+
 ```typescript
 // src/application.ts
-export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
-    this.dataSource(PostgresDataSource);
-    this.repository(UserRepository);
-    this.repository(ConfigurationRepository);
-  }
-}
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 ```
+
+See [Registering artifacts](../application/bootstrapping).
 
 ## SoftDeletableRepository
 

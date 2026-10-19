@@ -38,17 +38,15 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 ## Quick Example
 
 ```typescript
-// 1. Define a Model
-@model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
-  static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    name: text('name').notNull(),
-    email: text('email').notNull(),
-  });
+// 1. Define a Model: a Drizzle table, then the model class built from it
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+});
 
-  static override relations = () => [];
-}
+@model({ type: 'entity' })
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 // 2. Create a DataSource
 @datasource({ driver: NodePostgresDriver })
@@ -78,19 +76,19 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 // 3. Create a Repository
 @repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+export class UserRepository extends DefaultCRUDRepository<typeof userTable> {
   async findByEmail(opts: { email: string }) {
     return this.findOne({ filter: { where: { email: opts.email } } });
   }
 }
 
-// 4. Use in Application
-export class Application extends BaseApplication {
-  preConfigure() {
-    this.dataSource(PostgresDataSource);
-    this.repository(UserRepository);
-  }
-}
+// 4. Register through the application config
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 ```
 
 ## Next Steps

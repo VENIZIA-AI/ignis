@@ -6,37 +6,29 @@ Avoid these common mistakes when building IGNIS applications.
 
 **Problem:** Created a Controller/Service/Repository but getting `Binding not found` errors.
 
-**Solution:** Register in `application.ts` → `preConfigure()`:
+**Cause:** The class is not in the artifact index. One of these is missing:
 
-**Example (`src/application.ts`):**
+- The decorator on the class: `@controller`, `@service()`, `@repository`, `@datasource` or `@component()`.
+- A place under the scanned `src` folder. A file outside it is never found.
+- `artifacts: AutoArtifacts` in the application config.
+
+**Solution:** Decorate the class and make sure the config passes the artifacts:
+
 ```typescript
-// ...
-import { MyNewController } from './controllers';
-import { MyNewService } from './services';
-// ...
+// src/services/my-new.service.ts
+@service()
+export class MyNewService extends BaseService {}
 
-export class Application extends BaseApplication {
-  // ...
-  preConfigure(): ValueOrPromise<void> {
-    // DataSources
-    this.dataSource(PostgresDataSource);
+// src/application.ts
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 
-    // Repositories
-    this.repository(ConfigurationRepository);
-
-    // Services
-    this.service(MyNewService); // <-- Don't forget this line
-
-    // Controllers
-    this.controller(TestController);
-    this.controller(MyNewController); // <-- Or this line
-
-    // Components
-    this.component(HealthCheckComponent);
-  }
-  // ...
-}
+export const appConfigs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 ```
+
+The class must be a named export. See [Registering artifacts](/guides/core-concepts/application/bootstrapping).
 
 ## 2. Incorrect Injection Keys
 
@@ -190,27 +182,18 @@ await userRepository.updateBy({
 `@model({ tableName })` moves the registration key but not the lookup key. Setting it alone is what breaks:
 
 ```typescript
-// ❌ BAD - registered under 'users', looked up as 'User'
-@model({ type: 'entity', tableName: 'users' })
-export class User extends BaseRelationalEntity<typeof User.schema> {
-  static override schema = pgTable('users', { /* ... */ });
-}
+export const userTable = pgTable('users', { /* ... */ });
 
-// ✅ GOOD - set neither; both keys resolve to the class name
+// ❌ BAD - registered under 'user_accounts', looked up as 'users'
+@model({ type: 'entity', tableName: 'user_accounts' })
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
+
+// ✅ GOOD - set no `tableName`; both keys are the table's name, 'users'
 @model({ type: 'entity' })
-export class User extends BaseRelationalEntity<typeof User.schema> {
-  static override schema = pgTable('users', { /* ... */ });
-}
-
-// ✅ GOOD - or set both to the same value
-@model({ type: 'entity', tableName: 'users' })
-export class User extends BaseRelationalEntity<typeof User.schema> {
-  static override TABLE_NAME = 'users';
-  static override schema = pgTable('users', { /* ... */ });
-}
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 ```
 
-`static TABLE_NAME` on its own is safe - it moves both keys together. The first argument of `pgTable()` is the physical SQL table name and plays no part in either lookup.
+`ModelFactory.defineEntity` reads `TABLE_NAME` off the table, so it already moves both keys together. Leave `tableName` out of `@model`.
 
 ## 8. Validation Error Response Structure
 

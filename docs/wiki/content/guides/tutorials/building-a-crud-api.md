@@ -82,24 +82,22 @@ bun add -d drizzle-kit @types/pg
 
 ## Step 2: Define the Model
 
-Models combine Drizzle ORM schemas with Entity classes to define your data structure.
+Models define your data structure with a Drizzle table. You declare the table, then build the model class from it with `ModelFactory.defineEntity`.
 
 Create `src/models/todo.model.ts`:
 
 ```typescript
 // src/models/todo.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
-// 1. Define the Drizzle schema for the 'Todo' table
-// Note: Use string literal 'Todo' to avoid circular reference
+// 1. Define the Drizzle table for 'Todo'
 export const todoTable = pgTable('Todo', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   ...generateTzColumnDefs(),
@@ -108,19 +106,19 @@ export const todoTable = pgTable('Todo', {
   isCompleted: boolean('is_completed').default(false),
 });
 
-// 2. Define the TypeScript type for a Todo object
-export type TTodoSchema = typeof todoTable;
-export type TTodo = TTableObject<TTodoSchema>;
-
-// 3. Create the Entity class, decorated with @model
+// 2. Build the model class from the table, decorated with @model
 @model({ type: 'entity' })
-export class Todo extends BaseEntity<typeof Todo.schema> {
-  static override schema = todoTable;
-  // 4. Define relations (empty array for now, but the resolver is still required)
-  static override relations = (): TRelationConfig[] => [];
-  static override TABLE_NAME = 'Todo';
-}
+export class Todo extends ModelFactory.defineEntity({ table: todoTable }) {}
+
+// 3. The row type for a Todo
+export type TTodo = TEntityObject<typeof Todo>;
 ```
+
+**Key points:**
+- The table is a plain, exported Drizzle table - drizzle-kit reads it for migrations
+- The table name `'Todo'` is written once; the model reads it off the table
+- The model has no relations yet, so `defineEntity` needs only `table`
+- `TEntityObject<typeof Todo>` is the row type
 
 **Schema Enrichers:**
 - `generateIdColumnDefs()` - Adds `id` column (text with UUID default, or auto-incrementing number)
@@ -252,7 +250,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 :::info What are Generic Types?
 Generic types in TypeScript are like placeholders that let you write reusable code that works with different types. The `<T>` syntax means "this class/function works with type T, which you'll specify later."
 
-Example: `DefaultCRUDRepository<typeof Todo.schema>` means "a repository that works specifically with the Todo schema type." This gives you type safety and autocomplete for your model's properties.
+Example: `DefaultCRUDRepository<typeof todoTable>` means "a repository that works specifically with the Todo table type." This gives you type safety and autocomplete for your model's properties.
 
 [Learn more →](/guides/reference/glossary#generic-types)
 :::
@@ -263,15 +261,16 @@ Create `src/repositories/todo.repository.ts`:
 
 ```typescript
 // src/repositories/todo.repository.ts
-import { Todo } from '@/models/todo.model';
+import { Todo, type todoTable } from '@/models/todo.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 // Both 'model' and 'dataSource' are required for schema auto-discovery
 @repository({ model: Todo, dataSource: PostgresDataSource })
-export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
+export class TodoRepository extends DefaultCRUDRepository<typeof todoTable> {
   // No constructor needed! DataSource and relations are auto-resolved
-  // from the @repository decorator and entity's static properties
+  // from the @repository decorator and the model's static properties
 }
 ```
 

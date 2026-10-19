@@ -123,12 +123,13 @@ class UserService extends BaseService {
 ### DefaultCRUDRepository
 
 ```typescript
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
-import { User } from '../models';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { User, type userTable } from '../models';
 import { PostgresDataSource } from '../datasources';
 
 @repository({ model: User, dataSource: PostgresDataSource })
-class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+class UserRepository extends DefaultCRUDRepository<typeof userTable> {
   // No constructor needed - dataSource auto-injected from @repository decorator
 }
 ```
@@ -143,27 +144,33 @@ class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 - `updateById({ id, data })` - Update by ID
 - `deleteById({ id })` - Delete by ID
 
-### BaseEntity
+### Model
 
 ```typescript
-import { BaseEntity, model } from '@venizia/ignis';
-import { integer, text, pgTable } from 'drizzle-orm/pg-core';
+import { model } from '@venizia/ignis';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const userTable = pgTable('users', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+  email: text('email').notNull().unique(),
+});
 
 @model({ type: 'entity' })
-class User extends BaseEntity {
-  static readonly TABLE_NAME = 'users';
-  static readonly schema = pgTable(User.TABLE_NAME, {
-    id: integer('id').primaryKey(),
-    name: text('name').notNull(),
-    email: text('email').notNull().unique(),
-  });
-}
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
+
+export type TUser = TEntityObject<typeof User>;
 ```
 
 **Key Properties:**
-- `static TABLE_NAME` - Database table name
-- `static schema` - Drizzle schema definition
+- `static TABLE_NAME` - Database table name, read off the table
+- `static schema` - The Drizzle table
+- `static relations` - Relations resolver, built from the `relations` option (`one` and `many`)
 - `static AUTHORIZATION_SUBJECT` - Authorization principal (auto-set from `@model` settings `authorize.principal`)
+
+`BaseEntity` is the compatibility class for hand-written models. New code uses `ModelFactory.defineEntity`.
 
 
 ## Route Decorators
@@ -379,7 +386,7 @@ import {
   repository,
 
   // Models
-  BaseEntity,
+  ModelFactory,
   model,
 
   // DI
@@ -641,7 +648,7 @@ class UserService extends BaseService {
 
 // Repository
 @repository({ model: User, dataSource: PostgresDataSource })
-class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+class UserRepository extends DefaultCRUDRepository<typeof userTable> {
   // DataSource auto-injected from @repository decorator
 }
 ```

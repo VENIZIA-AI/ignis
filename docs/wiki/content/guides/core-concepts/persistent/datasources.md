@@ -116,16 +116,19 @@ AbstractDataSource extends BaseHelper             # engine-neutral - no client, 
 
 ## Registering a DataSource
 
+`@datasource` marks the class. `artifacts: AutoArtifacts` in the application config registers it at boot, before `preConfigure()`:
+
 ```typescript
 // src/application.ts
-export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
-    this.dataSource(PostgresDataSource);
-  }
-}
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 ```
 
-DataSources are bound as **singletons** to ensure connection pool sharing across the application.
+See [Registering artifacts](../application/bootstrapping). DataSources are bound as **singletons** to ensure connection pool sharing across the application.
 
 ## Supported Engines
 

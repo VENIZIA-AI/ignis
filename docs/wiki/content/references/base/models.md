@@ -174,7 +174,7 @@ See [Authorization](/extensions/components/authorization/usage#model-based-resou
 
 ### Write the class by hand
 
-The class form still works, and existing models need no change. Assign the table to a static `schema` on `BaseEntity`:
+The class form still works, and existing models need no change. Hand-written `BaseEntity` subclasses are the compatibility path; new code uses `ModelFactory.defineEntity` (see the [models guide](/guides/core-concepts/persistent/models)). Assign the table to a static `schema` on `BaseEntity`:
 
 ```typescript
 import { BaseEntity, generateIdColumnDefs, model } from '@venizia/ignis';
