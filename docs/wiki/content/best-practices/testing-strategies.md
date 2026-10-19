@@ -367,7 +367,7 @@ Test full request/response cycle using Hono's test client.
 ```typescript
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test';
 import { testClient } from 'hono/testing';
-import { Application } from '@/application';
+import { Application, appConfigs } from '@/application';
 import { TestDatabase } from '@test/helpers/test-database';
 
 describe('UserController E2E', () => {
@@ -376,8 +376,10 @@ describe('UserController E2E', () => {
 
   beforeAll(async () => {
     await TestDatabase.initialize();
-    app = new Application();
-    await app.initialize();
+    app = new Application({ scope: 'UserControllerE2E', config: appConfigs });
+    // init() binds CoreBindings.APPLICATION_INSTANCE; start() runs the boot sequence and mounts the routes.
+    app.init();
+    await app.start();
     client = testClient(app.getServer());
   });
 
@@ -386,6 +388,7 @@ describe('UserController E2E', () => {
   });
 
   afterAll(async () => {
+    await app.stop();
     await TestDatabase.close();
   });
 

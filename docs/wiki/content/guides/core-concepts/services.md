@@ -21,13 +21,14 @@ Controllers stay thin. Repositories stay dumb. Everything in between is a servic
 
 ## Creating a Service
 
-Extend `BaseService` and call `super({ scope: ClassName.name })` in the constructor:
+Extend `BaseService`, decorate the class with `@service()`, and call `super({ scope: ClassName.name })` in the constructor:
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, service } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { UserRepository } from '../repositories';
 
+@service()
 export class UserService extends BaseService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
@@ -57,27 +58,34 @@ export class UserService extends BaseService {
 
 ## Registering a Service
 
-You have two ways to register a service. Call `this.service(ClassName)` inside an application lifecycle method, or decorate the class with `@service()` and let the generated artifact index register it. The decorator marks the class; `registerArtifacts` binds it at boot step 5, before `preConfigure()`. See [Registering artifacts](./application/bootstrapping).
-
-The imperative form is shown below.
+`@service()` marks the class. `artifacts: AutoArtifacts` in the application config registers every marked class at boot, before `preConfigure()`. `application.ts` names no service.
 
 ```typescript
-import { BaseApplication } from '@venizia/ignis';
-import { PostgresDataSource } from './datasources';
-import { UserRepository } from './repositories';
-import { UserService } from './services';
+// src/application.ts
+import AutoArtifacts from '@venizia/ignis-boot/auto';
 
-export class Application extends BaseApplication {
-  preConfigure(): void {
-    // Register dependencies first, then the service
-    this.dataSource(PostgresDataSource);
-    this.repository(UserRepository);
-    this.service(UserService);   // binds as 'services.UserService'
-  }
-}
+export const configs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 ```
 
-`this.service(UserService)` binds the class at the key `services.UserService`. Any other binding that injects `@inject({ key: 'services.UserService' })` resolves an instance from this binding. Service bindings are **transient** by default - each resolution creates a new instance. If your service must be shared (e.g., it holds state), set the scope explicitly: `this.service(UserService).setScope(BindingScopes.SINGLETON)`.
+The class binds at the key `services.UserService`. Any other binding that injects `@inject({ key: 'services.UserService' })` resolves an instance from this binding. See [Registering artifacts](./application/bootstrapping) for the full path.
+
+Service bindings are **transient** by default - each resolution creates a new instance. If your service must be shared (e.g., it holds state), declare the scope on the decorator:
+
+```typescript
+import { BaseService, BindingScopes, service } from '@venizia/ignis';
+
+@service({ scope: BindingScopes.SINGLETON })
+export class UserService extends BaseService {}
+```
+
+`@service({ ... })` also takes `binding`, `allowOverride`, `order` and `when`. See the [Services Reference](../../references/base/services.md#service-options).
+
+### Registering by hand
+
+`this.service(UserService)` inside `preConfigure()` still works, for the rare case a decorator cannot express. It throws when `bootChecks.binding.allowManual` is `false`.
 
 ---
 
@@ -150,6 +158,7 @@ async signIn(opts: { username: string }): Promise<string> {
 Services can inject other services the same way they inject repositories. This is the primary mechanism for logic reuse.
 
 ```typescript
+@service()
 export class RepositoryTestService extends BaseService {
   constructor(
     @inject({
@@ -178,15 +187,7 @@ export class RepositoryTestService extends BaseService {
 }
 ```
 
-Register all participating services in `preConfigure()`:
-
-```typescript
-this.service(CrudTestService);
-this.service(TransactionTestService);
-this.service(RepositoryTestService);
-```
-
-The DI container resolves the dependency graph automatically - registration order within the same lifecycle phase does not matter.
+`CrudTestService` and `TransactionTestService` carry `@service()` too. The DI container resolves the dependency graph automatically - registration order does not matter.
 
 ---
 
@@ -195,11 +196,12 @@ The DI container resolves the dependency graph automatically - registration orde
 The following is representative of `examples/vert/src/services/authentication.service.ts`. It shows the complete pattern: multiple injected dependencies, method-scoped logging, error handling, and calling other services.
 
 ```typescript
-import { BaseService, IAuthService, inject, JWKSIssuerTokenService, TContext } from '@venizia/ignis';
+import { BaseService, IAuthService, inject, JWKSIssuerTokenService, service, TContext } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { compare, genSalt, hash } from 'bcrypt';
 import { Env } from 'hono';
 
+@service()
 export class AuthenticationService
   extends BaseService
   implements IAuthService<Env, TSignInRequest, TSignInResponse, ...>
@@ -265,16 +267,7 @@ export class AuthenticationService
 }
 ```
 
-Registration:
-
-```typescript
-// application.ts
-preConfigure(): void {
-  this.dataSource(PostgresDataSource);
-  this.repository(UserRepository);
-  this.service(AuthenticationService);  // 'services.AuthenticationService'
-}
-```
+Registration: the `@service()` above binds the class as `services.AuthenticationService`, and `artifacts: AutoArtifacts` registers it.
 
 ---
 

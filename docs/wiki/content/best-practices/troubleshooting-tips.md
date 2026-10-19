@@ -23,7 +23,7 @@ lsof -ti:3000 | xargs kill -9
 
 | Cause | Check | Fix |
 |-------|-------|-----|
-| Controller not registered | Missing in `application.ts` | Add `this.controller(MyController)` to `preConfigure()` |
+| Controller not registered | Class has no `@controller` decorator, or the config has no `artifacts: AutoArtifacts` | Check the `@controller` decorator and `artifacts: AutoArtifacts` |
 | Incorrect path | Typo in route path | Verify `@controller({ path })` and route path match URL |
 | Wrong base path | Missing `/api` prefix | Check `path.base` in application config |
 
@@ -44,7 +44,7 @@ This prints all registered routes on startup.
 
 | Cause | Example Error | Fix |
 |-------|--------------|-----|
-| Resource not registered | `Binding 'services.MyService' not found` | Add `this.service(MyService)` to `preConfigure()` |
+| Resource not registered | `Binding 'services.MyService' not found` | Check the `@service()` decorator and `artifacts: AutoArtifacts` |
 | Wrong injection key | Key mismatch or typo | Use `BindingKeys.build()` helper |
 | Wrong namespace | Using `repository` instead of `service` | Check correct namespace in `@inject` |
 

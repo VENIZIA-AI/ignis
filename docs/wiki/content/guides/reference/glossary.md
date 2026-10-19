@@ -7,7 +7,7 @@ Quick reference for key terms in IGNIS documentation.
 
 | Term | Description |
 |------|-------------|
-| **Application** | Main entry point extending `BaseApplication`. Registers all components. |
+| **Application** | Main entry point extending `BaseApplication`. Its config sets `artifacts: AutoArtifacts`, which registers every decorated class. |
 | **Controller** | Handles HTTP/gRPC requests, defines API endpoints. REST controllers extend `BaseRestController`, gRPC controllers extend `BaseGrpcController`. Uses `@controller`, `@get`, `@post` decorators |
 | **Service** | Contains business logic between controllers and repositories |
 | **Repository** | Database operations for one entity (`find`, `create`, `updateById`, etc.) |
@@ -17,14 +17,13 @@ Quick reference for key terms in IGNIS documentation.
 | **DI Container** | Central registry that stores and resolves dependencies. The `Application` class acts as the container. |
 
 ```typescript
-// Application registers everything
-export class Application extends BaseApplication {
-  preConfigure() {
-    this.dataSource(PostgresDataSource);
-    this.repository(TodoRepository);
-    this.controller(TodoController);
-  }
-}
+// Decorators mark the classes; the config registers them all
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+
+export const appConfigs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  artifacts: AutoArtifacts,
+};
 
 // Controller handles HTTP
 const TodoRoutes = {

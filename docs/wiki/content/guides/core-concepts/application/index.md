@@ -16,6 +16,7 @@ import {
   IApplicationInfo,
   ValueOrPromise,
 } from "@venizia/ignis";
+import AutoArtifacts from "@venizia/ignis-boot/auto";
 import packageJson from "./../package.json";
 
 // Application configurations
@@ -29,6 +30,8 @@ export const appConfigs: IApplicationConfigs = {
   debug: {
     shouldShowRoutes: process.env.NODE_ENV !== "production",
   },
+  // Registers every decorated datasource, component, repository, service and controller
+  artifacts: AutoArtifacts,
 };
 
 // Main Application class
@@ -42,10 +45,7 @@ export class Application extends BaseApplication {
   }
 
   preConfigure(): ValueOrPromise<void> {
-    // Register your resources
-    this.dataSource(MyDataSource);
-    this.service(MyService);
-    this.controller(MyController);
+    // Setup a decorator cannot express, e.g. bind a value or an option
   }
 
   postConfigure(): ValueOrPromise<void> {
@@ -174,17 +174,21 @@ export const appConfigs: IApplicationConfigs = {
 
 ## Registering Resources
 
-Register resources in `preConfigure()` to tell the DI container about your classes:
+Decorate each class and set `artifacts: AutoArtifacts` in the application config. IGNIS registers every decorated class before `preConfigure()` runs. See [Registering artifacts](./bootstrapping).
 
-| Method | Example | Binding Scope | When to Use |
-|--------|---------|---------------|-------------|
-| `this.dataSource(...)` | `this.dataSource(PostgresDataSource)` | **Singleton** | Register database connection |
-| `this.component(...)` | `this.component(AuthenticateComponent)` | **Singleton** | Register reusable modules |
-| `this.repository(...)` | `this.repository(UserRepository)` | Transient | Register data access |
-| `this.service(...)` | `this.service(UserService)` | Transient | Register business logic |
-| `this.controller(...)` | `this.controller(UserController)` | **Singleton** | Register API endpoints |
+| Decorator | Marks | Binding Scope |
+|-----------|-------|---------------|
+| `@datasource({ ... })` | A database connection | **Singleton** |
+| `@component()` | A reusable module | **Singleton** |
+| `@repository({ model, dataSource })` | Data access | Transient |
+| `@service()` | Business logic | Transient |
+| `@controller({ path })` | API endpoints | **Singleton** |
 
-All registration methods accept an optional second parameter to customize the binding key:
+### Registering by hand
+
+`preConfigure()` is for what a decorator cannot express. The `this.dataSource(...)`, `this.component(...)`, `this.repository(...)`, `this.service(...)` and `this.controller(...)` methods still work as an escape hatch. They fail when `bootChecks.binding.allowManual` is `false`.
+
+All of them accept an optional second parameter to customize the binding key:
 
 ```typescript
 // Default binding (key: 'controllers.UserController')
@@ -196,12 +200,13 @@ this.controller(UserController, {
 });
 ```
 
-**Registration order:**
-1. DataSources first (database connections)
-2. Repositories (depend on DataSources)
-3. Services (depend on Repositories)
-4. Controllers (depend on Services)
-5. Components (can add more datasources/controllers during configuration)
+**Registration order** for decorated classes:
+1. Configurations
+2. DataSources (database connections)
+3. Components
+4. Repositories (depend on DataSources)
+5. Services (depend on Repositories)
+6. Controllers (depend on Services)
 
 > **Deep Dive:** See [Dependency Injection](../dependency-injection.md) for how registration and injection work together.
 

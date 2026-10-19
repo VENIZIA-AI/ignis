@@ -39,20 +39,19 @@ bun add socket.io @socket.io/redis-adapter @socket.io/redis-emitter @socket.io/b
 
 ## 2. Database Models
 
-Models in IGNIS combine Drizzle ORM schemas with Entity classes.
+Each model is a Drizzle table plus a class built from it with `ModelFactory.defineEntity`. Relations point at tables, keyed by name, and `many` pairs with the `one` of the same name on the other table. See the [Models guide](/guides/core-concepts/persistent/models) for details.
 
 ### User Model
 
 ```typescript
 // src/models/user.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -65,30 +64,25 @@ export const userTable = pgTable('User', {
   lastSeenAt: timestamp('last_seen_at'),
 });
 
-export type TUserSchema = typeof userTable;
-export type TUser = TTableObject<TUserSchema>;
-
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
-  static override schema = userTable;
-  static override relations = (): TRelationConfig[] => [];
-  static override TABLE_NAME = 'User';
-}
+export class User extends ModelFactory.defineEntity({ table: userTable }) {}
+
+export type TUser = TEntityObject<typeof User>;
 ```
 
 ### Room Model
 
 ```typescript
 // src/models/room.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  many,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
@@ -110,69 +104,50 @@ export const roomMemberTable = pgTable('RoomMember', {
   lastReadAt: timestamp('last_read_at'),
 });
 
-export type TRoomSchema = typeof roomTable;
-export type TRoom = TTableObject<TRoomSchema>;
-export type TRoomMemberSchema = typeof roomMemberTable;
-export type TRoomMember = TTableObject<TRoomMemberSchema>;
+@model({ type: 'entity' })
+export class Room extends ModelFactory.defineEntity({
+  table: roomTable,
+  relations: () => ({
+    creator: one(userTable, {
+      fields: [roomTable.createdBy],
+      references: [userTable.id],
+    }),
+    // Pairs with the `room` relation on RoomMember
+    members: many(roomMemberTable, { relationName: 'room' }),
+  }),
+}) {}
 
 @model({ type: 'entity' })
-export class Room extends BaseEntity<typeof Room.schema> {
-  static override schema = roomTable;
+export class RoomMember extends ModelFactory.defineEntity({
+  table: roomMemberTable,
+  relations: () => ({
+    room: one(roomTable, {
+      fields: [roomMemberTable.roomId],
+      references: [roomTable.id],
+    }),
+    user: one(userTable, {
+      fields: [roomMemberTable.userId],
+      references: [userTable.id],
+    }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'creator',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: { fields: [roomTable.createdBy], references: [userTable.id] },
-    },
-    {
-      name: 'members',
-      type: RelationTypes.MANY,
-      schema: roomMemberTable,
-      metadata: { fields: [roomTable.id], references: [roomMemberTable.roomId] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Room';
-}
-
-@model({ type: 'entity' })
-export class RoomMember extends BaseEntity<typeof RoomMember.schema> {
-  static override schema = roomMemberTable;
-
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'room',
-      type: RelationTypes.ONE,
-      schema: roomTable,
-      metadata: { fields: [roomMemberTable.roomId], references: [roomTable.id] },
-    },
-    {
-      name: 'user',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: { fields: [roomMemberTable.userId], references: [userTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'RoomMember';
-}
+export type TRoom = TEntityObject<typeof Room>;
+export type TRoomMember = TEntityObject<typeof RoomMember>;
 ```
 
 ### Message Model
 
 ```typescript
 // src/models/message.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 import { roomTable } from './room.model';
@@ -201,54 +176,38 @@ export const directMessageTable = pgTable('DirectMessage', {
   deletedAt: timestamp('deleted_at'),
 });
 
-export type TMessageSchema = typeof messageTable;
-export type TMessage = TTableObject<TMessageSchema>;
-export type TDirectMessageSchema = typeof directMessageTable;
-export type TDirectMessage = TTableObject<TDirectMessageSchema>;
+@model({ type: 'entity' })
+export class Message extends ModelFactory.defineEntity({
+  table: messageTable,
+  relations: () => ({
+    room: one(roomTable, {
+      fields: [messageTable.roomId],
+      references: [roomTable.id],
+    }),
+    sender: one(userTable, {
+      fields: [messageTable.senderId],
+      references: [userTable.id],
+    }),
+  }),
+}) {}
 
 @model({ type: 'entity' })
-export class Message extends BaseEntity<typeof Message.schema> {
-  static override schema = messageTable;
+export class DirectMessage extends ModelFactory.defineEntity({
+  table: directMessageTable,
+  relations: () => ({
+    sender: one(userTable, {
+      fields: [directMessageTable.senderId],
+      references: [userTable.id],
+    }),
+    receiver: one(userTable, {
+      fields: [directMessageTable.receiverId],
+      references: [userTable.id],
+    }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'room',
-      type: RelationTypes.ONE,
-      schema: roomTable,
-      metadata: { fields: [messageTable.roomId], references: [roomTable.id] },
-    },
-    {
-      name: 'sender',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: { fields: [messageTable.senderId], references: [userTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Message';
-}
-
-@model({ type: 'entity' })
-export class DirectMessage extends BaseEntity<typeof DirectMessage.schema> {
-  static override schema = directMessageTable;
-
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'sender',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: { fields: [directMessageTable.senderId], references: [userTable.id] },
-    },
-    {
-      name: 'receiver',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: { fields: [directMessageTable.receiverId], references: [userTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'DirectMessage';
-}
+export type TMessage = TEntityObject<typeof Message>;
+export type TDirectMessage = TEntityObject<typeof DirectMessage>;
 ```
 
 ### Models Index
@@ -324,27 +283,29 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 
 ```typescript
 // src/repositories/user.repository.ts
-import { User } from '@/models/user.model';
+import { User, type userTable } from '@/models/user.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
 ```
 
 ### Room Repository
 
 ```typescript
 // src/repositories/room.repository.ts
-import { Room, RoomMember } from '@/models/room.model';
+import { Room, RoomMember, type roomTable, type roomMemberTable } from '@/models/room.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository, inject } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: RoomMember, dataSource: PostgresDataSource })
-export class RoomMemberRepository extends DefaultCRUDRepository<typeof RoomMember.schema> {}
+export class RoomMemberRepository extends DefaultCRUDRepository<typeof roomMemberTable> {}
 
 @repository({ model: Room, dataSource: PostgresDataSource })
-export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
+export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
   constructor(
     // First parameter MUST be DataSource injection
     @inject({ key: 'datasources.PostgresDataSource' })
@@ -406,15 +367,16 @@ export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
 
 ```typescript
 // src/repositories/message.repository.ts
-import { Message, DirectMessage } from '@/models/message.model';
+import { Message, DirectMessage, type messageTable, type directMessageTable } from '@/models/message.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository, inject } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: DirectMessage, dataSource: PostgresDataSource })
-export class DirectMessageRepository extends DefaultCRUDRepository<typeof DirectMessage.schema> {}
+export class DirectMessageRepository extends DefaultCRUDRepository<typeof directMessageTable> {}
 
 @repository({ model: Message, dataSource: PostgresDataSource })
-export class MessageRepository extends DefaultCRUDRepository<typeof Message.schema> {
+export class MessageRepository extends DefaultCRUDRepository<typeof messageTable> {
   constructor(
     // First parameter MUST be DataSource injection
     @inject({ key: 'datasources.PostgresDataSource' })

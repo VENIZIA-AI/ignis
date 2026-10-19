@@ -82,22 +82,25 @@ Same decorators, `sqliteTable` instead of `pgTable`, and the enrichers come from
 ```typescript
 import { model } from '@venizia/ignis';
 import {
-  BaseSqliteEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
+  ModelFactory,
 } from '@venizia/ignis/sqlite';
+import type { TEntityObject } from '@venizia/ignis/sqlite';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
+export const productTable = sqliteTable('Product', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  name: text('name').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
+});
+
 @model({ type: 'entity' })
-export class Product extends BaseSqliteEntity<typeof Product.schema> {
-  static override schema = sqliteTable('Product', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    name: text('name').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
-  });
-}
+export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
+
+export type TProduct = TEntityObject<typeof Product>;
 ```
 
 Three column choices differ from the Postgres twin:
@@ -117,7 +120,7 @@ import { repository } from '@venizia/ignis';
 import { DefaultSqliteRepository } from '@venizia/ignis/sqlite';
 
 @repository({ model: Product, dataSource: SqliteDataSource })
-export class ProductRepository extends DefaultSqliteRepository<typeof Product.schema> {}
+export class ProductRepository extends DefaultSqliteRepository<typeof productTable> {}
 ```
 
 Reads look exactly like Postgres reads:

@@ -78,21 +78,21 @@ ecommerce-api/
 
 ## 2. Database Models
 
-Models in IGNIS combine Drizzle ORM schemas with Entity classes.
+Each model is a Drizzle table plus a class built from it with `ModelFactory.defineEntity`. Relations point at tables, keyed by name, and `many` pairs with the `one` of the same name on the other table. See the [Models guide](/guides/core-concepts/persistent/models) for details.
 
 ### Category Model
 
 ```typescript
 // src/models/category.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  many,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, varchar } from 'drizzle-orm/pg-core';
 
 export const categoryTable = pgTable('Category', {
@@ -104,45 +104,34 @@ export const categoryTable = pgTable('Category', {
   parentId: text('parent_id'),
 });
 
-export type TCategorySchema = typeof categoryTable;
-export type TCategory = TTableObject<TCategorySchema>;
-
 @model({ type: 'entity' })
-export class Category extends BaseEntity<typeof Category.schema> {
-  static override schema = categoryTable;
+export class Category extends ModelFactory.defineEntity({
+  table: categoryTable,
+  relations: () => ({
+    parent: one(categoryTable, {
+      fields: [categoryTable.parentId],
+      references: [categoryTable.id],
+    }),
+    // Pairs with the `parent` relation above
+    children: many(categoryTable, { relationName: 'parent' }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'parent',
-      type: RelationTypes.ONE,
-      schema: categoryTable,
-      metadata: { fields: [categoryTable.parentId], references: [categoryTable.id] },
-    },
-    {
-      name: 'children',
-      type: RelationTypes.MANY,
-      schema: categoryTable,
-      metadata: { fields: [categoryTable.id], references: [categoryTable.parentId] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Category';
-}
+export type TCategory = TEntityObject<typeof Category>;
 ```
 
 ### Product Model
 
 ```typescript
 // src/models/product.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, varchar, decimal, integer, boolean } from 'drizzle-orm/pg-core';
 import { categoryTable } from './category.model';
 
@@ -160,39 +149,33 @@ export const productTable = pgTable('Product', {
   imageUrl: text('image_url'),
 });
 
-export type TProductSchema = typeof productTable;
-export type TProduct = TTableObject<TProductSchema>;
-
 @model({ type: 'entity' })
-export class Product extends BaseEntity<typeof Product.schema> {
-  static override schema = productTable;
+export class Product extends ModelFactory.defineEntity({
+  table: productTable,
+  relations: () => ({
+    category: one(categoryTable, {
+      fields: [productTable.categoryId],
+      references: [categoryTable.id],
+    }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'category',
-      type: RelationTypes.ONE,
-      schema: categoryTable,
-      metadata: { fields: [productTable.categoryId], references: [categoryTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Product';
-}
+export type TProduct = TEntityObject<typeof Product>;
 ```
 
 ### Cart Model
 
 ```typescript
 // src/models/cart.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  many,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
@@ -211,63 +194,45 @@ export const cartItemTable = pgTable('CartItem', {
   quantity: integer('quantity').default(1).notNull(),
 });
 
-export type TCartSchema = typeof cartTable;
-export type TCart = TTableObject<TCartSchema>;
-export type TCartItemSchema = typeof cartItemTable;
-export type TCartItem = TTableObject<TCartItemSchema>;
+@model({ type: 'entity' })
+export class Cart extends ModelFactory.defineEntity({
+  table: cartTable,
+  // Pairs with the `cart` relation on CartItem
+  relations: () => ({ items: many(cartItemTable, { relationName: 'cart' }) }),
+}) {}
 
 @model({ type: 'entity' })
-export class Cart extends BaseEntity<typeof Cart.schema> {
-  static override schema = cartTable;
+export class CartItem extends ModelFactory.defineEntity({
+  table: cartItemTable,
+  relations: () => ({
+    cart: one(cartTable, {
+      fields: [cartItemTable.cartId],
+      references: [cartTable.id],
+    }),
+    product: one(productTable, {
+      fields: [cartItemTable.productId],
+      references: [productTable.id],
+    }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'items',
-      type: RelationTypes.MANY,
-      schema: cartItemTable,
-      metadata: { fields: [cartTable.id], references: [cartItemTable.cartId] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Cart';
-}
-
-@model({ type: 'entity' })
-export class CartItem extends BaseEntity<typeof CartItem.schema> {
-  static override schema = cartItemTable;
-
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'cart',
-      type: RelationTypes.ONE,
-      schema: cartTable,
-      metadata: { fields: [cartItemTable.cartId], references: [cartTable.id] },
-    },
-    {
-      name: 'product',
-      type: RelationTypes.ONE,
-      schema: productTable,
-      metadata: { fields: [cartItemTable.productId], references: [productTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'CartItem';
-}
+export type TCart = TEntityObject<typeof Cart>;
+export type TCartItem = TEntityObject<typeof CartItem>;
 ```
 
 ### Order Model
 
 ```typescript
 // src/models/order.model.ts
+import { model } from '@venizia/ignis';
 import {
-  BaseEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
-  TRelationConfig,
-  TTableObject,
-} from '@venizia/ignis';
+  ModelFactory,
+  many,
+  one,
+} from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, varchar, decimal, integer, jsonb } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
@@ -295,48 +260,30 @@ export const orderItemTable = pgTable('OrderItem', {
   quantity: integer('quantity').notNull(),
 });
 
-export type TOrderSchema = typeof orderTable;
-export type TOrder = TTableObject<TOrderSchema>;
-export type TOrderItemSchema = typeof orderItemTable;
-export type TOrderItem = TTableObject<TOrderItemSchema>;
+@model({ type: 'entity' })
+export class Order extends ModelFactory.defineEntity({
+  table: orderTable,
+  // Pairs with the `order` relation on OrderItem
+  relations: () => ({ items: many(orderItemTable, { relationName: 'order' }) }),
+}) {}
 
 @model({ type: 'entity' })
-export class Order extends BaseEntity<typeof Order.schema> {
-  static override schema = orderTable;
+export class OrderItem extends ModelFactory.defineEntity({
+  table: orderItemTable,
+  relations: () => ({
+    order: one(orderTable, {
+      fields: [orderItemTable.orderId],
+      references: [orderTable.id],
+    }),
+    product: one(productTable, {
+      fields: [orderItemTable.productId],
+      references: [productTable.id],
+    }),
+  }),
+}) {}
 
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'items',
-      type: RelationTypes.MANY,
-      schema: orderItemTable,
-      metadata: { fields: [orderTable.id], references: [orderItemTable.orderId] },
-    },
-  ];
-
-  static override TABLE_NAME = 'Order';
-}
-
-@model({ type: 'entity' })
-export class OrderItem extends BaseEntity<typeof OrderItem.schema> {
-  static override schema = orderItemTable;
-
-  static override relations = (): TRelationConfig[] => [
-    {
-      name: 'order',
-      type: RelationTypes.ONE,
-      schema: orderTable,
-      metadata: { fields: [orderItemTable.orderId], references: [orderTable.id] },
-    },
-    {
-      name: 'product',
-      type: RelationTypes.ONE,
-      schema: productTable,
-      metadata: { fields: [orderItemTable.productId], references: [productTable.id] },
-    },
-  ];
-
-  static override TABLE_NAME = 'OrderItem';
-}
+export type TOrder = TEntityObject<typeof Order>;
+export type TOrderItem = TEntityObject<typeof OrderItem>;
 ```
 
 ### Models Index
@@ -413,39 +360,42 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 
 ```typescript
 // src/repositories/product.repository.ts
-import { Product } from '@/models/product.model';
+import { Product, type productTable } from '@/models/product.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: Product, dataSource: PostgresDataSource })
-export class ProductRepository extends DefaultCRUDRepository<typeof Product.schema> {}
+export class ProductRepository extends DefaultCRUDRepository<typeof productTable> {}
 ```
 
 ### Category Repository
 
 ```typescript
 // src/repositories/category.repository.ts
-import { Category } from '@/models/category.model';
+import { Category, type categoryTable } from '@/models/category.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: Category, dataSource: PostgresDataSource })
-export class CategoryRepository extends DefaultCRUDRepository<typeof Category.schema> {}
+export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTable> {}
 ```
 
 ### Cart Repository
 
 ```typescript
 // src/repositories/cart.repository.ts
-import { Cart, CartItem } from '@/models/cart.model';
+import { Cart, CartItem, type cartTable, type cartItemTable } from '@/models/cart.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository, inject } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: CartItem, dataSource: PostgresDataSource })
-export class CartItemRepository extends DefaultCRUDRepository<typeof CartItem.schema> {}
+export class CartItemRepository extends DefaultCRUDRepository<typeof cartItemTable> {}
 
 @repository({ model: Cart, dataSource: PostgresDataSource })
-export class CartRepository extends DefaultCRUDRepository<typeof Cart.schema> {
+export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
   constructor(
     // First parameter MUST be DataSource injection
     @inject({ key: 'datasources.PostgresDataSource' })
@@ -491,15 +441,16 @@ export class CartRepository extends DefaultCRUDRepository<typeof Cart.schema> {
 
 ```typescript
 // src/repositories/order.repository.ts
-import { Order, OrderItem } from '@/models/order.model';
+import { Order, OrderItem, type orderTable, type orderItemTable } from '@/models/order.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
-import { DefaultCRUDRepository, repository, inject } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: OrderItem, dataSource: PostgresDataSource })
-export class OrderItemRepository extends DefaultCRUDRepository<typeof OrderItem.schema> {}
+export class OrderItemRepository extends DefaultCRUDRepository<typeof orderItemTable> {}
 
 @repository({ model: Order, dataSource: PostgresDataSource })
-export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> {
+export class OrderRepository extends DefaultCRUDRepository<typeof orderTable> {
   constructor(
     // First parameter MUST be DataSource injection
     @inject({ key: 'datasources.PostgresDataSource' })

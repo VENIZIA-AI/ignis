@@ -17,10 +17,10 @@ Technical reference for `BaseService` - the foundation for the business logic la
 | **Import** | `import { BaseService, inject } from '@venizia/ignis'` |
 | **Extends** | `BaseHelper` from `@venizia/ignis-helpers` |
 | **Logging** | `this.logger` (scoped to constructor `scope`) |
-| **Registration** | `this.service(MyService)` in application lifecycle |
+| **Registration** | `@service()` on the class + `artifacts: AutoArtifacts` in the app config |
 | **Binding key** | `services.{ClassName}` (e.g., `services.AuthenticationService`) |
 | **Binding scope** | **Transient.** Every resolution builds a fresh instance |
-| **DI decorator** | `@inject` on constructor parameters or properties. `@service({ ... })` on the class is optional, and only supplies registration defaults |
+| **DI decorator** | `@inject` on constructor parameters or properties. `@service({ ... })` on the class marks it for registration and carries its registration defaults |
 | **CRUD service** | Removed - use `DefaultCRUDRepository` for data access |
 
 ---
@@ -58,41 +58,37 @@ export interface IService {}
 
 ## Registering a Service
 
-Services are registered imperatively in an application lifecycle method. `this.service()` creates the binding and handles everything; a class decorator is optional, and only supplies registration defaults.
+`@service()` marks the class. With `artifacts: AutoArtifacts` in the application config, `registerArtifacts` binds every marked class at boot, before `preConfigure()`. See [Registering artifacts](/guides/core-concepts/application/bootstrapping).
 
 ```typescript
-// In your Application class (e.g., in preConfigure())
-this.service(AuthenticationService);  // binds as 'services.AuthenticationService'
-this.service(GreeterService);         // binds as 'services.GreeterService'
+import { BaseService, service } from '@venizia/ignis';
+
+@service()
+export class AuthenticationService extends BaseService {}  // binds as 'services.AuthenticationService'
 ```
 
-`this.service(Ctor)` is implemented on the kernel's `RestApplication`, which `BaseApplication` extends:
+The binding key defaults to `services.{ClassName}`.
 
-```typescript
-// packages/kernel/src/base/applications/rest.ts
-service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
-  return this.registerArtifact({
-    target,
-    namespace: BindingNamespaces.SERVICE,
-    defaultScope: BindingScopes.TRANSIENT,
-    caller: this.service.name,
-    opts,
-  });
-}
-```
+### Service options
 
-The resulting binding key defaults to `services.{ClassName}` (overridable via `opts.binding`).
+`@service({ ... })` takes these registration options. All are optional.
 
-`registerArtifact` resolves each registration in one order: explicit `opts` beat the class's own
-decorator defaults, which beat the derived key and the kind's default scope. `TMixinOpts` carries
-`binding`, `allowOverride` and `options` only - the scope is not among them, so declare it on the
-class.
+| Option | Type | Default | Effect |
+|--------|------|---------|--------|
+| `binding` | `{ namespace: string; key: string }` | `services.{ClassName}` | Pins the binding key |
+| `scope` | `TBindingScope` | `TRANSIENT` | Binding scope |
+| `allowOverride` | `boolean` | `true` | `false` makes a same-key re-registration throw |
+| `order` | `number` | `0` | Lower registers first within its kind |
+| `when` | `TArtifactCondition` | always register | Sync or async; `false` skips the class |
+| `after` | `ReadonlyArray<TClass<unknown>>` | none | Configurations only; has no effect on a service |
+
+See the [bootstrapping reference](/references/base/bootstrapping) for the full semantics.
 
 > [!WARNING]
 > **Services are TRANSIENT.** The default scope is `BindingScopes.TRANSIENT`, so every resolution
 > constructs a fresh instance. State you cache on a service field is gone on the next `get()` or
-> the next injection, silently. Put shared state in a repository, a helper singleton, or a binding
-> you declare `singleton` yourself. Controllers are the opposite - `this.controller()` defaults to
+> the next injection, silently. Put shared state in a repository, a helper singleton, or a service
+> you declare `SINGLETON` yourself. Controllers are the opposite - they default to
 > `BindingScopes.SINGLETON`.
 
 To make one service a singleton, declare the scope on the class:
@@ -110,22 +106,37 @@ export class CounterService extends BaseService {
 
 `registerArtifact` reads that declared scope and uses it instead of the transient default.
 
-### Lifecycle Placement
+### Registering by hand
 
-Register services before anything that depends on them. The correct hook is `preConfigure()`, or a private helper called from `preConfigure()`:
+`this.service(Ctor)` is the escape hatch for what a decorator cannot express. Call it inside `preConfigure()`. It throws when `bootChecks.binding.allowManual` is `false` and `configs.artifacts` is set.
 
 ```typescript
 export class Application extends BaseApplication {
   preConfigure(): void {
-    // DataSources and repositories that services depend on must come first
-    this.dataSource(PostgresDataSource);
-    this.repository(UserRepository);
-
-    // Then register services
-    this.service(AuthenticationService);
+    this.service(AuthenticationService);  // binds as 'services.AuthenticationService'
   }
 }
 ```
+
+`this.service(Ctor)` is implemented on the kernel's `RestApplication`, which `BaseApplication` extends:
+
+```typescript
+// packages/kernel/src/base/applications/rest.ts
+service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+  return this.registerArtifact({
+    target,
+    namespace: BindingNamespaces.SERVICE,
+    defaultScope: BindingScopes.TRANSIENT,
+    caller: this.service.name,
+    opts,
+  });
+}
+```
+
+`registerArtifact` resolves each registration in one order: explicit `opts` beat the class's own
+decorator defaults, which beat the derived key and the kind's default scope. `TMixinOpts` carries
+`binding`, `allowOverride` and `options` only - the scope is not among them, so declare it on the
+class.
 
 ---
 
