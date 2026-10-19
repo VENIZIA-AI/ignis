@@ -61,23 +61,40 @@ const PUBLIC_ROUTE_CONFIG = {
 
 ```typescript
 import { authenticate, Authentication, AuthenticationModes } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const authMiddleware = authenticate({ strategies: [Authentication.STRATEGY_JWT], mode: AuthenticationModes.ANY });
 
-app.get('/protected', authMiddleware, c => {
-  const user = c.get(Authentication.CURRENT_USER);
-  return c.json({ userId: user.userId });
+app.get('/protected', authMiddleware, context => {
+  const user = context.get(Authentication.CURRENT_USER);
+  return context.json({ userId: user?.userId }, HTTP.ResultCodes.RS_2.Ok);
 });
 ```
 
 **Read the authenticated user in a handler.**
 
 ```typescript
-import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
+import {
+  Authentication,
+  BaseRestController,
+  controller,
+  get,
+  type IJWTTokenPayload,
+  type TRouteContext,
+} from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
-const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-if (user) {
-  console.log('User ID:', user.userId, 'Roles:', user.roles);
+@controller({ path: '/' })
+export class SecureDataController extends BaseRestController {
+  constructor() {
+    super({ scope: SecureDataController.name });
+  }
+
+  @get({ configs: SECURE_ROUTE_CONFIG })
+  getData(context: TRouteContext) {
+    const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
+    return context.json({ message: `Hello ${user?.userId}` }, HTTP.ResultCodes.RS_2.Ok);
+  }
 }
 ```
 
@@ -87,9 +104,9 @@ if (user) {
 import { Authentication } from '@venizia/ignis';
 import { createMiddleware } from 'hono/factory';
 
-const conditionalAuthMiddleware = createMiddleware(async (c, next) => {
-  if (c.req.header('X-API-Key') === 'valid-api-key') {
-    c.set(Authentication.SKIP_AUTHENTICATION, true);
+const conditionalAuthMiddleware = createMiddleware(async (context, next) => {
+  if (context.req.header('X-API-Key') === 'valid-api-key') {
+    context.set(Authentication.SKIP_AUTHENTICATION, true);
   }
   return next();
 });

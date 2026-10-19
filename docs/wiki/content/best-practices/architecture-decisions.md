@@ -21,20 +21,11 @@ This guide helps you make informed architectural decisions when building applica
 ```typescript
 // Simple CRUD with no business logic
 @controller({ path: '/items' })
-export class ItemController extends BaseRestController {
-  constructor(
-    @inject({ key: 'repositories.ItemRepository' })
-    private itemRepository: ItemRepository,
-  ) {
-    super({ scope: ItemController.name, path: '/items' });
-  }
-
-  @get({ configs: RouteConfigs.GET_ITEM_BY_ID })
-  async getItem(c: Context) {
-    const item = await this.itemRepository.findById({ id: c.req.param('id') });
-    return c.json(item);
-  }
-}
+export class ItemController extends ControllerFactory.defineCrudController({
+  entity: Item,
+  repository: { name: ItemRepository.name },
+  controller: { name: 'ItemController', basePath: '/items' },
+}) {}
 ```
 
 **Good for:**
@@ -53,15 +44,15 @@ export class OrderController extends BaseRestController {
     @inject({ key: 'services.OrderService' })
     private orderService: OrderService,
   ) {
-    super({ scope: OrderController.name, path: '/orders' });
+    super({ scope: OrderController.name });
   }
 
   @post({ configs: RouteConfigs.CREATE_ORDER })
-  async createOrder(c: Context) {
-    const data = await c.req.json();
+  async createOrder(context: TRouteContext) {
+    const data = context.req.valid<CreateOrderInput>('json');
     // Service handles: validation, inventory check, payment, notifications
     const order = await this.orderService.createOrder(data);
-    return c.json(order, 201);
+    return context.json(order, HTTP.ResultCodes.RS_2.Created);
   }
 }
 ```
@@ -133,12 +124,12 @@ export class NotificationComponent extends BaseComponent {
 @controller({ path: '/health' })
 export class HealthController extends BaseRestController {
   constructor() {
-    super({ scope: HealthController.name, path: '/health' });
+    super({ scope: HealthController.name });
   }
 
   @get({ configs: RouteConfigs.HEALTH_CHECK })
-  healthCheck(c: Context) {
-    return c.json({ status: 'ok', timestamp: new Date() });
+  healthCheck(context: TRouteContext) {
+    return context.json({ status: 'ok', timestamp: new Date() }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -233,15 +224,15 @@ export class OrderRepository extends DefaultRelationalRepository<typeof Order.sc
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
   @post({ configs: RouteConfigs.CREATE_USER })
-  async createUser(c: Context) {
+  async createUser(context: TRouteContext) {
     try {
-      const data = await c.req.json();
+      const data = context.req.valid<CreateUserInput>('json');
       const user = await this.userService.create(data);
-      return c.json(user, 201);
+      return context.json(user, HTTP.ResultCodes.RS_2.Created);
     } catch (error) {
-      // Format error for API response -- the code is always lower-cased by ApplicationError
+      // Format error for API response - the code is always lower-cased by ApplicationError
       if (isApplicationError(error) && error.normalized.code === 'app.user.duplicate_email') {
-        return c.json({ error: 'Email already exists' }, 400);
+        return context.json({ error: 'Email already exists' }, HTTP.ResultCodes.RS_4.BadRequest);
       }
       throw error; // Let global handler catch unknown errors
     }

@@ -57,42 +57,45 @@ The class must be a named export. See [Registering artifacts](/guides/core-conce
 
 -   **Bad:**
     ```typescript
+    import { post, type TRouteContext } from '@venizia/ignis';
     import { getError, HTTP } from '@venizia/ignis-helpers';
 
     // In a Controller
-    async createUser(c: Context) {
-        const { name, email, companyName } = c.req.valid('json');
-        
-        // Complex logic inside the controller
-        const existingUser = await this.userRepository.findByEmail(email);
-        if (existingUser) {
-            throw getError({ message: 'Email already exists' });
-        }
-        
-        const company = await this.companyRepository.findOrCreate(companyName);
-        const user = await this.userRepository.create({
-          data: { name, email, companyId: company.id },
-        });
-        
-        return c.json(user, HTTP.ResultCodes.RS_2.Ok);
+    @post({ configs: RouteConfigs.CREATE_USER })
+    async createUser(context: TRouteContext) {
+      const { name, email, companyName } = context.req.valid<TCreateUser>('json');
+
+      // Complex logic inside the controller
+      const existingUser = await this.userRepository.findByEmail(email);
+      if (existingUser) {
+        throw getError({ message: 'Email already exists' });
+      }
+
+      const company = await this.companyRepository.findOrCreate(companyName);
+      const user = await this.userRepository.create({
+        data: { name, email, companyId: company.id },
+      });
+
+      return context.json(user, HTTP.ResultCodes.RS_2.Created);
     }
     ```
 -   **Good:**
     ```typescript
     // In a Controller
-    async createUser(c: Context) {
-        const userData = c.req.valid('json');
-        // Delegate to the service
-        const newUser = await this.userService.createUser(userData);
-        return c.json(newUser, HTTP.ResultCodes.RS_2.Ok);
+    @post({ configs: RouteConfigs.CREATE_USER })
+    async createUser(context: TRouteContext) {
+      const userData = context.req.valid<TCreateUser>('json');
+      // Delegate to the service
+      const newUser = await this.userService.createUser(userData);
+      return context.json(newUser, HTTP.ResultCodes.RS_2.Created);
     }
-    
+
     // In UserService
     async createUser(data) {
-        // All the complex logic now resides in the service
-        const existingUser = await this.userRepository.findByEmail(data.email);
-        // ...
-        return await this.userRepository.create({ data });
+      // All the complex logic now resides in the service
+      const existingUser = await this.userRepository.findByEmail(data.email);
+      // ...
+      return await this.userRepository.create({ data });
     }
     ```
 
@@ -324,28 +327,28 @@ This exact shape is safe even when `commit()` is what failed: a rollback on an a
 ```typescript
 // ❌ BAD - Context lost in fire-and-forget
 @post({ configs: RouteConfigs.CREATE_ORDER })
-async createOrder(c: Context) {
-  const data = c.req.valid('json');
+async createOrder(context: TRouteContext) {
+  const data = context.req.valid<TCreateOrder>('json');
   const order = await this.orderService.create(data);
 
   // Fire-and-forget: sendNotification runs outside request context
   this.notificationService.sendOrderConfirmation(order.id);
   // Inside sendOrderConfirmation, getCurrentUserId() returns null!
 
-  return c.json(order);
+  return context.json(order, HTTP.ResultCodes.RS_2.Created);
 }
 
 // ✅ GOOD - Pass user ID explicitly
 @post({ configs: RouteConfigs.CREATE_ORDER })
-async createOrder(c: Context) {
-  const data = c.req.valid('json');
-  const userId = c.get(Authentication.AUDIT_USER_ID);
+async createOrder(context: TRouteContext) {
+  const data = context.req.valid<TCreateOrder>('json');
+  const userId = context.get(Authentication.AUDIT_USER_ID);
   const order = await this.orderService.create(data);
 
   // Pass userId explicitly to background task
   this.notificationService.sendOrderConfirmation(order.id, userId);
 
-  return c.json(order);
+  return context.json(order, HTTP.ResultCodes.RS_2.Created);
 }
 ```
 
