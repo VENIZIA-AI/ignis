@@ -114,10 +114,11 @@ request: { body: jsonContent({ schema: z.object({ email: z.string().email() }) }
 ```typescript
 // ❌ Business logic in controllers
 @get({ configs: RouteConfigs.GET_USER })
-async getUser(c: Context) {
+async getUser(context: TRouteContext) {
+  const { id } = context.req.valid<{ id: string }>('param');
   const user = await this.userRepository.findById({ id });
   if (user.lastLogin < cutoff) await this.sendReminder(user); // Move to service!
-  return c.json(user);
+  return context.json(user, HTTP.ResultCodes.RS_2.Ok);
 }
 
 // ❌ Catching all errors silently

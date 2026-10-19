@@ -105,9 +105,9 @@ const SecureRoute = {
 import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 
-const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
+const user = context.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
 if (!user.roles.some(role => role.identifier === 'admin')) {
-    throw getError({ statusCode: 403, message: 'Forbidden' });
+  throw getError({ statusCode: 403, message: 'Forbidden' });
 }
 ```
 
@@ -185,17 +185,28 @@ fs.writeFileSync(`./uploads/${safeFilename}`, data);
 Use `createContentDispositionHeader()` for secure download responses:
 
 ```typescript
+import { z } from '@hono/zod-openapi';
+import { get, type TRouteContext } from '@venizia/ignis';
 import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis-helpers';
 
-async downloadFile(c: Context) {
-  const filename = sanitizeFilename(c.req.param('filename'));
-  const fileBuffer = await fs.readFile(`./uploads/${filename}`);
+@get({
+  configs: {
+    path: '/:filename',
+    request: {
+      params: z.object({ filename: z.string() }),
+    },
+  },
+})
+async downloadFile(context: TRouteContext) {
+  const { filename } = context.req.valid<{ filename: string }>('param');
+  const safeFilename = sanitizeFilename(filename);
+  const fileBuffer = await fs.readFile(`./uploads/${safeFilename}`);
 
   return new Response(fileBuffer, {
     headers: {
       'Content-Type': 'application/octet-stream',
       'Content-Disposition': createContentDispositionHeader({
-        filename: filename,
+        filename: safeFilename,
         type: 'attachment',
       }),
     },
@@ -208,17 +219,22 @@ async downloadFile(c: Context) {
 Use `parseMultipartBody()` for safe file uploads with automatic sanitization:
 
 ```typescript
-import { parseMultipartBody } from '@venizia/ignis-helpers';
+import { post, type TRouteContext } from '@venizia/ignis';
+import { HTTP, parseMultipartBody } from '@venizia/ignis-helpers';
 
-async uploadFile(c: Context) {
-  const files = await parseMultipartBody({
-    context: c,
+@post({ configs: { path: '/upload' } })
+async uploadFile(context: TRouteContext) {
+  const { files } = await parseMultipartBody({
+    context,
     storage: 'disk',        // or 'memory' for buffer
     uploadDir: './uploads', // Target directory
   });
 
   // Files are saved with sanitized names: timestamp-random-sanitized_name.ext
-  return c.json({ uploaded: files.map(f => f.filename) });
+  return context.json(
+    { uploaded: files.map(f => f.filename) },
+    HTTP.ResultCodes.RS_2.Ok,
+  );
 }
 ```
 
@@ -457,11 +473,11 @@ rest of the API.
 Log security-relevant events for monitoring and forensics:
 
 ```typescript
-import { BaseService } from '@venizia/ignis';
+import { BaseService, type TRouteContext } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 
 export class AuthService extends BaseService {
-  async login(email: string, password: string, context: Context) {
+  async login(email: string, password: string, context: TRouteContext) {
     const ip = context.req.header('x-forwarded-for') ?? 'unknown';
     const userAgent = context.req.header('user-agent') ?? 'unknown';
 

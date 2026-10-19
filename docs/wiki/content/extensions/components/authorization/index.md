@@ -64,14 +64,20 @@ export class Application extends BaseApplication {
 ```
 
 ```typescript
-// Inside a controller's binding() - a route protected by authentication + authorization
-const DELETE_ARTICLE_CONFIG = {
-  path: '/articles/{id}',
-  method: 'delete',
+import { Authentication, AuthorizationActions, ControllerFactory } from '@venizia/ignis';
+
+// A CRUD controller with a route protected by authentication + authorization
+export const ArticleController = ControllerFactory.defineCrudController({
+  entity: Article,
+  repository: { name: 'ArticleRepository' },
+  controller: { name: 'ArticleController', basePath: '/articles' },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  authorize: { action: AuthorizationActions.DELETE, resource: 'Article' },
-  responses: jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
-} as const;
+  routes: {
+    deleteById: {
+      authorize: { action: AuthorizationActions.DELETE, resource: 'Article' },
+    },
+  },
+});
 ```
 
 ## How it works
@@ -116,10 +122,12 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 **Add custom logic before the enforcer.** A voter returns `ALLOW`/`DENY`/`ABSTAIN`; the first non-`ABSTAIN` decision wins.
 
 ```typescript
-const ownerVoter: TAuthorizationVoter = async ({ user, context }) =>
-  (await articleService.findById({ id: context.req.param('id') }))?.authorId === user.userId
+const ownerVoter: TAuthorizationVoter = async ({ user, context }) => {
+  const { id } = context.req.valid<{ id: string }>('param');
+  return (await articleService.findById({ id }))?.authorId === user.userId
     ? AuthorizationDecisions.ALLOW
     : AuthorizationDecisions.ABSTAIN;
+};
 ```
 
 **Scope a grant to a tenant.** Declare where the domain comes from per route (or globally via `IAuthorizeOptions.domainResolver`).
