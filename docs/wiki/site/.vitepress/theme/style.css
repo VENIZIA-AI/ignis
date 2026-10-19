@@ -173,7 +173,7 @@ html.dark {
   padding: 1rem 1.25rem;
   border-radius: 8px;
   background: var(--vp-c-bg-soft);
-  border-left: 3px solid var(--vp-c-brand-1);
+  border: 1px solid var(--vp-c-divider);
 }
 
 .stage-header {
@@ -1468,12 +1468,10 @@ html.dark .honest-box {
   margin: var(--ig-s5) 0;
   font-size: var(--ig-fs-sm);
   border: 1px solid var(--ig-border);
-  border-left-width: 3px;
 }
 
 /* TIP - coral accent */
 .custom-block.tip {
-  border-left-color: var(--ig-coral) !important;
   background: rgba(217, 142, 106, 0.06) !important;
 }
 
@@ -1483,7 +1481,6 @@ html.dark .honest-box {
 
 /* WARNING - gold accent */
 .custom-block.warning {
-  border-left-color: var(--ig-gold) !important;
   background: rgba(229, 181, 103, 0.06) !important;
 }
 
@@ -1493,7 +1490,6 @@ html.dark .honest-box {
 
 /* DANGER - rose accent */
 .custom-block.danger {
-  border-left-color: var(--ig-rose) !important;
   background: rgba(175, 95, 95, 0.08) !important;
 }
 
@@ -1503,7 +1499,6 @@ html.dark .honest-box {
 
 /* INFO - neutral text-3 accent */
 .custom-block.info {
-  border-left-color: var(--ig-text-3) !important;
   background: rgba(110, 100, 106, 0.06) !important;
 }
 
