@@ -1144,6 +1144,7 @@ import {
   BaseRestController,
   controller,
   inject,
+  jsonContent,
   jsonResponse,
   TRouteContext,
   BindingKeys,
@@ -1151,6 +1152,19 @@ import {
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { ChatService } from '../services/chat.service';
+
+const CreateRoomSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  isPrivate: z.boolean().default(false),
+});
+type TCreateRoom = z.infer<typeof CreateRoomSchema>;
+
+const PaginationQuerySchema = z.object({
+  limit: z.string().optional(),
+  before: z.string().optional(),
+});
+type TPaginationQuery = z.infer<typeof PaginationQuerySchema>;
 
 const ChatRoutes = {
   GET_ROOMS: {
@@ -1164,6 +1178,12 @@ const ChatRoutes = {
   CREATE_ROOM: {
     method: HTTP.Methods.POST,
     path: '/rooms',
+    request: {
+      body: jsonContent({
+        description: 'Room data',
+        schema: CreateRoomSchema,
+      }),
+    },
     responses: jsonResponse({
       description: 'Created room',
       schema: z.any(),
@@ -1172,6 +1192,10 @@ const ChatRoutes = {
   GET_MESSAGES: {
     method: HTTP.Methods.GET,
     path: '/rooms/{roomId}/messages',
+    request: {
+      params: z.object({ roomId: z.string() }),
+      query: PaginationQuerySchema,
+    },
     responses: jsonResponse({
       description: 'Room messages',
       schema: z.array(z.any()),
@@ -1188,6 +1212,10 @@ const ChatRoutes = {
   GET_DIRECT_MESSAGES: {
     method: HTTP.Methods.GET,
     path: '/dm/{userId}',
+    request: {
+      params: z.object({ userId: z.string() }),
+      query: PaginationQuerySchema,
+    },
     responses: jsonResponse({
       description: 'Direct messages',
       schema: z.array(z.any()),
@@ -1213,29 +1241,28 @@ export class ChatController extends BaseRestController {
   override binding() {
     // GET /chat/rooms
     this.bindRoute({ configs: ChatRoutes.GET_ROOMS }).to({
-      handler: async (c: TRouteContext) => {
-        const userId = c.get('userId');
+      handler: async (context: TRouteContext) => {
+        const userId = context.get('userId');
         const rooms = await this._chatService.getUserRooms({ userId });
-        return c.json(rooms, HTTP.ResultCodes.RS_2.Ok);
+        return context.json(rooms, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // POST /chat/rooms
     this.bindRoute({ configs: ChatRoutes.CREATE_ROOM }).to({
-      handler: async (c: TRouteContext) => {
-        const userId = c.get('userId');
-        const data = await c.req.json<{ name: string; description?: string; isPrivate: boolean }>();
+      handler: async (context: TRouteContext) => {
+        const userId = context.get('userId');
+        const data = context.req.valid<TCreateRoom>('json');
         const room = await this._chatService.createRoom({ ...data, createdBy: userId });
-        return c.json(room, HTTP.ResultCodes.RS_2.Created);
+        return context.json(room, HTTP.ResultCodes.RS_2.Created);
       },
     });
 
     // GET /chat/rooms/{roomId}/messages
     this.bindRoute({ configs: ChatRoutes.GET_MESSAGES }).to({
-      handler: async (c: TRouteContext) => {
-        const roomId = c.req.param('roomId');
-        const limit = c.req.query('limit');
-        const before = c.req.query('before');
+      handler: async (context: TRouteContext) => {
+        const { roomId } = context.req.valid<{ roomId: string }>('param');
+        const { limit, before } = context.req.valid<TPaginationQuery>('query');
 
         const messages = await this._chatService.getMessages({
           roomId,
@@ -1243,26 +1270,25 @@ export class ChatController extends BaseRestController {
           before: before ?? undefined,
         });
 
-        return c.json(messages, HTTP.ResultCodes.RS_2.Ok);
+        return context.json(messages, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // GET /chat/conversations
     this.bindRoute({ configs: ChatRoutes.GET_CONVERSATIONS }).to({
-      handler: async (c: TRouteContext) => {
-        const userId = c.get('userId');
+      handler: async (context: TRouteContext) => {
+        const userId = context.get('userId');
         const conversations = await this._chatService.getConversations({ userId });
-        return c.json(conversations, HTTP.ResultCodes.RS_2.Ok);
+        return context.json(conversations, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // GET /chat/dm/{userId}
     this.bindRoute({ configs: ChatRoutes.GET_DIRECT_MESSAGES }).to({
-      handler: async (c: TRouteContext) => {
-        const currentUserId = c.get('userId');
-        const otherUserId = c.req.param('userId');
-        const limit = c.req.query('limit');
-        const before = c.req.query('before');
+      handler: async (context: TRouteContext) => {
+        const currentUserId = context.get('userId');
+        const { userId: otherUserId } = context.req.valid<{ userId: string }>('param');
+        const { limit, before } = context.req.valid<TPaginationQuery>('query');
 
         const messages = await this._chatService.getDirectMessages({
           userId1: currentUserId,
@@ -1271,7 +1297,7 @@ export class ChatController extends BaseRestController {
           before: before ?? undefined,
         });
 
-        return c.json(messages, HTTP.ResultCodes.RS_2.Ok);
+        return context.json(messages, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }

@@ -52,20 +52,32 @@ instead of breaking later inside the router.
 ### BaseRestController
 
 ```typescript
+import { z } from '@hono/zod-openapi';
 import { BaseRestController, controller, get, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
   constructor() {
-    super({ scope: UserController.name, path: '/users' });
+    super({ scope: UserController.name });
   }
 
   override binding() {}
 
-  @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
-  getUser(c: TRouteContext) {
-    const id = c.req.param('id');
-    return c.json({ id, name: 'John' });
+  @get({
+    configs: {
+      path: '/{id}',
+      request: {
+        params: z.object({ id: z.string() }),
+      },
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: { description: 'User' },
+      },
+    },
+  })
+  getUser(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
+    return context.json({ id, name: 'John' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -201,30 +213,55 @@ export type TUser = TEntityObject<typeof User>;
 ### REST Example
 
 ```typescript
-import { BaseRestController, controller, get, inject, post, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+import { BaseRestController, controller, get, inject, jsonContent, post, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'services.UserService' }) private userService: UserService,
   ) {
-    super({ scope: UserController.name, path: '/users' });
+    super({ scope: UserController.name });
   }
 
   override binding() {}
 
-  @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
-  async createUser(c: TRouteContext) {
-    const data = await c.req.json();
+  @post({
+    configs: {
+      path: '/',
+      request: {
+        body: jsonContent({
+          description: 'User data',
+          schema: z.object({ name: z.string() }),
+        }),
+      },
+      responses: {
+        [HTTP.ResultCodes.RS_2.Created]: { description: 'Created' },
+      },
+    },
+  })
+  async createUser(context: TRouteContext) {
+    const data = context.req.valid<{ name: string }>('json');
     const result = await this.userService.create(data);
-    return c.json(result, 201);
+    return context.json(result, HTTP.ResultCodes.RS_2.Created);
   }
 
-  @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
-  async getUser(c: TRouteContext) {
-    const id = c.req.param('id');
+  @get({
+    configs: {
+      path: '/{id}',
+      request: {
+        params: z.object({ id: z.string() }),
+      },
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: { description: 'User' },
+      },
+    },
+  })
+  async getUser(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
     const result = await this.userService.findById(id);
-    return c.json(result);
+    return context.json(result, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -454,12 +491,16 @@ import { BindingNamespaces } from '@venizia/ignis';
 ### JSON Response
 
 ```typescript
-import { jsonResponse, TRouteContext } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
+import { jsonResponse, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @get({
   configs: {
-    path: '/users/:id',
+    path: '/users/{id}',
+    request: {
+      params: z.object({ id: z.string() }),
+    },
     responses: jsonResponse({
       description: 'User data',
       schema: z.object({
@@ -470,9 +511,12 @@ import { z } from '@hono/zod-openapi';
     }),
   },
 })
-getUser(c: TRouteContext) {
-  const id = c.req.param('id');
-  return c.json({ id, name: 'John', email: 'john@example.com' });
+getUser(context: TRouteContext) {
+  const { id } = context.req.valid<{ id: string }>('param');
+  return context.json(
+    { id, name: 'John', email: 'john@example.com' },
+    HTTP.ResultCodes.RS_2.Ok,
+  );
 }
 ```
 
@@ -489,11 +533,10 @@ import { htmlResponse, TRouteContext } from '@venizia/ignis';
     }),
   },
 })
-getDashboard(c: TRouteContext) {
-  return c.html(<DashboardPage />);
+getDashboard(context: TRouteContext) {
+  return context.html(<DashboardPage />);
 }
 ```
-
 
 ## Status Codes
 
@@ -588,17 +631,20 @@ class MyApplication extends BaseApplication {
 ### Controller → Service → Repository
 
 ```typescript
+import { z } from '@hono/zod-openapi';
 import {
   BaseRestController,
   BaseService,
   controller,
   DefaultCRUDRepository,
   inject,
+  jsonContent,
   post,
   repository,
   TRouteContext,
 } from '@venizia/ignis';
 import { genSalt, hash } from 'bcrypt';
+import { HTTP } from '@venizia/ignis-helpers';
 import { PostgresDataSource } from '../datasources';
 import { User } from '../models';
 
@@ -611,15 +657,35 @@ class UserController extends BaseRestController {
     @inject({ key: 'services.UserService' })
     private userService: UserService,
   ) {
-    super({ scope: UserController.name, path: '/users' });
+    super({ scope: UserController.name });
   }
 
   override binding() {}
 
-  @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
-  async createUser(c: TRouteContext) {
-    const data = await c.req.json();
-    return c.json(await this.userService.create(data), 201);
+  @post({
+    configs: {
+      path: '/',
+      request: {
+        body: jsonContent({
+          description: 'User data',
+          schema: z.object({
+            name: z.string(),
+            email: z.string().email(),
+            password: z.string(),
+          }),
+        }),
+      },
+      responses: {
+        [HTTP.ResultCodes.RS_2.Created]: { description: 'Created' },
+      },
+    },
+  })
+  async createUser(context: TRouteContext) {
+    const data = context.req.valid<CreateUserDto>('json');
+    return context.json(
+      await this.userService.create(data),
+      HTTP.ResultCodes.RS_2.Created,
+    );
   }
 }
 

@@ -35,13 +35,13 @@ import { controller, ControllerFactory } from '@venizia/ignis';
 const BASE_PATH = '/products';
 
 const _Controller = ControllerFactory.defineCrudController({
+  entity: Product,
   repository: { name: ProductRepository.name },
   controller: {
     name: 'ProductController',
     basePath: BASE_PATH,
     isStrict: { path: true, requestSchema: true },
   },
-  entity: () => Product,
 });
 
 @controller({ path: BASE_PATH })
@@ -84,7 +84,11 @@ import {
   FilterQuerySchema,
   inject,
   jsonResponse,
+  type TInferSchema,
+  type TRouteContext,
+  type ValueOrPromise,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/products' })
 export class ProductController extends BaseRestController {
@@ -95,18 +99,18 @@ export class ProductController extends BaseRestController {
     super({ scope: 'ProductController', path: '/products' });
   }
 
-  override binding() {
+  override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: {
         path: '/search',
-        method: 'get',
+        method: HTTP.Methods.GET,
         request: { query: FilterQuerySchema },
         responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
-      handler: async context => {
-        const { filter = {} } = context.req.valid('query');
+      handler: async (context: TRouteContext) => {
+        const { filter = {} } = context.req.valid<TInferSchema<typeof FilterQuerySchema>>('query');
         const results = await this._productRepository.find({ filter });
-        return context.json(results);
+        return context.json(results, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }
