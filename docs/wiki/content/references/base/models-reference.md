@@ -780,9 +780,10 @@ generatePrincipalColumnDefs<
   Discriminator extends string = 'principal',
   IdType extends 'number' | 'string' = 'number',
   Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
 >(
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable>,
-): TPrincipalColumnDef<Discriminator, IdType, Nullable>
+  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
+): TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>
 ```
 
 Options (`TPrincipalEnricherOptions`):
@@ -793,13 +794,14 @@ Options (`TPrincipalEnricherOptions`):
 | `defaultPolymorphic` | `string` | `''` | Default value for the type discriminator column |
 | `polymorphicIdType` | `'number' \| 'string'` | (required) | Data type of the ID column |
 | `isNullableId` | `boolean` | `false` | When `true`, the ID column is nullable (omits `NOT NULL`) |
+| `isNullableDiscriminator` | `boolean` | `true` | When `false`, the type discriminator column is `NOT NULL`; the default leaves it nullable |
 
 Emitted columns, given `discriminator = 'principal'`:
 
 | Column | DB column name | Type | Constraints | Description |
 |--------|---------------|------|-------------|-------------|
 | `principalId` | `principal_id` | `integer` or `text` | `NOT NULL` (unless `isNullableId`) | ID of the associated entity |
-| `principalType` | `principal_type` | `text` | `DEFAULT ''` (or `defaultPolymorphic`) | Type discriminator (e.g. `'User'`, `'Post'`) |
+| `principalType` | `principal_type` | `text` | `DEFAULT ''` (or `defaultPolymorphic`); `NOT NULL` when `isNullableDiscriminator` is `false` | Type discriminator (e.g. `'User'`, `'Post'`) |
 
 With a custom discriminator such as `'owner'`, columns become `ownerId` / `owner_id` and `ownerType` / `owner_type`.
 

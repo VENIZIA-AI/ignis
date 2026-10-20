@@ -5,7 +5,7 @@ IGNIS lints with **oxlint**, formats with **oxfmt**, and keeps **ESLint** for on
 ```typescript
 // .configs/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
@@ -66,7 +66,7 @@ oxlint catches common errors and enforces best practices. It is a rule-for-rule 
 **`.configs/oxlint.config.mts`:**
 ```typescript
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```

@@ -63,4 +63,4 @@ Rules the automatic JSX runtime or `tsc` already enforce - `react-in-jsx-scope`,
 - **Code with `@ts-ignore`, `@ts-nocheck`, or a bare `@ts-expect-error`.** It now fails lint. Use `@ts-expect-error` with a reason.
 - **Code with a `namespace`.** It now fails lint. Use modules.
 
-**Files:** [`packages/dev-configs/src/linters/react.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/react.ts), [`packages/dev-configs/src/linters/eslint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/eslint.ts)
+**Files:** [`packages/dev-configs/src/linters/react-eslint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/react-eslint.ts), [`packages/dev-configs/src/linters/eslint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/eslint.ts)

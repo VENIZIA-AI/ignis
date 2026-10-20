@@ -1,6 +1,6 @@
 import type { Linter } from 'eslint';
 import { namingConventionConfigs } from '../eslint';
-import { reactNamingConventionConfigs } from '../react';
+import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { MaxParamsOwnRule } from './max-params-own.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';

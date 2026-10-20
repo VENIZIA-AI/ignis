@@ -73,7 +73,10 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Overview', link: '/references/base/filter-system/' },
           { text: '⚡ Quick Reference', link: '/references/base/filter-system/quick-reference' },
-          { text: 'Comparison Operators', link: '/references/base/filter-system/comparison-operators' },
+          {
+            text: 'Comparison Operators',
+            link: '/references/base/filter-system/comparison-operators',
+          },
           { text: 'Null Operators', link: '/references/base/filter-system/null-operators' },
           { text: 'List Operators', link: '/references/base/filter-system/list-operators' },
           { text: 'Range Operators', link: '/references/base/filter-system/range-operators' },
@@ -81,7 +84,10 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Logical Operators', link: '/references/base/filter-system/logical-operators' },
           { text: 'JSON Filtering', link: '/references/base/filter-system/json-filtering' },
           { text: 'Array Operators', link: '/references/base/filter-system/array-operators' },
-          { text: 'Fields, Order & Pagination', link: '/references/base/filter-system/fields-order-pagination' },
+          {
+            text: 'Fields, Order & Pagination',
+            link: '/references/base/filter-system/fields-order-pagination',
+          },
           { text: 'Default Filter', link: '/references/base/filter-system/default-filter' },
           { text: 'Application Usage', link: '/references/base/filter-system/application-usage' },
           { text: 'Use Cases', link: '/references/base/filter-system/use-cases' },
@@ -129,9 +135,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
 const extensionsSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Extensions',
-    items: [
-      { text: 'Overview', link: '/extensions/' },
-    ],
+    items: [{ text: 'Overview', link: '/extensions/' }],
   },
   {
     text: 'Components',
@@ -256,7 +260,10 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Consumer', link: '/extensions/helpers/kafka/consumer' },
           { text: 'Admin', link: '/extensions/helpers/kafka/admin' },
           { text: 'Schema Registry', link: '/extensions/helpers/kafka/schema-registry' },
-          { text: 'Compiling to a Single Binary', link: '/extensions/helpers/kafka/compile-binary' },
+          {
+            text: 'Compiling to a Single Binary',
+            link: '/extensions/helpers/kafka/compile-binary',
+          },
           { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
         ],
       },
@@ -361,7 +368,13 @@ const config = defineConfig({
     ],
     // Open Graph
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'IGNIS - Architecture without apology. Speed without sacrifice.' }],
+    [
+      'meta',
+      {
+        property: 'og:title',
+        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+      },
+    ],
     [
       'meta',
       {
@@ -374,7 +387,13 @@ const config = defineConfig({
     ['meta', { property: 'og:url', content: 'https://ignis.venizia.ai/' }],
     // Twitter / X card
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'IGNIS - Architecture without apology. Speed without sacrifice.' }],
+    [
+      'meta',
+      {
+        name: 'twitter:title',
+        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+      },
+    ],
     [
       'meta',
       {
@@ -397,7 +416,7 @@ const config = defineConfig({
       chunkSizeWarningLimit: 3500,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
+          manualChunks: id => {
             if (id.includes('node_modules')) {
               // Isolate mermaid (+ its heavy deps) - large and only needed on pages with diagrams.
               if (
@@ -454,6 +473,14 @@ const config = defineConfig({
               text: '2026-10-20',
               collapsed: true,
               items: [
+                {
+                  text: 'isNullableDiscriminator for the Principal Enricher',
+                  link: '/changelogs/2026-10-20-principal-nullable-discriminator',
+                },
+                {
+                  text: 'oxlint Config Without Loading ESLint',
+                  link: '/changelogs/2026-10-20-dev-configs-oxlint-subpath',
+                },
                 {
                   text: 'IGNIS 0.3.0 Is Stable',
                   link: '/changelogs/2026-10-20-stable-0-3-0',
@@ -820,7 +847,10 @@ const config = defineConfig({
               text: '2026-09-17',
               collapsed: true,
               items: [
-                { text: 'String Ids Are UUID v7', link: '/changelogs/2026-09-17-string-ids-are-uuid-v7' },
+                {
+                  text: 'String Ids Are UUID v7',
+                  link: '/changelogs/2026-09-17-string-ids-are-uuid-v7',
+                },
                 {
                   text: 'Paging, Bulk Writes and Relation Settings',
                   link: '/changelogs/2026-09-17-paging-bulk-writes-and-relation-settings',
@@ -1594,56 +1624,80 @@ const config = defineConfig({
               text: '2026-05-21',
               collapsed: true,
               items: [
-                { text: 'Mass Update/Delete Guards', link: '/changelogs/2026-05-21-mass-mutation-guards' },
+                {
+                  text: 'Mass Update/Delete Guards',
+                  link: '/changelogs/2026-05-21-mass-mutation-guards',
+                },
               ],
             },
             {
               text: '2026-05-20',
               collapsed: true,
               items: [
-                { text: 'Consistent Default Limit for To-Many Relations', link: '/changelogs/2026-05-20-relation-scope-default-limit' },
+                {
+                  text: 'Consistent Default Limit for To-Many Relations',
+                  link: '/changelogs/2026-05-20-relation-scope-default-limit',
+                },
               ],
             },
             {
               text: '2026-05-08',
               collapsed: true,
               items: [
-                { text: 'CRUD Route Toggles & Typed JSON Responses', link: '/changelogs/2026-05-08-crud-route-toggles-and-typed-responses' },
+                {
+                  text: 'CRUD Route Toggles & Typed JSON Responses',
+                  link: '/changelogs/2026-05-08-crud-route-toggles-and-typed-responses',
+                },
               ],
             },
             {
               text: '2026-05-05',
               collapsed: true,
               items: [
-                { text: 'Refresh Access Token Endpoint', link: '/changelogs/2026-05-05-refresh-token-endpoint' },
+                {
+                  text: 'Refresh Access Token Endpoint',
+                  link: '/changelogs/2026-05-05-refresh-token-endpoint',
+                },
               ],
             },
             {
               text: '2026-04-23',
               collapsed: true,
               items: [
-                { text: 'Error Responses - messageCode & Extra Fields', link: '/changelogs/2026-04-23-error-response-extra-fields' },
+                {
+                  text: 'Error Responses - messageCode & Extra Fields',
+                  link: '/changelogs/2026-04-23-error-response-extra-fields',
+                },
               ],
             },
             {
               text: '2026-03-31',
               collapsed: true,
               items: [
-                { text: 'TypeScript 6 Upgrade & Toolchain Refresh', link: '/changelogs/2026-03-31-typescript-6-and-toolchain' },
+                {
+                  text: 'TypeScript 6 Upgrade & Toolchain Refresh',
+                  link: '/changelogs/2026-03-31-typescript-6-and-toolchain',
+                },
               ],
             },
             {
               text: '2026-03-30',
               collapsed: true,
               items: [
-                { text: 'Row-Level Locking (FOR UPDATE)', link: '/changelogs/2026-03-30-row-level-locking' },
+                {
+                  text: 'Row-Level Locking (FOR UPDATE)',
+                  link: '/changelogs/2026-03-30-row-level-locking',
+                },
               ],
             },
             {
               text: '2026-03-15',
               collapsed: true,
               items: [
-                { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
+                {
+                  text: 'gRPC Controller System',
+                  link: '/changelogs/2026-03-15-grpc-controller-system',
+                },
               ],
             },
             {
@@ -1660,130 +1714,196 @@ const config = defineConfig({
               text: '2026-03-10',
               collapsed: true,
               items: [
-                { text: 'Kafka Helpers Refactor', link: '/changelogs/2026-03-10-kafka-helpers-refactor' },
+                {
+                  text: 'Kafka Helpers Refactor',
+                  link: '/changelogs/2026-03-10-kafka-helpers-refactor',
+                },
               ],
             },
             {
               text: '2026-03-06',
               collapsed: true,
               items: [
-                { text: 'Filter Offset/Skip Bug Fix', link: '/changelogs/2026-03-06-filter-offset-skip-fix' },
+                {
+                  text: 'Filter Offset/Skip Bug Fix',
+                  link: '/changelogs/2026-03-06-filter-offset-skip-fix',
+                },
               ],
             },
             {
               text: '2026-03-04',
               collapsed: true,
               items: [
-                { text: 'JWT Payload Field Codecs', link: '/changelogs/2026-03-04-jwt-payload-field-codecs' },
+                {
+                  text: 'JWT Payload Field Codecs',
+                  link: '/changelogs/2026-03-04-jwt-payload-field-codecs',
+                },
               ],
             },
             {
               text: '2026-03-02',
               collapsed: true,
               items: [
-                { text: 'Model Authorize Settings', link: '/changelogs/2026-03-02-model-authorize-settings' },
+                {
+                  text: 'Model Authorize Settings',
+                  link: '/changelogs/2026-03-02-model-authorize-settings',
+                },
               ],
             },
             {
               text: '2026-02-27',
               collapsed: true,
               items: [
-                { text: 'JWKS Authentication & Service Hierarchy Refactor', link: '/changelogs/2026-02-27-jwks-authentication' },
+                {
+                  text: 'JWKS Authentication & Service Hierarchy Refactor',
+                  link: '/changelogs/2026-02-27-jwks-authentication',
+                },
               ],
             },
             {
               text: '2026-02-26',
               collapsed: true,
               items: [
-                { text: 'Core/Helpers Decoupling', link: '/changelogs/2026-02-26-core-helpers-decoupling' },
+                {
+                  text: 'Core/Helpers Decoupling',
+                  link: '/changelogs/2026-02-26-core-helpers-decoupling',
+                },
               ],
             },
             {
               text: '2026-02-16',
               collapsed: true,
               items: [
-                { text: 'Authorization System & Auth Refactor', link: '/changelogs/2026-02-16-authorization-system' },
+                {
+                  text: 'Authorization System & Auth Refactor',
+                  link: '/changelogs/2026-02-16-authorization-system',
+                },
               ],
             },
             {
               text: '2026-02-11',
               collapsed: true,
               items: [
-                { text: 'WebSocket Generic Type Parameters', link: '/changelogs/2026-02-11-websocket-generic-types' },
-                { text: 'WebSocket Encrypted Delivery', link: '/changelogs/2026-02-11-websocket-encrypted-delivery' },
-                { text: 'Crypto Algorithm Refactor & ECDH', link: '/changelogs/2026-02-11-crypto-refactor-ecdh' },
+                {
+                  text: 'WebSocket Generic Type Parameters',
+                  link: '/changelogs/2026-02-11-websocket-generic-types',
+                },
+                {
+                  text: 'WebSocket Encrypted Delivery',
+                  link: '/changelogs/2026-02-11-websocket-encrypted-delivery',
+                },
+                {
+                  text: 'Crypto Algorithm Refactor & ECDH',
+                  link: '/changelogs/2026-02-11-crypto-refactor-ecdh',
+                },
               ],
             },
             {
               text: '2026-02-10',
               collapsed: true,
               items: [
-                { text: 'WebSocket Heartbeat & Payload Limit', link: '/changelogs/2026-02-10-websocket-heartbeat-payload' },
+                {
+                  text: 'WebSocket Heartbeat & Payload Limit',
+                  link: '/changelogs/2026-02-10-websocket-heartbeat-payload',
+                },
               ],
             },
             {
               text: '2026-02-06',
               collapsed: true,
               items: [
-                { text: 'Socket.IO Integration Fix', link: '/changelogs/2026-02-06-socket-io-integration-fix' },
+                {
+                  text: 'Socket.IO Integration Fix',
+                  link: '/changelogs/2026-02-06-socket-io-integration-fix',
+                },
               ],
             },
             {
               text: '2026-01-11',
               collapsed: true,
               items: [
-                { text: 'Logger Optimization & HfLogger', link: '/changelogs/2026-01-11-logger-optimization-hf-logger' },
+                {
+                  text: 'Logger Optimization & HfLogger',
+                  link: '/changelogs/2026-01-11-logger-optimization-hf-logger',
+                },
               ],
             },
             {
               text: '2026-01-07',
               collapsed: true,
               items: [
-                { text: 'Controller Route Customization', link: '/changelogs/2026-01-07-controller-route-customization' },
+                {
+                  text: 'Controller Route Customization',
+                  link: '/changelogs/2026-01-07-controller-route-customization',
+                },
               ],
             },
             {
               text: '2026-01-06',
               collapsed: true,
               items: [
-                { text: 'Basic Authentication Strategy', link: '/changelogs/2026-01-06-basic-authentication' },
+                {
+                  text: 'Basic Authentication Strategy',
+                  link: '/changelogs/2026-01-06-basic-authentication',
+                },
               ],
             },
             {
               text: '2026-01-05',
               collapsed: true,
               items: [
-                { text: 'Range Queries & Content-Range Header', link: '/changelogs/2026-01-05-range-queries-content-range' },
+                {
+                  text: 'Range Queries & Content-Range Header',
+                  link: '/changelogs/2026-01-05-range-queries-content-range',
+                },
               ],
             },
             {
               text: '2026-01-02',
               collapsed: true,
               items: [
-                { text: 'Default Filter & Repository Mixins', link: '/changelogs/2026-01-02-default-filter-and-repository-mixins' },
+                {
+                  text: 'Default Filter & Repository Mixins',
+                  link: '/changelogs/2026-01-02-default-filter-and-repository-mixins',
+                },
               ],
             },
             {
               text: '2025-12-31',
               collapsed: true,
               items: [
-                { text: 'JSON Path Filtering & Array Operators', link: '/changelogs/2025-12-31-json-path-filtering-array-operators' },
-                { text: 'String ID with Custom Generator', link: '/changelogs/2025-12-31-string-id-custom-generator' },
+                {
+                  text: 'JSON Path Filtering & Array Operators',
+                  link: '/changelogs/2025-12-31-json-path-filtering-array-operators',
+                },
+                {
+                  text: 'String ID with Custom Generator',
+                  link: '/changelogs/2025-12-31-string-id-custom-generator',
+                },
               ],
             },
             {
               text: '2025-12-30',
               collapsed: true,
               items: [
-                { text: 'Repository Enhancements', link: '/changelogs/2025-12-30-repository-enhancements' },
+                {
+                  text: 'Repository Enhancements',
+                  link: '/changelogs/2025-12-30-repository-enhancements',
+                },
               ],
             },
             {
               text: '2025-12-29',
               collapsed: true,
               items: [
-                { text: 'Snowflake UID Helper', link: '/changelogs/2025-12-29-snowflake-uid-helper' },
-                { text: 'Dynamic Binding Registration Fix', link: '/changelogs/2025-12-29-dynamic-binding-registration' },
+                {
+                  text: 'Snowflake UID Helper',
+                  link: '/changelogs/2025-12-29-snowflake-uid-helper',
+                },
+                {
+                  text: 'Dynamic Binding Registration Fix',
+                  link: '/changelogs/2025-12-29-dynamic-binding-registration',
+                },
               ],
             },
             {
@@ -1791,15 +1911,24 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Transaction Support', link: '/changelogs/2025-12-26-transaction-support' },
-                { text: 'Nested Relations & Generic Types', link: '/changelogs/2025-12-26-nested-relations-and-generics' },
+                {
+                  text: 'Nested Relations & Generic Types',
+                  link: '/changelogs/2025-12-26-nested-relations-and-generics',
+                },
               ],
             },
             {
               text: '2025-12-18',
               collapsed: true,
               items: [
-                { text: 'Performance Optimizations', link: '/changelogs/2025-12-18-performance-optimizations' },
-                { text: 'Validation & Security', link: '/changelogs/2025-12-18-repository-validation-security' },
+                {
+                  text: 'Performance Optimizations',
+                  link: '/changelogs/2025-12-18-performance-optimizations',
+                },
+                {
+                  text: 'Validation & Security',
+                  link: '/changelogs/2025-12-18-repository-validation-security',
+                },
               ],
             },
             {
@@ -1813,8 +1942,14 @@ const config = defineConfig({
               text: '2025-12-16',
               collapsed: true,
               items: [
-                { text: 'Model-Repository-DataSource Refactor', link: '/changelogs/2025-12-16-model-repo-datasource-refactor' },
-                { text: 'Initial Architecture', link: '/changelogs/2025-12-16-initial-architecture' },
+                {
+                  text: 'Model-Repository-DataSource Refactor',
+                  link: '/changelogs/2025-12-16-model-repo-datasource-refactor',
+                },
+                {
+                  text: 'Initial Architecture',
+                  link: '/changelogs/2025-12-16-initial-architecture',
+                },
               ],
             },
           ],
@@ -1822,17 +1957,13 @@ const config = defineConfig({
         {
           text: 'Planning',
           collapsed: true,
-          items: [
-            { text: 'Schema Migrator', link: '/changelogs/planned-schema-migrator' },
-          ],
+          items: [{ text: 'Schema Migrator', link: '/changelogs/planned-schema-migrator' }],
         },
       ],
       '/best-practices/': [
         {
           text: 'Best Practices',
-          items: [
-            { text: 'Overview', link: '/best-practices/' },
-          ],
+          items: [{ text: 'Overview', link: '/best-practices/' }],
         },
         {
           text: 'Foundation',
@@ -1852,14 +1983,32 @@ const config = defineConfig({
               items: [
                 { text: 'Overview', link: '/best-practices/code-style-standards/' },
                 { text: 'Tooling', link: '/best-practices/code-style-standards/tooling' },
-                { text: 'Naming Conventions', link: '/best-practices/code-style-standards/naming-conventions' },
+                {
+                  text: 'Naming Conventions',
+                  link: '/best-practices/code-style-standards/naming-conventions',
+                },
                 { text: 'Type Safety', link: '/best-practices/code-style-standards/type-safety' },
-                { text: 'Function Patterns', link: '/best-practices/code-style-standards/function-patterns' },
-                { text: 'Route Definitions', link: '/best-practices/code-style-standards/route-definitions' },
-                { text: 'Constants & Config', link: '/best-practices/code-style-standards/constants-configuration' },
+                {
+                  text: 'Function Patterns',
+                  link: '/best-practices/code-style-standards/function-patterns',
+                },
+                {
+                  text: 'Route Definitions',
+                  link: '/best-practices/code-style-standards/route-definitions',
+                },
+                {
+                  text: 'Constants & Config',
+                  link: '/best-practices/code-style-standards/constants-configuration',
+                },
                 { text: 'Control Flow', link: '/best-practices/code-style-standards/control-flow' },
-                { text: 'Advanced Patterns', link: '/best-practices/code-style-standards/advanced-patterns' },
-                { text: 'Documentation (JSDoc)', link: '/best-practices/code-style-standards/documentation' },
+                {
+                  text: 'Advanced Patterns',
+                  link: '/best-practices/code-style-standards/advanced-patterns',
+                },
+                {
+                  text: 'Documentation (JSDoc)',
+                  link: '/best-practices/code-style-standards/documentation',
+                },
               ],
             },
             { text: 'Data Modeling', link: '/best-practices/data-modeling' },
@@ -1888,9 +2037,7 @@ const config = defineConfig({
         {
           text: 'Contributing',
           collapsed: true,
-          items: [
-            { text: 'Contribution Workflow', link: '/best-practices/contribution-workflow' },
-          ],
+          items: [{ text: 'Contribution Workflow', link: '/best-practices/contribution-workflow' }],
         },
       ],
       '/guides/': [
@@ -1921,7 +2068,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/application/' },
-                { text: 'Registering Artifacts', link: '/guides/core-concepts/application/bootstrapping' },
+                {
+                  text: 'Registering Artifacts',
+                  link: '/guides/core-concepts/application/bootstrapping',
+                },
                 { text: 'Stamping A Build', link: '/guides/core-concepts/application/build-info' },
               ],
             },
@@ -1959,7 +2109,10 @@ const config = defineConfig({
                 },
                 { text: 'PGlite', link: '/guides/core-concepts/persistent/pglite' },
                 { text: 'SQLite', link: '/guides/core-concepts/persistent/sqlite' },
-                { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
+                {
+                  text: 'Search & Typesense',
+                  link: '/guides/core-concepts/persistent/search-typesense',
+                },
                 {
                   text: 'Search & Meilisearch',
                   link: '/guides/core-concepts/persistent/search-meilisearch',
@@ -1977,10 +2130,22 @@ const config = defineConfig({
           text: 'Migrations',
           collapsed: true,
           items: [
-            { text: 'Unified Connectors (BANA)', link: '/guides/migrations/unified-connectors-migration' },
-          { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
-            { text: 'Redis Helper API (rename + camelCase)', link: '/guides/migrations/redis-helpers-migration' },
-            { text: 'Boot API removal (BANA upgrade)', link: '/guides/migrations/boot-api-removal-migration' },
+            {
+              text: 'Unified Connectors (BANA)',
+              link: '/guides/migrations/unified-connectors-migration',
+            },
+            {
+              text: 'Scoped RBAC (from DrizzleCasbinAdapter)',
+              link: '/guides/migrations/scoped-rbac-migration',
+            },
+            {
+              text: 'Redis Helper API (rename + camelCase)',
+              link: '/guides/migrations/redis-helpers-migration',
+            },
+            {
+              text: 'Boot API removal (BANA upgrade)',
+              link: '/guides/migrations/boot-api-removal-migration',
+            },
           ],
         },
       ],

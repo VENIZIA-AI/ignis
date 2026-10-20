@@ -23,7 +23,7 @@ const JS_TS_FILES = ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.jsx', ...TS_FILES]
  * ```ts
  * // .configs/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
- * import { oxlintConfigs } from '@venizia/dev-configs/linters';
+ * import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *
  * export default defineConfig(oxlintConfigs);
  * ```
@@ -209,7 +209,7 @@ export interface IOxlintPresetOptions {
  * ```ts
  * // .configs/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
- * import { OxlintConfigs } from '@venizia/dev-configs/linters';
+ * import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *
  * export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
  * ```

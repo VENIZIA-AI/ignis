@@ -30,11 +30,14 @@ export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
   PolymorphicIdType extends 'number' | 'string' = 'number' | 'string',
   Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
 > = {
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
   polymorphicIdType: PolymorphicIdType;
   isNullableId?: Nullable;
+  /** `true` (default) leaves the `{discriminator}Type` column nullable; `false` adds `NOT NULL`. */
+  isNullableDiscriminator?: NullableDiscriminator;
 };
 
 export type TTzEnricherOptions = {

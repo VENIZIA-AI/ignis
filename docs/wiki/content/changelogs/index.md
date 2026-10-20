@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-20 | [isNullableDiscriminator for the Principal Enricher](./2026-10-20-principal-nullable-discriminator) | Feature |
+| 2026-10-20 | [oxlint Config Without Loading ESLint](./2026-10-20-dev-configs-oxlint-subpath) | Enhancement |
 | 2026-10-20 | [IGNIS 0.3.0 Is Stable, and One Command Creates an IGNIS App](./2026-10-20-stable-0-3-0) | Feature, Enhancement |
 | 2026-10-18 | [IGNIS 0.2.2 Is Stable](./2026-10-18-stable-0-2-2) | Enhancement |
 | 2026-10-18 | [dev-configs Gains no-leaked-render, Six More Accessibility Rules and a Shared Ignore List](./2026-10-18-dev-configs-react-house-rules) | Enhancement |

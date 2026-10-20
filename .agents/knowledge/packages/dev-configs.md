@@ -25,12 +25,12 @@ tags: [packages, dev-configs, tooling]
 ## Exports
 
 ```typescript
-import { oxlintConfigs } from '@venizia/dev-configs/linters';       // oxlint config object
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint'; // oxlint config object, without ESLint loaded
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';      // oxfmt config object
 import { houseConfigs } from '@venizia/dev-configs/linters'; // ESLint: naming + house rules
 ```
 
-The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
+The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `react-oxlint.ts`, `oxlint-presets.ts`, `eslint.ts`, `react-eslint.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. `@venizia/dev-configs/linters/oxlint` is `linters/oxlint-presets.ts`: `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs` and `ReactOxlintConfigs`, and no file that imports ESLint. The `/linters` barrel loads `eslint.ts` and `react-eslint.ts`, which import ESLint and typescript-eslint (about 1.2 s of every oxlint run), and an oxlint config needs none of it. The files are named by tool: `react-oxlint.ts` holds `ReactOxlintConfigs` and `react-eslint.ts` holds `ReactEslintConfigs` and `reactNamingConventionConfigs`; the `/linters` barrel exports both. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
 
 TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json`, `tsconfig.common.json`, `tsconfig.browser.json` and `tsconfig.react.json` are package.json `exports` entries that map to `src/tsconfig/` (`files` ships it). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`. The package's own `tsconfig.json` extends its own `src/tsconfig/tsconfig.common.json`.
 
