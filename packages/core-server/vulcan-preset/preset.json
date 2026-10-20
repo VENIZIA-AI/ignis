@@ -3,6 +3,7 @@
   "side": "backend",
   "summary": "An IGNIS API on Bun: one controller, AutoArtifacts, the API reference at /api/doc/explorer.",
   "devPort": 3000,
+  "urls": ["/api/hello", "/api/doc/explorer"],
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
