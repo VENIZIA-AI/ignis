@@ -361,7 +361,7 @@ const config = defineConfig({
     ],
     // Open Graph
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
+    ['meta', { property: 'og:title', content: 'IGNIS - Architecture without apology. Speed without sacrifice.' }],
     [
       'meta',
       {
@@ -374,7 +374,7 @@ const config = defineConfig({
     ['meta', { property: 'og:url', content: 'https://ignis.venizia.ai/' }],
     // Twitter / X card
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
-    ['meta', { name: 'twitter:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
+    ['meta', { name: 'twitter:title', content: 'IGNIS - Architecture without apology. Speed without sacrifice.' }],
     [
       'meta',
       {
