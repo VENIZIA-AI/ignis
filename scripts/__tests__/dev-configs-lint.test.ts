@@ -1,72 +1,59 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import {
-  chmodSync,
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const LINT_SCRIPT = resolve(
+const CLI = resolve(
   import.meta.dir,
   '..',
   '..',
-  'presets',
-  'app',
-  'files',
-  'scripts',
-  'lint.sh',
+  'packages',
+  'dev-configs',
+  'src',
+  'cli',
+  'index.ts',
 );
 const TOOLS = ['oxlint', 'eslint', 'oxfmt'];
 const tmpDirs: string[] = [];
 
-/** A package with scripts/lint.sh and stub linters on PATH that log their arguments, one line per call. */
-const makePackage = (): { root: string; bin: string; log: string } => {
-  const root = mkdtempSync(join(tmpdir(), 'ignis-lint-script-'));
+/** Folder of .configs to the content of its .ignore file. */
+type TIgnoreFiles = Partial<Record<'lints' | 'formatters', string>>;
+
+/** A project with stub linters on PATH that log their arguments, one line per call. */
+const makeProject = (opts: { ignore?: TIgnoreFiles; failing?: string } = {}) => {
+  const root = mkdtempSync(join(tmpdir(), 'ignis-dev-configs-lint-'));
   tmpDirs.push(root);
-  const bin = join(root, 'bin');
+  const bin = join(root, 'stub-bin');
   const log = join(root, 'calls.log');
 
-  mkdirSync(join(root, 'scripts'), { recursive: true });
   mkdirSync(bin);
-  cpSync(LINT_SCRIPT, join(root, 'scripts', 'lint.sh'));
-
   for (const tool of TOOLS) {
-    const stub = join(bin, tool);
-    writeFileSync(stub, `#!/bin/sh\necho "${tool} $*" >> "${log}"\n`);
-    chmodSync(stub, 0o755);
+    const body = tool === opts.failing ? 'exit 1' : `echo "${tool} $*" >> "${log}"`;
+    writeFileSync(join(bin, tool), `#!/bin/sh\n${body}\n`);
+    chmodSync(join(bin, tool), 0o755);
+  }
+
+  for (const [folder, content] of Object.entries(opts.ignore ?? {})) {
+    mkdirSync(join(root, '.configs', folder), { recursive: true });
+    writeFileSync(join(root, '.configs', folder, '.ignore'), content);
   }
 
   writeFileSync(log, '');
   return { root, bin, log };
 };
 
-/** Folder of .configs to the content of its .ignore file. */
-type TIgnoreFiles = Partial<Record<'lints' | 'formatters', string>>;
-
-const runLint = (opts: {
-  args: string[];
-  ignore?: TIgnoreFiles;
-}): { exitCode: number; calls: string[] } => {
-  const lintPackage = makePackage();
-  for (const [folder, content] of Object.entries(opts.ignore ?? {})) {
-    mkdirSync(join(lintPackage.root, '.configs', folder), { recursive: true });
-    writeFileSync(join(lintPackage.root, '.configs', folder, '.ignore'), content);
-  }
+const runLint = (opts: { args: string[]; ignore?: TIgnoreFiles; failing?: string }) => {
+  const project = makeProject({ ignore: opts.ignore, failing: opts.failing });
   const result = Bun.spawnSync({
-    cmd: ['sh', join(lintPackage.root, 'scripts', 'lint.sh'), ...opts.args],
-    cwd: tmpdir(),
-    env: { PATH: `${lintPackage.bin}:/usr/bin:/bin` },
+    cmd: ['bun', CLI, 'lint', ...opts.args],
+    cwd: project.root,
+    env: { PATH: `${project.bin}:${process.env.PATH ?? ''}` },
   });
-  const calls = readFileSync(lintPackage.log, 'utf8')
+  const calls = readFileSync(project.log, 'utf8')
     .split('\n')
     .filter(line => line !== '');
 
-  return { exitCode: result.exitCode, calls };
+  return { exitCode: result.exitCode, calls, stderr: result.stderr.toString() };
 };
 
 afterAll(() => {
@@ -75,8 +62,8 @@ afterAll(() => {
   }
 });
 
-describe('preset scripts/lint.sh', () => {
-  test('no argument checks the whole package', () => {
+describe('dev-configs lint', () => {
+  test('no argument checks the whole project', () => {
     const { exitCode, calls } = runLint({ args: [] });
 
     expect(exitCode).toBe(0);
@@ -87,7 +74,7 @@ describe('preset scripts/lint.sh', () => {
     ]);
   });
 
-  test('--fix alone fixes the whole package', () => {
+  test('--fix alone fixes the whole project', () => {
     const { calls } = runLint({ args: ['--fix'] });
 
     expect(calls).toEqual([
@@ -97,7 +84,7 @@ describe('preset scripts/lint.sh', () => {
     ]);
   });
 
-  test('a file list checks only those files, and eslint stays quiet about ignored ones', () => {
+  test('a file list checks only those files, and the tools stay quiet about ignored ones', () => {
     const { calls } = runLint({ args: ['src/a.ts', 'src/b.tsx'] });
 
     expect(calls).toEqual([
@@ -117,7 +104,7 @@ describe('preset scripts/lint.sh', () => {
     ]);
   });
 
-  test('files the linters do not handle are dropped from the list', () => {
+  test('files the tools do not handle are dropped from the list', () => {
     const { calls } = runLint({ args: ['README.md', 'src/a.mts', 'package.json'] });
 
     expect(calls[0]).toBe(
@@ -133,8 +120,8 @@ describe('preset scripts/lint.sh', () => {
   });
 
   // An ignore file resolves its patterns from its own folder, so each .ignore reaches its tools as
-  // command-line patterns, which resolve from the package root: --ignore-pattern, or !pattern for oxfmt.
-  test('lints/.ignore reaches oxlint and eslint, comments and blank lines skipped, globs left unexpanded', () => {
+  // command-line patterns, which resolve from the project root: --ignore-pattern, or !pattern for oxfmt.
+  test('lints/.ignore reaches oxlint and eslint, comments and blank lines skipped', () => {
     const { calls } = runLint({ args: [], ignore: { lints: '# generated\nsrc/gen/**\n\n*.ts\n' } });
 
     expect(calls).toEqual([
@@ -154,14 +141,18 @@ describe('preset scripts/lint.sh', () => {
     ]);
   });
 
-  test('a failing tool fails the script', () => {
-    const lintPackage = makePackage();
-    writeFileSync(join(lintPackage.bin, 'eslint'), '#!/bin/sh\nexit 1\n');
-    const result = Bun.spawnSync({
-      cmd: ['sh', join(lintPackage.root, 'scripts', 'lint.sh'), 'src/a.ts'],
-      env: { PATH: `${lintPackage.bin}:/usr/bin:/bin` },
-    });
+  test('a failing tool stops the run and fails it', () => {
+    const { exitCode, calls } = runLint({ args: ['src/a.ts'], failing: 'eslint' });
+
+    expect(exitCode).toBe(1);
+    expect(calls).toHaveLength(1);
+  });
+
+  test('an unknown command fails and names the commands there are', () => {
+    const project = makeProject();
+    const result = Bun.spawnSync({ cmd: ['bun', CLI, 'lnit'], cwd: project.root });
 
     expect(result.exitCode).toBe(1);
+    expect(result.stderr.toString()).toContain('lint');
   });
 });

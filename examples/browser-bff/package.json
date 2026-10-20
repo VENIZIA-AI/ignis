@@ -11,8 +11,8 @@
     "server:dev": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite --config .configs/builders/vite.config.ts",
     "compile": "sh scripts/compile.sh",
     "typecheck": "bun check",
-    "lint": "sh scripts/lint.sh",
-    "lint:fix": "sh scripts/lint.sh --fix",
+    "lint": "dev-configs lint",
+    "lint:fix": "dev-configs lint --fix",
     "test": "bun test",
     "clean": "sh scripts/clean.sh"
   },

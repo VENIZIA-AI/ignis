@@ -19,8 +19,8 @@ const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers', 'peerDepe
 const CATALOG_MARKER = 'catalog:';
 const WORKSPACE_MARKER = 'workspace:';
 const FILES_FOLDER = 'files';
-/** Paths of the app files a lib shares: the lint configs and the lint and clean scripts. */
-const LIB_SHARED_PATHS = ['.configs', 'scripts/lint.sh', 'scripts/clean.sh'];
+/** Paths of the app files a lib shares: the lint and format configs and the clean script. */
+const LIB_SHARED_PATHS = ['.configs', 'scripts/clean.sh'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);

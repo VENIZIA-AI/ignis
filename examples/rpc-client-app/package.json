@@ -11,8 +11,8 @@
     "server:dev": "vite",
     "compile": "sh scripts/compile.sh",
     "typecheck": "bun check",
-    "lint": "sh scripts/lint.sh",
-    "lint:fix": "sh scripts/lint.sh --fix",
+    "lint": "dev-configs lint",
+    "lint:fix": "dev-configs lint --fix",
     "test": "bun test --pass-with-no-tests",
     "clean": "sh scripts/clean.sh",
     "generate": "openapi-typescript http://localhost:3000/api/doc/openapi.json -o ./src/api/schema.d.ts"

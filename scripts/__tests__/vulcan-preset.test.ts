@@ -195,14 +195,9 @@ describe('buildPreset', () => {
     expect(lib.files).toBe('./files');
   });
 
-  test('the lib gets the lint and clean files of the app, and its own files win', () => {
+  test('the lib gets the configs and the clean script of the app, not its other scripts, and its own files win', () => {
     const repository = makeRepository({});
     writeLib({ root: repository.root });
-    writeText({
-      root: repository.root,
-      path: 'presets/app/files/scripts/lint.sh',
-      content: 'lint\n',
-    });
     writeText({
       root: repository.root,
       path: 'presets/app/files/scripts/clean.sh',
@@ -210,16 +205,21 @@ describe('buildPreset', () => {
     });
     writeText({
       root: repository.root,
-      path: 'presets/lib/files/scripts/clean.sh',
+      path: 'presets/app/files/scripts/compile.sh',
+      content: 'compile\n',
+    });
+    writeText({
+      root: repository.root,
+      path: 'presets/lib/files/.configs/lint.mts',
       content: 'lib\n',
     });
 
     const { written } = buildPreset(repository);
     const out = (path: string): string => readFileSync(join(repository.outDir, path), 'utf8');
 
-    expect(out('lib/files/.configs/lint.mts')).toBe('export default {};\n');
-    expect(out('lib/files/scripts/lint.sh')).toBe('lint\n');
-    expect(out('lib/files/scripts/clean.sh')).toBe('lib\n');
+    expect(out('lib/files/scripts/clean.sh')).toBe('app\n');
+    expect(out('lib/files/.configs/lint.mts')).toBe('lib\n');
+    expect(existsSync(join(repository.outDir, 'lib/files/scripts/compile.sh'))).toBe(false);
     expect(existsSync(join(repository.outDir, 'lib/files/_env.example'))).toBe(false);
     expect(written).toContain('lib/preset.json');
     expect(written).toContain('lib/files/src/index.ts');
