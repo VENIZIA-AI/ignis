@@ -9,7 +9,7 @@
           <div class="ig-eyebrow">
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun
           </div>
-          <h1>Enterprise APIs<br />at <span class="ig-gtext">Hono speed</span></h1>
+          <h1>Architecture without apology.<br /><span class="ig-gtext">Speed without sacrifice.</span></h1>
           <p class="ig-lede">
             LoopBack&nbsp;4's architecture with Hono's raw throughput.
             <b>Dependency injection, repositories, auth and real-time</b>
