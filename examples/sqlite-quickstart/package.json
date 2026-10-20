@@ -17,7 +17,7 @@
     "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "bun check --no-pretty -p tsconfig.json"
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
