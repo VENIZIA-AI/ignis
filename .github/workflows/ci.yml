@@ -98,6 +98,11 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bun scripts/examples.ts smoke
 
+      # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
+      - name: VULCAN preset smoke
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make preset-smoke
+
       # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
       # so CI and a developer's `make test-<pkg>` run the very same command.
       - name: Test - inversion
