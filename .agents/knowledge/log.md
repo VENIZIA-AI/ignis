@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - Declaration maps are back
+
+Updated nothing else - build flags only.
+
+- tsc again emits `.d.ts.map` (only `--inlineSources` stays): atlas resolves a symbol to its source line through them, and dropping them in 0.3.1 sent every symbol to the wrong line. `make sourcemaps-check` now also requires one `.d.ts.map` per `.d.ts`.
+
 ## 2026-10-20 - Preset and examples type-check with bun check
 
 Updated nothing else - scripts only.
