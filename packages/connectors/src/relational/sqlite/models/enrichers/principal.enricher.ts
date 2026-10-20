@@ -15,6 +15,7 @@ type TPrincipalColumnDef<
   Discriminator extends string,
   IdType extends 'number' | 'string',
   Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
 > = (IdType extends 'number'
   ? {
       [K in `${Discriminator}Id`]: Nullable extends true
@@ -26,21 +27,25 @@ type TPrincipalColumnDef<
         ? TSQLiteTextColumn
         : NotNull<TSQLiteTextColumn>;
     }) & {
-  [K in `${Discriminator}Type`]: HasDefault<TSQLiteTextColumn>;
+  [K in `${Discriminator}Type`]: NullableDiscriminator extends true
+    ? HasDefault<TSQLiteTextColumn>
+    : NotNull<HasDefault<TSQLiteTextColumn>>;
 };
 
 export const generatePrincipalColumnDefs = <
   Discriminator extends string = 'principal',
   IdType extends 'number' | 'string' = 'number',
   Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
 >(
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable>,
-): TPrincipalColumnDef<Discriminator, IdType, Nullable> => {
+  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
+): TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator> => {
   const {
     discriminator = 'principal',
     defaultPolymorphic = '',
     polymorphicIdType,
     isNullableId = false,
+    isNullableDiscriminator = true,
   } = opts;
 
   const polymorphic = {
@@ -50,24 +55,28 @@ export const generatePrincipalColumnDefs = <
     idType: polymorphicIdType,
     idColumnName: `${discriminator}_id`,
     isNullableId,
+    isNullableDiscriminator,
   };
+
+  const typeColumn = text(polymorphic.typeColumnName).default(defaultPolymorphic);
+  const typeDef = polymorphic.isNullableDiscriminator ? typeColumn : typeColumn.notNull();
 
   switch (polymorphic.idType) {
     case 'number': {
       return {
-        [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
+        [polymorphic.typeField]: typeDef,
         [polymorphic.idField]: polymorphic.isNullableId
           ? integer(polymorphic.idColumnName)
           : integer(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Discriminator, IdType, Nullable>;
+      } as TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>;
     }
     case 'string': {
       return {
-        [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
+        [polymorphic.typeField]: typeDef,
         [polymorphic.idField]: polymorphic.isNullableId
           ? text(polymorphic.idColumnName)
           : text(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Discriminator, IdType, Nullable>;
+      } as TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>;
     }
     default: {
       throw getError({

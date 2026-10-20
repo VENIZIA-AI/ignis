@@ -451,6 +451,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-20',
+              collapsed: true,
+              items: [
+                {
+                  text: 'isNullableDiscriminator for the Principal Enricher',
+                  link: '/changelogs/2026-10-20-principal-nullable-discriminator',
+                },
+                {
+                  text: 'oxlint Config Without Loading ESLint',
+                  link: '/changelogs/2026-10-20-dev-configs-oxlint-subpath',
+                },
+              ],
+            },
+            {
               text: '2026-10-18',
               collapsed: true,
               items: [

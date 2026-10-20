@@ -194,6 +194,22 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
     expect(Object.keys(defs).sort()).toEqual(['principalId', 'principalType']);
   });
 
+  test('the principal discriminator column is nullable unless isNullableDiscriminator is false', () => {
+    const nullable = sqliteTable('comments', {
+      ...generatePrincipalColumnDefs({ polymorphicIdType: 'string' }),
+    });
+    const required = sqliteTable('replies', {
+      ...generatePrincipalColumnDefs({
+        polymorphicIdType: 'string',
+        isNullableDiscriminator: false,
+      }),
+    });
+
+    expect(nullable.principalType.notNull).toBe(false);
+    expect(required.principalType.notNull).toBe(true);
+    expect(required.principalType.hasDefault).toBe(true);
+  });
+
   test('an unsupported id dataType throws NotSupported instead of emitting wrong DDL', () => {
     expect(() => generateIdColumnDefs({ id: { dataType: 'big-number' } } as never)).toThrowError(
       /not supported on SQLite/,
