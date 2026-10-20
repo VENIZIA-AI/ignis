@@ -6,7 +6,7 @@ engine-neutral repository tier Postgres uses.
 
 ```bash
 bun install
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at
@@ -80,13 +80,13 @@ The smoke test boots the same `Application` on a free port against an in-memory 
 
 ## Where the data goes
 
-`bun run start` keeps the database in `app_data/database/local.db` and logs in `app_data/logs`.
+`bun run server:dev` keeps the database in `app_data/database/local.db` and logs in `app_data/logs`.
 `app_data/` is gitignored.
 
 | Variable | Default | Meaning |
 |---|---|---|
 | `APP_ENV_SQLITE_URL` | `file:./app_data/database/local.db` | `:memory:` for a database that dies with the process; a remote Turso `libsql://` url cannot hold an explicit transaction |
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./app_data/logs`, set by the `start` script | Unset: console logging only |
+| `APP_ENV_LOGGER_FOLDER_PATH` | `./app_data/logs`, set by the `server:dev` script | Unset: console logging only |
 | `PORT` | `3000` | The port the server listens on |
 
 ## Change the schema
@@ -95,7 +95,7 @@ Edit `src/models/note.model.ts`, then generate a migration:
 
 ```bash
 bun run migrate:generate   # writes migration/NNNN_*.sql
-bun run start              # applies what is pending, then serves
+bun run server:dev              # applies what is pending, then serves
 ```
 
 The app applies migrations itself at boot, the same as [PGlite](../pglite-quickstart): an embedded

@@ -4,17 +4,15 @@ Deploy your IGNIS application reliably, securely, and efficiently.
 
 ## 1. Building for Production
 
-Compile TypeScript to JavaScript before deploying:
+Compile the application to one executable before deploying:
 
 ```bash
-bun run build
+bun run compile
 ```
 
-**What this does:**
-1. `tsc -p tsconfig.json` - Compile TypeScript → JavaScript
-2. `tsc-alias -p tsconfig.json` - Replace path aliases (`@/*`) with relative paths
+**What this does:** `scripts/compile.sh` runs `compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin and bakes in the build stamp. See [Stamping a build](/guides/core-concepts/application/build-info).
 
-**Output:** `dist/` folder with production-ready JavaScript.
+**Output:** `dist/bin`, a standalone binary for `bun-linux-x64`. Set `BUN_TARGET` to build for another target. `bun run clean` removes `dist/`.
 
 ## 2. Environment Configuration
 
@@ -45,7 +43,7 @@ Use environment variables for all configuration - never hard-code.
 ### Docker Deployment (Recommended)
 
 **Dockerfile:**
-Two stages: the build needs devDependencies (`typescript`, `tsc-alias`), the runtime does not.
+Two stages: the build needs devDependencies (`@venizia/dev-configs`), the runtime needs none because the binary carries its dependencies.
 
 ```dockerfile
 # --- Build stage ---
@@ -58,21 +56,18 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
-RUN bun run build
+RUN bun run compile
 
 # --- Runtime stage ---
-FROM oven/bun:1-slim
+FROM debian:bookworm-slim
 
 WORKDIR /usr/src/app
 
-COPY package.json bun.lock ./
-RUN bun install --production --frozen-lockfile
-
-COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/dist/bin ./bin
 
 EXPOSE 3000
 
-CMD [ "bun", "run", "server:prod" ]
+CMD [ "./bin" ]
 ```
 
 **Build and deploy:**
@@ -167,13 +162,12 @@ docker-compose logs -f app
 docker-compose up -d --scale app=3
 ```
 
-### Bun Single Executable (Alternative)
+### Bun Single Executable (Without Docker)
 
-Compile your app into a single standalone binary:
+`bun run compile` already produced a single standalone binary at `dist/bin`. Build for another platform with `BUN_TARGET`:
 
 ```bash
-bun build --compile --minify --sourcemap --target=bun-linux-x64 \
-  ./src/index.ts --outfile ./dist/my-app
+BUN_TARGET=bun-linux-arm64 bun run compile
 ```
 
 **Pros:** No dependencies needed on server, simple deployment
@@ -183,7 +177,7 @@ bun build --compile --minify --sourcemap --target=bun-linux-x64 \
 > **A compiled binary MUST register a logger provider explicitly.** Logger providers are sub-path exports and `winston` is an optional peer, so the default provider is reached through a runtime `require` that the bundler cannot see. Without this line the binary throws on its first log call.
 >
 > ```typescript
-> // src/index.ts - before the application boots
+> // before the application is built
 > import { LoggerFactory } from '@venizia/ignis-helpers';
 > import { WinstonLogger } from '@venizia/ignis-helpers/winston';
 > // or: import { PinoLogger } from '@venizia/ignis-helpers/pino';
@@ -198,10 +192,10 @@ bun build --compile --minify --sourcemap --target=bun-linux-x64 \
 **Deploy:**
 ```bash
 # Copy executable and .env to server
-scp dist/my-app .env user@server:/app/
+scp dist/bin .env user@server:/app/
 
 # Run
-./my-app
+./bin
 ```
 
 ## 4. Production Best Practices
@@ -222,7 +216,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/app
-ExecStart=/usr/local/bin/bun run server:prod
+ExecStart=/app/bin
 Restart=on-failure
 RestartSec=10
 Environment=NODE_ENV=production
@@ -240,7 +234,7 @@ sudo systemctl status my-app
 
 **Example with PM2 (Alternative):**
 ```bash
-pm2 start "bun run server:prod" --name my-app
+pm2 start ./bin --name my-app
 pm2 save
 pm2 startup
 ```
@@ -436,8 +430,11 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Build
-        run: bun run build
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Compile
+        run: bun run compile
 
       - name: Test
         run: bun test --env-file=.env.test
@@ -473,7 +470,7 @@ Railway provides simple deployments with automatic builds:
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "bun run server:prod",
+    "startCommand": "./bin",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",

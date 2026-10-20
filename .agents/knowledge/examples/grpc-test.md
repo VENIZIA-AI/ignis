@@ -31,7 +31,7 @@ imports the decorated modules.
 
 ```bash
 bun install
-bun run start        # http://localhost:3000/api/status, explorer at /api/doc/explorer
+bun run server:dev        # http://localhost:3000/api/status, explorer at /api/doc/explorer
 bun test              # smoke test: GET /status over fetch, SayHello over a ConnectRPC client
 ```
 

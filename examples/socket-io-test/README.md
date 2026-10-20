@@ -6,7 +6,7 @@ running on Bun via `@socket.io/bun-engine`.
 ```bash
 bun install
 docker compose up -d
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at

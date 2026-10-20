@@ -1,8 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env sh
+# Remove everything the build and the checks generate.
+set -eu
+cd "$(dirname "$0")/.."
 
-echo "START | Clean up..."
-
-rm -rf dist *.tsbuildinfo .eslintcache
-rm -rf artifact.zip
-
-echo "DONE | Clean up..."
+rm -rf dist *.tsbuildinfo .eslintcache artifact.zip

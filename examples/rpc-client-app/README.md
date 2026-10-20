@@ -8,7 +8,7 @@ Start the server first (see its README), then:
 
 ```bash
 bun install
-bun run dev
+bun run server:dev
 ```
 
 Open `http://localhost:5173`. Sign up, then add and delete configurations. The Vite dev server
@@ -30,15 +30,15 @@ After a server change, with the server running:
 
 ```bash
 bun run generate   # openapi-typescript http://localhost:3000/api/doc/openapi.json
-bun run build      # tsc -b, then vite build - fails where the client no longer matches
+bun run compile    # bun check, then vite build - fails where the client no longer matches
 ```
 
 ## Scripts
 
 | Script | Does |
 |---|---|
-| `bun run dev` | Vite dev server on port 5173 |
-| `bun run build` | Typecheck, then bundle into `dist/` |
-| `bun run preview` | Serve `dist/`, with the same `/api` forwarding |
+| `bun run server:dev` | Vite dev server on port 5173 |
+| `bun run compile` | Typecheck, then bundle into `dist/` |
+| `bun x vite preview` | Serve `dist/`, with the same `/api` forwarding |
 | `bun run generate` | Rewrite `src/api/schema.d.ts` from the running server |
-| `bun run typecheck` / `bun run lint` | `tsc -b` / `eslint .` |
+| `bun run typecheck` / `bun run lint` | `bun check` / `eslint .` |

@@ -6,7 +6,7 @@ server. [`rpc-client-app`](../rpc-client-app) is the React client for it.
 
 ```bash
 bun install
-APP_ENV_JWT_SECRET=$(openssl rand -hex 32) bun run start
+APP_ENV_JWT_SECRET=$(openssl rand -hex 32) bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Open `http://localhost:3000/api`
@@ -88,8 +88,8 @@ and loads a JSX page.
 |---|---|---|
 | `APP_ENV_JWT_SECRET` | none - required | Signs and verifies tokens. Never commit a real value |
 | `APP_ENV_JWT_EXPIRES_IN` | `86400` | Token lifetime in seconds |
-| `APP_ENV_PGLITE_DATA_DIR` | set to `./app_data/database/pgdata` by `bun run start` | Unset: an in-memory database |
-| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run start` | Unset: console logging only |
+| `APP_ENV_PGLITE_DATA_DIR` | set to `./app_data/database/pgdata` by `bun run server:dev` | Unset: an in-memory database |
+| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run server:dev` | Unset: console logging only |
 | `PORT` | `3000` | The port the server listens on |
 
 `.env.example` lists them. To change the schema, edit `src/models/*.ts` and run

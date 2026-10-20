@@ -101,8 +101,8 @@ tags: [process, build]
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
     `eslint` and `oxfmt --check`, each with `-c .configs/<tool>.config.mts`. `make fmt` and
     `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
-    format-checks the wiki. Packages carry no lint scripts in `package.json`; examples keep
-    `lint` and `lint:fix` because they are templates a consumer copies. make does not drive the
+    format-checks the wiki. Packages carry no lint scripts in `package.json`; apps (the
+    examples and the VULCAN preset) carry the app script standard in step 13. make does not drive the
     examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
     example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
     `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
@@ -133,6 +133,22 @@ tags: [process, build]
     the packed tarball, not the registry. One blind spot remains: a granted peer brings its own
     required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
     leak of such a transitive peer into the entry it was granted to.
+13. **Apps share one script standard**, backend or frontend: the examples and the preset of
+    `presets/ignis`. `server:dev` runs the app (`NODE_ENV=development bun run
+    src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
+    `bun check`, `lint` and `lint:fix` are `sh scripts/lint.sh [--fix]`, `test` is `bun test` and `clean`
+    is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
+    `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The logic
+    lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs
+    `compile.ts`: `BunCompiler.compile` with `define: await BuildInfoStamp.define()` writes
+    `dist/bin` (the target comes from `BUN_TARGET`), and `src/index.ts` calls `await
+    BuildInfoStamp.register()`, so `@venizia/ignis-boot` is a runtime dependency. `tsconfig.json`
+    includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`: under `nodenext` a
+    package without `"type": "module"` is CommonJS and `compile.ts` cannot use top-level `await`
+    (TS1309). Because imports are hoisted, a binary registers its logger provider
+    (`LoggerFactory.use`) before the module that builds the application, or the build already logs
+    and throws. `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
+    the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
 
 ## Related
 

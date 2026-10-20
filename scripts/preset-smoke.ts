@@ -8,7 +8,15 @@
  *   VULCAN_TGZ  comma-separated packed VULCAN tarballs, installed in place of the registry copies
  *               while the version `init --preset` needs is not on npm
  */
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -20,7 +28,10 @@ const DEV_PORT = '3000';
 const HELLO_BODY = { message: 'Hello from IGNIS!' };
 const SERVER_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
-const TOTAL_STEPS = 9;
+const TOTAL_STEPS = 11;
+/** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
+const STAMP_COMMIT = 'smokebuild01';
+const BINARY = 'dist/bin';
 
 let stepNumber = 0;
 
@@ -106,12 +117,12 @@ const findFreePort = async (): Promise<number> => {
   return port;
 };
 
-/** Every path the preset's `urls` names must answer 200: VULCAN prints them as the pages to open. */
+/** Every path the preset's `urls` names must answer 200: VULCAN prints them as the pages to open. Served by the compiled binary. */
 const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void> => {
   const port = await findFreePort();
-  const server = Bun.spawn(['bun', 'run', 'src/index.ts'], {
+  const server = Bun.spawn([join(opts.cwd, BINARY)], {
     cwd: opts.cwd,
-    env: { ...process.env, PORT: String(port) },
+    env: { ...process.env, PORT: String(port), APP_BUILD_COMMIT: '' },
     stdout: 'ignore',
     stderr: 'inherit',
   });
@@ -122,7 +133,7 @@ const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void>
 
     while (Date.now() < deadline && body === undefined) {
       if (server.exitCode !== null) {
-        throw new Error(`[preset-smoke] src/index.ts exited early | Code: ${server.exitCode}`);
+        throw new Error(`[preset-smoke] ${BINARY} exited early | Code: ${server.exitCode}`);
       }
 
       body = await fetch(`http://127.0.0.1:${port}/api/hello`).then(
@@ -156,12 +167,12 @@ const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void>
   }
 };
 
-/** Files under a folder whose text holds a leftover `{{token}}`; node_modules is not the app's. */
+/** Files under a folder whose text holds a leftover `{{token}}`; node_modules and the compiled dist are not the app's. */
 const findLeftoverTokens = (opts: { folder: string }): string[] => {
   const found: string[] = [];
 
   for (const entry of readdirSync(opts.folder, { withFileTypes: true })) {
-    if (entry.name === 'node_modules') {
+    if (entry.name === 'node_modules' || entry.name === 'dist') {
       continue;
     }
 
@@ -199,6 +210,13 @@ const assertScaffold = (opts: { appDir: string }): void => {
 
   if (leftovers.length > 0) {
     throw new Error(`[preset-smoke] unreplaced {{ tokens in: ${leftovers.join(', ')}`);
+  }
+};
+
+/** The compile bakes the stamp into the bundle as text, so the binary carries the commit it was built from. */
+const assertStampBaked = (opts: { binary: string }): void => {
+  if (!readFileSync(opts.binary).includes(STAMP_COMMIT)) {
+    throw new Error(`[preset-smoke] ${BINARY} does not carry the stamp commit ${STAMP_COMMIT}`);
   }
 };
 
@@ -268,6 +286,14 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     await run({ command: ['bun', 'run', check], cwd: appDir });
   }
 
+  step({ label: 'the app: compile, and the build stamp is baked into the binary' });
+  await run({
+    command: ['bun', 'run', 'compile'],
+    cwd: appDir,
+    env: { APP_BUILD_COMMIT: STAMP_COMMIT },
+  });
+  assertStampBaked({ binary: join(appDir, BINARY) });
+
   step({ label: 'the project: vulcan doctor, okf check' });
   await run({ command: ['bun', 'x', 'vulcan', 'doctor'], cwd: projectDir });
   await run({ command: ['bun', 'x', 'vulcan', 'x', 'okf', 'check', '--strict'], cwd: projectDir });
@@ -283,6 +309,12 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     throw new Error('[preset-smoke] the packed preset names no urls');
   }
   await assertHello({ cwd: appDir, urls: preset.urls });
+
+  step({ label: 'the app: clean removes dist' });
+  await run({ command: ['bun', 'run', 'clean'], cwd: appDir });
+  if (existsSync(join(appDir, 'dist'))) {
+    throw new Error('[preset-smoke] `clean` left dist behind');
+  }
 };
 
 if (import.meta.main) {

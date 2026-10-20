@@ -383,11 +383,13 @@ Four rules, each backed by a measurement:
 4. Build every binding key from `Class.name`. bun renames a bundled decorated class (`UserService` -> `UserService2`), so a literal `'services.UserService'` matches nothing.
 5. Use a Postgres datasource. [SQLite](/guides/core-concepts/persistent/sqlite#not-in-a-compiled-binary) and [PGlite](/guides/core-concepts/persistent/pglite#not-in-a-compiled-binary) load native or WebAssembly files a binary does not embed; run them from source.
 
+`BunCompiler` compiles with the minify choice of rule 2. The preset app and the examples run it from `compile.ts` through the `compile` script, which also registers the artifacts plugin and bakes in the [build stamp](/guides/core-concepts/application/build-info):
+
 ```json
-"compile:linux": "bun build --compile --minify-whitespace --minify-syntax --sourcemap --env=disable --target=bun-linux-x64 ./src/index.ts --outfile ./dist/app"
+"compile": "sh scripts/compile.sh"
 ```
 
-To prove a binary, run it against refused ports: `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1 ./dist/app`. It must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
+To prove a binary, run it against refused ports: `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1 ./dist/bin`. It must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
 
 ## Migrating from `boot()`
 

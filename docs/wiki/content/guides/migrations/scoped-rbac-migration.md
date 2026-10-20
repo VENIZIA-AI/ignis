@@ -277,7 +277,7 @@ the bespoke adapter and gain resource/action/domain hierarchies for free.
 
 ## 6. Verification checklist (either path)
 
-- [ ] `bun run build` (or `tsc -p .`) is clean - no references to `DrizzleCasbinAdapter`,
+- [ ] `bun run typecheck` is clean - no references to `DrizzleCasbinAdapter`,
       `IDrizzleCasbinAdapterOptions`, `CasbinRuleVariants.GROUP/.POLICY`, `CasbinEnforcerCachedDrivers.IN_MEMORY`,
       `IAuthorizationCacheInvalidator`.
 - [ ] `SELECT DISTINCT variant FROM identity."PolicyDefinition"` matches what your adapter filters on

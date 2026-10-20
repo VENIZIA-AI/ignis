@@ -8,7 +8,7 @@ call the same endpoint; each sees only their own rows - Postgres decides that, n
 docker compose up -d
 bun install
 cp .env.example .env
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). It applies its own schema at

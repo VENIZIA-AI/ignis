@@ -30,7 +30,7 @@ registering the component; `src/controllers/chat.controller.ts` is the one REST 
 ```bash
 bun install
 docker compose up -d   # Redis
-bun run start            # http://localhost:3000/api, explorer at /api/doc/explorer
+bun run server:dev            # http://localhost:3000/api, explorer at /api/doc/explorer
 bun test                  # smoke test: connects raw WebSocket clients; skipped, not failed, if Redis is down
 docker compose down -v
 ```

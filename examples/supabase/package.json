@@ -7,16 +7,15 @@
     "bun": ">=1.4"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
-    "rebuild": "bun run clean && bun run build",
-    "start": "APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
+    "compile": "sh scripts/compile.sh",
+    "typecheck": "bun check",
+    "lint": "sh scripts/lint.sh",
+    "lint:fix": "sh scripts/lint.sh --fix",
     "test": "bun test",
-    "token": "bun run src/token-cli.ts",
-    "typecheck": "bun check --no-pretty -p tsconfig.json"
+    "clean": "sh scripts/clean.sh",
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
+    "token": "bun run src/token-cli.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",

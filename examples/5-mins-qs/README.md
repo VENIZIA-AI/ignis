@@ -6,7 +6,7 @@ page, word for word. `artifacts: AutoArtifacts` finds `HelloController`, so noth
 
 ```bash
 bun install
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it).

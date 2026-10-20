@@ -31,14 +31,14 @@ Start [`rpc-api-server`](/examples/rpc-api-server.md) first, then:
 
 ```bash
 bun install
-bun run dev            # vite dev server, http://localhost:5173
+bun run server:dev       # vite dev server, http://localhost:5173
 bun run generate         # openapi-typescript http://localhost:3000/api/doc/openapi.json -o ./src/api/schema.d.ts
-bun run build             # tsc -b, then vite build - fails where the client no longer matches
+bun run compile           # bun check, then vite build - fails where the client no longer matches
 ```
 
 ## Notable / non-obvious
 
-- This example has no `bun run test` script and is not in `SMOKE_EXAMPLES` - only the server side of
+- `bun run test` passes with no tests (`--pass-with-no-tests`) and the example is not in `SMOKE_EXAMPLES` - only the server side of
   the pair gets a smoke test in CI.
 - `bun run generate` needs the server running; regenerate after any change to
   `rpc-api-server`'s routes or schemas, or the build fails on the mismatch.

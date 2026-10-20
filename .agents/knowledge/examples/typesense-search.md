@@ -38,7 +38,7 @@ under `@repository({ model, dataSource })`).
 ```bash
 docker compose up -d       # Typesense, host port 18108 -> container 8108
 bun install
-bun run start                # http://localhost:3000/api/articles, explorer at /api/doc/explorer
+bun run server:dev                # http://localhost:3000/api/articles, explorer at /api/doc/explorer
 bun test                      # smoke test: skips itself (test.skipIf) when Typesense is unreachable
 ```
 
