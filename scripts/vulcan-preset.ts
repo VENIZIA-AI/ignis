@@ -1,20 +1,26 @@
 /**
- * Writes the publishable VULCAN preset of @venizia/ignis. The template in
- * presets/ignis names its dependencies the way package.json does
+ * Writes the publishable VULCAN presets of @venizia/ignis: presets/app (an API) and presets/lib (a
+ * shared library). Each template names its dependencies the way package.json does
  * (`workspace:*`, `catalog:`); this resolves each to the exact workspace version and the root
  * catalog range, read from disk at call time, and writes packages/core-server/dist/vulcan-preset.
+ * Each kind is preset.json + files/; the lib also gets the lint and clean files of the app, so both
+ * kinds lint the same way.
  * Usage: bun scripts/vulcan-preset.ts
  */
 import { Glob } from 'bun';
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
-const TEMPLATE_FOLDER = 'presets/ignis';
+const TEMPLATE_FOLDER = 'presets';
+const APP_KIND = 'app';
+const LIB_KIND = 'lib';
 const OUTPUT_FOLDER = 'packages/core-server/dist/vulcan-preset';
-const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers'];
+const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers', 'peerDependencies'];
 const CATALOG_MARKER = 'catalog:';
 const WORKSPACE_MARKER = 'workspace:';
 const FILES_FOLDER = 'files';
+/** Paths of the app files a lib shares: the lint configs and the lint and clean scripts. */
+const LIB_SHARED_PATHS = ['.configs', 'scripts/lint.sh', 'scripts/clean.sh'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -117,22 +123,27 @@ export interface IBuildPresetResult {
   resolved: string[];
 }
 
-export const buildPreset = (opts: { root: string; outDir: string }): IBuildPresetResult => {
-  const templateDir = join(opts.root, TEMPLATE_FOLDER);
-  const manifest = readJson({ file: join(opts.root, 'package.json') });
-  const catalog = readCatalog({ manifest });
-  const versions = readWorkspaceVersions({ root: opts.root, manifest });
-  const template = readJson({ file: join(templateDir, 'preset.json') });
-  const resolved: string[] = [];
-  const preset: Record<string, unknown> = { ...template, files: `./${FILES_FOLDER}` };
+/** A template with every dependency marker resolved, and `files` pointing at its folder. */
+const resolveTemplate = (opts: {
+  template: Record<string, unknown>;
+  filesFolder: string;
+  catalog: Record<string, string>;
+  versions: Map<string, string>;
+  resolved: string[];
+}): Record<string, unknown> => {
+  const output: Record<string, unknown> = { ...opts.template, files: `./${opts.filesFolder}` };
 
   for (const block of DEPENDENCY_BLOCKS) {
-    preset[block] = Object.fromEntries(
-      Object.entries(toStringRecord({ value: template[block] })).map(([name, range]) => {
-        const value = resolveRange({ name, range, catalog, versions });
+    if (opts.template[block] === undefined) {
+      continue;
+    }
+
+    output[block] = Object.fromEntries(
+      Object.entries(toStringRecord({ value: opts.template[block] })).map(([name, range]) => {
+        const value = resolveRange({ name, range, catalog: opts.catalog, versions: opts.versions });
 
         if (value !== range) {
-          resolved.push(`${name}: ${range} -> ${value}`);
+          opts.resolved.push(`${name}: ${range} -> ${value}`);
         }
 
         return [name, value];
@@ -140,16 +151,83 @@ export const buildPreset = (opts: { root: string; outDir: string }): IBuildPrese
     );
   }
 
-  rmSync(opts.outDir, { recursive: true, force: true });
-  mkdirSync(opts.outDir, { recursive: true });
-  writeFileSync(join(opts.outDir, 'preset.json'), `${JSON.stringify(preset, null, 2)}\n`);
-  cpSync(join(templateDir, FILES_FOLDER), join(opts.outDir, FILES_FOLDER), { recursive: true });
+  return output;
+};
 
-  const copied = [
-    ...new Glob('**/*').scanSync({ cwd: join(opts.outDir, FILES_FOLDER), dot: true }),
+const listFiles = (opts: { dir: string; folder: string }): string[] =>
+  [...new Glob('**/*').scanSync({ cwd: join(opts.dir, opts.folder), dot: true })].map(path =>
+    join(opts.folder, path),
+  );
+
+/** Writes one kind: `<outDir>/<kind>/preset.json` and its files, returning what it wrote. */
+const writeKind = (opts: {
+  templateDir: string;
+  outDir: string;
+  kind: string;
+  preset: Record<string, unknown>;
+  sharedFrom?: string;
+}): string[] => {
+  const kindDir = join(opts.outDir, opts.kind);
+  const filesDir = join(kindDir, FILES_FOLDER);
+
+  mkdirSync(kindDir, { recursive: true });
+  writeFileSync(join(kindDir, 'preset.json'), `${JSON.stringify(opts.preset, null, 2)}\n`);
+
+  if (opts.sharedFrom !== undefined) {
+    for (const path of LIB_SHARED_PATHS) {
+      const source = join(opts.templateDir, opts.sharedFrom, FILES_FOLDER, path);
+
+      if (existsSync(source)) {
+        cpSync(source, join(filesDir, path), { recursive: true });
+      }
+    }
+  }
+
+  cpSync(join(opts.templateDir, opts.kind, FILES_FOLDER), filesDir, { recursive: true });
+
+  return [
+    join(opts.kind, 'preset.json'),
+    ...listFiles({ dir: kindDir, folder: FILES_FOLDER }).map(path => join(opts.kind, path)),
   ];
+};
 
-  return { written: ['preset.json', ...copied.map(path => join(FILES_FOLDER, path))], resolved };
+export const buildPreset = (opts: { root: string; outDir: string }): IBuildPresetResult => {
+  const templateDir = join(opts.root, TEMPLATE_FOLDER);
+  const manifest = readJson({ file: join(opts.root, 'package.json') });
+  const context = {
+    catalog: readCatalog({ manifest }),
+    versions: readWorkspaceVersions({ root: opts.root, manifest }),
+    resolved: [] as string[],
+  };
+  const resolveKind = (kind: string): Record<string, unknown> =>
+    resolveTemplate({
+      ...context,
+      template: readJson({ file: join(templateDir, kind, 'preset.json') }),
+      filesFolder: FILES_FOLDER,
+    });
+
+  rmSync(opts.outDir, { recursive: true, force: true });
+
+  const written = writeKind({
+    templateDir,
+    outDir: opts.outDir,
+    kind: APP_KIND,
+    preset: resolveKind(APP_KIND),
+  });
+
+  if (existsSync(join(templateDir, LIB_KIND, 'preset.json'))) {
+    written.push(
+      ...writeKind({
+        templateDir,
+        outDir: opts.outDir,
+        kind: LIB_KIND,
+        preset: resolveKind(LIB_KIND),
+        sharedFrom: APP_KIND,
+      }),
+    );
+  }
+
+  return { written, resolved: context.resolved };
 };
 
 if (import.meta.main) {

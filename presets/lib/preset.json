@@ -1,0 +1,30 @@
+{
+  "presetVersion": 1,
+  "summary": "A shared IGNIS library: services other backend apps import (exports to src, #src imports).",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "@venizia/ignis": "workspace:*",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "@venizia/ignis": "workspace:*"
+  },
+  "scripts": {
+    "typecheck": "bun check",
+    "lint": "sh scripts/lint.sh",
+    "lint:fix": "sh scripts/lint.sh --fix",
+    "test": "bun test",
+    "clean": "sh scripts/clean.sh"
+  },
+  "checks": ["typecheck", "lint", "test"],
+  "imports": { "#src/*.json": "./src/*.json", "#src/*": "./src/*.js" },
+  "exports": { ".": "./src/index.ts" },
+  "files": "./files",
+  "atlas": [{ "name": "ignis", "repo": "VENIZIA-AI/ignis", "ref": "develop" }]
+}

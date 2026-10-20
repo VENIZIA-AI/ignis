@@ -38,7 +38,7 @@ const makeRepository = (opts: {
   });
   writeJson({
     root,
-    path: 'presets/ignis/preset.json',
+    path: 'presets/app/preset.json',
     value: opts.template ?? {
       presetVersion: 1,
       dependencies: { '@venizia/a': 'workspace:*', hono: 'catalog:', winston: '^3.19.0' },
@@ -48,20 +48,38 @@ const makeRepository = (opts: {
   });
   writeText({
     root,
-    path: 'presets/ignis/files/_env.example',
+    path: 'presets/app/files/_env.example',
     content: 'PORT={{devPort}}\n',
   });
   writeText({
     root,
-    path: 'presets/ignis/files/.configs/lint.mts',
+    path: 'presets/app/files/.configs/lint.mts',
     content: 'export default {};\n',
   });
 
   return { root, outDir: join(root, 'out') };
 };
 
+/** A lib template beside the app one: a peer on the workspace package, a catalog devDependency. */
+const writeLib = (opts: { root: string }): void => {
+  writeJson({
+    root: opts.root,
+    path: 'presets/lib/preset.json',
+    value: {
+      presetVersion: 1,
+      peerDependencies: { '@venizia/a': 'workspace:*' },
+      devDependencies: { hono: 'catalog:' },
+      files: './files',
+    },
+  });
+  writeText({ root: opts.root, path: 'presets/lib/files/src/index.ts', content: 'export {};\n' });
+};
+
+const readOutput = (opts: { outDir: string; file: string }): Record<string, unknown> =>
+  JSON.parse(readFileSync(join(opts.outDir, opts.file), 'utf8'));
+
 const readPreset = (opts: { outDir: string }): Record<string, unknown> =>
-  JSON.parse(readFileSync(join(opts.outDir, 'preset.json'), 'utf8'));
+  JSON.parse(readFileSync(join(opts.outDir, 'app/preset.json'), 'utf8'));
 
 afterAll(() => {
   for (const dir of tmpDirs) {
@@ -137,22 +155,61 @@ describe('buildPreset', () => {
 
     const { written } = buildPreset(repository);
 
-    expect(readFileSync(join(repository.outDir, 'files/_env.example'), 'utf8')).toBe(
+    expect(readFileSync(join(repository.outDir, 'app/files/_env.example'), 'utf8')).toBe(
       'PORT={{devPort}}\n',
     );
-    expect(existsSync(join(repository.outDir, 'files/.configs/lint.mts'))).toBe(true);
+    expect(existsSync(join(repository.outDir, 'app/files/.configs/lint.mts'))).toBe(true);
     expect(readPreset(repository).files).toBe('./files');
-    expect(written).toContain('files/.configs/lint.mts');
-    expect(written).toContain('preset.json');
+    expect(written).toContain('app/files/.configs/lint.mts');
+    expect(written).toContain('app/preset.json');
   });
 
   test('the output folder is replaced, not merged', () => {
     const repository = makeRepository({});
 
     buildPreset(repository);
-    writeText({ root: repository.outDir, path: 'files/stale.txt', content: 'old' });
+    writeText({ root: repository.outDir, path: 'app/files/stale.txt', content: 'old' });
     buildPreset(repository);
 
-    expect(existsSync(join(repository.outDir, 'files/stale.txt'))).toBe(false);
+    expect(existsSync(join(repository.outDir, 'app/files/stale.txt'))).toBe(false);
+  });
+
+  test('no presets/lib writes the app preset only', () => {
+    const repository = makeRepository({});
+
+    const { written } = buildPreset(repository);
+
+    expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
+    expect(written.some(path => path.startsWith('lib/'))).toBe(false);
+  });
+
+  test('the lib preset resolves its markers, peerDependencies included', () => {
+    const repository = makeRepository({});
+    writeLib({ root: repository.root });
+
+    buildPreset(repository);
+    const lib = readOutput({ outDir: repository.outDir, file: 'lib/preset.json' });
+
+    expect(lib.peerDependencies).toEqual({ '@venizia/a': '1.2.3' });
+    expect(lib.devDependencies).toEqual({ hono: '^4.1.0' });
+    expect(lib.files).toBe('./files');
+  });
+
+  test('the lib gets the lint and clean files of the app, and its own files win', () => {
+    const repository = makeRepository({});
+    writeLib({ root: repository.root });
+    writeText({ root: repository.root, path: 'presets/app/files/scripts/lint.sh', content: 'lint\n' });
+    writeText({ root: repository.root, path: 'presets/app/files/scripts/clean.sh', content: 'app\n' });
+    writeText({ root: repository.root, path: 'presets/lib/files/scripts/clean.sh', content: 'lib\n' });
+
+    const { written } = buildPreset(repository);
+    const out = (path: string): string => readFileSync(join(repository.outDir, path), 'utf8');
+
+    expect(out('lib/files/.configs/lint.mts')).toBe('export default {};\n');
+    expect(out('lib/files/scripts/lint.sh')).toBe('lint\n');
+    expect(out('lib/files/scripts/clean.sh')).toBe('lib\n');
+    expect(existsSync(join(repository.outDir, 'lib/files/_env.example'))).toBe(false);
+    expect(written).toContain('lib/preset.json');
+    expect(written).toContain('lib/files/src/index.ts');
   });
 });
