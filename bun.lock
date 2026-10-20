@@ -7,7 +7,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
-        "@venizia/vulcan": "0.2.0",
+        "@venizia/vulcan": "0.3.0",
         "oxfmt": "catalog:",
         "typescript": "catalog:",
       },
@@ -1537,11 +1537,11 @@
 
     "@venizia/ignis-worker": ["@venizia/ignis-worker@workspace:packages/core-worker"],
 
-    "@venizia/vulcan": ["@venizia/vulcan@0.2.0", "", { "dependencies": { "@venizia/vulcan-atlas": "0.2.0", "@venizia/vulcan-okf": "0.2.0", "zod": "^4.5.4" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-KZarvO42v1MQYrcmt1B+kOXK1wHZNA8gtVGY6kvJ0fcc9bEtFf1K6ozdfluQd2mmX3p2TQJN6MYJoEAsdh8pXA=="],
+    "@venizia/vulcan": ["@venizia/vulcan@0.3.0", "", { "dependencies": { "@venizia/vulcan-atlas": "0.3.0", "@venizia/vulcan-okf": "0.3.0", "zod": "^4.5.4" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-FIlWK4ftUH7Em9V3jij0yxo/0VZGccEfMjOG2QQVYMhHmlgmqTidYIWnz3LKEUIXM8bKp0UzqX/+Dw4i6FYsHA=="],
 
-    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.2.0", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.5.4" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-YGTFcR/vO62Wrg+8ooXVd8LeYNQ04kAEeqn4kxfSPzLlHBMMr0kW2wMIPTY8oz1j5dInbJ7lm7NDc8rb/YIlFQ=="],
+    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.3.0", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.5.4" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-sid4j3/wsAdZopqC6PbI+DzkEHi5+vefklg/l93cYCR+jrGpz16gzIoyL8/Zsa2DnW7UdzIEUv9EdL9tORb/aA=="],
 
-    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.2.0", "", { "dependencies": { "cytoscape": "^3.34.4", "cytoscape-fcose": "^2.2.0" }, "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-c37OGbDLnOyA9nwJGDiaE4b9IrWgfgQiTskcVEUEbmQFN18a0vLPjxWLFLCva2TJg7ZqDy7JHcxiGx28LaBpdw=="],
+    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.3.0", "", { "dependencies": { "cytoscape": "^3.34.4", "cytoscape-fcose": "^2.2.0" }, "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-j3SHcHyNGpQrKlk8WiXJcx6cro8EpesqoAhqZrvp99/uwXs9N5VNqBTCNa3FNNL2x2wZy8GE1kevrSc8RK4zpg=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.1.1", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.1" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "oxc-transform-react": "^0.145.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler", "oxc-transform-react"] }, "sha512-yxLaQV9gkhS8ezJqCM6+ndU7mDY6gqAg75NQ+0IjwEI8IYOmQCgkRwHKVSfWXW076DsqMo0Dk+0FK1U+M5RgFw=="],
 

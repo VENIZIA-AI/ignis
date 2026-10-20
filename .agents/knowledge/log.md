@@ -10,6 +10,18 @@ counted as concepts.
 
 Updated [dev-configs](/packages/dev-configs.md): the `@venizia/dev-configs/linters/oxlint` export maps to `linters/oxlint-presets.ts` (the base, browser and React oxlint presets) so an oxlint config does not load ESLint through the `/linters` barrel. `ReactOxlintConfigs` moved to `react-oxlint.ts`.
 
+## 2026-10-20 - VULCAN 0.3.0
+
+Updated [monorepo layout](/overview/monorepo-layout.md) and [knowledge-sync areas](/process/knowledge-sync-areas.md): the VULCAN config is `.configs/vulcan.config.mts`.
+
+- `@venizia/vulcan` is pinned at 0.3.0; `atlas.releaseCommit` is gone (0.3.0 refuses it).
+
+## 2026-10-20 - VULCAN preset for @venizia/ignis
+
+Updated [release and publish](/process/release-publish.md): the preset source, who writes its versions and the smoke gate.
+
+- `@venizia/ignis` carries `vulcan.preset`; `make preset-build` and `make preset-smoke` are new.
+
 ## 2026-10-18 - VULCAN 0.2.0
 
 Updated nothing else - tooling only.

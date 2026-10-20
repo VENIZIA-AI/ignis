@@ -1,6 +1,6 @@
 # 5-Minute Quickstart
 
-Build a working IGNIS API: one controller, one route, dependency injection, and generated API docs - no database required.
+Build a working IGNIS API in one command: monorepo layout, one controller, one route, tests, and generated API docs.
 
 **Time to complete:** ~5 minutes
 
@@ -8,61 +8,100 @@ Build a working IGNIS API: one controller, one route, dependency injection, and 
 
 ## 1. Create the project
 
-Scaffold a project and install IGNIS:
+Run the initializer:
 
 ```bash
-mkdir my-app && cd my-app
-bun init -y
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers \
-  @venizia/ignis-boot winston winston-transport winston-daily-rotate-file
-bun add -d typescript @types/bun @venizia/dev-configs
+bun x @venizia/vulcan init --preset ignis
 ```
 
-Both commands finish in a few seconds. You now have a `package.json` with IGNIS in `dependencies`.
+In a terminal it asks four names:
 
-- `@venizia/ignis-boot` supplies `AutoArtifacts`, which finds your decorated classes so you never register them by hand (Bun only).
-- `bun init` writes `"type": "module"` into `package.json`. Delete that line: an IGNIS app extends `@venizia/dev-configs/tsconfig.common.json` (module `nodenext`), so without `"type": "module"` it is CommonJS, and the rest of the guides assume that.
-- `winston` and its two companions are the default logger. The application refuses to start without a logger provider - [use pino instead](/extensions/helpers/logger/) if you prefer.
-
-## 2. Configure TypeScript for decorators
-
-IGNIS controllers use TypeScript's legacy decorators (`@controller`, `@get`). Set the decorator options directly in your own `tsconfig.json`. Bun ignores an `extends` that names a package, and a missing flag drops your routes silently.
-
-Create `tsconfig.json`:
-
-```json
-{
-  "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@venizia/dev-configs/tsconfig.common.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false
-  },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
-}
+```console
+? Project name (the monorepo folder) > my-product
+? Backend folder (holds every backend app) > services
+? Name of this backend app > core-api
+? Shared code folder (empty to skip) >
 ```
 
-## 3. Write the API
+You can pass the same names as flags for scripts: `--project`, `--backend-dir`, `--app`, `--shared-dir`.
 
-Create `src/hello.controller.ts`:
+The command runs these steps in order:
 
-```typescript
+- Writes the monorepo.
+- Installs dependencies.
+- Copies the IGNIS app.
+- Sets up the agent files.
+- Runs the app's checks (typecheck, lint, test).
+- Runs vulcan doctor.
+
+## 2. Run it
+
+Start the dev server:
+
+```bash
+cd my-product && make dev
+```
+
+Open the endpoints in your browser:
+
+- `http://localhost:3000/api/hello` - answers `{"message":"Hello from IGNIS!"}`
+- `http://localhost:3000/api/doc/explorer` - the API reference
+
+Note: the app serves under `/api`.
+
+## 3. What it created
+
+The command produces this tree:
+
+```text
+./.agents/knowledge/index.md
+./.agents/knowledge/log.md
+./.agents/knowledge/packages/core-api.md
+./AGENTS.md
+./.agents/rules.md
+./.configs/vulcan.config.mts
+./.gitignore
+./Makefile
+./.mcp.json
+./package.json
+./README.md
+./services/core-api/.configs/eslint.config.mjs
+./services/core-api/.configs/oxfmt.config.mts
+./services/core-api/.configs/oxlint.config.mts
+./services/core-api/.env.example
+./services/core-api/package.json
+./services/core-api/README.md
+./services/core-api/src/application.ts
+./services/core-api/src/controllers/hello.controller.ts
+./services/core-api/src/index.ts
+./services/core-api/src/smoke.test.ts
+./services/core-api/tsconfig.json
+```
+
+Important files:
+
+- `package.json` - defines workspaces and the catalog of package versions.
+- `Makefile` - the Makefile has `make dev` (starts every app) and VULCAN's shared targets; `make help` lists them.
+- `AGENTS.md` / `.agents/` - stores rules and knowledge for coding agents.
+- `.configs/vulcan.config.mts` - configures VULCAN tooling for the repo.
+- `services/core-api/src/application.ts` - defines the application: `AutoArtifacts` finds decorated classes, and `ApiReferenceComponent` serves the docs.
+- `services/core-api/src/controllers/hello.controller.ts` - defines the sample controller:
+
+```ts
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, jsonContent } from '@venizia/ignis';
+import {
+  BaseRestController,
+  controller,
+  get,
+  jsonContent,
+  type TRouteContext,
+} from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { type Context } from 'hono';
 
 @controller({ path: '/hello' })
 export class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: HelloController.name, path: '/hello' });
+    super({ scope: HelloController.name });
   }
 
   // binding() is abstract - leave it empty when every route uses @get/@post decorators.
@@ -79,99 +118,17 @@ export class HelloController extends BaseRestController {
       },
     },
   })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
+  sayHello(context: TRouteContext) {
+    return context.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
 
-Create `src/application.ts`:
-
-```typescript
-import { ApiReferenceComponent, BaseApplication, type IApplicationInfo } from '@venizia/ignis';
-import AutoArtifacts from '@venizia/ignis-boot/auto';
-import packageJson from '../package.json';
-
-export class Application extends BaseApplication {
-  getAppInfo(): IApplicationInfo {
-    return packageJson;
-  }
-
-  staticConfigure() {}
-
-  preConfigure() {
-    this.component(ApiReferenceComponent);
-  }
-
-  postConfigure() {}
-
-  setupMiddlewares() {}
-}
-
-export const application = new Application({
-  scope: 'Application',
-  config: {
-    host: '0.0.0.0',
-    port: Number(process.env.PORT ?? 3000),
-    path: { base: '/api', isStrict: false }, // false answers /hello and /hello/; the default is true
-    artifacts: AutoArtifacts,
-  },
-});
-```
-
-Create `src/index.ts`:
-
-```typescript
-import { application } from './application';
-
-const main = async () => {
-  application.init();
-  await application.start();
-};
-
-main().catch((error: unknown) => {
-  console.error('[main] Application start failed | Error:', error);
-  process.exit(1);
-});
-```
-
-`@controller` groups routes under `/hello`, and `@get` registers a GET route together with its OpenAPI schema. `artifacts: AutoArtifacts` scans `src` when the application starts and registers every decorated class it finds, so `application.ts` never names `HelloController`. `preConfigure()` is left for what a decorator cannot express - here, the API docs component. `application.init()` registers the application's core bindings - call it before `application.start()`.
-
-New to decorators or dependency injection? See the [glossary](/guides/reference/glossary#decorators) and [Dependency Injection](../core-concepts/dependency-injection.md).
-
-## 4. Run it
-
-Start the server:
-
-```bash
-bun run src/index.ts
-```
-
-After a moment you'll see:
-
-```
-[App-start] Server STARTED | Address: 0.0.0.0:3000
-```
-
-In a new terminal, request the endpoint:
-
-```bash
-curl http://localhost:3000/api/hello
-```
-
-You get:
-
-```json
-{"message":"Hello from IGNIS!"}
-```
-
-## 5. View the API docs
-
-Open `http://localhost:3000/api/doc/explorer` in your browser. You'll see an interactive Scalar API reference listing `GET /hello`, generated from the Zod schema you wrote.
-
-## What you built
-
-A running IGNIS REST API: one controller, one route, dependency injection wired through `BaseApplication`, and OpenAPI docs served automatically. You registered nothing by hand: the decorator marks the class and `AutoArtifacts` finds it.
+- `services/core-api/src/index.ts` - initializes and starts the application.
+- `services/core-api/src/smoke.test.ts` - exercises the running server with an end-to-end smoke test.
+- `services/core-api/.env.example` - documents runtime environment variables such as `PORT`.
+- `services/core-api/tsconfig.json` - restates decorator flags because Bun ignores a package-scoped `extends`.
+- `services/core-api/.configs/` - holds lint and format configurations.
 
 ## Next steps
 

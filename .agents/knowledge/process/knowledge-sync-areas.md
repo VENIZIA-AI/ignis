@@ -7,7 +7,7 @@ tags: [process, knowledge, knowledge-sync]
 ---
 
 VULCAN's shipped `knowledge-sync` skill reads this file through `knowledge.syncAreas` in
-`.configs/vulcan.config.ts` and builds one verifier target per changed code area. Extend it when a new
+`.configs/vulcan.config.mts` and builds one verifier target per changed code area. Extend it when a new
 area appears, and keep it in step with the concepts it names.
 
 | Changed area | Concepts to verify (under `.agents/knowledge/`) |

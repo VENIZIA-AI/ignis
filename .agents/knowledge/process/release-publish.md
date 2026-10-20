@@ -11,6 +11,7 @@ tags: [process, release, ci]
 
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
+- [The VULCAN preset](#the-vulcan-preset)
 - [Steps](#steps)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -44,6 +45,10 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on". Before
   #172 the first name was dropped unless `--chain-released` was passed (`args[seedIndex + 1]` with
   `seedIndex = -1`); the parsing now lives in `scripts/release-args.ts` with its own test.
+
+## The VULCAN preset
+
+`@venizia/ignis` ships a data-only VULCAN preset (`vulcan.preset` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. The template lives in `packages/core-server/vulcan-preset` (`preset.json` with `workspace:*` / `catalog:` markers, plus `files/`, derived from `examples/5-mins-qs`). `scripts/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/vulcan-preset`; the release workflow runs it after "Sync develop", so the preset names the release it ships in. `make preset-smoke` (`scripts/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
 
 ## Steps
 
