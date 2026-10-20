@@ -72,7 +72,6 @@ Ignis uses the following open-source libraries. We are grateful to the authors a
 
 | Library | License | Description |
 |---------|---------|-------------|
-| [Lodash](https://github.com/lodash/lodash) | MIT | Utility library |
 | [reflect-metadata](https://github.com/rbuckton/reflect-metadata) | Apache-2.0 | Metadata reflection API |
 
 ### Documentation Dependencies

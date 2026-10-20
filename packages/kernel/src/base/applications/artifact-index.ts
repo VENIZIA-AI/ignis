@@ -1,0 +1,303 @@
+import { MetadataRegistry } from '@/helpers/inversion';
+import { SingletonRealm } from '@/helpers/singleton-realm';
+import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
+import { ArtifactTypes, isClass } from '@/helpers/inversion';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
+import { ArtifactGroup } from './artifact-group';
+import type {
+  IArtifactGroup,
+  IArtifactIndex,
+  IConditionalArtifactIndex,
+  TArtifactIndexInput,
+} from './common';
+import { ArtifactIndexFields } from './common';
+
+/** Turns a `configs.artifacts` input into the classes to register: flattens nested indexes, drops the classes whose `when` says no, orders the rest. It never touches the container - `registerArtifacts` does the binding. */
+export class ArtifactIndexHelper extends BaseHelper {
+  static readonly SINGLETON_REALM_KEY = 'artifact-index-helper';
+
+  private constructor() {
+    super({ scope: ArtifactIndexHelper.name });
+  }
+
+  static getInstance(): ArtifactIndexHelper {
+    return SingletonRealm.resolve({
+      key: ArtifactIndexHelper.SINGLETON_REALM_KEY,
+      create: () => new ArtifactIndexHelper(),
+    });
+  }
+
+  /** Maps an artifact type to the index field that carries it. `ArtifactTypes.MODEL` is deliberately absent: a model has a binding namespace but no index field, because its repository registers it. */
+  private static readonly INDEX_FIELD_BY_TYPE: Record<string, string> = {
+    [ArtifactTypes.CONFIGURATION]: ArtifactIndexFields.CONFIGURATIONS,
+    [ArtifactTypes.DATASOURCE]: ArtifactIndexFields.DATA_SOURCES,
+    [ArtifactTypes.COMPONENT]: ArtifactIndexFields.COMPONENTS,
+    [ArtifactTypes.REPOSITORY]: ArtifactIndexFields.REPOSITORIES,
+    [ArtifactTypes.SERVICE]: ArtifactIndexFields.SERVICES,
+    [ArtifactTypes.CONTROLLER]: ArtifactIndexFields.CONTROLLERS,
+  };
+
+  /** The index a decorator-only application has: every class a stereotype saw at import time, bucketed by its type. `when` and `order` still apply - `resolve` does that, exactly as it does for a declared index. */
+  buildDiscoveredIndex(): IArtifactIndex {
+    const registry = MetadataRegistry.getInstance();
+    const index: Record<string, TClass<AnyType>[]> = {};
+
+    const discoveredArtifacts = registry.getDiscoveredArtifacts();
+    for (const target of discoveredArtifacts) {
+      if (!isClass<AnyType>(target)) {
+        continue;
+      }
+
+      const type = registry.getArtifactMetadata({ target })?.type;
+      const field = type ? ArtifactIndexHelper.INDEX_FIELD_BY_TYPE[type] : undefined;
+      if (!field) {
+        continue;
+      }
+
+      index[field] = [...(index[field] ?? []), target];
+    }
+
+    return index;
+  }
+
+  /** Every kind of the input, each already filtered by `when` and sorted by `order`, keyed the way `IArtifactIndex` is. */
+  async resolve(opts: {
+    input: TArtifactIndexInput;
+    application: unknown;
+  }): Promise<Required<IArtifactIndex>> {
+    const { input, application } = opts;
+    const indexes = await this.flatten({ input, application });
+
+    const rawConfigurations = await this.select({
+      indexes,
+      field: ArtifactIndexFields.CONFIGURATIONS,
+      application,
+    });
+    const configurations = this.sortConfigurationsTopologically({
+      classes: rawConfigurations,
+    });
+
+    const dataSources = await this.select({
+      indexes,
+      field: ArtifactIndexFields.DATA_SOURCES,
+      application,
+    });
+    const components = await this.select({
+      indexes,
+      field: ArtifactIndexFields.COMPONENTS,
+      application,
+    });
+    const repositories = await this.select({
+      indexes,
+      field: ArtifactIndexFields.REPOSITORIES,
+      application,
+    });
+    const services = await this.select({
+      indexes,
+      field: ArtifactIndexFields.SERVICES,
+      application,
+    });
+    const controllers = await this.select({
+      indexes,
+      field: ArtifactIndexFields.CONTROLLERS,
+      application,
+    });
+
+    return { configurations, dataSources, components, repositories, services, controllers };
+  }
+
+  /**
+   * Topologically sort configurations based on `after` dependencies.
+   * Siblings with no dependency relation are sorted deterministically by class name.
+   * Throws if an unknown `after` dependency is referenced or if a dependency cycle is detected.
+   */
+  sortConfigurationsTopologically(opts: { classes: ReadonlyArray<TClass<any>> }): TClass<any>[] {
+    const { classes } = opts;
+    if (classes.length === 0) {
+      return [];
+    }
+
+    const registry = MetadataRegistry.getInstance();
+
+    // Keyed by the class itself: two configurations may share a name (a minified build renames them),
+    // and a name-keyed graph silently drops one of them.
+    const inDegree = new Map<TClass<any>, number>();
+    const adjacency = new Map<TClass<any>, TClass<any>[]>();
+
+    for (const target of classes) {
+      inDegree.set(target, 0);
+      adjacency.set(target, []);
+    }
+
+    for (const target of classes) {
+      const metadata = registry.getArtifactMetadata({ target });
+      const afterList = metadata?.after ?? [];
+
+      for (const prereq of afterList) {
+        // A string names a class, the only form that can; a class is matched by identity.
+        const prereqClass =
+          typeof prereq === 'function'
+            ? classes.find(candidate => candidate === prereq)
+            : classes.find(candidate => candidate.name === String(prereq));
+
+        if (!prereqClass) {
+          const prereqName = typeof prereq === 'function' ? prereq.name : String(prereq);
+          throw getError({
+            message: `[sortConfigurationsTopologically][${target.name}] Declared 'after' dependency '${prereqName}' is not registered as a configuration`,
+          });
+        }
+
+        adjacency.get(prereqClass)!.push(target);
+        inDegree.set(target, (inDegree.get(target) ?? 0) + 1);
+      }
+    }
+
+    // Kahn's algorithm. Siblings run in class-name order; a minified build renames classes, so an
+    // order that matters belongs in `after`.
+    const byName = (a: TClass<any>, b: TClass<any>) => a.name.localeCompare(b.name);
+    const available = classes.filter(target => inDegree.get(target) === 0).sort(byName);
+    const sorted: TClass<any>[] = [];
+
+    while (available.length > 0) {
+      const current = available.shift()!;
+      sorted.push(current);
+
+      for (const dependent of adjacency.get(current) ?? []) {
+        const newDeg = inDegree.get(dependent)! - 1;
+        inDegree.set(dependent, newDeg);
+        if (newDeg === 0) {
+          available.push(dependent);
+          available.sort(byName);
+        }
+      }
+    }
+
+    if (sorted.length !== classes.length) {
+      const unvisited = classes
+        .filter(target => !sorted.includes(target))
+        .map(target => target.name);
+      throw getError({
+        message: `[sortConfigurationsTopologically] Dependency cycle detected in configurations: ${unvisited.join(', ')}`,
+      });
+    }
+
+    return sorted;
+  }
+
+  /** Every entry of a kind must be a class. `undefined` is what an import cycle leaves - the index was read before a class's module finished loading - so it gets a message that names the cause instead of a crash on `.name`. */
+  private assertClasses(opts: {
+    field: string;
+    classes: ReadonlyArray<unknown> | undefined;
+  }): void {
+    const position = (opts.classes ?? []).findIndex(target => typeof target !== 'function');
+    if (position >= 0) {
+      throw getError({
+        message: `[ArtifactIndex] '${opts.field}' lists an entry that is not a class (position ${position}) | Usually an import cycle: the index was read before that class's module finished loading. The module that imports the index (or @venizia/ignis-boot/auto) must not define decorated classes or be imported by them`,
+      });
+    }
+  }
+
+  /** One index, or arrays nested to any depth, as a flat list in input order; a conditional entry contributes its subtree only when its `when` answers true. */
+  async flatten(opts: {
+    input: TArtifactIndexInput;
+    application: unknown;
+  }): Promise<IArtifactIndex[]> {
+    const { input, application } = opts;
+    if (ArtifactGroup.isGroup(input)) {
+      return this.flatten({ input: await this.contentOf({ group: input }), application });
+    }
+    if (Array.isArray(input)) {
+      const nested = await Promise.all(
+        input.map(entry => this.flatten({ input: entry, application })),
+      );
+      return nested.flat();
+    }
+
+    if (this.isConditional(input)) {
+      const isSelected = await input.when({ application });
+      if (!isSelected) {
+        this.logger.debug('Skipped by condition | conditional index entry');
+        return [];
+      }
+
+      return this.flatten({ input: input.index, application });
+    }
+
+    return [input];
+  }
+
+  /** A group's classes: inlined at build time, else the resolver `@venizia/ignis-boot/auto` installs. Never empty - a group that names nothing is a typo or a moved folder. */
+  private async contentOf(opts: { group: IArtifactGroup }): Promise<IArtifactIndex> {
+    const { group } = opts;
+    const content = await ArtifactGroup.resolveContent({ group });
+
+    // One element type for the six kinds, so `.map` is callable on every member of the union.
+    for (const [field, classes] of Object.entries(content)) {
+      this.assertClasses({ field, classes });
+    }
+    const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
+    const names = kinds.flatMap(classes => (classes ?? []).map(target => target.name));
+    if (names.length === 0 && !group.kinds) {
+      throw getError({
+        message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
+      });
+    }
+    this.logger.info('[ArtifactGroup] %s -> %s', group.folder ?? '<application>', names.join(', '));
+    return content;
+  }
+
+  /** Positional on purpose: a type predicate narrows its own parameter, and an options object would narrow the wrapper instead of `input`. */
+  private isConditional(
+    entry: IArtifactIndex | IConditionalArtifactIndex,
+  ): entry is IConditionalArtifactIndex {
+    return 'when' in entry && 'index' in entry;
+  }
+
+  /** The classes of one kind across every index, minus those whose `when` says no, sorted by `order` (stable). The `when` conditions run concurrently: each reads config and environment, never another artifact. */
+  async select<Field extends keyof IArtifactIndex>(opts: {
+    indexes: IArtifactIndex[];
+    field: Field;
+    application: unknown;
+  }): Promise<NonNullable<IArtifactIndex[Field]>[number][]> {
+    const { indexes, field, application } = opts;
+    const registry = MetadataRegistry.getInstance();
+
+    // De-duplicated: discovery and a declared index can name the same class, and registering it
+    // twice trips `bootChecks.binding.allowOverride: false`. First mention wins its position.
+    const listed = [...new Set(indexes.flatMap(index => [...(index[field] ?? [])]))];
+    this.assertClasses({ field, classes: listed });
+    const decisions = await Promise.all(
+      listed.map(target => this.isSelected({ target, application })),
+    );
+
+    const kept = listed.filter((target, position) => {
+      if (decisions[position]) {
+        return true;
+      }
+
+      this.logger.debug('Skipped by condition | kind: %s | class: %s', field, target.name);
+      return false;
+    });
+
+    return kept
+      .map((target, position) => ({
+        target,
+        position,
+        order: registry.getArtifactMetadata({ target })?.order ?? 0,
+      }))
+      .sort((a, b) => a.order - b.order || a.position - b.position)
+      .map(entry => entry.target);
+  }
+
+  private async isSelected(opts: {
+    target: TClass<unknown>;
+    application: unknown;
+  }): Promise<boolean> {
+    const { target, application } = opts;
+    const when = MetadataRegistry.getInstance().getArtifactMetadata({ target })?.when;
+    if (!when) {
+      return true;
+    }
+    return when({ application });
+  }
+}

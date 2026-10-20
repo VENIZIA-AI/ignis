@@ -1,0 +1,189 @@
+---
+title: Logger
+description: Scoped, cached logging via LoggerFactory - Winston by default, with console, daily-rotating file, and UDP transports built in
+difficulty: beginner
+---
+
+# Logger
+
+IGNIS gives every helper a scoped `ILogger`. `LoggerFactory` builds it from one registered provider - Winston by default, with console, daily-rotating file, and UDP transports built in.
+
+## In one example
+
+The smallest real use: get a scoped logger and log with it.
+
+```typescript
+import { LoggerFactory } from '@venizia/ignis-helpers';
+
+const logger = LoggerFactory.getLogger(['UserService']);
+logger.info('User created');
+// Output: [UserService] User created
+```
+
+Every helper in the framework gets its `this.logger` from the same factory, scoped to the helper, for free.
+
+## How it works
+
+- **Typed against `ILogger`.** Every consumer - including `BaseHelper.logger` - gets the `ILogger` interface, never a concrete class. Winston is the default provider behind it, selected in `factory.ts`.
+- **Provider-based.** `LoggerFactory.use({ provider })` selects the app's logger engine once, at the entrypoint. Winston is the default; [pino](/extensions/helpers/logger/pino) is the throughput option. Every factory-issued logger follows the registration, even one captured at import time.
+- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches the result per scope. The same scope always returns the same instance. A helper's `this.logger` goes through it on first read, pre-scoped to the helper - see [Swap the logger on a helper](#swap-the-logger-on-a-helper).
+- **Custom-backed loggers are the exception.** `Logger.get(scope, customWinstonLogger)` (from the `/winston` sub-path) is NOT cached. Each call returns a fresh wrapper over the instance you passed in.
+- **Method scoping.** `.for(methodName)` returns a child logger scoped to `<scope>-<methodName>` (also cached), so each line shows where it came from.
+- **Level floor.** `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor. Transports without their own level inherit it.
+- **`debug()` is gated.** It emits only when `DEBUG=true` and `NODE_ENV` is unset or listed in `Environment.COMMON_ENVS`. Extend that set via `APP_ENV_EXTRA_LOG_ENVS`. The check runs once at module load - runtime env changes need a restart.
+
+**Log levels**
+
+Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg`. The generic `.log(level, ...)` remains for picking the level dynamically. What each level means, and when to use it, is in the [level guide](/extensions/helpers/logger/reference#what-each-level-means).
+
+**Transports**
+
+| Transport | Turns on when |
+|-----------|---------------|
+| Console | Always |
+| Daily-rotating file | `APP_ENV_LOGGER_FOLDER_PATH` is set |
+| UDP (`DgramTransport`) | All four UDP `APP_ENV_LOGGER_DGRAM_*` variables are set |
+
+Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console, and only in a development `NODE_ENV` - file and UDP output never carries ANSI escapes. See [Color](./reference#color) to override.
+
+For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline, with its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
+
+## Common tasks
+
+### Get a scoped logger
+
+Use `LoggerFactory.getLogger` with an array of scope segments, or `ApplicationLogger.get` with a single string. Both cache by scope and follow the registered provider.
+
+```typescript
+import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
+
+const scoped = LoggerFactory.getLogger(['Payment', 'Stripe']); // [Payment-Stripe]
+const direct = ApplicationLogger.get('MyService');             // [MyService]
+```
+
+### Scope logs to a method
+
+`.for()` appends a method name to the current scope so every line in that method self-identifies.
+
+```typescript
+class UserService {
+  private logger = LoggerFactory.getLogger(['UserService']);
+
+  async createUser(data: CreateUserDto) {
+    this.logger.for('createUser').info('Creating user: %j', data);
+    // Output: [UserService-createUser] Creating user: {...}
+  }
+}
+```
+
+### Log an Error with `%s`, never `%j`
+
+`%s` routes the error through `ErrorPrettier`, which projects it down to identity, cause and frames. `%j` keeps every enumerable own property instead, so a driver error takes its whole query along and a `jose` error its whole payload. Always pair an `Error` argument with `%s`.
+
+```typescript
+logger.error('Failed to create user: %s', error); // prints message + stack
+```
+
+A mistaken `%j` is no longer a silent loss: the formatter projects `message` and `stack` in before `JSON.stringify` runs, which on its own would drop both (they are non-enumerable). It is still the wrong placeholder for an error.
+
+### Keep a driver error readable with `ErrorPrettier`
+
+`%s` prints the whole object. A `pg` or `drizzle` failure carries the statement in `message`, again in `stack`, and again in `query` - one failure floods the log with the same SQL several times. Wrap it:
+
+```typescript
+import { ErrorPrettier } from '@venizia/ignis-helpers';
+
+logger.error('Failed to create user | %s', ErrorPrettier.format({ error }));
+```
+
+You get the identity, the root `cause` with its code, the driver's `hint`, the full message and the top stack frames - each on its own line, with the message's real newlines intact. The duplicated statement and the noisy driver internals are gone.
+
+Pass `includeStack: false` when the error is one you raised yourself and the frames add nothing. For a JSON sink, `ErrorPrettier.summarize({ error })` returns the same projection as a typed object instead of a string.
+
+### Switch the output format
+
+`APP_ENV_LOGGER_FORMAT` controls plain text (default) vs. JSON output.
+
+```bash
+APP_ENV_LOGGER_FORMAT=text   # 2024-01-11T10:30:00.000Z [APP] info: [UserService] User created
+APP_ENV_LOGGER_FORMAT=json   # {"level":"info","message":"[UserService] User created", ...}
+```
+
+The `[APP]` label comes from `APP_ENV_APPLICATION_NAME` (defaults to `'APP'`).
+
+### Enable daily file rotation
+
+Point `APP_ENV_LOGGER_FOLDER_PATH` at a directory. Rotation frequency, size cap, and retention are also env-driven. Without this variable, no log files are written - console (and UDP, if configured) remain the only outputs.
+
+```bash
+APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
+APP_ENV_LOGGER_FILE_MAX_FILES=30d
+```
+
+| Setting | Default |
+|---|---|
+| Rotation frequency | `1h` |
+| Max file size | `100m` |
+| Retention | `5d` |
+
+Full programmatic configuration - custom prefixes, custom retention - is in the [Full reference](/extensions/helpers/logger/reference).
+
+### Swap the logger on a helper
+
+To put your own logger on a helper - a test spy, say - assign it. Assignment works before or after the first read:
+
+```typescript
+helper.logger = spyLogger;
+```
+
+Until you assign one, `this.logger` resolves on its first read and then stays on the instance as a plain property. Every later read is a property read. The property is non-enumerable, so it never shows up in `Object.keys`, in JSON, or in a spread.
+
+A subclass cannot redeclare `logger` as a field. It is an accessor on `BaseHelper`, and TypeScript refuses the field with TS2610.
+
+### Log from a script that never builds an application
+
+A process that imports only connectors or `@venizia/ignis-helpers/core` never loads a logger provider. A helper there still logs: it writes to the console, and under Node or Bun prints one warning per process (a browser gets none - it has no provider to import):
+
+```
+[BaseHelper] Logging to the console - no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` at startup.
+```
+
+To log through the real provider, use `LoggerFactory` once at startup. `@venizia/ignis` does this for you.
+
+```typescript
+// scripts/seed.ts
+import { LoggerFactory } from '@venizia/ignis-helpers';
+
+LoggerFactory.getLogger(['Seed']).info('Seeding');
+```
+
+Import it as a value, as here. A side-effect-only `import '@venizia/ignis-helpers'` can be dropped by a bundler.
+
+A logger read before that import upgrades itself on its next call, children taken with `.for()` included. Nothing has to be rebuilt.
+
+### Forward logs over UDP
+
+Set all four `APP_ENV_LOGGER_DGRAM_*` variables - the transport is silently skipped if any one is missing.
+
+```bash
+APP_ENV_LOGGER_DGRAM_HOST=127.0.0.1
+APP_ENV_LOGGER_DGRAM_PORT=5000
+APP_ENV_LOGGER_DGRAM_LABEL=my-app
+APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
+```
+
+## See also
+
+- [Full reference](/extensions/helpers/logger/reference) - every export, transport option, log level, and edge case
+- [Services](/guides/core-concepts/services) - logging in services
+- [Controllers](/guides/core-concepts/rest-controllers) - logging in controllers
+- [Helpers Overview](/extensions/helpers/) - all available helpers
+- [Request Tracker Component](/extensions/components/request-tracker) - request logging
+- [Winston documentation](https://github.com/winstonjs/winston) - underlying logging library
+
+**Files:**
+
+- [`packages/helpers/src/modules/logger/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/types.ts) - `ILogger`, the contract every consumer types against
+- [`packages/helpers/src/modules/logger/winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts) - `WinstonLogger`, `Logger` alias
+- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`, `ApplicationLogger`
+- [`packages/helpers/src/modules/logger/winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts) - Winston setup, transports, env configuration

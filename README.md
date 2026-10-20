@@ -1,596 +1,276 @@
-# 🔥 IGNIS
+<div align="center">
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
-[![Bun Version](https://img.shields.io/badge/bun-%3E%3D1.3-black)](https://bun.sh)
-[![Node Version](https://img.shields.io/badge/node-%3E%3D18-green)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
-[![Documentation](https://img.shields.io/badge/docs-venizia--ai.github.io%2Fignis-blue)](https://venizia-ai.github.io/ignis)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VENIZIA-AI/ignis)
+<br />
 
-> A TypeScript Server Infrastructure combining enterprise-grade patterns with high performance.
+# :fire: IGNIS
 
-Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono** - giving you the best of both worlds.
+**LoopBack 4's architecture, on Hono, with Drizzle for SQL.**
 
----
+[![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai)
+[![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837&label=@venizia/ignis)](https://www.npmjs.com/package/@venizia/ignis)
+[![License: MIT](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](LICENSE.md)
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.4-f472b6.svg?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5%20%7C%206-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-## 🚀 Key Features
+[Documentation](https://ignis.venizia.ai) &#8226;
+[Quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart) &#8226;
+[Core API](https://ignis.venizia.ai/references/) &#8226;
+[Examples](#examples) &#8226;
+[Changelog](https://ignis.venizia.ai/changelogs/)
 
-- ⚡ **High Performance** - Built on Hono, one of the fastest web frameworks
-- 🏗️ **Enterprise Architecture** - Layered architecture with Controllers, Services, and Repositories
-- 💉 **Dependency Injection** - Built-in DI container for loosely coupled, testable code
-- 🔐 **Type Safety** - Full TypeScript support with excellent type inference
-- 📝 **Auto-Generated API Docs** - OpenAPI/Swagger documentation out of the box
-- 🗃️ **Database ORM** - Integrated with Drizzle ORM for type-safe database operations
-- 🧩 **Component-Based** - Modular, reusable components (Authentication, Logging, Health Checks, etc.)
-- 🎯 **Decorator-Based Routing** - Clean, declarative route definitions with `@get`, `@post`, etc.
-- ✅ **Built-in Validation** - Zod schema validation for requests and responses
-- 🔄 **Multi-Runtime** - Works on Node.js, Bun, Deno, and Cloudflare Workers
+</div>
 
 ---
 
-## 📋 Table of Contents
+IGNIS is a TypeScript server framework. You write controllers, services and repositories. IGNIS
+wires them through a dependency injection container, serves them with Hono, validates each request
+against the route's Zod schema, and builds the OpenAPI document from the same schemas.
 
-- [When Should You Use Ignis?](#-when-should-you-use-ignis)
-- [Prerequisites](#-prerequisites)
-- [Installation](#-installation)
-- [Quick Start](#-quick-start)
-- [Project Structure](#-project-structure)
-- [Available Scripts](#-available-scripts)
-- [Core Concepts](#-core-concepts)
-- [Documentation](#-documentation)
-- [Examples](#-examples)
-- [Contributing](#-contributing)
-- [License](#-license)
-
----
-
-## 🎯 When Should You Use Ignis?
-
-### ✅ Perfect For
-
-- **E-commerce Backends** - Complex business logic, multiple controllers, auth, payments
-- **SaaS Platform APIs** - Multi-tenant architecture, modular components
-- **Enterprise Tools** - Team collaboration with clear architectural patterns
-- **Growing APIs** - 10+ endpoints that need structure and maintainability
-
-### ❌ Not Recommended For
-
-- **Simple Proxies/Webhooks** - Too much structure for tiny services
-- **Quick Prototypes** - Use plain Hono for maximum speed
-- **3-5 Endpoint APIs** - Consider plain Hono unless you plan to grow
-
-### 🔄 Framework Comparison
-
-| Aspect | Minimal (Hono, Express) | Enterprise (NestJS, LoopBack) | **Ignis** |
-| --- | --- | --- | --- |
-| **Performance** | ⚡ ~150k req/s | ~25k req/s | ⚡ ~140k req/s |
-| **Architecture** | Flexible (DIY) | Strict conventions | Guided conventions |
-| **Learning Curve** | Low | High | Medium |
-| **Dependency Injection** | Manual/3rd party | Built-in (complex) | Built-in (simple) |
-| **Community** | Large (Express) / Growing (Hono) | Very large | Small (new) |
-| **Best For** | Microservices, serverless | Large teams, enterprise | Growing APIs, small teams |
-
-**Choose wisely:** Each approach has genuine strengths. See [Philosophy](packages/docs/wiki/get-started/philosophy.md) for detailed comparison.
-
----
-
-## 📦 Prerequisites
-
-Before starting with Ignis, ensure you have:
-
-| Tool           | Version | Purpose                          |
-| -------------- | ------- | -------------------------------- |
-| **Bun**        | ≥ 1.3.0 | JavaScript runtime (recommended) |
-| **Node.js**    | ≥ 18.x  | Alternative runtime (optional)   |
-| **PostgreSQL** | ≥ 14.x  | Database server                  |
-
-### Installation Commands
-
-**Bun (Recommended):**
+## Install
 
 ```bash
-# macOS/Linux
-curl -fsSL https://bun.sh/install | bash
-
-# Windows (requires WSL)
-# Install WSL first, then run the command above
-```
-
-**PostgreSQL:**
-
-```bash
-# macOS
-brew install postgresql@14
-
-# Ubuntu/Debian
-sudo apt-get install postgresql-14
-
-# Windows
-# Download from https://www.postgresql.org/download/windows/
-```
-
-**Verify Installation:**
-
-```bash
-bun --version    # Expected: 1.3.0 or higher
-psql --version   # Expected: psql (PostgreSQL) 14.x or higher
-```
-
----
-
-## ⚙️ Installation
-
-### 1. Create a New Project
-
-```bash
-mkdir my-ignis-app
-cd my-ignis-app
 bun init -y
+bun add @venizia/ignis @venizia/ignis-helpers hono @hono/zod-openapi \
+  @scalar/hono-api-reference winston winston-transport winston-daily-rotate-file
+bun add -d typescript@^6 @types/bun @venizia/dev-configs
 ```
 
-### 2. Install Dependencies
+`winston` is the default logger - the application refuses to start without a logger provider
+(register pino instead if you prefer). `@scalar/hono-api-reference` renders the API docs page.
 
-**Production Dependencies:**
-
-```bash
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis dotenv-flow
-bun add drizzle-orm drizzle-zod pg lodash
-```
-
-**Development Dependencies:**
-
-```bash
-bun add -d typescript @types/bun @venizia/dev-configs
-bun add -d tsc-alias
-bun add -d drizzle-kit @types/pg @types/lodash
-```
-
-### 3. Configure Development Tools
-
-**TypeScript** - Create `tsconfig.json`:
+Replace the generated `tsconfig.json`:
 
 ```json
 {
-  "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src"]
 }
 ```
 
-**ESLint** - Create `eslint.config.mjs`:
+> [!IMPORTANT]
+> Declare these options **inline**, even though the shared config already sets them. Bun ignores an
+> `extends` that names a package, so without them `@inject` and the route decorators are dropped
+> silently. `tsc` follows `extends`, so typecheck and build stay green - only what Bun runs breaks.
 
-```javascript
-import { eslintConfigs } from "@venizia/dev-configs";
+## Hello world
 
-export default eslintConfigs;
-```
-
-**Prettier** - Create `.prettierrc.mjs`:
-
-```javascript
-import { prettierConfigs } from "@venizia/dev-configs";
-
-export default prettierConfigs;
-```
-
-Create `.prettierignore`:
-
-```
-dist
-node_modules
-*.log
-.*-audit.json
-```
-
----
-
-## 🚀 Quick Start
-
-### Minimal Example (Single File)
-
-Create `index.ts`:
+`src/index.ts`:
 
 ```typescript
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 import {
+  ApiReferenceComponent,
   BaseApplication,
-  BaseController,
+  BaseRestController,
   controller,
   get,
-  HTTP,
   IApplicationInfo,
   jsonContent,
-} from "@venizia/ignis";
-import { Context } from "hono";
-import appInfo from "./../package.json";
+} from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { Context } from 'hono';
 
-// 1. Define a controller
-@controller({ path: "/hello" })
-class HelloController extends BaseController {
+@controller({ path: '/hello' })
+class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: "HelloController", path: "/hello" });
+    super({ scope: 'HelloController', path: '/hello' });
   }
 
-  // NOTE: This is a function that must be overridden.
-  override binding() {
-    // Bind dependencies here (if needed)
-    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
-  }
+  override binding() {}
 
   @get({
     configs: {
-      path: "/",
-      method: HTTP.Methods.GET,
+      path: '/',
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: "Says hello",
+          description: 'Says hello',
           schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: "Hello from Ignis!" }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
-// 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return appInfo;
+    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
   }
 
-  staticConfigure() {
-    // Static configuration before dependency injection
-  }
+  staticConfigure() {}
+  postConfigure() {}
+  setupMiddlewares() {}
 
   preConfigure() {
+    this.component(ApiReferenceComponent); // API docs at /api/doc/explorer
     this.controller(HelloController);
   }
-
-  postConfigure() {
-    // Configuration after all bindings are complete
-  }
-
-  setupMiddlewares() {
-    // Custom middleware setup (optional)
-  }
 }
 
-// 3. Start the server
 const app = new App({
-  scope: "App",
-  config: {
-    host: "0.0.0.0",
-    port: 3000,
-    path: { base: "/api", isStrict: false },
-  },
+  scope: 'App',
+  config: { host: '0.0.0.0', port: 3000, path: { base: '/api', isStrict: false } },
 });
 
-app.start();
+app.init(); // binds the application instance - call it before start()
+await app.start();
 ```
-
-### Run the Application
 
 ```bash
-bun run index.ts
+bun run src/index.ts
+curl http://localhost:3000/api/hello   # {"message":"Hello from IGNIS!"}
 ```
 
-**Test the endpoint:**
+Open `http://localhost:3000/api/doc/explorer` for the generated API reference. Next:
+the [5-minute quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart), then
+[build a CRUD API](https://ignis.venizia.ai/guides/tutorials/building-a-crud-api).
+
+## What you get
+
+| | |
+| :--- | :--- |
+| **Layered architecture** | Controller -> Service -> Repository -> DataSource, each one a container binding |
+| **Dependency injection** | `@inject` by namespaced key (`services.UserService`), singleton and transient scopes, tag-based lookup. The container is its own package, `@venizia/ignis-inversion` |
+| **Data access** | Drizzle-based repositories on PostgreSQL (node-postgres, postgres-js, PGlite, Supabase) and SQLite (libsql); search repositories on Typesense and Meilisearch; an HTTP connector that reads another IGNIS server. One filter language (`where`, `order`, `include`, ...) across them |
+| **Validation and OpenAPI** | One Zod schema per route validates the request and feeds the OpenAPI document; Scalar or Swagger UI renders it |
+| **Artifact registration** | Mark a class with `@controller`, `@service`, `@repository`, `@datasource`, `@component` or `@configuration`. `ignis-artifacts generate` writes a static index at build time, or `discoverArtifacts: true` registers every decorated class the application imports. No file-naming rule |
+| **Components** | Authentication (JWT, Basic, JWKS, service-to-service), Casbin authorization, API reference, health check, request tracker, mail, static assets and uploads, Socket.IO, WebSocket, gRPC over ConnectRPC |
+| **Helpers** | Logger (winston or pino), Redis (single, cluster, sentinel), BullMQ, MQTT and Kafka, MinIO, disk and Bun S3 storage, AES/RSA/ECDH crypto, cron, Snowflake, UUID v4/v5/v7 and opaque IDs, TCP/TLS/UDP, HTTP client, secrets with HashiCorp Vault, worker-thread pools, time zones |
+| **Runtimes** | Bun first (`Bun.serve`). Node.js 20+ through the optional `@hono/node-server`. A browser Worker through `@venizia/ignis-worker`. `bun build --compile` produces a single binary |
+
+[Core API](https://ignis.venizia.ai/references/) &#8226;
+[Components and helpers](https://ignis.venizia.ai/extensions/) &#8226;
+[Best practices](https://ignis.venizia.ai/best-practices/)
+
+## Packages
+
+Each package builds on the ones it depends on, so a change in `inversion` reaches everything:
+
+```
+dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> ignis
+                                      helpers -> boot
+                                       kernel -> worker
+```
+
+| Package | Role | Latest | Next |
+| :--- | :--- | ---: | ---: |
+| [`@venizia/dev-configs`](packages/dev-configs/) | Shared lint, format and TypeScript presets: oxlint, oxfmt, ESLint (naming), tsconfig - backend, browser and React | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm next](https://img.shields.io/npm/v/@venizia/dev-configs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
+| [`@venizia/ignis-inversion`](packages/inversion/) | The standalone IoC container, its decorators, and the shared error type | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-inversion/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
+| [`@venizia/ignis-filter`](packages/filter/) | The query filter language and its Zod schemas, shared by every connector | [![npm](https://img.shields.io/npm/v/@venizia/ignis-filter.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-filter) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-filter/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-filter) |
+| [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, IDs, secrets, time zones | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-helpers/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
+| [`@venizia/ignis-boot`](packages/boot/) | Build-time CLIs: `ignis-artifacts` (the artifact index) and `ignis-build-info` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-boot/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-boot) |
+| [`@venizia/ignis-kernel`](packages/kernel/) | The browser-pure core: DI, lifecycle, REST controllers, repository and datasource abstractions, auth seams | [![npm](https://img.shields.io/npm/v/@venizia/ignis-kernel.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-kernel) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-kernel/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-kernel) |
+| [`@venizia/ignis-connectors`](packages/connectors/) | Relational (PostgreSQL, SQLite), search (Typesense, Meilisearch) and HTTP datasources and repositories | [![npm](https://img.shields.io/npm/v/@venizia/ignis-connectors.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-connectors) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-connectors/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-connectors) |
+| [`@venizia/ignis-worker`](packages/core-worker/) | Runs an IGNIS application inside a browser Worker, with no server | [![npm](https://img.shields.io/npm/v/@venizia/ignis-worker.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-worker) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-worker/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-worker) |
+| [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun or Node, the components; re-exports the kernel and the connector sub-paths | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis) |
+
+**Latest** is the older stable line. **Next** is the newest release, prerelease included, and the
+tag this repository publishes to today. An application installs `@venizia/ignis` and adds `boot`
+for the artifact generator; the other framework packages come with it. The documentation site lives
+in [`docs/wiki`](docs/wiki/) and is not published to npm.
+The MCP server and the knowledge and agent tooling live in VULCAN: install `@venizia/vulcan-atlas` (`bun x @venizia/vulcan-atlas mcp`) to search the wiki, changelogs and knowledge bundle from an MCP client.
+
+## Is IGNIS for you?
+
+**Yes** if you are building a growing API - 10+ endpoints, real auth, several models - and want the
+structure to hold as the team grows.
+
+**Probably not** for a webhook receiver, a prototype, or a 3-endpoint service. Plain Hono is lighter.
+
+| | Hono alone | IGNIS on Hono |
+| :--- | :--- | :--- |
+| Structure | yours to design | controllers, services, repositories, datasources |
+| Dependency injection | none | a container with `@inject` |
+| Data access | bring your own | Drizzle-based repositories and one filter language |
+| OpenAPI | wire `@hono/zod-openapi` yourself | generated from each route's schemas, UI included |
+| Auth | middleware you write | authentication and Casbin authorization components |
+
+The longer comparison, with NestJS and LoopBack 4: [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy).
+
+> [!NOTE]
+> IGNIS is 0.x: minor versions can break. Pin exact versions and read the
+> [changelog](https://ignis.venizia.ai/changelogs/) before upgrading.
+
+## What IGNIS borrows, and from where
+
+IGNIS is LoopBack 4's architecture rebuilt on a different engine. These are the design ideas it
+takes, and the projects it runs on.
+
+**Design ideas**
+
+| Platform | What IGNIS takes from it | Where it lives in IGNIS |
+| :--- | :--- | :--- |
+| [LoopBack 4](https://loopback.io/) | Injection by binding key (`@inject`, `Binding.toClass` / `toValue` / `toProvider`, tags, `controllers.*` / `services.*` / `repositories.*` / `datasources.*` namespaces); the Controller -> Repository -> DataSource layering and `@repository`; `@model` with `hiddenProperties`; components that own bindings; the filter object (`where`, `fields`, `include`, `order`, `limit`, `skip`, `offset`) and its operators (`neq`, `inq`, `nin`, `between`, ...). LoopBack's run-time booter became a build-time generator | `inversion`; `kernel` (metadata, repositories, components, binding namespaces); `filter`; `boot` |
+| [Spring](https://spring.io/projects/spring-boot) | Stereotype decorators (`@component`, `@service`, `@repository`, `@controller`); `@configuration` classes whose `@provide` methods supply bindings, ordered with `after`; conditional registration with `when`; rebuilding a connection pool when a Vault credential rotates (the Spring Cloud Vault + HikariCP pattern) | `kernel` (`@injectable` and the stereotypes, configurations, the artifact index); `helpers` secrets; `connectors` PostgreSQL datasource |
+| [InversifyJS](https://inversify.io/) | Named beside LoopBack 4 as the model for a small, standalone container | `inversion` |
+
+**Built on**
+
+| Project | What IGNIS uses it for | Where it lives in IGNIS |
+| :--- | :--- | :--- |
+| [Hono](https://hono.dev/) | The HTTP engine: routing, middleware, `Context`, request IDs, context storage; served by `Bun.serve` or `@hono/node-server` | `kernel` controllers and applications; `ignis` server application |
+| [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) and [Zod](https://zod.dev/) | Route definitions, request validation, the OpenAPI document | `kernel` controllers |
+| [Drizzle ORM](https://orm.drizzle.team/) | Table schemas, SQL, relations, and Zod schemas from tables (`drizzle-zod`) | `connectors` relational tier |
+| [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) | `ignis` authorize component |
+| [jose](https://github.com/panva/jose) | JWT signing and verification, JWKS | `kernel` and `ignis` authentication |
+| [Scalar](https://scalar.com/) and [Swagger UI](https://swagger.io/tools/swagger-ui/) | The API reference page (optional peers) | `ignis` API reference component |
+
+NestJS appears in the [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy) page as
+a point of comparison, not as a source.
+
+## Examples
+
+Every example lives in [`examples/`](examples/).
+
+| Example | What it shows | Smoke test |
+| :--- | :--- | :--- |
+| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | CI (`bun scripts/examples.ts smoke`) |
+| [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | CI |
+| [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | CI |
+| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | CI (Bun Worker) |
+| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application | CI |
+| [rpc-api-server](examples/rpc-api-server/) | A REST API with JWT sign-up/sign-in, CRUD behind the token, and server-rendered JSX pages, on PGlite | CI |
+| [rpc-client-app](examples/rpc-client-app/) | The React client for `rpc-api-server`, with hooks generated from its OpenAPI document | none - client only |
+| [typesense-search](examples/typesense-search/) | A search API on Typesense alone, no PostgreSQL | Local (`docker compose up -d`) |
+| [socket-io-test](examples/socket-io-test/) | Socket.IO with Redis-backed rooms behind a mandatory authentication handshake | Local (docker) |
+| [websocket-test](examples/websocket-test/) | The same over Bun's native WebSocket, no Socket.IO protocol | Local (docker) |
+| [vert](examples/vert/) | The production reference: PostgreSQL CRUD, JWT/JWKS authentication, scoped Casbin authorization, transactions, relations, a generated artifact index | Local (docker) |
+| [supabase](examples/supabase/) | The postgres-js driver with Row Level Security driven by the request's user | Not done - blocked on a framework defect |
+
+The examples run against the local packages, so build those first:
 
 ```bash
-curl http://localhost:3000/api/hello
-# Response: {"message":"Hello from Ignis!"}
+bun install && make core boot
+cd examples/vert
+docker compose up -d               # Postgres and Redis
+cp .env.example .env
+bun run migrate:dev && bun run server:dev
 ```
 
-**View API Documentation:**
-
-Open `http://localhost:3000/doc/explorer` in your browser to see interactive Swagger UI documentation!
-
----
-
-## 📁 Project Structure
-
-For production applications, organize your code like this:
-
-```
-my-ignis-app/
-├── src/
-│   ├── application.ts          # Application configuration
-│   ├── index.ts                # Entry point
-│   ├── controllers/            # HTTP request handlers
-│   │   └── todo.controller.ts
-│   ├── services/               # Business logic
-│   │   └── todo.service.ts
-│   ├── repositories/           # Data access layer
-│   │   └── todo.repository.ts
-│   ├── models/                 # Database models
-│   │   └── todo.model.ts
-│   ├── datasources/            # Database connections
-│   │   └── postgres.datasource.ts
-│   └── components/             # Reusable modules
-│       └── auth.component.ts
-├── scripts/
-│   └── clean.sh                # Cleanup script
-├── package.json
-├── tsconfig.json               # Extends @venizia/dev-configs/tsconfig.common.json
-├── eslint.config.mjs           # Uses eslintConfigs from @venizia/dev-configs
-└── .prettierrc.mjs             # Uses prettierConfigs from @venizia/dev-configs
-```
-
----
-
-## 🔧 Available Scripts
-
-Add these scripts to your `package.json`:
-
-| Script                   | Command                                                                                                  | Description                        |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **Development**          |                                                                                                          |                                    |
-| `server:dev`             | `NODE_ENV=development bun .`                                                                             | Start development server           |
-| `rebuild`                | `bun run clean && bun run build`                                                                         | Clean and rebuild project          |
-| **Building**             |                                                                                                          |                                    |
-| `build`                  | `tsc -p tsconfig.json && tsc-alias -p tsconfig.json`                                                     | Compile TypeScript to JavaScript   |
-| `compile:linux`          | `bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app` | Create standalone binary for Linux |
-| `clean`                  | `sh ./scripts/clean.sh`                                                                                  | Remove build artifacts             |
-| **Database**             |                                                                                                          |                                    |
-| `migrate:dev`            | `NODE_ENV=development drizzle-kit push --config=src/migration.ts`                                        | Apply database migrations          |
-| `generate-migration:dev` | `NODE_ENV=development drizzle-kit generate --config=src/migration.ts`                                    | Generate migration files           |
-| **Code Quality**         |                                                                                                          |                                    |
-| `lint`                   | `bun run eslint && bun run prettier:cli`                                                                 | Check code style                   |
-| `lint:fix`               | `bun run eslint --fix && bun run prettier:fix`                                                           | Auto-fix code style issues         |
-| `eslint`                 | `eslint --report-unused-disable-directives .`                                                            | Run ESLint                         |
-| `prettier:cli`           | `prettier "**/*.{js,ts}" -l`                                                                             | Check formatting                   |
-| `prettier:fix`           | `prettier "**/*.{js,ts}" --write`                                                                        | Auto-format code                   |
-| **Production**           |                                                                                                          |                                    |
-| `server:prod`            | `NODE_ENV=production bun .`                                                                              | Start production server            |
-
-### Example `package.json` Scripts Section
-
-```json
-{
-  "scripts": {
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "bun run clean && bun run build",
-    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
-    "preserver:dev": "bun run rebuild",
-    "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun ."
-  }
-}
-```
-
----
-
-## 💡 Core Concepts
-
-### Architecture Flow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     HTTP Request                             │
-│              GET /api/todos/:id                              │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-           ┌──────────────────┐
-           │  Controller      │  ← Handles HTTP, validates input
-           │  @get('/...')    │
-           └─────────┬────────┘
-                     │ calls service/repository
-                     ▼
-           ┌──────────────────┐
-           │  Service         │  ← Business logic (optional)
-           │  (optional)      │
-           └─────────┬────────┘
-                     │ uses repository
-                     ▼
-           ┌──────────────────┐
-           │  Repository      │  ← Type-safe data access
-           │  findById(id)    │
-           └─────────┬────────┘
-                     │ uses dataSource
-                     ▼
-           ┌──────────────────┐
-           │  DataSource      │  ← Database connection
-           │  (Drizzle ORM)   │
-           └─────────┬────────┘
-                     │ executes SQL
-                     ▼
-           ┌──────────────────┐
-           │   PostgreSQL     │  ← Database
-           └──────────────────┘
-```
-
-### Key Components
-
-1. **Controllers** - Handle HTTP requests and responses
-2. **Services** - Contain business logic (optional layer)
-3. **Repositories** - Abstract data access operations
-4. **DataSources** - Manage database connections
-5. **Models** - Define data structures and schemas
-6. **Components** - Reusable, pluggable modules
-
-### Dependency Injection
-
-Ignis uses decorator-based dependency injection:
-
-```typescript
-@controller({ path: "/todos" })
-export class TodoController extends BaseController {
-  constructor(
-    @inject("repositories.TodoRepository")
-    private todoRepository: TodoRepository,
-  ) {
-    super({ scope: "TodoController", path: "/todos" });
-  }
-}
-```
-
----
-
-## 📚 Documentation
-
-**Online Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
-
-Comprehensive documentation is also available in the `packages/docs/wiki` directory:
-
-### Getting Started
-
-- [Philosophy](packages/docs/wiki/get-started/philosophy.md) - Understand the "why" behind Ignis
-- [Prerequisites](packages/docs/wiki/get-started/prerequisites.md) - Required tools and setup
-- [5-Minute Quickstart](packages/docs/wiki/get-started/5-minute-quickstart.md) - Fastest path to a working API
-- [Complete Setup Guide](packages/docs/wiki/get-started/quickstart.md) - Production-ready setup
-- [Building a CRUD API](packages/docs/wiki/get-started/building-a-crud-api.md) - Complete tutorial
-
-### Core Concepts
-
-- [Application Lifecycle](packages/docs/wiki/get-started/core-concepts/application.md)
-- [Controllers](packages/docs/wiki/get-started/core-concepts/controllers.md)
-- [Dependency Injection](packages/docs/wiki/get-started/core-concepts/dependency-injection.md)
-- [Services](packages/docs/wiki/get-started/core-concepts/services.md)
-- [Persistent Layer](packages/docs/wiki/get-started/core-concepts/persistent.md)
-- [Components](packages/docs/wiki/get-started/core-concepts/components.md)
-
-### Best Practices
-
-- [Architectural Patterns](packages/docs/wiki/get-started/best-practices/architectural-patterns.md)
-- [Security Guidelines](packages/docs/wiki/get-started/best-practices/security-guidelines.md)
-- [Performance Optimization](packages/docs/wiki/get-started/best-practices/performance-optimization.md)
-- [Code Style Standards](packages/docs/wiki/get-started/best-practices/code-style-standards.md)
-
-### API Reference
-
-- [Components](packages/docs/wiki/references/components/)
-- [Base Abstractions](packages/docs/wiki/references/base/)
-- [Helpers](packages/docs/wiki/references/helpers/)
-- [Utilities](packages/docs/wiki/references/utilities/)
-
-### Interactive Documentation
-
-Run the documentation server locally:
+## Contributing
 
 ```bash
-bun run docs:dev
-```
-
-Then visit `http://localhost:5173` in your browser.
-
----
-
-## 🎓 Examples
-
-### Complete CRUD Example
-
-See [Building a CRUD API](packages/docs/wiki/get-started/building-a-crud-api.md) for a full tutorial on creating a Todo API with:
-
-- Database models and migrations
-- Repository pattern for data access
-- Auto-generated CRUD endpoints
-- Request/response validation
-- OpenAPI documentation
-
-### POST Endpoint with Validation
-
-```typescript
-@post({
-  configs: {
-    path: '/todos',
-    request: {
-      body: jsonContent({
-        schema: z.object({
-          title: z.string().min(1),
-          description: z.string().optional(),
-        }),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
-        schema: z.object({
-          id: z.string(),
-          title: z.string(),
-          description: z.string().nullable(),
-          isCompleted: z.boolean(),
-        }),
-      }),
-    },
-  },
-})
-async createTodo(c: Context) {
-  const body = await c.req.json();
-  const todo = await this.todoRepository.create(body);
-  return c.json(todo, HTTP.ResultCodes.RS_2.Created);
-}
-```
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please read our:
-
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute
-- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
-- [Security Policy](SECURITY.md) - Reporting vulnerabilities
-
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/venizia-ai/ignis.git
-cd ignis
-
-# Install dependencies
+git clone https://github.com/VENIZIA-AI/ignis.git && cd ignis
 bun install
-
-# Rebuild core packages
-bun run rebuild:ignis
-
-# Run documentation
-bun run docs:dev
+make build          # every package in dependency order, then the wiki and its checks
+make test-all
+make lint-all
+bun scripts/examples.ts check   # the examples: artifact index, lint, typecheck
 ```
 
----
+IGNIS needs Bun 1.4 or later, for applications and contributors alike.
 
-## 📄 License
+Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*`, `fix/*`, `docs/*`,
+`chore/*` or `test/*`, and **pull requests target `develop`**. Bun only - never npm, yarn, or pnpm. See
+[CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
+[SECURITY.md](SECURITY.md).
 
-This project is licensed under the **MIT License** - see the [LICENSE.md](LICENSE.md) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-Ignis is inspired by:
-
-- **[LoopBack 4](https://loopback.io/)** - Enterprise patterns and architecture
-- **[Hono](https://hono.dev/)** - Performance and modern API design
-
----
-
-## 📞 Support
-
-- **Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
-- **GitHub Issues**: [https://github.com/VENIZIA-AI/ignis/issues](https://github.com/VENIZIA-AI/ignis/issues)
-- **Author**: VENIZIA AI Developer <developer@venizia.ai>
-
----
-
-**Built with ❤️ using TypeScript, Hono, and enterprise patterns.**
+MIT licensed - see [LICENSE.md](LICENSE.md).
+Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai

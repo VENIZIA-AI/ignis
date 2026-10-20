@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "//": "Config that Vite/esbuild reads for the VitePress site. Standalone (does NOT extend the ES2024 dev-configs base) because esbuild rejects the ES2024 target.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["site/**/*.ts", "site/**/*.mts", "scripts/**/*.ts", "scripts/**/*.mts"],
+  "exclude": ["node_modules", "dist", "wiki"]
+}

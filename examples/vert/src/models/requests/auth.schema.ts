@@ -42,7 +42,3 @@ export const ChangePasswordRequestSchema = z.object({
   userId: z.string().nonempty(),
 });
 export type TChangePasswordRequestSchema = z.infer<typeof ChangePasswordRequestSchema>;
-
-// ================================================================================
-export const GetUserInformationRequestSchema = z.object({});
-export type TGetUserInformationRequestSchema = z.infer<typeof GetUserInformationRequestSchema>;

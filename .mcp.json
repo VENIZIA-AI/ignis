@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ignis-atlas": {
+      "command": "bun",
+      "args": ["x", "--no-install", "vulcan", "x", "atlas", "mcp"]
+    }
+  }
+}

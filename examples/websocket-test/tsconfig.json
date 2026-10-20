@@ -4,11 +4,21 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "app_data"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "app_data"
+  ]
 }

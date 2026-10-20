@@ -1,0 +1,123 @@
+import { type AnyType } from '@/common/types';
+import { AbstractLogger } from './base/abstract';
+import { ConsoleLogger } from './base/console';
+import { type ILogger, type TLogLevel } from './common/types';
+import { loggerSlot } from './slot';
+
+export type TLoggerResolver = (opts: { scopes: Array<string> }) => ILogger;
+
+/** Caches the resolved target and re-reads it only when `LoggerResolver`'s generation moves - one integer compare per call, so an instance built before `LoggerFactory` loaded upgrades the moment it does, without being reconstructed. Mutual reference with LoggerResolver is by design - hence the `no-use-before-define` disables. */
+class ResolvedLogger extends AbstractLogger {
+  private target?: ILogger;
+  private targetGeneration = -1;
+
+  constructor(private readonly scopes: Array<string>) {
+    super();
+  }
+
+  private resolveTarget(): ILogger {
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const generation = LoggerResolver.currentGeneration();
+    if (!this.target || this.targetGeneration !== generation) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      this.target = LoggerResolver.resolveNow({ scopes: this.scopes });
+      this.targetGeneration = generation;
+    }
+
+    return this.target;
+  }
+
+  debug(message: string, ...args: AnyType[]) {
+    this.resolveTarget().debug(message, ...args);
+  }
+
+  info(message: string, ...args: AnyType[]) {
+    this.resolveTarget().info(message, ...args);
+  }
+
+  warn(message: string, ...args: AnyType[]) {
+    this.resolveTarget().warn(message, ...args);
+  }
+
+  error(message: string, ...args: AnyType[]) {
+    this.resolveTarget().error(message, ...args);
+  }
+
+  emerg(message: string, ...args: AnyType[]) {
+    this.resolveTarget().emerg(message, ...args);
+  }
+
+  log(level: TLogLevel, message: string, ...args: AnyType[]) {
+    this.resolveTarget().log(level, message, ...args);
+  }
+
+  for(methodName: string): ILogger {
+    return new ResolvedLogger([...this.scopes, methodName]);
+  }
+}
+
+/** The only logger code `BaseHelper` reaches, so this module must stay free of node imports - `BaseHelper` sits under every base class in the framework. */
+export class LoggerResolver {
+  /** Declared before `active` because static field initialisers run in declaration order. */
+  private static readonly consoleResolver: TLoggerResolver = opts => {
+    // Warned here, on the first line actually routed to the console, not when a helper merely acquires its logger: a script that imports the barrel and installs a provider before logging must stay silent.
+    LoggerResolver.warnConsoleFallbackOnce();
+    return ConsoleLogger.get({ scope: opts.scopes.filter(el => el && el.length > 0).join('-') });
+  };
+
+  private static active: TLoggerResolver = this.consoleResolver;
+  private static generation = 0;
+
+  /** `LoggerFactory` installs itself here from its own module body, so importing `LoggerFactory` as a value is what wires the real logger up - a side-effect-only import would not survive `sideEffects: false`. */
+  static use(opts: { resolver: TLoggerResolver }): void {
+    this.active = opts.resolver;
+    this.generation += 1;
+  }
+
+  static reset(): void {
+    this.active = this.consoleResolver;
+    this.generation += 1;
+  }
+
+  /** Internal to this module - `ResolvedLogger` reads it to decide whether its cached target is stale. */
+  static currentGeneration(): number {
+    return this.generation;
+  }
+
+  /** Internal to this module - resolves through whatever is installed right now. */
+  static resolveNow(opts: { scopes: Array<string> }): ILogger {
+    return this.active({ scopes: opts.scopes });
+  }
+
+  /**
+   * Without this, a node process logs to stdout while `APP_ENV_LOGGER_FOLDER_PATH` silently receives
+   * nothing. A guarded property read, never an import: even a dynamic `import('@venizia/ignis-helpers')`
+   * behind a node check puts the root barrel in this bundle and turns `/core` impure.
+   */
+  static warnConsoleFallbackOnce(): void {
+    if (this.hasWarnedConsoleFallback || this.generation > 0) {
+      return;
+    }
+
+    if (!globalThis.process?.versions?.node) {
+      return;
+    }
+
+    this.hasWarnedConsoleFallback = true;
+    ConsoleLogger.get({ scope: LoggerResolver.name }).warn(
+      'Logging to the console: no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` once at startup - `@venizia/ignis` does it for you, a connectors-only or script-only import graph does not. Loggers built before that import upgrade themselves on their next call.',
+    );
+  }
+
+  static resolve(opts: { scopes: Array<string> }): ILogger {
+    return new ResolvedLogger(opts.scopes);
+  }
+
+  private static hasWarnedConsoleFallback = false;
+}
+
+// Registers the real resolver with the slot `BaseHelper` reads. Importing this module - which any
+// graph carrying `LoggerFactory` does - is what upgrades every helper from the console fallback,
+// including helpers constructed before it loaded: the logger is resolved on first use, not in the
+// constructor.
+loggerSlot.resolve = opts => LoggerResolver.resolve({ scopes: opts.scopes });

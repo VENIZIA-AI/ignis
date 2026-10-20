@@ -1,0 +1,65 @@
+import { HTTP } from '@/common/constants/http';
+import { isEmpty } from '@venizia/ignis-inversion';
+import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
+import { type TFetcherVariant } from './common';
+import { type IFetchable, type IRequestOptions } from './fetcher/base-fetcher';
+import { type TFetcherResponse, type TFetcherWorker } from './fetcher/common';
+
+export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
+  protected baseUrl: string;
+  protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;
+
+  constructor(opts: {
+    name: string;
+    baseUrl?: string;
+    fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>, TFetcherWorker<T>>;
+  }) {
+    super({ scope: opts.name, identifier: opts.name });
+    this.baseUrl = opts.baseUrl ?? '';
+    this.fetcher = opts.fetcher;
+  }
+
+  getRequestPath(opts: { paths: Array<string> }) {
+    const paths = opts?.paths ?? [];
+
+    const rs = paths
+      .map((path: string) => {
+        if (!path.startsWith('/')) {
+          path = `/${path}`;
+        }
+
+        return path;
+      })
+      .join('');
+
+    return rs;
+  }
+
+  getRequestUrl(opts: { baseUrl?: string; paths: Array<string> }) {
+    let baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
+    const paths = opts?.paths ?? [];
+
+    if (!baseUrl || isEmpty({ value: baseUrl })) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: '[getRequestUrl] Invalid configuration for third party request base url!',
+      });
+    }
+
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
+
+    const joined = this.getRequestPath({ paths });
+    return `${baseUrl ?? this.baseUrl}${joined}`;
+  }
+
+  getNetworkService() {
+    return this.fetcher;
+  }
+
+  getWorker(): TFetcherWorker<T> {
+    return this.fetcher.getWorker();
+  }
+}

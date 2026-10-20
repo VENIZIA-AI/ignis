@@ -1,23 +1,13 @@
-import {
-  Authentication,
-  BaseController,
-  controller,
-  get,
-  HTTP,
-  IControllerOptions,
-  post,
-  TRouteContext,
-  ValueOrPromise,
-} from '@venizia/ignis';
-import { RouteConfigs, TRoute5Body } from './definitions';
+import { Authentication, BaseRestController, controller, get, post } from '@venizia/ignis';
+import type { TRouteContext, ValueOrPromise } from '@venizia/ignis';
+import { Environment, HTTP } from '@venizia/ignis-helpers';
+import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { RouteConfigs, type TRoute5Body } from './definitions';
 
-@controller({ path: '/test' })
-export class TestController extends BaseController {
-  constructor(opts: IControllerOptions) {
-    super({
-      ...opts,
-      scope: TestController.name,
-    });
+@controller({ path: '/test', when: () => !Environment.is({ name: Environment.PRODUCTION }) })
+export class TestController extends BaseRestController {
+  constructor() {
+    super({ scope: TestController.name });
   }
 
   override binding(): ValueOrPromise<void> {
@@ -42,36 +32,33 @@ export class TestController extends BaseController {
       configs: RouteConfigs['/3'],
     }).to({
       handler: context => {
-        console.log(context.get(Authentication.CURRENT_USER));
+        this.logger.for('/3').info('Current user | %j', context.get(Authentication.CURRENT_USER));
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }
 
-  // Example 4: Using '@get' decorator with automatic type inference
-  // No need to manually type context - it's automatically inferred from ROUTE_CONFIGS.decoratorGet
+  // Example 4: Using '@get' decorator to register a route from RouteConfigs
   @get({ configs: RouteConfigs['/4'] })
   getWithDecorator(context: TRouteContext) {
-    // context is fully typed - try hovering over it in your IDE!
-    // Return type is also validated against the response schema
+    // `RouteConfigs` is typed `Record<string, IAuthRouteConfig>`, so the decorator cannot narrow
+    // to this one route's literal shape: `context` is the hand-written `TRouteContext`, not inferred.
     return context.json(
       { message: 'Hello from decorator', method: 'GET' },
       HTTP.ResultCodes.RS_2.Ok,
     );
   }
 
-  // Example 5: Using '@post' decorator with request body validation
-  // Both request and response are fully type-safe!
+  // Example 5: Using '@post' decorator with a validated request body
   @post({ configs: RouteConfigs['/5'] })
   createWithDecorator(context: TRouteContext) {
-    // context.req.valid('json') is automatically typed as { name: string, age: number }
+    // The body's compile-time type comes from this explicit generic, not inference - the request
+    // is still validated against `route5BodySchema` at runtime regardless.
     const body = context.req.valid<TRoute5Body>('json');
 
-    // TypeScript will validate that the response matches the schema:
-    // { id: string, name: string, age: number }
     return context.json(
       {
-        id: crypto.randomUUID(),
+        id: uuidV7(),
         name: body.name,
         age: body.age,
       },

@@ -4,33 +4,39 @@
   "private": true,
   "description": "5-minute quickstart example",
   "engines": {
-    "bun": ">=1.3"
+    "bun": ">=1.4"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write",
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
     "rebuild": "bun run clean && bun run build",
     "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "server:prod": "NODE_ENV=production bun run dist/index.js"
+    "server:prod": "NODE_ENV=production bun run dist/index.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "bun test"
   },
   "dependencies": {
-    "@hono/zod-openapi": "latest",
-    "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "latest",
-    "hono": "^4.4.12"
+    "@hono/zod-openapi": "catalog:",
+    "@scalar/hono-api-reference": "catalog:",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "hono": "catalog:",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "winston-transport": "^4.9.0"
   },
   "devDependencies": {
-    "@types/bun": "latest",
-    "@venizia/dev-configs": "latest",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
-    "tsc-alias": "^1.8.10",
-    "typescript": "^5.5.3"
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
   }
 }

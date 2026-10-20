@@ -1,0 +1,114 @@
+import type {
+  IArtifactMetadata,
+  IArtifactRegistrationOptions,
+  TBindingScope,
+} from '@/helpers/inversion';
+import { ArtifactNamespaces, BindingNamespaces } from '@/common/bindings';
+import { ArtifactTypes, MetadataRegistry } from '@/helpers/inversion';
+import { ArtifactBindingKeys } from './artifact-keys';
+import { getError } from '@venizia/ignis-helpers/core';
+
+/** The root stereotype: marks a class as an artifact the application registers, with its registration defaults. Every other stereotype calls it. */
+export const injectable = <ApplicationType = unknown>(
+  opts: IArtifactMetadata<ApplicationType>,
+): ClassDecorator => {
+  return target => {
+    if (!ArtifactTypes.isValid(opts.type)) {
+      throw getError({
+        message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${[...ArtifactTypes.SCHEME_SET].join(', ')}`,
+      });
+    }
+
+    // At import time, so the failure lands where the binding is written, not at boot.
+    if (opts.binding) {
+      BindingNamespaces.assertArtifactNamespace({
+        namespace: opts.binding.namespace,
+        artifact: target.name,
+        caller: 'injectable',
+      });
+    }
+
+    const registry = MetadataRegistry.getInstance();
+    registry.setArtifactMetadata({ target, metadata: opts });
+
+    // Discovery happens HERE, at import time. A boot-time filesystem scan cannot see a compiled
+    // single-file binary, and a class exists at run time only because something imported it.
+    registry.addDiscoveredArtifact({ target });
+
+    // The key this class WOULD get; `registerArtifact` overwrites it with the one actually bound.
+    registry.setBindingKey({
+      target,
+      key: ArtifactBindingKeys.resolve({
+        target,
+        namespace: ArtifactNamespaces.resolve({ type: opts.type }),
+        binding: opts.binding,
+      }).key,
+      isProvisional: true,
+    });
+  };
+};
+
+export const service = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
+): ClassDecorator => {
+  return injectable<ApplicationType>({ type: ArtifactTypes.SERVICE, ...opts });
+};
+
+export const component = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
+): ClassDecorator => {
+  return injectable<ApplicationType>({ type: ArtifactTypes.COMPONENT, ...opts });
+};
+
+export const configuration = <ApplicationType = unknown>(
+  opts?: IArtifactRegistrationOptions<ApplicationType>,
+): ClassDecorator => {
+  return injectable<ApplicationType>({ type: ArtifactTypes.CONFIGURATION, ...opts });
+};
+/** Marks a component method as the provider of `key`. `registerArtifacts` binds the key to a lazy provider that resolves the component and calls the method; SINGLETON unless `scope` says otherwise. */
+export const provide = (opts: { key: string; scope?: TBindingScope }): MethodDecorator => {
+  return (target, propertyKey) => {
+    MetadataRegistry.getInstance().addProvideMetadata({
+      target: target.constructor,
+      metadata: {
+        methodName: propertyKey,
+        key: opts.key,
+        ...(opts.scope ? { scope: opts.scope } : {}),
+      },
+    });
+  };
+};
+
+/** The registration defaults a stereotype forwards to `@injectable`, copied field by field so an absent option stays absent. */
+export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
+  metadata: IArtifactRegistrationOptions<ApplicationType>;
+}): IArtifactRegistrationOptions<ApplicationType> => {
+  const { binding, allowOverride, scope, order, when, after } = opts.metadata;
+  const registration: IArtifactRegistrationOptions<ApplicationType> = {};
+
+  if (binding !== undefined) {
+    registration.binding = binding;
+  }
+
+  if (allowOverride !== undefined) {
+    registration.allowOverride = allowOverride;
+  }
+
+  if (scope !== undefined) {
+    registration.scope = scope;
+  }
+
+  if (order !== undefined) {
+    registration.order = order;
+  }
+
+  if (when !== undefined) {
+    registration.when = when;
+  }
+
+  if (after !== undefined) {
+    registration.after = after;
+  }
+
+  return registration;
+};

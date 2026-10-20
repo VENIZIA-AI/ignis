@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IGNIS - Upload thang len S3</title>
+    <style>
+      :root {
+        --line: #d8dee9;
+        --ink: #1c2128;
+        --dim: #57606a;
+        --ok: #1a7f37;
+        --bad: #cf222e;
+        --wait: #9a6700;
+        --code: #f6f8fa;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 2rem 1.25rem 4rem;
+        font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--ink);
+        max-width: 60rem;
+        margin-inline: auto;
+      }
+      h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
+      h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+      .lede { color: var(--dim); margin: 0 0 2rem; }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 1rem 1.25rem 1.25rem;
+        margin: 0 0 1.5rem;
+      }
+      legend { font-weight: 600; padding-inline: 0.5rem; }
+      label { display: block; font-size: 0.85rem; color: var(--dim); margin-bottom: 0.25rem; }
+      input[type="text"], input[type="password"] {
+        width: 100%;
+        padding: 0.5rem 0.6rem;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: inherit;
+        margin-bottom: 0.75rem;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        padding: 0.55rem 1.1rem;
+        border: 0;
+        border-radius: 6px;
+        background: var(--ink);
+        color: #fff;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
+      ol.steps { list-style: none; padding: 0; margin: 0; }
+      ol.steps > li {
+        border: 1px solid var(--line);
+        border-left-width: 4px;
+        border-radius: 6px;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.75rem;
+      }
+      li[data-state="idle"] { border-left-color: var(--line); opacity: 0.55; }
+      li[data-state="running"] { border-left-color: var(--wait); }
+      li[data-state="done"] { border-left-color: var(--ok); }
+      li[data-state="failed"] { border-left-color: var(--bad); }
+      .head { display: flex; align-items: baseline; gap: 0.6rem; }
+      .num {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--dim);
+      }
+      .title { font-weight: 600; }
+      .who { margin-left: auto; font-size: 0.78rem; color: var(--dim); }
+      .note { color: var(--dim); font-size: 0.88rem; margin: 0.35rem 0 0; }
+      pre {
+        background: var(--code);
+        border-radius: 6px;
+        padding: 0.7rem 0.8rem;
+        overflow-x: auto;
+        font-size: 0.8rem;
+        margin: 0.6rem 0 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      pre:empty { display: none; }
+      .bad { color: var(--bad); }
+    </style>
+  </head>
+  <body>
+    <h1>Upload thang len S3</h1>
+    <p class="lede">
+      Ba luot goi that, khong mo phong. Luot 2 di thang toi S3 - mo tab Network cua trinh duyet va
+      doi chieu: request do khong cham backend.
+    </p>
+
+    <fieldset>
+      <legend>Cau hinh</legend>
+      <label for="base">Base path cua asset controller</label>
+      <input id="base" type="text" value="http://localhost:3000/assets" />
+
+      <label for="token">Authorization header (de trong neu route khong yeu cau)</label>
+      <input id="token" type="password" placeholder="Bearer ..." />
+
+      <label for="file">Tep</label>
+      <input id="file" type="file" />
+
+      <button id="go" type="button">Chay ba luot</button>
+    </fieldset>
+
+    <ol class="steps">
+      <li id="s1" data-state="idle">
+        <div class="head">
+          <span class="num">1</span>
+          <span class="title">Xin giay phep</span>
+          <span class="who">browser &rarr; IGNIS</span>
+        </div>
+        <p class="note">
+          <code>POST {base}/upload-policy</code> - IGNIS goi <code>authorize()</code>, tu choi neu
+          qua <code>maxBytes</code>, sinh khoa <code>pending/&lt;uuid&gt;/&lt;ten&gt;</code>, roi ky
+          policy va commitToken.
+        </p>
+        <pre id="o1"></pre>
+      </li>
+
+      <li id="s2" data-state="idle">
+        <div class="head">
+          <span class="num">2</span>
+          <span class="title">Gui bytes</span>
+          <span class="who">browser &rarr; S3 (khong qua IGNIS)</span>
+        </div>
+        <p class="note">
+          Form multipart toi <code>postURL</code>. <code>file</code> PHAI la field cuoi - S3 doc theo
+          thu tu va bo qua moi thu sau no. S3 tu kiem chu ky, tien to khoa va khoang dung luong.
+        </p>
+        <pre id="o2"></pre>
+      </li>
+
+      <li id="s3" data-state="idle">
+        <div class="head">
+          <span class="num">3</span>
+          <span class="title">Chot</span>
+          <span class="who">browser &rarr; IGNIS</span>
+        </div>
+        <p class="note">
+          <code>POST {base}/upload-commit</code> - IGNIS kiem HMAC TRUOC khi cham S3, chay
+          <code>onCommit</code>, roi copy server-side tu <code>pending/</code> sang khoa cuoi va xoa
+          ban tam.
+        </p>
+        <pre id="o3"></pre>
+      </li>
+    </ol>
+
+    <script>
+      const $ = id => document.getElementById(id);
+      const setState = (n, state) => $('s' + n).setAttribute('data-state', state);
+      const write = (n, value) => {
+        $('o' + n).textContent =
+          typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+      };
+
+      const reset = () => {
+        for (const n of [1, 2, 3]) {
+          setState(n, 'idle');
+          write(n, '');
+        }
+      };
+
+      const authHeaders = () => {
+        const token = $('token').value.trim();
+        return token ? { authorization: token } : {};
+      };
+
+      /** Luot 1: xin giay phep. Kich thuoc gui kem de IGNIS tu choi som, truoc khi ky bat cu gi. */
+      const requestPolicy = async (opts) => {
+        const response = await fetch(`${opts.base}/upload-policy`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({
+            files: [{ fileName: opts.file.name, contentType: opts.file.type, size: opts.file.size }],
+          }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(`${response.status} ${JSON.stringify(body)}`);
+        }
+
+        return body[0];
+      };
+
+      /** Luot 2: thang toi S3. Moi field trong formData deu la mot dieu kien trong policy da ky. */
+      const postToStorage = async (opts) => {
+        const form = new FormData();
+        for (const [key, value] of Object.entries(opts.policy.formData)) {
+          form.append(key, value);
+        }
+        form.append('key', opts.policy.objectName);
+        form.append('file', opts.file);
+
+        const response = await fetch(opts.policy.postURL, { method: 'POST', body: form });
+        if (!response.ok) {
+          throw new Error(`${response.status} ${await response.text()}`);
+        }
+
+        return response.status;
+      };
+
+      /** Luot 3: chot bang token, khong bang ten tep. */
+      const commit = async (opts) => {
+        const response = await fetch(`${opts.base}/upload-commit`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', ...authHeaders() },
+          body: JSON.stringify({ commitToken: opts.policy.commitToken }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(`${response.status} ${JSON.stringify(body)}`);
+        }
+
+        return body;
+      };
+
+      $('go').addEventListener('click', async () => {
+        const file = $('file').files?.[0];
+        if (!file) {
+          window.alert('Chon mot tep truoc.');
+          return;
+        }
+
+        const base = $('base').value.trim().replace(/\/$/, '');
+        reset();
+        $('go').disabled = true;
+
+        let policy;
+        try {
+          setState(1, 'running');
+          policy = await requestPolicy({ base, file });
+          // Policy da giai base64, de doc duoc ba dieu kien that su rang buoc.
+          const decoded = JSON.parse(atob(policy.formData.policy));
+          write(1, { ...policy, '(policy da giai base64)': decoded });
+          setState(1, 'done');
+        } catch (error) {
+          setState(1, 'failed');
+          write(1, String(error));
+          $('go').disabled = false;
+          return;
+        }
+
+        try {
+          setState(2, 'running');
+          const status = await postToStorage({ policy, file });
+          write(2, `HTTP ${status} - ${file.size} byte di thang toi ${new URL(policy.postURL).host}`);
+          setState(2, 'done');
+        } catch (error) {
+          setState(2, 'failed');
+          write(2, `${error}\n\n403 o day thuong la: qua maxBytes, khoa khong khop tien to, policy het han, hoac CORS cua bucket chua cho phep POST.`);
+          $('go').disabled = false;
+          return;
+        }
+
+        try {
+          setState(3, 'running');
+          write(3, await commit({ base, policy }));
+          setState(3, 'done');
+        } catch (error) {
+          setState(3, 'failed');
+          write(3, String(error));
+        }
+
+        $('go').disabled = false;
+      });
+    </script>
+  </body>
+</html>

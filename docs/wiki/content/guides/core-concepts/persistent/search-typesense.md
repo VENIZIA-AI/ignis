@@ -1,0 +1,462 @@
+# Search & Typesense
+
+IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector. Documents replace Drizzle tables, and the query surface is intentionally narrower - search engines are not relational databases.
+
+> [!IMPORTANT] Subpath-only import
+> `typesense` is an **optional peer dependency**. Unlike `postgres`, the typesense connector is not re-exported from the `@venizia/ignis` root barrel, so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis/typesense`:
+>
+> ```typescript
+> import {
+>   TypesenseDataSource,
+>   BaseSearchEntity,
+>   defineSearchCollection,
+>   field,
+> } from '@venizia/ignis/typesense';
+> ```
+>
+> See [Connectors](/references/base/connectors) for the full dual-door export model.
+
+## Defining a Search Collection
+
+Instead of a Drizzle `pgTable`, define a collection with `defineSearchCollection` and the `field` DSL:
+
+```typescript
+// src/models/entities/article.model.ts
+import { model } from '@venizia/ignis';
+import {
+  BaseSearchEntity,
+  defineSearchCollection,
+  field,
+  TSearchDocument,
+} from '@venizia/ignis/typesense';
+
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['internalNote'],
+    defaultFilter: { where: { status: 'published' } },
+    defaultLimit: 20,
+  },
+})
+export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
+  static override schema = defineSearchCollection({
+    name: 'articles',
+    fields: [
+      field.id(),
+      field.string('title', { searchable: true, sortable: true }),
+      field.string('content', { searchable: true }),
+      field.string('category', { facet: true }),
+      field.string('status', { facet: true }),
+      field.number('views', { sortable: true, filterable: true }),
+      field.number('publishedAt', { sortable: true, filterable: true }),
+      field.strings('tags', { facet: true, optional: true }),
+      field.string('internalNote', { optional: true }),
+    ],
+    defaultSort: 'publishedAt',
+  });
+}
+
+export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
+```
+
+The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `defaultFilter`, `defaultLimit` - work identically here. `hiddenProperties` compiles to Typesense's `exclude_fields`; `defaultFilter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
+
+### The `field` DSL
+
+`field.*` covers the scalar and array wire types plus a `vector` builder for semantic search - there is no date or object builder:
+
+| Builder                        | Wire type                       | Notes                                                                                                                                                                                 |
+| ------------------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field.id()`                   | `string`                        | Takes no arguments; hardcoded `{ name: 'id', type: 'string' }`. Auto-prepended if you omit it.                                                                                        |
+| `field.string(name, flags?)`   | `string`                        |                                                                                                                                                                                       |
+| `field.strings(name, flags?)`  | `string[]`                      |                                                                                                                                                                                       |
+| `field.number(name, flags?)`   | `number`                        |                                                                                                                                                                                       |
+| `field.numbers(name, flags?)`  | `number[]`                      |                                                                                                                                                                                       |
+| `field.boolean(name, flags?)`  | `boolean`                       |                                                                                                                                                                                       |
+| `field.booleans(name, flags?)` | `boolean[]`                     |                                                                                                                                                                                       |
+| `field.geopoint(name, flags?)` | `geopoint` (`[number, number]`) |                                                                                                                                                                                       |
+| `field.vector(name, opts)`     | `float[]`                       | Embedding vector for semantic/hybrid search. Its `opts` carry `dimensions`/`distance`/`embed` rather than the shared flags - see [Vector Fields](#vector-fields-for-semantic-search). |
+
+Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `optional` (all `boolean`). Note: `searchable`/`filterable` have no direct Typesense wire equivalent - Typesense indexes every field by default - so they're dropped at compile time. Only `facet`, `optional`, and `sortable` (mapped to Typesense's `sort`) actually reach the compiled collection schema. They're still worth setting for documentation/intent and for future engines that do distinguish them.
+
+`defineSearchCollection` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
+
+### `TSearchDocument<T>`
+
+Derives the document's TypeScript shape directly from the collection definition - no hand-maintained duplicate type:
+
+```typescript
+export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
+// {
+//   id: string;
+//   title: string;
+//   content: string;
+//   category: string;
+//   status: string;
+//   views: number;
+//   publishedAt: number;
+//   tags?: string[];       // optional: true -> optional property
+//   internalNote?: string; // optional: true -> optional property
+// }
+```
+
+`id` is always `string` and required. Every non-`optional` field is required; every `optional: true` field becomes an optional property.
+
+## Vector Fields for Semantic Search
+
+`field.vector(name, opts)` declares a `float[]` embedding column. There are two ways to populate it.
+
+**Server-side auto-embedding** - Typesense builds the vector from other fields at index time, so your app never computes an embedding. Point `embed.from` at the source fields and name an embedding model:
+
+```typescript
+// Local built-in model - runs on the Typesense server, no API key, no external calls:
+field.vector('embedding', {
+  embed: { from: ['title', 'content'], model: { name: 'ts/all-MiniLM-L6-v2' } },
+});
+
+// Remote provider - the API key is read from env, never hardcoded. This example is Gemini via
+// Google's OpenAI-compatible endpoint (Typesense's `openai/` provider plus a custom `url`):
+field.vector('embedding', {
+  embed: {
+    from: ['title', 'content'],
+    model: {
+      url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+      name: 'openai/gemini-embedding-001',
+      apiKey: process.env.APP_ENV_GOOGLE_API_KEY,
+    },
+  },
+});
+```
+
+The `model` config is camelCase and maps to Typesense's snake_case `model_config` at compile time (`name` becomes `model_name`, `apiKey` becomes `api_key`, `accessToken` becomes `access_token`, and so on). Any provider field not modeled is passed through unchanged. Never hardcode `apiKey` into a committed schema - source it from an environment variable.
+
+**Client-provided vectors** - you compute the embedding yourself and send it with each document. Declare `dimensions` and a distance metric instead of `embed`:
+
+```typescript
+import { VectorDistances } from '@venizia/ignis/typesense';
+
+field.vector('embedding', { dimensions: 384, distance: VectorDistances.COSINE });
+// VectorDistances: COSINE ('cosine'), INNER_PRODUCT ('ip'), L2 ('l2')
+```
+
+An auto-embedded field (one with `embed`) is **omitted from `TSearchDocument`** - the server owns it, so it never appears in your create/update payloads. A client-provided vector field (dimensions only, no `embed`) stays in the document type as `number[]`.
+
+See [Searching](#searching-with-search-mode) for querying these fields with `mode: 'semantic'` and `mode: 'hybrid'`.
+
+## Synonyms
+
+Declare synonym sets on the collection; they are provisioned alongside it at `configure()`:
+
+```typescript
+static override schema = defineSearchCollection({
+  name: 'articles',
+  fields: [ /* ... */ ],
+  synonyms: [
+    // Multi-way (no `root`): every term matches the others.
+    { id: 'ml', synonyms: ['ml', 'machine learning', 'deep learning'] },
+    // One-way (`root` set): a query for the root also matches the synonyms, not the reverse.
+    { id: 'js', root: 'javascript', synonyms: ['js', 'ecmascript', 'nodejs'] },
+  ],
+});
+```
+
+Declarative `synonyms` are provisioned as one **synonym set** per collection (named `<collection>_synonyms`) and linked to it. That matches Typesense v30+'s global synonym-sets model - the pre-v30 per-collection synonyms API was removed. For runtime management outside the declarative schema, the connector exposes the synonym-set verbs through the raw client escape hatch:
+
+```typescript
+const connector = repository.dataSource.getConnector();
+await connector.upsertSynonymSet({
+  name: 'articles_synonyms',
+  items: [{ id: 'db', synonyms: ['db', 'database', 'datastore'] }],
+});
+await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['articles_synonyms'] });
+// getSynonymSet({ name }) / listSynonymSets() / deleteSynonymSet({ name }) round out the set.
+```
+
+## Configuring a DataSource
+
+```typescript
+// src/datasources/search.datasource.ts
+import { datasource } from '@venizia/ignis';
+import { TypesenseDataSource } from '@venizia/ignis/typesense';
+import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+
+@datasource()
+export class SearchDataSource extends TypesenseDataSource {
+  constructor() {
+    super({
+      name: SearchDataSource.name,
+      config: {
+        nodes: [
+          {
+            host: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_HOST'),
+            port: int(applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT')),
+            protocol: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PROTOCOL'),
+          },
+        ],
+        apiKey: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_API_KEY'),
+      },
+      // NO schema property - collections auto-discovered from @repository bindings, same convention as postgres.
+    });
+  }
+}
+```
+
+No `driver` in the decorator, and that is not an omission. A relational datasource has to name one, because a single `BasePostgresDataSource` runs on either `pg` or `postgres` and something must pick. A search datasource has already picked: `extends TypesenseDataSource` **is** the engine reference, and it is what carries the `typesense` package into your bundle. Naming the engine twice would just be a second chance to disagree with yourself.
+
+`TypesenseDataSource` extends `BaseSearchDataSource` (adds auto-discovery/provisioning) which extends `AbstractSearchDataSource` (engine contract: `getConnector()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`, `multiSearch()`) which extends the engine-neutral `AbstractDataSource`. Since `TypesenseDataSource` never overrides `beginTransaction()`, it inherits the neutral `NotSupported` default - see [Connectors](/references/base/connectors).
+
+Auto-provisioning is **off by default**. Turn it on by constructing the datasource with `autoProvision: true`, or by setting `APP_ENV_AUTO_PROVISION_COLLECTION=true`. With it on, `configure()` provisions every discovered collection (`ensureCollection()` per definition, plus any declared `synonyms`).
+
+`getCapabilities()` reports what the engine supports so callers can probe before relying on a feature across engines:
+
+```typescript
+dataSource.getCapabilities();
+// { transactions: false, search: { vector: true, multi: true, union: true, synonyms: true } }
+```
+
+## Repository Tiers
+
+Mirrors the PostgreSQL connector's ladder, but for documents instead of rows:
+
+```
+AbstractRepository (engine-neutral)
+  -> SearchBaseRepository (narrows dataSource/entity to AbstractSearchDataSource/BaseSearchEntity)
+       also exported as TypesenseBaseRepository
+    -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>())
+      -> PersistableSearchRepository (create, createAll, updateById, updateAll,
+                                      deleteById, deleteAll, import)
+        -> DefaultSearchRepository (convenience alias, adds nothing)
+```
+
+```typescript
+// src/repositories/article.repository.ts
+import { SearchDataSource } from '@/datasources/search.datasource';
+import { ArticleDocument, TArticleDocument } from '@/models/entities';
+import { repository } from '@venizia/ignis';
+import { DefaultSearchRepository } from '@venizia/ignis/typesense';
+
+@repository({ model: ArticleDocument, dataSource: SearchDataSource })
+export class ArticleRepository extends DefaultSearchRepository<TArticleDocument> {
+  findByCategory(opts: { category: string }) {
+    return this.find({ filter: { where: { category: opts.category } } });
+  }
+}
+```
+
+`find()`/`findOne()`/`findById()`/`count()`/`existsWith()` accept the same `TFilter`/`TWhere` shape as PostgreSQL repositories. The `TypesenseQueryDialect` translates `where` into Typesense's `filter_by` syntax, `order` into `sort_by` (max 3 fields - a Typesense limit), `limit`/`skip` into `per_page`/`page`, and `fields` into `include_fields`. `filter.include` is **not supported** and throws - there is no relation model for documents.
+
+Search engines index asynchronously, so a document can be missing right after a write. `find()`/`findOne()`/`findById()` accept the same `options.retry` as PostgreSQL - re-read until the document shows up:
+
+```typescript
+const article = await articleRepository.findById({
+  id,
+  options: { retry: { maxAttempts: 4 } },
+});
+```
+
+Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repositories/advanced#read-retry-replica-lag). The only difference is moot: retry skips inside a transaction, and search has no transactions to begin with.
+
+### Envelope differences vs. PostgreSQL
+
+|                                            | PostgreSQL repositories                             | Search repositories                                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Range queries                              | Extra `COUNT(*)` query for `shouldQueryRange: true` | Single search call already returns `found` - no second query needed                                                                            |
+| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws, no override). `deleteAll` with no effective filter (no `where` and no `@model defaultFilter`) also throws. Passing `options.force: true` truncates the whole collection instead |
+| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateAll`/`deleteAll` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
+| `createAll`                                | Native bulk insert, returns each row                | Delegates to Typesense's bulk import; "created" rows are the input rows whose per-row response didn't report `success: false`                  |
+
+### Write error semantics (shared by both search engines)
+
+- **`create()` with a duplicate id throws `409`** (`normalized.code: 'core.search_engine.already_exists'`) on both Typesense and Meilisearch. A duplicate is a conflict, never a silent overwrite.
+- For last-write-wins, drop to the connector. There is no repository `upsert()`: `this.connector.document.upsert({ collection: this.collectionName, document })` is the call.
+- On Meilisearch, the duplicate pre-check is not atomic, so two concurrent creates of the same id can both pass it. See the [Meilisearch guide](./search-meilisearch) and use the connector upsert when that's possible.
+- **`updateById()` against a missing id throws `404` (`normalized.code: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
+- **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
+
+## Searching with `search({ mode })`
+
+Beyond the `find()` tier (filter-only reads that return documents), `search()` is the search-engine entry point. It is one method whose shape is selected by `mode`, so TypeScript narrows the options to just that mode's fields. You never juggle every parameter at once. `mode` defaults to `keyword`.
+
+The `keyword`/`semantic`/`hybrid` modes reuse the same filter translation as `find()` (`@model defaultFilter`, `hiddenProperties`, `where`/`order`/`limit`), then layer the search term or vector on top. The `raw` mode is a full passthrough with no translation.
+
+**`keyword`** - full-text search:
+
+```typescript
+await repository.search({
+  mode: 'keyword',
+  query: 'renewable energy',
+  queryBy: ['title', 'content'], // which fields to match
+  filter: { where: { published: true }, limit: 20 }, // optional, same TFilter as find()
+});
+```
+
+**`semantic`** - vector search. Supply a precomputed vector, or `queryText` against a server-side auto-embed field:
+
+```typescript
+// Client-provided vector:
+await repository.search({ mode: 'semantic', vectorField: 'embedding', nearVector: [0.12, ...], k: 10 });
+
+// Server-side auto-embed (the field was declared with `embed`) - Typesense embeds the text for you:
+await repository.search({ mode: 'semantic', vectorField: 'embedding', queryText: 'renewable energy', k: 10 });
+```
+
+**`hybrid`** - keyword and vector blended. `alpha` weights vector against text (0 to 1):
+
+```typescript
+await repository.search({
+  mode: 'hybrid',
+  query: 'renewable energy',
+  queryBy: ['title'],
+  vectorField: 'embedding',
+  alpha: 0.5,
+  k: 10,
+});
+```
+
+> [!NOTE]
+> `semantic` and `hybrid` default `prefix=false`: prefix matching is meaningless for vector search. Remote embedders (OpenAI/Google/...) reject it too (`Prefix search is not supported for remote embedders`). Pass `engineParams: { prefix: true }` to override.
+
+**`raw`** - native Typesense params, no `TFilter`/`defaultFilter`/`hiddenProperties` translation. Use it for any engine feature the modes above do not model:
+
+```typescript
+await repository.search({
+  mode: 'raw',
+  params: { q: '*', filter_by: 'price:>100', vector_query: 'embedding:([...], k:10)' },
+});
+```
+
+> [!NOTE]
+> `raw` skips `@model defaultFilter`, so it can surface documents the `find()`/`keyword` tiers would hide (for example non-`published` articles). Apply any tenant or visibility filtering explicitly in `params.filter_by` when exposing raw search over HTTP.
+
+All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
+
+Typesense-specific tuning (`num_typos`, `prefix`, `infix`, `use_cache`, `cache_ttl`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `prioritize_exact_match`, `drop_tokens_threshold`, `preset`) goes through `engineParams`, passed verbatim to the engine with WIRE names. The neutral input schema no longer carries knobs only one engine understands:
+
+```typescript
+await repository.search({
+  mode: 'keyword',
+  query: 'shoes',
+  queryBy: ['name'],
+  engineParams: { num_typos: 1, prefix: false, preset: 'listing' },
+});
+```
+
+```typescript
+await repository.search({
+  mode: 'keyword',
+  query: 'shoes',
+  queryBy: ['name'],
+  facetBy: ['brand', 'color'], // faceted counts
+  highlightFields: ['name'], // marked matches
+  groupBy: ['brand'],
+  groupLimit: 3, // grouped results
+});
+```
+
+`mode` values are also available as the `SearchModes` const (`SearchModes.KEYWORD`/`SEMANTIC`/`HYBRID`/`RAW`) if you prefer named constants over string literals.
+
+### The result envelope
+
+`search()` returns the engine's search envelope (unlike `find()`, which returns documents):
+
+```typescript
+interface ISearchResult<TDocument extends object = object> {
+  found: number;
+  isFoundExact: boolean;
+  outOf?: number;
+  searchTimeMs?: number;
+  hits?: Array<{
+    document: TDocument;
+    highlight?: unknown;
+    highlights?: unknown[];
+    score?: number;
+  }>;
+  facetCounts?: unknown[];
+  groupedHits?: unknown[];
+}
+```
+
+`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`.
+
+## Cross-Collection Multi-Search
+
+A single search targets one collection, so it lives on the repository. Searching **many** collections in one round trip lives on the **datasource**:
+
+```typescript
+await repository.dataSource.multiSearch({
+  searches: [
+    { collection: 'products', query: 'shoes', queryBy: ['name'] },
+    { collection: 'brands', query: 'shoe' },
+  ],
+  commonParams: { perPage: 20 }, // optional defaults applied to every search
+});
+```
+
+Federated by default - the result is one entry per search, side by side. Pass `union: true` to merge them into a single ranked result set instead:
+
+```typescript
+await repository.dataSource.multiSearch({
+  searches: [
+    /* ... */
+  ],
+  union: true,
+});
+```
+
+Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`, `perPage`); the datasource maps them to Typesense's snake_case wire format the same way single-collection `search()` does. For native snake_case access, `getConnector().multiSearch(...)` takes the engine's own params.
+
+> [!NOTE]
+> `multiSearch` injects each collection's `@model hiddenProperties` into that entry's `excludeFields` automatically. Hidden fields never leak on the multi-search route, just as they don't on single-collection `search()`. An entry naming a collection IGNIS did not discover (not a bound `@repository` model) passes through untouched: the **caller owns exclusion** for unknown collections. The raw `getConnector().multiSearch(...)` escape hatch performs no injection at all.
+
+## Search Controller Factory
+
+`SearchControllerFactory.defineSearchController` generates turnkey search endpoints, mirroring how `ControllerFactory.defineCrudController` generates CRUD endpoints:
+
+```typescript
+// src/controllers/search.controller.ts
+import { ArticleDocument } from '@/models/entities';
+import { ArticleRepository } from '@/repositories';
+import { controller } from '@venizia/ignis';
+import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
+
+const BaseSearchController = SearchControllerFactory.defineSearchController({
+  entity: ArticleDocument,
+  repository: { name: ArticleRepository.name },
+  controller: { name: 'ArticleSearchController', basePath: '/articles' },
+  // routes: { multiSearch: { enabled: false } },  // each route is customizable / disable-able
+});
+
+@controller({ path: '/articles' })
+export class ArticleSearchController extends BaseSearchController {}
+```
+
+The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `defineCrudController` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
+
+Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ignis/search/controllers`), never from `@venizia/ignis/typesense`. That entry loads without `hono`, so it carries no controller.
+
+It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
+
+## Transactions and Locking
+
+The typesense connector has no transaction or row-level-locking model. Passing a `transaction` or `lock` option to any repository method throws:
+
+```typescript
+await articleRepository.updateById({
+  id: '123',
+  data: { title: 'New' },
+  options: { transaction: tx }, // throws: 501, normalized.code 'core.not_supported'
+});
+```
+
+This is the same `throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
+
+## See Also
+
+- **Related Concepts:**
+  - [Connectors](/references/base/connectors) - Base-vs-connectors architecture, dual-door exports
+  - [DataSources](/references/base/datasources) - Engine-neutral DataSource contract + PostgreSQL connector
+  - [Repositories](/references/base/repositories/) - PostgreSQL connector repository reference (for comparison)
+  - [Models](./models) - `@model` settings shared across connectors
+
+- **Example App:**
+  - `examples/typesense-search/` - Full end-to-end app (model, datasource, repository, CRUD + search controllers)

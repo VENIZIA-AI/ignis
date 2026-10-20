@@ -1,0 +1,848 @@
+import type { TBindingNamespace } from '@/common/bindings';
+import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
+import type { Binding, TBindingScope } from '@/helpers/inversion';
+import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import {
+  executeWithPerformanceMeasure,
+  getError,
+  RequestIdGenerator,
+  RetryHelper,
+} from '@venizia/ignis-helpers/core';
+import type { Env, Schema } from 'hono';
+import { showRoutes as showApplicationRoutes } from 'hono/dev';
+import { bodyLimit } from 'hono/body-limit';
+import { requestId } from 'hono/request-id';
+import type { BaseComponent } from '../components';
+import { ArtifactBindingKeys } from '../metadata/artifact-keys';
+import { RestComponent } from '../components/controller/rest/rest.component';
+import type { BaseConfiguration } from '../configurations';
+import { ControllerTransports } from '../controllers/common/constants';
+import type { IDataSource } from '../datasources';
+import { BaseAppErrorMiddleware } from '../middlewares/app-error/app-error.middleware';
+import { RequestErrors } from '../middlewares/common/errors';
+import { notFoundHandler } from '../middlewares/not-found/not-found.middleware';
+import type { TMixinOpts } from '../mixins/common';
+import type { IRepository } from '../repositories';
+import type { IService } from '../services';
+import { AbstractApplication } from './abstract';
+import { ArtifactIndexHelper } from './artifact-index';
+import type { IBootSequenceStep } from './boot-sequence';
+import { BootSteps } from './boot-sequence';
+import type { IApplicationConfigs, IBodyLimitOptions, TArtifactIndexInput } from './common';
+
+interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
+  namespace: TBindingNamespace;
+
+  onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
+  onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
+}
+
+/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve` / `@hono/node-server`. */
+export abstract class RestApplication<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends AbstractApplication {
+  private registeredBindings: Record<string, Set<string>> = {};
+  private artifactOptions = new Map<string, object>();
+
+  /** The router, and nothing else. What runtime is underneath and what socket is bound are `ServerApplication`'s to know - a browser Worker has neither, and carrying the union here made `RuntimeModules.detect()` answer `'node'` inside a Worker. */
+  protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
+
+  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  protected readonly requestIdGenerator: RequestIdGenerator;
+
+  /** A copy of the `bodyLimit` the default stack installed, absent until `registerDefaultMiddlewares()` ran. */
+  private installedBodyLimit?: { options?: IBodyLimitOptions };
+
+  constructor(opts: { scope: string; config: IApplicationConfigs }) {
+    super(opts);
+
+    // A config built from the environment can lose `path.base` at run time; the router would only fail later, inside `route()`, with a message that names nothing.
+    if (typeof this.configs.path?.base !== 'string') {
+      throw getError({
+        message: `[${opts.scope}] configs.path.base must be a string | value: ${String(this.configs.path?.base)} | an empty string mounts the application at the root`,
+      });
+    }
+
+    // The index signature accepts any key, so a leftover `strictPath` would compile and be ignored.
+    if (this.configs.strictPath !== undefined) {
+      throw getError({
+        message: `[${opts.scope}] configs.strictPath was removed | value: ${String(this.configs.strictPath)} | Use configs.path.isStrict`,
+      });
+    }
+
+    this.requestIdGenerator = new RequestIdGenerator({ scope: opts.scope });
+
+    const strict = this.configs.path.isStrict ?? true;
+    const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({ strict });
+    this.rootRouter = new OpenAPIHono({ strict });
+
+    this.server = { hono: honoServer };
+  }
+
+  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.rootRouter;
+  }
+
+  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
+    return this.server.hono;
+  }
+
+  protected override registerCoreBindings() {
+    super.registerCoreBindings();
+
+    this.bind<typeof this.server>({
+      key: CoreBindings.APPLICATION_SERVER,
+    }).toProvider(_ => this.server);
+    this.bind<typeof this.rootRouter>({
+      key: CoreBindings.APPLICATION_ROOT_ROUTER,
+    }).toProvider(_ => this.rootRouter);
+  }
+
+  /** The correlation id every host stamps - see {@link RequestIdGenerator} for why `crypto.randomUUID` is refused. */
+  protected generateRequestId(): string {
+    return this.requestIdGenerator.nextId();
+  }
+
+  /** The error handler the default stack installs. `@venizia/ignis` overrides it to swap in the `ErrorPrettier`-backed formatter, which reaches `node:util` and so cannot live here. */
+  protected buildErrorMiddleware(): BaseAppErrorMiddleware {
+    const environment = this.configs.error?.environment;
+
+    return new BaseAppErrorMiddleware({
+      logger: this.logger,
+      rootKey: this.configs.error?.rootKey ?? undefined,
+      // Spread, not `environment: () => environment`: the option's PRESENCE is what claims this host
+      // has an ambient environment at all, so an unset config must leave it absent.
+      ...(environment === undefined ? {} : { environment: () => environment }),
+    });
+  }
+
+  /**
+   * The three registrations every host needs: request id, error envelope, JSON 404 - without them a
+   * thrown `ApplicationError` is a generic 500, a 404 is `text/plain`, and no response carries a request id.
+   * Registered before `initialize()`, so an application's own handlers still win.
+   */
+  protected registerDefaultMiddlewares(): ValueOrPromise<void> {
+    const server = this.getServer();
+
+    server.use(requestId({ generator: () => this.generateRequestId() }));
+
+    // Ahead of every middleware a host adds after this one, so none of them buffers a body over it.
+    const bodyLimitOptions = this.configs.middlewares?.bodyLimit;
+    this.installedBodyLimit = { options: this.toInstalledBodyLimit({ options: bodyLimitOptions }) };
+
+    if (bodyLimitOptions && bodyLimitOptions.enable !== false) {
+      const { maxSize, path, onError } = bodyLimitOptions;
+
+      if (typeof maxSize !== 'number' || !Number.isFinite(maxSize) || maxSize < 0) {
+        throw getError({
+          message: `[registerDefaultMiddlewares] configs.middlewares.bodyLimit.maxSize must be a non-negative number of bytes | value: ${String(maxSize)}`,
+        });
+      }
+
+      const limiter = bodyLimit({
+        maxSize,
+        onError:
+          onError ??
+          (() => {
+            throw getError({
+              error: RequestErrors.BODY_TOO_LARGE,
+              message: `Request body exceeds the maximum of ${maxSize} bytes`,
+            });
+          }),
+      });
+
+      if (path) {
+        server.use(path, limiter);
+      } else {
+        server.use(limiter);
+      }
+    }
+
+    server.onError(this.buildErrorMiddleware().value());
+    server.notFound(notFoundHandler({ logger: this.logger }));
+  }
+
+  /** What a `bodyLimit` config installs: nothing when absent or disabled, else a copy, so a later in-place edit shows. */
+  private toInstalledBodyLimit(opts: {
+    options?: IBodyLimitOptions;
+  }): IBodyLimitOptions | undefined {
+    const { options } = opts;
+
+    if (!options || options.enable === false) {
+      return undefined;
+    }
+
+    return { ...options };
+  }
+
+  private isSameBodyLimit(opts: { left?: IBodyLimitOptions; right?: IBodyLimitOptions }): boolean {
+    const { left, right } = opts;
+
+    if (!left || !right) {
+      return left === right;
+    }
+
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    for (const key of keys) {
+      if (!Object.is(left[key], right[key])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * `configs.middlewares` is read by `registerDefaultMiddlewares()`, which runs before `staticConfigure()`.
+   * A limit assigned in a boot hook would read back as configured while every request ran unlimited.
+   */
+  private assertBodyLimitUnchanged(opts: { step: string }): void {
+    if (!this.installedBodyLimit) {
+      return;
+    }
+
+    const installed = this.installedBodyLimit.options;
+    const current = this.toInstalledBodyLimit({ options: this.configs.middlewares?.bodyLimit });
+
+    if (this.isSameBodyLimit({ left: installed, right: current })) {
+      return;
+    }
+
+    throw getError({
+      message: `[${opts.step}] configs.middlewares.bodyLimit changed after registerDefaultMiddlewares() installed it | installed maxSize: ${installed?.maxSize ?? 'none'} | now maxSize: ${current?.maxSize ?? 'none'} | Pass it through the constructor config: new Application({ config: { middlewares: { bodyLimit } } })`,
+    });
+  }
+
+  /**
+   * The artifact order, stated once: datasources before the repositories that auto-resolve them,
+   * components before the controllers they may contribute. `BaseApplication` splices its server-only
+   * steps around these by name instead of rewriting the list.
+   */
+  protected getBootSequence(): IBootSequenceStep[] {
+    return [
+      {
+        name: BootSteps.STATIC_CONFIGURE,
+        run: async () => {
+          // Declared `void`, but an override may be async; the step has always waited on it.
+          await Promise.resolve(this.staticConfigure());
+          this.assertBodyLimitUnchanged({ step: BootSteps.STATIC_CONFIGURE });
+        },
+      },
+      { name: BootSteps.REGISTER_ARTIFACTS, run: () => this.registerConfiguredArtifacts() },
+      {
+        name: BootSteps.PRE_CONFIGURE,
+        run: async () => {
+          await this.runApplicationHook({
+            name: BootSteps.PRE_CONFIGURE,
+            hook: () => this.preConfigure(),
+          });
+          this.assertBodyLimitUnchanged({ step: BootSteps.PRE_CONFIGURE });
+        },
+      },
+      {
+        name: BootSteps.REGISTER_CONFIGURATIONS,
+        run: () => this.registerConfigurations(),
+      },
+      { name: BootSteps.REGISTER_DATA_SOURCES, run: () => this.registerDataSources() },
+      { name: BootSteps.REGISTER_COMPONENTS, run: () => this.registerComponents() },
+      {
+        name: BootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
+        run: () => this.registerContributedDataSources(),
+      },
+      { name: BootSteps.REGISTER_CONTROLLERS, run: () => this.registerControllers() },
+      {
+        name: BootSteps.POST_CONFIGURE,
+        run: () =>
+          this.runApplicationHook({
+            name: BootSteps.POST_CONFIGURE,
+            hook: () => this.postConfigure(),
+          }),
+      },
+      { name: BootSteps.VERIFY_BINDINGS, run: () => this.verifyBindings() },
+    ];
+  }
+
+  async initialize(): Promise<void> {
+    await this.runBootSequence({ steps: this.getBootSequence() });
+  }
+
+  /** The application hook currently running, so `registerArtifact` can tell a hand registration inside `preConfigure`/`postConfigure` from one the index step made. */
+  private runningApplicationHook: string | undefined;
+
+  private async runApplicationHook(opts: {
+    name: string;
+    hook: () => ValueOrPromise<void>;
+  }): Promise<void> {
+    this.runningApplicationHook = opts.name;
+    try {
+      await opts.hook();
+    } finally {
+      this.runningApplicationHook = undefined;
+    }
+  }
+
+  /**
+   * Bound keys carrying one of `tags` that nothing has resolved since the counts were last reset.
+   * The counter answers "who was read", never "who is dead" - an unread binding may be an
+   * allow-list entry or a technical floor, and only the application can tell those apart.
+   *
+   * Counting is off by default. Call `startResolutionCounting()` after `initialize()` and run the
+   * traffic that exercises the application, then read this.
+   */
+  getUnresolvedBindings(opts?: { tags?: string[] }): string[] {
+    if (!this.hasStartedResolutionCounting) {
+      throw getError({
+        message: `[${this.getUnresolvedBindings.name}] Resolution counting never started | Call startResolutionCounting() after initialize(), run the traffic that exercises the application, then read this - without it every binding would be reported unresolved`,
+      });
+    }
+
+    const tags = opts?.tags ?? [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
+    const counts = this.getResolutionCounts();
+    const unresolved: string[] = [];
+
+    for (const tag of tags) {
+      const bindings = this.findByTag({ tag });
+      for (const binding of bindings) {
+        if (counts.has(binding.key)) {
+          continue;
+        }
+
+        unresolved.push(binding.key);
+      }
+    }
+
+    return unresolved;
+  }
+
+  /** `bootChecks.binding.doVerify`: resolve every service and repository once, collect every failure, throw once with the whole list - a made-up `@inject` key or a dependency a `when` excluded then fails the boot, not the first request. */
+  protected verifyBindings(): void {
+    if (!this.configs.bootChecks?.binding?.doVerify) {
+      return;
+    }
+
+    const logger = this.logger.for(this.verifyBindings.name);
+    const tags = [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
+    const failures: string[] = [];
+    let verified = 0;
+
+    for (const tag of tags) {
+      const bindings = this.findByTag({ tag });
+      for (const binding of bindings) {
+        try {
+          this.get({ key: binding.key });
+          verified += 1;
+        } catch (error) {
+          failures.push(
+            `${binding.key}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+    }
+
+    if (failures.length > 0) {
+      throw getError({
+        message: `[${this.verifyBindings.name}] ${failures.length} binding(s) cannot be resolved | ${failures.join(' | ')}`,
+      });
+    }
+
+    logger.info('Every service and repository binding resolves | verified: %d', verified);
+  }
+
+  /** One measured log line per step, and a failure names its step before rethrowing, so a hung or failed boot is attributable without reading the sequence. */
+  protected async runBootSequence(opts: { steps: IBootSequenceStep[] }): Promise<void> {
+    const { steps } = opts;
+    const logger = this.logger.for(this.initialize.name);
+    const t = performance.now();
+
+    const stepsEntries = steps.entries();
+    for (const [index, step] of stepsEntries) {
+      try {
+        await executeWithPerformanceMeasure({
+          logger: this.logger,
+          scope: this.initialize.name,
+          description: `Boot step ${index + 1}/${steps.length} ${step.name}`,
+          task: () => step.run(),
+        });
+      } catch (error) {
+        logger.error(
+          'Boot step failed | step: %s (%d/%d) | error: %s',
+          step.name,
+          index + 1,
+          steps.length,
+          error,
+        );
+        throw error;
+      }
+    }
+
+    logger.info(
+      'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',
+      steps.length,
+      performance.now() - t,
+      steps.map(step => step.name).join(' -> '),
+    );
+  }
+
+  protected inspectRoutes() {
+    const t = performance.now();
+    const shouldShowRoutes = this.configs?.debug?.shouldShowRoutes ?? false;
+
+    if (!shouldShowRoutes) {
+      return;
+    }
+
+    this.logger.for(this.inspectRoutes.name).info('START | Inspect all application route(s)');
+    showApplicationRoutes(this.getServer());
+    this.logger
+      .for(this.inspectRoutes.name)
+      .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
+  }
+
+  /**
+   * `configured` is the drain's state, mutated in place: a fresh `Set` gives a one-shot complete
+   * drain (`RestComponent`); `registerDynamicBindings` passes its persistent per-namespace `Set`,
+   * which is why a second sweep touches only what the first one missed.
+   */
+  async drainByTag<T>(opts: {
+    tag: string;
+    configured: Set<string>;
+    onEach: (opts: { binding: Binding<T> }) => Promise<void>;
+  }): Promise<void> {
+    const { tag, configured, onEach } = opts;
+
+    // A whole batch is drained before re-scanning: the re-scan exists only to pick up bindings a
+    // `configure()` added, and asking after every single item makes boot N+1 full scans of the
+    // binding map - 3.5ms at 200 controllers, against 0.04ms for this shape.
+    let bindings = this.findByTag<T>({ tag, exclude: configured });
+
+    while (bindings.length > 0) {
+      for (const binding of bindings) {
+        // Within a batch a nested `configure()` may already have taken this one.
+        if (configured.has(binding.key)) {
+          continue;
+        }
+
+        await onEach({ binding });
+        configured.add(binding.key);
+      }
+
+      // Re-fetch excluding already configured - picks up dynamically added bindings
+      bindings = this.findByTag<T>({ tag, exclude: configured });
+    }
+  }
+
+  protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
+    opts: IRegisterDynamicBindingsOptions<T>,
+  ): Promise<void> {
+    const logger = this.logger.for(this.registerDynamicBindings.name);
+    const { namespace, onBeforeConfigure, onAfterConfigure } = opts;
+
+    if (!this.registeredBindings[namespace]) {
+      this.registeredBindings[namespace] = new Set<string>();
+    }
+    const configured = this.registeredBindings[namespace];
+
+    await this.drainByTag<T>({
+      tag: namespace,
+      configured,
+      onEach: async ({ binding }) => {
+        if (onBeforeConfigure) {
+          await onBeforeConfigure({ binding });
+        }
+
+        const instance = this.get<T>({ key: binding.key, isOptional: false });
+        if (!instance) {
+          logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
+          return;
+        }
+
+        if (typeof (instance as Partial<IConfigurable>)?.configure === 'function') {
+          const options = this.artifactOptions.get(binding.key);
+          await (instance as IConfigurable).configure(options);
+        }
+
+        // Marked before the after-hook runs, so the hook sees its own binding as configured.
+        configured.add(binding.key);
+
+        if (onAfterConfigure) {
+          await onAfterConfigure({ binding, instance });
+        }
+      },
+    });
+  }
+
+  /** The same-key guard behind every artifact registration (`component`/`controller`/`service`/`repository`/`dataSource`). `allowOverride` defaults true to match `bind()`'s overwrite behavior; `allowOverride: false` on one registration, or `bootChecks.binding.allowOverride: false` for the whole application, opts into strict mode. */
+  protected assertNoBindingCollision(opts: {
+    key: string;
+    allowOverride?: boolean;
+    caller: string;
+  }): void {
+    const { key, caller } = opts;
+    const allowOverride =
+      opts.allowOverride ?? this.configs.bootChecks?.binding?.allowOverride ?? true;
+
+    if (allowOverride || !this.isBound({ key })) {
+      return;
+    }
+
+    const reason =
+      opts.allowOverride === false
+        ? `'allowOverride: false' was set and this key collides with an existing binding | Use a distinct 'opts.binding' key, or drop 'allowOverride: false' if overriding is intentional`
+        : `'bootChecks.binding.allowOverride' is false and this key collides with an existing binding | Use a distinct 'opts.binding' key, or set 'allowOverride: true' on this registration if overriding is intentional`;
+
+    throw getError({
+      message: `[${caller}] Binding key already registered: '${key}' | ${reason}`,
+    });
+  }
+
+  /** Resolution order for every registration: explicit `opts` > the class's `@injectable` defaults > the derived key and the kind's default scope. `order` and `when` are `registerArtifacts`' concern, not this one. */
+  private registerArtifact<Base>(opts: {
+    target: TClass<Base>;
+    namespace: TBindingNamespace;
+    defaultScope: TBindingScope;
+    caller: string;
+    opts?: TMixinOpts;
+  }): Binding<Base> {
+    const { target, namespace, defaultScope, caller } = opts;
+    const declared = MetadataRegistry.getInstance().getArtifactMetadata({ target });
+
+    if (
+      this.runningApplicationHook &&
+      this.configs.artifacts &&
+      this.configs.bootChecks?.binding?.allowManual === false
+    ) {
+      throw getError({
+        message: `[${caller}] '${target.name}' is registered by hand inside ${this.runningApplicationHook}() while 'configs.artifacts' is set and 'bootChecks.binding.allowManual' is false | Move the class into the generated index (or an explicit entry of 'configs.artifacts'), or allow manual registration`,
+      });
+    }
+
+    const pinned = opts.opts?.binding ?? declared?.binding;
+    BindingNamespaces.assertArtifactNamespace({
+      namespace: pinned?.namespace ?? namespace,
+      artifact: target.name,
+      caller,
+    });
+
+    const { key } = ArtifactBindingKeys.resolve({ target, namespace, binding: pinned });
+
+    // What `@inject({ target })` reads back. Only here knows the call site's `binding`, and a
+    // class registered by hand has no stereotype metadata to derive one from.
+    MetadataRegistry.getInstance().setBindingKey({ target, key });
+
+    if (opts.opts?.options !== undefined) {
+      this.artifactOptions.set(key, opts.opts.options);
+    }
+
+    this.assertNoBindingCollision({
+      key,
+      allowOverride: opts.opts?.allowOverride ?? declared?.allowOverride,
+      caller,
+    });
+
+    return this.bind<Base>({ key })
+      .toClass(target)
+      .setScope(declared?.scope ?? defaultScope);
+  }
+
+  configuration<Base extends BaseConfiguration<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.CONFIGURATION,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.configuration.name,
+      opts,
+    });
+  }
+
+  async registerConfigurations(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerConfigurations.name,
+      description: 'Register application configurations',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.CONFIGURATION });
+      },
+    });
+  }
+
+  component<Base extends BaseComponent<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.COMPONENT,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.component.name,
+      opts,
+    });
+  }
+
+  async registerComponents(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerComponents.name,
+      description: 'Register application components',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
+      },
+    });
+  }
+
+  /**
+   * Second DATASOURCE sweep, for datasources components contributed at any depth. Calls
+   * `registerDynamicBindings` directly: `this.registerDataSources()` is polymorphic and an override
+   * would run twice. Runs after every component, so a component a datasource registers is never configured.
+   */
+  async registerContributedDataSources(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerContributedDataSources.name,
+      description: 'Register application contributed data sources',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+      },
+    });
+  }
+
+  /** REST only - the kernel has no gRPC (it reaches `node:module`). `BaseApplication` adds the gRPC branch on top. */
+  async registerControllers(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      description: 'Register application REST controllers',
+      scope: this.registerControllers.name,
+      task: async () => {
+        const transports = this.configs.transports ?? [ControllerTransports.REST];
+        if (!transports.includes(ControllerTransports.REST)) {
+          return;
+        }
+
+        const restComponent = new RestComponent(this);
+        await restComponent.configure();
+      },
+    });
+  }
+
+  /** SINGLETON like `component()`: `RestComponent` mounts the one instance it resolves, so a second resolution must be that instance, not an unmounted twin. */
+  controller<Base>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.CONTROLLER,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.controller.name,
+      opts,
+    });
+  }
+
+  service<Base extends IService>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.SERVICE,
+      defaultScope: BindingScopes.TRANSIENT,
+      caller: this.service.name,
+      opts,
+    });
+  }
+
+  repository<Base extends IRepository>(target: TClass<Base>, opts?: TMixinOpts): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.REPOSITORY,
+      defaultScope: BindingScopes.TRANSIENT,
+      caller: this.repository.name,
+      opts,
+    });
+  }
+
+  dataSource<Base extends IDataSource<Options>, Options extends object = {}>(
+    target: TClass<Base>,
+    opts?: TMixinOpts<Options>,
+  ): Binding<Base> {
+    return this.registerArtifact({
+      target,
+      namespace: BindingNamespaces.DATASOURCE,
+      defaultScope: BindingScopes.SINGLETON,
+      caller: this.dataSource.name,
+      opts,
+    });
+  }
+
+  /** The boot step body behind `configs.artifacts`, also callable by hand: registers every kind in dependency order across the given indexes. */
+  async registerArtifacts(index: TArtifactIndexInput): Promise<void> {
+    const resolved = await ArtifactIndexHelper.getInstance().resolve({
+      input: index,
+      application: this,
+    });
+
+    const registry = MetadataRegistry.getInstance();
+    const kinds: Array<[ReadonlyArray<TClass<AnyType>>, TBindingNamespace]> = [
+      [resolved.configurations, BindingNamespaces.CONFIGURATION],
+      [resolved.dataSources, BindingNamespaces.DATASOURCE],
+      [resolved.components, BindingNamespaces.COMPONENT],
+      [resolved.repositories, BindingNamespaces.REPOSITORY],
+      [resolved.services, BindingNamespaces.SERVICE],
+      [resolved.controllers, BindingNamespaces.CONTROLLER],
+    ];
+    const collisions = ArtifactBindingKeys.findDerivedCollisions({
+      entries: kinds.flatMap(([targets, namespace]) =>
+        targets.map(target => ({
+          target,
+          namespace,
+          binding: registry.getArtifactMetadata({ target })?.binding,
+        })),
+      ),
+    });
+
+    for (const key of collisions) {
+      const message = ArtifactBindingKeys.describeCollision({ key, caller: 'registerArtifacts' });
+
+      if (!this.configs.bootChecks?.allowDerivedKeyCollision) {
+        throw getError({ message });
+      }
+
+      this.logger.warn('%s', message);
+    }
+
+    for (const target of resolved.configurations) {
+      this.configuration(target);
+      this.bindProvidedKeys({ target });
+    }
+
+    for (const target of resolved.dataSources) {
+      this.dataSource(target);
+    }
+
+    for (const target of resolved.components) {
+      this.component(target);
+      this.bindProvidedKeys({ target });
+    }
+
+    for (const target of resolved.repositories) {
+      this.repository(target);
+    }
+
+    for (const target of resolved.services) {
+      this.service(target);
+    }
+
+    for (const target of resolved.controllers) {
+      this.controller(target);
+    }
+  }
+
+  /** Registers every class a stereotype decorated, with no `configs.artifacts` entry anywhere. `when` and `order` apply exactly as they do to a declared index - which is how one process running several applications keeps them apart. */
+  async registerDiscoveredArtifacts(): Promise<void> {
+    await this.registerArtifacts(ArtifactIndexHelper.getInstance().buildDiscoveredIndex());
+  }
+
+  /**
+   * The artifact boot step. `configs.discoverArtifacts` adds every decorated class in the import
+   * graph; `configs.artifacts` adds exactly what it lists. Both together register the union.
+   *
+   * An absent `artifacts` still registers nothing. Reading it as "register everything" would change
+   * what an existing application boots with, silently, and the failure would surface as ten times
+   * the bindings rather than as an error.
+   */
+  protected async registerConfiguredArtifacts(): Promise<void> {
+    const inputs: TArtifactIndexInput[] = [];
+
+    if (this.configs.discoverArtifacts) {
+      inputs.push(ArtifactIndexHelper.getInstance().buildDiscoveredIndex());
+    }
+
+    if (this.configs.artifacts) {
+      inputs.push(this.configs.artifacts);
+    }
+
+    if (inputs.length === 0) {
+      return;
+    }
+
+    await this.registerArtifacts(inputs);
+  }
+
+  /** Each `@provide` method becomes a lazy provider: the component is resolved (SINGLETON) and the method called on first `get`, so a provided value may depend on datasources or secrets that do not exist yet at registration time. */
+  private bindProvidedKeys(opts: { target: TClass<any> }): void {
+    const { target } = opts;
+    const registry = MetadataRegistry.getInstance();
+    const provides = registry.getProvideMetadata({ target });
+    if (provides.length === 0) {
+      return;
+    }
+
+    const declared = registry.getArtifactMetadata({ target });
+    const defaultNamespace = declared?.type
+      ? ArtifactNamespaces.resolve({ type: declared.type })
+      : BindingNamespaces.COMPONENT;
+    // The key the registration actually bound - a call-site override included.
+    const componentKey =
+      registry.getBindingKey({ target }) ??
+      ArtifactBindingKeys.resolve({
+        target,
+        namespace: defaultNamespace,
+        binding: declared?.binding,
+      }).key;
+    for (const entry of provides) {
+      this.bind({ key: entry.key })
+        .toProvider(container => {
+          const instance = container.get<Record<string | symbol, () => unknown>>({
+            key: componentKey,
+          });
+          return instance[entry.methodName]();
+        })
+        .setScope(entry.scope ?? BindingScopes.SINGLETON);
+    }
+  }
+
+  async registerDataSources(): Promise<void> {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerDataSources.name,
+      description: 'Register application data sources',
+      task: async () => {
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+      },
+    });
+  }
+
+  /**
+   * Closes every datasource the boot configured, so a stopped application holds no pool, socket or
+   * WASM instance. A failure, or a `close()` still pending after `dataSourceCloseTimeoutMs`, is logged
+   * and never stops the rest. A datasource configured by hand is closed by whoever configured it.
+   */
+  protected async closeDataSources(): Promise<void> {
+    const keys = this.registeredBindings[BindingNamespaces.DATASOURCE] ?? new Set<string>();
+    const timeoutMs = this.configs.dataSourceCloseTimeoutMs ?? 10_000;
+    const logger = this.logger.for(this.closeDataSources.name);
+
+    for (const key of keys) {
+      try {
+        const dataSource = this.get<IDataSource>({ key, isOptional: true });
+        if (!dataSource?.close) {
+          logger.debug('Nothing to close | key: %s', key);
+          continue;
+        }
+
+        const closing = dataSource.close();
+        await RetryHelper.runWithTimeout({ operation: key, timeoutMs, execution: () => closing });
+      } catch (error) {
+        if (RetryHelper.isRetryTimeoutError(error)) {
+          logger.error('Close timed out | key: %s | timeoutMs: %d', key, timeoutMs);
+          continue;
+        }
+
+        logger.error('Failed to close datasource | key: %s | error: %s', key, error);
+        continue;
+      }
+
+      logger.info('Closed datasource | key: %s', key);
+    }
+  }
+}

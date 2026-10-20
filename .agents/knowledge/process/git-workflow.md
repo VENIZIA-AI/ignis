@@ -1,0 +1,49 @@
+---
+type: Playbook
+title: Git workflow
+description: Branch naming, commit style, PR target, and the pre-commit hook for IGNIS.
+resource: CONTRIBUTING.md
+tags: [process, git, contributing]
+---
+
+## Steps
+
+1. Sync with `develop` before branching: `git fetch upstream && git checkout develop && git merge
+   upstream/develop` (or `origin` if you have direct push access), then branch off it.
+2. Name the branch by its kind:
+   - `feature/description` for new features
+   - `fix/description` for bug fixes
+   - `docs/description` for documentation-only changes
+   - `chore/description` for maintenance (deps, config)
+3. Every change starts from an issue in `VENIZIA-AI/ignis`, added to the IGNIS project (org project 6).
+   Commit in one line: `[#N] type(scope): subject`, a Conventional Commits type (`feat`, `fix`,
+   `docs`, `chore`, `refactor`, `test`) after the issue number. A commit that serves several issues it
+   cannot be split between lists each: `[#42][#44] ...`. The repository is public, so an issue
+   describes the framework defect, never a consumer's internals.
+4. Before committing, run `make fmt` and `make build` to catch style and type issues early.
+   Packages have no `lint` or `lint:fix` script; the Makefile runs each package's own oxlint, ESLint
+   and oxfmt (`make fmt-<package>` for one). `make lint-all` is the check-only equivalent (`bun scripts/examples.ts check` for the examples), and the pre-commit hook (below)
+   will block a commit that fails lint anyway.
+5. If git hooks aren't wired up yet, run `make setup-hooks` once - it runs `git config
+   core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of
+   `.git/hooks/`.
+6. `.githooks/pre-commit` then runs on every commit: it `cd`s to the repo root and runs `make
+   lint-all` (packages and `scripts/`) and `bun scripts/examples.ts check` (the examples) under
+   `set -e` - any failure aborts the commit before it is created. Those are the hook's only checks. The browser purity gates (`make purity`) are NOT
+   wired into it - they run only in the manually triggered release workflow (see
+   [release and publish](/process/release-publish.md)), so run purity by hand after a build if you
+   care about it. There is no test step either; passing the rest of the suite is not enforced
+   automatically.
+7. Push the branch and open a Pull Request that targets `develop`. Never target `main` - `main`
+   only accepts merges FROM `develop`, and releases off it are tagged in git (see
+   [release and publish](/process/release-publish.md) for the actual per-package release
+   mechanism, which is separate from `main`/`develop` merges).
+8. The PR title carries the issue number too (e.g. `[#123] feat: add Redis caching`). The body
+   explains what and why, calls out breaking changes, and ends with one `Closes #N` line per issue it
+   finishes - merging then closes them. Nothing is committed straight to `develop`.
+
+## Related
+
+- [Release and publish](/process/release-publish.md)
+- [Build system](/process/build-system.md)
+- [Testing](/process/testing.md)

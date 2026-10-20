@@ -1,0 +1,159 @@
+---
+type: Architecture
+title: Artifact registration
+description: How a decorated class becomes a container binding - stereotype metadata, the generated index, configs.artifacts, and the registerArtifacts boot step.
+resource: packages/kernel/src/base/applications/rest.ts
+tags: [architecture, artifacts, registration, decorators, boot]
+---
+
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Stereotypes](#stereotypes)
+- [Three inputs to one binding](#three-inputs-to-one-binding)
+- [What `registerArtifacts` does](#what-registerartifacts-does)
+- [`@provide`](#provide)
+- [Composing indexes](#composing-indexes)
+- [Groups and auto artifacts](#groups-and-auto-artifacts)
+- [Why an AST at build time, not a glob at run time](#why-an-ast-at-build-time-not-a-glob-at-run-time)
+- [Position in the boot sequence](#position-in-the-boot-sequence)
+- [Removed surface](#removed-surface)
+- [The common failures](#the-common-failures)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
+Four hops. `@service()` (or any stereotype) records `IArtifactMetadata` on the class through
+`MetadataRegistry.setArtifactMetadata`. `ignis-artifacts generate` lists the class in
+`src/generated/artifacts.ts` ([boot package](/packages/boot.md)). The application passes that
+object as `configs.artifacts`. The `registerArtifacts` boot step - between `staticConfigure` and
+`preConfigure` - calls `registerArtifacts(index)`, which calls the same `configuration()`,
+`dataSource()`, `component()`, `repository()`, `service()`, `controller()` a hand-written
+`preConfigure()` would. Nothing downstream can tell which path registered a class.
+
+## Stereotypes
+
+`@injectable({ type, ...IArtifactRegistrationOptions })` is the root
+(`packages/kernel/src/base/metadata/injectable.ts`); it refuses a `type` outside
+`ArtifactTypes.SCHEME_SET` at decoration time. `@service`, `@component` and `@configuration` are
+thin calls to it. `@controller`, `@repository`, `@datasource` and `@model` call
+`injectable({ type, ...pickRegistrationOptions({ metadata }) })(target)` first, then their own
+setter - one metadata write for the artifact, one for the decorator's own options.
+
+Storage is `MetadataKeys.ARTIFACT` (`Symbol.for('ignis:artifact')`), read with
+`Reflect.getOwnMetadata`: a subclass does not inherit its parent's stereotype, and the generator
+likewise requires the decorator on the class itself. `@provide` methods accumulate under
+`MetadataKeys.PROVIDES` on the constructor.
+
+## Three inputs to one binding
+
+`registerArtifact` (private, behind all six registration methods) resolves each of `binding`,
+`scope` and `allowOverride` in this order: explicit `TMixinOpts` at the call site, then the class's
+decorator metadata, then the derived default - key `<namespace>.<Class>`, scope `SINGLETON` for
+configuration, datasource, component and controller, `TRANSIENT` for repository and service,
+`allowOverride: true` (`configs.bootChecks.binding.allowOverride` when that group is set).
+A hand-written `this.controller(Ctor)` therefore already honours `@controller({ scope })`.
+
+## What `registerArtifacts` does
+
+1. Flattens `TArtifactIndexInput` (an index, a `{ when, index }` entry, or arrays nested to any depth) into a list; a conditional entry whose `when({ application })` answers false contributes nothing, nested arrays included. This is where a run-mode gate belongs - `registerArtifacts` runs before `preConfigure`, so a gate written there is too late and a worker would mount unauthenticated routes.
+2. Per kind, in dependency order
+   `configurations -> dataSources -> components -> repositories -> services -> controllers`,
+   collects the classes across every index.
+3. Evaluates every class's `when({ application })` concurrently (`ArtifactIndexHelper`,
+   `applications/artifact-index.ts`); `false` skips it and logs at debug
+   `Skipped by condition | kind: <field> | class: <Class>`.
+4. Stable-sorts survivors by `order` (default 0); configurations are then re-sorted topologically on
+   `@configuration({ after })`, siblings by class name. An `after` class the index does not register,
+   or a dependency cycle, throws at boot.
+5. Registers each through the matching method; for a configuration or a component, binds every
+   `@provide` key. Registration binds only: configurations are constructed at
+   `registerConfigurations`, datasources at `registerDataSources`, components at
+   `registerComponents` (all after `preConfigure`), repositories and services on first `get`.
+   Artifact metadata is own metadata (`Reflect.getOwnMetadata`, `artifact.mixin.ts`), so an
+   undecorated subclass is invisible to the generator; repository metadata (`model`, `dataSource`)
+   is read through the prototype chain and is inherited. A bare `@repository()` on the subclass (no
+argument) copies the parent's `model`, `dataSource` and `operationScope` into own metadata and
+declares artifact metadata of its own, so the generator lists it and it registers under its own name.
+
+`when` runs before `preConfigure`, so it may read `application.configs` and the environment and
+never another artifact's binding. A class registered by hand earlier keeps its earlier position in
+the binding map; the later registration overwrites the binding unless `allowOverride: false`, or
+`configs.bootChecks.binding.allowOverride: false`, makes it throw. Registering the same index twice is
+therefore harmless only while that check is off.
+
+## `@provide`
+
+Each `@provide({ key, scope? })` method becomes `this.bind({ key }).toProvider(container =>
+container.get(componentKey)[methodName]()).setScope(scope ?? SINGLETON)`. That key is the owner's
+declared `binding`, else `<namespace>.<Class>` for its stereotype - `components.<Class>` for a
+component, `configurations.<Class>` for a configuration. Nothing runs until the first `get`, so a
+provided value may read a datasource or a secret that did not exist at registration time - the
+reason option bindings for `AuthenticateComponent`, `AuthorizeComponent` and `HealthCheckComponent`
+can live in an application-owned component (`examples/vert/src/components/platform.component.ts`).
+`bindProvidedKeys` is private and called only from `registerArtifacts`: a component or configuration
+registered by hand with `this.component(Ctor)` or `this.configuration(Ctor)` gets no provided keys.
+
+## Composing indexes
+
+A library exports its own index - generated the same way, or hand-written in the `IArtifactIndex`
+shape. The application lists it beside its own and hand-lists the framework components it turns on,
+once: `artifacts: [InventoryArtifacts, GeneratedArtifacts, { components: [HealthCheckComponent] }]`.
+There is no `imports` option and no auto-discovery of a package's components; a library that wants
+IGNIS components registered says so in its index.
+
+## Groups and auto artifacts
+
+`configs.artifacts` also takes groups (`IArtifactGroup`, brand `isArtifactGroup`): `ArtifactGroup.define({ folder })` in a shared package, and `@venizia/ignis-boot/auto` (the app's own root). `ArtifactIndexHelper.flatten` resolves a group to its inlined `content`, else its own `resolve()`, else the resolver boot installs; no resolver or zero classes is an error, and each group logs its class names. Kind fields are typed `never` with throwing getters: a walker over `configs.artifacts` that reads `entry[kind]` (a run-mode slicer) fails loudly instead of turning a group into an empty index. No promise in `TArtifactIndexInput` for the same reason. A run-mode slicer uses `ArtifactGroup.pick({ group, kinds })`: a slice group (protocol field `kinds`) whose source is resolved at registration and filtered; an empty slice is allowed, an empty plain group is not. `ArtifactGroup.resolveContent` is the one place the content/resolve/installed-resolver order lives. The call site is read from `new Error().stack` at `define` time - measured reliable under `bun test --isolate --parallel` with symlinked workspace packages.
+
+## Why an AST at build time, not a glob at run time
+
+`bun build --compile` cannot glob files at run time; the generated index is plain imports the
+bundler follows. The scanner never executes a module, so decoration side effects (a datasource
+opening a pool at import) cannot leak into a build. The output is deterministic and committed, so a
+diff review shows exactly which classes an application registers, and `check` turns a stale index
+into a lint failure instead of a runtime 404.
+
+## Position in the boot sequence
+
+`BootSteps.REGISTER_ARTIFACTS` is step 5 of 16 in `BaseApplication.getBootSequence()`:
+`printStartUpInfo`, `validateEnvs`, `registerDefaultMiddlewares`, `staticConfigure`,
+**`registerArtifacts`**, `preConfigure`, `hydrateSecrets`, `registerConfigurations`,
+`registerDataSources`, `registerComponents`, `registerContributedDataSources`,
+`wireSecretRotatables`, `registerControllers`, `postConfigure`, `verifyBindings`,
+`validateScopeFilterSupport`. `registerConfiguredArtifacts` is the step body: it does nothing when
+`configs.artifacts` is absent.
+
+## Removed surface
+
+`BaseApplication.boot()`, `hasWarnedBootDeprecated`, `IBootableApplication`, `configs.bootOptions`
+and `BindingNamespaces.BOOTERS` are gone as of 2026-09-03 - see the
+[changelog](https://ignis.venizia.ai/changelogs/2026-09-03-deprecated-boot-api-removed.html). `booter()` and `registerBooters()`
+left earlier, on 2026-09-02. 16 consumer applications `override async boot()` (none calls
+`super.boot()`; each returns the literal empty report, so the fix is deleting the method, not just
+`override`). A separate 3 files call `.boot()` directly - one of the 16, `search/migrations/bootstrap.ts`,
+is also one of those 3. Every site fails to compile until it is deleted.
+
+## The common failures
+
+- **In the index, not bound:** `when` returned `false` (look for the debug skip line) or the index
+  is stale (`check:artifacts`).
+- **Decorated, not in the index:** not a named export, `abstract`, the decorator imported from a
+  wrapper module that was not passed as `--source-module`, or the file under an ignored glob.
+- **`@configuration` never registers:** the index predates the generator learning the stereotype.
+  It emits a `configurations` field now, first, so regenerate after a boot upgrade - an older index
+  has no such field and `check:artifacts` calls it stale. Hand-listing still works for a class the
+  scan cannot see: `artifacts: [GeneratedArtifacts, { configurations: [DatabaseConfiguration] }]`.
+- **Provided key resolves to nothing:** the component was registered with `this.component(...)`
+  instead of through the index.
+- **`@provide` records nothing under bun:** the application's `tsconfig.json` inherits
+  `experimentalDecorators` only through `extends`; bun ignores a package `extends`, compiles TC39
+  decorators, and the method decorator receives `(value, context)`. Declare the flag directly - see
+  [Gotchas](/conventions/gotchas.md).
+
+## Related
+
+- [Application lifecycle](/architecture/application-lifecycle.md)
+- [DI container](/architecture/di-container.md)
+- [Binding key namespaces](/conventions/binding-key-namespaces.md)
+- [boot package](/packages/boot.md)
+- [Debugging](/process/debugging.md)

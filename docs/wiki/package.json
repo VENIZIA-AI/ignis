@@ -1,0 +1,73 @@
+{
+  "name": "@venizia/ignis-docs",
+  "version": "0.2.1-1",
+  "description": "Interactive documentation site for the IGNIS Framework. Includes a VitePress-powered documentation site with guides, API references, and best practices.",
+  "keywords": [
+    "api-docs",
+    "api-reference",
+    "bun",
+    "dev-tools",
+    "developer-tools",
+    "docs",
+    "documentation",
+    "examples",
+    "framework-docs",
+    "guide",
+    "ignis",
+    "nodejs",
+    "static-site",
+    "tutorials",
+    "typescript",
+    "venizia",
+    "vitepress",
+    "wiki"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "docs/wiki"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "content",
+    "!content/changelogs",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "docs:build": "sh ./scripts/docs-build.sh",
+    "docs:check-sidebar": "bun scripts/check-sidebar.mts",
+    "docs:clean": "sh ./scripts/docs-clean.sh",
+    "docs:dev": "vitepress dev site",
+    "docs:preview": "vitepress preview site",
+    "force-update": "sh ./scripts/force-update.sh"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "^3.5.42"
+  }
+}

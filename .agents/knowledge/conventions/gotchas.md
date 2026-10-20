@@ -1,0 +1,694 @@
+---
+type: Convention
+title: Gotchas
+description: Traps that have already cost real debugging time here - build and dist, browser purity, the Bun runtime and bundler, DI and decorators, dependency pinning, correctness and security.
+resource: .
+tags: [conventions, gotchas, debugging]
+---
+
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Run `bun test` from the package root, never the repo root](#run-bun-test-from-the-package-root-never-the-repo-root)
+- [An empty dist looks like a hundred unrelated import failures](#an-empty-dist-looks-like-a-hundred-unrelated-import-failures)
+- [A node global in the kernel passes tsc and fails make purity](#a-node-global-in-the-kernel-passes-tsc-and-fails-make-purity)
+- [types: [] does not make process.env a compile error](#types--does-not-make-processenv-a-compile-error)
+- [make purity derives its rows from `exports`, never from a hand-written list](#make-purity-derives-its-rows-from-exports-never-from-a-hand-written-list)
+- [A purity verdict can change with the Bun version, and a waiver is exact both ways](#a-purity-verdict-can-change-with-the-bun-version-and-a-waiver-is-exact-both-ways)
+- [`bun update` rewrites peerDependencies floors, not only devDependencies](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
+- [Kernel state is realm-anchored, so never reach for `instanceof` across packages](#kernel-state-is-realm-anchored-so-never-reach-for-instanceof-across-packages)
+- [The PGlite pin lives in the root package.json](#the-pglite-pin-lives-in-the-root-packagejson)
+- [RedisClusterHelper deliberately skips buildDefaultOpts](#redisclusterhelper-deliberately-skips-builddefaultopts)
+- [Every constructor parameter needs @inject](#every-constructor-parameter-needs-inject)
+- [An error catalog code must be a literal, not MessageCode.build()](#an-error-catalog-code-must-be-a-literal-not-messagecodebuild)
+- [Stale .tsbuildinfo replays phantom errors](#stale-tsbuildinfo-replays-phantom-errors)
+- [bun install reformats the committed bun.lock](#bun-install-reformats-the-committed-bunlock)
+- [Bun can silently drop @inject when tsconfig extends isn't resolved](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved)
+- [Under bun-runs-source, a type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
+- [The artifact generator never executes a module](#the-artifact-generator-never-executes-a-module)
+- [A dynamic `import('./own-module')` in library code makes bun bundle the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
+- [`bun build` folds `process.env.NODE_ENV` into the BUILD machine's value](#bun-build-folds-processenvnode_env-into-the-build-machines-value)
+- [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
+- [The health-check `stats` route is a security default, and `enable` overrides it silently](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
+- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [A self-refreshing cache must gate its retry on the last attempt, not the last success](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
+- [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
+- [bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
+- [Four transitive advisories stay by decision - do not "fix" them with an override](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+- [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
+- [Outside development, only the request spy's JSON check parses a body](#outside-development-only-the-request-spys-json-check-parses-a-body)
+- [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
+- [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
+- [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
+- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
+- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
+- [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
+- [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
+- [A stale .configs/*.tsbuildinfo makes tsc emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [ignorePatterns in a .configs file resolve against .configs](#ignorepatterns-in-a-configs-file-resolve-against-configs)
+- [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
+- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [Makefile: a $(call) glob with a comma, and .PHONY pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
+- [The ESLint config is .mjs: a TypeScript one needs jiti](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
+- [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
+Traps worth knowing before you hit them yourself. Look for yours here first.
+
+**Build and dist**
+
+- [`bun test` resolves paths from the package root, not the repo root](#run-bun-test-from-the-package-root-never-the-repo-root)
+- [An empty `dist` looks like a hundred unrelated import failures](#an-empty-dist-looks-like-a-hundred-unrelated-import-failures)
+- [Stale `.tsbuildinfo` replays phantom errors](#stale-tsbuildinfo-replays-phantom-errors)
+- [`bun install` reformats the committed `bun.lock`](#bun-install-reformats-the-committed-bunlock)
+
+**Lint, format and config layout**
+
+- [Only `tsconfig.json` stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
+- [`tsc-alias` must read the root `tsconfig.json`](#tsc-alias-must-read-the-root-tsconfigjson)
+- [A stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [`ignorePatterns` in a `.configs/` file resolve against `.configs/`](#ignorepatterns-in-a-configs-file-resolve-against-configs)
+- [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
+- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
+- [The ESLint config is `.mjs`: a TypeScript one needs `jiti`](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
+- [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
+
+**Browser purity**
+
+- [A node global in the kernel passes `tsc` and fails `make purity`](#a-node-global-in-the-kernel-passes-tsc-and-fails-make-purity)
+- [`types: []` does not make `process.env` a compile error](#types--does-not-make-processenv-a-compile-error)
+- [`make purity` derives its rows from `exports`, not a hand-written list](#make-purity-derives-its-rows-from-exports-never-from-a-hand-written-list)
+- [A purity verdict can change with the Bun version](#a-purity-verdict-can-change-with-the-bun-version-and-a-waiver-is-exact-both-ways)
+
+**Bun runtime and bundler**
+
+- [Bun silently drops `@inject` when `tsconfig` `extends` is not resolved](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved)
+- [A type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
+- [A dynamic `import('./own-module')` bundles the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
+- [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
+- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
+- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
+
+**DI and decorators**
+
+- [Every constructor parameter needs `@inject`](#every-constructor-parameter-needs-inject)
+- [Kernel state is realm-anchored, so never reach for `instanceof` across packages](#kernel-state-is-realm-anchored-so-never-reach-for-instanceof-across-packages)
+- [The artifact generator never executes a module](#the-artifact-generator-never-executes-a-module)
+
+**Dependencies and pinning**
+
+- [`bun update` rewrites peerDependencies floors](#bun-update-rewrites-peerdependencies-floors-not-only-devdependencies)
+- [The PGlite pin lives in the root `package.json`](#the-pglite-pin-lives-in-the-root-packagejson)
+- [`RedisClusterHelper` deliberately skips `buildDefaultOpts`](#redisclusterhelper-deliberately-skips-builddefaultopts)
+- [Four transitive advisories stay by decision](#four-transitive-advisories-stay-by-decision---do-not-fix-them-with-an-override)
+
+**Correctness and security**
+
+- [An error catalog code must be a literal, not `MessageCode.build()`](#an-error-catalog-code-must-be-a-literal-not-messagecodebuild)
+- [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
+- [The health-check `stats` route is a security default](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
+- [A self-refreshing cache must gate its retry on the last attempt](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
+- [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
+- [A middleware never reads a request body it does not own](#a-middleware-never-reads-a-request-body-it-does-not-own)
+- [Under `path.isStrict: false`, a route declared with a trailing slash is unreachable](#under-pathisstrict-false-a-route-declared-with-a-trailing-slash-is-unreachable)
+- [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
+- [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
+- [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
+
+## Run `bun test` from the package root, never the repo root
+
+Several suites resolve paths relative to the current working directory, not to the test file.
+`connectors`' barrel-purity and paradigm-seam tests `scandir('src/search/core')`; `helpers`'
+optional-peer tests bundle relative entrypoints; `core-server`'s gRPC test resolves
+`@connectrpc/connect` off the nearest `node_modules`.
+
+Run from the repo root and they fail with `ENOENT` or `Cannot find module` - failures that look
+like real regressions and are not. `cd packages/<name> && bun test` passes. The same suites that
+report 32 failures from the root report zero from the package.
+
+Reading a failure list without checking the working directory first has already cost a false alarm.
+
+## An empty dist looks like a hundred unrelated import failures
+
+The build is honest: the `build` target in `make/project.mk` type-checks with `bun check -p
+tsconfig.json` first and stops on failure, so a type error exits non-zero and never prints `DONE |
+Build completed successfully!`. Trust the exit code.
+
+`rebuild` used to be the trap around it: `clean` deleted `dist/` **before** the build's type-check
+gate ran, and that gate type-checks `src/__tests__` too, so a single broken test - often someone
+else's untracked, in-progress one - aborted the build with `dist/` already gone. That is closed.
+`make rebuild` (and `make <package>`) runs `typecheck` first and cleans only once every program
+compiles, so a broken test fails loudly with the last good `dist/` intact. This holds for every
+package, `dev-configs` included.
+
+Guard **every** program the build emits, not just the first. `typecheck` checks `tsconfig.json`, the
+CJS tsconfig and the ESM tsconfig. `inversion`, `filter` and `boot` emit
+CJS and ESM from two configs, and `.configs/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
+the same files under different rules and can fail where the CJS pass passed. Guarding one left a
+half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
+something resolves the `import` condition.
+
+The diagnostic habit survives the fix. `dist/` is gitignored, so when `bun test` explodes
+catastrophically, check whether `dist/` is empty before debugging the tests: a fresh clone or
+worktree shows the identical symptom for the simpler reason that it has never been built. See
+[testing conventions](/conventions/testing-conventions.md).
+
+## A node global in the kernel passes tsc and fails make purity
+
+`@venizia/ignis-kernel` must bundle clean for `target: browser`, so a routine edit there breaks a
+gate the type-checker cannot see. Import helpers only through `@venizia/ignis-helpers/core` and
+`@venizia/ignis-helpers/common`, never the root barrel; never import `@venizia/ignis-boot`; keep
+`drizzle-orm` to `import type`. No `process.`, `__dirname`, `__filename` or `createRequire(` either -
+the probe matches the **bundled text**, not the import graph, so a node global survives a green
+`tsc` and only `make purity-kernel` catches it. Node builtins are matched against `node:module`'s own
+list, so the bare `'fs'` spelling is caught alongside `'node:fs'`.
+
+Anything needing a filesystem, a real cwd, or the environment is a method the kernel leaves empty and
+core's `ServerApplication` overrides - `getProjectRoot` and `getDefaultAsyncContextEnabled` (which
+gates `hono/context-storage`, hence `node:async_hooks`). Add the override, do not reach for `process`
+in the kernel. Address resolution is not a seam at all: `host`/`port` live on `ServerApplication`
+only, since a host with no socket has no use for either.
+
+## types: [] does not make process.env a compile error
+
+`packages/core-worker` was split out partly to make impurity fail at author time. It does not, and no
+tsconfig knob can make it. `types: []` disables only **automatic** `@types/*` inclusion; it cannot
+cancel a `/// <reference types="node" />` that sits inside a `.d.ts` the program already reached, and
+two first-party paths reach one:
+
+| Path | Reaches |
+|---|---|
+| `@venizia/ignis-helpers/core` -> `modules/redis/common/types.d.ts` | `ioredis` |
+| `@venizia/ignis-kernel` -> `base/auth/authorize/common/types/enforcer.d.ts` | `casbin` |
+
+Both are `import type` only, so `make purity` stays green and nothing flags it. `typeRoots: []` does
+not close it either - the directive then resolves through node module resolution instead.
+
+This reaches **any** consumer of those published types, not just `core-worker`.
+`examples/browser-bff` reproduces it from its own import graph. So the author-time defence in both is
+a `no-restricted-globals` and `no-restricted-imports` block in `.configs/eslint.config.mjs`, with the builtin
+list derived from `node:module`'s `builtinModules` rather than hand-written. Scope the `files` glob to
+`{ts,tsx,mts,cts}`: a package that sets `jsx` can have a `.tsx` production file, and a `.ts`-only glob
+leaves it with no rule at all.
+
+`setImmediate` and `clearImmediate` are the accident case. They ride the same `@types/node` leak, so
+the editor offers them in autocomplete, ESLint is silent without the rule, and the bundle scan sees
+nothing. In a browser Worker they are a `ReferenceError`.
+
+What no static rule reaches: computed member access (`globalThis['process']`), a variable import
+specifier, and an inline `eslint-disable`. `make purity` backstops the first two.
+
+## make purity derives its rows from `exports`, never from a hand-written list
+
+`scripts/purity/manifest.ts` derives one row per published sub-path from each package's own
+`package.json` `exports` map. Nothing is authored per entry, so a new sub-path is probed the day it
+ships. The hand-written list it replaced carried 11 rows and reported `11/11` while
+`@venizia/ignis-connectors/postgres` - the entry [browser-bff](/examples/browser-bff.md) imports -
+killed a Worker at import.
+
+21 published sub-paths today, each probed on both conditions, so 42 checks - and the gate is green.
+
+| Entry | Reaches | What it means |
+|---|---|---|
+| `connectors/postgres/node-postgres`, `/postgres-js`, `connectors/sqlite/libsql`, `connectors/typesense` | `pg`, `postgres`, `@libsql/client`, `typesense` | Engine clients that were never browser-capable. Pre-declared in the manifest's `impure` map, so they print as waived rather than red - a waiver is a claim the gate re-measures, not a hole in it. |
+
+Six sub-paths were red when the derivation landed. `connectors/postgres` and `connectors/sqlite`
+were the two real defects: the model barrel re-exports `user-audit.enricher`, which statically
+imported `hono/context-storage`, whose module body runs `new AsyncLocalStorage()`. Both enrichers
+now read `RequestContextRegistry` from the kernel instead, and core installs the resolver over it -
+see [connectors](/packages/connectors.md).
+
+`helpers` is the one package whose claim covers part of its surface: the root barrel reaches 14 node
+builtins by design (measured 2026-09-18; the optional peers themselves are lazy), which is why
+`./core` and `./common` exist. The manifest names those
+two, and the derivation fails if either stops being published.
+
+`external` narrows what a row measures, so it is printed next to every verdict. It may only exempt a
+third party's packaging - `assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
+load time.
+
+Every claimed package dual-builds, and `assertBrowserImportCondition` refuses a claim whose sub-path
+publishes no `import` condition. A CommonJS-only package cannot be consumed by a browser bundler
+without a per-consumer workaround, so the claim would not be true. Both builds are probed, and they
+genuinely differ: `@libsql/client` reaches `child_process` only on its CommonJS path, and
+`drizzle-orm/supabase` resolves only on its CommonJS one.
+
+Two traps come with the dual build. A `"sideEffects": false` package lets a bundler drop the
+`import 'reflect-metadata'` at the entry, and every decorator then fails with
+`Reflect.defineMetadata is not a function` - in the PRODUCTION build only, since dev serves modules
+unbundled. The packages that import it therefore list their entry:
+`"sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"]`. And the ESM build needs
+`"tsc-alias": { "resolveFullPaths": true }`: without the `.js` extension `bun build` cannot resolve
+an extensionless FILE import (a directory with an `index.js` resolves either way, which is why this
+looks like it works until it doesn't).
+
+## A purity verdict can change with the Bun version, and a waiver is exact both ways
+
+The probe spawns the `bun` on `PATH`, so the bundler's own bugs are part of the measurement. Bun
+1.4.0 emitted `connectors/postgres/supabase` under `--target=browser` with the `drizzle-orm/supabase`
+re-exports listed but unbound, and the row was waived as impure; Bun 1.4.1 binds them, and the same
+waiver failed a connectors release with "STALE WAIVER" because the workflow installs
+`bun-version: latest`. Before a release, run `make purity-<package>` on the Bun version CI will
+use, and when a waiver goes stale, delete it rather than loosening the gate.
+
+## `bun update` rewrites peerDependencies floors, not only devDependencies
+
+`bun update --filter '*'` bumps every declared range in every workspace manifest to the version it
+resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
+`connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
+^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
+consumer contract: a consumer app pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
+migration guide promises those still satisfy the peers. After any `bun update`, diff
+`peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
+peer only as its own deliberate change with a changelog line.
+
+## Kernel state is realm-anchored, so never reach for `instanceof` across packages
+
+`@venizia/ignis-kernel` is a plain `dependencies` entry of `connectors`, `core-server` and
+`core-worker`, and that is deliberate - a `peerDependency` would push an explicit install onto every
+consumer to buy a guarantee it only half provides. Two copies are made harmless instead of forbidden.
+
+Two copies happen without anyone changing a package: each consumer pins a range, and the day those
+ranges stop intersecting a package manager installs a nested second copy rather than failing. Nothing
+throws - `@repository` writes into one copy's `datasourceModels` while `discoverSchema()` reads the
+other's, `buildSchema()` returns `{}`, and every query fails for a reason that points nowhere near
+the cause.
+
+So every cross-package singleton resolves through `SingletonRealm.resolve`
+(`packages/kernel/src/helpers/singleton-realm.ts`), which anchors it on `globalThis` under a
+`Symbol.for('@venizia/ignis-kernel:<key>')` key. `Symbol.for` is realm-keyed, so both copies find the
+same instance. Measured against two genuinely separate module graphs: class identity `false`, every
+registry instance `true`.
+
+**Add a new kernel singleton through that helper, never as a bare `private static instance`.**
+Declare its key as a `static readonly SINGLETON_REAL_KEY` on the holder - a bare slug, since
+`SingletonRealm` supplies the `@venizia/ignis-kernel:` namespace - rather than inline at the
+`resolve` call - the key is then readable off the class, which is what lets
+`singleton-realm-keys.test.ts` assert that no two holders share one. Two holders on one key is
+silent: the second receives the first one's object and the symptom surfaces somewhere unrelated.
+Anchored today: `MetadataRegistry`, `RelationBuilderRegistry`, `AuthenticationStrategyRegistry`,
+`AuthorizationEnforcerRegistry`, `GrantBuilder`, the `RequestContextRegistry` resolver slot, and
+`ArtifactIndexHelper`. That last one is the exception to both halves of the rule: it spells its
+field `SINGLETON_REALM_KEY` rather than the `SINGLETON_REAL_KEY` every other holder uses, and it is
+the one holder missing from the test's `HOLDERS` list, so nothing checks its key against the other
+six.
+
+Anchoring cannot save class identity - two copies are two classes, and `instanceof` between them is
+`false`. `@repository`'s first-parameter check used to be exactly that, and rejected a valid
+repository at import time. It now reads a `Symbol.for` brand through `isDataSourceClass`, the same
+move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelper` for the
+`redisConnection` binding the socket.io and websocket components validate. A browser tab and its
+Worker are separate realms and still get one registry each, which is correct - they run separate
+applications.
+
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
+and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
+two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in the ESM copy was invisible to
+the CommonJS copy). A new module-level singleton in helpers follows the same shape, and its test loads the module
+twice through `require` plus `delete require.cache[path]` - a `?query` import does not give Bun a second copy.
+
+The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
+CLASS (`isDataSourceClass`), an instance field when it receives an INSTANCE (`isRedisHelper`).
+
+## The PGlite pin lives in the root package.json
+
+The root `package.json` carries `"overrides": { "@electric-sql/pglite": "0.5.8" }`, an exact version,
+repository-wide. It looks like something to relax or delete. It is not.
+
+Pinning it in one package alone forks `drizzle-orm` into two Bun store entries, because Bun keys a
+store entry by resolved peer set and PGlite is one of Drizzle's optional peers. Two entries break
+Drizzle type identity across a package boundary. `examples/browser-bff` does not install without the
+override.
+
+## RedisClusterHelper deliberately skips buildDefaultOpts
+
+`RedisClusterHelper` (`packages/helpers/src/modules/redis/cluster/cluster.helper.ts`) does not call
+`AbstractRedisHelper.buildDefaultOpts`, unlike the single and sentinel helpers. Intentional: ioredis's
+`Cluster` ignores `redisOptions.retryStrategy` (it forces its own), and injecting
+`maxRetriesPerRequest: null` would silently flip per-node command-failure semantics. Don't "DRY"
+this back in - it was tried once and reverted as a real regression.
+
+It DOES set two cluster options of its own, which is a separate matter: `lazyConnect: !autoConnect`
+and `enableOfflineQueue: true`. Both sit BELOW the caller's `clusterOptions` spread, so the raw hatch
+stays the last word - the inverse of sentinel, where first-class fields win over `redisOptions`.
+Cluster inverts it because `clusterOptions` was the only way to set this timing before 2026-09-12,
+and a caller already threading `lazyConnect` through it must keep the timing it has. The escape-hatch
+test in `packages/helpers/src/__tests__/redis/cluster.helper.test.ts` is the control: it goes red if
+the two defaults are moved above the spread. Adding `autoConnect` to cluster was legitimate; adding
+`buildDefaultOpts` alongside it would not be.
+
+## Every constructor parameter needs @inject
+
+Mixing a decorated and an undecorated constructor parameter is refused, not tolerated.
+`Container.instantiate` (`packages/inversion/src/modules/container/container.ts`) throws when an
+inject metadata slot is missing, naming the class and parameter index:
+
+```typescript
+if (!meta) {
+  throw getError({
+    message: `[${cls.name}] Constructor parameter ${index} has no @inject | Every parameter of a container-instantiated class must be decorated - the container cannot supply an undecorated one`,
+  });
+}
+```
+
+This is why a controller that needs options puts them inside `super({ scope: X.name })` rather than
+a raw `opts` parameter - see [options objects](/conventions/options-objects.md).
+
+## An error catalog code must be a literal, not MessageCode.build()
+
+Everywhere else, a `messageCode` should come from `MessageCode.build({ parts })` so a malformed code
+fails at import. Inside a `TErrorDefinition`, that advice is backwards:
+
+```typescript
+// WRONG - code widens to `string`, and TRegisterErrors collapses to Record<string, true>.
+// The registry still compiles; it just autocompletes nothing. Silent.
+message: { text: '...', code: MessageCode.build({ parts: ['server', 'core', 'user', 'x'] }) },
+
+// RIGHT
+message: { text: '...', code: 'server.core.user.create.duplicate_email' },
+```
+
+`build()` returns `string`, which erases the literal type the registry is built on. The failure is
+invisible - no error, just autocomplete that quietly stops working. Do not "fix" a catalog by
+routing its keys through `build()`.
+
+## Stale .tsbuildinfo replays phantom errors
+
+After changing a package's `exports` field or `dist` layout, a consumer's `.tsbuildinfo` can replay
+diagnostics cached against the old resolution - unchanged files suddenly report errors on valid
+types. Purge every `tsconfig*.tsbuildinfo` outside `node_modules` before trusting `tsc`. The build
+tsconfigs now live in `.configs/`, so their cache does too: `.configs/*.tsbuildinfo`. See
+[a stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing).
+
+## bun install reformats the committed bun.lock
+
+The local Bun re-serializes `bun.lock` on any install/update, producing roughly a thousand lines of
+formatting churn even when resolved versions are unchanged. Revert the file rather than re-running
+`bun install` - `node_modules` already works.
+
+## Bun can silently drop @inject when tsconfig extends isn't resolved
+
+Bun ignores a tsconfig `extends` that names a package - measured on Bun 1.4.2 with a real npm
+install: `extends: "@venizia/dev-configs/tsconfig.common.json"` and even the one-level
+`.../tsconfig.base.json` give TC39 decorators; only a relative path one level into `node_modules`, or
+the flag in the project's own file, gives legacy decorators. `tsc` follows the chain, so typecheck and
+build stay green and only `bun run` / `bun test` diverge. So when an app's `tsconfig.json` only does
+`extends: "@venizia/dev-configs/..."`, `experimentalDecorators` is off under Bun and parameter
+decorators are dropped silently - no error, just an injected value that is `undefined` at runtime.
+Class/property decorators (`@controller`, `@model`) keep working, so boot looks fine until a
+handler touches the missing dependency. Method decorators fare worse: Bun falls back to TC39
+decorators, which call the decorator with `(value, context)`, so `@provide` records nothing and a
+provided key is never bound. Class fields diverge too: Bun uses define semantics, the `tsc` dist
+assign semantics (`useDefineForClassFields: false`), so a suite tests other code than it ships. Fix:
+declare `experimentalDecorators: true` and `useDefineForClassFields: false` directly in every
+`tsconfig.json` Bun runs, not only via `extends` (every package and example does). Add `emitDecoratorMetadata`
+only if something reads `design:*` metadata - IGNIS does not: under Bun it turns an interface-typed
+constructor parameter (`IAuthService`) into a runtime import that fails to link, which is why
+core-server's `tsconfig.json` declares `experimentalDecorators` alone (its former `tsconfig.core.json` was merged into it).
+The failure reads `Export named 'X' not found` at load time. To find every such value import before
+Bun does: `tsc --noEmit --isolatedModules` reports most as TS1272, and loading each package's
+`src/index.ts` under Bun finds the rest - BANA swept its 19 backend tsconfigs this way when it
+restated the flags (2026-10-17).
+
+## Under bun-runs-source, a type used on a decorated member must come from `import type`
+
+`bun src/index.ts` transpiles each file alone. A decorated member whose type is imported by value -
+`@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
+keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
+found` against the CJS dist. `import type { ... }` fixes it, and since issue #184 the base oxlint preset enforces
+it (`typescript/consistent-type-imports`, `fixStyle: inline-type-imports`), so a value import of a type fails lint. `tsc` output is unaffected (types are
+elided), so an application that builds first and runs `bun dist/index.js` never sees it - only a
+source-run probe does. The 2026-09-23 examples refresh removed the last value-imported
+`IControllerOptions` in `examples/rpc-api-server`; check a new example's constructors before
+assuming the pattern is gone everywhere.
+
+## The artifact generator never executes a module
+
+`ignis-artifacts` is an AST walk: no decorator runs, no import fires. A stereotype re-exported
+through a local wrapper module is invisible to it - the decorator must be imported from
+`@venizia/ignis` or `@venizia/ignis-kernel`. The flip side is safety: a datasource file that opens a
+pool at import cannot leak into a build.
+
+## A dynamic `import('./own-module')` in library code makes bun bundle the barrel with undefined exports
+
+`secrets/factory.ts` used `await import('./hashicorp/index.js')`. bun turns the target and everything
+it reaches (`BaseHelper`, the logger, `env`) into lazy `__esm` initializers, and the `export *`
+barrel never calls the initializer for `env/app-env` - a bundle of
+`import { Environment } from '@venizia/ignis-helpers'` printed `undefined` for `Environment`,
+`applicationEnvironment` and `LoggerFactory`, and every compiled example crashed at import. Import
+our own modules statically; keep optional peers behind `ModuleUtility.load`. Guard:
+`packages/helpers/src/__tests__/env/bundle-safe-reads.test.ts` bundles the barrel with the
+`bun build` CLI in a subprocess and reads the exports back.
+
+## `bun build` folds `process.env.NODE_ENV` into the BUILD machine's value
+
+Even under `--compile`: the dot form becomes the literal the build host had (`development` when
+unset, `test` under `bun test`), and `--minify-syntax` folds the bracket form too. A destructured
+read (`const { NODE_ENV } = process.env`) survives - that is `Environment.ambient` (`undefined` when
+unset; `Environment.current` defaults to `development`). Framework reads go through it: the error
+middleware's leak boundary, the request spy, the logger debug gate. Third-party code still gets the
+literal, so compile with `--env=disable`. The positive control in the same test proves the folding.
+
+## A published env name nobody reads is worse than no name at all
+
+`EnvironmentKeys` (`packages/core-server/src/common/environments.ts`) declared
+`APP_ENV_APPLICATION_DS_MIGRATION` while its only reader - the startup banner in
+`base/applications/base.ts` - read `APP_ENV_DS_MIGRATION`. Every example `.env`, the configuration
+reference and a consumer's k8s `shared-config.yaml` set the declared spelling, so the banner always
+printed the default `postgres` and nobody could tell why. The audit that followed found the real
+answer: NEITHER name selected a datasource, both fed one log line, so the constants, the banner
+line and the `.env` entries were all deleted (2026-09-11) rather than reconciled. A setting that
+cannot change behaviour is not a setting.
+
+Three rules follow. A framework read goes through `EnvironmentKeys`, never a bare string, so one
+grep answers "who reads this". A constant the framework does NOT read is marked as such in that
+file - ten of the fifteen names there are conventions an application reads for itself. And the
+banner reads at CALL time, never at module load: an application loads its `.env` in its own
+entrypoint, after `base.ts` is imported, so a module-load destructure prints the default for a host
+that configured everything correctly.
+
+## The health-check `stats` route is a security default, and `enable` overrides it silently
+
+`GET <health path>/stats` serves the build stamp, the runtime version and the memory profile -
+exactly what an attacker reads to pick an exploit, which is why it is closed by default on every
+host that is not provably a development one. `HealthCheckReporter.isStatsEnabled`
+(`packages/core-server/src/components/health-check/reporter.ts`) answers from `stats.enable` FIRST
+whenever that is an explicit boolean, and never consults `NODE_ENV` in that case. So a `true` added
+to open the route for a local run opens it in production too. Found on a live consumer deployment,
+not in review.
+
+The two ways to get it wrong are opposites, which is the whole trap:
+
+- **No `secretKey`** leaves the route open to anything that reaches the port. The framework only
+  warns at boot - `isStatsUnguarded` turns mounted-plus-keyless-plus-non-development into one
+  `warn` naming the route and the environment - because it cannot know whether the port is
+  reachable, and on a cluster-internal one this is often the right call.
+- **A blank `secretKey`** fails CLOSED: `isStatsAuthorized` refuses every request. Routing that read
+  through `blankToUndefined` would therefore turn a locked route into an open one, the opposite of
+  what that helper buys everywhere else.
+
+The closed-by-default shape is `stats: { enable: Boolean(secretKey), secretKey }` - a host with no
+key never mounts the route, and nothing depends on `NODE_ENV`.
+
+## Compiled binaries: renamed classes, two module copies, no default logger
+
+- bun renames a decorated class expression that shadows its own variable - tsc emits
+  `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X_1` under
+  `--minify-syntax`, the flag every compiled binary uses (`dev-configs` `BunCompiler`, the vert
+  `compile:*` scripts). Bun 1.4.1 fixed only the plain build, which used to emit `X2`; measured on
+  1.4.1 with a two-class fixture: plain build and `--compile` without minify keep `X`,
+  `--minify-syntax` and `--compile --minify-syntax` still produce `X_1`. `--keep-names` does not
+  help. Keys and scopes built from `Class.name` stay consistent with each other; a literal
+  `'services.X'` does not. Build keys with `BindingKeys.build({ namespace, key: X.name })`, never
+  from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
+  `--minify-whitespace --minify-syntax`.
+- The bundle carries helpers twice: the application's ESM import and core's CJS require.
+  `LoggerFactory` keeps the provider in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()`
+  in one copy is seen by the other. Register a provider at the entrypoint
+  (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
+  `createRequire('./winston')`, which cannot resolve inside a binary.
+- Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
+  must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
+
+## A self-refreshing cache must gate its retry on the last attempt, not the last success
+
+If a background TTL refresh checks "how long since the last **successful** load", every call made while the dependency is down finds the check still stale and starts a brand-new load attempt - the system hits the failing dependency hardest exactly when it is weakest. Gate the check on the last **attempt** instead, recorded whether that attempt succeeded or failed: a downed dependency then costs one retry per interval, not one per caller.
+
+A short-lived `DomainHierarchyStore` in `core-server`'s casbin enforcer shipped with this bug first, found in review before release; `refreshIfStale()` gated on `lastAttemptAt`, set at the start of every attempt regardless of outcome, never `lastLoadedAt`, which only advances on success. The store itself was later removed entirely - the process-wide shared tree it cached duplicated the per-principal `g3` policy-line path, which needs no separate TTL or staleness ceiling - but the retry-gating lesson generalizes to any other background-refreshed cache in the framework.
+
+## A const-value alias without the empty intersection widens to string
+
+A `static readonly X = 'a'` member has a *widening* literal type. `Extract<ValueOf<T>, ...>` passes
+it through unchanged, so before 2026-10-09 a `TConstValue` value became `string` in an object
+literal, a `let`, an inferred generic, or an unannotated method return. That once turned
+`AuthorizationPolicyBuilder.grant()`'s `effect` into `string`, which was patched with an explicit
+return type before the alias was fixed.
+
+- `TConstValue`, `TStringConstValue`, `TNumberConstValue` (helpers) and `TConstValue` (inversion) now
+  end in `& {}`: same members, a regular literal union that never widens. Keep the `& {}` - it
+  looks redundant and is not.
+- `Extract<...> & {}` was chosen over a template literal (`` `${Extract<..., string>}` ``): the
+  template form leaves numbers widening, and in generic code is not assignable back to
+  `Extract<ValueOf<T>, ...>`.
+- The cost: a generic inferred from such a value keeps the union, so `expect(value).toBe(aString)`
+  fails to compile. Widen the generic (`expect<string>(value)`), as the fixed IGNIS tests do.
+- A consumer that declares its own copy of these aliases (a frontend framework's kernel does) does not get
+  this fix from IGNIS.
+
+## bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView
+
+`BufferSource` in bun-types 1.4 is `NodeJS.TypedArray | DataView | ArrayBufferLike`. A mirror interface that
+declares `data: string | ArrayBufferView | ArrayBuffer` (`IWebSocket.send`, `IBunServer.publish` before
+2026-09-04) is wider than what Bun accepts, so `Bun.serve()` stops being assignable to the mirror and
+core-server fails to build. Mirror Bun with concrete types: `string | ArrayBuffer | SharedArrayBuffer |
+Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (contravariance).
+
+## Four transitive advisories stay by decision - do not "fix" them with an override
+
+`bun audit` reports `decode-uri-component` and `stream-json` under `minio`, and `esbuild`/`vite` 5 under
+`vitepress` and `drizzle-kit`. The patched releases of the first two are ESM-only while `minio` uses
+`require()`; `stream-json` also renamed the `jsonl/Parser.js` path `minio` imports. A workspace-wide
+`esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
+latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
+`2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
+
+## A middleware never reads a request body it does not own
+
+Hono caches `req.json()`, `req.text()` and `req.parseBody()`, so a later handler reading through `c.req` still
+works - but the RAW stream is drained. A handler that streams `c.req.raw.body` on (an upload proxy) then fails with
+`Body object should not be disturbed or locked`, and a text read mangles binary bytes for everyone after it.
+`RequestSpyMiddleware` did exactly this for every non-JSON, non-form type until 2026-09-23 (a consumer's asset proxy).
+Read a `req.raw.clone()`, or describe the body (`<N bytes, content-type>`) without reading it. A body an
+earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it through Hono's cache
+(`req.text()`) instead, or `clone()` throws and a valid request becomes a 400.
+
+## Outside development, only the request spy's JSON check parses a body
+
+`RequestSpyMiddleware.value()` calls `parseBody` for every content type in a development
+environment, and for `application/json` only elsewhere - its own malformed-JSON `400` is a contract,
+the rest is unread. A route whose `request.body.content` declares a form type gets its own
+`formBodyReader` middleware, appended after every application middleware and just ahead of the
+validator, and `parseMultipartBody` maps its own parse failure - both land on
+`400 core.request.body_malformed`, the same object as the spy's. Application middleware that calls
+`context.req.formData()` itself, ahead of any framework reader (an upload authorization guard, for
+example), is covered by NONE of this: a malformed body there is a raw `TypeError` outside
+development, which the error envelope renders as a `500`, not a `400`. Call helpers'
+`readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
+route's later `formData()`/`parseMultipartBody()` call gets the same result, and maps the parse
+failure itself.
+
+## Under `path.isStrict: false`, a route declared with a trailing slash is unreachable
+
+Hono's non-strict mode strips the trailing slash from the REQUEST path only. A route declared as
+`/users/` then answers neither `/users` nor `/users/` - both 404. Every example server except
+`vert` sets `isStrict: false`, so declare routes without a trailing slash. No framework route has one.
+
+## drizzle refuses an empty UPDATE with `No values to set`
+
+Even when `$onUpdate` columns exist, a direct repository call with `{}` gets a plain 500 straight from
+drizzle. The generated CRUD routes catch it earlier: `PersistableCrudController.assertNonEmptyUpdate`
+answers 400 `core.request.nothing_to_update` before the repository runs, for `{}`, a `where` alone on
+`PATCH /`, or a body holding only keys the CRUD factory strips. A hand-written route that calls the
+repository directly still gets the 500.
+
+## Do not name a schema `ErrorResponse`
+
+The kernel's `ErrorSchema` owns that OpenAPI component; a second schema with the same refId is
+silently replaced by a `$ref` to the first.
+
+## Only the entity knows what the server stamps
+
+The CRUD factory reads `getServerStampedKeys()`; never match audit keys by name in the kernel. A
+search document is stamped by nothing, so its `createdAt` must stay writable.
+
+## A CommonJS package must not `require` an ESM-only peer at load
+
+core-server is CommonJS. A top-level `require('jose')` (or `require('postgres')` through drizzle)
+runs while the application is still loading, and when the application imports the same ESM package
+Bun refuses it: `require() async module ... is unsupported`. Intermittent with the peer first, 30/30
+with the IGNIS entry first. Load such a peer with a string-literal `import()` at first use
+(`JoseLoader`), or give the sub-path an `import` condition that re-exports an ESM build
+(`postgres-js.mts`). Never `ModuleUtility.load` for a required peer - a computed name drops it from a
+compiled binary. Guards: `packages/core-server/src/__tests__/authenticate/jose-lazy-load.test.ts`, and
+the clean-install gate's `importedAfter` rows (`@venizia/ignis` then `jose`, the postgres-js alias
+then `postgres`).
+
+The race lives only while modules load. Load the peer at boot (fail fast), never at import. The
+clean-install `bun-order` check runs its entry `ORDER_RUNS` (5) times, because the race crashes only
+some runs: at 19 in 30, a single run missed it about one gate run in 7.
+
+## Only tsconfig.json stays at a project root
+
+Each project keeps its build tsconfigs (`tsconfig.build.json`, `tsconfig.esm.json`) in `.configs/`.
+`tsconfig.json` stays at the root. Bun (legacy decorators and `emitDecoratorMetadata`), the editor's
+TS server and oxlint's type-aware pass (`oxlint-tsgolint`) only look for `tsconfig.json` at the root.
+
+Proven: with the tsconfig only in `.configs/`, Bun ran TC39 decorators and `Reflect.getMetadata`
+threw. See [Bun silently drops `@inject`](#bun-can-silently-drop-inject-when-tsconfig-extends-isnt-resolved).
+
+## tsc-alias must read the root tsconfig.json
+
+Build scripts run `tsc-alias -p tsconfig.json --outDir dist/cjs` (ESM: `--outDir dist/esm
+--resolve-full-paths`; core-server: `--outDir dist`). Do not point `-p` at a `.configs/` file.
+
+tsc-alias resolves `paths` against the directory of the file it reads. Pointed at `.configs/`, it
+resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still
+reports success.
+
+## A stale .configs/*.tsbuildinfo makes tsc emit nothing
+
+`incremental` writes the cache next to the build tsconfig, so it now lands in `.configs/`. A stale
+`.configs/*.tsbuildinfo` made `tsc` skip emit: core-server printed "DONE" with an empty `dist`.
+`make clean` removes `.configs/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
+green and `dist` is empty, delete those files by hand.
+
+## ignorePatterns in a .configs file resolve against .configs
+
+The tools are run with `-c .configs/<tool>.config.mts`. An `ignorePatterns` entry inside that file is
+relative to `.configs/`, not the project, so it matches nothing. Do not rely on it.
+
+`dist` and `node_modules` are skipped through `.gitignore`. For anything else, pass a CLI flag:
+`examples/vert` skips `scripts/` with `--ignore-pattern "scripts/**"` in its `lint` script.
+
+## oxlint finds bugs ESLint missed
+
+oxlint caught four real `no-unsafe-optional-chaining` cases. `(x?.y as T).z` still throws when `x` is
+undefined, because the cast ends the optional chain. They were in the connectors tests and are fixed.
+
+## oxfmt formats long unions differently from Prettier
+
+oxfmt puts a leading `|` on each line of a long union type. The switch reformatted 16 files once.
+`docs/wiki/site/.vitepress/config.mts` is excluded from formatting to keep its one-entry-per-line
+sidebar layout.
+
+## Makefile: a $(call) glob with a comma, and .PHONY pattern rules
+
+- A `$(call ...)` argument containing `{ts,js}` splits on the comma. Put such a glob in a variable.
+- Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `fmt-%` are static
+  pattern rules (`$(LINT_PKG_TARGETS): lint-%:`), not plain `lint-%:` rules.
+
+## The ESLint config is .mjs: a TypeScript one needs jiti
+
+ESLint 10 loads a TypeScript config (`.ts`, `.mts`, `.cts`) only through `jiti`, and fails without it:
+"The 'jiti' library is required for loading TypeScript configuration files". A workspace can hide
+this - bun links `jiti` as ESLint's optional peer when another package already pulled it in - so the
+repository ran green while a clean install of the packed `@venizia/dev-configs` failed. To keep the
+dependency out, every `.configs/eslint.config.*` is `.mjs` (plain JavaScript, loaded natively). oxlint
+and oxfmt read `.mts` configs on their own, so those stay `.mts`.
+
+## oxlint exits 0 on warnings
+
+oxlint returns success when it finds only warnings (`oxlintConfigs` has `no-useless-escape: 'warn'`),
+so a warning would pass a gate that B-02 says must fail. Every oxlint call in `make/project.mk`,
+`lint-wiki` and the example `lint` scripts passes `--deny-warnings`; one deliberate warning makes
+`make lint-kernel` exit 2.
+
+## Related
+
+- [Options objects](/conventions/options-objects.md)
+- [Testing conventions](/conventions/testing-conventions.md)
+- [Coding style](/conventions/coding-style.md)
+- [DI container](/architecture/di-container.md)

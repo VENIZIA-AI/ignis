@@ -1,28 +1,67 @@
 #!/bin/bash
 
-# Usage: ./force-update.sh [latest|next|highest]
+# Usage: ./force-update.sh [latest|next|highest|workspace]
 # Default: latest
 # - latest/next: Use npm dist-tag to resolve version
 # - highest: Use the highest released version (sorted by semver)
+# - workspace: Use the version in this repository's packages/*/package.json - for a release chain,
+#   where the previous package was published seconds ago and npm does not show it yet. A package
+#   that is not in the workspace (a third-party pin) still resolves from npm.
 
 TAG="${1:-latest}"
 
-if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ] && [ "$TAG" != "highest" ]; then
-  echo "ERROR | Invalid tag: $TAG (must be 'latest', 'next', or 'highest')"
+if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ] && [ "$TAG" != "highest" ] && [ "$TAG" != "workspace" ]; then
+  echo "ERROR | Invalid tag: $TAG (must be 'latest', 'next', 'highest' or 'workspace')"
   exit 1
 fi
 
 echo "START | Force updating from NPM registry (tag: $TAG)..."
 
-# Packages to update from NPM (not workspace)
-PACKAGES="@venizia/dev-configs @venizia/ignis-inversion"
+EXTRA_PACKAGES=""
+
+# Derived from package.json, never hardcoded: a hardcoded list silently goes stale when a new
+# workspace dependency is added - that is how @venizia/ignis-filter went unrefreshed in core, and
+# @venizia/ignis-inversion in filter. EXTRA_PACKAGES carries any non-@venizia pin.
+DERIVED=$(jq -r '[(.dependencies // {}), (.devDependencies // {}), (.peerDependencies // {})] | add // {} | keys[] | select(startswith("@venizia/"))' package.json | sort -u | tr '\n' ' ')
+PACKAGES="$EXTRA_PACKAGES $DERIVED"
+
+if [ -z "$(echo "$PACKAGES" | tr -d ' ')" ]; then
+  echo "DONE | No NPM-published dependencies to refresh."
+  exit 0
+fi
 
 for pkg in $PACKAGES; do
+  # The root workspaces.catalog owns a catalogued range; overwriting it with a registry version
+  # breaks `make catalog-check`, which the release workflow runs a few steps later.
+  CURRENT=$(jq -r --arg p "$pkg" '[(.dependencies // {}), (.devDependencies // {}), (.peerDependencies // {})] | add // {} | .[$p] // ""' package.json)
+  if [ "$CURRENT" = "catalog:" ]; then
+    echo "[$pkg] pinned by the root workspaces.catalog, SKIP..."
+    continue
+  fi
+  # A sibling of this repository is `workspace:*`: `bun publish` writes its exact version into the tarball.
+  case "$CURRENT" in
+    workspace:*)
+      echo "[$pkg] workspace sibling, SKIP..."
+      continue
+      ;;
+  esac
+
   echo "[$pkg] Fetching $TAG version..."
 
-  if [ "$TAG" = "highest" ]; then
+  WORKSPACE_VERSION=""
+  if [ "$TAG" = "workspace" ]; then
+    WORKSPACE_VERSION=$(jq -r --arg p "$pkg" 'select(.name == $p) | .version' ../*/package.json 2>/dev/null | head -n 1)
+  fi
+
+  if [ -n "$WORKSPACE_VERSION" ]; then
+    VERSION="$WORKSPACE_VERSION"
+  elif [ "$TAG" = "highest" ] || [ "$TAG" = "workspace" ]; then
     # Get the highest released version by semver sort
-    VERSION=$(npm view "$pkg" versions --json 2>/dev/null | grep '"' | tail -1 | tr -d ' ",' )
+    # jq, not `grep '"' | tail -1`: with --json, npm prints its E404 body on STDOUT, so the old
+    # pipe turned the error text into the "version" and handed it to sed. A package that is not
+    # published yet must resolve to nothing, so the loop skips it. npm already returns versions
+    # semver-sorted, and a package with exactly one version returns a bare string, not an array.
+    VERSION=$(npm view "$pkg" versions --json 2>/dev/null | jq -r 'if type == "array" then .[-1] elif type == "string" then . else empty end')
   else
     # Get version for specific dist-tag from npm registry
     VERSION=$(npm view "$pkg" dist-tags."$TAG" 2>/dev/null)

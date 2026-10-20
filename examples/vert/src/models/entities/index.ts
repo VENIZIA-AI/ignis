@@ -4,3 +4,7 @@ export * from './configuration.model';
 export * from './sale-channel-product.model';
 export * from './product.model';
 export * from './sale-channel.model';
+export * from './organization.model';
+export * from './role.model';
+export * from './permission.model';
+export * from './policy-definition.model';

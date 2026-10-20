@@ -1,0 +1,462 @@
+# Complete Installation
+
+This guide walks you through creating a new web application with IGNIS and setting up a professional development environment.
+
+**Time to Complete:** ~20 minutes
+
+> **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](../get-started/setup.md) before starting.
+
+## 1. Initialize Your Project
+
+```bash
+mkdir my-app
+cd my-app
+bun init -y
+```
+
+`bun init` writes `"type": "module"` into `package.json`. Delete that line - an IGNIS app stays CommonJS (see [Stay CommonJS](#stay-commonjs) below).
+
+## 2. Install Dependencies
+
+### Production Dependencies
+
+```bash
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers \
+  @venizia/ignis-boot winston winston-transport winston-daily-rotate-file
+```
+
+**What each package does:**
+- `hono` - High-performance web framework
+- `@hono/zod-openapi` - OpenAPI schema generation with Zod validation
+- `@scalar/hono-api-reference` - Interactive API documentation UI
+- `@venizia/ignis` - Core IGNIS framework (application, controllers, repositories, DI)
+- `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
+- `@venizia/ignis-boot` - `AutoArtifacts`, which finds your decorated classes so you never register them by hand (Bun only)
+- `winston` and its two companions - the default logger; the application refuses to start without a logger provider
+
+### Development Dependencies
+
+```bash
+bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint tsc-alias
+```
+
+**What `@venizia/dev-configs` provides:**
+- Centralized oxlint configuration (lint rules)
+- Centralized oxfmt configuration (formatting)
+- The naming-convention rule for ESLint, the one rule oxlint cannot run yet
+- Shared TypeScript base configs
+- Consistent code style across all IGNIS projects
+
+> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
+
+## 3. Configure Development Tools
+
+All development configurations are centralized in the `@venizia/dev-configs` package for consistency and ease of maintenance.
+
+### TypeScript
+
+Create `tsconfig.json` in your project root:
+
+```json
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. `tsc` reads it, but Bun ignores an `extends` that names a package - so the three options that change the emitted code, `experimentalDecorators`, `emitDecoratorMetadata` and `useDefineForClassFields`, are restated here. Without them `bun run` drops `@inject` silently. `paths` stands alone, with no `baseUrl`. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
+
+### Stay CommonJS
+
+An app that extends `@venizia/dev-configs/tsconfig.common.json` (module `nodenext`) and has no `"type": "module"` in `package.json` is CommonJS. Keep it that way: with `"type": "module"`, tsc no longer resolves the `@/` alias or extensionless imports. In a CommonJS app:
+
+- Use `__dirname`, not `import.meta.dir`.
+- Write no top-level `await` in an entry or a script. Wrap the work in an async function and end it with `.catch`, as the entry point below does.
+
+### Tool configs
+
+Each tool reads its settings from a `.configs/` folder. Create the folder and three files.
+
+`.configs/oxlint.config.mts` sets the lint rules:
+
+```typescript
+import { defineConfig } from 'oxlint';
+import { oxlintConfigs } from '@venizia/dev-configs/linters';
+
+export default defineConfig(oxlintConfigs);
+```
+
+`.configs/oxfmt.config.mts` sets the formatting:
+
+```typescript
+import { defineConfig } from 'oxfmt';
+import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
+
+export default defineConfig(oxfmtConfigs);
+```
+
+`.configs/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
+
+```typescript
+import { houseConfigs } from '@venizia/dev-configs/linters';
+
+export default houseConfigs;
+```
+
+oxlint and oxfmt skip `dist` and `node_modules` through your `.gitignore`, so no ignore file is needed.
+
+> **Customization:** To override a formatting option, spread the base config:
+> ```typescript
+> import { defineConfig } from 'oxfmt';
+> import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
+> export default defineConfig({ ...oxfmtConfigs, printWidth: 120 });
+> ```
+> To change a lint rule, use its rule class. See [Tooling Configuration](/best-practices/code-style-standards/tooling).
+
+> **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards/) for detailed configuration options.
+
+:::tip Coming from Express/Hono/Fastify?
+This setup might seem verbose compared to minimal frameworks. The trade-off: ~50 lines of config upfront gives you scalable architecture for 10-1000+ endpoints without spaghetti code. For quick prototypes (< 5 endpoints), use plain Hono instead.
+:::
+
+## 4. Build Your First Application
+
+### Create Project Structure
+
+```bash
+mkdir -p src/{common,components,configurations,controllers/hello,datasources,helpers,models/{entities,requests,responses},repositories,services,utilities}
+```
+
+Your structure will look like:
+```
+src/
+├── index.ts                # Entry point
+├── application.ts          # Application class
+├── common/
+│   └── index.ts            # Shared constants, types, bindings
+├── components/
+│   └── index.ts            # Reusable modules (auth, swagger, etc.)
+├── configurations/
+│   └── index.ts            # App configuration files
+├── controllers/
+│   ├── index.ts            # Export all controllers
+│   └── hello/
+│       ├── definitions.ts  # Route configs, schemas, constants
+│       ├── hello.controller.ts
+│       └── index.ts        # Barrel export
+├── datasources/
+│   └── index.ts            # Database connections
+├── helpers/
+│   └── index.ts            # Helper functions and classes
+├── models/
+│   ├── index.ts            # Export all models
+│   ├── entities/           # Drizzle schema definitions
+│   ├── requests/           # Request DTOs (Zod schemas)
+│   └── responses/          # Response DTOs (Zod schemas)
+├── repositories/
+│   └── index.ts            # Data access layer
+├── services/
+│   └── index.ts            # Business logic
+└── utilities/
+    └── index.ts            # Utility functions
+```
+
+Each controller gets its own folder: `definitions.ts` for route configs and Zod schemas, the controller file itself, and an `index.ts` barrel export. This keeps things organized as controllers grow with custom routes, validations, and transformations.
+
+> **Note:** For this guide, we only use `controllers/`. Other folders will be used in the [CRUD Tutorial](./building-a-crud-api.md) when you add database support.
+
+### Create Application Class
+
+Create `src/application.ts` - this is where you configure and register all your application resources:
+
+```typescript
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+import packageJson from '../package.json';
+
+// Define application configurations
+export const appConfigs: IApplicationConfigs = {
+  host: process.env.HOST ?? '0.0.0.0',        // Where your server listens
+  port: +(process.env.PORT ?? 3000),          // Port number
+  path: { base: '/api', isStrict: true },      // All routes will be under /api
+  artifacts: AutoArtifacts,                   // Registers every decorated class found under src
+};
+
+export class Application extends BaseApplication {
+  // Required: Tell the framework about your app (used for API docs)
+  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    // Option 1: Read from package.json (recommended for consistency)
+    return packageJson;
+
+    // Option 2: Static app info (if package.json doesn't have correct fields)
+    // return {
+    //   name: 'my-app',
+    //   version: '1.0.0',
+    //   description: 'My IGNIS application',
+    // };
+  }
+
+  // Hook 1: Configure static file serving (e.g., serve images from /public)
+  staticConfigure(): void {
+    // Example: this.static({ folderPath: './public' })
+  }
+
+  // Hook 2: Add global middlewares (CORS, etc.)
+  override async setupMiddlewares(): Promise<void> {
+    const server = this.getServer();
+    const { cors } = await import('hono/cors');
+
+    server.use('*', cors({
+      origin: '*',
+      allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      maxAge: 86_400,
+      credentials: true,
+    }));
+  }
+
+  // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
+  preConfigure(): ValueOrPromise<void> {
+    // Register ApiReferenceComponent for API documentation at /api/doc/explorer
+    this.component(ApiReferenceComponent);
+
+    // Controllers, services, repositories and datasources need no call here:
+    // their decorators mark them and AutoArtifacts registers them.
+    // Framework components such as the one above are not your classes, so you register them here.
+  }
+
+  // Hook 4: Do cleanup or extra work after everything is set up
+  postConfigure(): ValueOrPromise<void> {
+    // Example: Seed database, start background jobs, etc.
+  }
+}
+```
+
+> [!NOTE] IApplicationInfo
+> **Required fields in `package.json`:**
+> - `name` - App name (shown in API docs title)
+> - `version` - App version (shown in API docs)
+> - `description` - App description (shown in API docs)
+>
+> **No proper `package.json`?** Use static app info instead (see Option 2 in code above).
+>
+> **Recommendation:** Read from `package.json` for consistency between app metadata and API docs.
+
+**Key takeaway:** Your classes carry decorators (`@controller`, `@service`, `@repository`, `@datasource`, `@model`) and `artifacts: AutoArtifacts` registers them, so `preConfigure()` stays short. The other hooks are there when you need them.
+
+**Boot sequence.** `initialize()` runs sixteen steps in this fixed order. You override a handful; the framework runs the rest.
+
+| # | Step | Purpose |
+|---|------|---------|
+| 1 | `printStartUpInfo` | Auto - logs the application name, version and environment |
+| 2 | `validateEnvs` | Skipped by default - set `ALLOW_EMPTY_ENV_VALUE=false` to reject empty `APP_ENV_*` values |
+| 3 | `registerDefaultMiddlewares` | Auto - request id, error handler, 404 handler |
+| 4 | `staticConfigure` | Optional - serve static folders |
+| 5 | `registerArtifacts` | Auto - registers the generated index named by `configs.artifacts` |
+| 6 | `preConfigure` | **Main hook** - whatever the artifact index cannot express: registry calls, hand-made bindings |
+| 7 | `hydrateSecrets` | Auto - pulls secrets from the bound provider into configuration |
+| 8 | `registerConfigurations` | Auto - configures bound configuration artifacts |
+| 9 | `registerDataSources` | Auto - configures bound datasources |
+| 10 | `registerComponents` | Auto - configures bound components |
+| 11 | `registerContributedDataSources` | Auto - configures datasources a component added |
+| 12 | `wireSecretRotatables` | Auto - subscribes rotatable datasources to secret rotation |
+| 13 | `registerControllers` | Auto - mounts controller routes on the root router |
+| 14 | `postConfigure` | Optional - seed data, background jobs |
+| 15 | `verifyBindings` | Auto - resolves every service and repository when `bootChecks.binding.doVerify` is on |
+| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `scopeFilter` cannot take effect |
+
+`getAppInfo()` is not a boot step. Components call it when they need your application metadata. `setupMiddlewares()` is not one either: `start()` runs it after `initialize()`, just before the server binds its socket.
+
+> **Deep Dive:** See [Application Class Reference](../core-concepts/application/) for detailed lifecycle documentation.
+
+### Create Controller
+
+Each controller lives in its own folder with separate files for definitions, logic, and exports.
+
+Create `src/controllers/hello/definitions.ts` - route configs and schemas:
+
+```typescript
+import { jsonContent } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
+
+export const BASE_PATH = '/hello';
+
+export const helloRouteConfigs = {
+  sayHello: {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: {
+      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+        description: 'A simple hello message',
+        schema: z.object({ message: z.string() }),
+      }),
+    },
+  },
+} as const;
+```
+
+Create `src/controllers/hello/hello.controller.ts` - the controller class:
+
+```typescript
+import { BaseRestController, controller, api } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { type Context } from 'hono';
+import { BASE_PATH, helloRouteConfigs } from './definitions';
+
+// All routes in this controller will be under /api/hello (remember path.base: '/api')
+@controller({ path: BASE_PATH })
+export class HelloController extends BaseRestController {
+  constructor() {
+    super({ scope: HelloController.name, path: BASE_PATH });
+  }
+
+  // Override binding() to register custom routes via bindRoute() or defineRoute().
+  // For decorator-based routes (@api, @get, @post), this can be empty.
+  override binding() {}
+
+  @api({ configs: helloRouteConfigs.sayHello })
+  sayHello(c: Context) {
+    return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+Create `src/controllers/hello/index.ts` - barrel export:
+
+```typescript
+export * from './hello.controller';
+```
+
+Create `src/controllers/index.ts` - export all controllers:
+
+```typescript
+export * from './hello';
+```
+
+**Controller Patterns:**
+
+| Pattern | Description |
+|---------|-------------|
+| `definitions.ts` | Route configs, Zod schemas, and constants - keeps controller file clean |
+| `@controller` | Registers the class as a controller with a base path |
+| `@api` | Defines a route with `method` specified in configs |
+| `@get`, `@post`, etc. | Shorthand decorators that auto-set the HTTP method (recommended) |
+| `binding()` | Override for programmatic routes via `bindRoute()` / `defineRoute()`. Empty for decorator-based routes |
+| Zod schemas | Provide automatic validation and OpenAPI docs |
+
+> **Deep Dive:** See [Controllers Reference](../core-concepts/rest-controllers.md) for advanced routing patterns and validation.
+
+### Create Entry Point
+
+Create `src/index.ts` - this starts your application:
+
+```typescript
+import { Application, appConfigs } from './application';
+import { LoggerFactory } from '@venizia/ignis-helpers';
+
+const logger = LoggerFactory.getLogger(['main']);
+
+const main = async () => {
+  const application = new Application({
+    scope: 'MyApp',
+    config: appConfigs,
+  });
+
+  const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
+  logger.info('[main] Getting ready to start up %s Application...', applicationName);
+
+  // init() registers the core bindings. start() then runs the boot sequence,
+  // sets up middlewares and binds the HTTP socket.
+  application.init();
+  await application.start();
+  return application;
+};
+
+main().catch((error: unknown) => {
+  logger.error('[main] Application start failed | Error: %s', error);
+  process.exit(1);
+});
+```
+
+> [!WARNING]
+> Call `init()` before `start()`. `init()` is the only thing that binds `CoreBindings.APPLICATION_INSTANCE`, and every built-in component injects that key. Skip it and the first component resolution throws `Binding key: @app/instance is not bounded in context!`.
+
+## 5. Run Your Application
+
+Add common application scripts to your `package.json`:
+
+```json
+"scripts": {
+    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "bun run clean && bun run build",
+    "server:dev": "NODE_ENV=development bun .",
+    "server:prod": "NODE_ENV=production bun ."
+}
+```
+
+> **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
+
+Create a cleanup script at `scripts/clean.sh`:
+
+```bash
+#!/bin/bash
+
+echo "START | Clean up..."
+
+rm -rf dist *.tsbuildinfo
+rm -rf artifact.zip
+
+echo "DONE | Clean up..."
+
+```
+
+Now, start your application:
+
+```bash
+bun run server:dev
+```
+
+Your server will be running on `http://localhost:3000`. You can access your new endpoint at `http://localhost:3000/api/hello`.
+
+Test with curl:
+```bash
+curl http://localhost:3000/api/hello
+```
+
+Response:
+```json
+{"message":"Hello, World!"}
+```
+
+**View API Documentation:**
+
+Open `http://localhost:3000/api/doc/explorer` to see an interactive Scalar API reference listing your endpoints. The explorer registers at `/doc/explorer` on the root router, and that router mounts under `path.base`, so the `/api` prefix applies here too.
+
+Congratulations! You have successfully created and configured your first application with the `IGNIS` framework.
+
+## Continue Your Journey
+
+You now have a working IGNIS application!
+
+**Next steps:**
+
+1. **[Building a CRUD API](./building-a-crud-api.md)** - Add database, create full REST API with CRUD operations
+2. **[Core Concepts](../core-concepts/application/)** - Deep dive into application architecture
+3. **[Best Practices](/best-practices/architectural-patterns)** - Learn recommended patterns and practices
+
+> **Deep Dive:** See [API Usage Examples](/best-practices/api-usage-examples) for more routing patterns and controller techniques.

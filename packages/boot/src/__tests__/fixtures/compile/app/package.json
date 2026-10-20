@@ -1,0 +1,7 @@
+{
+  "name": "compile-fixture-app",
+  "private": true,
+  "dependencies": {
+    "@fixture/core": "*"
+  }
+}

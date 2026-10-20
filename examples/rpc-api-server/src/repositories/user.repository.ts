@@ -1,15 +1,7 @@
-import { User, TUserSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ReadableRepository } from '@venizia/ignis';
+import { PGliteDataSource } from '@/datasources/pglite.datasource';
+import { User, type userTable } from '@/models/user.model';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-@repository({})
-export class UserRepository extends ReadableRepository<TUserSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
-  ) {
-    super({
-      dataSource,
-      entityClass: User,
-      relations: {},
-    });
-  }
-}
+@repository({ model: User, dataSource: PGliteDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}

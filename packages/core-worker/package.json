@@ -1,0 +1,87 @@
+{
+  "name": "@venizia/ignis-worker",
+  "version": "0.3.1",
+  "description": "Browser Web Worker host for the IGNIS framework: the request/response envelope, the transport contract, and WorkerApplication - the layer that listens on `onmessage` instead of a socket, so a RestApplication can serve its controllers with no server anywhere.",
+  "keywords": [
+    "browser",
+    "bun",
+    "envelope",
+    "hono",
+    "ignis",
+    "loopback",
+    "loopback4",
+    "rest",
+    "transport",
+    "typescript",
+    "venizia",
+    "worker"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/core-worker"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": [
+    "./dist/cjs/index.js",
+    "./dist/esm/index.js"
+  ],
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "prepublishOnly": "make rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
+    "@venizia/ignis-kernel": "workspace:*",
+    "reflect-metadata": "catalog:"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.5.1",
+    "hono": "^4.12.30"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "name": "@venizia/ignis-kernel",
+  "version": "0.3.1",
+  "description": "Browser-pure kernel of the IGNIS framework: dependency injection, lifecycle, REST controllers, repository and datasource abstractions, and the authentication and authorization seams. No node builtin and no server-only peer, so the same kernel serves a Bun server and a browser Worker.",
+  "keywords": [
+    "authentication",
+    "authorization",
+    "browser",
+    "component",
+    "controller",
+    "dependency-injection",
+    "di",
+    "ignis",
+    "ioc",
+    "isomorphic",
+    "kernel",
+    "loopback",
+    "loopback4",
+    "repository-pattern",
+    "rest",
+    "typescript",
+    "venizia"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/kernel"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./metadata": {
+      "types": "./dist/cjs/metadata.d.ts",
+      "import": "./dist/esm/metadata.js",
+      "require": "./dist/cjs/metadata.js",
+      "default": "./dist/cjs/metadata.js"
+    },
+    "./repository": {
+      "types": "./dist/cjs/repository.d.ts",
+      "import": "./dist/esm/repository.js",
+      "require": "./dist/cjs/repository.js",
+      "default": "./dist/cjs/repository.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": [
+    "./dist/cjs/index.js",
+    "./dist/esm/index.js"
+  ],
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "prepublishOnly": "make rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-filter": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
+    "reflect-metadata": "catalog:"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.5.1",
+    "casbin": "^5.51.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.30",
+    "jose": "^6.2.3"
+  },
+  "peerDependenciesMeta": {
+    "@hono/zod-openapi": {
+      "optional": true
+    },
+    "casbin": {
+      "optional": true
+    },
+    "drizzle-orm": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    },
+    "jose": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "casbin": "^5.51.1",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

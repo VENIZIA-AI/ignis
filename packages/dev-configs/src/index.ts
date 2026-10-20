@@ -1,2 +1,3 @@
-export * from "./eslint";
-export * from "./prettier";
+export * from './compilers';
+export * from './formatters';
+export * from './linters';

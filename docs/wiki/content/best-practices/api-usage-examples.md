@@ -1,0 +1,599 @@
+# API Usage Examples
+
+Practical examples for defining endpoints and working with data in IGNIS applications.
+
+## Routing Patterns
+
+### Decorator-Based Routing (Recommended)
+
+Use `@get`, `@post` decorators with `as const` route configs for full type safety:
+
+**`src/controllers/test/definitions.ts`**
+```typescript
+import { z } from '@hono/zod-openapi';
+import { Authentication, jsonContent, jsonResponse } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+
+// Define route configs as const for type inference
+export const RouteConfigs = {
+  // Use UPPER_CASE descriptive names for each route
+  GET_TEST: {
+    method: HTTP.Methods.GET,
+    path: '/test',
+    responses: jsonResponse({
+      description: 'Test decorator GET endpoint',
+      schema: z.object({ message: z.string(), method: z.string() }),
+    }),
+  },
+  CREATE_ITEM: {
+    method: HTTP.Methods.POST,
+    path: '/items',
+    authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // Secure this endpoint
+    request: {
+      body: jsonContent({
+        description: 'Request body for POST',
+        schema: z.object({ name: z.string(), age: z.number().int().positive() }),
+      }),
+    },
+    responses: jsonResponse({
+      description: 'Test decorator POST endpoint',
+      schema: z.object({ id: z.string(), name: z.string(), age: z.number() }),
+    }),
+  },
+} as const;
+```
+
+Then, use the decorators in your controller class.
+
+**`src/controllers/test/controller.ts`**
+```typescript
+import {
+  BaseRestController,
+  controller,
+  get,
+  post,
+  TRouteContext,
+} from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { RouteConfigs } from './definitions';
+
+@controller({ path: '/test' }) // transport defaults to 'rest'
+export class TestController extends BaseRestController {
+  // ...
+
+  @get({ configs: RouteConfigs.GET_TEST })
+  getWithDecorator(context: TRouteContext) {
+    // context is fully typed!
+    return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @post({ configs: RouteConfigs.CREATE_ITEM })
+  createWithDecorator(context: TRouteContext) {
+    // context.req.valid('json') can be explicitly typed
+    const body = context.req.valid<{ name: string; age: number }>('json');
+
+    // The response is validated against the schema
+    return context.json(
+      {
+        id: crypto.randomUUID(),
+        name: body.name,
+        age: body.age,
+      },
+      HTTP.ResultCodes.RS_2.Ok,
+    );
+  }
+}
+```
+
+### Example 2: Manual Route Definition in `binding()`
+
+You can also define routes manually within the controller's `binding()` method using `defineRoute` or `bindRoute`. This is useful for more complex scenarios or for developers who prefer a non-decorator syntax.
+
+**`src/controllers/test/controller.ts`**
+```typescript
+import { BaseRestController, controller, ValueOrPromise } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+import { RouteConfigs } from './definitions';
+
+@controller({ path: '/test' })
+export class TestController extends BaseRestController {
+  // ...
+  override binding(): ValueOrPromise<void> {
+    // Using 'defineRoute'
+    this.defineRoute({
+      configs: RouteConfigs.GET_TEST,
+      handler: context => {
+        return context.json({ message: 'Hello', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
+      },
+    });
+
+    // Using 'bindRoute' for a fluent API
+    this.bindRoute({
+      configs: RouteConfigs.CREATE_ITEM,
+    }).to({
+      handler: context => {
+        const body = context.req.valid<{ name: string; age: number }>('json');
+        return context.json(
+          { id: crypto.randomUUID(), ...body },
+          HTTP.ResultCodes.RS_2.Ok,
+        );
+      },
+    });
+  }
+  // ...
+}
+```
+
+### Example 3: Auto-Generated CRUD Controller
+
+For standard database entities, you can use `ControllerFactory.defineCrudController` to instantly generate a controller with a full set of CRUD endpoints.
+
+**`src/controllers/configuration.controller.ts`**
+```typescript
+import { Configuration } from '@/models';
+import { ConfigurationRepository } from '@/repositories';
+import { controller, ControllerFactory } from '@venizia/ignis';
+
+const BASE_PATH = '/configurations';
+
+// 1. The factory generates a controller class with all CRUD routes
+const _Controller = ControllerFactory.defineCrudController({
+  repository: { name: ConfigurationRepository.name },
+  controller: {
+    name: 'ConfigurationController',
+    basePath: BASE_PATH,
+  },
+  entity: () => Configuration, // The entity is used to generate OpenAPI schemas
+});
+
+// 2. Extend it - the container injects the repository named in repository.name
+@controller({ path: BASE_PATH })
+export class ConfigurationController extends _Controller {}
+```
+This automatically creates endpoints like `GET /configurations`, `POST /configurations`, `GET /configurations/:id`, etc.
+
+## Repository (Data Access) Usage
+
+Repositories are used to interact with your database. The `DefaultRelationalRepository` provides a rich set of methods for data manipulation. Here are examples from the `postConfigure` method in `src/application.ts`, which demonstrates how to use an injected repository.
+
+```typescript
+// In src/application.ts
+
+// Get the repository instance from the DI container
+const configurationRepository = this.get<ConfigurationRepository>({
+  key: BindingKeys.build({
+    namespace: BindingNamespaces.REPOSITORY,
+    key: ConfigurationRepository.name,
+  }),
+});
+
+// --- Find One Record ---
+const record = await configurationRepository.findOne({
+  filter: { where: { code: 'CODE_1' } },
+});
+
+// --- Find Multiple Records with Relations ---
+const records = await configurationRepository.find({
+  filter: {
+    where: { code: 'CODE_2' },
+    fields: { id: true, code: true, createdBy: true },
+    limit: 100,
+    include: [{ relation: 'creator' }], // Eager load the 'creator' relation
+  },
+});
+
+// --- Create a Single Record ---
+const newRecord = await configurationRepository.create({
+  data: {
+    code: 'NEW_CODE',
+    group: 'SYSTEM',
+    dataType: 'TEXT',
+    tValue: 'some value',
+  },
+});
+
+// --- Create Multiple Records ---
+const newRecords = await configurationRepository.createAll({
+  data: [
+    { code: 'CODE_A', group: 'SYSTEM' },
+    { code: 'CODE_B', group: 'SYSTEM' },
+  ],
+});
+
+// --- Update a Record by ID ---
+const updated = await configurationRepository.updateById({
+  id: 'some-uuid',
+  data: { tValue: 'new value' },
+});
+
+// --- Delete a Record by ID ---
+const deleted = await configurationRepository.deleteById({
+  id: newRecord.data!.id,
+});
+```
+
+Writes return `{ count, data }` and `shouldReturn` defaults to `true`. Pass `options: { shouldReturn: false }` to skip the `RETURNING` round-trip when you only need the count.
+
+## Server-Side Rendering (JSX)
+
+IGNIS supports server-side rendering using Hono's JSX middleware. This is useful for returning HTML content, such as landing pages or simple admin views.
+
+**Usage:**
+
+Use `defineJSXRoute` in your controller and `htmlResponse` for documentation.
+
+```typescript
+import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
+
+@controller({ path: '/pages' })
+export class PageController extends BaseRestController {
+  constructor() {
+    super({ scope: PageController.name, path: '/pages' });
+  }
+
+  override binding(): void {
+    this.defineJSXRoute({
+      configs: {
+        method: 'get',
+        path: '/welcome',
+        description: 'Welcome Page',
+        responses: htmlResponse({ description: 'HTML Welcome Page' }),
+      },
+      handler: (c) => {
+        const title = 'Welcome to IGNIS';
+        
+        // Return JSX directly
+        return c.html(
+          <html>
+            <head><title>{title}</title></head>
+            <body>
+              <h1>{title}</h1>
+              <p>Server-side rendered content.</p>
+            </body>
+          </html>
+        );
+      },
+    });
+  }
+}
+```
+
+## Custom Middleware
+
+Create reusable middleware using Hono's `createMiddleware` helper.
+
+### Basic Middleware Pattern
+
+```typescript
+import { createMiddleware } from 'hono/factory';
+import type { MiddlewareHandler } from 'hono';
+
+// Simple middleware with options
+export const rateLimiter = (opts: { maxRequests: number }): MiddlewareHandler => {
+  const { maxRequests } = opts;
+  const requests = new Map<string, number>();
+
+  return createMiddleware(async (c, next) => {
+    const ip = c.req.header('x-forwarded-for') ?? 'unknown';
+    const count = requests.get(ip) ?? 0;
+
+    if (count >= maxRequests) {
+      return c.json({ error: 'Too many requests' }, 429);
+    }
+
+    requests.set(ip, count + 1);
+    await next();
+  });
+};
+
+// Usage in application
+server.use('/api/*', rateLimiter({ maxRequests: 100 }));
+```
+
+### Middleware with Logging
+
+```typescript
+import { BaseHelper } from '@venizia/ignis-helpers';
+import { createMiddleware } from 'hono/factory';
+
+export const requestLogger = (): MiddlewareHandler => {
+  const helper = new BaseHelper({ scope: 'RequestLogger' });
+
+  return createMiddleware(async (c, next) => {
+    const start = performance.now();
+    const method = c.req.method;
+    const path = c.req.path;
+
+    helper.logger.info('[%s] %s - Started', method, path);
+
+    await next();
+
+    const duration = performance.now() - start;
+    helper.logger.info('[%s] %s - Completed in %dms', method, path, duration.toFixed(2));
+  });
+};
+```
+
+### Middleware in Controllers
+
+Apply middleware to specific routes in your controller:
+
+```typescript
+@controller({ path: '/admin' })
+export class AdminController extends BaseRestController {
+  constructor() {
+    super({ scope: AdminController.name, path: '/admin' });
+  }
+
+  override binding(): void {
+    // Apply middleware to all routes in this controller
+    this.getRouter().use('*', adminOnlyMiddleware());
+
+    this.defineRoute({
+      configs: { method: 'get', path: '/dashboard', /* ... */ },
+      handler: (c) => c.json({ /* ... */ }),
+    });
+  }
+}
+```
+
+## Service Layer Patterns
+
+Services contain business logic and orchestrate operations across multiple repositories.
+
+### Basic Service
+
+```typescript
+import { BaseService, inject, BindingKeys, BindingNamespaces } from '@venizia/ignis';
+
+export class UserService extends BaseService {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    private userRepository: UserRepository,
+
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: OrderRepository.name,
+      }),
+    })
+    private orderRepository: OrderRepository,
+  ) {
+    super({ scope: UserService.name });
+  }
+
+  async getUserWithOrders(userId: string) {
+    // findById returns the record or null (no wrapper object)
+    const user = await this.userRepository.findById({ id: userId });
+    if (!user) {
+      return null;
+    }
+
+    // find returns a plain array
+    const orders = await this.orderRepository.find({
+      filter: { where: { userId } },
+    });
+
+    return {
+      ...user,
+      orders,
+    };
+  }
+
+  async deactivateUser(userId: string) {
+    // Business logic: cancel pending orders before deactivating
+    await this.orderRepository.updateBy({
+      where: { userId, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+
+    return this.userRepository.updateById({
+      id: userId,
+      data: { status: 'INACTIVE' },
+    });
+  }
+}
+```
+
+### Using Services in Controllers
+
+```typescript
+@controller({ path: '/users' })
+export class UserController extends BaseRestController {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: UserService.name,
+      }),
+    })
+    private userService: UserService,
+  ) {
+    super({ scope: UserController.name, path: '/users' });
+  }
+
+  @get({ configs: RouteConfigs.GET_USER_WITH_ORDERS })
+  async getUserWithOrders(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
+    const result = await this.userService.getUserWithOrders(id);
+
+    if (!result) {
+      throw getError({ statusCode: 404, message: 'User not found' });
+    }
+
+    return c.json(result, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+## Batch Operations
+
+Use `updateBy` and `deleteBy` for bulk operations with filter conditions.
+
+### Bulk Update
+
+```typescript
+// Update all inactive users to archived
+const result = await userRepository.updateBy({
+  where: { status: 'INACTIVE', lastLoginAt: { lt: new Date('2024-01-01') } },
+  data: { status: 'ARCHIVED' },
+});
+// result.count = number of affected rows
+
+// Update ALL records (requires force flag)
+await userRepository.updateBy({
+  where: {},  // Empty = all records
+  data: { notificationSent: true },
+  options: { force: true },  // Required for safety
+});
+```
+
+### Bulk Delete
+
+```typescript
+// Delete expired sessions
+const result = await sessionRepository.deleteBy({
+  where: { expiresAt: { lt: new Date() } },
+});
+
+// Count only - skips the RETURNING round-trip
+const purged = await sessionRepository.deleteBy({
+  where: { userId: 'user-123' },
+  options: { shouldReturn: false },
+});
+// purged.count = number of deleted rows; purged.data is null
+```
+
+### Batch Create
+
+```typescript
+// Create multiple records at once
+const result = await userRepository.createAll({
+  data: [
+    { name: 'Alice', email: 'alice@example.com' },
+    { name: 'Bob', email: 'bob@example.com' },
+    { name: 'Charlie', email: 'charlie@example.com' },
+  ],
+});
+// result.data = array of created records with IDs
+```
+
+## Error Handling
+
+Use `getError()` to throw structured errors that are automatically formatted by the framework.
+
+### Throwing Errors
+
+```typescript
+import { getError, HTTP } from '@venizia/ignis-helpers';
+
+// Basic error
+throw getError({ message: 'Something went wrong' });
+// Returns: { statusCode: 400, message: 'Something went wrong', normalized: { text: 'Something went wrong', code: 'core.system_error', args: {} } }
+
+// With status code
+throw getError({
+  statusCode: HTTP.ResultCodes.RS_4.NotFound,
+  message: 'User not found',
+});
+
+// Full message shape - { text, code, args } - for i18n
+throw getError({
+  statusCode: HTTP.ResultCodes.RS_4.NotFound,
+  message: {
+    text: 'User not found',
+    code: 'core.user.not_found',
+    args: { id },
+  },
+});
+```
+
+The `{ text, code, args }` object is the one message shape used by error definitions, `getError` input, and the `normalized` field of every response. Read `normalized.code` on the client - there is no top-level `messageCode` in the response. Codes are lower-cased and default to `core.system_error`.
+
+Use `isApplicationError(error)` to test identity, never `instanceof` - the class has more than one identity across packages.
+
+### Error Handling in Route Handlers
+
+```typescript
+@get({ configs: RouteConfigs.GET_USER })
+async getUser(c: TRouteContext) {
+  const { id } = c.req.valid<{ id: string }>('param');
+
+  const user = await this.userRepository.findById({ id });
+
+  if (!user) {
+    throw getError({
+      statusCode: 404,
+      message: `User with ID '${id}' not found`,
+    });
+  }
+
+  return c.json(user, HTTP.ResultCodes.RS_2.Ok);
+}
+```
+
+### Error Response Format
+
+All errors are automatically formatted:
+
+```json
+{
+  "statusCode": 404,
+  "message": "User not found",
+  "normalized": {
+    "text": "User not found",
+    "code": "core.user.not_found",
+    "args": {}
+  },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/users/abc", "path": "/users/:id" }
+}
+```
+
+### Try-Catch for Complex Operations
+
+```typescript
+async processOrder(c: Context) {
+  const data = c.req.valid('json');
+
+  try {
+    const tx = await this.orderRepository.beginTransaction({
+      isolationLevel: 'READ COMMITTED',
+    });
+
+    try {
+      const order = await this.orderRepository.create({
+        data: { ...data, status: 'PENDING' },
+        options: { transaction: tx },
+      });
+
+      await this.inventoryService.decrementStock({
+        items: data.items,
+        transaction: tx,
+      });
+
+      await tx.commit();
+      return c.json(order.data, HTTP.ResultCodes.RS_2.Created);
+    } catch (error) {
+      await tx.rollback();
+      throw error;
+    }
+  } catch (error) {
+    this.logger.error('[processOrder] Failed: %s', error);
+
+    if (isApplicationError(error)) {
+      throw error;  // Re-throw application errors
+    }
+
+    throw getError({
+      statusCode: 500,
+      message: 'Failed to process order',
+    });
+  }
+}
+```

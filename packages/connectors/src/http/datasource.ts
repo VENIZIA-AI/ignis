@@ -1,0 +1,359 @@
+import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
+import { HTTP } from '@venizia/ignis-helpers/common';
+import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import { HttpResponseReader } from './common/readers';
+import type {
+  IAuthToken,
+  IHttpCallOptions,
+  IHttpDataSourceSettings,
+  TExtraRequest,
+  IHttpReadResult,
+  IHttpRequestContext,
+  IHttpWriteResult,
+  THttpBody,
+} from './common/types';
+import { HttpWire } from './common/wire';
+
+/** A scheme and `//` make a URL absolute - `localhost:3000` has neither. Read by pattern: `URL.canParse` needs Safari 17 or Chrome 120, and this runs in pages. */
+const ABSOLUTE_URL_PATTERN = /^[a-z][a-z\d+.-]*:\/\//i;
+
+/** Reads an IGNIS REST server through the repository contract. Targets IGNIS, not any REST API. */
+export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> {
+  override name: string;
+  override settings: IHttpDataSourceSettings;
+  override schema = {} as never;
+
+  protected network: NodeFetchNetworkRequest;
+  /** Normalised once: every request copies these, never re-parses `settings.headers`. */
+  protected configuredHeaders: Array<[string, string]>;
+  /** Decided once: a relative baseUrl (`/api`) is resolved against the page origin on every request. */
+  protected isRelativeBaseUrl: boolean;
+
+  constructor(opts: IHttpDataSourceSettings & { name?: string }) {
+    super({ scope: opts.name ?? HttpDataSource.name });
+
+    const { name = 'http', ...settings } = opts;
+
+    const configured = HttpWire.toHeaderEntries({ headers: settings.headers });
+    HttpWire.assertNoRequestCountHeader({ entries: configured, name });
+
+    this.isRelativeBaseUrl = !ABSOLUTE_URL_PATTERN.test(settings.baseUrl);
+
+    // Against the page, `api` would follow the current route; `localhost:3000` is not a URL at all.
+    if (this.isRelativeBaseUrl && !settings.baseUrl.startsWith('/')) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${name}] baseUrl '${settings.baseUrl}' is neither absolute nor a path from the origin | Pass '/api' or an absolute URL such as 'https://api.example.com'`,
+      });
+    }
+
+    this.configuredHeaders = configured;
+    this.name = name;
+    this.settings = settings;
+    this.network = new NodeFetchNetworkRequest({
+      name,
+      networkOptions: { baseUrl: settings.baseUrl },
+    });
+  }
+
+  async configure(): Promise<void> {}
+
+  override getCapabilities() {
+    return { transactions: false };
+  }
+
+  protected resolveAuthToken(opts: { context: IHttpRequestContext }): IAuthToken | undefined {
+    return this.settings.authToken ?? this.settings.authTokenResolver?.(opts.context);
+  }
+
+  /** Re-run on every send, so a header the app changed since the last request is the one sent. */
+  protected resolveHeaders(opts: { context: IHttpRequestContext }): Array<[string, string]> {
+    const resolver = this.settings.headersResolver;
+    if (!resolver) {
+      return [];
+    }
+
+    const entries = HttpWire.toHeaderEntries({ headers: resolver(opts.context) });
+    HttpWire.assertNoRequestCountHeader({ entries, name: this.name });
+
+    return entries;
+  }
+
+  protected buildHeaders(opts: {
+    token?: IAuthToken;
+    requestHeaders?: Array<[string, string]>;
+    isJsonBody?: boolean;
+    isFormDataBody?: boolean;
+  }): Headers {
+    const { token, requestHeaders, isJsonBody, isFormDataBody } = opts;
+    const headers = new Headers(this.configuredHeaders);
+
+    // A request's own headers win over the configured ones; the connector's below win over both.
+    for (const [name, value] of requestHeaders ?? []) {
+      headers.set(name, value);
+    }
+
+    if (isJsonBody && !headers.has(HTTP.Headers.CONTENT_TYPE)) {
+      headers.set(HTTP.Headers.CONTENT_TYPE, 'application/json');
+    }
+
+    // Only `fetch` knows the multipart boundary; any other content-type here would drop it.
+    if (isFormDataBody) {
+      headers.delete(HTTP.Headers.CONTENT_TYPE);
+    }
+
+    // Set last: under the envelope a record read answers `{ count, data }`.
+    headers.set(HTTP.Headers.REQUEST_COUNT_DATA, 'false');
+
+    if (!token) {
+      return headers;
+    }
+
+    headers.set(HTTP.Headers.AUTHORIZATION, `${token.type ?? 'Bearer'} ${token.value}`);
+
+    // Unconditionally it would send the string "undefined".
+    if (token.provider) {
+      headers.set('x-auth-provider', token.provider);
+    }
+
+    return headers;
+  }
+
+  /** The browser global `location` is not declared for a server build, so it is probed, not assumed. */
+  protected resolveLocationOrigin(): string | undefined {
+    const location: unknown = Reflect.get(globalThis, 'location');
+    if (typeof location !== 'object' || location === null || !('origin' in location)) {
+      return undefined;
+    }
+
+    return typeof location.origin === 'string' ? location.origin : undefined;
+  }
+
+  buildUrl(opts: { paths: Array<string>; query?: Record<string, unknown> }): string {
+    const { paths, query } = opts;
+    const requestUrl = this.network.getRequestUrl({ paths });
+
+    // A page or a Web Worker has an origin to resolve '/api' against; a server has none.
+    const origin = this.isRelativeBaseUrl ? this.resolveLocationOrigin() : undefined;
+    if (this.isRelativeBaseUrl && !origin) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[${this.name}] Relative baseUrl '${this.settings.baseUrl}' needs a page or worker location to resolve against, and there is none here | Pass an absolute baseUrl such as 'https://api.example.com'`,
+      });
+    }
+
+    const url = new URL(requestUrl, origin);
+
+    const parameters = Object.entries(query ?? {});
+    for (const [key, value] of parameters) {
+      if (value === undefined) {
+        continue;
+      }
+
+      url.searchParams.set(
+        key,
+        typeof value === 'string'
+          ? value
+          : HttpWire.toJson({ value, label: `[${this.name}] Query parameter '${key}'` }),
+      );
+    }
+
+    return url.toString();
+  }
+
+  /**
+   * The raw `Response`, on any method - for what the repository verbs do not cover, like an export
+   * or a PUT to a hand-written route. Auth and the 401 retry apply; the retry resends the same body.
+   */
+  async request(
+    opts: {
+      paths: Array<string>;
+      query?: Record<string, unknown>;
+      method?: string;
+      body?: THttpBody;
+    } & IHttpCallOptions,
+  ): Promise<Response> {
+    return this.sendRequest({ ...opts, url: this.buildUrl(opts) });
+  }
+
+  /** `request` on a URL already built: `read` and `write` serialise a long query once, not per use. */
+  protected async sendRequest(
+    opts: {
+      paths: Array<string>;
+      url: string;
+      method?: string;
+      body?: THttpBody;
+    } & IHttpCallOptions,
+  ): Promise<Response> {
+    const { url, signal } = opts;
+    const requestHeaders = HttpWire.toHeaderEntries({ headers: opts.headers });
+    HttpWire.assertNoRequestCountHeader({ entries: requestHeaders, name: this.name });
+
+    const method = opts.method ?? HTTP.Methods.GET;
+    const context: IHttpRequestContext = { paths: opts.paths, method, url, signal };
+    const { payload, isJson, isFormData } = HttpWire.toRequestBody({ body: opts.body });
+
+    // Both hooks run inside `send`, so the retry sends what they answer after the refresh.
+    const send = () =>
+      this.network.getNetworkService().send({
+        url,
+        method: method as never,
+        body: payload,
+        signal,
+        headers: this.buildHeaders({
+          token: this.resolveAuthToken({ context }),
+          // Resolved first, so the call's own headers win over them.
+          requestHeaders: [...this.resolveHeaders({ context }), ...requestHeaders],
+          isJsonBody: isJson,
+          isFormDataBody: isFormData,
+        }),
+      });
+
+    let response = await send();
+
+    if (response.status === HTTP.ResultCodes.RS_4.Unauthorized && this.settings.onUnauthorized) {
+      const shouldRetry = await this.settings.onUnauthorized(context);
+
+      // A call aborted while the session refreshed is not sent again.
+      if (shouldRetry) {
+        signal?.throwIfAborted();
+        response = await send();
+      }
+    }
+
+    return response;
+  }
+
+  /**
+   * The body as JSON, `null` when there is none; a body that is not JSON is the server's fault, named
+   * as such. Its content stays out of the message, which a relaying server may pass to its clients.
+   */
+  protected async readJsonBody(opts: { response: Response; url: string; verb: string }) {
+    const { response, url, verb } = opts;
+    const text = await response.text();
+
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.BadGateway,
+        message: `[${this.name}][${verb}] ${response.status} | ${HttpWire.describeUrl({ url, status: response.status })} | The response body is not JSON (${text.length} chars, content-type: ${response.headers.get(HTTP.Headers.CONTENT_TYPE) ?? 'none'})`,
+      });
+    }
+  }
+
+  /**
+   * A failed response as the error the server threw: its status, code, args and text, and its
+   * `extra` with the `requestId` added. `message` adds where it failed, for logs; `normalized.text`
+   * stays the server's, for display - `HTTP <status>` when the server sent none. `cause` is the server's `details.cause` - a 422's per-field
+   * issues, `{ path, message, code }`.
+   */
+  protected async toResponseError(opts: { response: Response; url: string; verb: string }) {
+    const { response, url, verb } = opts;
+    const described = HttpWire.describeUrl({ url, status: response.status });
+
+    return HttpResponseReader.toApplicationError({
+      response,
+      rootKey: this.settings.errorRootKey,
+      context: `[${this.name}][${verb}] ${response.status} | ${described}`,
+    });
+  }
+
+  /**
+   * Rows plus the total from `Content-Range`, reported absent when the header is. A GET unless told
+   * otherwise: `method` and `body` reach a list route a service wrote to take its filter in a body.
+   */
+  async read<R>(
+    opts: {
+      paths: Array<string>;
+      query?: Record<string, unknown>;
+      shape?: 'list' | 'one';
+      method?: string;
+      body?: THttpBody;
+      /** Extras the route offers beside its rows, asked for by name (`x-request-extra`). */
+      extra?: TExtraRequest;
+      /** The rows alone: every default extra off (`-*`), for a read that only counts or probes. */
+      isEveryDefaultOff?: boolean;
+    } & IHttpCallOptions,
+  ): Promise<IHttpReadResult<R>> {
+    const url = this.buildUrl(opts);
+    const headers = HttpWire.withExtraHeader({
+      headers: opts.headers,
+      extra: opts.extra,
+      isEveryDefaultOff: opts.isEveryDefaultOff,
+    });
+    const response = await this.sendRequest({ ...opts, url, headers });
+
+    if (!response.ok) {
+      throw await this.toResponseError({ response, url, verb: 'read' });
+    }
+
+    // A 204 or an empty body is no row; a list asked for of it still throws below.
+    const parsed = await this.readJsonBody({ response, url, verb: 'read' });
+    const { body, extra } = HttpResponseReader.readExtra({
+      body: parsed,
+      headers: response.headers,
+    });
+    const contentRange = response.headers.get(HTTP.Headers.CONTENT_RANGE) ?? undefined;
+    const range = HttpResponseReader.parseContentRange({ header: contentRange });
+    const data = HttpWire.unwrapRows<R>({ body, shape: opts.shape ?? 'list', url });
+
+    return {
+      data,
+      hasRange: range !== undefined,
+      contentRange,
+      total: range?.total,
+      skip: range?.skip,
+      dataLength: Array.isArray(data) ? data.length : data === null ? 0 : 1,
+      extra,
+    };
+  }
+
+  /**
+   * A write, and what it answered: the body as the rows, the count from `x-response-count`. The
+   * connector asks for bare rows, so an IGNIS write answers the row or the rows, never the envelope.
+   */
+  async write<R>(
+    opts: {
+      paths: Array<string>;
+      query?: Record<string, unknown>;
+      method: string;
+      body?: THttpBody;
+      /** Extras the route answers beside its rows, asked for by name (`x-request-extra`). */
+      extra?: TExtraRequest;
+    } & IHttpCallOptions,
+  ): Promise<IHttpWriteResult<R>> {
+    const url = this.buildUrl(opts);
+    const headers = HttpWire.withExtraHeader({ headers: opts.headers, extra: opts.extra });
+    const response = await this.sendRequest({ ...opts, url, headers });
+
+    if (!response.ok) {
+      throw await this.toResponseError({ response, url, verb: 'write' });
+    }
+
+    // A 204, or a route that answers nothing, has no body to parse.
+    const parsed = await this.readJsonBody({ response, url, verb: 'write' });
+    const { extra } = HttpResponseReader.readExtra({ body: parsed, headers: response.headers });
+    const data = extra ? parsed.data : parsed;
+
+    const countHeader = response.headers.get(HTTP.Headers.RESPONSE_COUNT_DATA);
+    const counted = countHeader === null ? Number.NaN : Number(countHeader);
+
+    return {
+      data,
+      count: Number.isFinite(counted)
+        ? counted
+        : Array.isArray(data)
+          ? data.length
+          : data === null
+            ? 0
+            : 1,
+      ...(extra ? { extra } : {}),
+    };
+  }
+}

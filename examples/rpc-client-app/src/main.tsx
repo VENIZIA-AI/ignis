@@ -1,12 +1,19 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
-import { AppProviders } from "./app/providers";
 
-createRoot(document.getElementById("root")!).render(
+const queryClient = new QueryClient();
+
+const container = document.getElementById("root");
+if (!container) {
+  throw new Error("[main] Missing #root element in index.html");
+}
+
+createRoot(container).render(
   <StrictMode>
-    <AppProviders>
+    <QueryClientProvider client={queryClient}>
       <App />
-    </AppProviders>
+    </QueryClientProvider>
   </StrictMode>,
 );

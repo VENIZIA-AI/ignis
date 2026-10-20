@@ -1,0 +1,131 @@
+import { redactSecrets } from '@/common/redact';
+import { HTTP, type THttpMethod } from '@/common/constants/http';
+import { type AnyObject } from '@/common/types';
+import { QueryStringSeparators, toQueryString } from '../../utilities/query-string';
+
+import { BaseNetworkRequest } from '../base-network-request.helper';
+import type { ILogger } from '@/modules/logger/common/types';
+import { AbstractNetworkFetchableHelper, type IRequestOptions } from './base-fetcher';
+
+export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
+  url: string;
+  method?: THttpMethod;
+  params?: AnyObject;
+}
+
+export class NodeFetcher extends AbstractNetworkFetchableHelper<
+  'node-fetch',
+  INodeFetchRequestOptions,
+  Awaited<ReturnType<typeof fetch>>,
+  typeof fetch
+> {
+  private defaultConfigs: RequestInit;
+
+  constructor(opts: { name: string; defaultConfigs: RequestInit; logger?: ILogger }) {
+    super({ name: opts.name, variant: 'node-fetch' });
+    const { name, defaultConfigs } = opts;
+    this.name = name;
+    opts?.logger?.info('Creating new network request worker instance! Name: %s', this.name);
+
+    this.defaultConfigs = defaultConfigs;
+  }
+
+  override async send(opts: INodeFetchRequestOptions, logger?: ILogger) {
+    const {
+      url,
+      method = HTTP.Methods.GET,
+      params,
+      body,
+      headers,
+      timeout,
+      signal,
+      ...rest
+    } = opts;
+
+    let timeoutId: NodeJS.Timeout | undefined;
+    let timeoutController: AbortController | undefined;
+    let effectiveSignal = signal;
+
+    if (timeout) {
+      timeoutController = new AbortController();
+      timeoutId = setTimeout(() => {
+        timeoutController?.abort();
+      }, timeout);
+
+      // Composed, never substituted: a timeout must not silently swallow the caller's own signal, or the caller would believe it cancelled a request that is in fact still running. Either source - and a signal already aborted before the call - aborts the request.
+      effectiveSignal = signal
+        ? AbortSignal.any([signal, timeoutController.signal])
+        : timeoutController.signal;
+    }
+
+    const requestConfigs: RequestInit = {
+      ...this.defaultConfigs,
+      ...rest,
+      method: method.toUpperCase(),
+      body,
+      headers,
+      signal: effectiveSignal,
+    };
+
+    // `?` only when the url carries no query string of its own - a second `?` is not a separator, so the server would read the previous parameter's value as `1?extra=2`.
+    const serializedParams = params ? toQueryString({ params }) : '';
+    const requestUrl = serializedParams
+      ? `${url}${url.includes(QueryStringSeparators.START) ? QueryStringSeparators.PAIR : QueryStringSeparators.START}${serializedParams}`
+      : url;
+
+    // The body is NEVER logged, only its size. `fetch` bodies are strings, and `redactSecrets` walks
+    // object keys - so a JSON credential payload passed straight through as a string was printed in
+    // full, with no key for the redactor to match on. Headers are normalised through `Headers` first
+    // because the `string[][]` form is a list of tuples, which key matching cannot see either.
+    const loggableConfigs = {
+      ...requestConfigs,
+      body: typeof body === 'string' ? `[body ${body.length} chars]` : body ? '[body]' : undefined,
+      headers: headers ? Object.fromEntries(new Headers(headers)) : undefined,
+    };
+
+    logger
+      ?.for(this.send.name)
+      .info('URL: %s | Props: %s | Timeout: %s', url, redactSecrets(loggableConfigs), timeout);
+
+    try {
+      const rs = await fetch(requestUrl, requestConfigs);
+      return rs;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+}
+
+export interface INodeFetchNetworkRequestOptions {
+  name: string;
+  networkOptions: RequestInit & {
+    baseUrl?: string;
+  };
+}
+
+export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
+  constructor(opts: INodeFetchNetworkRequestOptions) {
+    const { name, networkOptions } = opts;
+    const { headers, baseUrl, ...rest } = networkOptions;
+
+    const userHeaders =
+      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
+    const mergedHeaders: AnyObject = {
+      ['content-type']: 'application/json; charset=utf-8',
+      ...userHeaders,
+    };
+
+    const defaultConfigs: Partial<RequestInit> = {
+      ...rest,
+      headers: mergedHeaders,
+    };
+
+    super({
+      name,
+      baseUrl,
+      fetcher: new NodeFetcher({ name, defaultConfigs }),
+    });
+  }
+}

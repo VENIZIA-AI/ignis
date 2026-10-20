@@ -1,0 +1,56 @@
+import { HTTP } from '@/common/constants/http';
+import { getError } from '@/modules/error';
+import type { ITemporalAdapter, ITemporalNamespace } from '../common/types';
+
+const NANOSECONDS_PER_MILLISECOND = 1_000_000;
+
+/**
+ * Time zones through the TC39 `Temporal` API: the runtime's global (Bun has it, as do current
+ * browsers), or a polyfill's namespace passed as `temporal`.
+ */
+export class NativeTemporalAdapter implements ITemporalAdapter {
+  private readonly temporal: ITemporalNamespace;
+
+  /** A `Temporal` namespace - the runtime's global or a polyfill's - by the one member the adapter drives. */
+  static isTemporalNamespace(value: unknown): value is ITemporalNamespace {
+    if (typeof value !== 'object' || value === null || !('Instant' in value)) {
+      return false;
+    }
+
+    const instant = value.Instant;
+    return (
+      (typeof instant === 'function' || (typeof instant === 'object' && instant !== null)) &&
+      typeof Reflect.get(instant, 'fromEpochMilliseconds') === 'function'
+    );
+  }
+
+  constructor(opts?: { temporal?: ITemporalNamespace }) {
+    const temporal: unknown = opts?.temporal ?? Reflect.get(globalThis, 'Temporal');
+
+    if (!NativeTemporalAdapter.isTemporalNamespace(temporal)) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message:
+          '[NativeTemporalAdapter] Temporal is not available on this runtime | Pass a polyfill as `temporal`, or use DayjsTemporalAdapter / LuxonTemporalAdapter',
+      });
+    }
+
+    this.temporal = temporal;
+  }
+
+  getOffsetMilliseconds(opts: { value: Date; tz: string }): number {
+    const { value, tz } = opts;
+
+    try {
+      const zoned = this.temporal.Instant.fromEpochMilliseconds(value.getTime()).toZonedDateTimeISO(
+        tz,
+      );
+      return zoned.offsetNanoseconds / NANOSECONDS_PER_MILLISECOND;
+    } catch (error) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: `[NativeTemporalAdapter] no offset for ${tz} at ${value.getTime()} | ${error instanceof Error ? error.message : String(error)}`,
+      });
+    }
+  }
+}

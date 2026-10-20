@@ -1,21 +1,19 @@
-import { LoggerFactory } from '@venizia/ignis';
-import { Application, beConfigs } from './application';
+import AutoArtifacts from '@venizia/ignis-boot/auto';
+import { Application } from './application';
 
-const logger = LoggerFactory.getLogger(['main']);
+const application = new Application({
+  scope: 'Application',
+  config: {
+    host: '0.0.0.0',
+    port: Number(process.env.PORT ?? 3000),
+    path: { base: '/api', isStrict: false },
+    artifacts: AutoArtifacts,
+  },
+});
 
-// ------------------------------------------------------------------------------------------------
-const main = () => {
-  const application = new Application({
-    scope: 'Application',
-    config: beConfigs,
-  });
+application.init();
 
-  const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? '';
-  logger.info(
-    '[runApplication] Getting ready to start up %s Application...',
-    applicationName,
-  );
-  return application.start();
-};
-
-export default main();
+application.start().catch((error: unknown) => {
+  console.error('[main] Application start failed | Error:', error);
+  process.exit(1);
+});

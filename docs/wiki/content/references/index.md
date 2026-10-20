@@ -1,0 +1,178 @@
+# API Reference
+
+Complete reference documentation for the IGNIS framework. Find detailed API docs, type definitions, and usage examples for every class, component, and utility in the framework.
+
+<div class="guide-cards">
+
+<a href="./base/" class="guide-card highlight">
+<h3>Base Abstractions</h3>
+<p>Application, Controller, Service, Repository, Model</p>
+</a>
+
+<a href="/ignis/extensions/components/" class="guide-card">
+<h3>Components</h3>
+<p>Auth, Mail, Socket.IO, Swagger, Health Check</p>
+</a>
+
+<a href="/ignis/extensions/helpers/" class="guide-card">
+<h3>Helpers</h3>
+<p>Logger, Redis, Queue, Storage, Cron, Crypto</p>
+</a>
+
+<a href="./utilities/" class="guide-card">
+<h3>Utilities</h3>
+<p>Date, Parse, Promise, Schema, Performance</p>
+</a>
+
+<a href="./configuration/" class="guide-card">
+<h3>Configuration</h3>
+<p>Environment variables and settings</p>
+</a>
+
+</div>
+
+## Find What You Need
+
+<div class="roadmap">
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">1</span>
+<h4>Building an API</h4>
+</div>
+<p><a href="./base/application">Application</a> → <a href="./base/controllers">Controllers</a> → <a href="./base/services">Services</a> → <a href="./base/repositories/">Repositories</a></p>
+<span class="stage-desc">Request handling, business logic, and data access</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">2</span>
+<h4>Data Layer</h4>
+</div>
+<p><a href="./base/models">Models</a> → <a href="./base/datasources">DataSources</a> → <a href="./base/filter-system/">Filtering</a> → <a href="./base/repositories/relations">Relations</a></p>
+<span class="stage-desc">Entities, database connections, and query building</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">3</span>
+<h4>Adding Features</h4>
+</div>
+<p><a href="/ignis/extensions/components/authentication/">Auth</a> → <a href="/ignis/extensions/components/socket-io/">Real-time</a> → <a href="/ignis/extensions/components/mail/">Email</a> → <a href="/ignis/extensions/components/api-reference">API Docs</a></p>
+<span class="stage-desc">Pre-built components for common features</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">4</span>
+<h4>Infrastructure</h4>
+</div>
+<p><a href="/ignis/extensions/helpers/logger/">Logging</a> → <a href="/ignis/extensions/helpers/redis/">Caching</a> → <a href="/ignis/extensions/helpers/queue/">Queues</a> → <a href="/ignis/extensions/helpers/cron/">Scheduling</a></p>
+<span class="stage-desc">Background jobs, caching, and observability</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">5</span>
+<h4>Advanced Patterns</h4>
+</div>
+<p><a href="./base/dependency-injection">Dependency Injection</a> → <a href="./base/providers">Custom Providers</a> → <a href="./base/middlewares">Middlewares</a> → <a href="./base/components">Components</a></p>
+<span class="stage-desc">Advanced architecture patterns and customization</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">6</span>
+<h4>Production Ready</h4>
+</div>
+<p><a href="./base/middlewares">Error Handling</a> → <a href="/ignis/extensions/components/health-check">Health Checks</a> → <a href="./configuration/environment-variables">Configuration</a> → <a href="./base/bootstrapping">Auto-Discovery</a></p>
+<span class="stage-desc">Production deployment, monitoring, and reliability</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">7</span>
+<h4>Testing & Quality</h4>
+</div>
+<p><a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
+<span class="stage-desc">Testing strategies, quality assurance, and code review</span>
+</div>
+
+</div>
+
+> [!TIP] Looking for tutorials?
+> Check out the [Getting Started Guide](/guides/) for step-by-step tutorials and the [Core Concepts](/guides/core-concepts/application/) for architectural explanations.
+
+## Quick Examples
+
+**Define a Controller:**
+```typescript
+@controller({ path: '/users' })
+class UserController extends BaseRestController {
+  @get({
+    configs: {
+      path: '/{id}',
+      request: { params: z.object({ id: z.string() }) },
+    },
+  })
+  getUser(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
+    return context.json({ id }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+**Query with Repository:**
+```typescript
+const users = await userRepository.find({
+  filter: {
+    where: { isActive: true },
+    order: ['createdAt DESC'],
+    limit: 10,
+  },
+});
+```
+
+**Schedule a Job:**
+```typescript
+CronHelper.newInstance({
+  cronTime: '0 * * * *',
+  onTick: async () => {
+    await cleanupExpiredSessions();
+  },
+}).start();
+```
+
+## Common Imports
+
+```typescript
+// Core framework
+import {
+  BaseApplication,
+  BaseRestController,
+  BaseGrpcController,
+  BaseService,
+  DefaultCRUDRepository,
+  controller,
+  get, post, put, del,
+  rpc, unary, serverStream,
+  inject,
+} from '@venizia/ignis';
+
+// Helpers
+import {
+  LoggerFactory,
+  RedisSingleHelper,
+  SequentialQueueHelper,
+} from '@venizia/ignis-helpers';
+
+// DI Container
+import { Container } from '@venizia/ignis-inversion';
+```
+
+## See Also
+
+- [Getting Started](/guides/) - New to IGNIS? Start here
+- [Core Concepts](/guides/core-concepts/application/) - Deep dive into architecture
+- [Best Practices](/best-practices/) - Production patterns
+- [Changelogs](/changelogs/) - Version history

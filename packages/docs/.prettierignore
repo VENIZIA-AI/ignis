@@ -1,9 +1,0 @@
-dist
-examples
-node_modules
-coverage
-build
-*.min.js
-*.min.css
-site/.vitepress/cache
-site/.vitepress/dist

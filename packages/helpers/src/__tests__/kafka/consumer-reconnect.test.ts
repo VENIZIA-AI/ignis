@@ -1,0 +1,747 @@
+import type { AnyType } from '@/common/types';
+/** Kafka Consumer lifecycle & reconnect regression tests (no broker required) */
+
+import { sleep } from '@/utilities/sleep.utility';
+import { KafkaConsumerHelper } from '@/modules/queue/kafka';
+import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
+import type { MessagesStream } from '@platformatic/kafka';
+import { describe, expect, test } from 'bun:test';
+import { EventEmitter } from 'node:events';
+import { Readable } from 'node:stream';
+
+const newConsumer = () =>
+  KafkaConsumerHelper.newInstance({
+    clientId: 'ignis-test-lifecycle',
+    bootstrapBrokers: ['127.0.0.1:9092'],
+    groupId: 'ignis-test-lifecycle-group',
+  });
+
+const asStream = (readable: Readable) =>
+  readable as AnyType as MessagesStream<string, string, string, string>;
+
+const guard = (signal: Promise<void>, ms: number, label: string) =>
+  Promise.race([
+    signal,
+    new Promise<never>((_resolve, reject) => {
+      setTimeout(() => reject(new Error(`TIMEOUT: ${label}`)), ms);
+    }),
+  ]);
+
+// --- Dead-stream reconnect: the consume loop must never hang ---
+
+describe('KafkaConsumerHelper - dead stream reconnect', () => {
+  test('TC-100: destroyDeadStream() unblocks consume loop and reaches attemptReconnect', async () => {
+    const helper = newConsumer();
+
+    // A real Node Readable that never pushes - faithfully reproduces an idle consumer parked at `yield* this.stream` via the native async iterator.
+    const fakeStream = new Readable({ objectMode: true, read() {} });
+
+    let didAdvance = false;
+    let markAdvanced!: () => void;
+    const advancedPromise = new Promise<void>(resolve => {
+      markAdvanced = resolve;
+    });
+    helper['attemptReconnect'] = async () => {
+      didAdvance = true;
+      helper['consumeStartOptions'] = null; // break the loop cleanly
+      markAdvanced();
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['stream'] = asStream(fakeStream);
+
+    const loop = helper['startConsumeLoop']({
+      messageHandler: async () => {},
+      reconnectDelayMs: 1,
+      maxReconnectAttempts: 5,
+    });
+
+    await sleep(50);
+    helper['destroyDeadStream']();
+
+    await guard(advancedPromise, 2_000, 'consume loop never reached attemptReconnect');
+    expect(didAdvance).toBe(true);
+    await loop;
+  });
+
+  test('TC-101: exhausting maxReconnectAttempts exits the loop (no infinite hang)', async () => {
+    const helper = newConsumer();
+
+    let reconnectCalls = 0;
+    // Reconnect always "fails" (never sets this.stream), so consecutiveErrors keeps climbing.
+    helper['attemptReconnect'] = async () => {
+      reconnectCalls += 1;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['stream'] = null;
+
+    const loop = helper['startConsumeLoop']({
+      messageHandler: async () => {},
+      reconnectDelayMs: 1,
+      maxReconnectAttempts: 3,
+    });
+
+    // Loop must terminate on its own once retries are exhausted.
+    await guard(loop, 2_000, 'loop did not exit after exhausting reconnect attempts');
+    expect(reconnectCalls).toBe(3);
+  });
+
+  test('TC-102: shutdown during reconnect exits the loop', async () => {
+    const helper = newConsumer();
+
+    let reconnectCalls = 0;
+    helper['attemptReconnect'] = async () => {
+      reconnectCalls += 1;
+      helper['consumeStartOptions'] = null; // simulate close() during reconnect
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['stream'] = null;
+
+    const loop = helper['startConsumeLoop']({
+      messageHandler: async () => {},
+      reconnectDelayMs: 1,
+      maxReconnectAttempts: 5,
+    });
+
+    await guard(loop, 2_000, 'loop did not exit on shutdown during reconnect');
+    expect(reconnectCalls).toBe(1);
+  });
+
+  test('TC-103: a stream that ends normally advances the loop to reconnect', async () => {
+    const helper = newConsumer();
+
+    // Readable that immediately ends (pushes EOF) - drainStream yield* completes normally.
+    const endingStream = new Readable({ objectMode: true, read() {} });
+
+    let didAdvance = false;
+    let markAdvanced!: () => void;
+    const advancedPromise = new Promise<void>(resolve => {
+      markAdvanced = resolve;
+    });
+    helper['attemptReconnect'] = async () => {
+      didAdvance = true;
+      helper['consumeStartOptions'] = null;
+      markAdvanced();
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['stream'] = asStream(endingStream);
+
+    const loop = helper['startConsumeLoop']({
+      messageHandler: async () => {},
+      reconnectDelayMs: 1,
+      maxReconnectAttempts: 5,
+    });
+
+    endingStream.push(null); // signal end-of-stream
+
+    await guard(advancedPromise, 2_000, 'normal stream end did not advance to reconnect');
+    expect(didAdvance).toBe(true);
+    await loop;
+  });
+
+  test('TC-104: destroyDeadStream() is idempotent and safe when already null', () => {
+    const helper = newConsumer();
+    expect(() => helper['destroyDeadStream']()).not.toThrow();
+    const fakeStream = new Readable({ objectMode: true, read() {} });
+    fakeStream.on('error', () => {});
+    helper['stream'] = asStream(fakeStream);
+    expect(() => helper['destroyDeadStream']()).not.toThrow();
+    expect(helper.getStream()).toBeNull();
+    expect(() => helper['destroyDeadStream']()).not.toThrow(); // second call, already null
+  });
+});
+
+// --- Base health tracking driven by broker events (no broker required) ---
+
+describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
+  test('TC-105: rebuildClient() swaps to a fresh @platformatic/kafka Consumer instance', async () => {
+    const helper = newConsumer();
+    const before = helper.getConsumer();
+
+    // close() on a never-connected client may hang while the platformatic client flushes in-flight requests, so race it against a tight timeout - the production codepath uses shutdownTimeout for the same reason.
+    helper['closeOldClient'] = async () => {
+      /* no-op - old client is unreachable, don't actually close it */
+    };
+
+    await helper['rebuildClient']();
+
+    const after = helper.getConsumer();
+    expect(after).not.toBe(before);
+    // Health is reset on swap; the new client hasn't seen any BROKER_CONNECT yet.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper.isHealthy()).toBe(false);
+  });
+
+  test('TC-106: swapClient() detaches listeners from the old client (events on old client are ignored)', () => {
+    const helper = newConsumer();
+    const oldClient = helper.getConsumer();
+
+    // Simulate state on the OLD client.
+    oldClient.emit(KafkaClientEvents.BROKER_CONNECT, { broker: { host: 'h1', port: 9092 } });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    // Build a synthetic new client by reusing the same options.
+    const newClient = (
+      KafkaConsumerHelper as AnyType as {
+        buildConsumerClient: (opts: unknown) => typeof oldClient;
+      }
+    ).buildConsumerClient(helper['initialOptions']);
+    helper['swapClient'](newClient);
+
+    // After swap: connectedBrokers reset, and stray events on the OLD client must not propagate into the helper's state.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    oldClient.emit(KafkaClientEvents.BROKER_CONNECT, { broker: { host: 'h99', port: 9092 } });
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+
+    // Events on the NEW client are tracked normally.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h2', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+  });
+
+  test('TC-107: attemptReconnect skips rebuild when at least one broker is connected', async () => {
+    const helper = newConsumer();
+
+    // Simulate a healthy connection state.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    const beforeClient = helper.getConsumer();
+    let didRebuild = false;
+    helper['rebuildClient'] = async () => {
+      didRebuild = true;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+
+    // Stub the consume() call to avoid touching the network.
+    (
+      helper.getConsumer() as AnyType as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    expect(didRebuild).toBe(false);
+    expect(helper.getConsumer()).toBe(beforeClient);
+  });
+
+  test('TC-108: sticky sessionLikelyStale flag triggers rebuild even after brokers reconnect before attemptReconnect runs', async () => {
+    const helper = newConsumer();
+
+    // Healthy initial state.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    // All brokers drop - the moment the sticky flag must be set, regardless of what happens next.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+
+    // Simulate the platformatic client transparently reconnecting TCP before attemptReconnect runs: a snapshot-style check would now see "1 broker connected" and skip the rebuild - the bug we're guarding against.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    let didRebuild = false;
+    helper['rebuildClient'] = async () => {
+      didRebuild = true;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (
+      helper.getConsumer() as AnyType as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    // Despite brokers being back, the sticky flag remembers we lost them all at some point - rebuild fires.
+    expect(didRebuild).toBe(true);
+  });
+
+  test('TC-109: sessionLikelyStale is cleared after a successful consume()', async () => {
+    const helper = newConsumer();
+
+    // Trip the flag via BROKER_DISCONNECT-to-0.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['rebuildClient'] = async () => {
+      /* stub: don't touch the client for this test */
+    };
+    (
+      helper.getConsumer() as AnyType as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    expect(helper['sessionLikelyStale']).toBe(true);
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    // Flag must be cleared on successful consume so a later transient stream error doesn't trigger an unnecessary rebuild.
+    expect(helper['sessionLikelyStale']).toBe(false);
+  });
+
+  test('TC-150: rebuild triggers when sessionLikelyStale flips to true DURING the retry sleep', async () => {
+    // Regression: attemptReconnect must read sessionLikelyStale AFTER the sleep, not before - otherwise a during-backoff BROKER_DISCONNECT-to-0 is missed and consume() runs on a stale client.
+    const helper = newConsumer();
+
+    // Bring at least one broker online so the disconnect-to-0 event makes sense.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper['sessionLikelyStale']).toBe(false);
+
+    let didRebuild = false;
+    helper['rebuildClient'] = async () => {
+      didRebuild = true;
+    };
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (
+      helper.getConsumer() as AnyType as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    // Fire BROKER_DISCONNECT mid-sleep (just before the 100ms retry delay elapses), setting sessionLikelyStale while attemptReconnect is suspended on `await sleep(delayMs)`.
+    setTimeout(() => {
+      helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+        broker: { host: 'h1', port: 9092 },
+      });
+    }, 25);
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 100,
+    });
+
+    // The post-sleep read of the flag must see the mid-sleep transition.
+    expect(didRebuild).toBe(true);
+  });
+
+  test('TC-151: rebuildClient restarts lag monitoring on the new client', async () => {
+    // Regression: swapping this.client in rebuildClient left lagMonitoringActive=true with the timer on the abandoned old client, silently killing lag events; the fix re-arms monitoring on the new client from the persisted lagMonitoringOptions.
+    const helper = newConsumer();
+
+    // Stub the original client's lag-monitoring methods so calling startLagMonitoring() doesn't touch the network.
+    let oldStartCalls = 0;
+    (helper.getConsumer() as AnyType as { startLagMonitoring: () => void }).startLagMonitoring =
+      () => {
+        oldStartCalls += 1;
+      };
+    (helper.getConsumer() as AnyType as { stopLagMonitoring: () => void }).stopLagMonitoring =
+      () => {};
+
+    helper.startLagMonitoring({ topics: ['t'], interval: 5000 });
+    expect(oldStartCalls).toBe(1);
+    expect(helper['lagMonitoringActive']).toBe(true);
+    expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
+
+    // Intercept the factory to spy on the NEW client's startLagMonitoring; restored at the end so other tests aren't affected.
+    const KCH = KafkaConsumerHelper as AnyType as {
+      buildConsumerClient: (opts: unknown) => unknown;
+    };
+    const origFactory = KCH.buildConsumerClient;
+    let newStartCalls = 0;
+    KCH.buildConsumerClient = (opts: unknown) => {
+      const client = origFactory.call(KafkaConsumerHelper, opts) as {
+        startLagMonitoring: () => void;
+        stopLagMonitoring: () => void;
+      };
+      client.startLagMonitoring = () => {
+        newStartCalls += 1;
+      };
+      client.stopLagMonitoring = () => {};
+      return client;
+    };
+
+    // Don't actually close the old client (it would try to talk to brokers).
+    helper['closeOldClient'] = async () => {};
+
+    try {
+      await helper['rebuildClient']();
+    } finally {
+      KCH.buildConsumerClient = origFactory;
+    }
+
+    // The new client must have received the startLagMonitoring call, and helper state must still show monitoring active with the same options as before the swap.
+    expect(newStartCalls).toBe(1);
+    expect(helper['lagMonitoringActive']).toBe(true);
+    expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
+  });
+
+  test('TC-152: rebuildClient fires only once across multiple failed retries while brokers stay down', async () => {
+    // Regression: the stale flag used to clear only after a successful consume(), so a prolonged outage rebuilt the client on every failing retry; it now clears right after rebuildClient() succeeds - exactly one rebuild per all-brokers-down event.
+    const helper = newConsumer();
+
+    // Bring a broker up so the disconnect-to-0 event makes sense.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper['sessionLikelyStale']).toBe(true);
+
+    let rebuildCalls = 0;
+    helper['rebuildClient'] = async () => {
+      rebuildCalls += 1;
+      // Stub mimics production: rebuildClient clears the flag itself on success, so the invariant is verified end-to-end instead of passing because the stub forgot to clear it.
+      helper['sessionLikelyStale'] = false;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    // consume() keeps failing - simulating brokers still being down.
+    (
+      helper.getConsumer() as AnyType as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => {
+      throw new Error('brokers still unreachable');
+    };
+
+    // Three retry attempts back-to-back.
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: undefined,
+    });
+    await helper['attemptReconnect']({ attempt: 2, maxAttempts: 5, delayMs: 1 });
+    await helper['attemptReconnect']({ attempt: 3, maxAttempts: 5, delayMs: 1 });
+
+    // Despite 3 retries with failing consume(), rebuild fired exactly once.
+    expect(rebuildCalls).toBe(1);
+  });
+
+  test('TC-153: BROKER_FAILED-to-zero also sets sessionLikelyStale and destroys the stream', () => {
+    // Regression: the old handler only listened to BROKER_DISCONNECT, so a pool emptied via BROKER_FAILED left sessionLikelyStale false and the stream undestroyed - the original hang through a different event path.
+    const helper = newConsumer();
+
+    // Park a fake stream on the helper so we can observe destruction.
+    const fakeStream = new Readable({ objectMode: true, read() {} });
+    fakeStream.on('error', () => {}); // swallow destroy(err) emit
+    helper['stream'] = asStream(fakeStream);
+    expect(helper['sessionLikelyStale']).toBe(false);
+
+    // Bring one broker up, then take it down via BROKER_FAILED (not DISCONNECT).
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_FAILED, {
+      broker: { host: 'h1', port: 9092 },
+    });
+
+    // After BROKER_FAILED-to-zero: count is 0, flag is set, stream destroyed.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper['sessionLikelyStale']).toBe(true);
+    expect(helper.getStream()).toBeNull();
+  });
+
+  test('TC-160: attemptReconnect routes a failed reconnect to onReconnectError with {error, attempt, maxAttempts}, and onMessageError is NOT called', async () => {
+    const reconnectErrors: Array<{ error: Error; attempt: number; maxAttempts: number }> = [];
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-reconnect-error',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-reconnect-error-group',
+      onReconnectError: opts => {
+        reconnectErrors.push(opts);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => {
+        throw new Error('brokers still unreachable');
+      };
+
+    await helper['attemptReconnect']({
+      attempt: 2,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(reconnectErrors.length).toBe(1);
+    expect(reconnectErrors[0].attempt).toBe(2);
+    expect(reconnectErrors[0].maxAttempts).toBe(5);
+    expect(reconnectErrors[0].error).toBeInstanceOf(Error);
+    expect(reconnectErrors[0].error.message).toBe('brokers still unreachable');
+    expect(messageErrors.length).toBe(0);
+  });
+
+  test('TC-161: attemptReconnect falls back to the errorHandler (onMessageError) when onReconnectError is not set', async () => {
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = newConsumer();
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => {
+        throw new Error('brokers still unreachable');
+      };
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(messageErrors.length).toBe(1);
+    expect(messageErrors[0].error.message).toBe('brokers still unreachable');
+  });
+});
+
+describe('KafkaConsumerHelper - protected extension seam', () => {
+  test('TC-170: a subclass can override a formerly-private method (compile-time proof)', () => {
+    // If destroyDeadStream were still `private`, this `override` would fail to compile (TS2415) - verified against the pre-change source.
+    class ExtendedConsumerHelper extends KafkaConsumerHelper {
+      destroyCalls = 0;
+
+      protected override destroyDeadStream(): void {
+        this.destroyCalls += 1;
+        super.destroyDeadStream();
+      }
+    }
+
+    const helper = new ExtendedConsumerHelper({
+      clientId: 'ignis-test-protected-seam',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-protected-seam-group',
+    });
+
+    helper['destroyDeadStream']();
+
+    expect(helper.destroyCalls).toBe(1);
+    expect(helper.getStream()).toBeNull();
+  });
+});
+
+describe('KafkaConsumerHelper - broker health tracking', () => {
+  const emit = (helper: KafkaConsumerHelper, event: string, host: string, port: number) => {
+    helper.getConsumer().emit(event, { broker: { host, port } });
+  };
+
+  test('TC-110: tracks connect/disconnect/failed broker events', () => {
+    const helper = newConsumer();
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper.isHealthy()).toBe(false);
+    expect(helper.getHealthStatus()).toBe(KafkaHealthStatuses.UNKNOWN);
+
+    emit(helper, KafkaClientEvents.BROKER_CONNECT, 'h1', 9092);
+    emit(helper, KafkaClientEvents.BROKER_CONNECT, 'h2', 9092);
+    expect(helper.getConnectedBrokerCount()).toBe(2);
+    expect(helper.isHealthy()).toBe(true);
+    expect(helper.getHealthStatus()).toBe(KafkaHealthStatuses.CONNECTED);
+
+    // Duplicate connect for an already-known broker must not double-count.
+    emit(helper, KafkaClientEvents.BROKER_CONNECT, 'h1', 9092);
+    expect(helper.getConnectedBrokerCount()).toBe(2);
+
+    emit(helper, KafkaClientEvents.BROKER_DISCONNECT, 'h1', 9092);
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+    expect(helper.isHealthy()).toBe(true); // still one broker
+
+    emit(helper, KafkaClientEvents.BROKER_DISCONNECT, 'h2', 9092);
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper.isHealthy()).toBe(false);
+    expect(helper.getHealthStatus()).toBe(KafkaHealthStatuses.DISCONNECTED);
+
+    // A failed event on an already-empty pool stays at 0 (no negative count).
+    emit(helper, KafkaClientEvents.BROKER_FAILED, 'h3', 9092);
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+  });
+});
+
+describe('KafkaConsumerHelper - reconnect error routing, the other two sites', () => {
+  test('TC-162: a failed client rebuild routes to onReconnectError with {error, attempt, maxAttempts}; onMessageError stays silent', async () => {
+    const reconnectErrors: Array<{ error: Error; attempt: number; maxAttempts: number }> = [];
+    const messageErrors: Array<{ error: Error }> = [];
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-rebuild-error',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-rebuild-error-group',
+      onReconnectError: opts => {
+        reconnectErrors.push(opts);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['sessionLikelyStale'] = true;
+    helper['rebuildClient'] = async () => {
+      throw new Error('rebuild boom');
+    };
+
+    await helper['attemptReconnect']({
+      attempt: 3,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: opts => {
+        messageErrors.push(opts);
+      },
+    });
+
+    expect(reconnectErrors.length).toBe(1);
+    expect(reconnectErrors[0].attempt).toBe(3);
+    expect(reconnectErrors[0].maxAttempts).toBe(5);
+    expect(reconnectErrors[0].error.message).toBe('rebuild boom');
+    expect(messageErrors.length).toBe(0);
+  });
+
+  test('TC-171: the stream obtained by a successful reconnect always carries an error listener, even with no hook set', async () => {
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-reconnect-listener',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-reconnect-listener-group',
+    });
+
+    const stream = new EventEmitter();
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+      errorHandler: undefined,
+    });
+
+    expect(stream.listenerCount('error')).toBe(1);
+    expect(() => stream.emit('error', new Error('broker dropped'))).not.toThrow();
+  });
+});
+
+describe('KafkaConsumerHelper - one delivery per stream error on a real Readable', () => {
+  test('TC-180: loop mode - a destroyed Readable reaches onStreamError exactly once and onMessageError never', async () => {
+    const streamErrors: Error[] = [];
+    const messageErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-once',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-once-group',
+      onMessage: async () => {},
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts.error);
+      },
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
+    stream.destroy(new Error('broker dropped'));
+    await sleep(50);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+    expect(messageErrors).toEqual([]);
+  });
+
+  test('TC-181: pull mode - the same error reaches onStreamError once through the listener', async () => {
+    const streamErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-once-pull',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-once-pull-group',
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'] });
+    stream.destroy(new Error('broker dropped'));
+    await sleep(20);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+  });
+});
+
+describe('KafkaConsumerHelper - errors after the loop gave up are still reported', () => {
+  test('TC-182: once reconnects are exhausted, a later error on the dead stream still reaches onStreamError', async () => {
+    const streamErrors: Error[] = [];
+    const messageErrors: Error[] = [];
+    const stream = new Readable({ objectMode: true, read: () => {} });
+
+    const helper = KafkaConsumerHelper.newInstance({
+      clientId: 'ignis-test-after-exhaustion',
+      bootstrapBrokers: ['127.0.0.1:9092'],
+      groupId: 'ignis-test-after-exhaustion-group',
+      onMessage: async () => {},
+      onStreamError: opts => {
+        streamErrors.push(opts.error);
+      },
+      onMessageError: opts => {
+        messageErrors.push(opts.error);
+      },
+    });
+    (helper.getConsumer() as AnyType as { consume: (opts: unknown) => Promise<unknown> }).consume =
+      async () => stream;
+
+    await helper.start({ topics: ['t'], maxReconnectAttempts: 0 });
+    stream.destroy(new Error('first drop'));
+    await sleep(50);
+    expect(helper['consumeLoop']).toBeNull();
+
+    stream.emit('error', new Error('late error'));
+    await sleep(20);
+
+    expect(streamErrors.map(error => error.message)).toEqual(['first drop', 'late error']);
+    expect(messageErrors).toEqual([]);
+  });
+});

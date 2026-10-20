@@ -1,0 +1,1093 @@
+---
+title: REST Controllers Reference
+description: Technical reference for REST controller classes and API endpoints
+difficulty: beginner
+---
+
+# Deep Dive: REST Controllers
+
+Technical reference for REST controller classes - the foundation for creating HTTP/JSON API endpoints in IGNIS.
+
+> [!NOTE]
+> This page covers **REST controllers** (HTTP/JSON). For gRPC controllers using ConnectRPC, see the [gRPC Controllers Reference](./grpc-controllers.md).
+
+**Files:**
+- `packages/kernel/src/base/controllers/rest/abstract.ts` - Abstract base class
+- `packages/kernel/src/base/controllers/rest/base.ts` - Concrete base class
+- `packages/kernel/src/base/controllers/common/types/` - Shared types and interfaces
+- `packages/kernel/src/base/controllers/common/constants.ts` - Transport constants and headers
+- `packages/kernel/src/base/metadata/routes/rest.ts` - Route decorators (`@api`, `@get`, `@post`, etc.)
+- `packages/kernel/src/base/metadata/routes/controller.ts` - `@controller` decorator
+- `packages/kernel/src/base/controllers/factory/controller.ts` - CRUD controller factory
+- `packages/kernel/src/base/controllers/factory/crud/readable.ts` - CRUD read verbs and `getBaseWhere`
+- `packages/kernel/src/base/components/controller/rest/rest.component.ts` - RestComponent
+
+## Quick Reference
+
+| Class | Purpose | Key Methods |
+|-------|---------|-------------|
+| **AbstractRestController** | Base class with Hono router, auth middleware, and OpenAPI integration | `binding()`, `registerRoutesFromRegistry()`, `getRouteConfigs()`, `getJSXRouteConfigs()`, `buildRouteMiddlewares()` |
+| **BaseRestController** | Concrete implementation with route registration methods | `defineRoute()`, `bindRoute()`, `defineJSXRoute()`, `toHonoHandler()` |
+| **RestComponent** | Configures and mounts all REST controllers onto the application router | `binding()` |
+| **ControllerFactory** | Generates typed CRUD controllers from entity definitions | `defineCrudController()` |
+
+## Controller Transport System
+
+IGNIS supports multiple controller transports. The `@controller` decorator accepts a `transport` field to distinguish between REST and gRPC controllers.
+
+### `ControllerTransports`
+
+```typescript
+class ControllerTransports {
+  static readonly REST = 'rest';
+  static readonly GRPC = 'grpc';
+}
+
+type TControllerTransport = 'rest' | 'grpc';
+```
+
+### `TControllerMetadata`
+
+The `@controller` decorator metadata is a union type:
+
+```typescript
+interface IBaseControllerMetadata {
+  path: string;
+  tags?: string[];
+  description?: string;
+}
+
+interface IRestControllerMetadata extends IBaseControllerMetadata {
+  transport?: typeof ControllerTransports.REST; // Optional - defaults to REST
+}
+
+interface IGrpcControllerMetadata<ServiceType = unknown> extends IBaseControllerMetadata {
+  transport: typeof ControllerTransports.GRPC; // Required for gRPC
+  service: ServiceType;
+}
+
+type TControllerMetadata = IRestControllerMetadata | IGrpcControllerMetadata;
+```
+
+REST controllers do not need to specify `transport` explicitly - it defaults to REST when omitted.
+
+### Application Transport Configuration
+
+The application configures which transports to enable:
+
+`transports` is a config key, not a constructor argument. The constructor takes `{ scope, config }`, both required:
+
+```typescript
+const applicationConfigs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
+  // Defaults to ['rest'] if omitted
+  transports: [ControllerTransports.REST, ControllerTransports.GRPC],
+};
+
+class MyApplication extends BaseApplication {
+  constructor() {
+    super({ scope: MyApplication.name, config: applicationConfigs });
+  }
+}
+```
+
+During `registerControllers()`, the application creates a `RestComponent` for REST transport and a `GrpcComponent` for gRPC transport.
+
+## `RestComponent`
+
+**File:** `packages/kernel/src/base/components/controller/rest/rest.component.ts`
+
+The `RestComponent` is responsible for discovering, configuring, and mounting all REST controllers onto the application's root Hono router. It is automatically instantiated by `RestApplication.registerControllers()` when the REST transport is enabled.
+
+### Behavior
+
+1. Finds all bindings tagged with the `controllers` namespace
+2. Skips any controller whose metadata has `transport: 'grpc'`
+3. Validates that each remaining controller has a `path` in its metadata
+4. Resolves each controller instance from the IoC container
+5. Calls `configure()` on the controller (which runs `binding()` + `registerRoutesFromRegistry()`)
+6. Mounts the controller's router at `metadata.path` on the application's root router
+7. Re-fetches controller bindings once the whole batch is mounted, then repeats until a pass finds nothing new
+
+Step 7 re-scans per batch, not per controller. The per-controller form measured 3.5ms at 200 controllers, against 0.04ms for this one.
+
+```typescript
+export class RestComponent<
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+> extends BaseComponent {
+  constructor(private application: RestApplication<AppEnv, AppSchema, BasePath>) {
+    super({
+      scope: RestComponent.name,
+      initDefault: { enable: true, container: application },
+      bindings: {
+        [RestBindingKeys.REST_COMPONENT_OPTIONS]: Binding.bind<IRestComponentConfig>({
+          key: RestBindingKeys.REST_COMPONENT_OPTIONS,
+        }).toValue({}),
+      },
+    });
+  }
+}
+```
+
+## Routing Approaches
+
+| Approach | When to Use | Example |
+|----------|-------------|---------|
+| **Decorator-Based** (Recommended) | Clean, declarative routes | `@get({ configs: {...} })` |
+| **Imperative (`defineRoute`)** | Complex routing logic, feature flags | `this.defineRoute({ configs, handler })` |
+| **Fluent (`bindRoute`)** | Two-step route registration | `this.bindRoute({ configs }).to({ handler })` |
+| **JSX (`defineJSXRoute`)** | Server-rendered HTML pages | `this.defineJSXRoute({ configs, handler })` |
+
+## `AbstractRestController`
+
+Base class integrating Hono routing with IGNIS DI, authentication/authorization middleware, and OpenAPI generation.
+
+**Generic Parameters:**
+
+```typescript
+abstract class AbstractRestController<
+  RouteEnv extends Env = Env,
+  RouteSchema extends Schema = {},
+  BasePath extends string = '/',
+  ConfigurableOptions extends object = {},
+  Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>,
+> extends BaseHelper implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
+```
+
+### Constructor
+
+```typescript
+constructor(opts: IControllerOptions)
+```
+
+| Option | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `scope` | `string` | Required | Logger scope name |
+| `path` | `string` | - | Route base path. Falls back to `@controller` decorator path if not provided |
+| `isStrict` | `boolean` | `true` | No effect once the controller is mounted: trailing-slash matching follows the application's `path.isStrict` |
+
+Path resolution priority: `@controller` decorator metadata > constructor `path` option. Throws if neither provides a path.
+
+### Key Properties
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `isConfigured` | `boolean` | Guards against double configuration |
+| `router` | `OpenAPIHono` | The controller's Hono router instance |
+| `path` | `string` | Resolved base path |
+| `definitions` | `Definitions` | Route definition configs (used by factory-generated controllers) |
+
+### Methods
+
+#### `configure(opts?): Promise<OpenAPIHono>`
+
+Configures the controller. Idempotent - returns the router immediately if already configured.
+
+1. Calls `binding()` (your manual route definitions)
+2. Calls `registerRoutesFromRegistry()` (decorator-based routes)
+3. Sets `isConfigured = true`
+
+#### `registerRoutesFromRegistry(): void`
+
+Reads route metadata registered by `@get`, `@post`, `@api`, etc. decorators and binds them to the router using `bindRoute().to()`.
+
+#### `getRouteConfigs<RouteConfig>(opts: { configs: RouteConfig })`
+
+Processes a route config, injecting authentication/authorization middleware and OpenAPI security specs. Returns a Hono `createRoute` result. Automatically appends the controller's `scope` as a tag.
+
+#### `getJSXRouteConfigs<RouteConfig>(opts: { configs: RouteConfig })`
+
+Like `getRouteConfigs` but additionally merges an HTML response schema for JSX/server-rendered routes.
+
+#### `buildRouteMiddlewares<RouteConfig>(opts: { configs: RouteConfig })`
+
+Internal method that extracts `authenticate`, `authorize`, and `middleware` from a route config and builds the middleware chain:
+
+1. If `authenticate.strategies` is non-empty, adds `authenticateFn` middleware
+2. If `authorize` is present (single spec or array), adds `authorizeFn` middleware(s)
+3. If `middleware` is present (single or array), appends custom middleware(s)
+
+Returns `{ restConfig, security, mws }`.
+
+#### `binding(): ValueOrPromise<void>` (abstract)
+
+Override to register routes manually using `bindRoute` or `defineRoute`.
+
+## `BaseRestController`
+
+Extends `AbstractRestController` with concrete implementations for `bindRoute`, `defineRoute`, and `defineJSXRoute`, plus the response helpers every controller shares.
+
+### `respond<R>(opts: { context, format, payload, range?, extra? })`
+
+The one response call. Sets `X-Response-Format` (`ResponseFormats.ARRAY` or `ResponseFormats.OBJECT`), and with `range` also `Content-Range: records <start>-<end>/<total>` (`records */<total>` for an empty page); then returns `payload` (`{ count, data }`) through `normalizeCountData`, which writes `X-Response-Count` from `payload.count` and returns the bare `data` when the client sent `x-request-count: false`. `payload.count` is the rows of this response, never the total.
+
+```typescript
+const { data, range } = await this.repository.find({ filter, options: { shouldQueryRange: true } });
+return context.json(
+  this.respond({ context, format: ResponseFormats.ARRAY, payload: { count: data.length, data }, range }),
+  HTTP.ResultCodes.RS_2.Ok,
+);
+```
+
+`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+
+#### Extras beside the rows
+
+A list can offer figures beside its rows - facet counts, chip totals. Declare them in `extra`; the client names the ones it wants in `x-request-extra`, and only those are computed:
+
+```typescript
+const body = await this.respond({
+  context,
+  format: ResponseFormats.ARRAY,
+  payload: { count: data.length, data },
+  range,
+  extra: {
+    summary: () => this.productService.summary({ where }),                         // when named
+    counts: { isDefault: true, compute: () => this.productService.counts({ where }) }, // always, unless switched off
+    facets: { keys: ['status', 'category', 'tag'], compute: ({ keys }) => this.productService.facets({ where, keys }) },
+  },
+});
+return context.json(body, HTTP.ResultCodes.RS_2.Ok);
+```
+
+| `x-request-extra` entry | Meaning |
+|---|---|
+| `summary` | A plain extra |
+| `facets(status,tag)` | A group with the keys wanted; `compute` receives exactly those, for one aggregate pass |
+| `-counts` / `-*` | One default / every default switched off |
+
+When anything was computed, the body is `{ data, extra }` (plus `count` unless `x-request-count: false`) and the response carries `x-response-extra` naming it. Otherwise the body is unchanged. An unknown name or key, a group named without keys, or a malformed entry is a 400 naming what the route offers.
+
+With `extra`, `respond` returns a promise: await it. A write route offers extras the same way. Only routes that pass `extra` read the header; the others ignore it. `getRequestedExtras({ context })` returns the parsed entries for a route that builds its body by hand. Cross-origin, spread `HTTP.CorsHeaders.ALLOW` and `HTTP.CorsHeaders.EXPOSE` into a CORS configuration that lists headers by hand.
+
+### `setListHeaders(opts: { context, count } & ({ range } | { offset, total }))`
+
+The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `buildDataRange` (inclusive `end`, empty page collapses onto `start`).
+
+### `toContentRange(opts: { range, count })`
+
+The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
+
+### `normalizeCountData(opts: { context, payload })`
+
+Sets `X-Response-Count` from `payload.count` and returns the whole envelope, or only `payload.data` when the request carried `x-request-count: false`.
+
+### `defineRoute<RouteConfig, ResponseType>(opts)`
+
+Defines and registers a route with its handler in a single call.
+
+```typescript
+defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  configs: RouteConfig;
+  handler: TRouteHandler<ResponseType, RouteEnv>;
+  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+}): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
+```
+
+- **`configs`**: Route configuration including path, method, request/response schemas, and optional auth
+- **`handler`**: Route handler function `(context: TRouteContext) => Response`
+- **`hook`**: Optional Hono hook for validation error handling
+
+Returns `{ configs, route }`.
+
+### `bindRoute<RouteConfig>(opts)`
+
+Creates a fluent binding for two-step route registration.
+
+```typescript
+bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
+  configs: RouteConfig;
+}): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
+```
+
+Returns `{ configs, to }` where `to({ handler })` completes the registration and returns `{ configs, route }`.
+
+### `defineJSXRoute<RouteConfig, ResponseType>(opts)`
+
+Defines a route that renders server-side HTML via `c.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
+
+```typescript
+defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
+  configs: RouteConfig;
+  handler: TRouteHandler<ResponseType, RouteEnv>;
+  hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+}): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>
+```
+
+### `toHonoHandler<ResponseType>(opts: { handler })`
+
+Casts a `TRouteHandler` to Hono's OpenAPI handler type.
+
+## Key Types
+
+### `IAuthRouteConfig`
+
+Route configuration extended with optional authentication and authorization fields. Extends Hono's `RouteConfig`.
+
+```typescript
+interface IAuthRouteConfig extends HonoRouteConfig {
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+}
+```
+
+### `IControllerOptions`
+
+```typescript
+interface IControllerOptions {
+  scope: string;
+  path?: string;     // Falls back to @controller decorator path
+  isStrict?: boolean; // No effect once mounted - see the application's path.isStrict
+}
+```
+
+### `TRouteContext`
+
+Lightweight typed context that provides type-safe `req.valid()` calls:
+
+```typescript
+type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
+  RouteEnv,
+  keyof IValidRequestProps,
+  ResponseBody
+>;
+```
+
+Where `IValidRequestProps` supports: `json`, `query`, `param`, `header`, `cookie`, `form`.
+
+### `TRouteHandler`
+
+```typescript
+type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (
+  context: TRouteContext<RouteEnv, ResponseType>,
+) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
+```
+
+### `IBindRouteOptions`
+
+```typescript
+interface IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
+  configs: RouteConfig;
+  to: <ResponseType = unknown>(opts: {
+    handler: TRouteHandler<ResponseType, RouteEnv>;
+  }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
+}
+```
+
+### `IDefineRouteOptions`
+
+```typescript
+interface IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
+  configs: ReturnType<typeof createRoute<string, RouteConfig>>;
+  route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+}
+```
+
+### `IController`
+
+Base controller interface:
+
+```typescript
+interface IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
+  extends IConfigurable<ConfigurableOptions, OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
+  router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+  bindRoute<RouteConfig>(opts: { configs: RouteConfig }): IBindRouteOptions<...>;
+  defineRoute<RouteConfig, ResponseType>(opts: { configs; handler; hook? }): IDefineRouteOptions<...>;
+}
+```
+
+### `asTypedContext`
+
+Utility to cast middleware context to `TContext`:
+
+```typescript
+const asTypedContext = <E extends Env>(context: unknown): TContext<E, string> => {
+  return context as TContext<E, string>;
+};
+```
+
+### Route Auth Types (for CRUD Controllers)
+
+```typescript
+// Per-route authentication config
+type TRouteAuthenticateConfig =
+  | { skip: true }
+  | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
+// Per-route authorization config
+type TRouteAuthorizeConfig = { skip: true } | IAuthorizationSpec | IAuthorizationSpec[];
+
+// Combined per-route auth config
+type TRouteAuthConfig = {
+  authenticate?: TRouteAuthenticateConfig;
+  authorize?: TRouteAuthorizeConfig;
+};
+```
+
+### `TCustomizableRouteConfig`
+
+Per-route customization for CRUD controller endpoints:
+
+```typescript
+type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
+  request?: {
+    params?: TAnyObjectSchema;
+    query?: TAnyObjectSchema;
+    body?: TAnyObjectSchema;
+    headers?: TAnyObjectSchema;
+  };
+  response?: {
+    schema?: z.ZodType;
+    headers?: TResponseHeaders;
+  };
+};
+```
+
+### `ICustomizableRoutes`
+
+```typescript
+interface ICustomizableRoutes<
+  RouteConfig extends TCustomizableRouteConfig = TCustomizableRouteConfig,
+> {
+  count?: RouteConfig;
+  find?: RouteConfig;
+  findById?: RouteConfig;
+  findOne?: RouteConfig;
+  create?: RouteConfig;
+  updateById?: RouteConfig;
+  updateBy?: RouteConfig;
+  deleteById?: RouteConfig;
+  deleteBy?: RouteConfig;
+}
+```
+
+## Route Decorators
+
+**File:** `packages/kernel/src/base/metadata/routes/rest.ts`
+
+### `@controller` Decorator
+
+Registers controller metadata (path, transport, tags, description) via the `MetadataRegistry`.
+
+```typescript
+import { controller } from '@venizia/ignis';
+
+@controller({ path: '/users' })
+export class UserController extends BaseRestController { ... }
+
+// With additional metadata
+@controller({ path: '/users', tags: ['Users'], description: 'User management' })
+export class UserController extends BaseRestController { ... }
+```
+
+### `@api` Decorator
+
+Generic route decorator. Registers route config in the metadata registry.
+
+```typescript
+import { z } from '@hono/zod-openapi';
+import { api, BaseRestController, controller, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+
+const MyRouteConfig = {
+  method: 'get',
+  path: '/data',
+  responses: jsonResponse({ schema: z.object({ success: z.boolean() }) }),
+} as const;
+
+@controller({ path: '/my-feature' })
+export class MyFeatureController extends BaseRestController {
+
+  @api({ configs: MyRouteConfig })
+  getData(c: TRouteContext) {
+    return c.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+### HTTP Method Decorators (`@get`, `@post`, `@put`, `@patch`, `@del`)
+
+Shorthand decorators that auto-set the HTTP method. Accept the same `configs` object as `@api` but without the `method` property.
+
+```typescript
+import { get, post, put, patch, del } from '@venizia/ignis';
+```
+
+Each decorator calls `@api` internally with the appropriate `HTTP.Methods.*` value.
+
+**Example using `@get` and `@post`:**
+
+```typescript
+import { z } from '@hono/zod-openapi';
+import { get, post, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
+
+const UserRoutes = {
+  LIST_USERS: {
+    path: '/',
+    responses: jsonResponse({
+      description: 'A list of users',
+      schema: z.array(z.object({ id: z.string(), name: z.string() })),
+    }),
+  },
+  GET_USER: {
+    path: '/{id}',
+    request: {
+      params: z.object({ id: z.string() }),
+    },
+    responses: jsonResponse({
+      description: 'A single user',
+      schema: z.object({ id: z.string(), name: z.string() }),
+    }),
+  },
+  CREATE_USER: {
+    path: '/',
+    authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+    request: {
+      body: jsonContent({
+        schema: z.object({ name: z.string() }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z.object({ id: z.string(), name: z.string() }),
+    }),
+  },
+} as const;
+
+// ... inside a controller class
+
+  @get({ configs: UserRoutes.LIST_USERS })
+  getAllUsers(c: TRouteContext) {
+    return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @get({ configs: UserRoutes.GET_USER })
+  getUserById(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
+    return c.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @post({ configs: UserRoutes.CREATE_USER })
+  createUser(c: TRouteContext) {
+    const { name } = c.req.valid<{ name: string }>('json');
+    const newUser = { id: '2', name };
+    return c.json(newUser, HTTP.ResultCodes.RS_2.Created);
+  }
+```
+
+### Decorator-Based Routing Notes
+
+- The `binding()` method is not required if you use only decorator-based routing
+- Routes are discovered and registered during `configure()` via `registerRoutesFromRegistry()`
+- TypeScript automatically infers and validates return types against the OpenAPI response schema - no need for explicit `TRouteResponse` annotations
+- Use `as const` on route config objects for strict type inference
+
+## Manual Route Definition
+
+For advanced use cases - dynamic routes, feature flags, programmatic control - define routes inside `binding()`.
+
+### `defineRoute` Example
+
+```typescript
+this.defineRoute({
+  configs: {
+    method: 'get',
+    path: '/status',
+    responses: jsonResponse({ schema: z.object({ ok: z.boolean() }) }),
+    authenticate: { strategies: ['jwt'] },
+    authorize: { action: 'read', resource: 'status' },
+  },
+  handler: async (context) => {
+    return context.json({ ok: true }, 200);
+  },
+  hook: (result, context) => {
+    // Optional hook for post-processing
+  },
+});
+```
+
+### `bindRoute` Example
+
+```typescript
+const { configs } = this.bindRoute({
+  configs: {
+    method: 'post',
+    path: '/action',
+    request: {
+      body: jsonContent({ schema: z.object({ name: z.string() }) }),
+    },
+    responses: jsonResponse({ schema: z.object({ id: z.string() }) }),
+  },
+}).to({
+  handler: async (context) => {
+    const data = context.req.valid('json');
+    return context.json({ id: '123' }, 201);
+  },
+});
+```
+
+### `defineJSXRoute` Example
+
+```typescript
+this.defineJSXRoute({
+  configs: {
+    path: '/dashboard',
+    method: 'get',
+    responses: {}, // HTML response schema is auto-merged
+  },
+  handler: async (c) => {
+    const data = await this.dashboardService.getData();
+    return c.html(<DashboardPage data={data} />);
+  },
+  hook: (result, c) => {
+    // Optional hook for post-processing
+  },
+});
+```
+
+## `IAuthRouteConfig` Options
+
+The `configs` object extends the OpenAPI 3.0 `RouteConfig` from `@hono/zod-openapi`.
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `path` | `string` | Route path relative to the controller's base path (e.g., `/{id}`) |
+| `method` | `'get' \| 'post' \| 'put' \| 'patch' \| 'delete'` | HTTP method (auto-set by `@get`, `@post`, etc.) |
+| `request` | `object` | Request definition: `params`, `query`, `body`, `headers` (Zod schemas) |
+| `responses` | `object` | HTTP status code to response description/schema mapping |
+| `tags` | `string[]` | OpenAPI tags. The controller's `scope` is automatically appended |
+| `summary` | `string` | Short summary of the operation |
+| `description` | `string` | Detailed description of the operation |
+| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Auth strategies. If provided, framework injects auth middleware automatically |
+| `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization spec(s). If provided, framework injects authorize middleware after authenticate |
+| `middleware` | `MiddlewareHandler \| MiddlewareHandler[]` | Custom middleware(s) appended after auth middleware |
+
+### Example of `request` Configuration
+
+```typescript
+import { z } from '@hono/zod-openapi';
+import { jsonContent } from '@venizia/ignis';
+
+// ...
+request: {
+  params: z.object({ id: z.string() }),
+  query: z.object({ format: z.string().optional() }),
+  body: jsonContent({
+    schema: z.object({ name: z.string() })
+  })
+}
+// ...
+```
+
+## Standard Headers and Constants
+
+**File:** `packages/kernel/src/base/controllers/common/constants.ts`
+
+### `RestPaths`
+
+```typescript
+class RestPaths {
+  static readonly ROOT = '/';
+  static readonly COUNT = '/count';
+  static readonly FIND_ONE = '/find-one';
+}
+```
+
+### Built-in Header Schemas
+
+| Constant | Headers Included |
+| :--- | :--- |
+| `trackableHeaders` | `x-request-id`, `x-request-channel`, `x-device-info` (all optional) |
+| `countableHeaders` | `x-request-count` - controls `{count, data}` vs data-only response format |
+| `defaultRequestHeaders` | `trackableHeaders` + `countableHeaders` combined |
+| `commonResponseHeaders` | `x-request-id` (echo), `x-response-count`, `x-response-format` |
+| `findResponseHeaders` | `commonResponseHeaders` + `content-range` for pagination |
+
+## `ControllerFactory`
+
+The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `AbstractEntity` subclass (e.g. `BaseEntity` for Postgres) and its corresponding repository.
+
+**File:** `packages/kernel/src/base/controllers/factory/controller.ts`
+
+### `static defineCrudController<TDataObject, TPersistObject = TDataObject, Routes extends ICustomizableRoutes = ICustomizableRoutes>(opts: ICrudControllerOptions<Routes>)`
+
+Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configured. The returned class is dynamically named using `controller.name` from the options. `TDataObject`/`TPersistObject` can't be inferred from `entity` - pass them explicitly for typed fields.
+
+| Route Name | Method | Path | Description |
+| :--- | :--- | :--- | :--- |
+| `count` | `GET` | `/count` | Count records matching a where condition |
+| `find` | `GET` | `/` | Find records with filter, pagination, sorting, and relations |
+| `findById` | `GET` | `/{id}` | Find a single record by its ID |
+| `findOne` | `GET` | `/find-one` | Find the first record matching a filter |
+| `create` | `POST` | `/` | Create a new record |
+| `updateById` | `PATCH` | `/{id}` | Partial update a record by its ID |
+| `updateBy` | `PATCH` | `/` | Bulk update records matching a `where` filter |
+| `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
+| `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
+
+### Default request bodies
+
+The write routes leave out the keys the entity says the server fills, from `AbstractEntity.getServerStampedKeys()`:
+
+| Route | Default body |
+| :--- | :--- |
+| `create` | The entity's insert schema without the keys `getServerStampedKeys()` reports |
+| `updateById` | The entity's update schema without those keys and without `id` |
+| `updateBy` | The same as `updateById`, plus an optional `where` |
+
+A relational entity (`BaseEntity`, `defineEntity`) reports `createdBy`, `modifiedBy`, `createdAt` and `modifiedAt` - each one whose column has a default or `$onUpdate`. A search entity (`BaseSearchEntity`) reports none: nothing stamps a document, so a required `createdAt` stays in its `POST` body. An update never rewrites `id`: the path or the `where` names the rows. `deletedAt` stays in the body.
+
+A refined entity schema that holds none of the keys to leave out is used as it is - the refinement and an OpenAPI name survive. A refined schema that holds one, and any transformed schema, cannot be trimmed: defining the controller throws and names `routes.<route>.request.body` - pass your own body there. A transformed update schema always hits this, because the update routes always leave out `id`, even on a read-only controller.
+
+A client that still sends one of these keys is not refused: validation strips it, and the request goes on without it. On a `z.strictObject` entity schema, that key is refused instead - the client gets `422`. To accept one from a client, pass your own `routes.<route>.request.body`, which replaces the default and is not filtered by this rule - built from an insert or update schema, it still carries the keys, so `.omit()` them yourself. Server code keeps every column: `repository.create()` and `repository.updateById()` still take them.
+
+An update left with nothing to write answers `400` with code `core.request.nothing_to_update`, before the repository runs. That covers `{}`, a `where` alone on `PATCH /`, and a body holding only keys the schema strips. `updateById` and `updateBy` call `assertNonEmptyUpdate({ scope, data })` for this, so an override can call it too.
+
+### `getBaseWhere(opts: { context }): Promise<TWhere<TDataObject> | undefined>`
+
+Narrows every read of one controller. Override it to scope rows to a tenant, an owner or a status. The default returns `undefined`, and then every read verb passes the request filter through untouched.
+
+```typescript
+class OrderController extends ControllerFactory.defineCrudController({ ... }) {
+  override async getBaseWhere(opts: { context: TRouteContext }) {
+    const tenantId = opts.context.req.header('x-tenant-id');
+    // Fail closed: a request with no tenant reads nothing, never every tenant.
+    return { tenantId: tenantId ?? null };
+  }
+}
+```
+
+Each read verb combines the two sides as `{ and: [baseWhere, requestWhere] }`. A request without its own `where` gets the base where alone. Nothing is wrapped that does not need to be.
+
+Returning `undefined` reads every row. Write a scope that fails closed: a request missing the value your scope keys on must narrow to nothing, not widen to everything.
+
+**Only the read verbs are scoped.** `create`, `updateById`, `deleteById` and `deleteBy` do not call `getBaseWhere`. A controller that must reject a write outside its scope checks that in the verb or in an authorization strategy.
+
+| Verb | How the base where is applied |
+| :--- | :--- |
+| `count` | ANDed into the request `where` |
+| `find` | ANDed into `filter.where` |
+| `findOne` | ANDed into `filter.where` |
+| `findById` | ANDed with `{ id }`, and the read goes through `repository.findOne` |
+
+`findById` takes the detour because `repository.findById` accepts no `where`. An id outside the scope answers the same body as an id that does not exist: `{ count: 0, data: null }`.
+
+The method is public, not protected: a generated controller's declaration file cannot carry a protected member (TypeScript error TS4094).
+
+### `ICrudControllerOptions<Routes>`
+
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `entity` | `TClass<AbstractEntity> \| TResolver<TClass<AbstractEntity>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
+| `repository.name` | `string` | The repository's binding name (e.g., `ConfigurationRepository.name`). The container injects `repositories.<name>` into constructor parameter 0, so a subclass needs no constructor. A subclass that declares its own `@inject` at parameter 0 overrides it. Takes the name string, not the class. An empty name throws when the controller is defined |
+| `controller.name` | `string` | Unique name for the generated controller (e.g., `'ConfigurationController'`) |
+| `controller.basePath` | `string` | Base path for all routes (e.g., `'/configurations'`). Required |
+| `controller.readonly` | `boolean` | If `true`, only read operations (count, find, findOne, findById) are generated. Defaults to `false` |
+| `controller.enabledRoutes` | `Array<keyof ICustomizableRoutes>` | Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set |
+| `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path`: no effect once mounted - the application's `path.isStrict` decides trailing-slash matching. `requestSchema` (default `true`): strict query parameter validation |
+| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication config applied to all routes (unless overridden per-route) |
+| `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization config applied to all routes (unless overridden per-route) |
+| `routes` | `ICustomizableRoutes` | Per-route configuration combining schema and auth overrides |
+
+To write a controller factory of your own, record the same injection on the class it generates:
+
+```typescript
+import { registerFactoryRepositoryInjection } from '@venizia/ignis';
+
+registerFactoryRepositoryInjection({
+  target: GeneratedController,
+  factoryName: 'defineReportController',
+  controllerName: 'ReportController',
+  repositoryName: ReportRepository.name,
+});
+```
+
+`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `defineCrudController` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
+
+### Routes Configuration
+
+The `routes` option provides per-route customization of request/response schemas and auth:
+
+```typescript
+type TRouteAuthConfig = {
+  authenticate?: { skip: true } | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  authorize?: { skip: true } | IAuthorizationSpec | IAuthorizationSpec[];
+};
+
+type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
+  request?: {
+    params?: TAnyObjectSchema;
+    query?: TAnyObjectSchema;
+    body?: TAnyObjectSchema;
+    headers?: TAnyObjectSchema;
+  };
+  response?: {
+    schema?: z.ZodType;
+    headers?: TResponseHeaders;
+  };
+};
+```
+
+| Route | Customizable Components | Description |
+| :--- | :--- | :--- |
+| `count` | query, headers, response | Config for count endpoint |
+| `find` | query, headers, response | Config for find endpoint |
+| `findOne` | query, headers, response | Config for findOne endpoint |
+| `findById` | query, headers, params, response | Config for findById endpoint |
+| `create` | headers, body, response | Config for create endpoint |
+| `updateById` | headers, params, body, response | Config for updateById endpoint |
+| `updateBy` | query, headers, body, response | Config for updateBy endpoint |
+| `deleteById` | headers, params, response | Config for deleteById endpoint |
+| `deleteBy` | query, headers, response | Config for deleteBy endpoint (body: optional `{ where }`) |
+
+### Auth Resolution Priority
+
+When resolving authentication for a route:
+
+1. **Endpoint `authenticate: { skip: true }`** - No auth (ignores controller `authenticate`)
+2. **Endpoint `authenticate: { strategies }`** - Override controller (empty array = no auth)
+3. **Controller `authenticate`** - Default fallback
+
+When resolving authorization for a route:
+
+1. **Endpoint `authenticate: { skip: true }`** - No authorize (auth skipped entirely)
+2. **Endpoint `authorize: { skip: true }`** - No authorize (explicitly skipped)
+3. **Endpoint `authorize: { ... }`** - Override controller authorize
+4. **Controller `authorize`** - Default fallback
+
+### Authentication Examples
+
+```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
+
+// 1. JWT auth on ALL routes
+const UserController = ControllerFactory.defineCrudController({
+  entity: UserEntity,
+  repository: { name: 'UserRepository' },
+  controller: { name: 'UserController', basePath: '/users' },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+});
+
+// 2. JWT auth on all, but skip for public read endpoints
+const ProductController = ControllerFactory.defineCrudController({
+  entity: ProductEntity,
+  repository: { name: 'ProductRepository' },
+  controller: { name: 'ProductController', basePath: '/products' },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  routes: {
+    find: { authenticate: { skip: true } },
+    findById: { authenticate: { skip: true } },
+    count: { authenticate: { skip: true } },
+  },
+});
+
+// 3. No controller auth, require JWT only for write operations
+const ArticleController = ControllerFactory.defineCrudController({
+  entity: ArticleEntity,
+  repository: { name: 'ArticleRepository' },
+  controller: { name: 'ArticleController', basePath: '/articles' },
+  routes: {
+    create: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+    updateById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+    deleteById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+  },
+});
+
+// 4. Custom request/response schemas with auth and authorization
+const OrderController = ControllerFactory.defineCrudController({
+  entity: OrderEntity,
+  repository: { name: 'OrderRepository' },
+  controller: { name: 'OrderController', basePath: '/orders' },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  authorize: { action: 'read', resource: 'orders' },
+  routes: {
+    find: {
+      authenticate: { skip: true },
+      response: { schema: CustomOrderListSchema },
+    },
+    create: {
+      authorize: { action: 'write', resource: 'orders' },
+      request: { body: CustomOrderCreateSchema },
+      response: { schema: CustomOrderResponseSchema },
+    },
+  },
+});
+```
+
+### Route Customization Examples
+
+```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+
+const CreateUserSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  role: z.enum(['admin', 'user']).default('user'),
+});
+
+const PublicUserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  createdAt: z.string(),
+});
+
+const UserController = ControllerFactory.defineCrudController({
+  entity: UserEntity,
+  repository: { name: 'UserRepository' },
+  controller: { name: 'UserController', basePath: '/users' },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  routes: {
+    find: {
+      authenticate: { skip: true },
+      response: { schema: z.array(PublicUserSchema) },
+    },
+    findById: {
+      authenticate: { skip: true },
+      response: { schema: PublicUserSchema },
+    },
+    create: {
+      request: { body: CreateUserSchema },
+      response: { schema: PublicUserSchema },
+    },
+    deleteById: {
+      authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+    },
+  },
+});
+```
+
+### Full Example
+
+```typescript
+// src/controllers/configuration.controller.ts
+import { Configuration } from '@/models';
+import { ConfigurationRepository } from '@/repositories';
+import { controller, ControllerFactory } from '@venizia/ignis';
+
+const BASE_PATH = '/configurations';
+
+const _ConfigurationController = ControllerFactory.defineCrudController({
+  repository: { name: ConfigurationRepository.name },
+  controller: {
+    name: 'ConfigurationController',
+    basePath: BASE_PATH,
+    isStrict: { path: true, requestSchema: true },
+  },
+  entity: () => Configuration,
+});
+
+@controller({ path: BASE_PATH })
+export class ConfigurationController extends _ConfigurationController {}
+```
+
+### Overriding CRUD Methods with Strong Typing
+
+When extending a generated CRUD controller, you can override methods using `TRouteContext` and explicit type arguments for validation.
+
+```typescript
+import { Configuration } from '@/models';
+import { ConfigurationRepository } from '@/repositories';
+import { Authentication, controller, ControllerFactory, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+
+const BASE_PATH = '/configurations';
+
+const CreateConfigurationSchema = z.object({
+  code: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  group: z.string().min(1).max(50),
+});
+
+type TCreateConfiguration = z.infer<typeof CreateConfigurationSchema>;
+
+const CreateResponseSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
+
+const _Controller = ControllerFactory.defineCrudController({
+  repository: { name: ConfigurationRepository.name },
+  controller: { name: 'ConfigurationController', basePath: BASE_PATH },
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  entity: () => Configuration,
+  routes: {
+    count: { authenticate: { skip: true } },
+    create: {
+      request: { body: CreateConfigurationSchema },
+      response: { schema: CreateResponseSchema },
+    },
+  },
+});
+
+@controller({ path: BASE_PATH })
+export class ConfigurationController extends _Controller {
+  override async create(opts: { context: TRouteContext }) {
+    const { context } = opts;
+    const data = context.req.valid<TCreateConfiguration>('json');
+
+    this.logger.info('[create] code: %s, group: %s', data.code, data.group);
+
+    // Custom business logic here...
+    return super.create(opts);
+  }
+
+  override async updateById(opts: { context: TRouteContext }) {
+    const { context } = opts;
+    const { id } = context.req.valid<{ id: string }>('param');
+
+    this.logger.info('[updateById] id: %s', id);
+
+    return super.updateById(opts);
+  }
+
+  override async deleteById(opts: { context: TRouteContext }) {
+    const { context } = opts;
+    const { id } = context.req.valid<{ id: string }>('param');
+
+    this.logger.warn('[deleteById] Deleting id: %s', id);
+
+    return super.deleteById(opts);
+  }
+}
+```
+
+### Generated Controller Internal Methods
+
+The factory-generated controller includes a `normalizeCountData` method that checks the `x-request-count` header to determine response format:
+
+- When `x-request-count` is `"true"` or omitted: returns `{ count, data }`
+- When `x-request-count` is `"false"`: returns data only
+
+Bulk operations (`updateBy`, `deleteBy`) require a non-empty `where`, in the query or the JSON body - `400 Bad Request` if it is in neither or both. In a `PATCH /` body, `where` is reserved and never written. An override reads both with `resolveBulkWhere({ context, where: { fromQuery, fromBody } })`.
+
+## See Also
+
+- **Related References:**
+  - [gRPC Controllers](./grpc-controllers.md) - gRPC controller reference with ConnectRPC integration
+  - [Services](./services.md) - Business logic layer called by controllers
+  - [Repositories](./repositories/) - Data access layer for CRUD operations
+  - [Middlewares](./middlewares.md) - Request/response middleware
+  - [Application](./application.md) - Application setup and controller mounting
+  - [Dependency Injection](./dependency-injection.md) - DI patterns and injection
+
+- **Guides:**
+  - [Controllers Guide](/guides/core-concepts/rest-controllers)
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api)
+
+- **Best Practices:**
+  - [API Usage Examples](/best-practices/api-usage-examples)
+  - [Troubleshooting Tips](/best-practices/troubleshooting-tips)
+  - [Security Guidelines](/best-practices/security-guidelines)
+
+- **External Resources:**
+  - [OpenAPI Specification](https://swagger.io/specification/)
+  - [HTTP Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods)

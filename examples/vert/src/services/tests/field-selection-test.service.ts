@@ -1,74 +1,22 @@
-import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
-import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
-} from '../../repositories';
+import { service } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
 
 // ----------------------------------------------------------------
 // Field Selection Test Service - toColumns/fields filtering tests
 // ----------------------------------------------------------------
+@service()
 export class FieldSelectionTestService extends BaseTestService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ConfigurationRepository.name,
-      }),
-    })
-    configurationRepository: ConfigurationRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ProductRepository.name,
-      }),
-    })
-    productRepository: ProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelRepository.name,
-      }),
-    })
-    saleChannelRepository: SaleChannelRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: SaleChannelProductRepository.name,
-      }),
-    })
-    saleChannelProductRepository: SaleChannelProductRepository,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    userRepository: UserRepository,
-  ) {
-    super(
-      FieldSelectionTestService.name,
-      configurationRepository,
-      productRepository,
-      saleChannelRepository,
-      saleChannelProductRepository,
-      userRepository,
-    );
-  }
-
   // ----------------------------------------------------------------
   async run(): Promise<void> {
     this.logSection('[FieldSelectionTestService] Starting field selection test cases');
 
-    await this.case1_CreateTestData();
-    await this.case2_ArrayFormat();
-    await this.case3_ObjectFormatWithTrue();
-    await this.case4_ObjectFormatWithFalse();
-    await this.case5_ArrayVsObjectEquivalence();
-    await this.case6_Cleanup();
+    await this.case1CreateTestData();
+    await this.case2ArrayFormat();
+    await this.case3ObjectFormatWithTrue();
+    await this.case4ObjectFormatWithFalse();
+    await this.case5ArrayVsObjectEquivalence();
+    await this.case6Cleanup();
 
     this.logSection('[FieldSelectionTestService] All field selection test cases completed');
   }
@@ -76,7 +24,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Create test data for field selection tests
   // ----------------------------------------------------------------
-  private async case1_CreateTestData(): Promise<void> {
+  private async case1CreateTestData(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Create test data for field selection');
 
@@ -121,7 +69,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Array format - ['id', 'code', 'nValue']
   // ----------------------------------------------------------------
-  private async case2_ArrayFormat(): Promise<void> {
+  private async case2ArrayFormat(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Test array format: [id, code, nValue]');
 
@@ -170,7 +118,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Object format with true - { id: true, code: true }
   // ----------------------------------------------------------------
-  private async case3_ObjectFormatWithTrue(): Promise<void> {
+  private async case3ObjectFormatWithTrue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] Test object format: { id: true, code: true, tValue: true }');
 
@@ -210,7 +158,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Object format with false - { id: true, code: true, nValue: false }
   // ----------------------------------------------------------------
-  private async case4_ObjectFormatWithFalse(): Promise<void> {
+  private async case4ObjectFormatWithFalse(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] Test object format with false: { id: true, code: true, nValue: false }');
 
@@ -257,7 +205,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: Array vs Object equivalence
   // ----------------------------------------------------------------
-  private async case5_ArrayVsObjectEquivalence(): Promise<void> {
+  private async case5ArrayVsObjectEquivalence(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] Test array and object formats produce same result');
 
@@ -313,7 +261,7 @@ export class FieldSelectionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Cleanup test data
   // ----------------------------------------------------------------
-  private async case6_Cleanup(): Promise<void> {
+  private async case6Cleanup(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] Cleanup field selection test data');
 

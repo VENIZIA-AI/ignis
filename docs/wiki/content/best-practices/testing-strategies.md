@@ -1,0 +1,726 @@
+# Testing Strategies
+
+Comprehensive testing guide for IGNIS applications using Bun's built-in test runner.
+
+## Testing Philosophy
+
+| Principle | Description |
+|-----------|-------------|
+| **Test Behavior** | Test what the code does, not how it does it |
+| **Isolation** | Each test should be independent |
+| **Fast Feedback** | Tests should run quickly |
+| **Meaningful Coverage** | Cover critical paths and edge cases |
+
+## 1. Project Setup
+
+### Configure Test Environment
+
+**`bunfig.toml`:**
+```toml
+[test]
+preload = ["./test/setup.ts"]
+coverage = true
+coverageDir = "coverage"
+```
+
+**`test/setup.ts`:**
+```typescript
+import { beforeAll, afterAll, afterEach } from 'bun:test';
+import { TestDatabase } from './helpers/test-database';
+
+// Global setup
+beforeAll(async () => {
+  await TestDatabase.initialize();
+});
+
+// Clean up after each test
+afterEach(async () => {
+  await TestDatabase.truncateAll();
+});
+
+// Global teardown
+afterAll(async () => {
+  await TestDatabase.close();
+});
+```
+
+**`test/helpers/test-database.ts`:**
+```typescript
+import { sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { PostgresDataSource } from '@/datasources';
+import * as schema from '@/models';
+
+export class TestDatabase {
+  private static pool: Pool;
+  private static db: ReturnType<typeof drizzle>;
+  private static dataSource: PostgresDataSource;
+
+  static async initialize() {
+    this.pool = new Pool({
+      host: process.env.TEST_DB_HOST ?? 'localhost',
+      port: Number(process.env.TEST_DB_PORT ?? 5433),
+      user: process.env.TEST_DB_USER ?? 'test',
+      password: process.env.TEST_DB_PASSWORD ?? 'test',
+      database: process.env.TEST_DB_NAME ?? 'ignis_test',
+    });
+    this.db = drizzle({ client: this.pool, schema });
+
+    // Application DataSource - repositories take a DataSource, not a raw Drizzle instance
+    this.dataSource = new PostgresDataSource();
+    await this.dataSource.configure();
+  }
+
+  static getDb() {
+    return this.db;
+  }
+
+  static getDataSource() {
+    return this.dataSource;
+  }
+
+  static async truncateAll() {
+    const tables = Object.keys(schema);
+    for (const table of tables) {
+      await this.db.execute(sql`TRUNCATE TABLE ${sql.identifier(table)} CASCADE`);
+    }
+  }
+
+  static async close() {
+    await this.pool.end();
+  }
+}
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+bun test
+
+# Run specific test file
+bun test src/__tests__/user.service.test.ts
+
+# Run tests whose name matches a pattern
+bun test -t "UserService"
+
+# Watch mode
+bun test --watch
+
+# With coverage
+bun test --coverage
+
+# With specific environment
+NODE_ENV=test bun test --env-file=.env.test
+```
+
+### One invocation per project, written down once
+
+A bare `bun test` in a package directory is the fastest way to a false alarm: it runs every `*.test.ts` it finds, under whatever `NODE_ENV` the shell has, with no env file and no preload. One IGNIS consumer read 467 red tests that way; the real number was 19. Put the full command in `package.json` and call only that:
+
+```json
+{
+  "scripts": {
+    "test": "NODE_ENV=test bun test ./src/__tests__ --env-file=.env.test --preload ./src/__tests__/preload.ts"
+  }
+}
+```
+
+| Part | Why it is there |
+|---|---|
+| `NODE_ENV=test` | The error sanitizer, logger colour and env resolution all key off it; `test` is not a development env |
+| `./src/__tests__` (or `./dist/__tests__`) | Scopes the run to the tree the project tests from; without it Bun also collects tests under `dist`, fixtures and vendored code |
+| `--env-file=.env.test` | The suite's own variables (ports, log folder, feature flags) instead of the developer's shell |
+| `--preload ./src/__tests__/preload.ts` | Anything that must run before the first import: `reflect-metadata`, a logger provider, global fakes |
+| `--parallel` (optional) | Bun 1.4+: files run in isolated workers; keep it only if no test relies on module-level state from another file |
+
+Run the script, not the tool: `bun run test`. A CI job and a developer then execute the same line, and a red count means the same thing on both.
+
+## 2. Unit Testing Services
+
+Test business logic in isolation by mocking dependencies.
+
+**`src/services/__tests__/user.service.test.ts`:**
+```typescript
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { UserService } from '../user.service';
+import type { IUserRepository } from '@/repositories';
+
+describe('UserService', () => {
+  let service: UserService;
+  let mockRepository: IUserRepository;
+
+  beforeEach(() => {
+    // Create mock repository
+    // find/findOne/findById return the rows directly; create/updateById return { count, data }
+    mockRepository = {
+      findById: mock(() => Promise.resolve(null)),
+      findOne: mock(() => Promise.resolve(null)),
+      create: mock((opts) => Promise.resolve({ count: 1, data: { id: 'new-id', ...opts.data } })),
+      updateById: mock(() => Promise.resolve({ count: 0, data: null })),
+    } as unknown as IUserRepository;
+
+    // Inject mock
+    service = new UserService(mockRepository);
+  });
+
+  describe('createUser', () => {
+    it('should create a user with valid data', async () => {
+      const userData = { email: 'test@example.com', name: 'Test User' };
+
+      const result = await service.createUser(userData);
+
+      expect(result.data).toMatchObject({
+        id: 'new-id',
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+      expect(mockRepository.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw error for duplicate email', async () => {
+      mockRepository.findOne = mock(() =>
+        Promise.resolve({ id: 'existing', email: 'test@example.com' }),
+      );
+
+      await expect(
+        service.createUser({ email: 'test@example.com', name: 'Test' })
+      ).rejects.toThrow('Email already exists');
+    });
+
+    it('should hash password before storing', async () => {
+      const userData = { email: 'test@example.com', name: 'Test', password: 'secret123' };
+
+      await service.createUser(userData);
+
+      const createCall = (mockRepository.create as ReturnType<typeof mock>).mock.calls[0][0];
+      expect(createCall.data.password).not.toBe('secret123');
+      expect(createCall.data.password).toMatch(/^\$2[aby]?\$/); // bcrypt hash
+    });
+  });
+
+  describe('updateUser', () => {
+    it('should throw NotFound when user does not exist', async () => {
+      mockRepository.findById = mock(() => Promise.resolve(null));
+
+      await expect(
+        service.updateUser('nonexistent', { name: 'New Name' })
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should only update provided fields', async () => {
+      mockRepository.findById = mock(() =>
+        Promise.resolve({ id: '1', email: 'old@test.com', name: 'Old Name' }),
+      );
+      mockRepository.updateById = mock((opts) => Promise.resolve({
+        count: 1,
+        data: { ...opts.data, id: opts.id },
+      }));
+
+      await service.updateUser('1', { name: 'New Name' });
+
+      const updateCall = (mockRepository.updateById as ReturnType<typeof mock>).mock.calls[0][0];
+      expect(updateCall.data).toEqual({ name: 'New Name' });
+      expect(updateCall.data.email).toBeUndefined();
+    });
+  });
+});
+```
+
+## 3. Integration Testing Repositories
+
+Test repositories with a real (test) database.
+
+**`src/repositories/__tests__/user.repository.test.ts`:**
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { UserRepository } from '../user.repository';
+import { TestDatabase } from '@test/helpers/test-database';
+import { User } from '@/models';
+
+describe('UserRepository', () => {
+  let repository: UserRepository;
+
+  beforeEach(async () => {
+    // Repositories take the application DataSource, not a raw Drizzle instance
+    repository = new UserRepository(TestDatabase.getDataSource());
+  });
+
+  afterEach(async () => {
+    await TestDatabase.truncateAll();
+  });
+
+  describe('create', () => {
+    it('should create a user and return with generated id', async () => {
+      const result = await repository.create({
+        data: { email: 'test@example.com', name: 'Test User' },
+      });
+
+      expect(result.data).toMatchObject({
+        email: 'test@example.com',
+        name: 'Test User',
+      });
+      expect(result.data?.id).toBeDefined();
+      expect(result.count).toBe(1);
+    });
+
+    it('should enforce unique email constraint', async () => {
+      await repository.create({
+        data: { email: 'test@example.com', name: 'First' },
+      });
+
+      await expect(
+        repository.create({ data: { email: 'test@example.com', name: 'Second' } })
+      ).rejects.toThrow(); // Unique constraint violation
+    });
+  });
+
+  describe('find', () => {
+    beforeEach(async () => {
+      // Seed test data
+      await repository.createAll({
+        data: [
+          { email: 'alice@test.com', name: 'Alice', status: 'ACTIVE' },
+          { email: 'bob@test.com', name: 'Bob', status: 'ACTIVE' },
+          { email: 'charlie@test.com', name: 'Charlie', status: 'INACTIVE' },
+        ],
+      });
+    });
+
+    it('should filter by status', async () => {
+      // find() returns the rows directly (an array)
+      const users = await repository.find({
+        filter: { where: { status: 'ACTIVE' } },
+      });
+
+      expect(users).toHaveLength(2);
+      expect(users.map(user => user.name)).toContain('Alice');
+      expect(users.map(user => user.name)).toContain('Bob');
+    });
+
+    it('should support pagination', async () => {
+      const page1 = await repository.find({
+        filter: { limit: 2, offset: 0, order: ['name ASC'] },
+      });
+      const page2 = await repository.find({
+        filter: { limit: 2, offset: 2, order: ['name ASC'] },
+      });
+
+      expect(page1).toHaveLength(2);
+      expect(page1[0].name).toBe('Alice');
+      expect(page2).toHaveLength(1);
+      expect(page2[0].name).toBe('Charlie');
+    });
+
+    it('should support complex filters', async () => {
+      const users = await repository.find({
+        filter: {
+          where: {
+            or: [
+              { name: { like: 'A%' } },
+              { status: 'INACTIVE' },
+            ],
+          },
+        },
+      });
+
+      expect(users).toHaveLength(2);
+      expect(users.map(user => user.name)).toContain('Alice');
+      expect(users.map(user => user.name)).toContain('Charlie');
+    });
+  });
+
+  describe('relations', () => {
+    it('should load related entities', async () => {
+      // Assuming User has Posts relation
+      const created = await repository.create({
+        data: { email: 'author@test.com', name: 'Author' },
+      });
+
+      // Create posts for the user
+      const postRepository = new PostRepository(TestDatabase.getDataSource());
+      await postRepository.createAll({
+        data: [
+          { title: 'Post 1', authorId: created.data!.id },
+          { title: 'Post 2', authorId: created.data!.id },
+        ],
+      });
+
+      // findById() returns the entity directly (or null)
+      const author = await repository.findById({
+        id: created.data!.id,
+        filter: { include: [{ relation: 'posts' }] },
+      });
+
+      expect(author?.posts).toHaveLength(2);
+    });
+  });
+});
+```
+
+## 4. E2E Testing Controllers
+
+Test full request/response cycle using Hono's test client.
+
+**`src/controllers/__tests__/user.controller.test.ts`:**
+```typescript
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'bun:test';
+import { testClient } from 'hono/testing';
+import { Application, appConfigs } from '@/application';
+import { TestDatabase } from '@test/helpers/test-database';
+
+describe('UserController E2E', () => {
+  let app: Application;
+  let client: ReturnType<typeof testClient>;
+
+  beforeAll(async () => {
+    await TestDatabase.initialize();
+    app = new Application({ scope: 'UserControllerE2E', config: appConfigs });
+    // init() binds CoreBindings.APPLICATION_INSTANCE; start() runs the boot sequence and mounts the routes.
+    app.init();
+    await app.start();
+    client = testClient(app.getServer());
+  });
+
+  afterEach(async () => {
+    await TestDatabase.truncateAll();
+  });
+
+  afterAll(async () => {
+    await app.stop();
+    await TestDatabase.close();
+  });
+
+  describe('POST /api/users', () => {
+    it('should create a user with valid data', async () => {
+      const response = await client.api.users.$post({
+        json: {
+          email: 'test@example.com',
+          name: 'Test User',
+          password: 'SecurePass123!',
+        },
+      });
+
+      expect(response.status).toBe(201);
+      const body = await response.json();
+      expect(body.email).toBe('test@example.com');
+      expect(body.id).toBeDefined();
+      expect(body.password).toBeUndefined(); // Should not expose password
+    });
+
+    it('should return 422 for invalid email', async () => {
+      const response = await client.api.users.$post({
+        json: {
+          email: 'not-an-email',
+          name: 'Test',
+          password: 'SecurePass123!',
+        },
+      });
+
+      expect(response.status).toBe(422);
+      const body = await response.json();
+      expect(body.details.cause[0].path).toBe('email');
+    });
+
+    it('should return 409 for duplicate email', async () => {
+      // First create
+      await client.api.users.$post({
+        json: { email: 'test@example.com', name: 'First', password: 'Pass123!' },
+      });
+
+      // Duplicate
+      const response = await client.api.users.$post({
+        json: { email: 'test@example.com', name: 'Second', password: 'Pass123!' },
+      });
+
+      expect(response.status).toBe(409);
+
+      // Error responses carry one message shape: { text, code, args }.
+      // There is no flat top-level messageCode - branch on normalized.code.
+      const body = await response.json();
+      expect(body.normalized.code).toBeDefined();
+    });
+  });
+
+  describe('GET /api/users/:id', () => {
+    it('should return user by id', async () => {
+      // Create user first
+      const createRes = await client.api.users.$post({
+        json: { email: 'test@example.com', name: 'Test', password: 'Pass123!' },
+      });
+      const created = await createRes.json();
+
+      const response = await client.api.users[':id'].$get({
+        param: { id: created.id },
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.id).toBe(created.id);
+      expect(body.email).toBe('test@example.com');
+    });
+
+    it('should return 404 for nonexistent user', async () => {
+      const response = await client.api.users[':id'].$get({
+        param: { id: 'nonexistent-uuid' },
+      });
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe('Protected Routes', () => {
+    let authToken: string;
+
+    beforeEach(async () => {
+      // Create user and get token
+      await client.api.users.$post({
+        json: { email: 'auth@test.com', name: 'Auth User', password: 'Pass123!' },
+      });
+      const loginRes = await client.api.auth.login.$post({
+        json: { email: 'auth@test.com', password: 'Pass123!' },
+      });
+      const { token } = await loginRes.json();
+      authToken = token;
+    });
+
+    it('should return 401 without token', async () => {
+      const response = await client.api.users.me.$get();
+      expect(response.status).toBe(401);
+    });
+
+    it('should return user profile with valid token', async () => {
+      const response = await client.api.users.me.$get({
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.email).toBe('auth@test.com');
+    });
+  });
+});
+```
+
+## 5. Mocking Patterns
+
+### Mock External Services
+
+```typescript
+import { mock } from 'bun:test';
+
+// Mock email service
+const mockEmailService = {
+  send: mock(() => Promise.resolve({ messageId: 'mock-id' })),
+  sendBulk: mock(() => Promise.resolve({ sent: 10, failed: 0 })),
+};
+
+// Mock Redis
+const mockRedis = {
+  get: mock((key: string) => Promise.resolve(null)),
+  set: mock(() => Promise.resolve('OK')),
+  del: mock(() => Promise.resolve(1)),
+};
+
+// Reset mocks between tests
+beforeEach(() => {
+  mockEmailService.send.mockClear();
+  mockRedis.get.mockClear();
+});
+```
+
+### Mock Time
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+
+describe('Time-dependent tests', () => {
+  const realDate = Date;
+
+  beforeEach(() => {
+    // Mock Date to fixed time
+    const mockDate = new Date('2024-01-15T10:00:00Z');
+    global.Date = class extends realDate {
+      constructor() {
+        super();
+        return mockDate;
+      }
+      static now() {
+        return mockDate.getTime();
+      }
+    } as DateConstructor;
+  });
+
+  afterEach(() => {
+    global.Date = realDate;
+  });
+
+  it('should use mocked time', () => {
+    const now = new Date();
+    expect(now.toISOString()).toBe('2024-01-15T10:00:00.000Z');
+  });
+});
+```
+
+### Spy on Methods
+
+```typescript
+import { spyOn } from 'bun:test';
+
+it('should call logger on error', async () => {
+  const loggerSpy = spyOn(service.logger, 'error');
+
+  await expect(service.riskyOperation()).rejects.toThrow();
+
+  expect(loggerSpy).toHaveBeenCalledWith(
+    expect.stringContaining('Operation failed'),
+    expect.any(Error)
+  );
+});
+```
+
+### Transaction Doubles
+
+Testing `runInTransaction` (see [Transactions](/guides/core-concepts/persistent/transactions#runintransaction))
+against a real datasource means standing up Postgres or SQLite for every unit test. `TransactionDouble`,
+from `@venizia/ignis/testing`, stubs the handle instead: stub `beginTransaction` to return it, then
+assert what commit or rollback happened.
+
+```typescript
+import { expect, it, spyOn } from 'bun:test';
+import { PostgresTransactionDouble, TransactionStates } from '@venizia/ignis/testing';
+import { getError } from '@venizia/ignis-helpers';
+
+it('commits when execute succeeds', async () => {
+  const double = new PostgresTransactionDouble();
+  spyOn(orderRepository, 'beginTransaction').mockResolvedValue(double);
+
+  await orderRepository.runInTransaction({ execute: async () => 'ok' });
+
+  expect(double.commitCount).toBe(1);
+  expect(double.rollbackCount).toBe(0);
+  expect(double.state).toBe(TransactionStates.COMMITTED);
+});
+
+it('rolls back when execute throws', async () => {
+  const double = new PostgresTransactionDouble();
+  spyOn(orderRepository, 'beginTransaction').mockResolvedValue(double);
+
+  await expect(
+    orderRepository.runInTransaction({
+      execute: async () => {
+        throw getError({ message: 'boom' });
+      },
+    }),
+  ).rejects.toThrow('boom');
+
+  expect(double.rollbackCount).toBe(1);
+  expect(double.state).toBe(TransactionStates.ROLLED_BACK);
+});
+```
+
+Inject `commitError` (or `rollbackError`) to test a failed commit or rollback:
+
+```typescript
+const double = new PostgresTransactionDouble({ commitError: getError({ message: 'deadlock' }) });
+```
+
+The double never touches a database. Its `connector` getter throws - a repository method that
+reaches for `transaction.connector` must be stubbed too, because the double has none to give:
+
+```
+[TransactionDouble] connector is not available - stub the repository method that reached the database
+```
+
+`SqliteTransactionDouble` carries `beginMode` the same way `PostgresTransactionDouble` carries
+`isolationLevel` - both default to what the real `BEGIN` would have used.
+
+> [!WARNING] A double proves control flow, not SQL atomicity
+> `TransactionDouble` tells you whether your code called commit or rollback on the right branch. It
+> cannot tell you whether two statements really ran in one transaction, or whether a constraint fires
+> at commit time. For that, run the code against a real engine - [PGlite](/guides/core-concepts/persistent/pglite)
+> is the fast, in-process option for tests.
+
+## 6. Test Organization
+
+### File Structure
+
+```
+src/
+├── services/
+│   ├── user.service.ts
+│   └── __tests__/
+│       └── user.service.test.ts
+├── repositories/
+│   ├── user.repository.ts
+│   └── __tests__/
+│       └── user.repository.test.ts
+└── controllers/
+    ├── user.controller.ts
+    └── __tests__/
+        └── user.controller.test.ts
+test/
+├── setup.ts
+├── helpers/
+│   ├── test-database.ts
+│   └── fixtures.ts
+└── e2e/
+    └── full-flow.test.ts
+```
+
+### Test Naming Convention
+
+```typescript
+describe('UserService', () => {
+  describe('createUser', () => {
+    it('should create user with valid data', () => {});
+    it('should throw ValidationError for invalid email', () => {});
+    it('should throw ConflictError for duplicate email', () => {});
+  });
+
+  describe('updateUser', () => {
+    describe('when user exists', () => {
+      it('should update provided fields only', () => {});
+    });
+
+    describe('when user does not exist', () => {
+      it('should throw NotFoundError', () => {});
+    });
+  });
+});
+```
+
+## 7. Coverage Guidelines
+
+| Category | Target | Priority |
+|----------|--------|----------|
+| Services (business logic) | > 80% | High |
+| Repositories (data access) | > 70% | Medium |
+| Controllers (E2E) | > 60% | Medium |
+| Utilities/Helpers | > 90% | High |
+
+**Generate coverage report:**
+```bash
+bun test --coverage
+
+# Coverage summary will be in ./coverage/
+```
+
+## Testing Checklist
+
+| Category | Check |
+|----------|-------|
+| **Setup** | Test database configured and isolated |
+| **Unit** | Services tested with mocked dependencies |
+| **Integration** | Repositories tested with real database |
+| **E2E** | Critical user flows covered |
+| **Edge Cases** | Error conditions and boundaries tested |
+| **Security** | Auth/authz scenarios tested |
+| **Performance** | Slow tests identified and optimized |
+
+## See Also
+
+- [Error Handling](./error-handling) - Test error scenarios
+- [Common Pitfalls](./common-pitfalls) - Testing mistakes to avoid
+- [API Usage Examples](./api-usage-examples) - What to test

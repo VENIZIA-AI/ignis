@@ -2,7 +2,7 @@
 
 Thank you for your interest in contributing to Ignis! This guide will help you get started.
 
-For detailed guidelines, see the full [Contribution Workflow](packages/docs/wiki/get-started/best-practices/contribution-workflow.md) documentation.
+For detailed guidelines, see the full [Contribution Workflow](docs/wiki/content/best-practices/contribution-workflow.md) documentation.
 
 ## Table of Contents
 
@@ -28,7 +28,7 @@ Please read and follow our [Code of Conduct](CODE_OF_CONDUCT.md). We are committ
 
 | Tool | Version | Installation |
 |------|---------|--------------|
-| **Bun** | >= 1.3.0 | `curl -fsSL https://bun.sh/install \| bash` |
+| **Bun** | >= 1.4.0 | `curl -fsSL https://bun.sh/install \| bash` |
 | **Git** | Latest | [git-scm.com](https://git-scm.com/) |
 
 ### Setup
@@ -107,10 +107,10 @@ git checkout -b feature/your-feature-name
 ### Step 2: Make Changes
 
 **Checklist:**
-- ✅ Follow [Code Style Standards](packages/docs/wiki/get-started/best-practices/code-style-standards.md)
-- ✅ Follow [Architectural Patterns](packages/docs/wiki/get-started/best-practices/architectural-patterns.md)
+- ✅ Follow [Code Style Standards](docs/wiki/content/best-practices/code-style-standards/index.md)
+- ✅ Follow [Architectural Patterns](docs/wiki/content/best-practices/architectural-patterns.md)
 - ✅ Add tests for new features/fixes
-- ✅ Update docs in `packages/docs/wiki` if needed
+- ✅ Update docs in `docs/wiki/wiki` if needed
 
 ### Step 3: Commit
 
@@ -167,7 +167,7 @@ bun run lint
 bun run lint:fix
 ```
 
-For detailed standards, see [Code Style Standards](packages/docs/wiki/get-started/best-practices/code-style-standards.md).
+For detailed standards, see [Code Style Standards](docs/wiki/content/best-practices/code-style-standards/index.md).
 
 ---
 
@@ -210,7 +210,7 @@ Then create a Pull Request on GitHub targeting the `develop` branch.
 
 ## Getting Help
 
-- **Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
+- **Documentation**: [https://ignis.venizia.ai](https://ignis.venizia.ai)
 - **Issues**: Search [existing issues](https://github.com/VENIZIA-AI/ignis/issues) before creating new ones
 - **Questions**: Use GitHub Discussions or Issues
 

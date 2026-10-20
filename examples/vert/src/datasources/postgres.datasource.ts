@@ -1,15 +1,11 @@
-import { EnvironmentKeys } from '@/common/environments';
-import {
-  applicationEnvironment,
-  BaseDataSource,
-  datasource,
-  int,
-  ValueOrPromise,
-} from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { EnvironmentKeys } from '@/common';
+import { datasource, type ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
+interface IDataSourceConfigs {
   host: string;
   port: number;
   database: string;
@@ -19,18 +15,11 @@ interface IDSConfigs {
 }
 
 /**
- * PostgresDataSource with auto-discovery support.
- *
- * Features:
- * - Schema is auto-discovered from repositories that reference this datasource
- *
- * How it works:
- * 1. @repository decorator binds model to datasource
- * 2. When configure() is called, getSchema() auto-discovers all bound models
- * 3. Drizzle is initialized with the auto-discovered schema
+ * The schema is discovered from the repositories bound here. Naming NodePostgresDriver in
+ * `@datasource` wires the driver and carries `pg` into a compiled binary.
  */
-@datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+@datasource({ driver: NodePostgresDriver })
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {
@@ -44,24 +33,18 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
         password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
-      // NO schema property - auto-discovered from @repository bindings!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    // getSchema() auto-discovers models from @repository bindings
-    const schema = this.getSchema();
-
-    const dsSchema = Object.keys(schema);
+    const schema = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      dsSchema.length,
-      dsSchema,
+      schema.length,
+      schema,
     );
 
-    // Store pool reference for transaction support
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    this.client = new Pool(this.settings);
   }
 
   override getConnectionString(): ValueOrPromise<string> {

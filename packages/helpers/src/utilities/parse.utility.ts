@@ -1,64 +1,66 @@
-import get from 'lodash/get';
-import round from 'lodash/round';
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 
-// -------------------------------------------------------------------------
-const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 0,
-  minimumFractionDigits: 0,
-});
+/**
+ * Rounds at a decimal precision, shifting the exponent rather than multiplying: `1.005` at 2 is
+ * `1.01` here, where `Math.round(1.005 * 100) / 100` gives `1`.
+ *
+ * Hand-written to keep lodash out of a browser bundle. One deliberate difference from `lodash/round`:
+ * a result of negative zero is normalised to `0`. They compare equal, stringify the same and
+ * serialise the same, so nothing downstream can tell - checked across 114 value/precision pairs, and
+ * the sign of zero was the only disagreement.
+ */
+const round = (opts: { value: number; precision?: number }): number => {
+  const { value, precision = 0 } = opts;
 
-const INTL_2_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 2,
-});
+  if (!Number.isFinite(value) || precision === 0) {
+    return Math.round(value) + 0;
+  }
 
-// -------------------------------------------------------------------------
+  const [mantissa, exponent] = `${value}e`.split('e');
+  const shifted = Math.round(Number(`${mantissa}e${Number(exponent) + precision}`));
+  const [shiftedMantissa, shiftedExponent] = `${shifted}e`.split('e');
+
+  return Number(`${shiftedMantissa}e${Number(shiftedExponent) - precision}`) + 0;
+};
+
 export const getUID = () => Math.random().toString(36).slice(2).toUpperCase();
 
-// -------------------------------------------------------------------------
 export const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/gi, (sub: string) => {
     return sub.toUpperCase().replace('-', '').replace('_', '');
   });
 };
 
-// -------------------------------------------------------------------------
+/** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
+const camelizeValue = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(element => camelizeValue(element));
+  }
+
+  if (!value || typeof value !== 'object' || value instanceof Date) {
+    return value;
+  }
+
+  const camelized: any = {};
+  const valueKeys = Object.keys(value);
+  for (const key of valueKeys) {
+    camelized[toCamel(key)] = camelizeValue((value as Record<string, unknown>)[key]);
+  }
+
+  return camelized;
+};
+
 export const keysToCamel = (object: object) => {
   const n: any = {};
   const keys = Object.keys(object);
 
   for (const key of keys) {
-    const value = get(object, key);
-
-    let valueType: string = typeof value;
-    if (Array.isArray(value)) {
-      valueType = 'array';
-    } else if (value instanceof Date) {
-      valueType = 'date';
-    }
-
-    switch (valueType) {
-      case 'object': {
-        if (!value) {
-          n[toCamel(key)] = value;
-          break;
-        }
-
-        n[toCamel(key)] = keysToCamel(value);
-        break;
-      }
-      default: {
-        n[toCamel(key)] = value;
-        break;
-      }
-    }
+    n[toCamel(key)] = camelizeValue((object as Record<string, unknown>)[key]);
   }
 
   return n;
 };
 
-// -------------------------------------------------------------------------
 export const isInt = (n: any) => {
   if (isNaN(n)) {
     return false;
@@ -67,7 +69,6 @@ export const isInt = (n: any) => {
   return Number.isInteger(n) || Math.floor(Number(n)) === n || Number(n) % 1 === 0;
 };
 
-// -------------------------------------------------------------------------
 export const isFloat = (input: any) => {
   if (isNaN(input)) {
     return false;
@@ -76,27 +77,49 @@ export const isFloat = (input: any) => {
   return Number(input) === input || Number(input) % 1 !== 0;
 };
 
-// -------------------------------------------------------------------------
+/**
+ * Parses an integer, TOTAL by design: it always answers a number, and answers `0` for anything it
+ * cannot parse - `undefined`, `''`, `'abc'`.
+ *
+ * That makes `int(value) ?? fallback` dead code, because the left side is never nullish. The
+ * fallback belongs INSIDE the call, and for an environment read it belongs in the read itself:
+ *
+ * ```ts
+ * int(applicationEnvironment.get(KEY, { defaultValue: '6379' }))  // correct
+ * int(applicationEnvironment.get(KEY)) ?? 6379                    // always 0 when KEY is unset
+ * ```
+ *
+ * The second form is silent: a missing port reads `0` and a missing retry budget reads `0`, which
+ * through `AbstractRedisHelper.buildRetryStrategy` means "give up after the first failure".
+ */
 export const int = (input: any) => {
-  if (!input || isNaN(input)) {
+  if (!input) {
     return 0;
   }
 
   const normalized = input?.toString()?.replace(/,/g, '');
-  return Number.parseInt(normalized, 10) ?? 0;
+  if (isNaN(normalized)) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(normalized, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-// -------------------------------------------------------------------------
 export const float = (input: any, digit = 2) => {
-  if (!input || isNaN(input)) {
+  if (!input) {
     return 0;
   }
 
   const normalized = input?.toString()?.replace(/,/g, '');
-  return round(Number.parseFloat(normalized), digit);
+  if (isNaN(normalized)) {
+    return 0;
+  }
+
+  const parsed = round({ value: Number.parseFloat(normalized), precision: digit });
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
-// -------------------------------------------------------------------------
 export const toBoolean = (input: any): boolean => {
   return (
     input !== '' &&
@@ -109,126 +132,7 @@ export const toBoolean = (input: any): boolean => {
   );
 };
 
-// -------------------------------------------------------------------------
-export const toStringDecimal = (input: any, digit = 2, options = { useLocaleFormat: true }) => {
-  const { useLocaleFormat } = options;
-  if (isNaN(input)) {
-    return 0;
-  }
-
-  let number = 0;
-  if (isInt(input)) {
-    number = int(input);
-  } else {
-    number = float(input, digit);
-  }
-
-  if (!useLocaleFormat) {
-    return number.toFixed(digit);
-  }
-
-  if (Number.isInteger(number)) {
-    return INTL_0_DIGITS_FORMATER.format(number);
-  }
-
-  if (digit === 2) {
-    return INTL_2_DIGITS_FORMATER.format(number);
-  }
-
-  const formater = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: digit,
-    minimumFractionDigits: digit,
-  });
-  return formater.format(number);
-};
-
-// -------------------------------------------------------------------------
-export const getNumberValue = (
-  input: string,
-  opts?: { method?: 'int' | 'float'; locale?: 'us' | 'eu' },
-) => {
-  const { method = 'int', locale = 'us' } = opts ?? {};
-
-  if (!input) {
-    return 0;
-  }
-
-  let raw: any;
-
-  switch (typeof input) {
-    case 'string': {
-      if (locale === 'eu') {
-        // EU format: dot is thousands separator, comma is decimal
-        // "1.234,56" → "1234.56"
-        raw = input.replace(/\./g, '').replace(/,/g, '.');
-      } else {
-        // US/International format: comma is thousands separator, dot is decimal
-        // "1,234.56" → "1234.56"
-        raw = input.replace(/,/g, '');
-      }
-      break;
-    }
-    default: {
-      raw = input;
-      break;
-    }
-  }
-
-  switch (method) {
-    case 'int': {
-      return int(raw);
-    }
-    default: {
-      return float(raw);
-    }
-  }
-};
-
-// ---------------------------------------------------------
-/**
- * Returns an object with the key as the value of the `keyMap` and the value as the object itself.
- *
- * @param arr - The input array
- * @param keyMap - The property key to use as the key in the resulting object
- *
- * Note: In case of duplicate keys, the last element will be used.
- */
-export const parseArrayToRecordWithKey = <
-  T extends Record<K, PropertyKey>,
-  K extends keyof T,
->(opts: {
-  arr: T[];
-  keyMap: K;
-}): Record<T[K], T> => {
-  const { arr, keyMap } = opts;
-
-  const resultRecord: Record<T[K], T> = {} as Record<T[K], T>;
-
-  if (!arr.length) {
-    return resultRecord;
-  }
-
-  arr.forEach(element => {
-    if (!(keyMap in element)) {
-      throw getError({
-        message: 'Invalid keyMap',
-      });
-    }
-    resultRecord[element[keyMap]] = element;
-  });
-
-  return resultRecord;
-};
-
-// ---------------------------------------------------------
-/**
- * Return a map with the key as the value of the `keyMap` and the value as the object itself.
- *
- * @param arr - The input array
- * @param keyMap - The property key to use as the key in the resulting object
- *
- * Note: In case of duplicate keys, the last element will be used.
- */
+/** Converts an array to a Map keyed by `keyMap`. Last element wins on duplicate keys. */
 export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K extends keyof T>(
   arr: T[],
   keyMap: K,
@@ -249,4 +153,43 @@ export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K exten
   });
 
   return resultMap;
+};
+
+/** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped env values (e.g. `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`). */
+export const toDelimitedArray = (input: unknown, separator = ','): string[] => {
+  if (input == null) {
+    return [];
+  }
+
+  return String(input)
+    .split(separator)
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0);
+};
+
+/**
+ * A trimmed value, or `undefined` when the input is absent or carries nothing but whitespace.
+ *
+ * Written for environment reads. `KEY=` in a deployment file is a pipeline that forgot to export the
+ * value, but `process.env.KEY` answers `''` for it, and `''` walks straight past `??`:
+ *
+ * ```ts
+ * process.env.APP_ENV_LOGGER_FORMAT ?? 'text'                    // '' when the line is blank
+ * blankToUndefined(process.env.APP_ENV_LOGGER_FORMAT) ?? 'text'  // 'text'
+ * ```
+ *
+ * Reach for this rather than `||`, which reads `'0'` as blank as well.
+ */
+export const blankToUndefined = (input: string | undefined): string | undefined => {
+  const trimmed = input?.trim();
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed;
+};
+
+/** Trims a possibly-undefined env value to a clean string ('' when absent). */
+export const toTrimmed = (input: unknown): string => {
+  if (input == null) {
+    return '';
+  }
+
+  return String(input).trim();
 };

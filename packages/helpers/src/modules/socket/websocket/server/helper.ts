@@ -1,0 +1,1009 @@
+import { HTTP } from '@/common';
+import { type ValueOrPromise } from '@/common/types';
+import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
+import {
+  ensureRedisClientsConnecting,
+  type TRedisClient,
+  waitForRedisReady,
+} from '@/modules/redis';
+import { UuidHelper } from '@/modules/uid';
+import { voidExecution } from '@/utilities/promise.utility';
+import { type EventEmitter } from 'node:events';
+import {
+  type IBunWebSocketConfig,
+  type IBunWebSocketHandler,
+  type IRedisSocketMessage,
+  type IWebSocket,
+  type IWebSocketClient,
+  type IWebSocketData,
+  type IWebSocketMessage,
+  type IWebSocketServerOptions,
+  type TWebSocketAuthenticateFn,
+  type TWebSocketClientConnectedFn,
+  type TWebSocketClientDisconnectedFn,
+  type TWebSocketHandshakeFn,
+  type TWebSocketMessageHandler,
+  type TWebSocketValidateRoomFn,
+  WebSocketChannels,
+  WebSocketClientStates,
+  WebSocketDefaults,
+  WebSocketEvents,
+  WebSocketMessageTypes,
+} from '../common';
+import { WebSocketDeliveryHelper } from './delivery';
+
+export class WebSocketServerHelper<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> extends BaseHelper {
+  /**
+   * Narrows an untrusted room payload to the strings it actually contains.
+   *
+   * `payload as { rooms?: string[] }` is a claim, not a check: the value comes off the wire, so
+   * `{"rooms":"lobby"}` satisfied the `rooms?.length` test (a string has one) and the next line
+   * called `rooms.filter`, which a string does not have. Under `Bun.serve` that TypeError is thrown
+   * inside the message callback and exits the process.
+   */
+  private static toRoomList(payload: unknown): string[] {
+    const rooms = (payload as { rooms?: unknown } | null | undefined)?.rooms;
+    return Array.isArray(rooms)
+      ? rooms.filter((room): room is string => typeof room === 'string')
+      : [];
+  }
+
+  private path: string;
+
+  private serverId: string;
+
+  private clients: Map<string, IWebSocketClient<MetadataType>> = new Map();
+  private users: Map<string, Set<string>> = new Map(); // userId -> Set<clientId>
+  private rooms: Map<string, Set<string>> = new Map(); // room -> Set<clientId>
+
+  private delivery: WebSocketDeliveryHelper<MetadataType>;
+
+  private redisPub: TRedisClient;
+  private redisSub: TRedisClient;
+
+  private authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
+  private validateRoomFn?: TWebSocketValidateRoomFn;
+  private onClientConnected?: TWebSocketClientConnectedFn<MetadataType>;
+  private onClientDisconnected?: TWebSocketClientDisconnectedFn;
+  private messageHandler?: TWebSocketMessageHandler;
+  private handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
+
+  private defaultRooms: string[];
+  private serverOptions: IBunWebSocketConfig;
+  private authTimeout: number;
+  private heartbeatInterval: number;
+  private heartbeatTimeout: number;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private requireEncryption: boolean;
+
+  constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>) {
+    super({ scope: opts.identifier });
+
+    this.identifier = opts.identifier;
+    this.path = opts.path ?? WebSocketDefaults.PATH;
+    this.serverId = UuidHelper.getInstance().v4();
+
+    this.authenticateFn = opts.authenticateFn;
+    this.validateRoomFn = opts.validateRoomFn;
+    this.onClientConnected = opts.clientConnectedFn;
+    this.onClientDisconnected = opts.clientDisconnectedFn;
+    this.messageHandler = opts.messageHandler;
+    this.handshakeFn = opts.handshakeFn;
+
+    this.defaultRooms = opts.defaultRooms ?? [
+      WebSocketDefaults.ROOM,
+      WebSocketDefaults.NOTIFICATION_ROOM,
+    ];
+    this.serverOptions = {
+      sendPings: WebSocketDefaults.SEND_PINGS,
+      idleTimeout: WebSocketDefaults.IDLE_TIMEOUT,
+      maxPayloadLength: WebSocketDefaults.MAX_PAYLOAD_LENGTH,
+      ...opts.serverOptions,
+    };
+    this.authTimeout = opts.authTimeout ?? WebSocketDefaults.AUTH_TIMEOUT;
+    this.heartbeatInterval = opts.heartbeatInterval ?? WebSocketDefaults.HEARTBEAT_INTERVAL;
+    this.heartbeatTimeout = opts.heartbeatTimeout ?? WebSocketDefaults.HEARTBEAT_TIMEOUT;
+    this.requireEncryption = opts.requireEncryption ?? false;
+
+    this.delivery = new WebSocketDeliveryHelper<MetadataType>({
+      server: opts.server,
+      clients: this.clients,
+      users: this.users,
+      rooms: this.rooms,
+      outboundTransformer: opts.outboundTransformer,
+      encryptedBatchLimit: opts.encryptedBatchLimit ?? WebSocketDefaults.ENCRYPTED_BATCH_LIMIT,
+    });
+
+    this.initRedisClients(opts.redisConnection);
+  }
+
+  private initRedisClients(
+    redisConnection: IWebSocketServerOptions<AuthDataType, MetadataType>['redisConnection'],
+  ) {
+    if (!redisConnection) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: '[WebSocketServerHelper] Invalid redis connection!',
+      });
+    }
+
+    this.redisPub = redisConnection.duplicateClient();
+    this.redisSub = redisConnection.duplicateClient();
+  }
+
+  getClients(opts?: {
+    id?: string;
+  }): IWebSocketClient<MetadataType> | Map<string, IWebSocketClient<MetadataType>> | undefined {
+    const { id } = opts ?? {};
+    if (id) {
+      return this.clients.get(id);
+    }
+    return this.clients;
+  }
+
+  getClientsByUser(opts: { userId: string }): IWebSocketClient<MetadataType>[] {
+    const clientIds = this.users.get(opts.userId);
+    if (!clientIds) {
+      return [];
+    }
+
+    const clients: IWebSocketClient<MetadataType>[] = [];
+    for (const clientId of clientIds) {
+      const client = this.clients.get(clientId);
+      if (client) {
+        clients.push(client);
+      }
+    }
+    return clients;
+  }
+
+  getClientsByRoom(opts: { room: string }): IWebSocketClient<MetadataType>[] {
+    const clientIds = this.rooms.get(opts.room);
+    if (!clientIds) {
+      return [];
+    }
+
+    const clients: IWebSocketClient<MetadataType>[] = [];
+    for (const clientId of clientIds) {
+      const client = this.clients.get(clientId);
+      if (client) {
+        clients.push(client);
+      }
+    }
+    return clients;
+  }
+
+  getPath(): string {
+    return this.path;
+  }
+
+  /** Hooks run inside Bun socket handlers - a sync throw there kills the process; voidExecution only catches promise rejections since its argument is evaluated before the try/catch runs. */
+  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+    const { scope, execution } = opts;
+
+    try {
+      voidExecution({ logger: this.logger, scope, execution: execution() });
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
+  }
+
+  async configure() {
+    const logger = this.logger.for(this.configure.name);
+    logger.info('Configuring WebSocket Server | id: %s', this.identifier);
+
+    (this.redisPub as EventEmitter).on('error', (error: Error) => {
+      logger.error('Redis pub error | error: %s', error);
+    });
+    (this.redisSub as EventEmitter).on('error', (error: Error) => {
+      logger.error('Redis sub error | error: %s', error);
+    });
+
+    ensureRedisClientsConnecting({
+      clients: [this.redisPub, this.redisSub],
+      logger: this.logger,
+      scope: this.configure.name,
+    });
+
+    await Promise.all([
+      waitForRedisReady({ client: this.redisPub }),
+      waitForRedisReady({ client: this.redisSub }),
+    ]);
+    logger.info('All Redis connections ready');
+
+    await this.setupRedisSubscriptions();
+
+    this.startHeartbeatTimer();
+
+    logger.info('WebSocket Server READY | path: %s', this.path);
+  }
+
+  private async setupRedisSubscriptions() {
+    const logger = this.logger.for(this.setupRedisSubscriptions.name);
+
+    // Subscribe to all channels - await to ensure subscriptions are active before proceeding
+    await Promise.all([
+      this.redisSub.subscribe(WebSocketChannels.BROADCAST),
+      this.redisSub.psubscribe(WebSocketChannels.forRoomPattern()),
+      this.redisSub.psubscribe(WebSocketChannels.forClientPattern()),
+      this.redisSub.psubscribe(WebSocketChannels.forUserPattern()),
+    ]);
+
+    (this.redisSub as EventEmitter).on('message', (channel: string, raw: string) => {
+      this.onRedisMessage({ channel, raw });
+    });
+
+    (this.redisSub as EventEmitter).on(
+      'pmessage',
+      (_pattern: string, channel: string, raw: string) => {
+        this.onRedisMessage({ channel, raw });
+      },
+    );
+
+    logger.info('Redis subscriptions configured');
+  }
+
+  private onRedisMessage(opts: { channel: string; raw: string }) {
+    const logger = this.logger.for(this.onRedisMessage.name);
+    const { channel, raw } = opts;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      logger.error('Failed to parse Redis message | channel: %s', channel);
+      return;
+    }
+
+    if (
+      !parsed ||
+      typeof parsed !== 'object' ||
+      typeof (parsed as IRedisSocketMessage).serverId !== 'string' ||
+      typeof (parsed as IRedisSocketMessage).event !== 'string'
+    ) {
+      logger.error('Invalid Redis message shape | channel: %s', channel);
+      return;
+    }
+
+    const message = parsed as IRedisSocketMessage;
+
+    // Skip messages from this server instance (dedup)
+    if (message.serverId === this.serverId) {
+      return;
+    }
+
+    const { type, target, event, data, exclude } = message;
+
+    switch (type) {
+      case WebSocketMessageTypes.BROADCAST: {
+        this.broadcast({ event, data, exclude });
+        break;
+      }
+      case WebSocketMessageTypes.ROOM: {
+        if (target) {
+          this.sendToRoom({ room: target, event, data, exclude });
+        }
+        break;
+      }
+      case WebSocketMessageTypes.CLIENT: {
+        if (target) {
+          this.sendToClient({ clientId: target, event, data });
+        }
+        break;
+      }
+      case WebSocketMessageTypes.USER: {
+        if (target) {
+          this.sendToUser({ userId: target, event, data });
+        }
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+  }
+
+  private publishToRedis(opts: {
+    type: IRedisSocketMessage['type'];
+    target?: string;
+    event: string;
+    data: unknown;
+    exclude?: string[];
+  }) {
+    const { type, target, event, data, exclude } = opts;
+
+    const message: IRedisSocketMessage = {
+      serverId: this.serverId,
+      type,
+      target,
+      event,
+      data,
+      exclude,
+    };
+
+    let channel: string;
+    switch (type) {
+      case WebSocketMessageTypes.BROADCAST: {
+        channel = WebSocketChannels.BROADCAST;
+        break;
+      }
+      case WebSocketMessageTypes.ROOM: {
+        channel = WebSocketChannels.forRoom({ room: target! });
+        break;
+      }
+      case WebSocketMessageTypes.CLIENT: {
+        channel = WebSocketChannels.forClient({ clientId: target! });
+        break;
+      }
+      case WebSocketMessageTypes.USER: {
+        channel = WebSocketChannels.forUser({ userId: target! });
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+
+    voidExecution({
+      logger: this.logger,
+      scope: this.publishToRedis.name,
+      execution: this.redisPub.publish(channel, JSON.stringify(message)),
+    });
+  }
+
+  getBunWebSocketHandler(): IBunWebSocketHandler {
+    const config = this.serverOptions;
+
+    return {
+      open: (socket: IWebSocket) => {
+        const { clientId } = socket.data as IWebSocketData;
+        this.onClientConnect({ clientId, socket });
+      },
+      message: (socket: IWebSocket, message: string | Buffer) => {
+        const { clientId } = socket.data as IWebSocketData;
+        const client = this.clients.get(clientId);
+
+        if (client) {
+          client.lastActivity = Date.now();
+        }
+
+        this.onClientMessage({
+          clientId,
+          raw: typeof message === 'string' ? message : message.toString(),
+        });
+      },
+      close: (socket: IWebSocket) => {
+        const { clientId } = socket.data as IWebSocketData;
+        this.onClientDisconnect({ clientId });
+      },
+      drain: (socket: IWebSocket) => {
+        const { clientId } = socket.data as IWebSocketData;
+        const client = this.clients.get(clientId);
+        if (client) {
+          client.backpressured = false;
+          this.logger.for('drain').debug('Backpressure cleared | id: %s', clientId);
+        }
+      },
+      perMessageDeflate: config.perMessageDeflate,
+      maxPayloadLength: config.maxPayloadLength,
+      idleTimeout: config.idleTimeout,
+      backpressureLimit: config.backpressureLimit,
+      closeOnBackpressureLimit: config.closeOnBackpressureLimit,
+      sendPings: config.sendPings,
+      publishToSelf: config.publishToSelf,
+    };
+  }
+
+  onClientConnect(opts: { clientId: string; socket: IWebSocket }) {
+    const logger = this.logger.for(this.onClientConnect.name);
+    const { clientId, socket } = opts;
+
+    if (this.clients.has(clientId)) {
+      logger.info('Client already existed | id: %s', clientId);
+      return;
+    }
+
+    logger.info('New connection (unauthorized) | id: %s', clientId);
+
+    const now = Date.now();
+
+    const client: IWebSocketClient<MetadataType> = {
+      id: clientId,
+      socket,
+      state: WebSocketClientStates.UNAUTHORIZED,
+      rooms: new Set(),
+      backpressured: false,
+      encrypted: false,
+      connectedAt: now,
+      lastActivity: now,
+    };
+    this.clients.set(clientId, client);
+
+    // Auto-join client's own room (same as Socket.IO: socket.id room)
+    socket.subscribe(clientId);
+
+    client.authTimer = setTimeout(() => {
+      const c = this.clients.get(clientId);
+      if (c?.state === WebSocketClientStates.UNAUTHORIZED) {
+        logger.warn('Auth timeout | id: %s', clientId);
+        c.socket.close(4001, 'Authentication timeout');
+      }
+    }, this.authTimeout);
+  }
+
+  onClientMessage(opts: { clientId: string; raw: string }) {
+    const logger = this.logger.for(this.onClientMessage.name);
+    const { clientId, raw } = opts;
+
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    let message: IWebSocketMessage;
+    try {
+      message = JSON.parse(raw);
+    } catch {
+      this.sendToClient({
+        clientId,
+        event: WebSocketEvents.ERROR,
+        data: { message: 'Invalid message format' },
+      });
+      return;
+    }
+
+    if (!message.event) {
+      logger.error('Invalid message payload | Missing event | raw: %s', raw);
+      return;
+    }
+
+    if (message.event === WebSocketEvents.HEARTBEAT) {
+      return;
+    }
+
+    if (message.event === WebSocketEvents.AUTHENTICATE) {
+      this.handleAuthenticate({ clientId, payload: message.data ?? {} });
+      return;
+    }
+
+    if (client.state !== WebSocketClientStates.AUTHENTICATED) {
+      this.sendToClient({
+        clientId,
+        event: WebSocketEvents.ERROR,
+        data: { message: 'Not authenticated' },
+      });
+      return;
+    }
+
+    switch (message.event) {
+      case WebSocketEvents.JOIN: {
+        this.handleJoin({ clientId, payload: message.data });
+        break;
+      }
+      case WebSocketEvents.LEAVE: {
+        this.handleLeave({ clientId, payload: message.data });
+        break;
+      }
+      default: {
+        if (!this.messageHandler) {
+          logger.debug('No messageHandler for extra event | raw: %s', raw);
+          break;
+        }
+
+        this.invokeHook({
+          scope: 'messageHandler',
+          execution: () =>
+            this.messageHandler?.({
+              clientId,
+              userId: client.userId,
+              message,
+            }),
+        });
+        break;
+      }
+    }
+  }
+
+  onClientDisconnect(opts: { clientId: string }) {
+    const logger = this.logger.for(this.onClientDisconnect.name);
+    const { clientId } = opts;
+
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    if (client.authTimer) {
+      clearTimeout(client.authTimer);
+      client.authTimer = undefined;
+    }
+
+    if (client.userId) {
+      const userClients = this.users.get(client.userId);
+      userClients?.delete(clientId);
+      if (userClients?.size === 0) {
+        this.users.delete(client.userId);
+      }
+    }
+
+    for (const room of client.rooms) {
+      const roomClients = this.rooms.get(room);
+      roomClients?.delete(clientId);
+      if (roomClients?.size === 0) {
+        this.rooms.delete(room);
+      }
+    }
+
+    this.clients.delete(clientId);
+
+    logger.info(
+      'Client disconnected | id: %s | userId: %s',
+      clientId,
+      client.userId ?? 'anonymous',
+    );
+
+    this.invokeHook({
+      scope: 'clientDisconnectedFn',
+      execution: () => this.onClientDisconnected?.({ clientId, userId: client.userId }),
+    });
+  }
+
+  joinRoom(opts: { clientId: string; room: string }) {
+    const { clientId, room } = opts;
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    if (!this.rooms.has(room)) {
+      this.rooms.set(room, new Set<string>());
+    }
+    this.rooms.get(room)!.add(clientId);
+    client.rooms.add(room);
+
+    // Bun native pub/sub - encrypted clients are unsubscribed (delivered manually via transformer)
+    if (!client.encrypted) {
+      client.socket.subscribe(room);
+    }
+  }
+
+  leaveRoom(opts: { clientId: string; room: string }) {
+    const { clientId, room } = opts;
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    const roomClients = this.rooms.get(room);
+    roomClients?.delete(clientId);
+    if (roomClients?.size === 0) {
+      this.rooms.delete(room);
+    }
+
+    client.rooms.delete(room);
+
+    client.socket.unsubscribe(room);
+  }
+
+  /** Unsubscribes the client from Bun native topics so `server.publish()` can't reach it - encrypted clients get messages only via the outbound transformer. */
+  enableClientEncryption(opts: { clientId: string }) {
+    const client = this.clients.get(opts.clientId);
+    if (!client || client.encrypted) {
+      return;
+    }
+
+    client.encrypted = true;
+
+    client.socket.unsubscribe(WebSocketDefaults.BROADCAST_TOPIC);
+    for (const room of client.rooms) {
+      client.socket.unsubscribe(room);
+    }
+  }
+
+  private handleAuthenticate(opts: { clientId: string; payload: unknown }) {
+    const logger = this.logger.for('handleAuthenticate');
+    const { clientId, payload } = opts;
+
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    if (client.state !== WebSocketClientStates.UNAUTHORIZED) {
+      this.sendToClient({
+        clientId,
+        event: WebSocketEvents.ERROR,
+        data: { message: 'Already authenticated' },
+      });
+      return;
+    }
+
+    client.state = WebSocketClientStates.AUTHENTICATING;
+
+    // Replace with a longer in-progress timeout - prevents DoS via a hanging authenticateFn
+    if (client.authTimer) {
+      clearTimeout(client.authTimer);
+    }
+    client.authTimer = setTimeout(() => {
+      const c = this.clients.get(clientId);
+      if (c?.state === WebSocketClientStates.AUTHENTICATING) {
+        logger.warn('Auth in-progress timeout | id: %s', clientId);
+        c.socket.close(4001, 'Authentication timeout');
+      }
+    }, this.authTimeout * 3);
+
+    Promise.resolve()
+      .then(() => this.authenticateFn((payload ?? {}) as AuthDataType))
+      .then(async result => {
+        // Re-validate client still exists (may have disconnected during async auth)
+        if (!this.clients.has(clientId)) {
+          logger.warn('Client disconnected during authentication | id: %s', clientId);
+          return;
+        }
+
+        if (!result) {
+          logger.info('Authentication rejected | id: %s', clientId);
+          this.sendToClient({
+            clientId,
+            event: WebSocketEvents.ERROR,
+            data: { message: 'Authentication failed' },
+          });
+          client.socket.close(4003, 'Authentication failed');
+          return;
+        }
+
+        client.userId = result.userId;
+        client.metadata = result.metadata;
+        client.state = WebSocketClientStates.AUTHENTICATED;
+
+        if (this.requireEncryption) {
+          if (!this.handshakeFn) {
+            logger.error(
+              'requireEncryption is true but no handshakeFn configured | id: %s',
+              clientId,
+            );
+            client.socket.close(4004, 'Encryption required');
+            return;
+          }
+
+          const handshakeResult = await Promise.resolve(
+            this.handshakeFn({
+              clientId,
+              userId: client.userId,
+              data: (payload ?? {}) as AuthDataType,
+            }),
+          );
+
+          // Re-validate client still exists (may have disconnected during async handshake)
+          if (!this.clients.has(clientId)) {
+            logger.warn('Client disconnected during handshake | id: %s', clientId);
+            return;
+          }
+
+          if (!handshakeResult) {
+            logger.info('Handshake rejected | id: %s', clientId);
+            this.sendToClient({
+              clientId,
+              event: WebSocketEvents.ERROR,
+              data: { message: 'Encryption handshake failed' },
+            });
+            client.socket.close(4004, 'Encryption required');
+            return;
+          }
+
+          this.enableClientEncryption({ clientId });
+          client.serverPublicKey = handshakeResult.serverPublicKey;
+          client.salt = handshakeResult.salt;
+        }
+
+        if (client.userId) {
+          if (!this.users.has(client.userId)) {
+            this.users.set(client.userId, new Set<string>());
+          }
+          this.users.get(client.userId)!.add(clientId);
+        }
+
+        // Subscribe to broadcast topic (skipped if already encrypted - enableClientEncryption handles topics)
+        if (!client.encrypted) {
+          client.socket.subscribe(WebSocketDefaults.BROADCAST_TOPIC);
+        }
+
+        this.joinRoom({ clientId, room: clientId });
+        for (const room of this.defaultRooms) {
+          this.joinRoom({ clientId, room });
+        }
+
+        const connectedData: Record<string, unknown> = {
+          id: clientId,
+          userId: client.userId,
+          time: new Date().toISOString(),
+        };
+        if (client.encrypted && client.serverPublicKey) {
+          connectedData.serverPublicKey = client.serverPublicKey;
+          connectedData.salt = client.salt;
+        }
+        this.sendToClient({
+          clientId,
+          event: WebSocketEvents.CONNECTED,
+          data: connectedData,
+        });
+
+        logger.info(
+          'Authenticated | id: %s | userId: %s | encrypted: %s',
+          clientId,
+          client.userId ?? 'anonymous',
+          client.encrypted,
+        );
+
+        this.invokeHook({
+          scope: 'clientConnectedFn',
+          execution: () =>
+            this.onClientConnected?.({
+              clientId,
+              userId: client.userId,
+              metadata: client.metadata,
+            }),
+        });
+      })
+      .catch(error => {
+        logger.error('Authentication error | id: %s | error: %s', clientId, error);
+        this.sendToClient({
+          clientId,
+          event: WebSocketEvents.ERROR,
+          data: { message: 'Authentication error' },
+        });
+        client.socket.close(4003, 'Authentication failed');
+      });
+  }
+
+  private handleJoin(opts: { clientId: string; payload: unknown }) {
+    const logger = this.logger.for('handleJoin');
+    const { clientId, payload } = opts;
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    const rooms = WebSocketServerHelper.toRoomList(payload);
+    if (!rooms.length) {
+      return;
+    }
+
+    const INTERNAL_PREFIX = 'ws:';
+    const MAX_ROOM_NAME_LENGTH = 256;
+    const sanitizedRooms = rooms.filter(r => {
+      return (
+        typeof r === 'string' &&
+        r.length > 0 &&
+        r.length <= MAX_ROOM_NAME_LENGTH &&
+        !r.startsWith(INTERNAL_PREFIX)
+      );
+    });
+
+    if (!sanitizedRooms.length) {
+      logger.warn(
+        'Join rejected | id: %s | rooms: %j | reason: all rooms filtered out',
+        clientId,
+        rooms,
+      );
+      return;
+    }
+
+    const validateRoomFn = this.validateRoomFn;
+    if (!validateRoomFn) {
+      logger.warn(
+        'Join rejected | id: %s | rooms: %j | reason: no validateRoomFn configured',
+        clientId,
+        sanitizedRooms,
+      );
+      return;
+    }
+
+    Promise.resolve()
+      .then(() => validateRoomFn({ clientId, userId: client.userId, rooms: sanitizedRooms }))
+      .then((allowedRooms: string[]) => {
+        if (!allowedRooms?.length) {
+          logger.warn(
+            'Join rejected | id: %s | rooms: %j | reason: no rooms allowed',
+            clientId,
+            sanitizedRooms,
+          );
+          return;
+        }
+
+        for (const room of allowedRooms) {
+          this.joinRoom({ clientId, room });
+        }
+
+        logger.info('Joined rooms | id: %s | rooms: %j', clientId, allowedRooms);
+      })
+      .catch(error => {
+        logger.error(
+          'Failed to join rooms | id: %s | rooms: %j | error: %s',
+          clientId,
+          sanitizedRooms,
+          error,
+        );
+      });
+  }
+
+  private handleLeave(opts: { clientId: string; payload: unknown }) {
+    const logger = this.logger.for('handleLeave');
+    const { clientId, payload } = opts;
+
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
+    const rooms = WebSocketServerHelper.toRoomList(payload);
+    if (!rooms.length) {
+      return;
+    }
+
+    // Only leave rooms the client has actually joined - prevents unsubscribing from internal topics
+    const validRooms = rooms.filter(r => client.rooms.has(r));
+    if (!validRooms.length) {
+      return;
+    }
+
+    logger.info('Leaving rooms | id: %s | rooms: %j', clientId, validRooms);
+
+    for (const room of validRooms) {
+      this.leaveRoom({ clientId, room });
+    }
+
+    logger.info('Left rooms | id: %s | rooms: %j', clientId, validRooms);
+  }
+
+  /** Local delivery and fan-out live in WebSocketDeliveryHelper - kept public here by delegation. */
+  sendToClient(opts: { clientId: string; event: string; data: unknown; doLog?: boolean }) {
+    this.delivery.sendToClient(opts);
+  }
+
+  sendToUser(opts: { userId: string; event: string; data: unknown }) {
+    this.delivery.sendToUser(opts);
+  }
+
+  sendToRoom(opts: { room: string; event: string; data: unknown; exclude?: string[] }) {
+    this.delivery.sendToRoom(opts);
+  }
+
+  broadcast(opts: { event: string; data: unknown; exclude?: string[] }) {
+    this.delivery.broadcast(opts);
+  }
+
+  send<T = unknown>(opts: {
+    destination?: string;
+    payload: { topic: string; data: T };
+    doLog?: boolean;
+    callback?: () => void;
+  }) {
+    const logger = this.logger.for(this.send.name);
+    const { destination, payload, doLog, callback } = opts;
+
+    if (!payload) {
+      return;
+    }
+
+    const { topic, data } = payload;
+    if (!topic || data === undefined) {
+      return;
+    }
+
+    if (!destination) {
+      this.broadcast({ event: topic, data });
+      this.publishToRedis({ type: WebSocketMessageTypes.BROADCAST, event: topic, data });
+    } else if (this.clients.has(destination)) {
+      this.sendToClient({ clientId: destination, event: topic, data, doLog });
+      this.publishToRedis({
+        type: WebSocketMessageTypes.CLIENT,
+        target: destination,
+        event: topic,
+        data,
+      });
+    } else if (this.rooms.has(destination)) {
+      this.sendToRoom({ room: destination, event: topic, data });
+      this.publishToRedis({
+        type: WebSocketMessageTypes.ROOM,
+        target: destination,
+        event: topic,
+        data,
+      });
+    } else {
+      // Could be a client or room on another instance - publish to Redis
+      this.publishToRedis({
+        type: WebSocketMessageTypes.ROOM,
+        target: destination,
+        event: topic,
+        data,
+      });
+    }
+
+    if (callback) {
+      setTimeout(callback, 0);
+    }
+
+    if (doLog) {
+      logger.info(
+        'Message emitted | destination: %s | topic: %s | data: %j',
+        destination ?? 'all',
+        topic,
+        data,
+      );
+    }
+  }
+
+  private startHeartbeatTimer() {
+    this.heartbeatTimer = setInterval(() => {
+      this.heartbeatAll();
+    }, this.heartbeatInterval);
+  }
+
+  private heartbeatAll() {
+    const now = Date.now();
+    const timeout = this.heartbeatTimeout;
+
+    if (!this.clients.size) {
+      return;
+    }
+
+    for (const [clientId, client] of this.clients) {
+      if (client.state !== WebSocketClientStates.AUTHENTICATED) {
+        continue; // Auth timeout handles unauthorized clients separately
+      }
+
+      if (now - client.lastActivity <= timeout) {
+        continue;
+      }
+
+      this.logger
+        .for(this.heartbeatAll.name)
+        .warn(
+          'Heartbeat timeout | id: %s | lastActivity: %s',
+          clientId,
+          new Date(client.lastActivity).toISOString(),
+        );
+
+      client.socket.close(4002, 'Heartbeat timeout');
+      // Bun fires close handler → onClientDisconnect handles cleanup
+    }
+  }
+
+  async shutdown() {
+    const logger = this.logger.for(this.shutdown.name);
+    logger.info('Shutting down WebSocket server...');
+
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+
+    // Close all sockets first (before onClientDisconnect removes them from the map)
+    for (const [clientId, client] of this.clients) {
+      try {
+        client.socket.close(1001, 'Server shutting down');
+      } catch {
+        logger.error('Client may already be disconnected | clientId: %s', clientId);
+      }
+    }
+
+    // Trigger disconnect callbacks (clears auth timers, removes from indexes, invokes user callback)
+    const clientIds = [...this.clients.keys()];
+    for (const clientId of clientIds) {
+      this.onClientDisconnect({ clientId });
+    }
+
+    this.clients.clear();
+    this.users.clear();
+    this.rooms.clear();
+
+    await Promise.all([this.redisPub?.quit(), this.redisSub?.quit()]);
+
+    logger.info('WebSocket server shutdown complete');
+  }
+}

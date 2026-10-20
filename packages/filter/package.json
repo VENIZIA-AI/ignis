@@ -1,0 +1,86 @@
+{
+  "name": "@venizia/ignis-filter",
+  "version": "0.3.1",
+  "description": "Engine-neutral query filter vocabulary for TypeScript: the `{ where, order, limit, offset, skip, fields, include }` shape, comparison/pattern/null/array/logical operators, and sort direction constants. Isomorphic by construction - no node builtins and no server-only peer, so the same filter language serves a server repository and a browser data layer.",
+  "keywords": [
+    "browser",
+    "filter",
+    "ignis",
+    "isomorphic",
+    "operators",
+    "pagination",
+    "query",
+    "query-builder",
+    "query-filter",
+    "repository",
+    "sorting",
+    "typescript",
+    "venizia",
+    "where-clause"
+  ],
+  "homepage": "https://ignis.venizia.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/filter"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "main": "./dist/cjs/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./schemas": {
+      "types": "./dist/cjs/schemas/index.d.ts",
+      "import": "./dist/esm/schemas/index.js",
+      "require": "./dist/cjs/schemas/index.js",
+      "default": "./dist/cjs/schemas/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!/**/tests",
+    "!/**/dist/tests",
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
+    "prepublishOnly": "make rebuild"
+  },
+  "dependencies": {
+    "@venizia/ignis-inversion": "workspace:*",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,15 +1,7 @@
-import { Configuration, TConfigurationSchema } from '@/models/entities';
-import { DefaultCRUDRepository, IDataSource, inject, repository } from '@venizia/ignis';
+import { PGliteDataSource } from '@/datasources/pglite.datasource';
+import { Configuration, type configurationTable } from '@/models/configuration.model';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-@repository({})
-export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
-  ) {
-    super({
-      dataSource,
-      entityClass: Configuration,
-      relations: {},
-    });
-  }
-}
+@repository({ model: Configuration, dataSource: PGliteDataSource })
+export class ConfigurationRepository extends DefaultCRUDRepository<typeof configurationTable> {}

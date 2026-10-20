@@ -1,0 +1,117 @@
+import type { TConstValue } from '@venizia/ignis-helpers';
+
+/** Mirrors the kernel's `ArtifactTypes` values; boot must not depend on kernel (`{boot, kernel} -> core` in the build chain). */
+export class ArtifactTypes {
+  static readonly CONFIGURATION = 'configuration';
+  static readonly COMPONENT = 'component';
+  static readonly CONTROLLER = 'controller';
+  static readonly SERVICE = 'service';
+  static readonly REPOSITORY = 'repository';
+  static readonly DATASOURCE = 'datasource';
+  static readonly MODEL = 'model';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.CONFIGURATION,
+    this.COMPONENT,
+    this.CONTROLLER,
+    this.SERVICE,
+    this.REPOSITORY,
+    this.DATASOURCE,
+    this.MODEL,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TArtifactType = TConstValue<typeof ArtifactTypes>;
+
+/** Mirrors the kernel's `ArtifactIndexFields` - the keys of the object the emitter writes and `registerArtifacts` reads. */
+export class ArtifactIndexFields {
+  static readonly CONFIGURATIONS = 'configurations';
+  static readonly DATA_SOURCES = 'dataSources';
+  static readonly COMPONENTS = 'components';
+  static readonly REPOSITORIES = 'repositories';
+  static readonly SERVICES = 'services';
+  static readonly CONTROLLERS = 'controllers';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.CONFIGURATIONS,
+    this.DATA_SOURCES,
+    this.COMPONENTS,
+    this.REPOSITORIES,
+    this.SERVICES,
+    this.CONTROLLERS,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
+
+export class ArtifactStereotypes {
+  /** The source files the scanner reads: TypeScript, with or without JSX. */
+  static readonly SOURCE_GLOB = '**/*.{ts,tsx}';
+  /** The extension of a source file - stripped for an import specifier, replaced by `.js` for its compiled copy. */
+  static readonly SOURCE_EXTENSION = /\.tsx?$/;
+  /** Decorator name as imported from `@venizia/ignis` or `@venizia/ignis-kernel` -> artifact type. */
+  static readonly BY_DECORATOR: Readonly<Record<string, TArtifactType>> = {
+    configuration: ArtifactTypes.CONFIGURATION,
+    component: ArtifactTypes.COMPONENT,
+    controller: ArtifactTypes.CONTROLLER,
+    service: ArtifactTypes.SERVICE,
+    repository: ArtifactTypes.REPOSITORY,
+    datasource: ArtifactTypes.DATASOURCE,
+    model: ArtifactTypes.MODEL,
+  };
+
+  static readonly ROOT_DECORATOR = 'injectable';
+
+  static readonly SCHEME_SET = new Set<string>(Object.values(ArtifactStereotypes.BY_DECORATOR));
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+
+  static readonly SOURCE_MODULES = /^@venizia\/ignis(?:-kernel)?(?:\/.+)?$/;
+
+  static readonly DEFAULT_IGNORE = [
+    '**/__tests__/**',
+    '**/*.test.{ts,tsx}',
+    '**/*.spec.{ts,tsx}',
+    '**/generated/**',
+  ];
+
+  /**
+   * The kernel's `registerArtifacts` order; `model` is never emitted. Configurations come first:
+   * `registerConfigurations` runs before the datasource and component sweeps, so a `@configuration`
+   * can shape what they read. The kernel sorts them among themselves by their `after` declarations
+   * at boot, so the order within the field does not matter here.
+   */
+  static readonly EMIT_ORDER: ReadonlyArray<{ type: TArtifactType; field: TArtifactIndexField }> = [
+    { type: ArtifactTypes.CONFIGURATION, field: ArtifactIndexFields.CONFIGURATIONS },
+    { type: ArtifactTypes.DATASOURCE, field: ArtifactIndexFields.DATA_SOURCES },
+    { type: ArtifactTypes.COMPONENT, field: ArtifactIndexFields.COMPONENTS },
+    { type: ArtifactTypes.REPOSITORY, field: ArtifactIndexFields.REPOSITORIES },
+    { type: ArtifactTypes.SERVICE, field: ArtifactIndexFields.SERVICES },
+    { type: ArtifactTypes.CONTROLLER, field: ArtifactIndexFields.CONTROLLERS },
+  ];
+}
+
+/** Why a decorated class was left out of the index - reported, never silent. */
+export class ScanSkipReasons {
+  static readonly ABSTRACT = 'abstract';
+  static readonly NOT_EXPORTED = 'not-exported';
+  static readonly IGNORED = 'ignored';
+
+  static readonly SCHEME_SET = new Set<string>([this.ABSTRACT, this.NOT_EXPORTED, this.IGNORED]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TScanSkipReason = TConstValue<typeof ScanSkipReasons>;

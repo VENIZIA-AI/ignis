@@ -1,0 +1,503 @@
+import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
+import { ControllerTransports } from '@venizia/ignis-kernel';
+import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
+import { EnvironmentKeys } from '@/common/environments';
+import { RequestTrackerComponent } from '@/components';
+import { GrpcComponent } from '@/components/controller/grpc';
+import {
+  BindingScopes,
+  BindingValueTypes,
+  BootSequence,
+  MetadataRegistry,
+  RequestContextRegistry,
+} from '@venizia/ignis-kernel';
+import type { ILogger } from '@venizia/ignis-helpers/core';
+import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type {
+  ISecretHydrateEntry,
+  ISecretRotatable,
+  ISecretsHelper,
+  ISecretsRegistration,
+} from '@venizia/ignis-helpers';
+import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
+import { HTTP, RuntimeModules, isEmpty } from '@venizia/ignis-helpers/common';
+import {
+  applicationEnvironment,
+  createSecretsHelper,
+  Environment,
+  executeWithPerformanceMeasure,
+  SecretProviders,
+  toBoolean,
+} from '@venizia/ignis-helpers';
+import { contextStorage, tryGetContext } from 'hono/context-storage';
+import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { ServerBootSteps } from './boot-steps';
+import { ServerApplication } from './server';
+import type { IRestApplication } from '@venizia/ignis-kernel';
+import type { IBootSequenceStep } from '@venizia/ignis-kernel';
+
+/** Maps a secret bundle to env names: the explicit `keys` mapping when present, otherwise every bundle key under `prefix`. */
+const selectSecretEnvKeys = (opts: {
+  bundle: Record<string, string>;
+  entry: ISecretHydrateEntry;
+}): Record<string, string> => {
+  const { bundle, entry } = opts;
+  const merged: Record<string, string> = {};
+
+  if (!entry.keys) {
+    const bundleEntries = Object.entries(bundle);
+    for (const [rawKey, value] of bundleEntries) {
+      merged[`${entry.prefix ?? ''}${rawKey}`] = value;
+    }
+
+    return merged;
+  }
+
+  const entryKeysEntries = Object.entries(entry.keys);
+  for (const [rawKey, envKey] of entryKeysEntries) {
+    const value = bundle[rawKey];
+    if (value === undefined) {
+      continue;
+    }
+
+    merged[envKey] = value;
+  }
+
+  return merged;
+};
+
+export abstract class BaseApplication extends ServerApplication implements IRestApplication {
+  protected secretsProvider?: ISecretsHelper;
+  protected secretsRegistration?: ISecretsRegistration;
+
+  protected normalizePath(...segments: string[]): string {
+    const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
+    return joined || '/';
+  }
+
+  /** Adds the gRPC branch the kernel cannot own: `GrpcComponent` needs `AbstractGrpcController`, core-only code that reaches `node:module`. */
+  override async registerControllers(): Promise<void> {
+    await super.registerControllers();
+
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      description: 'Register application gRPC controllers',
+      scope: this.registerControllers.name,
+      task: async () => {
+        const transports = this.configs.transports ?? [ControllerTransports.REST];
+
+        for (const transport of transports) {
+          if (transport === ControllerTransports.REST) {
+            continue;
+          }
+
+          if (transport !== ControllerTransports.GRPC) {
+            throw getError({
+              statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+              message: `[registerControllers] Unsupported transport: '${transport}'`,
+            });
+          }
+
+          const grpcComponent = new GrpcComponent(this);
+          await grpcComponent.configure();
+        }
+
+        // Warn if gRPC controllers exist but gRPC transport is not enabled
+        if (transports.includes(ControllerTransports.GRPC)) {
+          return;
+        }
+
+        const allBindings = this.findByTag({ tag: BindingNamespaces.CONTROLLER });
+        for (const binding of allBindings) {
+          const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+          if (!target) {
+            continue;
+          }
+
+          const metadata = MetadataRegistry.getInstance().getControllerMetadata({ target });
+          if (metadata?.transport !== ControllerTransports.GRPC) {
+            continue;
+          }
+
+          this.logger
+            .for(this.registerControllers.name)
+            .error(
+              'gRPC controller "%s" discovered but gRPC transport is not enabled. Add "%s" to transports config.',
+              binding.key,
+              ControllerTransports.GRPC,
+            );
+        }
+      },
+    });
+  }
+
+  registerSecrets(): ValueOrPromise<ISecretsRegistration> {
+    return { provider: SecretProviders.SYSTEM_ENVS };
+  }
+
+  async hydrateSecrets(): Promise<void> {
+    const logger = this.logger.for(this.hydrateSecrets.name);
+    const registration = await this.registerSecrets();
+
+    let provider: ISecretsHelper | undefined;
+    const emptyHydrations: string[] = [];
+    try {
+      provider = await createSecretsHelper({ ...registration, identifier: 'app' });
+      await provider.configure();
+
+      await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
+
+      const registrationLease = registration.lease ?? [];
+      for (const entry of registrationLease) {
+        await provider.lease({ path: entry.path, key: entry.key });
+      }
+    } catch (error) {
+      const env = Environment.current;
+      if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
+        throw getError({
+          message: `[hydrateSecrets] Secret provider failed in non-development environment | env: ${env}`,
+        });
+      }
+      logger.warn(
+        'Secret provider failed; falling back to system-envs | env: %s | error: %s',
+        env,
+        error,
+      );
+
+      if (provider) {
+        await provider
+          .shutdown()
+          .catch(shutdownError =>
+            logger.error(
+              'Failed to shut down partially-built provider during fallback | error: %s',
+              shutdownError,
+            ),
+          );
+      }
+      provider = await createSecretsHelper({
+        provider: SecretProviders.SYSTEM_ENVS,
+        identifier: 'app',
+      });
+    }
+
+    if (!provider) {
+      throw getError({ message: '[hydrateSecrets] No secrets provider resolved' });
+    }
+
+    if (emptyHydrations.length > 0) {
+      const env = Environment.current;
+      if (!Environment.DEVELOPMENT_ENVS.has(env.toLowerCase())) {
+        throw getError({
+          message: `[hydrateSecrets] Hydrate entries resolved to an empty secret bundle in non-development environment | env: ${env} | paths: ${emptyHydrations.join(', ')}`,
+        });
+      }
+      logger.warn(
+        'Hydrate entries resolved to an empty secret bundle; continuing in development | env: %s | paths: %s',
+        env,
+        emptyHydrations.join(', '),
+      );
+    }
+
+    this.bind<ISecretsHelper>({ key: CoreBindings.APPLICATION_CONFIG })
+      .toProvider(() => provider)
+      .setScope(BindingScopes.SINGLETON);
+
+    this.registerPostStopHook({ identifier: 'secrets.shutdown', hook: () => provider.shutdown() });
+    this.secretsProvider = provider;
+    this.secretsRegistration = registration;
+  }
+
+  /** Applies each hydrate entry in declaration order; paths that resolve empty while declaring an expectation are collected in `emptyHydrations` rather than failing here. */
+  protected async hydrateSecretEntries(opts: {
+    provider: ISecretsHelper;
+    registration: ISecretsRegistration;
+    emptyHydrations: string[];
+    logger: ILogger;
+  }): Promise<void> {
+    const { provider, registration, emptyHydrations, logger } = opts;
+
+    const registrationHydrate = registration.hydrate ?? [];
+    for (const entry of registrationHydrate) {
+      const bundle = await provider.getBundle({ path: entry.path });
+      const merged = this.mergeSecretsIntoEnv({ bundle, entry });
+      if (Object.keys(merged).length > 0) {
+        continue;
+      }
+
+      if (this.hydrateEntryDeclaresExpectation({ entry })) {
+        emptyHydrations.push(entry.path);
+        continue;
+      }
+
+      logger.warn(
+        'Hydrate entry resolved to an empty bundle and declares no expected keys | path: %s',
+        entry.path,
+      );
+    }
+  }
+
+  protected mergeSecretsIntoEnv(opts: {
+    bundle: Record<string, string>;
+    entry: ISecretHydrateEntry;
+  }): Record<string, string> {
+    const { bundle, entry } = opts;
+    const merged = selectSecretEnvKeys({ bundle, entry });
+
+    const mergedEntries = Object.entries(merged);
+    for (const [key, value] of mergedEntries) {
+      process.env[key] = value;
+    }
+    applicationEnvironment.merge({ envs: merged });
+    return merged;
+  }
+
+  /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
+  protected hydrateEntryDeclaresExpectation(opts: { entry: ISecretHydrateEntry }): boolean {
+    const { entry } = opts;
+    if (entry.keys && Object.keys(entry.keys).length > 0) {
+      return true;
+    }
+    return typeof entry.prefix === 'string' && entry.prefix.length > 0;
+  }
+
+  async wireSecretRotatables(): Promise<void> {
+    const logger = this.logger.for(this.wireSecretRotatables.name);
+    const provider = this.secretsProvider;
+    const registration = this.secretsRegistration;
+    if (!provider || !registration?.lease?.length) {
+      return;
+    }
+    for (const entry of registration.lease) {
+      const instance = this.get<ISecretRotatable>({ key: entry.key, isOptional: true });
+      if (instance && typeof instance.onSecretRotated === 'function') {
+        provider.registerRotatable({ key: entry.key, target: instance });
+        logger.info('Wired rotatable | key: %s', entry.key);
+        continue;
+      }
+      logger.debug('Lease key has no rotatable consumer | key: %s', entry.key);
+    }
+  }
+
+  static(opts: { restPath?: string; folderPath: string }) {
+    const { restPath = '*', folderPath } = opts;
+    const server = this.getServer();
+
+    switch (this.runtime) {
+      case RuntimeModules.BUN: {
+        const { serveStatic } = require('hono/bun');
+        server.use(restPath, serveStatic({ root: folderPath }));
+        break;
+      }
+      case RuntimeModules.NODE: {
+        try {
+          const { serveStatic } = require('@hono/node-server/serve-static');
+          server.use(restPath, serveStatic({ root: folderPath }));
+        } catch (error) {
+          this.logger.for(this.static.name).error('Failed to serve static file | Error: %s', error);
+          throw getError({
+            message: `[static] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
+          });
+        }
+        break;
+      }
+      default: {
+        throw getError({
+          message: '[static] Invalid server runtime to config static loader!',
+        });
+      }
+    }
+
+    this.logger
+      .for(this.static.name)
+      .debug(
+        'Registered static files | runtime: %s | path: %s | folder: %s',
+        this.runtime,
+        restPath,
+        folderPath,
+      );
+    return this;
+  }
+
+  /**
+   * Every value is read HERE, not destructured at module load: an application that loads its
+   * `.env` in its own entrypoint does so after this module is imported, and a module-load snapshot
+   * would print the defaults for a host that configured everything correctly.
+   */
+  protected printStartUpInfo(opts: { scope: string }) {
+    const { scope } = opts;
+    const read = (key: string, fallback: string): string =>
+      blankToUndefined(process.env[key]) ?? fallback;
+    const divider = '------------------------------------------------------------------------';
+
+    this.logger.for(scope).info(divider);
+    this.logger
+      .for(scope)
+      .info(
+        'Starting application... | Name: %s | Env: %s | Runtime: %s',
+        read(EnvironmentKeys.APP_ENV_APPLICATION_NAME, 'PNT'),
+        Environment.ambient,
+        this.runtime,
+      );
+    this.logger
+      .for(scope)
+      .info(
+        'AllowEmptyEnv: %s | Prefix: %s',
+        read('ALLOW_EMPTY_ENV_VALUE', 'true'),
+        read('APPLICATION_ENV_PREFIX', 'APP_ENV'),
+      );
+    this.logger.for(scope).info('RunMode: %s', process.env.RUN_MODE);
+    this.logger
+      .for(scope)
+      .info('Timezone: %s', read(EnvironmentKeys.APP_ENV_APPLICATION_TIMEZONE, 'Asia/Ho_Chi_Minh'));
+    this.logger
+      .for(scope)
+      .info('LogPath: %s', read(EnvironmentKeys.APP_ENV_LOGGER_FOLDER_PATH, './'));
+    this.logger.for(scope).info(divider);
+  }
+
+  /** Swaps in the `ErrorPrettier`-backed formatter - `node:util`, so the kernel cannot build it. */
+  protected override buildErrorMiddleware(): AppErrorMiddleware {
+    return new AppErrorMiddleware({
+      logger: this.logger,
+      rootKey: this.configs.error?.rootKey ?? undefined,
+    });
+  }
+
+  /** Adds what only a listening server has, on top of the kernel's three - which stay in `RestApplication` so a browser Worker answers with the same envelope. */
+  protected override async registerDefaultMiddlewares() {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerDefaultMiddlewares.name,
+      description: 'Register default application server handler',
+      task: async () => {
+        const server = this.getServer();
+
+        await super.registerDefaultMiddlewares();
+
+        // Always installed, not only under `asyncContext.enable`: `tryGetContext()` answers "no context"
+        // without a store, and a `contextStorage()` the application registered itself stays visible to
+        // the enrichers. Inside a method body because every package declares `sideEffects: false`.
+        RequestContextRegistry.setResolver({ resolver: () => tryGetContext() });
+
+        if (this.configs.asyncContext?.enable) {
+          server.use(contextStorage());
+        }
+
+        // Request-body parsing and the access log; the request id it reads is already installed
+        // above (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
+        this.component(RequestTrackerComponent);
+
+        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
+      },
+    });
+  }
+
+  /** Lives here rather than on `AbstractApplication` - `applicationEnvironment` reads `process.env` at module load, so a kernel-pure ancestor cannot carry it; this is the layer that already depends on it. */
+  protected validateEnvs() {
+    const t = performance.now();
+    const envKeys = applicationEnvironment.keys();
+
+    // Permissive by DEFAULT: a name a host leaves empty is the host's business, and an empty value
+    // already falls back to `defaultValue` at read time, so refusing to boot over one fights the
+    // reader rather than helping it. Set ALLOW_EMPTY_ENV_VALUE to `false` or `0` to turn the check
+    // on. Read once rather than per key, and a blank value reads as unset - the same rule every
+    // other env read follows.
+    const configured = blankToUndefined(process.env.ALLOW_EMPTY_ENV_VALUE);
+    const allowsEmpty = configured === undefined || toBoolean(configured);
+
+    this.logger
+      .for(this.initialize.name)
+      .info(
+        'Envs: %s | START Validating application environments | Empty values: %s',
+        envKeys.length,
+        allowsEmpty ? 'ALLOWED (default)' : 'REJECTED',
+      );
+
+    if (allowsEmpty) {
+      this.logger
+        .for(this.validateEnvs.name)
+        .info(
+          'Envs: %s | SKIPPED - set ALLOW_EMPTY_ENV_VALUE=false to reject empty values',
+          envKeys.length,
+        );
+      return;
+    }
+
+    for (const argKey of envKeys) {
+      const argValue = applicationEnvironment.get<string | number>(argKey);
+
+      if (!isEmpty({ value: argValue })) {
+        continue;
+      }
+
+      throw getError({
+        message: `[validateEnvs] Invalid Application Environment! Key: ${argKey} | Value: ${argValue}`,
+      });
+    }
+
+    this.logger
+      .for(this.validateEnvs.name)
+      .info(
+        'Envs: %s | DONE Validating application environments | Took: %s (ms)',
+        envKeys.length,
+        performance.now() - t,
+      );
+  }
+
+  /**
+   * Version tripwire, body identical to `RestApplication.initialize()`: a stale kernel without
+   * `getBootSequence()`/`runBootSequence()` throws here before any socket binds.
+   */
+  override async initialize(): Promise<void> {
+    await this.runBootSequence({ steps: this.getBootSequence() });
+  }
+
+  protected override getBootSequence(): IBootSequenceStep[] {
+    const steps: IBootSequenceStep[] = [
+      {
+        name: ServerBootSteps.PRINT_START_UP_INFO,
+        run: () => this.printStartUpInfo({ scope: this.initialize.name }),
+      },
+      { name: ServerBootSteps.VALIDATE_ENVS, run: () => this.validateEnvs() },
+      {
+        name: ServerBootSteps.REGISTER_DEFAULT_MIDDLEWARES,
+        run: () => this.registerDefaultMiddlewares(),
+      },
+      ...super.getBootSequence(),
+    ];
+
+    const withHydrate = BootSequence.insertAfter({
+      steps,
+      target: ServerBootSteps.PRE_CONFIGURE,
+      step: { name: ServerBootSteps.HYDRATE_SECRETS, run: () => this.hydrateSecrets() },
+    });
+
+    // Components can contribute datasources, so wire rotatables only after the contributed sweep -
+    // a lease key pointing at a component-contributed datasource would otherwise resolve to nothing.
+    const withRotatables = BootSequence.insertAfter({
+      steps: withHydrate,
+      target: ServerBootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
+      step: {
+        name: ServerBootSteps.WIRE_SECRET_ROTATABLES,
+        run: () => this.wireSecretRotatables(),
+      },
+    });
+
+    return [
+      ...withRotatables,
+      // Last, so a model registered by a component is covered too.
+      {
+        name: ServerBootSteps.VALIDATE_SCOPE_FILTER_SUPPORT,
+        run: () => this.validateScopeFilterSupport(),
+      },
+    ];
+  }
+
+  /**
+   * Refuses to start when a model's `settings.scopeFilter` cannot take effect. Both failures are
+   * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
+   */
+  protected validateScopeFilterSupport(): void {
+    assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });
+  }
+}

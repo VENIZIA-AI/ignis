@@ -52,6 +52,12 @@ coverage/
 .env
 .env.*
 !**/.env.example
+!**/.env.test
+
+# Cryptographic Keys
+*.pem
+*.key
+keys/
 
 # IDEs and Editors
 # Add settings and temporary files from common editors to prevent user-specific
@@ -76,16 +82,22 @@ Desktop.ini
 .local/
 .claude/
 **/*/.claude
-.gemini/
-**/*/.gemini
 .prompts/
+.superpowers/
+.playwright-mcp/
+openspec
 
-GEMINI.md
-**/*/GEMINI.md
+# Local AI planning artifacts only (brainstorm specs / implementation plans).
+# NOTE: docs/wiki — the @venizia/ignis-docs package — is intentionally tracked.
+/docs/superpowers/
 
 CLAUDE.md
 CLAUDE.*.md
+GEMINI.md
 **/*/CLAUDE.md
+.serena
+
+docs/temp
 
 # Miscellaneous
 # Other temporary files, archives, and caches.
@@ -101,3 +113,18 @@ node_modules.zip
 **/*/__mf__/temp/
 
 **/*/.vitepress/cache
+
+# OKF knowledge bundle - generated graph explorer (rebuild: make okf-viz)
+.agents/knowledge/viz.html
+
+# AI Agent — tool-specific configs (local only, never committed)
+.agents/plans
+.agents/specs
+
+docs/generate
+
+*.bun-build
+.*.bun-build
+
+# Scratch directory a connectors type test creates and removes; left behind if the run is killed.
+packages/connectors/src/__tests__/.type-probe-*/

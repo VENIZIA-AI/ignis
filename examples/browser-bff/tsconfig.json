@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+
+  /* Solution config: `tsconfig.app.json` is the browser application, `tsconfig.node.json` is
+     `vite.config.ts`, `tsconfig.test.json` is the Bun smoke test. Check all three with `tsc -b`.
+
+     Bun reads only this file when it runs the Worker in the smoke test, so it carries what Bun
+     needs to load `src/worker`: the `@` alias and the decorator settings of `tsconfig.app.json`. */
+  "files": [],
+  "compilerOptions": {
+    "paths": {
+      "@/*": [
+        "./src/worker/*"
+      ]
+    },
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
+  },
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    },
+    {
+      "path": "./tsconfig.test.json"
+    }
+  ]
+}

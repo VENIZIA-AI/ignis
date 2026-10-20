@@ -1,0 +1,390 @@
+---
+type: Package
+title: kernel
+description: The browser-pure half of the IGNIS framework - DI container, application lifecycle, REST controllers, the repository and datasource abstractions, and the authentication and authorization seams.
+resource: packages/kernel
+tags: [packages, kernel, browser, isomorphic, di]
+---
+
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [What it owns](#what-it-owns)
+- [Browser purity is the design constraint, and it is measured](#browser-purity-is-the-design-constraint-and-it-is-measured)
+- [The seams core fills in](#the-seams-core-fills-in)
+- [One default middleware stack](#one-default-middleware-stack)
+- [Container and MetadataRegistry](#container-and-metadataregistry)
+- [Generated bulk routes take `where` in the query or the body](#generated-bulk-routes-take-where-in-the-query-or-the-body)
+- [TEntityId (`base/models/`)](#tentityid-basemodels)
+- [Repositories, datasources, and the query schemas](#repositories-datasources-and-the-query-schemas)
+- [Recursive tree SQL moved to connectors](#recursive-tree-sql-moved-to-connectors)
+- [EventBus (`base/events/`)](#eventbus-baseevents)
+- [Auth seams](#auth-seams)
+- [Gotchas](#gotchas)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
+`@venizia/ignis-kernel` holds everything in the framework that needs neither a node builtin nor a
+server-only peer, so the same kernel serves a Bun server and a browser Worker. It sits beside `boot`
+in the dependency chain (`dev-configs -> inversion -> {filter, helpers} -> kernel -> core`)
+and depends on `filter`, `helpers`, and `inversion`. `boot` is a sibling, not a link - neither
+package depends on the other, and only `kernel` feeds `core` (`make core` needs `connectors`; `boot` is a devDependency an application declares for the generator). Sitting
+beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
+graph.
+
+It ships a **dual CJS + ESM build** (`dist/cjs/index.js` and `dist/esm/index.js`, both conditions in
+one `exports` entry), like `inversion`, `filter`, and `boot`. The browser-purity claim is what forces
+the `import` condition: a browser bundler that finds only CommonJS either fails on the bare
+`require()` or needs a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
+the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
+surface: no consumer import changed when this package was carved out of core.
+
+Three entries, not one. The root barrel is 161 KB gzipped in a browser bundle and correctly so - it
+carries the REST surface, and `base/controllers` needs zod. `./metadata` is 13.9 KB for the whole surface, 11.0 KB when a consumer names two symbols: the stereotypes,
+the binding namespaces, `ArtifactTypes`/`BindingKeys`/`MetadataRegistry`, for a consumer that
+registers and resolves classes and never serves HTTP. `CoreBindings` is deliberately absent - the
+namespaces are the GRAMMAR of a key, `CoreBindings` is one application's DICTIONARY, and a sibling
+framework ships a class of the same name whose `APPLICATION_INSTANCE` is a different string.
+`./repository` is 14.7 KB against `base/repositories`' 105.3 KB: `AbstractRepository`,
+`AbstractDataSource`, `AbstractEntity`, the CRUD contract and the filter vocabulary, plus what a
+repository on any transport raises and bounds itself by - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`,
+`RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`,
+`SchemaTypes` - without the OpenAPI layer. It loads with neither `hono` nor `@hono/zod-openapi`
+installed (it used to reach `@hono/zod-openapi` through a barrel; the clean-install gate,
+`make clean-install-kernel`, is what proves it now). It
+exists because `AbstractDataSource` is engine-neutral - only `configure()` is required - so an HTTP
+request to another server is a datasource in the same sense Drizzle-over-Postgres is one. It is listed export by export rather than
+re-exporting `base/metadata`, because a sub-path is a surface someone decided on, not whatever a
+directory grows into.
+
+Weight is not purity: zod is browser-PURE, so the purity gate had nothing to say while one
+`z.object()` at module load cost every consumer of `Container` 423 KB.
+`src/__tests__/bundle/browser-weight.test.ts` bundles both entries and fails over 120 KB.
+
+## What it owns
+
+Everything under `src/base/` was the engine-neutral half of `packages/core-server/src/base`:
+
+| Subsystem | What lives there |
+|---|---|
+| `applications/` | `AbstractApplication` (container, config, lifecycle hooks), `RestApplication` (adds the router, `registerArtifacts` - the index resolution behind it lives in `ArtifactIndexHelper`, `applications/artifact-index.ts`, internal - and the opt-in `configs.bootChecks.binding`: `doVerify` resolves every service and repository at the `verifyBindings` step and fails the boot with every broken key, `allowManual: false` rejects a hand registration inside `preConfigure`/`postConfigure` while `configs.artifacts` is set, `allowOverride: false` makes every artifact registration refuse an already-bound key) |
+| `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
+| `components/` | `BaseComponent` and its `binding()` contract |
+| `configurations/` | `BaseConfiguration` and the `@configuration({ after? })` artifact kind, drained at the `registerConfigurations` boot step - between `registerDefaultMiddlewares` and `registerDataSources`, so it is where a datasource or a component's inputs get settled. `ArtifactIndexHelper.sortConfigurationsTopologically` orders them by their declared `after` - the graph keyed by the class itself, so two same-named (minified) configurations are both kept - ties broken by class name, so an order that must survive minification belongs in `after`; an `after` naming a class that is not itself a registered configuration, and a dependency cycle, each throw naming what they found. `@provide` binds off a configuration the same as off a component, and lazily, so a provided key can be read long before the configuration's own turn |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
+| `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
+| `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
+| `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@configuration`, `@inject`, the REST verbs, the RPC verbs |
+| `middlewares/` | `emojiFavicon`, the not-found handler, and `RequestErrors` |
+| `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
+| `models/` | `AbstractEntity`, the model settings shape, and the `TEntityId` brand |
+| `providers/` | `BaseProvider` |
+| `repositories/` | `AbstractRepository`, the repository error codes, and the decorated query schemas |
+| `request-context/` | `RequestContextRegistry` - the seam a server layer installs `hono/context-storage` into |
+| `services/` | `BaseService` and the CRUD service base |
+
+Alongside it: `src/common/` carries `BindingNamespaces`, `CoreBindings`, the framework error codes,
+and `Statuses`; `src/helpers/inversion/` carries the kernel `Container` and `MetadataRegistry`;
+`src/utilities/` carries the error helpers only - the JSX and schema builders moved to `base/controllers/common/` because they call `z.object()` at module load, which made a barrel named `utilities/` pull zod into any bundle that touched it.
+
+## Browser purity is the design constraint, and it is measured
+
+`scripts/purity/manifest.ts` claims this package's whole published surface and derives its rows from
+the `exports` map, so today the map resolves to `dist/esm/index.js` inside this package, and
+whatever is added next. `make purity-kernel`
+bundles it for `target: 'browser'` and fails on any node builtin or node global. Purity is a property
+of the resolved graph, so the rule is about how peers are reached, not which peers are declared:
+`drizzle-orm`, `casbin`, and `jose` are reached through `import type` only and never survive into the
+bundle. `hono` and `@hono/zod-openapi` are real value imports and browser-safe, but only the ROOT
+barrel reaches them - so every peer is declared optional in `peerDependenciesMeta`, including those
+two. A non-optional peer the package never requires would force a `./metadata` consumer under npm 7+
+or pnpm strict peers to install a server HTTP framework for decorators. Nothing is lost at install
+time: `@venizia/ignis` declares `hono` and `@hono/zod-openapi` as REQUIRED peers, so a REST
+application is still warned by the package it actually depends on. The gate reads `dist/`, so build before running it.
+
+The probe grades a node-global read by whether it can throw, not by whether it uses optional
+chaining. `globalThis.process?.env?.X` is a property read on an object that always exists, so it is
+reported as `guarded` and stays green; `globalThis.process.env.X` and bare `process.env.X` are fatal.
+Bare `process?.X` is only reported, because the probe matches bundled text and cannot see scope -
+hono's `getColorEnabled` destructures `const { process } = globalThis` first, which is safe.
+
+## The seams core fills in
+
+`AbstractApplication` leaves two `protected` methods deliberately inert, because a browser Worker
+has no `process` and no working directory. `ServerApplication` in core overrides both, so server
+behaviour is unchanged:
+
+- `getProjectRoot()` returns an empty string and binds it; the server override binds the real cwd. It
+  stays a plain overridable method, so an application that overrides it keeps working.
+- `getDefaultAsyncContextEnabled()` returns `false`, which keeps a router-only application from
+  installing `hono/context-storage` and therefore `node:async_hooks`; the server override returns
+  `true`.
+
+`host` and `port` are NOT seams - they left the kernel entirely. `IApplicationConfigs` here declares
+neither, `ServerApplication` resolves both in its own constructor, and `@venizia/ignis` re-exports
+the widened `IServerApplicationConfigs` under the name `IApplicationConfigs` so a server application
+still sees them. The kernel used to write `localhost:3000` into every Worker application's config.
+
+The same split runs through the contracts: kernel `IApplication` declares only what EVERY host
+implements, and `getServerHost`/`getServerPort`/`getServerAddress`/`start`/`stop` sit on
+`@venizia/ignis`'s `IServerApplication`. `RestApplication.server` is `{ hono }` alone - which runtime
+is underneath and which socket is bound belong to `ServerApplication`.
+
+## One default middleware stack
+
+`RestApplication.registerDefaultMiddlewares()` installs the registrations every host shares:
+`requestId()` fed by `RequestIdGenerator`, `configs.middlewares.bodyLimit` when set, the framework
+error handler, and `notFoundHandler`. `WorkerApplication` inherits it untouched; `BaseApplication`
+calls `super()` and adds `contextStorage`, `RequestTrackerComponent` and the favicon on top.
+`buildErrorMiddleware()` is the one seam inside it, which core overrides to swap in the
+`ErrorPrettier`-backed formatter; it feeds `config.error.environment` through as the middleware's
+`environment` option, which is how a browser application declares the ambient environment it has no
+`process.env` to read.
+
+`configs.middlewares.bodyLimit` (`IMiddlewareConfigs`, `IBodyLimitOptions`) is the only middleware
+config the framework installs by itself - every other key in `IMiddlewareConfigs` is a type only,
+for an application's own `setupMiddlewares()`. Set and `enable !== false` (a missing `enable` still
+applies it, fail-closed) installs `hono/body-limit` right after `requestId()`, ahead of every
+middleware a host adds afterward, the request spy included. A `maxSize` that is not a finite
+non-negative number throws at boot. Over the limit answers `RequestErrors.BODY_TOO_LARGE`
+(`413 core.request.body_too_large`) unless `onError` is given.
+
+A route whose `request.body.content` declares `multipart/form-data` or
+`application/x-www-form-urlencoded` gets `formBodyReader` (`base/middlewares/form-body/`, not on any
+barrel) appended LAST to its middleware chain, in `AbstractRestController.buildRouteMiddlewares` -
+after authenticate, authorize, and every application middleware. It parses the form through helpers'
+`readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
+of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed
+form is `RequestErrors.BODY_MALFORMED` - `400 core.request.body_malformed` - the same object as
+helpers' `RequestBodyErrors.BODY_MALFORMED`, so every form parser in the stack throws one definition.
+
+The error middleware's `classify()` reads `'statusCode' in error` to decide `INTENTIONAL` vs.
+`UNEXPECTED` - a Hono `HTTPException` (from `@hono/zod-openapi`'s own validator, or thrown by hand)
+carries its status on `.status`, which that check reads too, so a 4xx `HTTPException` renders as its
+own status instead of a generic `500`.
+
+`RequestContextRegistry` (`base/request-context/`) is the same idea for code that only wants to READ
+the ambient request context. `setResolver({ resolver })` takes a synchronous
+`() => Context | undefined`, `resolve()` calls it, and `clearResolver()` removes it. Core's
+`registerDefaultMiddlewares()` installs a `tryGetContext()`-backed resolver; a browser Worker
+installs none and `resolve()` answers `undefined`.
+
+`undefined` means THERE IS NO REQUEST CONTEXT - deliberately distinct from a context that carries no
+user, which is what the caller reads off that context's own variables. The user-audit enrichers in
+`connectors` are the reason: they raise a different error for each of the two, so a resolver that
+collapsed them would change behaviour on a security-adjacent path. Same shape as
+`RelationBuilderRegistry`, and the same motivation: one value import of the concrete implementation
+would drag a node-only module into every graph that touches the kernel.
+
+Port resolution rejects candidates on **validity, not falsiness** - `0` legitimately asks the
+operating system for an ephemeral port.
+
+## Container and MetadataRegistry
+
+The kernel's `Container` extends the one from `inversion` and overrides `getMetadataRegistry()` to
+return the kernel `MetadataRegistry` singleton, which is `inversion`'s registry with the datasource,
+model, repository, controller, REST-controller, and gRPC-controller metadata mixins composed on. That
+is where the model registry, the repository bindings, and datasource auto-discovery live.
+
+`ArtifactBindingKeys` (exported from `/metadata`) is the one derivation of an artifact key: a pinned `binding`, or `<namespace>.<ClassName>` (`isDerived`). `registerArtifacts` runs `findDerivedCollisions` over every kind of ONE call: two DIFFERENT classes that derive one key throw - a minified build gives classes in different chunks one short name and the second binding would silently replace the first. Not at decoration and never in `Container.bind` (a deliberate rebind). A hand registration after the call, or a second call, is not cross-checked. A subclass registered AFTER its same-named parent is exempt - the override pattern (a service package extending a core repository under the core name, listed after it) - while a parent after its subclass still throws, since it would replace the subclass. A hot reload that re-registers in the same process (a discovery app re-booting in a Vite Worker) re-decorates a same-named class and looks identical to a real collision - `bootChecks.allowDerivedKeyCollision: true` turns the failure into a warning there; `examples/browser-bff` sets it from `import.meta.hot`. The repository->binding map and the datasource->models map are keyed by class (`getRepositoryBinding({ target })` walks the prototype chain); the by-name API stays for name holders.
+
+The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
+AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
+out of that map rather than answering with whichever registered last - two models over one drizzle
+table would otherwise apply the wrong `hiddenProperties`/`scopeFilter`. A relation carries only its schema, and
+a lookup by SQL table name missed every model whose table name differed from its registered name -
+`include` then dropped its `hiddenProperties` and `scopeFilter`.
+
+## Generated bulk routes take `where` in the query or the body
+
+`PATCH /` (`updateBy`) and `DELETE /` (`deleteBy`) read `where` from the query or the JSON body -
+a few hundred ids outgrow a URL (431 past ~16 KB). `resolveBulkWhere` answers 400 for both or
+neither; in a `PATCH /` body `where` is reserved and stripped from a COPY of the validated data (hono
+hands an override the same object). A model with a real `where` column keeps it - the body reserves
+the name only when it is free. `DELETE /` declares NO body schema: declaring one makes
+`@hono/zod-openapi` gate the media type, so a client sending `content-type: application/json` with no
+body got 400 where it used to get 200 (measured). The handler reads the body itself; an application
+that wants the Swagger editor names its own `routes.deleteBy.request.body`. Query schemas allow
+`where` absent, so an override that reads only `valid('query')` gets `undefined` for a body-only
+request - the repository refuses an empty `where` without `force` (400).
+
+The `Container` constructor takes its logger through `BaseHelper` (the helpers logger slot), never
+`LoggerFactory` directly. The slot's console fallback is what keeps the constructor - and
+everything extending it, which is every application - browser-pure. A server host still gets the real
+provider: importing `LoggerFactory` as a value anywhere in the process fills the slot, and a logger
+taken before that upgrades itself on its next call.
+
+## TEntityId (`base/models/`)
+
+`TEntityId` is `string & { readonly [entityIdBrand]: never }` - a string a plain `string` will not
+assign to, so passing a name, code or slug where an id belongs is a compile error rather than a
+lookup that silently returns nothing. `toEntityId({ value })` is the only way in.
+
+- **It validates nothing.** `toEntityId` is a cast plus a non-empty check; it does not verify the
+  row exists or match a format. The value is making the conversion VISIBLE at each boundary. An
+  empty string is refused because an id of `''` collapses a `where` clause to no condition.
+- **It is opt-in per column** (`.$type<TEntityId>()`), never applied framework-wide, because Drizzle
+  derives `$inferInsert` and `$inferSelect` from the same field: branding a column rejects every
+  literal written against it - seeds, fixtures, path params - until each one converts.
+- **`TEntityId | string` does not work, and this was measured.** A union restores the literals but
+  makes a plain `string` assignable again, erasing the guarantee. This is the opposite of the
+  `TIsoTimestamp` case in filter, where the union with `Date` is deliberate and correct.
+- The brand key is a module-local `unique symbol` typed `never`, so no object satisfies the shape
+  by accident or by hand - only the cast inside `toEntityId` produces one.
+
+## Repositories, datasources, and the query schemas
+
+`AbstractRepository` extends `BaseHelper`, declares every verb abstract, and resolves its datasource
+and entity lazily: the datasource comes from the constructor or a setter, the entity from
+`@repository` metadata on first access, and the `@model` settings are memoized with `null` as the
+not-yet-resolved marker because `undefined` is itself a valid resolved value. Every connector chain
+in core descends from it - see [repository hierarchy](/architecture/repository-hierarchy.md).
+
+`@repository` takes a `type` from `RepositoryTypes` (`base/repositories/common/constants.ts`), and the
+metadata type is a union discriminated on it (`TRepositoryMetadata`):
+
+- `MODEL` is the default when `type` is omitted. `model` is required at decoration, and both the model
+  binding and the datasource injection are registered.
+- `REMOTE` refuses `model`. Only the datasource injection is registered, so no model binding
+  exists and the datasource discovers no schema through it. `HttpRepository` subclasses use it.
+- `validateRepositoryMetadata` (`base/metadata/persistents.ts`) mirrors the union for JavaScript
+  callers, unknown `type` included. A bare `@repository()` on a subclass inherits the parent's `type`.
+- Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
+  the literal.
+
+`registerFactoryRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
+(`base/controllers/factory/repository-injection.ts`, kernel root and `@venizia/ignis`) is the one home
+of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
+false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
+in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
+`defineCrudController` and connectors' `defineSearchController` both call it. An own `@inject` at
+parameter 0 in a subclass wins.
+
+The CRUD factory's DEFAULT write bodies leave out what the entity reports from
+`AbstractEntity.getServerStampedKeys()` (`[]` at the root and on search entities), and the two
+update bodies also leave out `id` - `RouteConfigResolver.toWriteBodySchema` in
+`base/controllers/factory/definition.ts`. The kernel names no audit key; connectors'
+`BaseRelationalEntity` reports `createdBy`/`modifiedBy`/`createdAt`/`modifiedAt` whose drizzle
+column has `hasDefault` or `onUpdateFn` (names in the internal
+`relational/core/models/common/constants.ts`).
+
+- Nothing to leave out returns the entity schema by identity, so a refinement or an OpenAPI name
+  survives. A refined or transformed schema that needs an omission throws, naming
+  `routes.<route>.request.body`.
+- Zod strips a left-out key, so a client gets no 422 - except on a `z.strictObject` schema, which
+  `.omit()` keeps strict.
+- The three write bodies are built for every controller, `readonly` ones included; the `updateBy`
+  default is built only without a custom body.
+- `deletedAt` stays writable on purpose: it is soft-delete state, not a stamp.
+
+`PersistableCrudController.assertNonEmptyUpdate({ scope, data })` refuses an update whose validated
+body is empty - `{}`, a `where` alone, or only keys the body schema strips - with
+`RequestErrors.NOTHING_TO_UPDATE` (400, `core.request.nothing_to_update`), before the repository runs.
+`updateById` and `updateBy` call it; it applies to custom bodies too.
+
+`errorResponses()` (`base/models/common/schemas.ts`) is the one home of the `4XX`/`5XX` pair;
+`jsonResponse`, `htmlResponse` and core-server's static-asset definitions spread it. `ErrorSchema`
+carries the refId `ErrorResponse`: two copies of it (CJS and ESM) merge into one component, an
+`.extend()` documents as `allOf`, and a consumer schema with the same refId silently resolves to the
+framework's.
+
+Inversion's `MetadataRegistry.setInjectMetadata` is copy-on-write: the first write to a class copies
+the list it inherits. It used to write into the parent's list found through the prototype chain, so
+a subclass's `@inject` rewrote its parent's list and every sibling subclass inherited the change.
+
+`@repository` does not rely on that. `registerDataSourceInjection` (`base/metadata/persistents.ts`)
+copies the inherited list itself before writing parameter 0, because the kernel's inversion range
+still admits 0.2.0-23. Without the copy, a subclass naming its own `dataSource` moves its parent
+repository onto that datasource. The CRUD and search factories do rely on inversion's copy, so
+inversion releases with the kernel.
+
+`base/repositories/query-schemas/` is where the filter schemas become server schemas. `filter` builds
+them with plain `zod` so a browser can use them; this module imports `@hono/zod-openapi` for its
+side effect (patching `.openapi()` onto the shared prototype) and calls
+`buildQuerySchemas({ decorate })` to re-export the documented versions under the original names.
+Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
+instances validate identically and document nothing.
+
+`IModelSettings.scopeFilter` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
+a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
+is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
+(`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the
+null/undefined branch so a resolver that merely forgets a `return` cannot land there by accident;
+null/undefined falls through to `onMissing` (default `deny`). `ScopeFilters.UNRESTRICTED` exists
+because `onMissing` is declared once per MODEL and cannot express a per-USER bypass (an internal
+operator) without also unscoping every ordinary user whose `resolve()` returns nothing - the same
+reasoning `DATA_SOURCE_BRAND` uses for `Symbol.for`, so a caller cannot forge the value from a
+request body, query string, or header. The kernel only declares the shape; `RelationalBaseRepository`
+in `connectors` is what enforces it - see [connectors](/packages/connectors.md) for the enforcement,
+the `restore()` interaction with `shouldSkipDefaultFilter`, the write-path boundary (filter-shaped
+scope only, not per-row or polymorphic ownership), and the search-repository gap.
+
+## Recursive tree SQL moved to connectors
+
+`RecursiveTreeSql`, `RecursiveTreeDirections`, `IRecursiveTreeOptions` and `TRecursiveTreeDirection`
+are no longer in this package. They value-import `drizzle-orm` (`is`, `sql`, `PgTable`,
+`SQLiteTable`), which the kernel reaches through `import type` only, so they live in
+`@venizia/ignis-connectors` beside the relational tier - see [connectors](/packages/connectors.md).
+`@venizia/ignis` still exports them from its root.
+
+## EventBus (`base/events/`)
+
+In-process, fire-and-forget domain event bus. `publish()` never blocks and never throws; each
+registered handler dispatches on its own `queueMicrotask` and retries independently. Delivery is
+at-least-once, so `IEventHandler.handle` must be idempotent.
+
+- **Jitter is always on, not a knob.** Every retry delay uses `RetryJitterModes.FULL`, which
+  decorrelates a shared-resource pile-up hardest (many handlers retrying the same lock wake up
+  spread across a window instead of at the same instant on every round).
+- **Retry timing is per `register()` call, not per event.** `register({ name, handler, retry? })`
+  accepts `retry: { maxAttempts, baseDelayMs }`; omitting it reproduces the fixed defaults
+  (`EventDispatchRetry.MAX_ATTEMPTS = 3`, `BASE_DELAY_MS = 100`) unchanged.
+- **Both numbers are bounded, and register() throws rather than clamps.** `maxAttempts` is capped at
+  `EventDispatchRetry.MAX_ATTEMPTS_CEILING` (10); the total backoff window (computed without jitter,
+  since jitter only shrinks it) is capped at `MAX_TOTAL_WINDOW_MS` (30,000ms) - nothing awaits a
+  dispatch, so an unbounded window would hold a handler's resources (e.g. a database connection)
+  with nobody watching.
+- **`handler` is a tagged union, not a bare binding key.** `EventHandlerTypes.BINDING_KEY` (`{ type,
+  key }`) resolves through the container on every retry attempt, so rebinding the key reaches a
+  dispatch already in flight; `EventHandlerTypes.FUNCTION` (`{ type, fn }`) captures `fn` as a
+  closure at `register()` time, so a rebind has nothing to reach. The tag makes the caller's choice
+  explicit at the call site, so pairing the wrong field with a `type` is a compile error there.
+- **The bus is only as type-safe as `TPayloadMap`, and a map built from computed keys off a plain
+  object literal SILENTLY DEGRADES.** Without `as const` the key has type `string`, which produces an
+  index signature, so `keyof TPayloadMap` is `string` and `register`/`publish` accept any name. It
+  compiles clean and nothing reports it. A `static readonly` on a class keeps its literal type, so one
+  map can be sound while its neighbour is not. Detect it with a control line
+  (`// @ts-expect-error` on a bogus key): tsc reporting the directive as UNUSED means the map
+  degraded. Pinned in `__tests__/events/payload-map-typing.test.ts`.
+- `IEventHandler.handle` returns `ValueOrPromise<void>`, so a synchronous handler needs no
+  fabricated promise; a synchronous throw is caught the same as a rejected promise because
+  `dispatch`'s own `execution` callback is `async`.
+
+## Auth seams
+
+`AbstractAuthRegistry` is the shared shape behind the strategy registry and the enforcer registry:
+descriptors keyed by name, each bound into the container as a singleton under a namespaced key. On
+top of it sit the authenticate and authorize middlewares, their providers, the request-domain
+resolver, and the grant, permission, and policy builders that serialize into Casbin rows. The
+concrete `AuthenticateComponent` and `AuthorizeComponent` stay in core. See
+[authentication](/architecture/authentication.md) and
+[Casbin authorization](/architecture/authorization-casbin.md).
+
+## Gotchas
+
+- `base/middlewares` is exported from the base barrel deliberately, not by accident: core's own
+  application base and request-spy middleware read `REQUEST_ID_KEY` and register `RequestErrors`
+  across the package boundary the split introduced.
+- Application code should keep importing from `@venizia/ignis`. Install this package directly only
+  when you want the framework skeleton WITHOUT the server layer - the browser case.
+- `make build` type-checks `src` and `src/__tests__` before emitting, so a type error in a test blocks
+  the production build. See [build system](/process/build-system.md).
+
+## Related
+
+- [core](/packages/core-server.md)
+- [filter](/packages/filter.md)
+- [inversion](/packages/inversion.md)
+- [Controller system](/architecture/controller-system.md)
+- [Application lifecycle](/architecture/application-lifecycle.md)
+- [Binding key namespaces](/conventions/binding-key-namespaces.md)
