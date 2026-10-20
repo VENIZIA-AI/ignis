@@ -21,6 +21,7 @@ generated:
 | `make boot` | `helpers` | Rebuild one package, after its dependencies. |
 | `make build` | `build-all` | Rebuilds all packages (alias for 'build-all'). |
 | `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
+| `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
 | `make changelogs-migrate` | - | Write a packages: list into every changelog that declares none. |
 | `make clean` | - | Clean build artifacts from all packages. |
@@ -97,7 +98,6 @@ generated:
 | `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
-| `make sourcemaps-check` | - | - |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |

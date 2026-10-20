@@ -100,13 +100,26 @@ generated:
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
 
-### `@venizia/dev-configs/linters/oxlint` (5)
+### `@venizia/dev-configs/linters/oxlint` (18)
 
 - `BrowserOxlintConfigs` class
+- `EqeqeqRule` class
 - `IOxlintPresetOptions` interface
+- `IRestrictedImportPath` interface
+- `IRestrictedProperty` interface
+- `LintIgnore` class
+- `NamingConventionRule` class
+- `NoRestrictedImportsRule` class
+- `NoRestrictedPropertiesRule` class
+- `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
+- `PreferNullishCoalescingRule` class
 - `ReactOxlintConfigs` class
+- `SwitchCaseBracesRule` class
+- `TNamingSelector` type
+- `TOxlintRuleEntry` type
+- `TRuleSeverity` type
 
 ### `@venizia/dev-configs/testing` (2)
 

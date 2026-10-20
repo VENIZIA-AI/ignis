@@ -84,7 +84,7 @@ import {
   EqeqeqRule,
   NoRestrictedImportsRule,
   oxlintConfigs,
-} from '@venizia/dev-configs/linters';
+} from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig({
   ...oxlintConfigs,
@@ -211,7 +211,7 @@ A React app's lint files look like this. oxlint runs the React, hooks and access
 ```typescript
 // .configs/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 ```

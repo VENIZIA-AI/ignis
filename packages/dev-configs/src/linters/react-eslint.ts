@@ -1,7 +1,7 @@
 import type { ESLint, Linter } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { eslintConfigs, namingConventionConfigs } from './eslint';
-import { JSX_FILES } from './react-oxlint';
+import { JSX_FILES } from './jsx-files';
 import { NamingConventionRule, NoRestrictedPropertiesRule } from './rules';
 
 /** Without `configs`: each plugin types its presets its own way, and only the rules are used here. */
@@ -38,7 +38,7 @@ export class ReactEslintConfigs {
     return [
       ...eslintConfigs,
       {
-        files: ['**/*.{jsx,tsx}'],
+        files: JSX_FILES,
         plugins: { react, 'jsx-a11y': jsxA11y },
         settings: { react: { version: reactVersion } },
         rules: {
