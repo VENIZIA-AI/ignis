@@ -190,6 +190,9 @@
     "access": "public"
   },
   "sideEffects": false,
+  "vulcan": {
+    "preset": "./dist/vulcan-preset/preset.json"
+  },
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
