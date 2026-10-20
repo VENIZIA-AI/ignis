@@ -344,6 +344,12 @@ jobs:
             console.log(`    ✓ all ${dependencies.length} runtime dependencies resolve on the registry`);
           '
 
+      # An app created from the PACKED preset typechecks, lints, passes its test and answers /api/hello.
+      # Before the bump and the publish: a preset that cannot create a working app must not ship.
+      - name: VULCAN preset smoke
+        if: ${{ env.PACKAGE == 'core-server' }}
+        run: make preset-smoke
+
       # -------------------------------------------------------------------------
       # VERSION & GIT
       - name: Version bump
@@ -358,6 +364,12 @@ jobs:
 
       - name: Sync develop
         run: git fetch origin && git checkout develop && git pull origin develop
+
+      # The preset names the versions this release ships with, so it is written after the bump and
+      # after the sync that brings in the chain's earlier releases.
+      - name: Write the VULCAN preset
+        if: ${{ env.PACKAGE == 'core-server' }}
+        run: bun scripts/vulcan-preset.ts
 
       # -------------------------------------------------------------------------
       # PUBLISH - deliberately ahead of every git write

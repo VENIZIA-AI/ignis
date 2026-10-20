@@ -91,6 +91,5 @@ export default {
   },
   atlas: {
     tagPattern: '<dir>-v<version>',
-    releaseCommit: '[#<issue>] chore(<dir>): release v<version>',
   },
 } satisfies VulcanConfig;

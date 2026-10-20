@@ -95,7 +95,6 @@
   },
   "release": {
     "tagPattern": "<dir>-v<version>",
-    "legacyTagPrefixes": [],
     "ignoreTags": []
   },
   "rules": {

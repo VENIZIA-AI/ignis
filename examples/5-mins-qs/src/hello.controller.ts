@@ -1,12 +1,17 @@
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, jsonContent } from '@venizia/ignis';
+import {
+  BaseRestController,
+  controller,
+  get,
+  jsonContent,
+  type TRouteContext,
+} from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { type Context } from 'hono';
 
 @controller({ path: '/hello' })
 export class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: HelloController.name, path: '/hello' });
+    super({ scope: HelloController.name });
   }
 
   // binding() is abstract - leave it empty when every route uses @get/@post decorators.
@@ -23,7 +28,7 @@ export class HelloController extends BaseRestController {
       },
     },
   })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
+  sayHello(context: TRouteContext) {
+    return context.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
