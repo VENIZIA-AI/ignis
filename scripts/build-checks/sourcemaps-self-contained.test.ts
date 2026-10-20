@@ -3,10 +3,14 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
 /**
- * A published package must not ship a sourcemap that points at a file the tarball lacks: Vite and
- * other tools warn "points to missing source files" for each one. Every map under `dist` must either
- * carry `sourcesContent` for each source, or name sources the package's `files` field publishes.
- * The check reads the build output as it is; it builds nothing.
+ * A published package must not ship a JavaScript sourcemap that points at a file the tarball lacks:
+ * Vite and other bundlers warn "points to missing source files" for each one. Every .js.map under
+ * `dist` must carry `sourcesContent` for each source, or name sources the package publishes.
+ *
+ * Declaration maps are the opposite case and must exist: atlas and editors map a .d.ts position back
+ * to its source file and line through them, and no bundler loads them. tsc cannot embed sources in a
+ * .d.ts.map, so they point at the repository src on purpose. The checks read the build output as it
+ * is; they build nothing.
  */
 
 const REPO_ROOT = resolve(import.meta.dir, '..', '..');
@@ -16,7 +20,7 @@ type TSourceMap = { sources?: string[]; sourcesContent?: (string | null)[] };
 
 type TPackageManifest = { files?: string[] };
 
-const MAP_SUFFIXES = ['.js.map', '.d.ts.map'];
+const MAP_SUFFIXES = ['.js.map'];
 
 const walkMaps = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
@@ -81,6 +85,30 @@ describe('published sourcemaps are self-contained', () => {
         broken.length,
         `${broken.length} maps point at sources the package does not publish, e.g. ${sample.join(', ')}`,
       ).toBe(0);
+    });
+  }
+});
+
+const countFiles = (opts: { dir: string; suffix: string }): number =>
+  readdirSync(opts.dir, { withFileTypes: true }).reduce((total, entry) => {
+    const full = join(opts.dir, entry.name);
+    if (entry.isDirectory()) {
+      return total + countFiles({ dir: full, suffix: opts.suffix });
+    }
+    return total + (entry.name.endsWith(opts.suffix) ? 1 : 0);
+  }, 0);
+
+describe('declaration maps are emitted', () => {
+  for (const packageDir of packageDirs) {
+    test(relative(REPO_ROOT, packageDir), () => {
+      const dist = join(packageDir, 'dist');
+      const declarations = countFiles({ dir: dist, suffix: '.d.ts' });
+      const maps = countFiles({ dir: dist, suffix: '.d.ts.map' });
+
+      expect(
+        maps,
+        `${declarations} .d.ts files but ${maps} .d.ts.map - atlas loses source lines`,
+      ).toBe(declarations);
     });
   }
 });
