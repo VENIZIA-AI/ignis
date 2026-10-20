@@ -2,7 +2,7 @@ name: Deploy Wiki Site
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
     paths:
       - 'docs/wiki/**'
   workflow_dispatch:
