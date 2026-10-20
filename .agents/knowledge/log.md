@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - Self-contained sourcemaps
+
+Updated the [make targets](/reference/makefile-targets.md) reference: `make sourcemaps-check`.
+
+- Published `.js.map` files embed their sources (`--inlineSources`) and no `.d.ts.map` is emitted, so a consumer never sees a map pointing at a missing `src/`.
+
 ## 2026-10-20 - VULCAN 0.3.0
 
 Updated [monorepo layout](/overview/monorepo-layout.md) and [knowledge-sync areas](/process/knowledge-sync-areas.md): the VULCAN config is `.configs/vulcan.config.mts`.
