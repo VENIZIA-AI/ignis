@@ -451,6 +451,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-20',
+              collapsed: true,
+              items: [
+                {
+                  text: 'IGNIS 0.3.0 Is Stable',
+                  link: '/changelogs/2026-10-20-stable-0-3-0',
+                },
+              ],
+            },
+            {
               text: '2026-10-18',
               collapsed: true,
               items: [
