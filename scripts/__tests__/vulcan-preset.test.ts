@@ -38,7 +38,7 @@ const makeRepository = (opts: {
   });
   writeJson({
     root,
-    path: 'packages/core-server/vulcan-preset/preset.json',
+    path: 'presets/ignis/preset.json',
     value: opts.template ?? {
       presetVersion: 1,
       dependencies: { '@venizia/a': 'workspace:*', hono: 'catalog:', winston: '^3.19.0' },
@@ -48,12 +48,12 @@ const makeRepository = (opts: {
   });
   writeText({
     root,
-    path: 'packages/core-server/vulcan-preset/files/_env.example',
+    path: 'presets/ignis/files/_env.example',
     content: 'PORT={{devPort}}\n',
   });
   writeText({
     root,
-    path: 'packages/core-server/vulcan-preset/files/.configs/lint.mts',
+    path: 'presets/ignis/files/.configs/lint.mts',
     content: 'export default {};\n',
   });
 

@@ -19,6 +19,7 @@ Updated [build system](/process/build-system.md) (step 13) and the example conce
 - The preset and every example use `server:dev`, `compile`, `typecheck`, `lint`, `lint:fix`, `test` and `clean`; `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` and `compile:linux` are gone. The logic lives in `scripts/*.sh`.
 - A backend compiles through `scripts/compile.ts` (`BunCompiler` with the build stamp) to `dist/bin`; its entrypoint registers the stamp.
 - `tsconfig.json` of an app includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`.
+- The preset template moved from `packages/core-server/vulcan-preset` to `presets/ignis`; `scripts/vulcan-preset.ts` still writes `packages/core-server/dist/vulcan-preset`, and core-server no longer ignores the template in lint.
 - `make preset-smoke` also compiles the generated app, runs the binary and checks the stamp and `clean`.
 
 ## 2026-10-20 - the build stamp is baked at compile time and resolved from git at dev start

@@ -1,6 +1,6 @@
 /**
  * Writes the publishable VULCAN preset of @venizia/ignis. The template in
- * packages/core-server/vulcan-preset names its dependencies the way package.json does
+ * presets/ignis names its dependencies the way package.json does
  * (`workspace:*`, `catalog:`); this resolves each to the exact workspace version and the root
  * catalog range, read from disk at call time, and writes packages/core-server/dist/vulcan-preset.
  * Usage: bun scripts/vulcan-preset.ts
@@ -9,7 +9,7 @@ import { Glob } from 'bun';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
-const TEMPLATE_FOLDER = 'packages/core-server/vulcan-preset';
+const TEMPLATE_FOLDER = 'presets/ignis';
 const OUTPUT_FOLDER = 'packages/core-server/dist/vulcan-preset';
 const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers'];
 const CATALOG_MARKER = 'catalog:';

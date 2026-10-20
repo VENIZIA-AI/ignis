@@ -134,7 +134,7 @@ tags: [process, build]
     required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
     leak of such a transitive peer into the entry it was granted to.
 13. **Apps share one script standard**, backend or frontend: the examples and the preset of
-    `packages/core-server/vulcan-preset`. `server:dev` runs the app (`NODE_ENV=development bun run
+    `presets/ignis`. `server:dev` runs the app (`NODE_ENV=development bun run
     src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
     `bun check`, `lint` and `lint:fix` are `sh scripts/lint.sh [--fix]`, `test` is `bun test` and `clean`
     is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
