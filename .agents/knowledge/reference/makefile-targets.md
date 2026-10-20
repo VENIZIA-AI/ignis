@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**114 targets.**
+**115 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -97,6 +97,7 @@ generated:
 | `make release` | - | Dispatch the release workflow per package, e.g. ARGS="kernel --mode patch". |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
+| `make sourcemaps-check` | - | - |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
