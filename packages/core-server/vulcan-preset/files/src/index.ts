@@ -1,4 +1,4 @@
-import { application } from './application';
+import { application } from '#src/application';
 
 const main = async () => {
   application.init();

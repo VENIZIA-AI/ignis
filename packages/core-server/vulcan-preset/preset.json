@@ -4,6 +4,7 @@
   "summary": "An IGNIS API on Bun: one controller, AutoArtifacts, the API reference at /api/doc/explorer.",
   "devPort": 3000,
   "urls": ["/api/hello", "/api/doc/explorer"],
+  "imports": { "#src/*.json": "./src/*.json", "#src/*": "./src/*.js" },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
@@ -22,17 +23,16 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
-    "tsc-alias": "catalog:",
     "typescript": "catalog:"
   },
   "peers": {},
   "scripts": {
     "dev": "NODE_ENV=development bun run src/index.ts",
     "start": "NODE_ENV=production bun run dist/index.js",
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "typecheck": "bun check --no-pretty -p tsconfig.json",
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "bun check",
+    "lint": "sh scripts/lint.sh",
+    "lint:fix": "sh scripts/lint.sh --fix",
     "test": "bun test"
   },
   "checks": ["typecheck", "lint", "test"],
