@@ -84,10 +84,10 @@ Create `.vscode/settings.json` in your project:
 {
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
-  "oxc.configPath": ".configs/oxlint.config.mts",
-  "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
+  "oxc.configPath": ".configs/lints/oxlint.config.mts",
+  "oxc.fmt.configPath": ".configs/formatters/oxfmt.config.mts",
   "oxc.typeAware": true,
-  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mjs" },
+  "eslint.options": { "overrideConfigFile": ".configs/lints/eslint.config.mjs" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   }

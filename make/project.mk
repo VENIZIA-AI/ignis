@@ -2,7 +2,7 @@
 # and includes this file.
 #
 #   FORMATS      cjs esm (default) | cjs | plain - which outputs `build` emits
-#   CJS_TSCONFIG the program the CJS pass emits (default .configs/tsconfig.build.json)
+#   CJS_TSCONFIG the program the CJS pass emits (default .configs/builders/tsconfig.build.json)
 #   CJS_OUT      where the CJS pass lands (default dist/cjs); empty: the tsconfig's own outDir
 #   POST_BUILD   a shell step only this package has, run after the emit
 #
@@ -21,9 +21,9 @@ TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
 FORMATS ?= cjs esm
-CJS_TSCONFIG ?= .configs/tsconfig.build.json
+CJS_TSCONFIG ?= .configs/builders/tsconfig.build.json
 CJS_OUT ?= dist/cjs
-ESM_TSCONFIG := .configs/tsconfig.esm.json
+ESM_TSCONFIG := .configs/builders/tsconfig.esm.json
 
 # The programs `build` emits, each type-checked before `rebuild` deletes dist: the ESM program swaps
 # module/moduleResolution and can fail where the CJS one passed, and one that fails after clean
@@ -72,7 +72,7 @@ endif
 # A stale .tsbuildinfo next to a .configs/ tsconfig makes tsc think it is up to date and emit
 # nothing - a "DONE" build with an empty dist.
 clean:
-	@rm -rf dist *.tsbuildinfo .configs/*.tsbuildinfo
+	@rm -rf dist *.tsbuildinfo .configs/builders/*.tsbuildinfo
 
 # Type-check before cleaning: a failure after clean leaves an empty dist, which looks like a hundred
 # unrelated import failures downstream.
@@ -80,11 +80,11 @@ rebuild: typecheck clean
 	@$(MAKE) --no-print-directory build
 
 lint:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts --check $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/oxfmt -c .configs/formatters/oxfmt.config.mts --check $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
 
 fmt:
-	@$(BIN)/oxlint -c .configs/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/eslint -c .configs/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/oxfmt.config.mts $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
+	@$(BIN)/oxfmt -c .configs/formatters/oxfmt.config.mts $(FMT_GLOB) $(FMT_IGNORE_GLOBS)

@@ -198,9 +198,21 @@ describe('buildPreset', () => {
   test('the lib gets the lint and clean files of the app, and its own files win', () => {
     const repository = makeRepository({});
     writeLib({ root: repository.root });
-    writeText({ root: repository.root, path: 'presets/app/files/scripts/lint.sh', content: 'lint\n' });
-    writeText({ root: repository.root, path: 'presets/app/files/scripts/clean.sh', content: 'app\n' });
-    writeText({ root: repository.root, path: 'presets/lib/files/scripts/clean.sh', content: 'lib\n' });
+    writeText({
+      root: repository.root,
+      path: 'presets/app/files/scripts/lint.sh',
+      content: 'lint\n',
+    });
+    writeText({
+      root: repository.root,
+      path: 'presets/app/files/scripts/clean.sh',
+      content: 'app\n',
+    });
+    writeText({
+      root: repository.root,
+      path: 'presets/lib/files/scripts/clean.sh',
+      content: 'lib\n',
+    });
 
     const { written } = buildPreset(repository);
     const out = (path: string): string => readFileSync(join(repository.outDir, path), 'utf8');

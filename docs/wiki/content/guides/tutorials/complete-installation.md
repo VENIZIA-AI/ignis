@@ -86,7 +86,7 @@ Create `tsconfig.json` in your project root:
 
 Each tool reads its settings from a `.configs/` folder. Create the folder and three files.
 
-`.configs/oxlint.config.mts` sets the lint rules:
+`.configs/lints/oxlint.config.mts` sets the lint rules:
 
 ```typescript
 import { defineConfig } from 'oxlint';
@@ -95,7 +95,7 @@ import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 export default defineConfig(oxlintConfigs);
 ```
 
-`.configs/oxfmt.config.mts` sets the formatting:
+`.configs/formatters/oxfmt.config.mts` sets the formatting:
 
 ```typescript
 import { defineConfig } from 'oxfmt';
@@ -104,7 +104,7 @@ import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 export default defineConfig(oxfmtConfigs);
 ```
 
-`.configs/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
+`.configs/lints/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
 
 ```typescript
 import { houseConfigs } from '@venizia/dev-configs/linters';
@@ -421,13 +421,13 @@ cd "$(dirname "$0")/.."
 FILES='**/*.{ts,tsx,mts,js,mjs}'
 
 if [ "${1:-}" = "--fix" ]; then
-  oxlint -c .configs/oxlint.config.mts --fix
-  eslint -c .configs/eslint.config.mjs --fix .
-  oxfmt -c .configs/oxfmt.config.mts "$FILES"
+  oxlint -c .configs/lints/oxlint.config.mts --fix
+  eslint -c .configs/lints/eslint.config.mjs --fix .
+  oxfmt -c .configs/formatters/oxfmt.config.mts "$FILES"
 else
-  oxlint -c .configs/oxlint.config.mts --deny-warnings
-  eslint -c .configs/eslint.config.mjs .
-  oxfmt -c .configs/oxfmt.config.mts --check "$FILES"
+  oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
+  eslint -c .configs/lints/eslint.config.mjs .
+  oxfmt -c .configs/formatters/oxfmt.config.mts --check "$FILES"
 fi
 ```
 

@@ -33,7 +33,7 @@ const houseRuleConfigs: Linter.Config[] = [
  * everything oxlint cannot express. Run it next to `oxlintConfigs`.
  *
  * ```js
- * // .configs/eslint.config.mjs
+ * // .configs/lints/eslint.config.mjs
  * import { houseConfigs } from '@venizia/dev-configs/linters';
  *
  * export default houseConfigs;

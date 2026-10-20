@@ -19,7 +19,7 @@
     ]
   },
   "include": [
-    "vite.config.ts"
+    ".configs/builders/vite.config.ts"
   ],
   "exclude": [
     "node_modules",

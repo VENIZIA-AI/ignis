@@ -5,7 +5,7 @@
 # Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 # $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
-LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/eslint.config.mjs $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
+LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/formatters/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
 
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
@@ -46,5 +46,5 @@ lint-wiki:
 # `scripts/` is not a workspace member: its config and oxfmt resolve from the root package.json.
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
-	@node_modules/.bin/oxfmt -c scripts/.configs/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
+	@node_modules/.bin/oxfmt -c scripts/.configs/formatters/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
 	@bun check --no-pretty -p scripts/tsconfig.json

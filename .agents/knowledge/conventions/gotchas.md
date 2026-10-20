@@ -44,7 +44,7 @@ tags: [conventions, gotchas, debugging]
 - [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
 - [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
 - [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
-- [A stale .configs/*.tsbuildinfo makes tsc emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
 - [ignorePatterns in a .configs file resolve against .configs](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
 - [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
@@ -67,7 +67,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 
 - [Only `tsconfig.json` stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
 - [`tsc-alias` must read the root `tsconfig.json`](#tsc-alias-must-read-the-root-tsconfigjson)
-- [A stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
+- [A stale `.configs/builders/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
 - [`ignorePatterns` in a `.configs/` file resolve against `.configs/`](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
 - [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
@@ -146,7 +146,7 @@ package, `dev-configs` included.
 
 Guard **every** program the build emits, not just the first. `typecheck` checks `tsconfig.json`, the
 CJS tsconfig and the ESM tsconfig. `inversion`, `filter` and `boot` emit
-CJS and ESM from two configs, and `.configs/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
+CJS and ESM from two configs, and `.configs/builders/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
 the same files under different rules and can fail where the CJS pass passed. Guarding one left a
 half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
 something resolves the `import` condition.
@@ -189,7 +189,7 @@ not close it either - the directive then resolves through node module resolution
 
 This reaches **any** consumer of those published types, not just `core-worker`.
 `examples/browser-bff` reproduces it from its own import graph. So the author-time defence in both is
-a `no-restricted-globals` and `no-restricted-imports` block in `.configs/eslint.config.mjs`, with the builtin
+a `no-restricted-globals` and `no-restricted-imports` block in `.configs/lints/eslint.config.mjs`, with the builtin
 list derived from `node:module`'s `builtinModules` rather than hand-written. Scope the `files` glob to
 `{ts,tsx,mts,cts}`: a package that sets `jsx` can have a `.tsx` production file, and a `.ts`-only glob
 leaves it with no rule at all.
@@ -380,8 +380,8 @@ routing its keys through `build()`.
 After changing a package's `exports` field or `dist` layout, a consumer's `.tsbuildinfo` can replay
 diagnostics cached against the old resolution - unchanged files suddenly report errors on valid
 types. Purge every `tsconfig*.tsbuildinfo` outside `node_modules` before trusting `tsc`. The build
-tsconfigs now live in `.configs/`, so their cache does too: `.configs/*.tsbuildinfo`. See
-[a stale `.configs/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing).
+tsconfigs now live in `.configs/`, so their cache does too: `.configs/builders/*.tsbuildinfo`. See
+[a stale `.configs/builders/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing).
 
 ## bun install reformats the committed bun.lock
 
@@ -622,7 +622,7 @@ some runs: at 19 in 30, a single run missed it about one gate run in 7.
 
 ## Only tsconfig.json stays at a project root
 
-Each project keeps its build tsconfigs (`tsconfig.build.json`, `tsconfig.esm.json`) in `.configs/`.
+Each project keeps its build tsconfigs (`tsconfig.build.json`, `tsconfig.esm.json`) in `.configs/builders/`.
 `tsconfig.json` stays at the root. Bun (legacy decorators and `emitDecoratorMetadata`), the editor's
 TS server and oxlint's type-aware pass (`oxlint-tsgolint`) only look for `tsconfig.json` at the root.
 
@@ -638,11 +638,11 @@ tsc-alias resolves `paths` against the directory of the file it reads. Pointed a
 resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still
 reports success.
 
-## A stale .configs/*.tsbuildinfo makes tsc emit nothing
+## A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing
 
 `incremental` writes the cache next to the build tsconfig, so it now lands in `.configs/`. A stale
-`.configs/*.tsbuildinfo` made `tsc` skip emit: core-server printed "DONE" with an empty `dist`.
-`make clean` removes `.configs/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
+`.configs/builders/*.tsbuildinfo` made `tsc` skip emit: core-server printed "DONE" with an empty `dist`.
+`make clean` removes `.configs/builders/*.tsbuildinfo` along with `dist` and `*.tsbuildinfo`. If a build is
 green and `dist` is empty, delete those files by hand.
 
 ## ignorePatterns in a .configs file resolve against .configs

@@ -37,7 +37,7 @@ expect(executor['delayedJobs'].size).toBe(1);
 
 The build's type-check gate runs against `tsconfig.json`, which includes `src/__tests__`. One
 broken test file - even someone else's in-progress, untracked one - fails the build for the
-**entire package**, even though the emit step reads `.configs/tsconfig.build.json` and keeps tests out of
+**entire package**, even though the emit step reads `.configs/builders/tsconfig.build.json` and keeps tests out of
 `dist/`. Before trusting a red build here, check `git status` for untracked test files that might
 be the real cause.
 

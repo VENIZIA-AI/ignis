@@ -8,7 +8,7 @@
     "bun": ">=1.4"
   },
   "scripts": {
-    "server:dev": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite",
+    "server:dev": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite --config .configs/builders/vite.config.ts",
     "compile": "sh scripts/compile.sh",
     "typecheck": "bun check",
     "lint": "sh scripts/lint.sh",

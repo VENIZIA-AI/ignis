@@ -25,7 +25,7 @@
        `@types/pg`. `typeRoots: []` does not close them either: the directive then resolves through
        node module resolution instead, finding the copy nested under `@types/pg`.
 
-       So the author-time defence is the `no-restricted-globals` block in `.configs/eslint.config.mjs`, backed
+       So the author-time defence is the `no-restricted-globals` block in `.configs/lints/eslint.config.mjs`, backed
        by `make purity` and by running the thing. Not `tsc`. The split is still the right shape - it
        keeps the config file's node types out of the application's project, and the tsc-level
        guarantee appears for free if those `.d.ts` leaks are ever fixed. */

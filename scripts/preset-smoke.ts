@@ -28,7 +28,10 @@ const DEV_PORT = '3000';
 const HELLO_BODY = { message: 'Hello from IGNIS!' };
 const SERVER_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 13;
+const LIB = 'billing';
+const LIB_DIR = 'libs';
+const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
 /** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
 const STAMP_COMMIT = 'smokebuild01';
 const BINARY = 'dist/bin';
@@ -213,6 +216,33 @@ const assertScaffold = (opts: { appDir: string }): void => {
   }
 };
 
+/** A lib is imported, never run: exports to src, ignis as a peer, and no app script. */
+const assertLibrary = (opts: { libDir: string }): void => {
+  const manifest = JSON.parse(readFileSync(join(opts.libDir, 'package.json'), 'utf8'));
+  const scripts = Object.keys(manifest.scripts ?? {}).sort();
+  const leftovers = findLeftoverTokens({ folder: opts.libDir });
+
+  if (manifest.exports?.['.'] !== './src/index.ts') {
+    throw new Error(
+      `[preset-smoke] the lib exports ${JSON.stringify(manifest.exports)}, expected ./src/index.ts`,
+    );
+  }
+
+  if (manifest.peerDependencies?.['@venizia/ignis'] === undefined) {
+    throw new Error('[preset-smoke] the lib does not name @venizia/ignis as a peer');
+  }
+
+  if (JSON.stringify(scripts) !== JSON.stringify(LIB_SCRIPTS)) {
+    throw new Error(
+      `[preset-smoke] the lib scripts are ${scripts.join(', ')}, expected ${LIB_SCRIPTS.join(', ')}`,
+    );
+  }
+
+  if (leftovers.length > 0) {
+    throw new Error(`[preset-smoke] unreplaced {{ tokens in the lib: ${leftovers.join(', ')}`);
+  }
+};
+
 /** The compile bakes the stamp into the bundle as text, so the binary carries the commit it was built from. */
 const assertStampBaked = (opts: { binary: string }): void => {
   if (!readFileSync(opts.binary).includes(STAMP_COMMIT)) {
@@ -303,7 +333,7 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
 
   step({ label: 'the app answers GET /api/hello and every preset url' });
   const preset = await Bun.file(
-    join(presetDir, 'package', 'dist', 'vulcan-preset', 'preset.json'),
+    join(presetDir, 'package', 'dist', 'vulcan-preset', 'app', 'preset.json'),
   ).json();
   if (!Array.isArray(preset.urls) || preset.urls.length === 0) {
     throw new Error('[preset-smoke] the packed preset names no urls');
@@ -315,6 +345,30 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   if (existsSync(join(appDir, 'dist'))) {
     throw new Error('[preset-smoke] `clean` left dist behind');
   }
+
+  step({ label: 'vulcan add --lib (from the packed preset): install, sync and its checks' });
+  await run({
+    command: [
+      'bun',
+      'x',
+      'vulcan',
+      'add',
+      '--preset',
+      `file:${join(presetDir, 'package')}`,
+      '--lib',
+      LIB,
+      '--dir',
+      LIB_DIR,
+    ],
+    cwd: projectDir,
+  });
+
+  step({ label: 'the lib: typecheck, lint, test, and a library package.json' });
+  const libDir = join(projectDir, LIB_DIR, LIB);
+  for (const check of ['typecheck', 'lint', 'test']) {
+    await run({ command: ['bun', 'run', check], cwd: libDir });
+  }
+  assertLibrary({ libDir });
 };
 
 if (import.meta.main) {

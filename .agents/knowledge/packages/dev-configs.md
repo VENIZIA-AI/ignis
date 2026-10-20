@@ -101,7 +101,7 @@ oxlint resolves `ignorePatterns` against the config file's folder and rejects `.
 
 ## ESLint - naming convention only
 
-oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/lints/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
@@ -109,15 +109,18 @@ Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is delibe
 
 ## Per-project `.configs/` folder
 
-Every project (each package, `docs/wiki`, each example except `examples/rpc-client-app`) owns three small files under `.configs/`:
+Every project (each package, `docs/wiki`, each example except `examples/rpc-client-app`) splits `.configs/` by job:
 
 | File | Content |
 |---|---|
-| `oxlint.config.mts` | `defineConfig(oxlintConfigs)`, imported from `@venizia/dev-configs/linters/oxlint` |
-| `oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
-| `eslint.config.mjs` | `houseConfigs` (naming convention + house rules), plus project rules where needed |
+| `lints/oxlint.config.mts` | `defineConfig(oxlintConfigs)`, imported from `@venizia/dev-configs/linters/oxlint` |
+| `lints/eslint.config.mjs` | `houseConfigs` (naming convention + house rules), plus project rules where needed |
+| `lints/.ignore` | Optional: paths oxlint and eslint skip, one gitignore-style pattern per line, relative to the project |
+| `formatters/oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
+| `formatters/.ignore` | Optional: paths oxfmt skips, same format |
+| `builders/tsconfig.build.json`, `builders/tsconfig.esm.json` | A built package only: the CJS and ESM programs; a Vite app keeps `builders/vite.config.mts` |
 
-No tool finds `.configs/` on its own, so every call passes `-c .configs/<tool>.config.mts`. See [build system](/process/build-system.md) for the commands.
+No tool finds `.configs/` on its own, so every call passes `-c`. oxlint and oxfmt resolve `ignorePatterns` and ignore files from their own folder and refuse `..`, so nothing in `.configs/` can name a project path: `scripts/lint.sh` reads each `.ignore` and passes its patterns on the command line (`--ignore-pattern`, `!pattern` for oxfmt), which resolves from the project root. `LintIgnore` keeps the in-config route for oxlint and eslint. See [build system](/process/build-system.md) for the commands.
 
 ## TypeScript - the critical setting
 

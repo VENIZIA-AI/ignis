@@ -3,4 +3,4 @@
 set -eu
 cd "$(dirname "$0")/.."
 
-APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite build
+APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite build --config .configs/builders/vite.config.ts

@@ -21,7 +21,7 @@ const JS_TS_FILES = ['**/*.js', '**/*.cjs', '**/*.mjs', '**/*.jsx', ...TS_FILES]
  * by `noImplicitThis` in `tsconfig.base.json`). `n/prefer-node-protocol` maps to the unicorn rule.
  *
  * ```ts
- * // .configs/oxlint.config.mts
+ * // .configs/lints/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
  * import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *
@@ -207,7 +207,7 @@ export interface IOxlintPresetOptions {
  * Builds `oxlintConfigs` with options. Without any it returns the base preset unchanged.
  *
  * ```ts
- * // .configs/oxlint.config.mts
+ * // .configs/lints/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
  * import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *
