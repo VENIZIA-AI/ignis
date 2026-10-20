@@ -30,25 +30,28 @@ Task-oriented examples for the Authorization component. See the [Overview](./) f
 **Imperative route.** Add `authorize` to `defineRoute()`'s `configs`, next to `authenticate`.
 
 ```typescript
-import { BaseRestController, Authentication, AuthorizationActions } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+import { BaseRestController, Authentication, AuthorizationActions, type TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 class ArticleController extends BaseRestController {
   binding() {
     this.defineRoute({
       configs: {
         path: '/{id}',
-        method: 'delete',
+        method: HTTP.Methods.DELETE,
         authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         authorize: {
           action: AuthorizationActions.DELETE,
           resource: 'Article',
           conditions: { ownerId: 'currentUser' }, // available to voters/custom enforcers - the built-in Casbin enforcer ignores it
         },
+        request: { params: z.object({ id: z.string() }) },
         responses: jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
       },
-      handler: async context => {
-        const { id } = context.req.valid('param');
-        return context.json(await this.articleService.deleteById({ id }));
+      handler: async (context: TRouteContext) => {
+        const { id } = context.req.valid<{ id: string }>('param');
+        return context.json(await this.articleService.deleteById({ id }), HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }
@@ -58,7 +61,8 @@ class ArticleController extends BaseRestController {
 **Decorator-based route.** Same `authorize` field inside `@get`/`@post`/etc. `configs`.
 
 ```typescript
-import { controller, get, post, AuthorizationActions, AuthorizationRoles } from '@venizia/ignis';
+import { controller, post, type TRouteContext, AuthorizationActions, AuthorizationRoles } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/articles' })
 class ArticleController extends BaseRestController {
@@ -75,8 +79,10 @@ class ArticleController extends BaseRestController {
       responses: jsonResponse({ description: 'Created article', schema: ArticleSchema }),
     },
   })
-  async create(opts: { context: TRouteContext }) {
+  async create(context: TRouteContext) {
     // Runs if the user has 'create:Article' permission OR the 'editor'/'900_admin' role
+    const body = context.req.valid<typeof CreateArticleSchema>('json');
+    return context.json(await this.articleService.create({ data: body }), HTTP.ResultCodes.RS_2.Created);
   }
 }
 ```
@@ -150,7 +156,8 @@ const ownerVoter: TAuthorizationVoter = async ({ user, action, resource, context
     return AuthorizationDecisions.ABSTAIN;
   }
 
-  const article = await articleService.findById({ id: context.req.param('id') });
+  const { id } = context.req.valid<{ id: string }>('param');
+  const article = await articleService.findById({ id });
   if (!article) {
     return AuthorizationDecisions.ABSTAIN;
   }

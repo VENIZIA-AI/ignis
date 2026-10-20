@@ -109,9 +109,15 @@ Complete reference documentation for the IGNIS framework. Find detailed API docs
 ```typescript
 @controller({ path: '/users' })
 class UserController extends BaseRestController {
-  @get({ configs: { path: '/:id' } })
-  getUser(c: Context) {
-    return c.json({ id: c.req.param('id') });
+  @get({
+    configs: {
+      path: '/{id}',
+      request: { params: z.object({ id: z.string() }) },
+    },
+  })
+  getUser(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
+    return context.json({ id }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
