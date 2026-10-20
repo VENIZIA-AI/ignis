@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - Preset and examples type-check with bun check
+
+Updated nothing else - scripts only.
+
+- The VULCAN preset and the examples run `bun check --no-pretty -p tsconfig.json` as `typecheck`, the same checker the repository uses; `build` still emits with tsc.
+
 ## 2026-10-20 - main holds the released code
 
 Updated rule W-01 in `.agents/rules.md` only - no concept changed.
