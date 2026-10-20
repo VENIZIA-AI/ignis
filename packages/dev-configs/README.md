@@ -116,6 +116,7 @@ Every IGNIS package and example does.
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`: the oxlint presets only. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
@@ -158,7 +159,7 @@ where `''` and `0` fall back on purpose opts out in one line:
 ```ts
 // .configs/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { OxlintConfigs } from '@venizia/dev-configs/linters';
+import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
 ```
@@ -313,7 +314,7 @@ does not use React.
 ```ts
 // .configs/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters';
+import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(BrowserOxlintConfigs.create());
 ```
@@ -326,7 +327,7 @@ nothing is passed in. Pair it with `reactNamingConventionConfigs` on the ESLint 
 ```ts
 // .configs/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 

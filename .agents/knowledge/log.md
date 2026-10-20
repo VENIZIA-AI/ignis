@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - dev-configs: linters/oxlint subpath
+
+Updated [dev-configs](/packages/dev-configs.md): the `@venizia/dev-configs/linters/oxlint` export maps to `linters/oxlint-presets.ts` (the base, browser and React oxlint presets) so an oxlint config does not load ESLint through the `/linters` barrel. `ReactOxlintConfigs` moved to `react-oxlint.ts`.
+
 ## 2026-10-18 - VULCAN 0.2.0
 
 Updated nothing else - tooling only.

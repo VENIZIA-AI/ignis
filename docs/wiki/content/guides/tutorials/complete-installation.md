@@ -93,7 +93,7 @@ Each tool reads its settings from a `.configs/` folder. Create the folder and th
 
 ```typescript
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
