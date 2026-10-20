@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - main holds the released code
+
+Updated rule W-01 in `.agents/rules.md` only - no concept changed.
+
+- After each release a "Sync main" pull request merges `develop` into `main`; the wiki deploys on a `develop` push, so `main` never deploys.
+
 ## 2026-10-20 - Self-contained sourcemaps
 
 Updated the [make targets](/reference/makefile-targets.md) reference: `make sourcemaps-check`.
