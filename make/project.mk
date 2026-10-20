@@ -12,7 +12,9 @@
 # diagnostics as `tsc --noEmit`, a fraction of the time); tsc still emits the JS and the .d.ts.
 
 BIN := $(CURDIR)/node_modules/.bin
-TSC := $(BIN)/tsc
+# Published maps must resolve without `src/` in the tarball: `--inlineSources` fills `sourcesContent`
+# in the .js.map files, and `--declarationMap false` drops the .d.ts.map files, which tsc cannot embed.
+TSC := $(BIN)/tsc --inlineSources --declarationMap false
 TYPECHECK := bun check --no-pretty
 TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
