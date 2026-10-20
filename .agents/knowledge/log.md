@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - VULCAN 0.3.0
+
+Updated [monorepo layout](/overview/monorepo-layout.md) and [knowledge-sync areas](/process/knowledge-sync-areas.md): the VULCAN config is `.configs/vulcan.config.mts`.
+
+- `@venizia/vulcan` is pinned at 0.3.0; `atlas.releaseCommit` is gone (0.3.0 refuses it).
+
 ## 2026-10-20 - VULCAN preset for @venizia/ignis
 
 Updated [release and publish](/process/release-publish.md): the preset source, who writes its versions and the smoke gate.
