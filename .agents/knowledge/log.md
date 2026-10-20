@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - VULCAN preset for @venizia/ignis
+
+Updated [release and publish](/process/release-publish.md): the preset source, who writes its versions and the smoke gate.
+
+- `@venizia/ignis` carries `vulcan.preset`; `make preset-build` and `make preset-smoke` are new.
+
 ## 2026-10-18 - VULCAN 0.2.0
 
 Updated nothing else - tooling only.
