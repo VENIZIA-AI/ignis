@@ -22,6 +22,19 @@ describe('IgnisArtifactsVitePlugin', () => {
     expect(Object.keys(config)).toEqual(['optimizeDeps']);
   });
 
+  // vite dev serves a node_modules file with a version query (`?v=<hash>`); the hooks must match it all the same.
+  test('replaces the auto module when vite adds a version query to its id', () => {
+    const autoModule = plugin({ viteRoot: APP }).load(`${AUTO}?v=23d7819e`) ?? '';
+    expect(autoModule).toContain("from 'ignis:artifacts'");
+  });
+
+  test('pins a scanned class when vite adds a version query to its id', () => {
+    const file = resolve(APP, 'src', 'controllers', 'list.controller.ts');
+    const source = "@controller({ path: '/list' })\nexport class ListController {}\n";
+    const output = plugin({ viteRoot: APP }).transform(source, `${file}?v=23d7819e`) ?? '';
+    expect(output).toContain('Object.defineProperty(this, \'name\', { value: "ListController" })');
+  });
+
   test('pins the name of a scanned class only, inside the class so it runs before its decorators', () => {
     const file = resolve(APP, 'src', 'controllers', 'list.controller.ts');
     const source =

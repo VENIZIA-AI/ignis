@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - Vite dev: auto module and name pinning match query ids
+
+Updated nothing else - a fix in the Vite plugin.
+
+- `vite` dev serves a node_modules file with a `?v=<hash>` query; the plugin now strips it before matching the auto module and the pinned classes, so `@venizia/ignis-boot/auto` is replaced in dev too and never reaches a browser.
+
 ## 2026-10-20 - the build stamp is baked at compile time and resolved from git at dev start
 
 Updated [boot](/packages/boot.md), [dev-configs](/packages/dev-configs.md) and the build-system example for `LINT_IGNORE`.
