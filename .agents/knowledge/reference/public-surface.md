@@ -100,6 +100,14 @@ generated:
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
 
+### `@venizia/dev-configs/linters/oxlint` (5)
+
+- `BrowserOxlintConfigs` class
+- `IOxlintPresetOptions` interface
+- `oxlintConfigs` const
+- `OxlintConfigs` class
+- `ReactOxlintConfigs` class
+
 ### `@venizia/dev-configs/testing` (2)
 
 - `expectRejection` const

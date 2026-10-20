@@ -106,7 +106,8 @@ const findFreePort = async (): Promise<number> => {
   return port;
 };
 
-const assertHello = async (opts: { cwd: string }): Promise<void> => {
+/** Every path the preset's `urls` names must answer 200: VULCAN prints them as the pages to open. */
+const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void> => {
   const port = await findFreePort();
   const server = Bun.spawn(['bun', 'run', 'src/index.ts'], {
     cwd: opts.cwd,
@@ -138,6 +139,16 @@ const assertHello = async (opts: { cwd: string }): Promise<void> => {
       throw new Error(
         `[preset-smoke] GET /api/hello answered ${JSON.stringify(body)} | Expected: ${JSON.stringify(HELLO_BODY)}`,
       );
+    }
+
+    for (const url of opts.urls) {
+      const response = await fetch(`http://127.0.0.1:${port}${url}`);
+
+      if (response.status !== 200) {
+        throw new Error(
+          `[preset-smoke] preset url ${url} answered ${response.status} | Expected: 200`,
+        );
+      }
     }
   } finally {
     server.kill();
@@ -264,8 +275,14 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   step({ label: 'the scaffold: renamed dotfile, dev port, no leftover tokens' });
   assertScaffold({ appDir });
 
-  step({ label: 'the app answers GET /api/hello' });
-  await assertHello({ cwd: appDir });
+  step({ label: 'the app answers GET /api/hello and every preset url' });
+  const preset = await Bun.file(
+    join(presetDir, 'package', 'dist', 'vulcan-preset', 'preset.json'),
+  ).json();
+  if (!Array.isArray(preset.urls) || preset.urls.length === 0) {
+    throw new Error('[preset-smoke] the packed preset names no urls');
+  }
+  await assertHello({ cwd: appDir, urls: preset.urls });
 };
 
 if (import.meta.main) {

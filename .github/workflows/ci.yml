@@ -93,6 +93,11 @@ jobs:
       - name: Link workspace bins
         run: bun install --frozen-lockfile
 
+      # A published map must resolve without src/ in the tarball, or a Vite app warns once per file.
+      - name: Sourcemaps are self-contained
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make sourcemaps-check
+
       # Boots each example that needs no external service and calls its endpoints against the build.
       - name: Examples smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

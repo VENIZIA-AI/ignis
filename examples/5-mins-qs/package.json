@@ -15,7 +15,7 @@
     "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "server:prod": "NODE_ENV=production bun run dist/index.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "bun check --no-pretty -p tsconfig.json",
     "test": "bun test"
   },
   "dependencies": {

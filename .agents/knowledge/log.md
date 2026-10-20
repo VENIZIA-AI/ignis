@@ -14,6 +14,30 @@ Updated [connectors](/packages/connectors.md): `generatePrincipalColumnDefs` (Po
 
 Updated [dev-configs](/packages/dev-configs.md): the `@venizia/dev-configs/linters/oxlint` export maps to `linters/oxlint-presets.ts` (the base, browser and React oxlint presets) so an oxlint config does not load ESLint through the `/linters` barrel. `ReactOxlintConfigs` moved to `react-oxlint.ts`.
 
+## 2026-10-20 - Declaration maps are back
+
+Updated nothing else - build flags only.
+
+- tsc again emits `.d.ts.map` (only `--inlineSources` stays): atlas resolves a symbol to its source line through them, and dropping them in 0.3.1 sent every symbol to the wrong line. `make sourcemaps-check` now also requires one `.d.ts.map` per `.d.ts`.
+
+## 2026-10-20 - Preset and examples type-check with bun check
+
+Updated nothing else - scripts only.
+
+- The VULCAN preset and the examples run `bun check --no-pretty -p tsconfig.json` as `typecheck`, the same checker the repository uses; `build` still emits with tsc.
+
+## 2026-10-20 - main holds the released code
+
+Updated rule W-01 in `.agents/rules.md` only - no concept changed.
+
+- After each release a "Sync main" pull request merges `develop` into `main`; the wiki deploys on a `develop` push, so `main` never deploys.
+
+## 2026-10-20 - Self-contained sourcemaps
+
+Updated the [make targets](/reference/makefile-targets.md) reference: `make sourcemaps-check`.
+
+- Published `.js.map` files embed their sources (`--inlineSources`) and no `.d.ts.map` is emitted, so a consumer never sees a map pointing at a missing `src/`.
+
 ## 2026-10-20 - VULCAN 0.3.0
 
 Updated [monorepo layout](/overview/monorepo-layout.md) and [knowledge-sync areas](/process/knowledge-sync-areas.md): the VULCAN config is `.configs/vulcan.config.mts`.

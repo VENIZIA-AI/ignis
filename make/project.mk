@@ -12,7 +12,10 @@
 # diagnostics as `tsc --noEmit`, a fraction of the time); tsc still emits the JS and the .d.ts.
 
 BIN := $(CURDIR)/node_modules/.bin
-TSC := $(BIN)/tsc
+# `--inlineSources` fills `sourcesContent` in every .js.map, so a bundler never looks for a `src/` the
+# tarball lacks. Declaration maps stay as tsc writes them: atlas and editors map a .d.ts back to its
+# source line through them, and no bundler loads them.
+TSC := $(BIN)/tsc --inlineSources
 TYPECHECK := bun check --no-pretty
 TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)

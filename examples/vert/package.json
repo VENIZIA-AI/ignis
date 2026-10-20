@@ -24,7 +24,7 @@
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "server:prod": "NODE_ENV=production bun .",
     "test": "bun test",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "bun check --no-pretty -p tsconfig.json"
   },
   "author": {
     "name": "VENIZIA AI Developer",

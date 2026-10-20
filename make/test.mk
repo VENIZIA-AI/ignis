@@ -14,7 +14,7 @@ TEST_TARGETS := $(addprefix test-,$(PACKAGES))
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
-.PHONY: test-all test-scripts purity purity-test clean-install \
+.PHONY: test-all test-scripts sourcemaps-check purity purity-test clean-install \
         $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
@@ -48,6 +48,11 @@ test-scripts:
 purity:
 	@echo "🔍 Checking browser purity for all claimed entries..."
 	@bun scripts/purity/cli.ts
+
+# Checks that read the built dist, so they run after a build, never in test-scripts.
+sourcemaps-check:
+	@echo "🔍 Checking that published sourcemaps are self-contained..."
+	@bun test scripts/build-checks
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
