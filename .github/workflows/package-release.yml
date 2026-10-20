@@ -399,6 +399,7 @@ jobs:
           # it first changes nothing else. The flag means "a publish was attempted", which is exactly
           # what those reports have to assume.
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
+          echo "NPM_TAG=$NPM_TAG" >> $GITHUB_ENV
 
           # `bun publish`, not npm: bun resolves `catalog:`/`workspace:` while packing, npm ships them verbatim and breaks every consumer. --ignore-scripts skips the already-run prepublishOnly.
           bun publish --access public --tag $NPM_TAG --ignore-scripts
@@ -414,6 +415,12 @@ jobs:
           npm dist-tag add "$PACKAGE_NAME@$NEW_VERSION" highest \
             && echo "✓ Tagged $PACKAGE_NAME@$NEW_VERSION as 'highest'" \
             || echo "⚠️  Could not set 'highest' dist-tag (non-fatal)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
+      # `next` must never sit below `latest`. A stable publish leaves `next` on an older prerelease, so every package is checked after each release. The registry serves the old dist-tags for minutes after a publish, so the just-published version and tag are passed in. Non-fatal: the script only warns, a tagging hiccup never rolls back a successful publish.
+      - name: Keep next at or above latest
+        run: bun scripts/sync-next-tag.ts --published "$PACKAGE_NAME@$NEW_VERSION" --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
