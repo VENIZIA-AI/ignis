@@ -215,6 +215,9 @@ jobs:
       # release died here. Checking every PUBLISHED target is also strictly stronger than checking
       # one index - a sub-path whose file never got emitted fails here instead of at a consumer's
       # first import.
+      - name: Sourcemaps are self-contained
+        run: make sourcemaps-check
+
       - name: Validate build artifacts
         run: |
           cd $PACKAGE_PATH
