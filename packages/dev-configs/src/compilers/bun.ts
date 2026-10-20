@@ -15,6 +15,8 @@ export class BunCompiler {
       outfile?: string;
       target?: string;
       plugins?: Bun.BunPlugin[];
+      /** Compile-time constants: each key is replaced by its value, a JSON-encoded expression, wherever the bundle reads it. */
+      define?: Record<string, string>;
     } = {},
   ): Promise<void> {
     const {
@@ -22,6 +24,7 @@ export class BunCompiler {
       outfile = DEFAULT_OUTFILE,
       target = Bun.env.BUN_TARGET ?? DEFAULT_COMPILE_TARGET,
       plugins = [],
+      define = {},
     } = opts;
 
     const built = await Bun.build({
@@ -34,6 +37,7 @@ export class BunCompiler {
         target: target as Bun.Build.CompileTarget,
         outfile,
       },
+      define,
       plugins,
     });
 

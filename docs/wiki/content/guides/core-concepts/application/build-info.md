@@ -1,74 +1,83 @@
 ---
 title: Stamping a build
-description: Generate the stamp in the image build, push it into the registry at the entrypoint, and read it back from GET /health/stats
+description: Bake the commit, branch and build time into the binary at compile, resolve them from git when you run from source, and read them back from GET /health/stats
 difficulty: beginner
 ---
 
 # Stamping a build
 
-A running service cannot say which commit it is. `ignis-build-info` resolves that at **build** time
-and writes a static file your bundle bakes in; the entrypoint pushes it into a registry, and
-`GET /health/stats` reports it.
+A running service cannot say which commit it is. `BuildInfoStamp` fixes that with no generated file:
+the compile bakes the stamp into the binary, and a run from source resolves it from git when the
+application starts. `GET /health/stats` reports it.
 
-```bash
-# in the image build, before the bundler runs
-bunx ignis-build-info generate --out src/_build_info.ts
+```typescript
+// scripts/compile.ts - the compile bakes the stamp in
+import { BunCompiler } from '@venizia/dev-configs/compilers';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/service',
+  define: await BuildInfoStamp.define(),
+});
 ```
 
 ```typescript
-// src/index.ts - first lines of the entrypoint
-import { BUILD_INFO } from './_build_info';
-import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
+// src/index.ts - the entrypoint registers it
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 
-BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
+await BuildInfoStamp.register();
+// start the application as you do today
 ```
 
-This page is the how-to. The [reference](/references/base/bootstrapping#ignis-build-info-cli) has
-every flag, the full environment-variable precedence and the programmatic API.
+That is all. A clean checkout typechecks, tests and boots with nothing generated, because nothing is
+imported from a file that might not exist.
 
 ## Before you start
 
-- `@venizia/ignis-boot` as a devDependency - it ships the `ignis-build-info` binary beside
-  [`ignis-artifacts`](/guides/core-concepts/application/bootstrapping).
-- The generator runs under **bun**. It asks `git` through Bun Shell.
+- `@venizia/ignis-boot` and `@venizia/dev-configs` in the application. `@venizia/ignis-boot/build-info`
+  imports no TypeScript, so importing it at run time does not pull the scanner into the bundle.
+- The resolver runs under **bun**. It asks `git` through Bun Shell.
 
-## 1. Generate in the image build, not in the repository
+## How it works
 
-Run it where the image is built, before the bundler. The output is a build artifact, so add it to
-`.gitignore` rather than committing it.
+| Where it runs | `register()` uses |
+|---|---|
+| A compiled binary | The stamp `define()` baked in at compile. It never runs `git` |
+| `bun run src/index.ts`, `bun --watch`, a test | `BuildInfoResolver`: CI variables, then `git`, then `package.json` |
 
-```dockerfile
-COPY . .
-RUN bun install --frozen-lockfile
-RUN bunx ignis-build-info generate --out src/_build_info.ts
-RUN bun build --compile --minify-syntax --env=disable ./src/index.ts --outfile ./dist/service
-```
+`define()` returns one record, `{ IGNIS_BUILD_INFO: '<the stamp as JSON>' }`. The compiler replaces
+that name in the bundle; `register()` reads it. `BuildInfoStamp.GLOBAL_NAME` holds the name, so you
+never type it.
 
-```
-# .gitignore
-src/_build_info.ts
-```
-
-A local run without the generator simply has no file to import - keep a committed placeholder if
-your dev loop needs one, or guard the import.
-
-## 2. Register it once, at the entrypoint
-
-`BuildInfoRegistry.set()` must run before anything reads the stamp, so it belongs at the top of the
-entrypoint - above the application import, not inside a component.
-
-```typescript
-import { BUILD_INFO } from './_build_info';
-import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
-
-BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
-
-// everything else after
-import { Application } from './application';
-```
+`register()` sets `commit`, `branch` and `builtAt`. It leaves `service` and `version` to your
+application's `getAppInfo()`, so each application in a process keeps its own name and version.
 
 The registry is a `globalThis` slot keyed by `Symbol.for`, so two copies of the package in one
 process - an ESM import beside a CommonJS require - still see one stamp.
+
+## 1. Bake it at compile
+
+Call `BuildInfoStamp.define()` in the compile script and pass the result as `define`. `BunCompiler`
+hands it to `Bun.build`, and a script that calls `Bun.build` itself passes the same record:
+
+```typescript
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await Bun.build({
+  entrypoints: ['./src/index.ts'],
+  compile: { outfile: './dist/service' },
+  define: await BuildInfoStamp.define(),
+});
+```
+
+`define({ root })` resolves from another directory, for a build that does not run at the package
+root. The stamp is read once, when the compile starts, so `builtAt` is the compile time.
+
+## 2. Register it once, at the entrypoint
+
+Call `await BuildInfoStamp.register()` before the application starts. The health check reads the
+registry when a request arrives, so the call only has to come first.
 
 ## 3. Read it back
 
@@ -85,8 +94,9 @@ you open it - see [Health check](/extensions/components/health-check).
 
 ## Wire the CI variables when `git` will not be there
 
-The generator reads environment variables **first**, then `git`, then `package.json`. A build from a
-tarball has no `.git`, and that is the case the variables exist for.
+The resolver reads environment variables **first**, then `git`, then `package.json`. A build from a
+tarball has no `.git`, and that is the case the variables exist for. Export them in the step that
+compiles, because `define()` reads them there.
 
 | Your pipeline exports | Fills |
 |---|---|
@@ -96,52 +106,58 @@ tarball has no `.git`, and that is the case the variables exist for.
 | `APP_ENV_BUILD_DATE` or `APP_BUILD_DATE` | `builtAt` |
 
 GitLab and GitHub names (`CI_COMMIT_SHA`, `GITHUB_SHA`, and the rest) are read without any wiring -
-the [reference table](/references/base/bootstrapping#ignis-build-info-cli) lists the full order.
+the [reference table](/references/base/bootstrapping#build-stamp) lists the full order.
 
 ## A field reading `unspecified` is telling you something
 
-Anything the generator cannot resolve is written as the literal `unspecified`. That is deliberate:
-a variable your pipeline forgot shows up as a word you can grep for, never as an absent key.
+Anything the resolver cannot find is the literal `unspecified`. That is deliberate: a variable your
+pipeline forgot shows up as a word you can grep for, never as an absent key.
 
 | You see | It means |
 |---|---|
-| `commit: "unspecified"` in a CI build | No `.git` and no commit variable exported. Wire one from the table above |
-| Every field `unspecified` | The generator never ran; `getAppInfo()` still supplies `service` and `version` |
-| `branch: "unspecified"` in a fresh repository | A repository with no commit yet - `git` exits 128 and the generator refuses its output |
+| `commit: "unspecified"` in a CI build | No `.git` and no commit variable at compile. Export one from the table above |
+| Every field `unspecified` | `register()` never ran; `getAppInfo()` still supplies `service` and `version` |
+| `branch: "unspecified"` in a fresh repository | A repository with no commit yet - `git` exits 128 and the resolver refuses its output |
 
-## Do not read the stamp back from disk
-
-The whole design is that nothing reads anything at run time - no `readFileSync`, no
-`spawn('git')`.
+## Do not read the stamp back from disk in production
 
 A `bun build --compile` binary ships no `node_modules`, no `.git` and no readable `package.json`, and
-a Distroless image has no `git` to spawn. A resolver that looked for any of them would report blanks
-in exactly the deployment where the stamp matters most. Generate at build time, push at startup.
+a Distroless image has no `git` to spawn. That is why the compile bakes the stamp: the binary never
+looks for any of them. The git fallback is for a run from source, where `.git` is there.
 
-## Running the built file under Node
+## Running under Node
 
-Both binaries carry a `bun` shebang, so bun is the normal path. Run the built `dist/cjs` file under
-plain **Node** and `Bun.$` is undefined: the `git`-derived fields read `unspecified` and the build
-still succeeds rather than throwing. Export the CI variables above when a Node invocation has to be
-exact.
+The resolver asks `git` through `Bun.$`. Under plain **Node** that is undefined, so the
+`git`-derived fields read `unspecified` and the start still succeeds rather than throwing. Export the
+CI variables above when a Node run has to be exact.
 
-## Frontend and shell builds
+## A frontend or a shell build
 
-`--format json` writes the same record for a Vite app or a Tauri shell to fetch.
+A Vite app or a Tauri shell cannot import the resolver. Write the record to a file in your build
+script and fetch it:
 
-```bash
-bunx ignis-build-info generate --out public/build-info.json --format json
+```typescript
+import { BuildInfoResolver } from '@venizia/ignis-boot/build-info';
+
+const stamp = await BuildInfoResolver.getInstance().resolve();
+await Bun.write('public/build-info.json', JSON.stringify(stamp, null, 2));
 ```
+
+## Moving off `ignis-build-info`
+
+The `ignis-build-info` binary and the generated `src/_build_info.ts` are gone. See the
+[changelog](/changelogs/2026-10-20-build-stamp-at-compile) for the before and after.
 
 ## See also
 
-- [`ignis-build-info` reference](/references/base/bootstrapping#ignis-build-info-cli) - every flag and the full precedence table
-- [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the other binary `@venizia/ignis-boot` ships
+- [Build stamp reference](/references/base/bootstrapping#build-stamp) - the API and the full precedence table
+- [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the other tool `@venizia/ignis-boot` ships
 - [Health check](/extensions/components/health-check) - the route that reports the stamp
-- [Changelog 2026-09-11](/changelogs/2026-09-11-build-info-and-health-stats) - why the stamp is pushed, never read back
+- [Changelog 2026-09-11](/changelogs/2026-09-11-build-info-and-health-stats) - why the stamp is pushed, never read back by the reporter
 
 **Files:**
 
-- [`packages/boot/src/clis/build-info.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/clis/build-info.ts) - the binary
+- [`packages/boot/src/build-info/stamp.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/build-info/stamp.ts) - `BuildInfoStamp`
 - [`packages/boot/src/build-info/resolver.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/build-info/resolver.ts) - `BuildInfoResolver`
+- [`packages/dev-configs/src/compilers/bun.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/compilers/bun.ts) - `BunCompiler`
 - [`packages/helpers/src/utilities/build-info.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/build-info.utility.ts) - `BuildInfoRegistry`, `IBuildInfo`

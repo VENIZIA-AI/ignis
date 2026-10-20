@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - the build stamp is baked at compile time and resolved from git at dev start
+
+Updated [boot](/packages/boot.md), [dev-configs](/packages/dev-configs.md) and the build-system example for `LINT_IGNORE`.
+
+- `@venizia/ignis-boot/build-info` adds `BuildInfoStamp`: `define()` returns `{ IGNIS_BUILD_INFO }` for a compile, `register()` reads the baked value or falls back to `BuildInfoResolver`, then `BuildInfoRegistry.set` (commit, branch, builtAt only).
+- `BunCompiler.compile` takes `define`.
+- Removed: the `ignis-build-info` bin, `BuildInfoEmitter`, `generateBuildInfo`, `BuildInfoFormats` and the option and format types. No generated `src/_build_info.ts` is left, so a clean checkout typechecks, tests and boots.
+
 ## 2026-10-20 - connectors: isNullableDiscriminator makes the type column required
 
 Updated [connectors](/packages/connectors.md): with `isNullableDiscriminator: false` the `{discriminator}Type` column is `NOT NULL` with no default (an explicit `defaultPolymorphic` keeps its default), so an insert without the type fails; `null`/`undefined` still mean nullable. `enrichPrincipal` is now generic over the same four type parameters as `generatePrincipalColumnDefs`, and the nullability conditionals no longer distribute over a widened `boolean`.

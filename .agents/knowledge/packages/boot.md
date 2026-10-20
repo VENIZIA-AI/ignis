@@ -1,7 +1,7 @@
 ---
 type: Package
 title: boot
-description: Build-time artifact index generator - scans decorated classes with the TypeScript AST and emits one static registration file per package; ships the ignis-artifacts CLI.
+description: Build-time artifact index generator - scans decorated classes with the TypeScript AST and emits one static registration file per package; ships the ignis-artifacts CLI and the build stamp (BuildInfoStamp, BuildInfoResolver).
 resource: packages/boot
 tags: [packages, boot, artifacts, generator]
 ---
@@ -13,6 +13,7 @@ tags: [packages, boot, artifacts, generator]
 - [Detection rules](#detection-rules)
 - [Output contract](#output-contract)
 - [Generated header names the command](#generated-header-names-the-command)
+- [Build stamp](#build-stamp)
 - [CLI](#cli)
 - [Auto artifacts and groups (`src/bun/`)](#auto-artifacts-and-groups-srcbun)
 - [Constraints the code cannot show](#constraints-the-code-cannot-show)
@@ -32,19 +33,17 @@ on it - `@venizia/ignis` dropped its `ignis-boot` dependency once the runtime bo
 so an application that runs `ignis-artifacts` declares `@venizia/ignis-boot` as its own
 devDependency. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 drops the JS API the scanner calls) is
 a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path exports
-`./generator` and `./build-info`, and two bins with a `bun` shebang (the scanner uses `Bun.Glob`,
-the build-info generator uses `Bun.$`): `ignis-artifacts -> dist/cjs/clis/artifacts.js` and
-`ignis-build-info -> dist/cjs/clis/build-info.js`.
+`./generator` and `./build-info`, and one bin with a `bun` shebang (the scanner uses `Bun.Glob`):
+`ignis-artifacts -> dist/cjs/clis/artifacts.js`. The build stamp has no bin: `ignis-build-info` and its
+file emitter were removed, see [Build stamp](#build-stamp).
 
 ## Layout
 
 - `src/clis/` - every CLI entrypoint lives here, one file per bin, each `parseArgs` + a `run()` that
-  returns the exit code so the process exits in exactly one place: `artifacts.ts` (`ignis-artifacts`)
-  and `build-info.ts` (`ignis-build-info`, whose `run()` is async because Bun Shell has no `.sync()`).
-- `src/build-info/` - mirrors `generator/`: `resolver.ts` (`BuildInfoResolver.getInstance().resolve({ root })`,
-  a `BaseHelper` singleton that logs every miss), `emitter.ts` (`BuildInfoEmitter.render`, `ts`/`json`),
-  `index.ts` (`generateBuildInfo` + barrel), `common/` (`BuildInfoFormats`, `BuildInfoEnvironmentKeys`).
-  Reads env first (`APP_ENV_*` > `APP_BUILD_*` > provider), then `git` through `Bun.$` with
+  returns the exit code so the process exits in exactly one place: `artifacts.ts` (`ignis-artifacts`).
+- `src/build-info/` - `resolver.ts` (`BuildInfoResolver.getInstance().resolve({ root })`, a `BaseHelper`
+  singleton that logs every miss), `stamp.ts` (`BuildInfoStamp`), `common/` (`BuildInfoEnvironmentKeys`).
+  The resolver reads env first (`APP_ENV_*` > `APP_BUILD_*` > provider), then `git` through `Bun.$` with
   `.cwd(root)`, then `package.json`; never throws. The record type and the `unspecified` sentinel come
   from `@venizia/ignis-helpers/core` (`TBuildInfoRecord`, `BuildInfoRegistry.UNSPECIFIED`).
 - `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).
@@ -86,6 +85,23 @@ The first line of a generated index is `ArtifactIndexEmitter.renderHeader(...)`,
 `--ignore` only when non-empty, `--export` only when the name is not `GeneratedArtifacts`, one
 `--source-module` per entry. `check`'s stale message prints the same `renderCommand`. `ignis-artifacts check` compares only the body below that line (`checkArtifactIndex`), so a flag
 change alone never reads as drift; `generate` still rewrites the file when the header differs.
+
+## Build stamp
+
+`@venizia/ignis-boot/build-info` holds the stamp (commit, branch, builtAt), baked at compile time and
+resolved from git at dev start. It imports no TypeScript, so an application can import it at run time.
+
+- `BuildInfoStamp.define({ root? })` is for the compile script: it resolves the stamp and returns
+  `{ IGNIS_BUILD_INFO: <JSON> }` for `BunCompiler.compile({ define })` or `Bun.build({ define })`.
+- `BuildInfoStamp.register()` is for the entrypoint: it reads the baked `IGNIS_BUILD_INFO` when the
+  compile defined it, else calls `BuildInfoResolver`, then `BuildInfoRegistry.set`. It sets `commit`,
+  `branch` and `builtAt` only; `service` and `version` stay with `getAppInfo()`, because the health
+  reporter prefers a registered value over it.
+- `BuildInfoStamp.GLOBAL_NAME` and the `declare const` in `stamp.ts` spell the same identifier;
+  `stamp.test.ts` bundles a real entrypoint with `define()` and runs it, so a mismatch fails there.
+- The resolver is imported statically on purpose: a dynamic import of a module of the same package
+  makes Bun wrap its reach in lazy initializers (see the secrets factory).
+- No file is generated and none is gitignored, so a clean checkout typechecks, tests and boots.
 
 ## CLI
 

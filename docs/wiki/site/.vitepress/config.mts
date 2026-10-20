@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The Build Stamp Is Baked at Compile',
+                  link: '/changelogs/2026-10-20-build-stamp-at-compile',
+                },
+                {
                   text: 'isNullableDiscriminator for the Principal Enricher',
                   link: '/changelogs/2026-10-20-principal-nullable-discriminator',
                 },

@@ -361,7 +361,6 @@
       "version": "0.3.2",
       "bin": {
         "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
-        "ignis-build-info": "./dist/cjs/clis/build-info.js",
       },
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
@@ -539,7 +538,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@eslint/js": "^10.0.1",
         "eslint-config-prettier": "^10.1.8",
@@ -681,7 +680,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "dependencies": {
         "reflect-metadata": "catalog:",
       },

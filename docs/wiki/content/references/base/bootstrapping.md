@@ -1,6 +1,6 @@
 ---
 title: Artifact Registration Reference
-description: The stereotype decorators, @provide, IArtifactIndex, registerArtifacts, the registerArtifacts boot step, the ignis-artifacts generator and the ignis-build-info stamp
+description: The stereotype decorators, @provide, IArtifactIndex, registerArtifacts, the registerArtifacts boot step, the ignis-artifacts generator and the build stamp
 difficulty: advanced
 ---
 
@@ -16,6 +16,8 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 - [packages/kernel/src/base/applications/boot-sequence.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/applications/boot-sequence.ts)
 - [packages/boot/src/clis/artifacts.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/clis/artifacts.ts)
 - [packages/boot/src/generator/index.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/generator/index.ts)
+- [packages/boot/src/build-info/stamp.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/build-info/stamp.ts)
+- [packages/boot/src/build-info/resolver.ts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot/src/build-info/resolver.ts)
 
 ## Quick Reference
 
@@ -26,7 +28,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 | `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts` | `@venizia/ignis-kernel` | The index shape and where the application receives it |
 | `registerArtifacts()`, `registerConfiguredArtifacts()` | `RestApplication` | Registration from an index; the boot step |
 | `ignis-artifacts`, `generateArtifactIndex()`, `checkArtifactIndex()` | `@venizia/ignis-boot` | The generator, as a binary and as functions |
-| `ignis-build-info`, `generateBuildInfo()`, `BuildInfoResolver`, `BuildInfoEmitter` | `@venizia/ignis-boot` | The build stamp, as a binary and as functions |
+| `BuildInfoStamp`, `BuildInfoResolver` | `@venizia/ignis-boot/build-info` | The build stamp: baked at compile, resolved from git at start |
 | `BuildInfoRegistry`, `IBuildInfo`, `TBuildInfoRecord` | `@venizia/ignis-helpers/core` | Where a host registers its stamp at the entrypoint |
 
 ## `ArtifactTypes`
@@ -505,58 +507,67 @@ import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
 const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
-## `ignis-build-info` (CLI)
+## Build stamp
 
-The second binary `@venizia/ignis-boot` ships. It resolves a build stamp - `service`, `version`,
-`commit`, `branch`, `builtAt` - at build time and writes it as a static file the bundle bakes in,
-so a `bun build --compile` binary or a Distroless image (no `node_modules`, no `.git`, no `git`)
-reports exactly what a dev machine does. Runs under bun (`git` goes through Bun Shell).
+`@venizia/ignis-boot/build-info` holds the stamp - `service`, `version`, `commit`, `branch`, `builtAt`.
+A compile bakes it into the binary; a run from source resolves it from git when the application
+starts. The module imports no TypeScript, so a running application can import it. The how-to is
+[Stamping a build](/guides/core-concepts/application/build-info).
 
+```typescript
+class BuildInfoStamp {
+  /** The identifier `define()` replaces in the bundle and `register()` reads: 'IGNIS_BUILD_INFO'. */
+  static readonly GLOBAL_NAME: 'IGNIS_BUILD_INFO';
+  /** For a compile script: resolves the stamp now, returns { IGNIS_BUILD_INFO: <JSON> }. */
+  static define(opts?: { root?: string }): Promise<Record<string, string>>;
+  /** For the entrypoint: the baked stamp if the compile defined it, else the resolver; then BuildInfoRegistry.set. */
+  static register(): Promise<void>;
+}
 ```
-ignis-build-info generate [--out src/_build_info.ts] [--root .] [--format ts|json] [--export BUILD_INFO]
+
+`register()` sets `commit`, `branch` and `builtAt` and leaves `service` and `version` to the
+application's `getAppInfo()`. The health reporter prefers a registered value, so setting them here
+would hide the application's own.
+
+```typescript
+// compile script
+import { BunCompiler } from '@venizia/dev-configs/compilers';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BunCompiler.compile({ entrypoint: './src/index.ts', define: await BuildInfoStamp.define() });
 ```
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--out` | `src/_build_info.ts` | Output path. Always rewritten - `builtAt` changes every run, so there is no unchanged-content short-circuit |
-| `--root` | `.` | Where `package.json` is read and where `git` is asked; never the process cwd |
-| `--format` | `ts` | `ts` writes `export const BUILD_INFO = { ... } as const`; `json` writes the same record for a Vite app or a Tauri shell |
-| `--export` | `BUILD_INFO` | Name of the exported constant in `ts` format |
+```typescript
+// entrypoint
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BuildInfoStamp.register();
+```
+
+```typescript
+class BuildInfoResolver { static getInstance(): BuildInfoResolver; resolve(opts?: { root?: string }): Promise<TBuildInfoRecord>; }
+class BuildInfoEnvironmentKeys { static VERSION; static COMMIT; static BRANCH; static BUILT_AT; }
+```
+
+`IBuildInfo`, `TBuildInfoRecord` and `BuildInfoRegistry` come from `@venizia/ignis-helpers/core`.
+`BunCompiler.compile` takes `define?: Record<string, string>` and passes it to `Bun.build`.
+
+Each field reads the environment first, then its fallback:
 
 | Field | Environment, first non-blank wins | Then | Else |
 |---|---|---|---|
 | `version` | `APP_ENV_BUILD_VERSION`, `APP_BUILD_VERSION`, `CI_COMMIT_TAG`, `GITHUB_REF_NAME` | `package.json#version` | `unspecified` |
 | `commit` | `APP_ENV_BUILD_COMMIT_TAG`, `APP_BUILD_COMMIT`, `CI_COMMIT_SHA`, `GITHUB_SHA`, `COMMIT_SHA` (cut to 12) | `git rev-parse --short=12 HEAD` | `unspecified` |
 | `branch` | `APP_BUILD_BRANCH`, `CI_COMMIT_REF_NAME`, `GITHUB_REF_NAME`, `BRANCH_NAME` | `git rev-parse --abbrev-ref HEAD` | `unspecified` |
-| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE` | the moment the generator ran | - |
+| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE` | the moment the stamp was resolved | - |
 | `service` | - | `package.json#name` | `unspecified` |
 
-`git` is asked from `--root` and its exit code is honoured: a repository with no commit prints the
-literal `HEAD` on stdout while exiting 128, and that never becomes a branch name. A `git` that is
-absent, or a manifest that is unreadable or wrong-typed, degrades one field and is logged at debug
-- the build never dies over a stamp. Exit `0` on success, `1` on usage or an invalid `--format`.
+`git` is asked from `root` (default the current directory) and its exit code is honoured: a
+repository with no commit prints the literal `HEAD` on stdout while exiting 128, and that never
+becomes a branch name. A `git` that is absent, or a manifest that is unreadable or wrong-typed,
+degrades one field and is logged at debug - a start never dies over a stamp.
 
-The stamp is registered once at the entrypoint and reported by
-[`GET /health/stats`](/extensions/components/health-check):
-
-```typescript
-import { BUILD_INFO } from './_build_info';
-import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
-
-BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
-```
-
-Programmatic, from `@venizia/ignis-boot/build-info`:
-
-```typescript
-const generateBuildInfo: (opts: IBuildInfoOptions) => Promise<IBuildInfoResult>;
-class BuildInfoResolver { static getInstance(): BuildInfoResolver; resolve(opts?: { root?: string }): Promise<TBuildInfoRecord>; }
-class BuildInfoEmitter { static render(opts: { buildInfo: TBuildInfoRecord; format: TBuildInfoFormat; exportName: string }): string; }
-class BuildInfoFormats { static TS: 'ts'; static JSON: 'json'; static SCHEME_SET; static isValid(value: string): boolean; }
-class BuildInfoEnvironmentKeys { static VERSION; static COMMIT; static BRANCH; static BUILT_AT; }
-```
-
-`IBuildInfo`, `TBuildInfoRecord` and `BuildInfoRegistry` come from `@venizia/ignis-helpers/core`.
+The registered stamp is reported by [`GET /health/stats`](/extensions/components/health-check).
 
 ## Removed
 
@@ -572,7 +583,7 @@ The deprecated runtime boot API is fully removed - see the
 ## See Also
 
 - [Registering artifacts](/guides/core-concepts/application/bootstrapping) - the how-to
-- [Stamping a build](/guides/core-concepts/application/build-info) - the `ignis-build-info` how-to, with the CI and Dockerfile wiring
+- [Stamping a build](/guides/core-concepts/application/build-info) - the build stamp how-to, with the CI wiring
 - [Application reference](/references/base/application) - registration methods and the boot sequence
 - [Changelog 2026-09-02](/changelogs/2026-09-02-decorator-artifact-registration)
 - [Changelog 2026-09-03](/changelogs/2026-09-03-deprecated-boot-api-removed) - the deprecated boot API removed

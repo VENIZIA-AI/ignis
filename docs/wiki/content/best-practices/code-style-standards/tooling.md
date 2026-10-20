@@ -14,8 +14,7 @@ export default defineConfig(oxlintConfigs);
 > **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
 > through a package script; never reach for `npx` or `bun x`.
 >
-> `bunx` is fine for running a one-off CLI that is not a project dependency. The `ignis-build-info`
-> how-to runs `bunx ignis-build-info`.
+> `bunx` is fine for running a one-off CLI that is not a project dependency.
 
 ## Installation
 
