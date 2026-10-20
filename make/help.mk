@@ -46,6 +46,7 @@ help:
 	@$(HELP_ROW) "lint-wiki" "Lint docs/wiki scripts and check its format."
 	@$(HELP_ROW) "test-scripts" "Run the repository gate scripts' own regression tests."
 	@$(HELP_ROW) "purity-test" "Run the purity probe's own regression tests."
+	@$(HELP_ROW) "build-checks" "Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build."
 	@echo ""
 	@echo "Knowledge bundle (.agents/knowledge) - okf, surface and atlas come from VULCAN:"
 	@$(HELP_ROW) "okf-check" "Gate: OKF v0.2 conformance."

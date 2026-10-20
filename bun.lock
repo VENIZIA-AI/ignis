@@ -358,7 +358,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "bin": {
         "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
         "ignis-build-info": "./dist/cjs/clis/build-info.js",
@@ -383,7 +383,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -429,7 +429,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -515,7 +515,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -576,7 +576,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "zod": "catalog:",
@@ -594,7 +594,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -681,7 +681,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "reflect-metadata": "catalog:",
       },
@@ -698,7 +698,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",

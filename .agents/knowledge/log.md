@@ -10,9 +10,17 @@ counted as concepts.
 
 Updated [connectors](/packages/connectors.md): with `isNullableDiscriminator: false` the `{discriminator}Type` column is `NOT NULL` with no default (an explicit `defaultPolymorphic` keeps its default), so an insert without the type fails; `null`/`undefined` still mean nullable. `enrichPrincipal` is now generic over the same four type parameters as `generatePrincipalColumnDefs`, and the nullability conditionals no longer distribute over a widened `boolean`.
 
+## 2026-10-20 - dev-configs: the oxlint subpath exports every oxlint-safe module
+
+Updated [dev-configs](/packages/dev-configs.md) and the [make targets](/reference/makefile-targets.md) reference.
+
+- `@venizia/dev-configs/linters/oxlint` also exports `LintIgnore` and the rule classes and types, so a config that customises rules keeps the fast path. Every oxlint config in the repo imports it.
+- `make sourcemaps-check` is now `make build-checks` and also guards the subpath: it loads no ESLint module and exports the same values as the `/linters` barrel.
+- The JSX glob lives in `linters/jsx-files.ts`, imported by both the oxlint and the ESLint side.
+
 ## 2026-10-20 - connectors: isNullableDiscriminator on the principal enricher
 
-Updated [connectors](/packages/connectors.md): `generatePrincipalColumnDefs` (Postgres and SQLite) takes `isNullableDiscriminator`, default `true` (the `{discriminator}Type` column stays nullable); `false` adds `NOT NULL`. `enrichPrincipal` is not generic and takes the default only.
+Code change only, no concept updated: `generatePrincipalColumnDefs` (Postgres and SQLite) takes `isNullableDiscriminator`, default `true` (the `{discriminator}Type` column stays nullable); `false` adds `NOT NULL`. `enrichPrincipal` is not generic and takes the default only. The [connectors](/packages/connectors.md) concept does not describe it yet.
 
 ## 2026-10-20 - dev-configs: linters/oxlint subpath
 

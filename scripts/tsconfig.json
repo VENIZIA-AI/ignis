@@ -18,6 +18,7 @@
   "include": [
     "./*.ts",
     "./purity/**/*.ts",
+    "./build-checks/**/*.ts",
     "./__tests__/**/*.ts"
   ],
   "exclude": [
