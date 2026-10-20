@@ -36,7 +36,11 @@ export type TPrincipalEnricherOptions<
   defaultPolymorphic?: string;
   polymorphicIdType: PolymorphicIdType;
   isNullableId?: Nullable;
-  /** `true` (default) leaves the `{discriminator}Type` column nullable; `false` adds `NOT NULL`. */
+  /**
+   * `true` (default) leaves the `{discriminator}Type` column nullable with a `''` default. `false`
+   * makes it `NOT NULL` with no default, so an insert must give the type; a `defaultPolymorphic`
+   * keeps that default.
+   */
   isNullableDiscriminator?: NullableDiscriminator;
 };
 

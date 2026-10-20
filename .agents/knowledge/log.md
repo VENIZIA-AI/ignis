@@ -6,6 +6,10 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-20 - connectors: isNullableDiscriminator makes the type column required
+
+Updated [connectors](/packages/connectors.md): with `isNullableDiscriminator: false` the `{discriminator}Type` column is `NOT NULL` with no default (an explicit `defaultPolymorphic` keeps its default), so an insert without the type fails; `null`/`undefined` still mean nullable. `enrichPrincipal` is now generic over the same four type parameters as `generatePrincipalColumnDefs`, and the nullability conditionals no longer distribute over a widened `boolean`.
+
 ## 2026-10-20 - connectors: isNullableDiscriminator on the principal enricher
 
 Updated [connectors](/packages/connectors.md): `generatePrincipalColumnDefs` (Postgres and SQLite) takes `isNullableDiscriminator`, default `true` (the `{discriminator}Type` column stays nullable); `false` adds `NOT NULL`. `enrichPrincipal` is not generic and takes the default only.

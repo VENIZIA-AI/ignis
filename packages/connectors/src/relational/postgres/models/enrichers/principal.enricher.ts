@@ -4,6 +4,9 @@ import { integer, text } from 'drizzle-orm/pg-core';
 import type { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
 import type { HasDefault, NotNull } from 'drizzle-orm';
 
+// A widened `boolean` flag takes the NOT NULL branch: the insert type then requires the value, which
+// is safe whichever way the flag resolves at runtime. With `isNullableDiscriminator: false` the type
+// column is required in the insert type even when a `defaultPolymorphic` gives it a runtime default.
 type TPrincipalColumnDef<
   Discriminator extends string,
   IdType extends 'number' | 'string',
@@ -11,18 +14,18 @@ type TPrincipalColumnDef<
   NullableDiscriminator extends boolean = true,
 > = (IdType extends 'number'
   ? {
-      [K in `${Discriminator}Id`]: Nullable extends true
+      [K in `${Discriminator}Id`]: [Nullable] extends [true]
         ? PgIntegerBuilderInitial<string>
         : NotNull<PgIntegerBuilderInitial<string>>;
     }
   : {
-      [K in `${Discriminator}Id`]: Nullable extends true
+      [K in `${Discriminator}Id`]: [Nullable] extends [true]
         ? PgTextBuilderInitial<string, [string, ...string[]]>
         : NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
     }) & {
-  [K in `${Discriminator}Type`]: NullableDiscriminator extends true
+  [K in `${Discriminator}Type`]: [NullableDiscriminator] extends [true]
     ? HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>
-    : NotNull<HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>>;
+    : NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
 };
 
 export const generatePrincipalColumnDefs = <
@@ -35,53 +38,56 @@ export const generatePrincipalColumnDefs = <
 ): TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator> => {
   const {
     discriminator = 'principal',
-    defaultPolymorphic = '',
+    defaultPolymorphic,
     polymorphicIdType,
     isNullableId = false,
     isNullableDiscriminator = true,
   } = opts;
 
-  const polymorphic = {
-    typeField: `${discriminator}Type`,
-    typeColumnName: `${discriminator}_type`,
-    idField: `${discriminator}Id`,
-    idType: polymorphicIdType,
-    idColumnName: `${discriminator}_id`,
-    isNullableId,
-    isNullableDiscriminator,
-  };
+  const typeField = `${discriminator}Type`;
+  const idField = `${discriminator}Id`;
+  const idColumnName = `${discriminator}_id`;
 
-  const typeColumn = text(polymorphic.typeColumnName).default(defaultPolymorphic);
-  const typeDef = polymorphic.isNullableDiscriminator ? typeColumn : typeColumn.notNull();
+  // `false` is the only value that makes the type column required: it drops the '' default unless
+  // the caller named one, so an insert without the type fails instead of storing ''.
+  const typeColumn = text(`${discriminator}_type`);
+  const typeDef =
+    isNullableDiscriminator === false
+      ? defaultPolymorphic === undefined
+        ? typeColumn.notNull()
+        : typeColumn.default(defaultPolymorphic).notNull()
+      : typeColumn.default(defaultPolymorphic ?? '');
 
-  switch (polymorphic.idType) {
+  switch (polymorphicIdType) {
     case 'number': {
       return {
-        [polymorphic.typeField]: typeDef,
-        [polymorphic.idField]: polymorphic.isNullableId
-          ? integer(polymorphic.idColumnName)
-          : integer(polymorphic.idColumnName).notNull(),
+        [typeField]: typeDef,
+        [idField]: isNullableId ? integer(idColumnName) : integer(idColumnName).notNull(),
       } as TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>;
     }
     case 'string': {
       return {
-        [polymorphic.typeField]: typeDef,
-        [polymorphic.idField]: polymorphic.isNullableId
-          ? text(polymorphic.idColumnName)
-          : text(polymorphic.idColumnName).notNull(),
+        [typeField]: typeDef,
+        [idField]: isNullableId ? text(idColumnName) : text(idColumnName).notNull(),
       } as TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator>;
     }
     default: {
       throw getError({
-        message: `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphic.idType} | valid: ['number', 'string']`,
+        message: `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphicIdType} | valid: ['number', 'string']`,
       });
     }
   }
 };
 
-export const enrichPrincipal = <ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(
+export const enrichPrincipal = <
+  ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
+  Discriminator extends string = string,
+  IdType extends 'number' | 'string' = 'number' | 'string',
+  Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
+>(
   baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions,
+  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
 ) => {
   const defs = generatePrincipalColumnDefs(opts);
   return { ...baseSchema, ...defs };

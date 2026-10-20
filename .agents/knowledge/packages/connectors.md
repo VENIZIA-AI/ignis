@@ -327,6 +327,14 @@ the dialect off the table it is handed. For the depth, read
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
+`generatePrincipalColumnDefs` and `enrichPrincipal` (Postgres and SQLite) add a `{discriminator}Id` and a
+`{discriminator}Type` column. `isNullableId` (default `false`) controls the id column only.
+`isNullableDiscriminator` (default `true`) leaves the type column nullable with a `''` default; `false`
+makes it `NOT NULL` with no default, so an insert without the type is rejected and `$inferInsert`
+requires it. An explicit `defaultPolymorphic` keeps its default alongside `NOT NULL` (the insert type
+still requires the value). Only `false` makes the column required: `null` or `undefined` from an untyped
+caller means nullable. A widened `boolean` flag takes the `NOT NULL` type branch.
+
 ## Recursive tree SQL
 
 `relational/core/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which
