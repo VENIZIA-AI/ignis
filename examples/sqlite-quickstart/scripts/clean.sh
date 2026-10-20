@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env sh
+# Remove everything the build and the checks generate.
+# `app_data/` is runtime state, not a build artifact: it survives a clean.
+set -eu
+cd "$(dirname "$0")/.."
 
-# Remove build artifacts
-rm -rf dist/
-rm -rf node_modules/.cache/
-
-# `app_data/` is runtime state, not a build artifact: logs and the embedded database survive a clean.
-echo "Cleaned build artifacts"
+rm -rf dist node_modules/.cache *.tsbuildinfo .eslintcache

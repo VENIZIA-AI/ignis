@@ -1,3 +1,4 @@
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { WinstonLogger } from '@venizia/ignis-helpers/winston';
 import { Application, beConfigs } from './application';
@@ -9,6 +10,7 @@ const logger = LoggerFactory.getLogger(['main']);
 
 // ------------------------------------------------------------------------------------------------
 const main = async () => {
+  await BuildInfoStamp.register();
   const application = new Application({
     scope: 'Application',
     config: beConfigs,

@@ -31,7 +31,7 @@ pushes into the room every authenticated client joins.
 ```bash
 bun install
 docker compose up -d   # Redis
-bun run start            # http://localhost:3000/api, explorer at /api/doc/explorer
+bun run server:dev            # http://localhost:3000/api, explorer at /api/doc/explorer
 bun test                  # smoke test: connects real Socket.IO clients; skipped, not failed, if Redis is down
 docker compose down -v
 ```

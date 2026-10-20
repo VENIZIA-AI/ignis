@@ -1,4 +1,5 @@
 import AutoArtifacts from '@venizia/ignis-boot/auto';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { Application } from './application';
 
 const application = new Application({
@@ -11,9 +12,13 @@ const application = new Application({
   },
 });
 
-application.init();
+const main = async () => {
+  await BuildInfoStamp.register();
+  application.init();
+  await application.start();
+};
 
-application.start().catch((error: unknown) => {
+main().catch((error: unknown) => {
   console.error('[main] Application start failed | Error:', error);
   process.exit(1);
 });

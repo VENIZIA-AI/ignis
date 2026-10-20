@@ -6,7 +6,7 @@ runs anywhere - the page reaches them over `postMessage`.
 
 ```bash
 bun install
-bun run dev
+bun run server:dev
 # open http://localhost:5173, create a note, then reload the page
 ```
 
@@ -82,7 +82,7 @@ the controllers through `WorkerBffTransport` - the same envelope the page sends.
 
 | Variable | Set by | Meaning |
 |---|---|---|
-| `APP_ENV_PGLITE_DATA_DIR` | `bun run dev` and `bun run build`, to `opfs-ahp://ignis-browser-bff` | Unset: an in-memory database that dies with the Worker |
+| `APP_ENV_PGLITE_DATA_DIR` | `bun run server:dev` and `bun run compile`, to `opfs-ahp://ignis-browser-bff` | Unset: an in-memory database that dies with the Worker |
 
 Vite exposes the variable to the Worker as `import.meta.env.APP_ENV_PGLITE_DATA_DIR`; `bun test`
 leaves it unset.
@@ -107,8 +107,8 @@ tab takes over, with no reload.
 ## Production build
 
 ```bash
-bun run build
-bun run preview
+bun run compile
+bun x vite preview
 ```
 
 The preview runs on a different port, so it is a different origin: it does not see the database

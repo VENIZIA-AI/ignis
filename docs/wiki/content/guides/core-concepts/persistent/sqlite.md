@@ -292,7 +292,7 @@ A SQLite application does not run as a `bun build --compile` binary out of the b
 ```bash
 cd examples/sqlite-quickstart
 bun install
-bun run start        # http://localhost:3000/api/notes
+bun run server:dev        # http://localhost:3000/api/notes
 ```
 
 ## See Also

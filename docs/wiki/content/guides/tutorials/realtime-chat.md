@@ -1509,10 +1509,10 @@ Run multiple instances behind a load balancer - Redis keeps them in sync:
 
 ```bash
 # Instance 1
-APP_ENV_SERVER_PORT=3001 bun run start
+APP_ENV_SERVER_PORT=3001 bun run server:dev
 
 # Instance 2
-APP_ENV_SERVER_PORT=3002 bun run start
+APP_ENV_SERVER_PORT=3002 bun run server:dev
 
 # Both instances share Socket.IO state via Redis
 # Clients on Instance 1 can receive messages from Instance 2

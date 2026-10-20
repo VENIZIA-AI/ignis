@@ -27,13 +27,13 @@
   },
   "peers": {},
   "scripts": {
-    "dev": "NODE_ENV=development bun run src/index.ts",
-    "start": "NODE_ENV=production bun run dist/index.js",
-    "build": "tsc -p tsconfig.json",
+    "server:dev": "NODE_ENV=development bun run src/index.ts",
+    "compile": "sh scripts/compile.sh",
     "typecheck": "bun check",
     "lint": "sh scripts/lint.sh",
     "lint:fix": "sh scripts/lint.sh --fix",
-    "test": "bun test"
+    "test": "bun test",
+    "clean": "sh scripts/clean.sh"
   },
   "checks": ["typecheck", "lint", "test"],
   "files": "./files",

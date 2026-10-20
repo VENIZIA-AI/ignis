@@ -41,7 +41,7 @@ end-to-end evidence that the lift worked.
 
 ```bash
 bun install
-bun run start        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
+bun run server:dev        # http://localhost:3000/api/notes, explorer at /api/doc/explorer
 bun test              # smoke test: same Application, free port, APP_ENV_SQLITE_URL=:memory:
 ```
 

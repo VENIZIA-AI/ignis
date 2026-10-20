@@ -2,8 +2,8 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": [
         "./src/*"
@@ -14,7 +14,8 @@
     "useDefineForClassFields": false
   },
   "include": [
-    "src"
+    "src",
+    "scripts"
   ],
   "exclude": [
     "node_modules",

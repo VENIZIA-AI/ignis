@@ -1,6 +1,8 @@
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { application } from '#src/application';
 
 const main = async () => {
+  await BuildInfoStamp.register();
   application.init();
   await application.start();
 };

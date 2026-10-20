@@ -12,6 +12,15 @@ Updated nothing else - a fix in the Vite plugin.
 
 - `vite` dev serves a node_modules file with a `?v=<hash>` query; the plugin now strips it before matching the auto module and the pinned classes, so `@venizia/ignis-boot/auto` is replaced in dev too and never reaches a browser.
 
+## 2026-10-20 - apps follow one script standard
+
+Updated [build system](/process/build-system.md) (step 13) and the example concepts.
+
+- The preset and every example use `server:dev`, `compile`, `typecheck`, `lint`, `lint:fix`, `test` and `clean`; `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` and `compile:linux` are gone. The logic lives in `scripts/*.sh`.
+- A backend compiles through `scripts/compile.ts` (`BunCompiler` with the build stamp) to `dist/bin`; its entrypoint registers the stamp.
+- `tsconfig.json` of an app includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`.
+- `make preset-smoke` also compiles the generated app, runs the binary and checks the stamp and `clean`.
+
 ## 2026-10-20 - the build stamp is baked at compile time and resolved from git at dev start
 
 Updated [boot](/packages/boot.md), [dev-configs](/packages/dev-configs.md) and the build-system example for `LINT_IGNORE`.

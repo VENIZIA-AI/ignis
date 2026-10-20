@@ -392,7 +392,7 @@ A full working example lives at `examples/socket-io-test/`.
 cd examples/socket-io-test
 bun install
 docker compose up -d   # Redis
-bun run start
+bun run server:dev
 ```
 
 A Socket.IO client sends its token as an `Authorization: Bearer <token>` header at connect time,

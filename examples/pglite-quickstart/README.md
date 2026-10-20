@@ -5,7 +5,7 @@ WASM, running inside your process. No database server, no connection string.
 
 ```bash
 bun install
-bun run start
+bun run server:dev
 ```
 
 The app listens on `http://localhost:3000` (set `PORT` to change it). Browse the API at
@@ -78,13 +78,13 @@ each endpoint over HTTP.
 
 ## Where the data goes
 
-`bun run start` keeps the database in `app_data/database/pgdata` and logs in `app_data/logs`.
+`bun run server:dev` keeps the database in `app_data/database/pgdata` and logs in `app_data/logs`.
 `app_data/` is gitignored.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `APP_ENV_PGLITE_DATA_DIR` | set to `./app_data/database/pgdata` by `bun run start` | Unset: an in-memory database that dies with the process |
-| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run start` | Unset: console logging only |
+| `APP_ENV_PGLITE_DATA_DIR` | set to `./app_data/database/pgdata` by `bun run server:dev` | Unset: an in-memory database that dies with the process |
+| `APP_ENV_LOGGER_FOLDER_PATH` | set to `./app_data/logs` by `bun run server:dev` | Unset: console logging only |
 | `PORT` | `3000` | The port the server listens on |
 
 ## Change the schema
@@ -93,7 +93,7 @@ Edit `src/models/note.model.ts`, then generate a migration:
 
 ```bash
 bun run migrate:generate   # writes migration/NNNN_*.sql
-bun run start              # applies what is pending, then serves
+bun run server:dev              # applies what is pending, then serves
 ```
 
 The app applies migrations itself at boot. PGlite locks its data directory, so `drizzle-kit

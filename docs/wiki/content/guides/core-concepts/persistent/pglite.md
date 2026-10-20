@@ -210,7 +210,7 @@ export const applyMigrations = async (opts: { dataSource: EmbeddedDataSource }):
 ```bash
 cd examples/pglite-quickstart
 bun install
-bun run start        # http://localhost:3000/api/notes
+bun run server:dev        # http://localhost:3000/api/notes
 ```
 
 ## See Also
