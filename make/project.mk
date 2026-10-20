@@ -33,7 +33,7 @@ EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter e
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 
 # Paths this package must not lint or format, relative to the package - generated files, bundles:
-#   LINT_IGNORE := src/_build_info.ts dev-dist/** public/**
+#   LINT_IGNORE := src/generated.ts dev-dist/** public/**
 # Set it in the package Makefile before the include. `ignorePatterns` inside .configs/ cannot do this:
 # they resolve against .configs/ and match nothing.
 LINT_IGNORE ?=

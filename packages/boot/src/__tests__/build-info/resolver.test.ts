@@ -1,10 +1,5 @@
-import {
-  BuildInfoEmitter,
-  BuildInfoEnvironmentKeys,
-  BuildInfoResolver,
-  generateBuildInfo,
-} from '@/build-info';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { BuildInfoEnvironmentKeys, BuildInfoResolver } from '@/build-info';
+import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -122,7 +117,7 @@ describe('BuildInfoResolver.resolve', () => {
 
     expect(info.service).toBe('unspecified');
     expect(info.version).toBe('unspecified');
-    // `builtAt` is always knowable - it is the moment the generator ran.
+    // `builtAt` is always knowable - it is the moment the resolver ran.
     expect(info.builtAt).not.toBe('unspecified');
   });
 
@@ -178,61 +173,5 @@ describe('BuildInfoResolver.resolve', () => {
     expect((await BuildInfoResolver.getInstance().resolve({ root })).builtAt).toBe(
       '2026-01-01T00:00:00.000Z',
     );
-  });
-});
-
-describe('BuildInfoEmitter.render', () => {
-  const buildInfo = {
-    service: '@nx/sale',
-    version: '1.4.2',
-    commit: 'abc123',
-    branch: 'develop',
-    builtAt: '2026-01-01T00:00:00.000Z',
-  };
-
-  test('ts output is a static const a bundler can bake into a compiled binary', async () => {
-    const content = BuildInfoEmitter.render({ buildInfo, format: 'ts', exportName: 'BUILD_INFO' });
-
-    expect(content).toContain('export const BUILD_INFO = {');
-    expect(content).toContain('service: "@nx/sale",');
-    expect(content).toContain('} as const;');
-  });
-
-  test('json output parses back to the same record, for a frontend or a Tauri shell', async () => {
-    const content = BuildInfoEmitter.render({
-      buildInfo,
-      format: 'json',
-      exportName: 'BUILD_INFO',
-    });
-
-    expect(JSON.parse(content)).toEqual(buildInfo);
-  });
-});
-
-describe('generateBuildInfo', () => {
-  test('it writes the file and creates its directory', async () => {
-    const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
-    const out = join(root, 'nested', 'deeper', '_build_info.ts');
-
-    const result = await generateBuildInfo({ out, root });
-
-    expect(readFileSync(out, 'utf8')).toBe(result.content);
-    expect(result.buildInfo.service).toBe('@nx/sale');
-  });
-
-  /** `builtAt` moves every run, so an unchanged-content short-circuit would hide a stale stamp. */
-  test('a second run rewrites the file rather than skipping it', async () => {
-    const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
-    const out = join(root, '_build_info.ts');
-
-    process.env.APP_BUILD_DATE = '2026-01-01T00:00:00.000Z';
-    const first = await generateBuildInfo({ out, root });
-
-    process.env.APP_BUILD_DATE = '2026-02-02T00:00:00.000Z';
-    const second = await generateBuildInfo({ out, root });
-
-    expect(first.buildInfo.builtAt).toBe('2026-01-01T00:00:00.000Z');
-    expect(second.buildInfo.builtAt).toBe('2026-02-02T00:00:00.000Z');
-    expect(readFileSync(out, 'utf8')).toBe(second.content);
   });
 });

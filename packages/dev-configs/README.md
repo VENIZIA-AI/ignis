@@ -385,12 +385,23 @@ instead: `LintIgnore.oxlint({ config, patterns: LINT_IGNORE })`.
 ### BunCompiler
 
 `BunCompiler.compile()` builds one Bun executable: minified, with a linked source map. The
-compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`.
+compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`. `define` passes compile-time
+constants to `Bun.build`; a compile script uses it to bake the build stamp.
 
 ```typescript
 import { BunCompiler } from '@venizia/dev-configs';
 
 await BunCompiler.compile({ entrypoint: './src/index.ts', outfile: './dist/app' });
+```
+
+Bake a value into the binary with `define`. Each value is a JSON-encoded expression:
+
+```typescript
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/app',
+  define: { APP_FLAVOUR: JSON.stringify('blue') },
+});
 ```
 
 ## Where it sits

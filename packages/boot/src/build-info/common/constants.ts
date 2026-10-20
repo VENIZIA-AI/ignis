@@ -1,18 +1,3 @@
-import type { TConstValue } from '@venizia/ignis-helpers';
-
-export class BuildInfoFormats {
-  static readonly TS = 'ts';
-  static readonly JSON = 'json';
-
-  static readonly SCHEME_SET = new Set<string>([this.TS, this.JSON]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
-}
-
-export type TBuildInfoFormat = TConstValue<typeof BuildInfoFormats>;
-
 /**
  * Each field is spelled differently by every CI provider, and `APP_ENV_*` is what this
  * organisation's pipelines export - so it is read before the generic `APP_BUILD_*` pair and before

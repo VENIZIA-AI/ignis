@@ -1082,22 +1082,18 @@ generated:
 
 ## boot
 
-### `@venizia/ignis-boot` (25)
+### `@venizia/ignis-boot` (20)
 
 - `ArtifactIndexEmitter` class
 - `ArtifactIndexFields` class
 - `ArtifactScanner` class
 - `ArtifactStereotypes` class
 - `ArtifactTypes` class
-- `BuildInfoEmitter` class
 - `BuildInfoEnvironmentKeys` class
-- `BuildInfoFormats` class
 - `BuildInfoResolver` class
+- `BuildInfoStamp` class
 - `checkArtifactIndex` const
 - `generateArtifactIndex` const
-- `generateBuildInfo` const
-- `IBuildInfoOptions` interface
-- `IBuildInfoResult` interface
 - `IGenerateOptions` interface
 - `IScannedArtifact` interface
 - `IScanOptions` interface
@@ -1106,7 +1102,6 @@ generated:
 - `ScanSkipReasons` class
 - `TArtifactIndexField` type
 - `TArtifactType` type
-- `TBuildInfoFormat` type
 - `TGeneratedArtifactIndex` type
 - `TScanSkipReason` type
 
@@ -1148,16 +1143,11 @@ generated:
 - `IgnisArtifactsVitePlugin` class
 - `IIgnisVitePlugin` interface
 
-### `@venizia/ignis-boot/build-info` (8)
+### `@venizia/ignis-boot/build-info` (3)
 
-- `BuildInfoEmitter` class
 - `BuildInfoEnvironmentKeys` class
-- `BuildInfoFormats` class
 - `BuildInfoResolver` class
-- `generateBuildInfo` const
-- `IBuildInfoOptions` interface
-- `IBuildInfoResult` interface
-- `TBuildInfoFormat` type
+- `BuildInfoStamp` class
 
 ## kernel
 

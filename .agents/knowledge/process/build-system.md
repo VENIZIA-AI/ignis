@@ -63,7 +63,7 @@ tags: [process, build]
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
    `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
-   (generated files, bundles) sets `LINT_IGNORE := src/_build_info.ts dev-dist/**` before the include:
+   (generated files, bundles) sets `LINT_IGNORE := src/generated.ts dev-dist/**` before the include:
    `--ignore-pattern` for oxlint and ESLint, `"!<glob>"` for oxfmt, all resolved from the package root
    (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A

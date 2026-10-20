@@ -114,7 +114,6 @@
     "typescript": "^5.0.0 || ^6.0.0"
   },
   "bin": {
-    "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
-    "ignis-build-info": "./dist/cjs/clis/build-info.js"
+    "ignis-artifacts": "./dist/cjs/clis/artifacts.js"
   }
 }
