@@ -9,6 +9,7 @@
     "jsxImportSource": "hono/jsx",
     "lib": ["ES2025", "WebWorker"],
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "useDefineForClassFields": false
   },
   "include": ["src"],

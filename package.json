@@ -72,7 +72,7 @@
       "zod": "^4.5.4",
       "@connectrpc/connect": "^2.1.2",
       "@socket.io/bun-engine": "^0.1.2",
-      "@types/bun": "^1.4.1",
+      "@types/bun": "^1.4.3",
       "@types/pg": "^8.23.1",
       "drizzle-kit": "^0.31.10",
       "drizzle-orm": "^0.45.2",
@@ -81,7 +81,7 @@
       "socket.io-client": "^4.8.3",
       "oxlint": "1.88.0",
       "oxlint-tsgolint": "7.0.2004",
-      "oxfmt": "0.73.0",
+      "oxfmt": "0.74.0",
       "typescript-eslint": "^8.71.2"
     }
   },
