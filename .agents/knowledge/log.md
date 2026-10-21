@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - the repository runs VULCAN 0.3.9; .mcp.json is per machine
+
+Updated the [index](/index.md), [monorepo layout](/overview/monorepo-layout.md) and [updating the wiki](/process/updating-the-wiki.md).
+
+- `vulcan sync` writes `.mcp.json` for the agents that read it and keeps it out of git; the repository no longer tracks it. The managed skills now include `build-a-feature`.
+
 ## 2026-10-21 - BunCompiler compiles Bun Workers into the binary
 
 Updated [dev-configs](/packages/dev-configs.md).

@@ -49,7 +49,7 @@ framework package depends on - `core-worker` hangs off `kernel` beside `connecto
 | `examples/` | Runnable apps exercising the framework - see [examples](/examples/vert.md) |
 | `docs/wiki/` | The human-facing VitePress site. Not part of this bundle. |
 | `.agents/knowledge/` | This bundle - the agent-facing source of truth |
-| `.configs/vulcan.config.mts` | The VULCAN config: the `V-W-01` slot, project hooks, the knowledge roots and `atlas.packages`. `.mcp.json` runs VULCAN's atlas over this repo |
+| `.configs/vulcan.config.mts` | The VULCAN config: the `V-W-01` slot, project hooks, the knowledge roots and `atlas.packages`. `vulcan sync` writes `.mcp.json` per machine (kept out of git); it runs VULCAN's atlas over this repo |
 | `make/` | The root Makefile's pieces (`build`, `lint`, `test`, `release`, `knowledge`, `help`) and `project.mk`, which every package includes |
 | `.agents/okf/` | IGNIS's okf renderer modules (the components and helpers catalogs). The docs skill is VULCAN's shipped `docs-update`, which applies the D rules in `.agents/rules.md`. The knowledge tooling (`vulcan x okf`), atlas (`vulcan x atlas`) and agent setup (`vulcan sync`) live in VULCAN, consumed as `@venizia/vulcan` from npm; its make targets come from `node_modules/@venizia/vulcan/base/make/vulcan.mk`. |
 | `scripts/` | Every repo-wide gate - `check-catalog.ts` (`make catalog-check`), `purity/` (the browser-purity bundler probe, `make purity`), `wiki-source-links.ts`, `wiki-anchors.ts` (`make wiki-anchors-check`, reads the built html so it needs `make docs` first), `module-cycles.ts`, `split-report.ts`, and `release.ts`. Nothing runs `scripts/__tests__` but `make test-scripts`, or `purity/__tests__` but `make purity-test`. |

@@ -26,7 +26,7 @@ Add it to an MCP client's config:
 
 This runs the npm snapshot: the wiki and the changelogs packaged with the release you installed, not your working tree.
 
-Inside the IGNIS repository, `.mcp.json` registers the same server under the name `atlas` and runs it against the checkout with `bun x --no-install vulcan x atlas mcp --root .`. That mode also indexes the knowledge bundle and re-checks the corpus before every call.
+Inside the IGNIS repository, `vulcan sync` writes a per-machine `.mcp.json` (kept out of git) that registers the same server under the name `atlas` and runs it against the checkout with `bun x --no-install vulcan x atlas mcp --root .`. That mode also indexes the knowledge bundle and re-checks the corpus before every call.
 
 ## Tools
 
