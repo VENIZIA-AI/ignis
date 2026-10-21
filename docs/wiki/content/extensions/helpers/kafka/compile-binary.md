@@ -9,7 +9,7 @@ difficulty: advanced
 `platformaticKafkaPlugins()` returns every Bun bundler plugin `@platformatic/kafka` needs to survive `bun build --compile`. Register them whenever you compile an application that imports a Kafka helper. Skip them, and the binary crashes on its first run.
 
 ```typescript
-// scripts/compile.ts
+// .configs/builders/compile.ts
 import { platformaticKafkaPlugins } from '@venizia/ignis-helpers/kafka';
 
 const built = await Bun.build({
@@ -35,7 +35,7 @@ if (!built.success) {
 ```json
 {
   "scripts": {
-    "compile": "bun run ./scripts/compile.ts"
+    "compile": "bun .configs/builders/compile.ts"
   }
 }
 ```
