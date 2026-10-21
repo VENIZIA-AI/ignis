@@ -33,6 +33,8 @@ const POLL_INTERVAL_MS = 100;
 const DOCKER = process.env.SMOKE_DOCKER === '1';
 const TOTAL_STEPS = DOCKER ? 14 : 13;
 const IMAGE = 'ignis-preset-smoke';
+/** Planted in the app's .env before the image builds: it must never reach a layer. */
+const PLANTED_SECRET = 'smoke-secret-must-not-leak';
 /** Everything an app root may hold: the rest lives in .configs/ or src/. */
 const APP_ROOT_ENTRIES = new Set([
   '.configs',
@@ -282,14 +284,98 @@ const waitForHello = async (opts: { port: number }): Promise<unknown> => {
   return body;
 };
 
+/** A .dockerignore that lets .env files through: the image must refuse the context and name the fix. */
+const assertLeakRefused = (opts: { projectDir: string; buildWithCommit: string[] }): void => {
+  const ignoreFile = join(opts.projectDir, '.dockerignore');
+  const dockerignore = readFileSync(ignoreFile, 'utf8');
+  writeFileSync(
+    ignoreFile,
+    dockerignore
+      .split('\n')
+      .filter(line => !line.includes('.env'))
+      .join('\n'),
+  );
+  const leaking = Bun.spawnSync({
+    cmd: opts.buildWithCommit,
+    cwd: opts.projectDir,
+    stdout: 'ignore',
+    stderr: 'pipe',
+  });
+  writeFileSync(ignoreFile, dockerignore);
+
+  if (leaking.exitCode === 0 || !leaking.stderr.toString().includes('.dockerignore')) {
+    throw new Error(
+      '[preset-smoke] docker build accepted a context holding a .env file; it must refuse and name the .dockerignore',
+    );
+  }
+};
+
+/** The generated .dockerignore keeps the planted .env out of every layer, the builder's included. */
+const assertBuilderClean = async (opts: {
+  projectDir: string;
+  dockerfile: string;
+  buildArgs: string[];
+}): Promise<void> => {
+  const builder = `${IMAGE}-builder`;
+  await run({
+    command: [
+      'docker',
+      'build',
+      '-q',
+      '--target',
+      'builder',
+      '-f',
+      opts.dockerfile,
+      '-t',
+      builder,
+      ...opts.buildArgs,
+    ],
+    cwd: opts.projectDir,
+  });
+  const found = Bun.spawnSync({
+    cmd: [
+      'docker',
+      'run',
+      '--rm',
+      builder,
+      'sh',
+      '-c',
+      `grep -rl ${PLANTED_SECRET} /home/bun/project --exclude-dir=node_modules`,
+    ],
+    stdout: 'pipe',
+    stderr: 'ignore',
+  });
+  Bun.spawnSync({ cmd: ['docker', 'rmi', '-f', builder], stdout: 'ignore', stderr: 'ignore' });
+
+  if (found.exitCode === 0) {
+    throw new Error(
+      `[preset-smoke] the builder layer holds the planted secret: ${found.stdout.toString().trim()}`,
+    );
+  }
+};
+
 /**
- * The image from the app's .configs/builders/Dockerfile, built from the project root: refused when no
- * commit is passed (the image has no .git), then built with one, carrying it in its OCI label and in
- * the binary, and answering /api/hello from a container.
+ * The image from the app's .configs/builders/Dockerfile, built from the project root: refused when a
+ * .env reaches the context or no commit is passed (the image has no .git), then built with one, its
+ * builder layer free of the planted secret, carrying the commit in its OCI label and in the binary,
+ * and answering /api/hello from a container.
  */
 const assertDockerImage = async (opts: { projectDir: string }): Promise<void> => {
   const dockerfile = join(BACKEND_DIR, APP, '.configs', 'builders', 'Dockerfile');
   const build = ['docker', 'build', '-q', '-f', dockerfile, '-t', IMAGE];
+  const buildArgs = [
+    '--build-arg',
+    `APP_BUILD_COMMIT=${STAMP_COMMIT}`,
+    '--build-arg',
+    'APP_BUILD_BRANCH=smoke',
+    '.',
+  ];
+  writeFileSync(
+    join(opts.projectDir, BACKEND_DIR, APP, '.env'),
+    `APP_ENV_SMOKE_SECRET=${PLANTED_SECRET}\n`,
+  );
+  assertLeakRefused({ projectDir: opts.projectDir, buildWithCommit: [...build, ...buildArgs] });
+
   const refused = Bun.spawnSync({
     cmd: [...build, '.'],
     cwd: opts.projectDir,
@@ -301,17 +387,8 @@ const assertDockerImage = async (opts: { projectDir: string }): Promise<void> =>
     throw new Error('[preset-smoke] docker build passed without APP_BUILD_COMMIT; it must refuse');
   }
 
-  await run({
-    command: [
-      ...build,
-      '--build-arg',
-      `APP_BUILD_COMMIT=${STAMP_COMMIT}`,
-      '--build-arg',
-      'APP_BUILD_BRANCH=smoke',
-      '.',
-    ],
-    cwd: opts.projectDir,
-  });
+  await run({ command: [...build, ...buildArgs], cwd: opts.projectDir });
+  await assertBuilderClean({ projectDir: opts.projectDir, dockerfile, buildArgs });
   const port = await findFreePort();
 
   try {

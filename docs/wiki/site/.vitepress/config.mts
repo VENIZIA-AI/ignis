@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The App Image Refuses .env Files',
+                  link: '/changelogs/2026-10-21-docker-env-guard',
+                },
+                {
                   text: 'One Lint Command, .configs Split by Job',
                   link: '/changelogs/2026-10-21-configs-layout-and-dev-configs-lint',
                 },
