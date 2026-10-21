@@ -28,6 +28,12 @@ ARG APP_BUILD_VERSION=
 RUN test -n "$APP_BUILD_COMMIT" || { echo "Pass --build-arg APP_BUILD_COMMIT=\$(git rev-parse HEAD)" >&2; exit 1; }
 
 COPY --chown=bun . .
+# A .env in the context puts its secrets in the layer above: refuse the build and name the files.
+RUN leaked="$(find . -name '.env*' ! -name '.env.example' -not -path '*/node_modules/*')"; \
+    if [ -n "$leaked" ]; then \
+      echo "Secrets in the build context: $leaked - add **/.env and **/.env.* to the root .dockerignore" >&2; \
+      exit 1; \
+    fi
 RUN bun install --frozen-lockfile --ignore-scripts
 
 WORKDIR /home/bun/project/{{appPath}}

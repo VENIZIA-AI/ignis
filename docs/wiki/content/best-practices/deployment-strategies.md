@@ -65,6 +65,17 @@ The commit is required: the root `.dockerignore` leaves `.git` out, so the [buil
 | `APP_BUILD_BRANCH`, `APP_BUILD_VERSION` | Optional. Read by the build stamp like the commit |
 | `BUN_CONFIG_REGISTRY` | Optional. A private npm mirror for `bun install` |
 
+> [!WARNING]
+> The build copies the whole project, so a `.env` in the context would put its secrets into the builder layer, and a CI layer cache can keep that layer. The root `.dockerignore` must exclude them:
+>
+> ```
+> **/.env
+> **/.env.*
+> !**/.env.example
+> ```
+>
+> `vulcan init` writes these lines from VULCAN 0.3.7 on, and `vulcan doctor` warns when they are missing. The Dockerfile also refuses a context that still holds a `.env` file and names it. Pass a private registry through `BUN_CONFIG_REGISTRY`; never copy a token file such as `.npmrc` into the image.
+
 The build context is the whole project, trimmed by the root `.dockerignore` that `vulcan init` writes, because the preset cannot know which workspace packages the app imports. For better layer caching, copy only the `package.json` files and folders the app needs, then install.
 
 ### Docker Compose (Full Stack)
