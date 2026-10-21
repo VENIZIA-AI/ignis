@@ -55,9 +55,21 @@ my-app/
 |---|---|
 | `lints/` | The oxlint and ESLint configs, and `.ignore` for both linters |
 | `formatters/` | The oxfmt config, and `.ignore` for the formatter |
-| `builders/` | Build-only settings: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's `vite.config.mts` |
+| `builders/` | Every other tsconfig and the bundler config: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's `vite.config.mts`, and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`) |
 
-`tsconfig.json` stays at the project root, with any project it references (`tsconfig.app.json`, `tsconfig.node.json`). Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there. Without it, Bun silently stops applying legacy decorators.
+`tsconfig.json` is the only tsconfig at the project root. Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there; without it, Bun silently stops applying legacy decorators. A project split into app, node and test programs keeps those in `.configs/builders/` and lists them in the root `tsconfig.json`:
+
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./.configs/builders/tsconfig.app.json" },
+    { "path": "./.configs/builders/tsconfig.node.json" }
+  ]
+}
+```
+
+Inside a file in `.configs/builders/`, every path is relative to that folder: `"include": ["../../src"]`. `bun check` follows the references, like `tsc -b`.
 
 A monorepo root also keeps `.configs/vulcan.config.mts`, where VULCAN reads it.
 

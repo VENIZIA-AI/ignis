@@ -25,7 +25,7 @@ my-app/
 ## What changed
 
 - **`devz lint [--fix] [files]`.** `@venizia/dev-configs` ships a `devz` command. It runs oxlint, ESLint, then oxfmt, and stops at the first tool that fails. With file paths it handles only those files, which is what a pre-commit hook passes. Files the tools do not handle (`.md`, `.json`) are dropped, and a listed file that a `.ignore` skips passes quietly.
-- **`.configs/` is split by job.** The oxlint and ESLint configs move to `.configs/lints/`, the oxfmt config to `.configs/formatters/`. Build-only settings move to `.configs/builders/`: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's Vite config. `tsconfig.json` stays at the project root, and so does `.configs/vulcan.config.mts`.
+- **`.configs/` is split by job.** The oxlint and ESLint configs move to `.configs/lints/`, the oxfmt config to `.configs/formatters/`. Every other tsconfig and the bundler config move to `.configs/builders/`: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's Vite config, and the `tsconfig.app.json`, `tsconfig.node.json` and `tsconfig.test.json` a solution `tsconfig.json` references. `tsconfig.json` is the only tsconfig left at the project root; `.configs/vulcan.config.mts` stays too.
 - **A `.ignore` per folder.** `.configs/lints/.ignore` lists the paths oxlint and ESLint skip; `.configs/formatters/.ignore` the paths oxfmt skips. One gitignore-style pattern per line, relative to the project. `ignorePatterns` inside a `.configs/` file never worked: oxlint and oxfmt resolve it against the config's own folder and refuse `..`.
 - **The IGNIS preset has two kinds.** `vulcan add --preset ignis --app <name>` creates an API, as before. `vulcan add --preset ignis --lib <name>` creates a shared library: `exports` points at `src/index.ts`, `@venizia/ignis` is a peer, and its scripts are `typecheck`, `lint`, `lint:fix`, `test` and `clean`. Without `--app` or `--lib`, VULCAN asks in a terminal and refuses elsewhere.
 
@@ -38,6 +38,7 @@ my-app/
 | `.configs/oxfmt.config.mts` | Move it to `.configs/formatters/` |
 | `.configs/vite.config.ts` | Move it to `.configs/builders/`, add one `../` to every path the config builds from `import.meta.url`, and pass `--config .configs/builders/vite.config.ts` to `vite` |
 | `.configs/tsconfig.build.json`, `.configs/tsconfig.esm.json` | Move them to `.configs/builders/` and add one `../` to each relative path inside them |
+| `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json` at the root | Move them to `.configs/builders/`, prefix their paths with `../../` (`include`, `paths`, `tsBuildInfoFile`, `exclude`), and point the `references` of `tsconfig.json` at `./.configs/builders/...` |
 | Paths to skip, in a config or on a lint command line | Put them in `.configs/lints/.ignore` and `.configs/formatters/.ignore` |
 | An editor setting that points at a config, such as `oxc.configPath` | Point it at the new path |
 

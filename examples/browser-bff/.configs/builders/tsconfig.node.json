@@ -3,7 +3,7 @@
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "noEmit": true,
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.node.tsbuildinfo",
 
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -19,10 +19,10 @@
     ]
   },
   "include": [
-    ".configs/builders/vite.config.ts"
+    "./vite.config.ts"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "../../node_modules",
+    "../../dist"
   ]
 }

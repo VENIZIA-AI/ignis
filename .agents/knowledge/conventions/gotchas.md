@@ -622,7 +622,7 @@ some runs: at 19 in 30, a single run missed it about one gate run in 7.
 
 ## Only tsconfig.json stays at a project root
 
-Each project keeps its build tsconfigs (`tsconfig.build.json`, `tsconfig.esm.json`) in `.configs/builders/`.
+Each project keeps every other tsconfig in `.configs/builders/`: the build programs (`tsconfig.build.json`, `tsconfig.esm.json`) and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`, with paths `../../`-relative). `bun check` follows the references like `tsc -b`.
 `tsconfig.json` stays at the root. Bun (legacy decorators and `emitDecoratorMetadata`), the editor's
 TS server and oxlint's type-aware pass (`oxlint-tsgolint`) only look for `tsconfig.json` at the root.
 

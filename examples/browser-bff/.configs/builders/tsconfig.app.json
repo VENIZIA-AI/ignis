@@ -5,7 +5,7 @@
     /* Vite owns the emit; `tsc` is only the type checker here. `tsc -b` still needs somewhere to
        put its build ledger, and a project that emits nothing has no `outDir` to hide it in. */
     "noEmit": true,
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.app.tsbuildinfo",
 
     /* Vite resolves like a bundler, not like Node16 - the shared config's `nodenext` would
        demand file extensions the browser build never sees. */
@@ -41,10 +41,10 @@
     /* `@` addresses `src/worker`, mirrored by `resolve.alias` in `vite.config.ts`. */
     "paths": {
       "@/*": [
-        "./src/worker/*"
+        "../../src/worker/*"
       ],
       "~/*": [
-        "./src/*"
+        "../../src/*"
       ]
     },
 
@@ -63,10 +63,10 @@
     "useDefineForClassFields": false
   },
   "include": [
-    "src"
+    "../../src"
   ],
   "exclude": [
-    "node_modules",
-    "dist"
+    "../../node_modules",
+    "../../dist"
   ]
 }
