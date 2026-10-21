@@ -1,1 +1,23 @@
-PORT={{devPort}}
+# Copy to .env for a local run: bun loads it on start. Never commit .env.
+# Every key is optional; an empty value falls back to the framework default.
+
+# Application
+APP_ENV_APPLICATION_NAME={{app}}
+APP_ENV_APPLICATION_TIMEZONE=Asia/Ho_Chi_Minh
+
+# Server. PORT, when set, wins over APP_ENV_SERVER_PORT: a container or a cloud host sets it.
+APP_ENV_SERVER_HOST=0.0.0.0
+APP_ENV_SERVER_PORT={{devPort}}
+
+# Logger
+# The floor below which no line is written: debug | info | warn | error | emerg.
+APP_ENV_LOGGER_LEVEL=debug
+# text (readable) or json (one object per line, for a log aggregator).
+APP_ENV_LOGGER_FORMAT=text
+# true or false. Empty: on in development, off elsewhere and when NO_COLOR is set.
+APP_ENV_LOGGER_COLOR=
+# A writable folder also writes rotating log files. Empty: the console only.
+APP_ENV_LOGGER_FOLDER_PATH=
+APP_ENV_LOGGER_FILE_FREQUENCY=1h
+APP_ENV_LOGGER_FILE_MAX_SIZE=100m
+APP_ENV_LOGGER_FILE_MAX_FILES=5d

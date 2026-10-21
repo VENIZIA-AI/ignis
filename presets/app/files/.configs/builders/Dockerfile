@@ -25,7 +25,12 @@ FROM base AS builder
 ARG APP_BUILD_COMMIT=
 ARG APP_BUILD_BRANCH=
 ARG APP_BUILD_VERSION=
-RUN test -n "$APP_BUILD_COMMIT" || { echo "Pass --build-arg APP_BUILD_COMMIT=\$(git rev-parse HEAD)" >&2; exit 1; }
+# A commit is a hex sha of 7 characters or more; the literal HEAD that rev-parse prints before a first commit is not.
+RUN case "$APP_BUILD_COMMIT" in \
+      '' | *[!0-9a-f]* | ? | ?? | ??? | ???? | ????? | ??????) \
+        echo "Pass --build-arg APP_BUILD_COMMIT=\$(git rev-parse HEAD) after a first commit; got: $APP_BUILD_COMMIT" >&2; \
+        exit 1 ;; \
+    esac
 
 COPY --chown=bun . .
 # A .env in the context puts its secrets in the layer above: refuse the build and name the files.
