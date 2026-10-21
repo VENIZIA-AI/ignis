@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-21 | [The App Image Refuses .env Files in Its Build Context](./2026-10-21-docker-env-guard) | Security |
 | 2026-10-21 | [One Lint Command, .configs Split by Job, and a Library Preset](./2026-10-21-configs-layout-and-dev-configs-lint) | Feature, Breaking Change |
 | 2026-10-20 | [The Build Stamp Is Baked at Compile and Resolved From Git at Start](./2026-10-20-build-stamp-at-compile) | Feature, Breaking Change |
 | 2026-10-20 | [isNullableDiscriminator for the Principal Enricher](./2026-10-20-principal-nullable-discriminator) | Feature |
