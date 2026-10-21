@@ -120,7 +120,7 @@ Every project (each package, `docs/wiki`, each example except `examples/rpc-clie
 | `formatters/.ignore` | Optional: paths oxfmt skips, same format |
 | `builders/tsconfig.build.json`, `builders/tsconfig.esm.json` | A built package only: the CJS and ESM programs; a Vite app keeps `builders/vite.config.mts` |
 
-No tool finds `.configs/` on its own, so every call passes `-c`. oxlint and oxfmt resolve `ignorePatterns` and ignore files from their own folder and refuse `..`, so nothing in `.configs/` can name a project path: `scripts/lint.sh` reads each `.ignore` and passes its patterns on the command line (`--ignore-pattern`, `!pattern` for oxfmt), which resolves from the project root. `LintIgnore` keeps the in-config route for oxlint and eslint. See [build system](/process/build-system.md) for the commands.
+No tool finds `.configs/` on its own, so every call passes `-c`. oxlint and oxfmt resolve `ignorePatterns` and ignore files from their own folder and refuse `..`, so nothing in `.configs/` can name a project path: `devz lint` (the package's `devz` bin, `src/cli/lint.ts`) reads each `.ignore` and passes its patterns on the command line (`--ignore-pattern`, `!pattern` for oxfmt), which resolves from the project root. `LintIgnore` keeps the in-config route for oxlint and eslint. `devz lint [--fix] [files]` runs oxlint, eslint, then oxfmt and stops at the first failure; with files it drops non-TS paths, exits 0 when none is left, and adds `--no-warn-ignored` and `--no-error-on-unmatched-pattern` so a listed ignored file passes. It resolves each tool from the nearest `node_modules/.bin`, else PATH. See [build system](/process/build-system.md) for the commands.
 
 ## TypeScript - the critical setting
 

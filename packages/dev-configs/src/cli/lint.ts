@@ -18,7 +18,7 @@ export interface ILintStep {
 }
 
 /**
- * `dev-configs lint [--fix] [files]`: oxlint, then ESLint, then oxfmt, from the project's
+ * `devz lint [--fix] [files]`: oxlint, then ESLint, then oxfmt, from the project's
  * `.configs/lints/` and `.configs/formatters/`. With no file it checks the whole project; with
  * files it handles only those, as a pre-commit hook passes them.
  */

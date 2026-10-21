@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { LintCommand } from './lint';
 
-const USAGE = 'Usage: dev-configs lint [--fix] [files]';
+const USAGE = 'Usage: devz lint [--fix] [files]';
 
 const main = async (opts: { argv: string[] }): Promise<number> => {
   const [command, ...args] = opts.argv;
@@ -10,7 +10,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
     return LintCommand.run({ root: process.cwd(), args });
   }
 
-  console.error(`dev-configs: unknown command "${command ?? ''}"\n${USAGE}`);
+  console.error(`devz: unknown command "${command ?? ''}"\n${USAGE}`);
   return 1;
 };
 

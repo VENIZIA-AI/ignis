@@ -46,8 +46,6 @@ my-app/
 │   │   └── .ignore            # optional: paths oxfmt skips
 │   └── builders/              # only what the project builds with
 │       └── vite.config.mts
-├── scripts/
-│   └── lint.sh
 ├── src/
 ├── package.json
 └── tsconfig.json
@@ -73,10 +71,10 @@ src/components/shadcn/**
 src/registry/*.generated.ts
 ```
 
-`scripts/lint.sh` reads both files. Each pattern in `lints/.ignore` reaches oxlint and ESLint as `--ignore-pattern`; each pattern in `formatters/.ignore` reaches oxfmt as `!pattern`. A path that only the formatter should skip (vendored code you still lint) goes in `formatters/.ignore` alone.
+`devz lint` reads both files. Each pattern in `lints/.ignore` reaches oxlint and ESLint as `--ignore-pattern`; each pattern in `formatters/.ignore` reaches oxfmt as `!pattern`. A path that only the formatter should skip (vendored code you still lint) goes in `formatters/.ignore` alone.
 
 > [!NOTE]
-> An `ignorePatterns` entry inside a `.configs/` file does not work. oxlint and oxfmt resolve it against the config's own folder and refuse `..`, so it can never name a project path. A pattern on the command line resolves from the project root, which is why `lint.sh` passes them that way. `dist` and `node_modules` are skipped through `.gitignore`.
+> An `ignorePatterns` entry inside a `.configs/` file does not work. oxlint and oxfmt resolve it against the config's own folder and refuse `..`, so it can never name a project path. A pattern on the command line resolves from the project root, which is why `devz lint` passes them that way. `dist` and `node_modules` are skipped through `.gitignore`.
 
 ## oxlint Configuration
 
@@ -190,25 +188,25 @@ export default defineConfig({
 
 ## Running the tools
 
-An app or a library created by `vulcan add` runs all three tools through `scripts/lint.sh`:
+`@venizia/dev-configs` ships a `devz` command that runs all three tools with the paths above. An app or a library created by `vulcan add` calls it from its scripts:
 
 ```json
 {
   "scripts": {
-    "lint": "sh scripts/lint.sh",
-    "lint:fix": "sh scripts/lint.sh --fix"
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix"
   }
 }
 ```
 
 | Command | What it does |
 |---|---|
-| `sh scripts/lint.sh` | Checks the whole project: oxlint, then ESLint, then an oxfmt check |
-| `sh scripts/lint.sh --fix` | Fixes the whole project |
-| `sh scripts/lint.sh src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
-| `sh scripts/lint.sh --fix src/a.ts` | Fixes only those files. `--fix` comes first |
+| `devz lint` | Checks the whole project: oxlint, then ESLint, then an oxfmt check. It stops at the first tool that fails |
+| `devz lint --fix` | Fixes the whole project |
+| `devz lint src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
+| `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
 
-With a file list, `lint.sh` drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project; `bun run lint -- <files>` passes them through.
+With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
 
 In the IGNIS repository, the Makefile runs each package with its own tools:
 

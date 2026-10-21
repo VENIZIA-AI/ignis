@@ -402,8 +402,8 @@ Add the standard application scripts to your `package.json`:
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "compile": "sh scripts/compile.sh",
     "typecheck": "bun check",
-    "lint": "sh scripts/lint.sh",
-    "lint:fix": "sh scripts/lint.sh --fix",
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix",
     "test": "bun test",
     "clean": "sh scripts/clean.sh"
 }
@@ -411,27 +411,9 @@ Add the standard application scripts to your `package.json`:
 
 > **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
-A script that runs more than one command lives in `scripts/`. Create `scripts/lint.sh`:
+`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and oxfmt with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 
-```sh
-#!/usr/bin/env sh
-set -eu
-cd "$(dirname "$0")/.."
-
-FILES='**/*.{ts,tsx,mts,js,mjs}'
-
-if [ "${1:-}" = "--fix" ]; then
-  oxlint -c .configs/lints/oxlint.config.mts --fix
-  eslint -c .configs/lints/eslint.config.mjs --fix .
-  oxfmt -c .configs/formatters/oxfmt.config.mts "$FILES"
-else
-  oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
-  eslint -c .configs/lints/eslint.config.mjs .
-  oxfmt -c .configs/formatters/oxfmt.config.mts --check "$FILES"
-fi
-```
-
-`scripts/compile.sh` builds the binary through `compile.ts`:
+A script that runs more than one command lives in `scripts/`. `scripts/compile.sh` builds the binary through `compile.ts`:
 
 ```sh
 #!/usr/bin/env sh

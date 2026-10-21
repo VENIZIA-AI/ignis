@@ -59,7 +59,7 @@
   },
   "license": "MIT",
   "bin": {
-    "dev-configs": "./dist/cli/index.js"
+    "devz": "./dist/cli/index.js"
   },
   "engines": {
     "bun": ">=1.4"

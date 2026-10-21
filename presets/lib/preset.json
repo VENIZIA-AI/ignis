@@ -17,8 +17,8 @@
   },
   "scripts": {
     "typecheck": "bun check",
-    "lint": "dev-configs lint",
-    "lint:fix": "dev-configs lint --fix",
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix",
     "test": "bun test",
     "clean": "sh scripts/clean.sh"
   },

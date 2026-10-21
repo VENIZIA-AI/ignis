@@ -62,7 +62,7 @@ afterAll(() => {
   }
 });
 
-describe('dev-configs lint', () => {
+describe('devz lint', () => {
   test('no argument checks the whole project', () => {
     const { exitCode, calls } = runLint({ args: [] });
 

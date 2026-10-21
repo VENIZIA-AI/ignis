@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-21',
+              collapsed: true,
+              items: [
+                {
+                  text: 'One Lint Command, .configs Split by Job',
+                  link: '/changelogs/2026-10-21-configs-layout-and-dev-configs-lint',
+                },
+              ],
+            },
+            {
               text: '2026-10-20',
               collapsed: true,
               items: [

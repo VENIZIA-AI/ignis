@@ -136,7 +136,7 @@ tags: [process, build]
 13. **Apps share one script standard**, backend or frontend: the examples and the app preset of
     `presets/app`. `server:dev` runs the app (`NODE_ENV=development bun run
     src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
-    `bun check`, `lint` and `lint:fix` are `sh scripts/lint.sh [--fix]`, `test` is `bun test` and `clean`
+    `bun check`, `lint` and `lint:fix` are `devz lint [--fix]`, `test` is `bun test` and `clean`
     is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
     `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The logic
     lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs
