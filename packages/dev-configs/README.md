@@ -404,6 +404,16 @@ await BunCompiler.compile({
 });
 ```
 
+An app that starts a Bun Worker lists the worker file in `workers`, so it is compiled into the same binary. The entrypoint starts it by the path it has in the source:
+
+```typescript
+// src/index.ts: new Worker('./image-reader.worker.ts')
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  workers: ['./src/image-reader.worker.ts'],
+});
+```
+
 ## Where it sits
 
 The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion -> {filter, helpers}

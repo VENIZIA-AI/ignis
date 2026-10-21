@@ -12,6 +12,8 @@ export class BunCompiler {
   static async compile(
     opts: {
       entrypoint?: string;
+      /** Bun Worker files the entrypoint starts (`new Worker('./x.worker.ts')`): compiled into the same binary. */
+      workers?: string[];
       outfile?: string;
       target?: string;
       plugins?: Bun.BunPlugin[];
@@ -21,6 +23,7 @@ export class BunCompiler {
   ): Promise<void> {
     const {
       entrypoint = DEFAULT_ENTRYPOINT,
+      workers = [],
       outfile = DEFAULT_OUTFILE,
       target = Bun.env.BUN_TARGET ?? DEFAULT_COMPILE_TARGET,
       plugins = [],
@@ -28,7 +31,7 @@ export class BunCompiler {
     } = opts;
 
     const built = await Bun.build({
-      entrypoints: [entrypoint],
+      entrypoints: [entrypoint, ...workers],
       target: 'bun',
       minify: { whitespace: true, syntax: true },
       sourcemap: 'linked',
