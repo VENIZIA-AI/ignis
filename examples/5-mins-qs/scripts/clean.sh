@@ -1,12 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env sh
+# Remove everything the build and the checks generate.
+set -eu
+cd "$(dirname "$0")/.."
 
-# Remove build artifacts
-rm -rf dist/
-rm -rf node_modules/.cache/
-
-# Remove log files
-rm -f *.log
-rm -f .*.log
-rm -f .*-audit.json
-
-echo "Cleaned build artifacts and logs"
+rm -rf dist node_modules/.cache *.tsbuildinfo .eslintcache
+rm -f *.log .*.log .*-audit.json

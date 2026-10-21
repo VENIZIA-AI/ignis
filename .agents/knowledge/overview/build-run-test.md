@@ -47,7 +47,7 @@ cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
-step for the tests, and `.configs/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
+step for the tests, and `.configs/builders/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
 package's `.env.test` automatically. Only `boot` defines a `test` script of its own
 (`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
 script stays the single owner of the package's environment.

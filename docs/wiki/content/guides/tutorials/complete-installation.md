@@ -14,7 +14,7 @@ cd my-app
 bun init -y
 ```
 
-`bun init` writes `"type": "module"` into `package.json`. Delete that line - an IGNIS app stays CommonJS (see [Stay CommonJS](#stay-commonjs) below).
+`bun init` writes `"type": "module"` into `package.json`. Delete that line - the examples stay CommonJS (see [Module settings](#module-settings) below).
 
 ## 2. Install Dependencies
 
@@ -37,7 +37,7 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint tsc-alias
+bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint
 ```
 
 **What `@venizia/dev-configs` provides:**
@@ -62,8 +62,8 @@ Create `tsconfig.json` in your project root:
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -71,34 +71,31 @@ Create `tsconfig.json` in your project root:
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false
   },
-  "include": ["src"],
+  "include": ["src", "scripts"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
 > **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2025 target settings. `tsc` reads it, but Bun ignores an `extends` that names a package - so the three options that change the emitted code, `experimentalDecorators`, `emitDecoratorMetadata` and `useDefineForClassFields`, are restated here. Without them `bun run` drops `@inject` silently. `paths` stands alone, with no `baseUrl`. Keep `tsconfig.json` at the project root: Bun, your editor and oxlint only look for it there.
 
-### Stay CommonJS
+### Module settings
 
-An app that extends `@venizia/dev-configs/tsconfig.common.json` (module `nodenext`) and has no `"type": "module"` in `package.json` is CommonJS. Keep it that way: with `"type": "module"`, tsc no longer resolves the `@/` alias or extensionless imports. In a CommonJS app:
-
-- Use `__dirname`, not `import.meta.dir`.
-- Write no top-level `await` in an entry or a script. Wrap the work in an async function and end it with `.catch`, as the entry point below does.
+`module: "preserve"` with `moduleResolution: "bundler"` matches how Bun resolves and bundles your code. Imports need no file extension, `@/` resolves through `paths`, and `compile.ts` can use top-level `await`. Nothing is emitted: `bun check` only type-checks, and `bun run compile` builds the binary.
 
 ### Tool configs
 
 Each tool reads its settings from a `.configs/` folder. Create the folder and three files.
 
-`.configs/oxlint.config.mts` sets the lint rules:
+`.configs/lints/oxlint.config.mts` sets the lint rules:
 
 ```typescript
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
 
-`.configs/oxfmt.config.mts` sets the formatting:
+`.configs/formatters/oxfmt.config.mts` sets the formatting:
 
 ```typescript
 import { defineConfig } from 'oxfmt';
@@ -107,7 +104,7 @@ import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 export default defineConfig(oxfmtConfigs);
 ```
 
-`.configs/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
+`.configs/lints/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
 
 ```typescript
 import { houseConfigs } from '@venizia/dev-configs/linters';
@@ -363,6 +360,7 @@ export * from './hello';
 Create `src/index.ts` - this starts your application:
 
 ```typescript
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { Application, appConfigs } from './application';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 
@@ -376,6 +374,8 @@ const main = async () => {
 
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
   logger.info('[main] Getting ready to start up %s Application...', applicationName);
+
+  await BuildInfoStamp.register();
 
   // init() registers the core bindings. start() then runs the boot sequence,
   // sets up middlewares and binds the HTTP socket.
@@ -395,34 +395,56 @@ main().catch((error: unknown) => {
 
 ## 5. Run Your Application
 
-Add common application scripts to your `package.json`:
+Add the standard application scripts to your `package.json`:
 
 ```json
 "scripts": {
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "rebuild": "bun run clean && bun run build",
-    "server:dev": "NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun ."
+    "server:dev": "NODE_ENV=development bun run src/index.ts",
+    "compile": "sh scripts/compile.sh",
+    "typecheck": "bun check",
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix",
+    "test": "bun test",
+    "clean": "sh scripts/clean.sh"
 }
 ```
 
 > **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
-Create a cleanup script at `scripts/clean.sh`:
+`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and oxfmt with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 
-```bash
-#!/bin/bash
+A script that runs more than one command lives in `scripts/`. `scripts/compile.sh` builds the binary through `compile.ts`:
 
-echo "START | Clean up..."
+```sh
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
 
-rm -rf dist *.tsbuildinfo
-rm -rf artifact.zip
+bun scripts/compile.ts
+```
 
-echo "DONE | Clean up..."
+```typescript
+// scripts/compile.ts
+import { BunCompiler } from '@venizia/dev-configs/compilers';
+import { IgnisArtifactsPlugin } from '@venizia/ignis-boot/bun';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/bin',
+  plugins: [IgnisArtifactsPlugin.create()],
+  define: await BuildInfoStamp.define(),
+});
+```
+
+And `scripts/clean.sh`:
+
+```sh
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+
+rm -rf dist node_modules/.cache
 ```
 
 Now, start your application:

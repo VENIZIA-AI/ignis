@@ -7,16 +7,13 @@
     "bun": ">=1.4"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "clean": "sh ./scripts/clean.sh",
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "rebuild": "bun run clean && bun run build",
-    "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "server:prod": "NODE_ENV=production bun run dist/index.js",
-    "typecheck": "bun check --no-pretty -p tsconfig.json",
-    "test": "bun test"
+    "compile": "sh scripts/compile.sh",
+    "typecheck": "bun check",
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix",
+    "test": "bun test",
+    "clean": "sh scripts/clean.sh"
   },
   "dependencies": {
     "@hono/zod-openapi": "catalog:",

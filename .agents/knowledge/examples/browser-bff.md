@@ -22,7 +22,7 @@ definition or `super()` call** - only their import specifiers differ. That is th
 exists to prove.
 
 ```bash
-bun install && bun run dev     # http://localhost:5173
+bun install && bun run server:dev     # http://localhost:5173
 ```
 
 The page calls `bff.fetch(...)`, a dedicated Worker answers from PGlite in OPFS, and nothing crosses

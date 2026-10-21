@@ -1,6 +1,7 @@
 import type { Linter } from 'eslint';
 import { namingConventionConfigs } from '../eslint';
-import { reactNamingConventionConfigs } from '../react';
+import { JSX_FILES } from '../jsx-files';
+import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { MaxParamsOwnRule } from './max-params-own.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
@@ -8,7 +9,6 @@ import { NoNewErrorRule } from './no-new-error.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
-const JSX_FILES = ['**/*.{jsx,tsx}'];
 const TEST_FILES = ['**/__tests__/**', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'];
 
 /**
@@ -33,7 +33,7 @@ const houseRuleConfigs: Linter.Config[] = [
  * everything oxlint cannot express. Run it next to `oxlintConfigs`.
  *
  * ```js
- * // .configs/eslint.config.mjs
+ * // .configs/lints/eslint.config.mjs
  * import { houseConfigs } from '@venizia/dev-configs/linters';
  *
  * export default houseConfigs;

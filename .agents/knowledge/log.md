@@ -6,6 +6,58 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - devz lint, .configs split by job, the lib preset
+
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [monorepo layout](/overview/monorepo-layout.md) and the gotchas.
+
+- `@venizia/dev-configs` ships `devz lint [--fix] [files]`; presets and examples call it, and `scripts/lint.sh` is gone.
+- Every `.configs/` splits into `lints/`, `formatters/` and `builders/`; `.configs/lints/.ignore` and `.configs/formatters/.ignore` reach the tools as command-line patterns, because a config in `.configs/` cannot ignore a project path.
+- The preset template is `presets/app` and `presets/lib`, built to `dist/vulcan-preset/app` and `dist/vulcan-preset/lib` (`vulcan.preset`, `vulcan.lib`).
+
+## 2026-10-20 - Vite dev: auto module and name pinning match query ids
+
+Updated nothing else - a fix in the Vite plugin.
+
+- `vite` dev serves a node_modules file with a `?v=<hash>` query; the plugin now strips it before matching the auto module and the pinned classes, so `@venizia/ignis-boot/auto` is replaced in dev too and never reaches a browser.
+
+## 2026-10-20 - apps follow one script standard
+
+Updated [build system](/process/build-system.md) (step 13) and the example concepts.
+
+- The preset and every example use `server:dev`, `compile`, `typecheck`, `lint`, `lint:fix`, `test` and `clean`; `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` and `compile:linux` are gone. The logic lives in `scripts/*.sh`.
+- A backend compiles through `scripts/compile.ts` (`BunCompiler` with the build stamp) to `dist/bin`; its entrypoint registers the stamp.
+- `tsconfig.json` of an app includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`.
+- The preset template moved from `packages/core-server/vulcan-preset` to `presets/ignis`; `scripts/vulcan-preset.ts` still writes `packages/core-server/dist/vulcan-preset`, and core-server no longer ignores the template in lint.
+- `make preset-smoke` also compiles the generated app, runs the binary and checks the stamp and `clean`.
+
+## 2026-10-20 - the build stamp is baked at compile time and resolved from git at dev start
+
+Updated [boot](/packages/boot.md), [dev-configs](/packages/dev-configs.md) and the build-system example for `LINT_IGNORE`.
+
+- `@venizia/ignis-boot/build-info` adds `BuildInfoStamp`: `define()` returns `{ IGNIS_BUILD_INFO }` for a compile, `register()` reads the baked value or falls back to `BuildInfoResolver`, then `BuildInfoRegistry.set` (commit, branch, builtAt only).
+- `BunCompiler.compile` takes `define`.
+- Removed: the `ignis-build-info` bin, `BuildInfoEmitter`, `generateBuildInfo`, `BuildInfoFormats` and the option and format types. No generated `src/_build_info.ts` is left, so a clean checkout typechecks, tests and boots.
+
+## 2026-10-20 - connectors: isNullableDiscriminator makes the type column required
+
+Updated [connectors](/packages/connectors.md): with `isNullableDiscriminator: false` the `{discriminator}Type` column is `NOT NULL` with no default (an explicit `defaultPolymorphic` keeps its default), so an insert without the type fails; `null`/`undefined` still mean nullable. `enrichPrincipal` is now generic over the same four type parameters as `generatePrincipalColumnDefs`, and the nullability conditionals no longer distribute over a widened `boolean`.
+
+## 2026-10-20 - dev-configs: the oxlint subpath exports every oxlint-safe module
+
+Updated [dev-configs](/packages/dev-configs.md) and the [make targets](/reference/makefile-targets.md) reference.
+
+- `@venizia/dev-configs/linters/oxlint` also exports `LintIgnore` and the rule classes and types, so a config that customises rules keeps the fast path. Every oxlint config in the repo imports it.
+- `make sourcemaps-check` is now `make build-checks` and also guards the subpath: it loads no ESLint module and exports the same values as the `/linters` barrel.
+- The JSX glob lives in `linters/jsx-files.ts`, imported by both the oxlint and the ESLint side.
+
+## 2026-10-20 - connectors: isNullableDiscriminator on the principal enricher
+
+Code change only, no concept updated: `generatePrincipalColumnDefs` (Postgres and SQLite) takes `isNullableDiscriminator`, default `true` (the `{discriminator}Type` column stays nullable); `false` adds `NOT NULL`. `enrichPrincipal` is not generic and takes the default only. The [connectors](/packages/connectors.md) concept does not describe it yet.
+
+## 2026-10-20 - dev-configs: linters/oxlint subpath
+
+Updated [dev-configs](/packages/dev-configs.md): the `@venizia/dev-configs/linters/oxlint` export maps to `linters/oxlint-presets.ts` (the base, browser and React oxlint presets) so an oxlint config does not load ESLint through the `/linters` barrel. `ReactOxlintConfigs` moved to `react-oxlint.ts`.
+
 ## 2026-10-20 - Declaration maps are back
 
 Updated nothing else - build flags only.

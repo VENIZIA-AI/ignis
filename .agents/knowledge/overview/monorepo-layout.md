@@ -7,7 +7,8 @@ tags: [overview, monorepo, layout, packages]
 ---
 
 IGNIS is a Bun workspace monorepo. Everything published lives under `packages/`; everything that
-demonstrates the framework lives under `examples/`.
+demonstrates the framework lives under `examples/`. `presets/` holds the VULCAN preset templates
+(`presets/app` for an API, `presets/lib` for a shared library); a preset is app source linted inside the generated app, so no repo lint target reaches it.
 
 ## Packages
 

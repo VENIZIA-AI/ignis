@@ -57,11 +57,11 @@ curl localhost:3000/health
 - **A refusal is a 404, and byte-identical to an unmounted route.** A wrong or missing key runs the
   application's own notFound handler rather than throwing, so the answer cannot confirm the route
   exists. A `secretKey` that is set but blank fails closed too.
-- **The build stamp is pushed in, never read at run time.** The reporter never opens a file and
-  never spawns `git`. It reads `stats.buildInfo` first, then `BuildInfoRegistry` (populated at your
-  entrypoint from the file `ignis-build-info generate` wrote), then the application's own
-  `getAppInfo()`. A host that ran no generator still reports its real name and version; anything
-  unknowable reads `unspecified`.
+- **The build stamp is pushed in, never read by the reporter.** The reporter never opens a file and
+  never spawns `git`. It reads `stats.buildInfo` first, then `BuildInfoRegistry` (filled at your
+  entrypoint by `BuildInfoStamp.register()`), then the application's own `getAppInfo()`. A host
+  that registered no stamp still reports its real name and version; anything unknowable reads
+  `unspecified`.
 - **The gate is per application, not per process.** The controller receives its options and the
   application info through `@inject`, so two applications in one process - IGNIS nests them - each
   keep their own gate.
@@ -119,22 +119,25 @@ is often the right call; on a public one it is not.
 
 ### Stamp the build so `stats.build` names a real commit
 
-```bash
-# in the service's build script, before the bundle step
-ignis-build-info generate --out src/_build_info.ts
+```typescript
+// scripts/compile.ts - the compile bakes the stamp in
+import { BunCompiler } from '@venizia/dev-configs/compilers';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BunCompiler.compile({ entrypoint: './src/index.ts', define: await BuildInfoStamp.define() });
 ```
 
 ```typescript
 // src/index.ts - one line at the entrypoint
-import { BUILD_INFO } from './_build_info';
-import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 
-BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
+await BuildInfoStamp.register();
 ```
 
-The generator reads `APP_ENV_BUILD_VERSION` / `APP_ENV_BUILD_COMMIT_TAG` / `APP_ENV_BUILD_DATE`
-first, then the generic `APP_BUILD_*` and provider-specific variables, then `git`, then
-`package.json`. See the [`@venizia/ignis-boot` reference](/references/base/bootstrapping).
+A compiled binary reports the stamp it was compiled with. A run from source resolves it from
+`git` at start. The resolver reads `APP_ENV_BUILD_VERSION` / `APP_ENV_BUILD_COMMIT_TAG` /
+`APP_ENV_BUILD_DATE` first, then the generic `APP_BUILD_*` and provider-specific variables, then
+`git`, then `package.json`. See [Stamping a build](/guides/core-concepts/application/build-info).
 
 ### Customize the health check path
 Pass the options at the call site:
@@ -243,7 +246,7 @@ so a test can supply the ambient environment without writing `process.env`.
 | `GET /health` returns 404 | `HealthCheckComponent` not registered, or registered after controllers were already mounted | Call `this.component(HealthCheckComponent)` in `preConfigure()` |
 | `GET /health/stats` returns 404 on staging | The default is closed outside the development environments | Set `stats: { enable: true, secretKey }` explicitly |
 | `GET /health/stats` returns 404 with the right key | `secretKey` is blank, or arrived as a non-string from config | Export the variable; the gate fails closed on a blank or wrong-typed key |
-| `build.commit` reads `unspecified` | No stamp was registered and `getAppInfo()` carries no commit | Run `ignis-build-info generate` in the build and call `BuildInfoRegistry.set` at the entrypoint |
+| `build.commit` reads `unspecified` | No stamp was registered and `getAppInfo()` carries no commit | Pass `define: await BuildInfoStamp.define()` in the compile and call `BuildInfoStamp.register()` at the entrypoint |
 | Custom path not applied | The options were bound outside `preConfigure()`, so they landed after `configure()` had already read the key | Bind inside `preConfigure()`, or pass `this.component(HealthCheckComponent, { options })` |
 | `POST /health/ping` returns a validation error | `message` is missing, or exceeds 255 characters | Send a `message` string between 1 and 255 characters |
 

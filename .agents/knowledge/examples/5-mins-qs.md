@@ -19,16 +19,14 @@ tags: [examples, quickstart]
 
 ```bash
 bun install
-bun run start          # bun run src/index.ts directly, no build step
-# or
-bun run server:dev     # NODE_ENV=development bun run src/index.ts
-bun run rebuild        # clean + tsc build, for server:prod
-bun run server:prod    # NODE_ENV=production bun run dist/index.js
+bun run server:dev     # NODE_ENV=development bun run src/index.ts, no build step
+bun run compile        # dist/bin, a single binary with the build stamp baked in
+bun run clean          # rm -rf dist
 ```
 
 ## Notable / non-obvious
 
-- `start` and `server:dev` run TypeScript directly via `bun run src/index.ts`, with no compilation step. Every server example's dev script now runs its source file directly the same way - `bun .` (which resolves to `dist/`) shows up only in a `server:prod` or `compile:linux` script, never in dev; the two browser-side examples, `browser-bff` and `rpc-client-app`, run `vite` and need no build step either. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
+- `server:dev` runs TypeScript directly via `bun run src/index.ts`, with no compilation step. Every server example's dev script runs its source file directly the same way; the two browser-side examples, `browser-bff` and `rpc-client-app`, run `vite` and need no build step either. What is distinctive here is the narration: the numbered comments walk through the zero-build path step by step.
 
 ## Related
 - [What is IGNIS](/overview/what-is-ignis.md)

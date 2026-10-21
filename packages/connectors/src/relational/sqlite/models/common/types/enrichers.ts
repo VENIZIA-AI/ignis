@@ -24,11 +24,18 @@ export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
   PolymorphicIdType extends 'number' | 'string' = 'number' | 'string',
   Nullable extends boolean = false,
+  NullableDiscriminator extends boolean = true,
 > = {
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
   polymorphicIdType: PolymorphicIdType;
   isNullableId?: Nullable;
+  /**
+   * `true` (default) leaves the `{discriminator}Type` column nullable with a `''` default. `false`
+   * makes it `NOT NULL` with no default, so an insert must give the type; a `defaultPolymorphic`
+   * keeps that default.
+   */
+  isNullableDiscriminator?: NullableDiscriminator;
 };
 
 /**

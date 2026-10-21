@@ -9,9 +9,9 @@ import { NoRestrictedPropertiesRule } from './rules';
  * is relaxed. `ReactOxlintConfigs` builds on this preset. Takes the same options as `OxlintConfigs`.
  *
  * ```ts
- * // .configs/oxlint.config.mts
+ * // .configs/lints/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
- * import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters';
+ * import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *
  * export default defineConfig(BrowserOxlintConfigs.create());
  * ```

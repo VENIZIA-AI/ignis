@@ -25,12 +25,12 @@ tags: [packages, dev-configs, tooling]
 ## Exports
 
 ```typescript
-import { oxlintConfigs } from '@venizia/dev-configs/linters';       // oxlint config object
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint'; // oxlint config object, without ESLint loaded
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';      // oxfmt config object
 import { houseConfigs } from '@venizia/dev-configs/linters'; // ESLint: naming + house rules
 ```
 
-The source is split by job: `compilers/` (`BunCompiler`), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `eslint.ts`, `react.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
+The source is split by job: `compilers/` (`BunCompiler`; `compile({ entrypoint, outfile, target, plugins, define })` - `define` is passed to `Bun.build`, how a compile script bakes the build stamp, see [boot](/packages/boot.md)), `formatters/` (`oxfmt.ts`, `prettier.ts`), `linters/` (`oxlint.ts`, `browser.ts`, `react-oxlint.ts`, `oxlint-presets.ts`, `eslint.ts`, `react-eslint.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. `@venizia/dev-configs/linters/oxlint` is `linters/oxlint-presets.ts`, and every oxlint config in the repo imports it. It exports what an oxlint config needs: the presets (`oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`), `LintIgnore`, and every rule class and rule type of `rules/` (`EqeqeqRule`, `NamingConventionRule`, `NoRestrictedImportsRule`, `NoRestrictedPropertiesRule`, `NoUnusedVarsRule`, `PreferNullishCoalescingRule`, `SwitchCaseBracesRule`, `TRuleSeverity`, `TOxlintRuleEntry`, ...). It loads no ESLint: the rule classes and `LintIgnore` import ESLint types only, which the build erases, so a rule class is safe in an oxlint config. It leaves out `eslint.ts`, `react-eslint.ts` and `house/`, which import ESLint and typescript-eslint. The `/linters` barrel re-exports the subpath and adds those three, and an oxlint run through it loads them for nothing (about 1.2 s; measured on `filter`, median 1.5 s before and 0.33 s after). `make build-checks` loads the built subpath in a fresh process and fails if any ESLint module appears, and checks that the barrel exports the same values. The files are named by tool: `react-oxlint.ts` holds `ReactOxlintConfigs` and `react-eslint.ts` holds `ReactEslintConfigs` and `reactNamingConventionConfigs`; the `/linters` barrel exports both. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
 
 TypeScript configs are consumed by path, not by import: `@venizia/dev-configs/tsconfig.base.json`, `tsconfig.common.json`, `tsconfig.browser.json` and `tsconfig.react.json` are package.json `exports` entries that map to `src/tsconfig/` (`files` ships it). Every package's own `tsconfig.json` extends `tsconfig.common.json`, which in turn extends `tsconfig.base.json`. The package's own `tsconfig.json` extends its own `src/tsconfig/tsconfig.common.json`.
 
@@ -101,7 +101,7 @@ oxlint resolves `ignorePatterns` against the config file's folder and rejects `.
 
 ## ESLint - naming convention only
 
-oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
+oxlint has no port of `@typescript-eslint/naming-convention`, so ESLint stays for that one rule. `namingConventionConfigs` (a `Linter.Config[]`) is what each project's `.configs/lints/eslint.config.mjs` exports. The legacy `eslintConfigs` still works and is owned here: the LoopBack 4 rule set (`OFF_RULES`, `STRICT_RULES` in `linters/eslint.ts`) on `@eslint/js`, typescript-eslint and `eslint-plugin-prettier` recommended, plus `eslint-plugin-n` and `eslint-plugin-unicorn`. It no longer depends on `@minimaltech/eslint-node`; the port resolves to the same config for `.ts`, `.tsx`, `.js`, `.mjs` and `.cjs` files (488 / 485 rules, verified deep-equal with `calculateConfigForFile`).
 
 Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is deliberately off (pragmatic, matches the framework's general stance against fighting the type checker at the boundary), while `curly` and `unicorn/switch-case-braces` both require braces on every control structure. `ban-ts-comment` and `no-namespace` are `error`.
 
@@ -109,15 +109,18 @@ Notable rules in the oxlint port: `@typescript-eslint/no-explicit-any` is delibe
 
 ## Per-project `.configs/` folder
 
-Every project (each package, `docs/wiki`, each example except `examples/rpc-client-app`) owns three small files under `.configs/`:
+Every project (each package, `docs/wiki`, each example except `examples/rpc-client-app`) splits `.configs/` by job:
 
 | File | Content |
 |---|---|
-| `oxlint.config.mts` | `defineConfig(oxlintConfigs)` |
-| `oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
-| `eslint.config.mjs` | `houseConfigs` (naming convention + house rules), plus project rules where needed |
+| `lints/oxlint.config.mts` | `defineConfig(oxlintConfigs)`, imported from `@venizia/dev-configs/linters/oxlint` |
+| `lints/eslint.config.mjs` | `houseConfigs` (naming convention + house rules), plus project rules where needed |
+| `lints/.ignore` | Optional: paths oxlint and eslint skip, one gitignore-style pattern per line, relative to the project |
+| `formatters/oxfmt.config.mts` | `defineConfig(oxfmtConfigs)` |
+| `formatters/.ignore` | Optional: paths oxfmt skips, same format |
+| `builders/tsconfig.*.json` | Every tsconfig but the root `tsconfig.json`: a built package's CJS and ESM programs, or the app/node/test projects a solution `tsconfig.json` references; a Vite app also keeps `builders/vite.config.mts` |
 
-No tool finds `.configs/` on its own, so every call passes `-c .configs/<tool>.config.mts`. See [build system](/process/build-system.md) for the commands.
+No tool finds `.configs/` on its own, so every call passes `-c`. oxlint and oxfmt resolve `ignorePatterns` and ignore files from their own folder and refuse `..`, so nothing in `.configs/` can name a project path: `devz lint` (the package's `devz` bin, `src/cli/lint.ts`) reads each `.ignore` and passes its patterns on the command line (`--ignore-pattern`, `!pattern` for oxfmt), which resolves from the project root. `LintIgnore` keeps the in-config route for oxlint and eslint. `devz lint [--fix] [files]` runs oxlint, eslint, then oxfmt and stops at the first failure; with files it drops non-TS paths, exits 0 when none is left, and adds `--no-warn-ignored` and `--no-error-on-unmatched-pattern` so a listed ignored file passes. It resolves each tool from the nearest `node_modules/.bin`, else PATH. See [build system](/process/build-system.md) for the commands.
 
 ## TypeScript - the critical setting
 

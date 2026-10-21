@@ -327,6 +327,14 @@ the dialect off the table it is handed. For the depth, read
 [SQLite connector](/architecture/sqlite-connector.md), and
 [Typesense search connector](/architecture/search-typesense.md).
 
+`generatePrincipalColumnDefs` and `enrichPrincipal` (Postgres and SQLite) add a `{discriminator}Id` and a
+`{discriminator}Type` column. `isNullableId` (default `false`) controls the id column only.
+`isNullableDiscriminator` (default `true`) leaves the type column nullable with a `''` default; `false`
+makes it `NOT NULL` with no default, so an insert without the type is rejected and `$inferInsert`
+requires it. An explicit `defaultPolymorphic` keeps its default alongside `NOT NULL` (the insert type
+still requires the value). Only `false` makes the column required: `null` or `undefined` from an untyped
+caller means nullable. A widened `boolean` flag takes the `NOT NULL` type branch.
+
 ## Recursive tree SQL
 
 `relational/core/repositories/sqls/recursive-tree.ts` exports `RecursiveTreeSql.walk(opts)`, which
@@ -525,7 +533,7 @@ the cache.
 `scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
-guards this package either: `.configs/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
+guards this package either: `.configs/lints/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,
 which adds a `no-restricted-globals` and `no-restricted-imports` layer.
 
 Seven rows cannot pass, so the claim names them in `impure` and `make purity-connectors` exits 0.

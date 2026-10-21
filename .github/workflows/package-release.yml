@@ -216,7 +216,7 @@ jobs:
       # one index - a sub-path whose file never got emitted fails here instead of at a consumer's
       # first import.
       - name: Sourcemaps are self-contained
-        run: make sourcemaps-check
+        run: make build-checks
 
       - name: Validate build artifacts
         run: |

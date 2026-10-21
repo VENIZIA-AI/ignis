@@ -1,6 +1,6 @@
 # @venizia/ignis-boot
 
-Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes, and `ignis-build-info` stamps the build. Install it as a devDependency of the application.
+Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes, and `BuildInfoStamp` stamps the build. Install it as a devDependency of the application, or as a dependency if production runs the source unbundled.
 
 ## Install
 
@@ -101,22 +101,32 @@ A class lands in the index when all of these hold. The scanner logs a warning fo
 
 The output is deterministic: imports sorted by path, names sorted within each field, empty fields kept, a field wider than 100 columns wrapped one name per line.
 
-## `ignis-build-info`
+## The build stamp
 
-A compiled binary or a Distroless image has no `.git` and no readable `package.json`, so `ignis-build-info` resolves the build stamp at build time and writes it as a static file.
+A running service cannot say which commit it is. `BuildInfoStamp` (from `@venizia/ignis-boot/build-info`) bakes the commit, branch and build time into a compiled binary, and resolves them from git when you run from source. Nothing is generated, so a clean checkout typechecks, tests and boots.
 
+```typescript
+// scripts/compile.ts
+import { BunCompiler } from '@venizia/dev-configs/compilers';
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/service',
+  define: await BuildInfoStamp.define(),
+});
 ```
-ignis-build-info generate [--out src/_build_info.ts] [--root .] [--format ts|json] [--export BUILD_INFO]
+
+```typescript
+// src/index.ts
+import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
+
+await BuildInfoStamp.register();
 ```
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--out` | `src/_build_info.ts` | Output file; rewritten on every run |
-| `--root` | `.` | Where `package.json` is read and `git` runs |
-| `--format` | `ts` | `ts` writes an `export const`; `json` writes the same record as JSON |
-| `--export` | `BUILD_INFO` | Name of the exported constant in `ts` format |
+`register()` uses the baked stamp when the compile defined it, else `BuildInfoResolver`, then calls `BuildInfoRegistry.set`. It sets `commit`, `branch` and `builtAt`; `service` and `version` stay with `getAppInfo()`. The health-check component's `/stats` route reports it.
 
-Each field reads the environment first (first non-blank key wins), then its fallback. A field nothing resolves reads `unspecified`.
+The resolver reads each field from the environment first (first non-blank key wins), then its fallback. A field nothing resolves reads `unspecified`.
 
 | Field | Environment keys, in order | Fallback |
 |---|---|---|
@@ -124,16 +134,7 @@ Each field reads the environment first (first non-blank key wins), then its fall
 | `version` | `APP_ENV_BUILD_VERSION`, `APP_BUILD_VERSION`, `CI_COMMIT_TAG`, `GITHUB_REF_NAME` | `package.json` `version` |
 | `commit` | `APP_ENV_BUILD_COMMIT_TAG`, `APP_BUILD_COMMIT`, `CI_COMMIT_SHA`, `GITHUB_SHA`, `COMMIT_SHA` | `git rev-parse --short=12 HEAD` |
 | `branch` | `APP_BUILD_BRANCH`, `CI_COMMIT_REF_NAME`, `GITHUB_REF_NAME`, `BRANCH_NAME` | `git rev-parse --abbrev-ref HEAD` |
-| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE` | the time the generator ran |
-
-Register the stamp once at the entry point. The health-check component's `/stats` route reports it:
-
-```typescript
-import { BuildInfoRegistry } from '@venizia/ignis-helpers/core';
-import { BUILD_INFO } from './_build_info';
-
-BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
-```
+| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE` | the time the stamp was resolved |
 
 ## Entry points
 
@@ -141,12 +142,11 @@ BuildInfoRegistry.set({ buildInfo: BUILD_INFO });
 |---|---|---|
 | `@venizia/ignis-boot` | Everything from the two subpaths below | `typescript` |
 | `@venizia/ignis-boot/generator` | `generateArtifactIndex`, `checkArtifactIndex`, `ArtifactScanner`, `ArtifactIndexEmitter`, `ArtifactStereotypes`, `ArtifactTypes`, `ArtifactIndexFields` | `typescript` |
-| `@venizia/ignis-boot/build-info` | `generateBuildInfo`, `BuildInfoResolver`, `BuildInfoEmitter`, `BuildInfoFormats`, `BuildInfoEnvironmentKeys` | none |
+| `@venizia/ignis-boot/build-info` | `BuildInfoStamp`, `BuildInfoResolver`, `BuildInfoEnvironmentKeys` | none |
 
 | Binary | File |
 |---|---|
 | `ignis-artifacts` | `dist/cjs/clis/artifacts.js` |
-| `ignis-build-info` | `dist/cjs/clis/build-info.js` |
 
 The package ships CommonJS and ESM builds. The programmatic API mirrors the CLI:
 

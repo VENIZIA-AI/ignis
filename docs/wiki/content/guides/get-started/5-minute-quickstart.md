@@ -65,9 +65,9 @@ The command produces this tree:
 ./.mcp.json
 ./package.json
 ./README.md
-./services/core-api/.configs/eslint.config.mjs
-./services/core-api/.configs/oxfmt.config.mts
-./services/core-api/.configs/oxlint.config.mts
+./services/core-api/.configs/lints/eslint.config.mjs
+./services/core-api/.configs/formatters/oxfmt.config.mts
+./services/core-api/.configs/lints/oxlint.config.mts
 ./services/core-api/.env.example
 ./services/core-api/package.json
 ./services/core-api/README.md

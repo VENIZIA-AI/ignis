@@ -19,15 +19,15 @@ project that still runs ESLint and Prettier installs `eslint prettier` and skips
 Each tool takes one file. IGNIS keeps them in a `.configs/` folder and passes `-c` to each tool.
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
 
 ```typescript
-// .configs/oxfmt.config.mts
+// .configs/formatters/oxfmt.config.mts
 import { defineConfig } from 'oxfmt';
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 
@@ -35,16 +35,16 @@ export default defineConfig(oxfmtConfigs);
 ```
 
 ```typescript
-// .configs/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
+// .configs/lints/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
 import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default houseConfigs;
 ```
 
 ```bash
-oxlint -c .configs/oxlint.config.mts --deny-warnings
-eslint -c .configs/eslint.config.mjs .
-oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
+eslint -c .configs/lints/eslint.config.mjs .
+oxfmt -c .configs/formatters/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
 `tsconfig.json` stays at the project root. Bun, the editor and oxlint's type-aware engine only find it
@@ -116,6 +116,7 @@ Every IGNIS package and example does.
 | `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
+| `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |
 | `@venizia/dev-configs/tsconfig.common.json` | Extends the base and switches `module` and `moduleResolution` to `nodenext` |
 | `@venizia/dev-configs/tsconfig.browser.json` | Extends the base for a browser library built with a bundler: `module` ESNext, `moduleResolution` bundler, lib ES2025 + `DOM` + `DOM.Iterable`, `types: []` so no Bun types reach `dist` |
@@ -156,9 +157,9 @@ Not ported:
 where `''` and `0` fall back on purpose opts out in one line:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { OxlintConfigs } from '@venizia/dev-configs/linters';
+import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(OxlintConfigs.create({ lenientFallback: true }));
 ```
@@ -210,13 +211,13 @@ Types: `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector`, `IRestrictedImpor
 Replace a rule by key. This makes `==` an error everywhere and bans one more import:
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import {
   EqeqeqRule,
   NoRestrictedImportsRule,
   oxlintConfigs,
-} from '@venizia/dev-configs/linters';
+} from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig({
   ...oxlintConfigs,
@@ -311,9 +312,9 @@ plain-http origin or in a WebView, the method is `undefined`. Use this preset fo
 does not use React.
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters';
+import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(BrowserOxlintConfigs.create());
 ```
@@ -324,13 +325,13 @@ The oxlint version of the React preset. oxlint runs the React, hooks and `jsx-a1
 nothing is passed in. Pair it with `reactNamingConventionConfigs` on the ESLint side:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default reactNamingConventionConfigs;
@@ -370,10 +371,10 @@ Makefile can set `LINT_IGNORE` instead (`make/project.mk` passes it as `--ignore
 // .configs/lint-ignore.mjs
 export const LINT_IGNORE = ['src/components/shadcn/**', 'dev-dist/**'];
 
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 export default defineConfig(ReactOxlintConfigs.create({ ignore: LINT_IGNORE }));
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 export default [LintIgnore.eslint({ patterns: LINT_IGNORE }), ...reactHouseConfigs];
 ```
 
@@ -384,12 +385,23 @@ instead: `LintIgnore.oxlint({ config, patterns: LINT_IGNORE })`.
 ### BunCompiler
 
 `BunCompiler.compile()` builds one Bun executable: minified, with a linked source map. The
-compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`.
+compile target comes from `BUN_TARGET` and defaults to `bun-linux-x64`. `define` passes compile-time
+constants to `Bun.build`; a compile script uses it to bake the build stamp.
 
 ```typescript
 import { BunCompiler } from '@venizia/dev-configs';
 
 await BunCompiler.compile({ entrypoint: './src/index.ts', outfile: './dist/app' });
+```
+
+Bake a value into the binary with `define`. Each value is a JSON-encoded expression:
+
+```typescript
+await BunCompiler.compile({
+  entrypoint: './src/index.ts',
+  outfile: './dist/app',
+  define: { APP_FLAVOUR: JSON.stringify('blue') },
+});
 ```
 
 ## Where it sits

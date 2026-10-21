@@ -32,7 +32,7 @@ database server, which is what moved this pair into CI: the server's smoke test 
 
 ```bash
 bun install
-APP_ENV_JWT_SECRET=$(openssl rand -hex 32) bun run start   # http://localhost:3000/api
+APP_ENV_JWT_SECRET=$(openssl rand -hex 32) bun run server:dev   # http://localhost:3000/api
 bun test                                                       # smoke test: signs up, signs in, CRUD with the token, loads a JSX page
 ```
 

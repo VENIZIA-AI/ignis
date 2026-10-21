@@ -1,8 +1,9 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
 
-  /* Solution config: `tsconfig.app.json` is the browser application, `tsconfig.node.json` is
-     `vite.config.ts`, `tsconfig.test.json` is the Bun smoke test. Check all three with `tsc -b`.
+  /* Solution config: in `.configs/builders/`, `tsconfig.app.json` is the browser application,
+     `tsconfig.node.json` is `vite.config.ts`, `tsconfig.test.json` is the Bun smoke test. Check all
+     three with `tsc -b`.
 
      Bun reads only this file when it runs the Worker in the smoke test, so it carries what Bun
      needs to load `src/worker`: the `@` alias and the decorator settings of `tsconfig.app.json`. */
@@ -18,13 +19,13 @@
   },
   "references": [
     {
-      "path": "./tsconfig.app.json"
+      "path": "./.configs/builders/tsconfig.app.json"
     },
     {
-      "path": "./tsconfig.node.json"
+      "path": "./.configs/builders/tsconfig.node.json"
     },
     {
-      "path": "./tsconfig.test.json"
+      "path": "./.configs/builders/tsconfig.test.json"
     }
   ]
 }

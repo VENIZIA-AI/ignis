@@ -3,9 +3,9 @@
 IGNIS lints with **oxlint**, formats with **oxfmt**, and keeps **ESLint** for one rule. All three read their settings from `@venizia/dev-configs`.
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
@@ -14,8 +14,7 @@ export default defineConfig(oxlintConfigs);
 > **Bun is the only package manager** - never npm, yarn, or pnpm. **Compile with `tsc` directly**,
 > through a package script; never reach for `npx` or `bun x`.
 >
-> `bunx` is fine for running a one-off CLI that is not a project dependency. The `ignis-build-info`
-> how-to runs `bunx ignis-build-info`.
+> `bunx` is fine for running a one-off CLI that is not a project dependency.
 
 ## Installation
 
@@ -33,40 +32,70 @@ bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 
 ## The `.configs/` layout
 
-Every project keeps its tool settings in a `.configs/` folder:
+Every project keeps its tool settings in `.configs/`, one folder per job:
 
 ```
 my-app/
 ├── .configs/
-│   ├── oxlint.config.mts
-│   ├── oxfmt.config.mts
-│   └── eslint.config.mjs
+│   ├── lints/
+│   │   ├── oxlint.config.mts
+│   │   ├── eslint.config.mjs
+│   │   └── .ignore            # optional: paths oxlint and eslint skip
+│   ├── formatters/
+│   │   ├── oxfmt.config.mts
+│   │   └── .ignore            # optional: paths oxfmt skips
+│   └── builders/              # only what the project builds with
+│       └── vite.config.mts
 ├── src/
 ├── package.json
 └── tsconfig.json
 ```
 
-No tool finds `.configs/` on its own, so every call passes `-c`:
+| Folder | Holds |
+|---|---|
+| `lints/` | The oxlint and ESLint configs, and `.ignore` for both linters |
+| `formatters/` | The oxfmt config, and `.ignore` for the formatter |
+| `builders/` | Every other tsconfig and the bundler config: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's `vite.config.mts`, and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`) |
 
-```bash
-oxlint -c .configs/oxlint.config.mts
-eslint -c .configs/eslint.config.mjs .
-oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+`tsconfig.json` is the only tsconfig at the project root. Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there; without it, Bun silently stops applying legacy decorators. A project split into app, node and test programs keeps those in `.configs/builders/` and lists them in the root `tsconfig.json`:
+
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./.configs/builders/tsconfig.app.json" },
+    { "path": "./.configs/builders/tsconfig.node.json" }
+  ]
+}
 ```
 
-`tsconfig.json` stays at the project root. Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there. Without it, Bun silently stops applying legacy decorators.
+Inside a file in `.configs/builders/`, every path is relative to that folder: `"include": ["../../src"]`. `bun check` follows the references, like `tsc -b`.
+
+A monorepo root also keeps `.configs/vulcan.config.mts`, where VULCAN reads it.
+
+## Skipping paths: `.ignore`
+
+To skip generated or vendored code, list it in the `.ignore` of the folder whose tools should skip it. One gitignore-style pattern per line, relative to the project; `#` starts a comment:
+
+```
+# .configs/lints/.ignore
+src/components/shadcn/**
+src/registry/*.generated.ts
+```
+
+`devz lint` reads both files. Each pattern in `lints/.ignore` reaches oxlint and ESLint as `--ignore-pattern`; each pattern in `formatters/.ignore` reaches oxfmt as `!pattern`. A path that only the formatter should skip (vendored code you still lint) goes in `formatters/.ignore` alone.
 
 > [!NOTE]
-> An `ignorePatterns` entry inside a `.configs/*` file resolves against `.configs/`, not the project, so it matches nothing. `dist` and `node_modules` are skipped through `.gitignore`. To skip another folder, pass `--ignore-pattern "folder/**"` on the command line.
+> An `ignorePatterns` entry inside a `.configs/` file does not work. oxlint and oxfmt resolve it against the config's own folder and refuse `..`, so it can never name a project path. A pattern on the command line resolves from the project root, which is why `devz lint` passes them that way. `dist` and `node_modules` are skipped through `.gitignore`.
 
 ## oxlint Configuration
 
 oxlint catches common errors and enforces best practices. It is a rule-for-rule port of the previous ESLint preset, and it runs type-aware rules through `oxlint-tsgolint`.
 
-**`.configs/oxlint.config.mts`:**
+**`.configs/lints/oxlint.config.mts`:**
 ```typescript
 import { defineConfig } from 'oxlint';
-import { oxlintConfigs } from '@venizia/dev-configs/linters';
+import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(oxlintConfigs);
 ```
@@ -84,7 +113,7 @@ import {
   EqeqeqRule,
   NoRestrictedImportsRule,
   oxlintConfigs,
-} from '@venizia/dev-configs/linters';
+} from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig({
   ...oxlintConfigs,
@@ -105,7 +134,7 @@ The rule classes and their options are in the [package README](https://github.co
 
 ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the two house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object) and `venizia/no-new-error` (throw through `getError`, never `new Error`).
 
-**`.configs/eslint.config.mjs`:**
+**`.configs/lints/eslint.config.mjs`:**
 ```typescript
 import { houseConfigs } from '@venizia/dev-configs/linters';
 
@@ -138,7 +167,7 @@ Because oxlint owns the other rules, ESLint does not report unused `eslint-disab
 
 Automatic code formatting eliminates style debates.
 
-**`.configs/oxfmt.config.mts`:**
+**`.configs/formatters/oxfmt.config.mts`:**
 ```typescript
 import { defineConfig } from 'oxfmt';
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
@@ -171,16 +200,25 @@ export default defineConfig({
 
 ## Running the tools
 
-In an application, add scripts that pass `-c`:
+`@venizia/dev-configs` ships a `devz` command that runs all three tools with the paths above. An app or a library created by `vulcan add` calls it from its scripts:
 
 ```json
 {
   "scripts": {
-    "lint": "oxlint -c .configs/oxlint.config.mts --deny-warnings && eslint -c .configs/eslint.config.mjs . && oxfmt -c .configs/oxfmt.config.mts --check \"**/*.{ts,tsx,mts,js,mjs}\"",
-    "lint:fix": "oxlint -c .configs/oxlint.config.mts --fix && eslint -c .configs/eslint.config.mjs . --fix && oxfmt -c .configs/oxfmt.config.mts \"**/*.{ts,tsx,mts,js,mjs}\""
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix"
   }
 }
 ```
+
+| Command | What it does |
+|---|---|
+| `devz lint` | Checks the whole project: oxlint, then ESLint, then an oxfmt check. It stops at the first tool that fails |
+| `devz lint --fix` | Fixes the whole project |
+| `devz lint src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
+| `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
+
+With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
 
 In the IGNIS repository, the Makefile runs each package with its own tools:
 
@@ -201,23 +239,23 @@ The presets so far target a backend. Code that runs in a browser swaps them for 
 
 | File | Backend | Browser | React |
 |---|---|---|---|
-| `.configs/oxlint.config.mts` | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
-| `.configs/oxfmt.config.mts` | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
-| `.configs/eslint.config.mjs` | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
+| `.configs/lints/oxlint.config.mts` | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
+| `.configs/formatters/oxfmt.config.mts` | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
+| `.configs/lints/eslint.config.mjs` | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
 | `tsconfig.json` extends | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
 A React app's lint files look like this. oxlint runs the React, hooks and accessibility rules natively, so there is no plugin to install:
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
-import { ReactOxlintConfigs } from '@venizia/dev-configs/linters';
+import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 ```
 
 ```typescript
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default reactNamingConventionConfigs;
@@ -253,7 +291,7 @@ export default defineConfig({
 });
 ```
 
-Generated or vendored paths go in one list for both tools: `ReactOxlintConfigs.create({ ignore })` for oxlint (it cannot ignore a project path from `.configs/`) and `LintIgnore.eslint({ patterns })` for ESLint.
+Generated or vendored paths go in `.configs/lints/.ignore` (see [Skipping paths](#skipping-paths-ignore)). The older in-config route still works for the linters: `ReactOxlintConfigs.create({ ignore })` turns every oxlint rule off for those paths, and `LintIgnore.eslint({ patterns })` is the ESLint entry; neither reaches oxfmt.
 
 A project that stays on ESLint uses `ReactEslintConfigs.create({ plugins: { react, reactHooks, jsxA11y } })` instead - the same rules, with the plugins passed in. The full tables are in the [package README](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/README.md).
 
@@ -316,10 +354,10 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
 {
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "oxc.oxc-vscode",
-  "oxc.configPath": ".configs/oxlint.config.mts",
-  "oxc.fmt.configPath": ".configs/oxfmt.config.mts",
+  "oxc.configPath": ".configs/lints/oxlint.config.mts",
+  "oxc.fmt.configPath": ".configs/formatters/oxfmt.config.mts",
   "oxc.typeAware": true,
-  "eslint.options": { "overrideConfigFile": ".configs/eslint.config.mjs" },
+  "eslint.options": { "overrideConfigFile": ".configs/lints/eslint.config.mjs" },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
@@ -332,7 +370,7 @@ The tools do not look inside `.configs/` on their own, so the settings point at 
 ### WebStorm / IntelliJ
 
 1. Go to **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
-2. Select "Manual ESLint configuration" and point it at `.configs/eslint.config.mjs`
+2. Select "Manual ESLint configuration" and point it at `.configs/lints/eslint.config.mjs`
 3. Run oxlint and oxfmt through the `lint` and `lint:fix` scripts, or install the Oxc plugin
 
 ## See Also

@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.3.1",
+  "version": "0.3.4",
   "description": "Shareable development configurations for TypeScript projects: oxlint and oxfmt presets with per-rule builders, the ESLint naming-convention rule, the legacy ESLint flat config and Prettier presets, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages.",
   "keywords": [
     "build-tools",
@@ -58,6 +58,9 @@
     "url": "https://venizia.ai"
   },
   "license": "MIT",
+  "bin": {
+    "devz": "./dist/cli/index.js"
+  },
   "engines": {
     "bun": ">=1.4"
   },
@@ -77,6 +80,10 @@
     "./linters": {
       "types": "./dist/linters/index.d.ts",
       "default": "./dist/linters/index.js"
+    },
+    "./linters/oxlint": {
+      "types": "./dist/linters/oxlint-presets.d.ts",
+      "default": "./dist/linters/oxlint-presets.js"
     },
     "./testing": {
       "types": "./dist/testing/index.d.ts",

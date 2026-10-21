@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false
+  },
+  "include": [
+    "src",
+    ".configs/builders"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

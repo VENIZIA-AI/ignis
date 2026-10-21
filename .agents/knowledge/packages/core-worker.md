@@ -207,9 +207,9 @@ Both are type-only, so `make purity` stays green - which is why nobody noticed. 
 [gotchas](/conventions/gotchas.md).
 
 So the author-time defence is a `no-restricted-globals` and `no-restricted-imports` block in
-`.configs/eslint.config.mjs` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
-`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/eslint.config.mjs`) against
-committed fixtures. `.configs/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
+`.configs/lints/eslint.config.mjs` (on top of `namingConventionConfigs`), scoped to `src/**/*.{ts,tsx,mts,cts}` and pinned by
+`src/__tests__/browser-purity.test.ts`, which drives the real tsc and the real ESLint (`-c .configs/lints/eslint.config.mjs`) against
+committed fixtures. `.configs/builders/tsconfig.build.json` still sets `types: []`, which does remove the `Bun`
 namespace. `make rebuild` type-checks the production graph **before** cleaning `dist/`.
 
 What no static rule reaches: computed member access (`globalThis['process']`), a variable import
