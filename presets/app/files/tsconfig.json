@@ -10,7 +10,7 @@
   },
   "include": [
     "src",
-    "scripts"
+    ".configs/builders"
   ],
   "exclude": [
     "node_modules",

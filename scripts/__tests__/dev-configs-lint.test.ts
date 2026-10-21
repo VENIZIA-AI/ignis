@@ -1,5 +1,13 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -62,7 +70,7 @@ afterAll(() => {
   }
 });
 
-describe('devz lint', () => {
+describe('devz', () => {
   test('no argument checks the whole project', () => {
     const { exitCode, calls } = runLint({ args: [] });
 
@@ -146,6 +154,30 @@ describe('devz lint', () => {
 
     expect(exitCode).toBe(1);
     expect(calls).toHaveLength(1);
+  });
+
+  test('clean removes dist and the tool caches, and keeps everything else', () => {
+    const project = makeProject();
+    mkdirSync(join(project.root, 'dist'), { recursive: true });
+    writeFileSync(join(project.root, 'dist', 'bin'), 'x');
+    mkdirSync(join(project.root, 'node_modules', '.cache', 'eslint'), { recursive: true });
+    mkdirSync(join(project.root, 'node_modules', 'zod'), { recursive: true });
+    mkdirSync(join(project.root, 'src'), { recursive: true });
+
+    const result = Bun.spawnSync({ cmd: ['bun', CLI, 'clean'], cwd: project.root });
+
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(join(project.root, 'dist'))).toBe(false);
+    expect(existsSync(join(project.root, 'node_modules', '.cache'))).toBe(false);
+    expect(existsSync(join(project.root, 'node_modules', 'zod'))).toBe(true);
+    expect(existsSync(join(project.root, 'src'))).toBe(true);
+  });
+
+  test('clean in a project with nothing to clean passes', () => {
+    const project = makeProject();
+    const result = Bun.spawnSync({ cmd: ['bun', CLI, 'clean'], cwd: project.root });
+
+    expect(result.exitCode).toBe(0);
   });
 
   test('an unknown command fails and names the commands there are', () => {

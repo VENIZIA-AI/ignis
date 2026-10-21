@@ -20,7 +20,7 @@
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",
     "test": "bun test",
-    "clean": "sh scripts/clean.sh"
+    "clean": "devz clean"
   },
   "checks": ["typecheck", "lint", "test"],
   "imports": { "#src/*.json": "./src/*.json", "#src/*": "./src/*.js" },
