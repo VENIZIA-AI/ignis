@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - the app image refuses .env files in its build context
+
+Updated nothing else - a guard in the app preset's Dockerfile.
+
+- After `COPY . .` the Dockerfile fails when any `.env*` other than `.env.example` is in the context, because the copy layer would hold its secrets; the root `.dockerignore` must exclude `**/.env` and `**/.env.*`.
+
 ## 2026-10-21 - devz lint, .configs split by job, the lib preset
 
 Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [monorepo layout](/overview/monorepo-layout.md) and the gotchas.
