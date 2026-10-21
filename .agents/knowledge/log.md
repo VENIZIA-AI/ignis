@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - BunCompiler compiles Bun Workers into the binary
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `BunCompiler.compile({ workers })` passes the worker files as extra entrypoints, so `new Worker('./x.worker.ts')` runs from the compiled binary.
+
 ## 2026-10-21 - the app preset lists its APP_ENV keys and ships its .ignore files
 
 Updated nothing else - preset files only.

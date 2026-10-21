@@ -56,3 +56,28 @@ describe('BunCompiler.compile define', () => {
     expect(printed).toBe('undefined');
   });
 });
+
+describe('BunCompiler.compile workers', () => {
+  test('a worker listed in workers is compiled into the binary and runs', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ignis-compile-workers-'));
+    tmpDirs.push(root);
+    const entrypoint = join(root, 'entry.ts');
+    const worker = join(root, 'echo.worker.ts');
+    const outfile = join(root, 'bin');
+    writeFileSync(
+      worker,
+      "declare const self: Worker; self.onmessage = event => self.postMessage('echo:' + event.data);",
+    );
+    writeFileSync(
+      entrypoint,
+      'const worker = new Worker("./echo.worker.ts"); worker.onmessage = event => { console.log(event.data); process.exit(0); }; worker.postMessage("ping");',
+    );
+
+    await BunCompiler.compile({ entrypoint, outfile, target: hostTarget, workers: [worker] });
+    // Run from elsewhere: the worker must come from the binary, not from the source folder.
+    rmSync(worker);
+    const result = await Bun.$`${outfile}`.cwd(tmpdir()).quiet().nothrow();
+
+    expect(result.stdout.toString().trim()).toBe('echo:ping');
+  });
+});

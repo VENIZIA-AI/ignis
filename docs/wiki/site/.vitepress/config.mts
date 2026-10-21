@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'BunCompiler Compiles Bun Workers',
+                  link: '/changelogs/2026-10-21-bun-compiler-workers',
+                },
+                {
                   text: 'The App Preset Lists Its Environment Keys',
                   link: '/changelogs/2026-10-21-preset-env-example-and-ignore',
                 },
