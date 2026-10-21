@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'The App Preset Lists Its Environment Keys',
+                  link: '/changelogs/2026-10-21-preset-env-example-and-ignore',
+                },
+                {
                   text: 'The App Image Refuses .env Files',
                   link: '/changelogs/2026-10-21-docker-env-guard',
                 },
