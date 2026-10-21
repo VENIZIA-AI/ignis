@@ -51,7 +51,7 @@ Note: the app serves under `/api`.
 
 ## 3. What it created
 
-The command produces this tree, plus the files of the coding agents on your machine (`CLAUDE.md` and `.claude/` for Claude Code), which VULCAN keeps out of git:
+The command produces this tree, plus the files of the coding agents on your machine (`CLAUDE.md`, `.claude/` and `.mcp.json` for Claude Code), which VULCAN keeps out of git:
 
 ```text
 ./.agents/knowledge/index.md
@@ -62,7 +62,6 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./.configs/vulcan.config.mts
 ./.dockerignore
 ./.gitignore
-./.mcp.json
 ./AGENTS.md
 ./Makefile
 ./README.md

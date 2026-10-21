@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "atlas": {
-      "command": "bun",
-      "args": ["x", "--no-install", "vulcan", "x", "atlas", "mcp", "--root", "."]
-    }
-  }
-}
