@@ -120,7 +120,7 @@ is often the right call; on a public one it is not.
 ### Stamp the build so `stats.build` names a real commit
 
 ```typescript
-// scripts/compile.ts - the compile bakes the stamp in
+// .configs/builders/compile.ts - the compile bakes the stamp in
 import { BunCompiler } from '@venizia/dev-configs/compilers';
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 
