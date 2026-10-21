@@ -4,7 +4,7 @@ import type { OxfmtConfig } from 'oxfmt';
  * The oxfmt port of `prettierConfigs` - the same seven options, so the output matches Prettier's.
  *
  * ```ts
- * // .configs/oxfmt.config.mts
+ * // .configs/formatters/oxfmt.config.mts
  * import { defineConfig } from 'oxfmt';
  * import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
  *
@@ -27,7 +27,7 @@ export const oxfmtConfigs: OxfmtConfig = {
  * small. `bracketSameLine` changes nothing outside JSX.
  *
  * ```ts
- * // .configs/oxfmt.config.mts
+ * // .configs/formatters/oxfmt.config.mts
  * import { defineConfig } from 'oxfmt';
  * import { browserOxfmtConfigs } from '@venizia/dev-configs/formatters';
  *

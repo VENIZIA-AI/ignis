@@ -539,6 +539,9 @@
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
       "version": "0.3.2",
+      "bin": {
+        "devz": "./dist/cli/index.js",
+      },
       "dependencies": {
         "@eslint/js": "^10.0.1",
         "eslint-config-prettier": "^10.1.8",

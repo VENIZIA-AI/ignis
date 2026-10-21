@@ -191,7 +191,8 @@
   },
   "sideEffects": false,
   "vulcan": {
-    "preset": "./dist/vulcan-preset/preset.json"
+    "preset": "./dist/vulcan-preset/app/preset.json",
+    "lib": "./dist/vulcan-preset/lib/preset.json"
   },
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",

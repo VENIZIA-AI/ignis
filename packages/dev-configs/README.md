@@ -19,7 +19,7 @@ project that still runs ESLint and Prettier installs `eslint prettier` and skips
 Each tool takes one file. IGNIS keeps them in a `.configs/` folder and passes `-c` to each tool.
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
@@ -27,7 +27,7 @@ export default defineConfig(oxlintConfigs);
 ```
 
 ```typescript
-// .configs/oxfmt.config.mts
+// .configs/formatters/oxfmt.config.mts
 import { defineConfig } from 'oxfmt';
 import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
 
@@ -35,16 +35,16 @@ export default defineConfig(oxfmtConfigs);
 ```
 
 ```typescript
-// .configs/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
+// .configs/lints/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
 import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default houseConfigs;
 ```
 
 ```bash
-oxlint -c .configs/oxlint.config.mts --deny-warnings
-eslint -c .configs/eslint.config.mjs .
-oxfmt -c .configs/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
+eslint -c .configs/lints/eslint.config.mjs .
+oxfmt -c .configs/formatters/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
 `tsconfig.json` stays at the project root. Bun, the editor and oxlint's type-aware engine only find it
@@ -157,7 +157,7 @@ Not ported:
 where `''` and `0` fall back on purpose opts out in one line:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { OxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
@@ -211,7 +211,7 @@ Types: `TRuleSeverity`, `TOxlintRuleEntry`, `TNamingSelector`, `IRestrictedImpor
 Replace a rule by key. This makes `==` an error everywhere and bans one more import:
 
 ```typescript
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import {
   EqeqeqRule,
@@ -312,7 +312,7 @@ plain-http origin or in a WebView, the method is `undefined`. Use this preset fo
 does not use React.
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { BrowserOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
@@ -325,13 +325,13 @@ The oxlint version of the React preset. oxlint runs the React, hooks and `jsx-a1
 nothing is passed in. Pair it with `reactNamingConventionConfigs` on the ESLint side:
 
 ```ts
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 import { defineConfig } from 'oxlint';
 import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 
 export default defineConfig(ReactOxlintConfigs.create());
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 
 export default reactNamingConventionConfigs;
@@ -371,10 +371,10 @@ Makefile can set `LINT_IGNORE` instead (`make/project.mk` passes it as `--ignore
 // .configs/lint-ignore.mjs
 export const LINT_IGNORE = ['src/components/shadcn/**', 'dev-dist/**'];
 
-// .configs/oxlint.config.mts
+// .configs/lints/oxlint.config.mts
 export default defineConfig(ReactOxlintConfigs.create({ ignore: LINT_IGNORE }));
 
-// .configs/eslint.config.mjs
+// .configs/lints/eslint.config.mjs
 export default [LintIgnore.eslint({ patterns: LINT_IGNORE }), ...reactHouseConfigs];
 ```
 

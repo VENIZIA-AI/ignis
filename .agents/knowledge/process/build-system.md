@@ -47,7 +47,7 @@ tags: [process, build]
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
    rebuild`), `force-update` and, for `boot`, `test`. Examples keep their own scripts.
 5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
-   (default `.configs/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
+   (default `.configs/builders/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
    tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
    `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
    `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
@@ -55,20 +55,20 @@ tags: [process, build]
    diagnostics as `tsc --noEmit`, about 10x faster), then
    the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)
    and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
-   aliases. Every ESM pass runs `tsc -p .configs/tsconfig.esm.json`, then `tsc-alias` with
+   aliases. Every ESM pass runs `tsc -p .configs/builders/tsconfig.esm.json`, then `tsc-alias` with
    `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
    then `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with
    `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
    as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
-   `*.tsbuildinfo` and `.configs/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
+   `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
    (generated files, bundles) sets `LINT_IGNORE := src/generated.ts dev-dist/**` before the include:
    `--ignore-pattern` for oxlint and ESLint, `"!<glob>"` for oxfmt, all resolved from the package root
    (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
    package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
-   `inversion` reported 111 for 37 tests until its `.configs/tsconfig.build.json` excluded them.
+   `inversion` reported 111 for 37 tests until its `.configs/builders/tsconfig.build.json` excluded them.
 6. Make stops a recipe at the first failing command, and every package's tsconfig inherits
    `noEmitOnError: true` from `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error
    anywhere aborts the build and the closing `DONE | Build completed successfully!` never prints.
@@ -133,10 +133,10 @@ tags: [process, build]
     the packed tarball, not the registry. One blind spot remains: a granted peer brings its own
     required peers (granting `@hono/zod-openapi` also installs `hono`), so the gate cannot see a
     leak of such a transitive peer into the entry it was granted to.
-13. **Apps share one script standard**, backend or frontend: the examples and the preset of
-    `presets/ignis`. `server:dev` runs the app (`NODE_ENV=development bun run
+13. **Apps share one script standard**, backend or frontend: the examples and the app preset of
+    `presets/app`. `server:dev` runs the app (`NODE_ENV=development bun run
     src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
-    `bun check`, `lint` and `lint:fix` are `sh scripts/lint.sh [--fix]`, `test` is `bun test` and `clean`
+    `bun check`, `lint` and `lint:fix` are `devz lint [--fix]`, `test` is `bun test` and `clean`
     is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
     `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The logic
     lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs

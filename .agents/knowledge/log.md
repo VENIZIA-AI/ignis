@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - devz lint, .configs split by job, the lib preset
+
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [monorepo layout](/overview/monorepo-layout.md) and the gotchas.
+
+- `@venizia/dev-configs` ships `devz lint [--fix] [files]`; presets and examples call it, and `scripts/lint.sh` is gone.
+- Every `.configs/` splits into `lints/`, `formatters/` and `builders/`; `.configs/lints/.ignore` and `.configs/formatters/.ignore` reach the tools as command-line patterns, because a config in `.configs/` cannot ignore a project path.
+- The preset template is `presets/app` and `presets/lib`, built to `dist/vulcan-preset/app` and `dist/vulcan-preset/lib` (`vulcan.preset`, `vulcan.lib`).
+
 ## 2026-10-20 - Vite dev: auto module and name pinning match query ids
 
 Updated nothing else - a fix in the Vite plugin.

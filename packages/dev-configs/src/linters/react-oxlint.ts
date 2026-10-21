@@ -17,7 +17,7 @@ const SOURCE_FILES = ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', 
  * `exhaustive-deps` is an error. Takes the same options as `OxlintConfigs`.
  *
  * ```ts
- * // .configs/oxlint.config.mts
+ * // .configs/lints/oxlint.config.mts
  * import { defineConfig } from 'oxlint';
  * import { ReactOxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
  *

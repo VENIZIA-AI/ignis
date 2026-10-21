@@ -1,0 +1,2 @@
+# Seed scripts are one-off data loaders.
+scripts/seed-*.ts
