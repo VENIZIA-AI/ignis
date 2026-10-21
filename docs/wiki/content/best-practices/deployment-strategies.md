@@ -61,7 +61,7 @@ The commit is required: the root `.dockerignore` leaves `.git` out, so the [buil
 
 | Build argument | Meaning |
 |---|---|
-| `APP_BUILD_COMMIT` | Required. The commit the build stamp and the image label carry |
+| `APP_BUILD_COMMIT` | Required: a hex commit sha of 7 characters or more. The build stamp and the image label carry it. The literal `HEAD` that `git rev-parse HEAD` prints before a first commit is refused |
 | `APP_BUILD_BRANCH`, `APP_BUILD_VERSION` | Optional. Read by the build stamp like the commit |
 | `BUN_CONFIG_REGISTRY` | Optional. A private npm mirror for `bun install` |
 

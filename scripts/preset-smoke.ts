@@ -50,7 +50,9 @@ const LIB = 'billing';
 const LIB_DIR = 'libs';
 const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
 /** Exported while the app compiles; the stamp keeps 12 characters of a commit, so this is exactly 12. */
-const STAMP_COMMIT = 'smokebuild01';
+const STAMP_COMMIT = 'c0ffee5e7123';
+/** The .ignore files every app and lib ships, comment lines only. */
+const IGNORE_FILES = ['.configs/lints/.ignore', '.configs/formatters/.ignore'];
 const BINARY = 'dist/bin';
 
 let stepNumber = 0;
@@ -223,11 +225,17 @@ const assertScaffold = (opts: { appDir: string }): void => {
     throw new Error('[preset-smoke] _env.example was not renamed to .env.example');
   }
 
-  if (example.trim() !== `PORT=${DEV_PORT}`) {
-    throw new Error(
-      `[preset-smoke] .env.example holds ${JSON.stringify(example)}, expected PORT=${DEV_PORT}`,
-    );
+  for (const line of [
+    `APP_ENV_SERVER_PORT=${DEV_PORT}`,
+    `APP_ENV_APPLICATION_NAME=${APP}`,
+    'APP_ENV_LOGGER_LEVEL=',
+  ]) {
+    if (!example.split('\n').some(entry => entry.startsWith(line))) {
+      throw new Error(`[preset-smoke] .env.example has no ${line} line`);
+    }
   }
+
+  assertIgnoreFiles({ dir: opts.appDir });
 
   if (!application.includes(`?? '${DEV_PORT}'`)) {
     throw new Error(`[preset-smoke] src/application.ts did not get the dev port ${DEV_PORT}`);
@@ -239,7 +247,27 @@ const assertScaffold = (opts: { appDir: string }): void => {
 };
 
 /** A lib is imported, never run: exports to src, ignis as a peer, and no app script. */
+/** The .ignore files exist and hold no active pattern, so they change nothing until someone adds one. */
+const assertIgnoreFiles = (opts: { dir: string }): void => {
+  for (const file of IGNORE_FILES) {
+    const path = join(opts.dir, file);
+
+    if (!existsSync(path)) {
+      throw new Error(`[preset-smoke] ${path} is missing`);
+    }
+
+    const active = readFileSync(path, 'utf8')
+      .split('\n')
+      .filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
+
+    if (active.length > 0) {
+      throw new Error(`[preset-smoke] ${path} ships an active pattern: ${active.join(', ')}`);
+    }
+  }
+};
+
 const assertLibrary = (opts: { libDir: string }): void => {
+  assertIgnoreFiles({ dir: opts.libDir });
   const manifest = JSON.parse(readFileSync(join(opts.libDir, 'package.json'), 'utf8'));
   const scripts = Object.keys(manifest.scripts ?? {}).sort();
   const leftovers = findLeftoverTokens({ folder: opts.libDir });
@@ -387,6 +415,20 @@ const assertDockerImage = async (opts: { projectDir: string }): Promise<void> =>
     throw new Error('[preset-smoke] docker build passed without APP_BUILD_COMMIT; it must refuse');
   }
 
+  // What git rev-parse HEAD prints before a first commit: not a commit, so refused too.
+  const notCommit = Bun.spawnSync({
+    cmd: [...build, '--build-arg', 'APP_BUILD_COMMIT=HEAD', '.'],
+    cwd: opts.projectDir,
+    stdout: 'ignore',
+    stderr: 'ignore',
+  });
+
+  if (notCommit.exitCode === 0) {
+    throw new Error(
+      '[preset-smoke] docker build passed with APP_BUILD_COMMIT=HEAD; it must refuse',
+    );
+  }
+
   await run({ command: [...build, ...buildArgs], cwd: opts.projectDir });
   await assertBuilderClean({ projectDir: opts.projectDir, dockerfile, buildArgs });
   const port = await findFreePort();
@@ -529,10 +571,14 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
   await run({ command: ['bun', 'install'], cwd: projectDir });
   await run({ command: ['bun', 'x', 'vulcan', 'sync'], cwd: projectDir });
 
-  step({ label: 'the app: typecheck, lint, test' });
+  step({ label: 'the app: typecheck, lint, test, then test again with .env.example as its .env' });
   for (const check of ['typecheck', 'lint', 'test']) {
     await run({ command: ['bun', 'run', check], cwd: appDir });
   }
+  // Every value .env.example ships must load: bun reads .env on start.
+  copyFileSync(join(appDir, '.env.example'), join(appDir, '.env'));
+  await run({ command: ['bun', 'run', 'test'], cwd: appDir });
+  rmSync(join(appDir, '.env'));
 
   step({ label: 'the app: compile, and the build stamp is baked into the binary' });
   await run({

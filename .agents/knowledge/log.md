@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - the app preset lists its APP_ENV keys and ships its .ignore files
+
+Updated nothing else - preset files only.
+
+- `.env.example` names the application, server and logger keys the framework reads; the app reads `HOST`/`APP_ENV_SERVER_HOST` and `PORT`/`APP_ENV_SERVER_PORT` before its defaults. The `.ignore` files ship comment-only; the image requires a hex commit sha.
+
 ## 2026-10-21 - the atlas server is registered as atlas
 
 Updated the [index](/index.md) and [updating the wiki](/process/updating-the-wiki.md).
