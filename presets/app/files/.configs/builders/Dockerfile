@@ -1,5 +1,7 @@
 # {{app}}: a compiled IGNIS binary on Alpine. Build from the project root:
-#   docker build -f {{appPath}}/.configs/builders/Dockerfile -t {{app}} .
+#   docker build -f {{appPath}}/.configs/builders/Dockerfile -t {{app}} \
+#     --build-arg APP_BUILD_COMMIT="$(git rev-parse HEAD)" \
+#     --build-arg APP_BUILD_BRANCH="$(git rev-parse --abbrev-ref HEAD)" .
 # The whole project is the build context (trimmed by the root .dockerignore), because the preset
 # cannot know which workspace packages the app imports. List them by hand for better layer caching.
 
@@ -18,6 +20,13 @@ USER bun
 # -------------------------------------------------------------------------------
 FROM base AS builder
 
+# The image has no .git, so the build stamp reads the commit and the branch from these. A build
+# without the commit stops here: an image must always say which commit it runs.
+ARG APP_BUILD_COMMIT=
+ARG APP_BUILD_BRANCH=
+ARG APP_BUILD_VERSION=
+RUN test -n "$APP_BUILD_COMMIT" || { echo "Pass --build-arg APP_BUILD_COMMIT=\$(git rev-parse HEAD)" >&2; exit 1; }
+
 COPY --chown=bun . .
 RUN bun install --frozen-lockfile --ignore-scripts
 
@@ -29,6 +38,9 @@ RUN BUN_TARGET="bun-linux-$([ "$(uname -m)" = aarch64 ] && echo arm64 || echo x6
 # Production stage: the binary alone
 # -------------------------------------------------------------------------------
 FROM docker.io/alpine:3.21 AS production
+
+ARG APP_BUILD_COMMIT=
+LABEL org.opencontainers.image.revision="${APP_BUILD_COMMIT}"
 
 # A Bun binary links libstdc++ and libgcc dynamically on musl.
 COPY --from=builder /usr/lib/libstdc++.so.6* /usr/lib/

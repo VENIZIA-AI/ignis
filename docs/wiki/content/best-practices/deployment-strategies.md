@@ -10,9 +10,9 @@ Compile the application to one executable before deploying:
 bun run compile
 ```
 
-**What this does:** `scripts/compile.sh` runs `compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin and bakes in the build stamp. See [Stamping a build](/guides/core-concepts/application/build-info).
+**What this does:** `bun .configs/builders/compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin and bakes in the build stamp. See [Stamping a build](/guides/core-concepts/application/build-info).
 
-**Output:** `dist/bin`, a standalone binary for `bun-linux-x64`. Set `BUN_TARGET` to build for another target. `bun run clean` removes `dist/`.
+**Output:** `dist/bin`, a standalone binary for `bun-linux-x64`. Set `BUN_TARGET` to build for another target, such as `bun-linux-x64-musl` for Alpine. `bun run clean` (`devz clean`) removes `dist/`.
 
 ## 2. Environment Configuration
 
@@ -42,45 +42,30 @@ Use environment variables for all configuration - never hard-code.
 
 ### Docker Deployment (Recommended)
 
-**Dockerfile:**
-Two stages: the build needs devDependencies (`@venizia/dev-configs`), the runtime needs none because the binary carries its dependencies.
+An app created by `vulcan add --preset ignis --app <name>` already has its Dockerfile, in `.configs/builders/Dockerfile`. Build it from the project root, and pass the commit:
 
-```dockerfile
-# --- Build stage ---
-FROM oven/bun:1-slim AS builder
-
-WORKDIR /usr/src/app
-
-COPY package.json bun.lock ./
-# All deps, including dev - `--production` would omit the compiler and the build would fail
-RUN bun install --frozen-lockfile
-
-COPY . .
-RUN bun run compile
-
-# --- Runtime stage ---
-FROM debian:bookworm-slim
-
-WORKDIR /usr/src/app
-
-COPY --from=builder /usr/src/app/dist/bin ./bin
-
-EXPOSE 3000
-
-CMD [ "./bin" ]
-```
-
-**Build and deploy:**
 ```bash
-# Build image
-docker build -t my-ignis-app .
+docker build -f services/api/.configs/builders/Dockerfile -t api \
+  --build-arg APP_BUILD_COMMIT="$(git rev-parse HEAD)" \
+  --build-arg APP_BUILD_BRANCH="$(git rev-parse --abbrev-ref HEAD)" .
 
-# Run container
-docker run -p 3000:3000 \
-  -e NODE_ENV=production \
-  -e APP_ENV_APPLICATION_SECRET=xxx \
-  my-ignis-app
+docker run -p 3000:3000 -e NODE_ENV=production -e APP_ENV_APPLICATION_SECRET=xxx api
 ```
+
+The commit is required: the root `.dockerignore` leaves `.git` out, so the [build stamp](/guides/core-concepts/application/build-info) cannot read it inside the image. A build without `APP_BUILD_COMMIT` stops with the command to run. The commit also lands in the image's `org.opencontainers.image.revision` label, so `docker inspect` shows it.
+
+| Stage | What it does |
+|---|---|
+| `builder` | `oven/bun:1.4.3-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
+| `production` | `alpine:3.21` with the binary, `libstdc++` and `libgcc`, run as a non-root user on the app's port |
+
+| Build argument | Meaning |
+|---|---|
+| `APP_BUILD_COMMIT` | Required. The commit the build stamp and the image label carry |
+| `APP_BUILD_BRANCH`, `APP_BUILD_VERSION` | Optional. Read by the build stamp like the commit |
+| `BUN_CONFIG_REGISTRY` | Optional. A private npm mirror for `bun install` |
+
+The build context is the whole project, trimmed by the root `.dockerignore` that `vulcan init` writes, because the preset cannot know which workspace packages the app imports. For better layer caching, copy only the `package.json` files and folders the app needs, then install.
 
 ### Docker Compose (Full Stack)
 

@@ -7,8 +7,10 @@
  *   VULCAN_CMD  how to run VULCAN (default `bun x @venizia/vulcan@latest`)
  *   VULCAN_TGZ  comma-separated packed VULCAN tarballs, installed in place of the registry copies
  *               while the version `init --preset` needs is not on npm
+ *   SMOKE_DOCKER=1  also builds the app image from .configs/builders/Dockerfile and runs it (needs docker)
  */
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -18,7 +20,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 const DEFAULT_VULCAN_CMD = 'bun x @venizia/vulcan@latest';
 const PROJECT = 'demo';
@@ -28,7 +30,20 @@ const DEV_PORT = '3000';
 const HELLO_BODY = { message: 'Hello from IGNIS!' };
 const SERVER_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
-const TOTAL_STEPS = 13;
+const DOCKER = process.env.SMOKE_DOCKER === '1';
+const TOTAL_STEPS = DOCKER ? 14 : 13;
+const IMAGE = 'ignis-preset-smoke';
+/** Everything an app root may hold: the rest lives in .configs/ or src/. */
+const APP_ROOT_ENTRIES = new Set([
+  '.configs',
+  '.env.example',
+  'dist',
+  'node_modules',
+  'package.json',
+  'src',
+  'tsconfig.json',
+]);
+const VENDOR_DIR = 'vendor';
 const LIB = 'billing';
 const LIB_DIR = 'libs';
 const LIB_SCRIPTS = ['clean', 'lint', 'lint:fix', 'test', 'typecheck'];
@@ -192,6 +207,11 @@ const findLeftoverTokens = (opts: { folder: string }): string[] => {
 };
 
 const assertScaffold = (opts: { appDir: string }): void => {
+  const extra = readdirSync(opts.appDir).filter(entry => !APP_ROOT_ENTRIES.has(entry));
+  if (extra.length > 0) {
+    throw new Error(`[preset-smoke] the app root holds more than it may: ${extra.join(', ')}`);
+  }
+
   const hasUnrenamed = readdirSync(opts.appDir).includes('_env.example');
   const example = readFileSync(join(opts.appDir, '.env.example'), 'utf8');
   const application = readFileSync(join(opts.appDir, 'src/application.ts'), 'utf8');
@@ -240,6 +260,115 @@ const assertLibrary = (opts: { libDir: string }): void => {
 
   if (leftovers.length > 0) {
     throw new Error(`[preset-smoke] unreplaced {{ tokens in the lib: ${leftovers.join(', ')}`);
+  }
+};
+
+/** Polls GET /api/hello on a port until it answers the hello body, or the deadline passes. */
+const waitForHello = async (opts: { port: number }): Promise<unknown> => {
+  const deadline = Date.now() + SERVER_TIMEOUT_MS;
+  let body: unknown;
+
+  while (Date.now() < deadline && body === undefined) {
+    body = await fetch(`http://127.0.0.1:${opts.port}/api/hello`).then(
+      response => (response.ok ? response.json() : undefined),
+      () => undefined,
+    );
+
+    if (body === undefined) {
+      await Bun.sleep(POLL_INTERVAL_MS);
+    }
+  }
+
+  return body;
+};
+
+/**
+ * The image from the app's .configs/builders/Dockerfile, built from the project root: refused when no
+ * commit is passed (the image has no .git), then built with one, carrying it in its OCI label and in
+ * the binary, and answering /api/hello from a container.
+ */
+const assertDockerImage = async (opts: { projectDir: string }): Promise<void> => {
+  const dockerfile = join(BACKEND_DIR, APP, '.configs', 'builders', 'Dockerfile');
+  const build = ['docker', 'build', '-q', '-f', dockerfile, '-t', IMAGE];
+  const refused = Bun.spawnSync({
+    cmd: [...build, '.'],
+    cwd: opts.projectDir,
+    stdout: 'ignore',
+    stderr: 'ignore',
+  });
+
+  if (refused.exitCode === 0) {
+    throw new Error('[preset-smoke] docker build passed without APP_BUILD_COMMIT; it must refuse');
+  }
+
+  await run({
+    command: [
+      ...build,
+      '--build-arg',
+      `APP_BUILD_COMMIT=${STAMP_COMMIT}`,
+      '--build-arg',
+      'APP_BUILD_BRANCH=smoke',
+      '.',
+    ],
+    cwd: opts.projectDir,
+  });
+  const port = await findFreePort();
+
+  try {
+    const label = await run({
+      command: [
+        'docker',
+        'inspect',
+        '--format',
+        '{{ index .Config.Labels "org.opencontainers.image.revision" }}',
+        IMAGE,
+      ],
+      cwd: opts.projectDir,
+    });
+
+    if (label.trim() !== STAMP_COMMIT) {
+      throw new Error(
+        `[preset-smoke] the image label holds ${JSON.stringify(label.trim())}, expected ${STAMP_COMMIT}`,
+      );
+    }
+
+    await run({
+      command: [
+        'docker',
+        'run',
+        '--rm',
+        '--entrypoint',
+        'grep',
+        IMAGE,
+        '-c',
+        STAMP_COMMIT,
+        './bin',
+      ],
+      cwd: opts.projectDir,
+    });
+    await run({
+      command: [
+        'docker',
+        'run',
+        '-d',
+        '--name',
+        IMAGE,
+        '-p',
+        `127.0.0.1:${port}:${DEV_PORT}`,
+        IMAGE,
+      ],
+      cwd: opts.projectDir,
+    });
+    const body = await waitForHello({ port });
+
+    if (JSON.stringify(body) !== JSON.stringify(HELLO_BODY)) {
+      throw new Error(
+        `[preset-smoke] the container answered ${JSON.stringify(body)} | Expected: ${JSON.stringify(HELLO_BODY)}`,
+      );
+    }
+  } finally {
+    Bun.spawnSync({ cmd: ['docker', 'rm', '-f', IMAGE], stdout: 'ignore', stderr: 'ignore' });
+    Bun.spawnSync({ cmd: ['docker', 'rmi', '-f', IMAGE], stdout: 'ignore', stderr: 'ignore' });
   }
 };
 
@@ -292,13 +421,25 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     env: { VULCAN_NO_INSTALL: '1' },
   });
 
-  step({ label: 'point every @venizia/* package at its packed tarball' });
+  step({
+    label: 'point every @venizia/* package at its packed tarball, vendored inside the project',
+  });
+  // Inside the project, with relative paths, so a docker build of the project sees them too.
+  const vendorDir = join(projectDir, VENDOR_DIR);
+  mkdirSync(vendorDir);
+  const vendor = (opts: { tarball: string }): string => {
+    const target = join(vendorDir, basename(opts.tarball));
+    copyFileSync(opts.tarball, target);
+    return `file:./${VENDOR_DIR}/${basename(opts.tarball)}`;
+  };
   const overrides = Object.fromEntries(
-    [...tarballs].map(([name, tarball]) => [name, `file:${tarball}`]),
+    [...tarballs].map(([name, tarball]) => [name, vendor({ tarball })]),
   );
 
   for (const tarball of (process.env.VULCAN_TGZ ?? '').split(',').filter(Boolean)) {
-    overrides[await readTarballName({ tarball, cwd: opts.scratch })] = `file:${resolve(tarball)}`;
+    overrides[await readTarballName({ tarball, cwd: opts.scratch })] = vendor({
+      tarball: resolve(tarball),
+    });
   }
 
   const manifestFile = join(projectDir, 'package.json');
@@ -369,6 +510,13 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
     await run({ command: ['bun', 'run', check], cwd: libDir });
   }
   assertLibrary({ libDir });
+
+  if (DOCKER) {
+    step({
+      label: 'the app image: refused without a commit, then built, labelled, serving /api/hello',
+    });
+    await assertDockerImage({ projectDir });
+  }
 };
 
 if (import.meta.main) {
