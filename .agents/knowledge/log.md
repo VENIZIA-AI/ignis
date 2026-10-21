@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - every floor at its latest non-major; tsc-alias pinned 1.9.4
+
+Updated [gotchas](/conventions/gotchas.md).
+
+- 86 floors raised across 13 package.json (bun outdated hides a floor the lockfile already satisfies). tsc-alias held at 1.9.4: 1.9.8 rewrites bare package subpaths. dev-configs build marks the devz bin executable.
+
 ## 2026-10-21 - the repository runs VULCAN 0.3.9; .mcp.json is per machine
 
 Updated the [index](/index.md), [monorepo layout](/overview/monorepo-layout.md) and [updating the wiki](/process/updating-the-wiki.md).

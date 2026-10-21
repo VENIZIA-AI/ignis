@@ -88,11 +88,11 @@
     "reflect-metadata": "catalog:"
   },
   "peerDependencies": {
-    "@hono/zod-openapi": "^1.5.1",
+    "@hono/zod-openapi": "^1.6.3",
     "casbin": "^5.51.1",
-    "drizzle-orm": "^0.45.2",
-    "hono": "^4.12.30",
-    "jose": "^6.2.3"
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
+    "jose": "^6.2.13"
   },
   "peerDependenciesMeta": {
     "@hono/zod-openapi": {
