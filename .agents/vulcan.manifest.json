@@ -1,4 +1,5 @@
 {
+  "$generated": "by vulcan sync from .configs/vulcan.config.* - do not edit",
   "schemaVersion": 1,
   "name": "ignis",
   "packages": [
@@ -117,10 +118,12 @@
       "V-P-04": "ed62089c",
       "V-P-05": "86732f8b",
       "V-P-06": "248b065d",
+      "V-P-07": "8b1921d7",
       "V-B-01": "1fb02376",
       "V-B-02": "807709f8",
       "V-B-03": "da8e7490",
       "V-B-04": "6acb67ab",
+      "V-B-05": "0fb5ac40",
       "V-C-01": "ae67ab67",
       "V-C-02": "caff2ff9",
       "V-C-04": "bb21d93f",

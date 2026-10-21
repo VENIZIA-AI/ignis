@@ -12,7 +12,7 @@ tags: [process, docs, wiki]
    from markdown under `content/`. It lives at top-level `docs/wiki/` (sibling of `packages/`,
    package name `@venizia/ignis-docs`), not inside `packages/`. The MCP server that reads this same
    content is VULCAN's atlas (`@venizia/vulcan-atlas`, run in this repo as
-   `bun x --no-install vulcan x atlas mcp`, registered in `.mcp.json` as `ignis-atlas`) - `docs/wiki`
+   `bun x --no-install vulcan x atlas mcp`, registered in `.mcp.json` as `atlas`) - `docs/wiki`
    no longer ships one itself. This `.agents/knowledge/` bundle
    (what this file is part of) is a separate, agent-facing artifact - editing one does not update
    the other.

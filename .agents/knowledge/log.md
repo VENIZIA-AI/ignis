@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-21 - the atlas server is registered as atlas
+
+Updated the [index](/index.md) and [updating the wiki](/process/updating-the-wiki.md).
+
+- `.mcp.json` holds the canonical entry VULCAN writes (name `atlas`, `--root .`), the name the managed Claude settings enable; the repository runs VULCAN 0.3.7.
+
 ## 2026-10-21 - devz lint, .configs split by job, the lib preset
 
 Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [release and publish](/process/release-publish.md), [monorepo layout](/overview/monorepo-layout.md) and the gotchas.
