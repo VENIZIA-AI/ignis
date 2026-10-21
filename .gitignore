@@ -128,3 +128,4 @@ docs/generate
 
 # Scratch directory a connectors type test creates and removes; left behind if the run is killed.
 packages/connectors/src/__tests__/.type-probe-*/
+.agents/vulcan.local.json
