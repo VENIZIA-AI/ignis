@@ -18,7 +18,7 @@
     "migrate:generate": "drizzle-kit generate --config=src/migration.ts"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite": "^0.5.10",
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
     "@venizia/ignis": "workspace:*",

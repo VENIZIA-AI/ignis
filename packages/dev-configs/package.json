@@ -112,17 +112,17 @@
   "dependencies": {
     "@eslint/js": "^10.0.1",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-n": "^18.2.1",
-    "eslint-plugin-prettier": "^5.5.6",
+    "eslint-plugin-n": "^18.5.0",
+    "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-unicorn": "^74.0.0",
     "typescript-eslint": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
-    "oxfmt": ">=0.73.0",
-    "oxlint": ">=1.88.0",
+    "oxfmt": ">=0.74.0",
+    "oxlint": ">=1.89.0",
     "oxlint-tsgolint": ">=7.0.2004",
-    "prettier": "^3.0.0",
+    "prettier": "^3.9.10",
     "typescript": "^5.0.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {

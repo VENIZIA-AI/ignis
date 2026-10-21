@@ -71,8 +71,8 @@
     "reflect-metadata": "catalog:"
   },
   "peerDependencies": {
-    "@hono/zod-openapi": "^1.5.1",
-    "hono": "^4.12.30"
+    "@hono/zod-openapi": "^1.6.3",
+    "hono": "^4.13.13"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

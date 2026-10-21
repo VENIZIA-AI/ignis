@@ -638,6 +638,8 @@ tsc-alias resolves `paths` against the directory of the file it reads. Pointed a
 resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still
 reports success.
 
+Pinned exact `1.9.4`. 1.9.8 `--resolve-full-paths` also rewrites bare package subpaths: `'drizzle-orm/pg-core'` -> `'drizzle-orm/pg-core/index.js'`, rejected by the exports map. Build green, 66 core-server tests red. Check: `grep -rhoE "from '[a-z@][^'.]*/[^']*/index\.js'" packages/*/dist` finds 0.
+
 ## A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing
 
 `incremental` writes the cache next to the build tsconfig, so it now lands in `.configs/`. A stale
