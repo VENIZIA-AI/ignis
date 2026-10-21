@@ -71,7 +71,7 @@ Create `tsconfig.json` in your project root:
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false
   },
-  "include": ["src", "scripts"],
+  "include": ["src", ".configs/builders"],
   "exclude": ["node_modules", "dist"]
 }
 ```
@@ -400,12 +400,12 @@ Add the standard application scripts to your `package.json`:
 ```json
 "scripts": {
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "compile": "sh scripts/compile.sh",
+    "compile": "bun .configs/builders/compile.ts",
     "typecheck": "bun check",
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",
     "test": "bun test",
-    "clean": "sh scripts/clean.sh"
+    "clean": "devz clean"
 }
 ```
 
@@ -413,18 +413,10 @@ Add the standard application scripts to your `package.json`:
 
 `devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and oxfmt with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 
-A script that runs more than one command lives in `scripts/`. `scripts/compile.sh` builds the binary through `compile.ts`:
-
-```sh
-#!/usr/bin/env sh
-set -eu
-cd "$(dirname "$0")/.."
-
-bun scripts/compile.ts
-```
+`devz clean` removes `dist` and the tool caches. The compile logic lives in `.configs/builders/compile.ts`, beside the other build settings, so the app root keeps only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`:
 
 ```typescript
-// scripts/compile.ts
+// .configs/builders/compile.ts
 import { BunCompiler } from '@venizia/dev-configs/compilers';
 import { IgnisArtifactsPlugin } from '@venizia/ignis-boot/bun';
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
@@ -437,15 +429,7 @@ await BunCompiler.compile({
 });
 ```
 
-And `scripts/clean.sh`:
-
-```sh
-#!/usr/bin/env sh
-set -eu
-cd "$(dirname "$0")/.."
-
-rm -rf dist node_modules/.cache
-```
+Add `.configs/builders` to the `include` of `tsconfig.json`, so `bun check` type-checks the compile script too.
 
 Now, start your application:
 

@@ -27,7 +27,7 @@ You can pass the same names as flags for scripts: `--project`, `--backend-dir`, 
 
 The command runs these steps in order:
 
-- Writes the monorepo.
+- Writes the monorepo, with a root `.dockerignore` that keeps `.env` files out of every image.
 - Installs dependencies.
 - Copies the IGNIS app.
 - Sets up the agent files.
@@ -51,32 +51,40 @@ Note: the app serves under `/api`.
 
 ## 3. What it created
 
-The command produces this tree:
+The command produces this tree, plus the files of the coding agents on your machine (`CLAUDE.md` and `.claude/` for Claude Code), which VULCAN keeps out of git:
 
 ```text
 ./.agents/knowledge/index.md
 ./.agents/knowledge/log.md
 ./.agents/knowledge/packages/core-api.md
-./AGENTS.md
 ./.agents/rules.md
+./.agents/vulcan.manifest.json
 ./.configs/vulcan.config.mts
+./.dockerignore
 ./.gitignore
-./Makefile
 ./.mcp.json
-./package.json
+./AGENTS.md
+./Makefile
 ./README.md
-./services/core-api/.configs/lints/eslint.config.mjs
+./bun.lock
+./package.json
+./services/core-api/.configs/builders/Dockerfile
+./services/core-api/.configs/builders/compile.ts
+./services/core-api/.configs/formatters/.ignore
 ./services/core-api/.configs/formatters/oxfmt.config.mts
+./services/core-api/.configs/lints/.ignore
+./services/core-api/.configs/lints/eslint.config.mjs
 ./services/core-api/.configs/lints/oxlint.config.mts
 ./services/core-api/.env.example
 ./services/core-api/package.json
-./services/core-api/README.md
 ./services/core-api/src/application.ts
 ./services/core-api/src/controllers/hello.controller.ts
 ./services/core-api/src/index.ts
 ./services/core-api/src/smoke.test.ts
 ./services/core-api/tsconfig.json
 ```
+
+The app root holds only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`. Every other setting lives in `.configs/`: `lints/` for oxlint and ESLint, `formatters/` for oxfmt, `builders/` for the compile script and the Dockerfile.
 
 Important files:
 
@@ -126,9 +134,44 @@ export class HelloController extends BaseRestController {
 
 - `services/core-api/src/index.ts` - initializes and starts the application.
 - `services/core-api/src/smoke.test.ts` - exercises the running server with an end-to-end smoke test.
-- `services/core-api/.env.example` - documents runtime environment variables such as `PORT`.
+- `services/core-api/.env.example` - lists every `APP_ENV_*` key the app reads (application, server, logger), each with a comment. Copy it to `.env` for a local run: bun loads `.env` on start.
+- `services/core-api/.configs/lints/.ignore`, `.configs/formatters/.ignore` - paths `devz lint` skips, one pattern per line. They ship with comments only.
 - `services/core-api/tsconfig.json` - restates decorator flags because Bun ignores a package-scoped `extends`.
-- `services/core-api/.configs/` - holds lint and format configurations.
+- `services/core-api/.configs/` - holds the lint and format configs and the build files.
+
+The app's scripts are the same in every IGNIS and ARDOR app:
+
+| Script | Runs |
+|---|---|
+| `server:dev` | `NODE_ENV=development bun run src/index.ts` |
+| `compile` | `bun .configs/builders/compile.ts` - one binary, `dist/bin` |
+| `typecheck` | `bun check` |
+| `lint`, `lint:fix` | `devz lint`, `devz lint --fix` |
+| `test` | `bun test` |
+| `clean` | `devz clean` |
+
+## 4. Build the image
+
+The app ships its Dockerfile. Build it from the project root, and pass the commit the image runs:
+
+```bash
+docker build -f services/core-api/.configs/builders/Dockerfile -t core-api \\
+  --build-arg APP_BUILD_COMMIT="$(git rev-parse HEAD)" .
+docker run -p 3000:3000 core-api
+```
+
+The project needs a commit first: `git init && git add -A && git commit -m init`. See [Docker deployment](/best-practices/deployment-strategies#docker-deployment-recommended) for the build arguments.
+
+## 5. Add more apps
+
+Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a shared library:
+
+```bash
+bun x --no-install vulcan add --preset ardor --app web --frontend-dir apps --api core-api
+bun x --no-install vulcan add --preset ignis --lib billing --dir libs
+```
+
+A frontend needs `--api <app>` (the backend it calls) or `--no-api`. Run `vulcan add` with neither `--app` nor `--lib` in a terminal and it asks what to create.
 
 ## Next steps
 

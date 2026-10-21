@@ -31,8 +31,9 @@ LoggerFactory.use({ provider: WinstonLogger });
 export const application = new Application({
   scope: 'Application',
   config: {
-    host: '0.0.0.0',
-    port: Number(process.env.PORT ?? '{{devPort}}'),
+    // Explicit config wins over the server's own env lookup, so it reads the same keys: .env.example lists them.
+    host: process.env.HOST ?? process.env.APP_ENV_SERVER_HOST ?? '0.0.0.0',
+    port: Number(process.env.PORT ?? process.env.APP_ENV_SERVER_PORT ?? '{{devPort}}'),
     path: { base: '/api', isStrict: false },
     artifacts: AutoArtifacts,
   },

@@ -11,7 +11,7 @@ the compile bakes the stamp into the binary, and a run from source resolves it f
 application starts. `GET /health/stats` reports it.
 
 ```typescript
-// scripts/compile.ts - the compile bakes the stamp in
+// .configs/builders/compile.ts - the compile bakes the stamp in
 import { BunCompiler } from '@venizia/dev-configs/compilers';
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 
