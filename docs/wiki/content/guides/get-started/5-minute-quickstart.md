@@ -154,7 +154,7 @@ The app's scripts are the same in every IGNIS and ARDOR app:
 The app ships its Dockerfile. Build it from the project root, and pass the commit the image runs:
 
 ```bash
-docker build -f services/core-api/.configs/builders/Dockerfile -t core-api \\
+docker build -f services/core-api/.configs/builders/Dockerfile -t core-api \
   --build-arg APP_BUILD_COMMIT="$(git rev-parse HEAD)" .
 docker run -p 3000:3000 core-api
 ```
