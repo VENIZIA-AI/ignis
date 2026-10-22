@@ -10,7 +10,7 @@ Compile the application to one executable before deploying:
 bun run compile
 ```
 
-**What this does:** `bun .configs/builders/compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin and bakes in the build stamp. See [Stamping a build](/guides/core-concepts/application/build-info).
+**What this does:** `bun .configs/builders/compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin, bakes in the build stamp and type-checks first (`check: true`): a type error stops the build. See [Stamping a build](/guides/core-concepts/application/build-info).
 
 **Output:** `dist/bin`, a standalone binary for `bun-linux-x64`. Set `BUN_TARGET` to build for another target, such as `bun-linux-x64-musl` for Alpine. `bun run clean` (`devz clean`) removes `dist/`.
 
@@ -290,7 +290,7 @@ Total time:        8.47s
 
 ### Force Update Strategy
 
-Keep dependencies in sync with the NPM registry using each package's force-update script (`packages/<name>/scripts/force-update.sh`, exposed as the `force-update` script in that package):
+Keep dependencies in sync with the NPM registry using the shared `scripts/force-update.sh`, exposed as the `force-update` script in every package:
 
 ```bash
 # Update to latest stable versions (from a package directory)

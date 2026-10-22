@@ -47,10 +47,8 @@ cd packages/core-server && bun test       # the same suite, without those flags
 ```
 
 Every suite is TypeScript sources under the package's `src/__tests__/`, run directly - no compile
-step for the tests, and `.configs/builders/tsconfig.build.json` keeps them out of `dist/`. `NODE_ENV=test` loads the
-package's `.env.test` automatically. Only `boot` defines a `test` script of its own
-(`NODE_ENV=test bun test --env-file=.env.test`); `make test-boot` runs `bun run test` so that
-script stays the single owner of the package's environment.
+step for the tests, and `.configs/builders/tsconfig.build.json` keeps them out of `dist/`. The make target sets `TEST_ENV` (`NODE_ENV=test`, logs in the gitignored `./app_data`); no
+`.env.test` is committed.
 
 `filter` is the only package with no suite of its own - it is covered indirectly through `kernel`
 and `core`. See [testing](/process/testing.md) for the full list of targets.

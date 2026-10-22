@@ -84,8 +84,10 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     return this.client;
   }
 
-  duplicateClient() {
-    return this.client.duplicate();
+  duplicateClient(): TRedisClient {
+    // ioredis 6 types `duplicate` per client; the `Redis | Cluster` union has no callable signature.
+    const duplicable: { duplicate: () => TRedisClient } = this.client;
+    return duplicable.duplicate();
   }
 
   ping() {

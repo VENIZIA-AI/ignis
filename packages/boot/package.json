@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "description": "Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports.",
   "keywords": [
     "artifact-index",
@@ -78,9 +78,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -91,10 +89,9 @@
     "./dist/esm/bun/auto.js"
   ],
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild",
-    "test": "NODE_ENV=test bun test --env-file=.env.test",
-    "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test"
+    "test": "bun test ./src"
   },
   "dependencies": {
     "@venizia/ignis-helpers": "workspace:*",

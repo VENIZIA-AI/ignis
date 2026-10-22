@@ -470,9 +470,27 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-22',
+              collapsed: true,
+              items: [
+                {
+                  text: 'tsconfig Follows Bun',
+                  link: '/changelogs/2026-10-22-bun-tsconfig',
+                },
+                {
+                  text: 'Dependencies at Their Latest',
+                  link: '/changelogs/2026-10-22-dependencies-latest',
+                },
+              ],
+            },
+            {
               text: '2026-10-21',
               collapsed: true,
               items: [
+                {
+                  text: 'BunCompiler Compiles Bun Workers',
+                  link: '/changelogs/2026-10-21-bun-compiler-workers',
+                },
                 {
                   text: 'The App Preset Lists Its Environment Keys',
                   link: '/changelogs/2026-10-21-preset-env-example-and-ignore',

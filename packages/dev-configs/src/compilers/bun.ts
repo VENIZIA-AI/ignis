@@ -12,23 +12,29 @@ export class BunCompiler {
   static async compile(
     opts: {
       entrypoint?: string;
+      /** Bun Worker files the entrypoint starts (`new Worker('./x.worker.ts')`): compiled into the same binary. */
+      workers?: string[];
       outfile?: string;
       target?: string;
       plugins?: Bun.BunPlugin[];
       /** Compile-time constants: each key is replaced by its value, a JSON-encoded expression, wherever the bundle reads it. */
       define?: Record<string, string>;
+      /** Type-check the bundle first; a type error stops the compile. */
+      check?: boolean;
     } = {},
   ): Promise<void> {
     const {
       entrypoint = DEFAULT_ENTRYPOINT,
+      workers = [],
       outfile = DEFAULT_OUTFILE,
       target = Bun.env.BUN_TARGET ?? DEFAULT_COMPILE_TARGET,
       plugins = [],
       define = {},
+      check = false,
     } = opts;
 
     const built = await Bun.build({
-      entrypoints: [entrypoint],
+      entrypoints: [entrypoint, ...workers],
       target: 'bun',
       minify: { whitespace: true, syntax: true },
       sourcemap: 'linked',
@@ -39,6 +45,7 @@ export class BunCompiler {
       },
       define,
       plugins,
+      check,
     });
 
     if (!built.success) {

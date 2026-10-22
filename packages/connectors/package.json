@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
   "engines": {
@@ -112,7 +112,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -120,7 +120,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
@@ -131,16 +131,16 @@
     "zod": "catalog:"
   },
   "peerDependencies": {
-    "@electric-sql/pglite": "^0.5.4",
-    "@hono/zod-openapi": "^1.5.1",
+    "@electric-sql/pglite": "^0.5.10",
+    "@hono/zod-openapi": "^1.6.3",
     "@libsql/client": "^0.17.4",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.8.3",
-    "hono": "^4.12.30",
-    "meilisearch": "^0.59.0 || ^0.60.0",
-    "pg": "^8.21.0",
-    "postgres": "^3.4.0",
-    "typesense": "^3.0.3"
+    "hono": "^4.13.13",
+    "meilisearch": "^0.62.0",
+    "pg": "^8.23.1",
+    "postgres": "^3.4.9",
+    "typesense": "^3.2.0"
   },
   "peerDependenciesMeta": {
     "@electric-sql/pglite": {

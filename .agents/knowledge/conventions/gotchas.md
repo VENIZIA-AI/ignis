@@ -131,6 +131,8 @@ report 32 failures from the root report zero from the package.
 
 Reading a failure list without checking the working directory first has already cost a false alarm.
 
+
+`make test-<pkg>` runs `bun test ./src`. A bare `bun test` in core-server also finds `dist/presets/app/files/src/smoke.test.ts`, the preset template copied by `make preset-build`, and fails. Use the make target or `bun run test`.
 ## An empty dist looks like a hundred unrelated import failures
 
 The build is honest: the `build` target in `make/project.mk` type-checks with `bun check -p
@@ -637,6 +639,8 @@ Build scripts run `tsc-alias -p tsconfig.json --outDir dist/cjs` (ESM: `--outDir
 tsc-alias resolves `paths` against the directory of the file it reads. Pointed at `.configs/`, it
 resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still
 reports success.
+
+Pinned exact `1.9.4`. 1.9.8 `--resolve-full-paths` also rewrites bare package subpaths: `'drizzle-orm/pg-core'` -> `'drizzle-orm/pg-core/index.js'`, rejected by the exports map. Build green, 66 core-server tests red. Check: `grep -rhoE "from '[a-z@][^'.]*/[^']*/index\.js'" packages/*/dist` finds 0.
 
 ## A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing
 

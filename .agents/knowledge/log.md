@@ -6,6 +6,53 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - the preset contract uses vulcan.presets
+
+Updated [release and publish](/process/release-publish.md).
+
+- The repository runs VULCAN 0.3.10.
+- `@venizia/ignis` names its presets in `"vulcan": { "presets": { "app", "lib" } }`; VULCAN 0.3.10 refuses the old `preset` / `lib` keys.
+
+## 2026-10-22 - every package has the same layout; no committed .env.test
+
+Updated [build system](/process/build-system.md), [build, run, test](/overview/build-run-test.md), [testing](/process/testing.md).
+
+- Package root: `.configs/`, `src/`, `package.json`, `tsconfig.json`, `Makefile`, `README.md`, `LICENSE.md`. connectors and core-worker gained the LICENSE.md their `files` listed. One `scripts/force-update.sh` replaces nine copies; the unused `scripts/test.sh` hooks are gone; one `files` list.
+- The built presets live in `packages/core-server/dist/presets/{app,lib}` (was `dist/vulcan-preset`); `vulcan.preset` and `vulcan.lib` point there.
+- `TEST_ENV` in make/test.mk (NODE_ENV=test, logs in ./app_data) replaces the three `.env.test`; rule B-08 now says so.
+
+## 2026-10-22 - tsconfig follows Bun; BunCompiler check
+
+Updated nothing else - the dev-configs bases and presets.
+
+- core-server bunfig.toml removed: every `make test-<pkg>` runs `bun test ./src`. Updated [gotchas](/conventions/gotchas.md).
+- Root bunfig.toml: `telemetry = false` only. No `minimumReleaseAge`: with floors at the latest, a fresh install fails on any floor younger than the gate (measured: 10 packages at 3 days).
+- Base: isolatedModules, moduleDetection force, noImplicitReturns; ignoreDeprecations gone. Browser base: verbatimModuleSyntax. Presets: noEmit. filter and core-worker: noUncheckedIndexedAccess. `BunCompiler.compile({ check })` type-checks before compiling; the app preset sets it. CommonJS emit rules out verbatimModuleSyntax and module Preserve for the packages.
+
+## 2026-10-22 - eight peer majors raised; libsql 0.18 held
+
+Updated nothing else - version floors only.
+
+- Peers: ioredis 6, bullmq 6, nodemailer 10, mailgun.js 14, @scalar/hono-api-reference 0.12, meilisearch 0.62, node-vault 0.13; dev-configs eslint-plugin-unicorn 78. `RedisHelper.duplicateClient` returns `TRedisClient` (ioredis 6 types `duplicate` per client). Held: @libsql/client 0.18 (pool rolls back a raw BEGIN), openapi-react-query 1.0.0 (older than 0.5.4).
+
+## 2026-10-21 - every floor at its latest non-major; tsc-alias pinned 1.9.4
+
+Updated [gotchas](/conventions/gotchas.md).
+
+- 86 floors raised across 13 package.json (bun outdated hides a floor the lockfile already satisfies). tsc-alias held at 1.9.4: 1.9.8 rewrites bare package subpaths. dev-configs build marks the devz bin executable.
+
+## 2026-10-21 - the repository runs VULCAN 0.3.9; .mcp.json is per machine
+
+Updated the [index](/index.md), [monorepo layout](/overview/monorepo-layout.md) and [updating the wiki](/process/updating-the-wiki.md).
+
+- `vulcan sync` writes `.mcp.json` for the agents that read it and keeps it out of git; the repository no longer tracks it. The managed skills now include `build-a-feature`.
+
+## 2026-10-21 - BunCompiler compiles Bun Workers into the binary
+
+Updated [dev-configs](/packages/dev-configs.md).
+
+- `BunCompiler.compile({ workers })` passes the worker files as extra entrypoints, so `new Worker('./x.worker.ts')` runs from the compiled binary.
+
 ## 2026-10-21 - the app preset lists its APP_ENV keys and ships its .ignore files
 
 Updated nothing else - preset files only.

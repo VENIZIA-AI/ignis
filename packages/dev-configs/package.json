@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.3.4",
+  "version": "0.3.6",
   "description": "Shareable development configurations for TypeScript projects: oxlint and oxfmt presets with per-rule builders, the ESLint naming-convention rule, the legacy ESLint flat config and Prettier presets, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages.",
   "keywords": [
     "build-tools",
@@ -100,29 +100,30 @@
     "LICENSE.md",
     "dist",
     "src/tsconfig",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
     "@eslint/js": "^10.0.1",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-n": "^18.2.1",
-    "eslint-plugin-prettier": "^5.5.6",
-    "eslint-plugin-unicorn": "^74.0.0",
+    "eslint-plugin-n": "^18.5.0",
+    "eslint-plugin-prettier": "^5.5.7",
+    "eslint-plugin-unicorn": "^78.0.0",
     "typescript-eslint": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
-    "oxfmt": ">=0.73.0",
-    "oxlint": ">=1.88.0",
+    "oxfmt": ">=0.74.0",
+    "oxlint": ">=1.89.0",
     "oxlint-tsgolint": ">=7.0.2004",
-    "prettier": "^3.0.0",
+    "prettier": "^3.9.10",
     "typescript": "^5.0.0 || ^6.0.0"
   },
   "peerDependenciesMeta": {

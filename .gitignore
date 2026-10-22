@@ -52,7 +52,6 @@ coverage/
 .env
 .env.*
 !**/.env.example
-!**/.env.test
 
 # Cryptographic Keys
 *.pem

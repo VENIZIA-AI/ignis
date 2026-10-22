@@ -21,13 +21,9 @@ tags: [process, test, bun]
    `*.test.ts` under `src/__tests__/` and runs the TypeScript sources directly - no compile step
    for the tests themselves. A bare `cd packages/<name> && bun test` still works, without the
    isolation. `filter` has no suite.
-3. `boot` is the exception: its `package.json` defines `"test": "NODE_ENV=test bun
-   test --env-file=.env.test"`, and `make test-boot` runs `bun run test` so that
-   script stays the single owner of the package's environment (`bun run` appends the flags to it).
-   Its tests are sources under `src/__tests__/` like every other package.
-4. Set `NODE_ENV=test` (or use `--env-file=.env.test`, as `boot` does) so each package's
-   `.env.test` loads - it points log/audit output at `./app_data/` (gitignored) instead of the
-   package root.
+3. Every package runs the same command: `$(TEST_ENV) bun test ./src`. `TEST_ENV` in
+   `make/test.mk` sets `NODE_ENV=test` and points log output at `./app_data/` (gitignored).
+4. No `.env.test` is committed; a bare `bun test` logs to the default folder.
 5. Gotcha: `helpers` and `core` build with `noEmitOnError: true` and a `bun check -p
    tsconfig.json` pass that includes `src/__tests__/` (see [build system](/process/build-system.md)).
    One broken test file's type error blocks the ENTIRE package build. `make rebuild` runs that

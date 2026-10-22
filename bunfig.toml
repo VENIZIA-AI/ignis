@@ -1,0 +1,2 @@
+# Bun reads this file only from the directory a command runs in.
+telemetry = false

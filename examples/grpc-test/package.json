@@ -17,9 +17,9 @@
     "proto:gen": "node_modules/.bin/buf generate --template src/controllers/greeter/proto/buf.gen.yaml src/controllers/greeter/proto && bun run prettier:fix"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.14.1",
+    "@bufbuild/protobuf": "^2.16.0",
     "@connectrpc/connect": "catalog:",
-    "@connectrpc/connect-web": "^2.1.2",
+    "@connectrpc/connect-web": "^2.2.0",
     "@hono/zod-openapi": "catalog:",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
@@ -27,8 +27,8 @@
     "hono": "catalog:"
   },
   "devDependencies": {
-    "@bufbuild/buf": "^1.72.0",
-    "@bufbuild/protoc-gen-es": "^2.14.1",
+    "@bufbuild/buf": "^1.74.0",
+    "@bufbuild/protoc-gen-es": "^2.16.0",
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
