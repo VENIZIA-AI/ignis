@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - tsconfig follows Bun; BunCompiler check
+
+Updated nothing else - the dev-configs bases and presets.
+
+- Base: isolatedModules, moduleDetection force, noImplicitReturns; ignoreDeprecations gone. Browser base: verbatimModuleSyntax. Presets: noEmit. filter and core-worker: noUncheckedIndexedAccess. `BunCompiler.compile({ check })` type-checks before compiling; the app preset sets it. CommonJS emit rules out verbatimModuleSyntax and module Preserve for the packages.
+
 ## 2026-10-22 - eight peer majors raised; libsql 0.18 held
 
 Updated nothing else - version floors only.

@@ -19,6 +19,8 @@ export class BunCompiler {
       plugins?: Bun.BunPlugin[];
       /** Compile-time constants: each key is replaced by its value, a JSON-encoded expression, wherever the bundle reads it. */
       define?: Record<string, string>;
+      /** Type-check the bundle first; a type error stops the compile. */
+      check?: boolean;
     } = {},
   ): Promise<void> {
     const {
@@ -28,6 +30,7 @@ export class BunCompiler {
       target = Bun.env.BUN_TARGET ?? DEFAULT_COMPILE_TARGET,
       plugins = [],
       define = {},
+      check = false,
     } = opts;
 
     const built = await Bun.build({
@@ -42,6 +45,7 @@ export class BunCompiler {
       },
       define,
       plugins,
+      check,
     });
 
     if (!built.success) {

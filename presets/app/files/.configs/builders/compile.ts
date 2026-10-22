@@ -7,4 +7,5 @@ await BunCompiler.compile({
   outfile: './dist/bin',
   plugins: [IgnisArtifactsPlugin.create()],
   define: await BuildInfoStamp.define(),
+  check: true,
 });
