@@ -81,7 +81,7 @@ generated:
 | `make okf-coverage` | - | Report bundle coverage against the source inventory. |
 | `make okf-gen` | - | Regenerate source-derived reference content. |
 | `make okf-viz` | - | Build the offline knowledge-graph explorer. |
-| `make preset-build` | - | Write the VULCAN preset (packages/core-server/dist/vulcan-preset) with this workspace's versions. |
+| `make preset-build` | - | Write the VULCAN preset (packages/core-server/dist/presets) with this workspace's versions. |
 | `make preset-smoke` | - | Gate: an app created from the packed preset typechecks, lints, tests and answers /api/hello. Needs a build. |
 | `make purity` | - | Gate: every entry claimed browser-pure has no node builtin or global. |
 | `make purity-boot` | - | Gate: one package's browser-pure entries. Needs a build. |

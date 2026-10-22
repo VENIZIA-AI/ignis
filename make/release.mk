@@ -6,7 +6,7 @@
 catalog-check:
 	@bun scripts/check-catalog.ts
 
-# Writes packages/core-server/dist/vulcan-preset from the template, with this workspace's versions.
+# Writes packages/core-server/dist/presets from the template, with this workspace's versions.
 # Run it after core-server builds: the build empties dist.
 preset-build:
 	@bun scripts/vulcan-preset.ts
