@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - eight peer majors raised; libsql 0.18 held
+
+Updated nothing else - version floors only.
+
+- Peers: ioredis 6, bullmq 6, nodemailer 10, mailgun.js 14, @scalar/hono-api-reference 0.12, meilisearch 0.62, node-vault 0.13; dev-configs eslint-plugin-unicorn 78. `RedisHelper.duplicateClient` returns `TRedisClient` (ioredis 6 types `duplicate` per client). Held: @libsql/client 0.18 (pool rolls back a raw BEGIN), openapi-react-query 1.0.0 (older than 0.5.4).
+
 ## 2026-10-21 - every floor at its latest non-major; tsc-alias pinned 1.9.4
 
 Updated [gotchas](/conventions/gotchas.md).

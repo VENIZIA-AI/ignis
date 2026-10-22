@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-22',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Dependencies at Their Latest',
+                  link: '/changelogs/2026-10-22-dependencies-latest',
+                },
+              ],
+            },
+            {
               text: '2026-10-21',
               collapsed: true,
               items: [
