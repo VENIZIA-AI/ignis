@@ -10,7 +10,7 @@ Compile the application to one executable before deploying:
 bun run compile
 ```
 
-**What this does:** `bun .configs/builders/compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin and bakes in the build stamp. See [Stamping a build](/guides/core-concepts/application/build-info).
+**What this does:** `bun .configs/builders/compile.ts`, which bundles `src/index.ts` with `BunCompiler`, registers the artifacts plugin, bakes in the build stamp and type-checks first (`check: true`): a type error stops the build. See [Stamping a build](/guides/core-concepts/application/build-info).
 
 **Output:** `dist/bin`, a standalone binary for `bun-linux-x64`. Set `BUN_TARGET` to build for another target, such as `bun-linux-x64-musl` for Alpine. `bun run clean` (`devz clean`) removes `dist/`.
 

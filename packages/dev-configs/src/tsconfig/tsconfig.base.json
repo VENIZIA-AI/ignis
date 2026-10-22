@@ -1,13 +1,11 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    /* TypeScript 6.0 — suppress deprecation warnings for experimentalDecorators */
-    "ignoreDeprecations": "6.0",
-
     /* Language and Environment */
     "target": "ES2025",
     "lib": ["ES2025"],
     "types": ["bun"],
+    "moduleDetection": "force",
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false,
@@ -16,7 +14,7 @@
     "module": "Node16",
     "moduleResolution": "node16",
     "resolveJsonModule": true,
-    "isolatedModules": false,
+    "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
 
     /* Emit */
@@ -41,7 +39,7 @@
     /* Additional Checks */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noImplicitReturns": false,
+    "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true,

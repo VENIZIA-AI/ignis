@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - tsconfig follows Bun; BunCompiler check
+
+Updated nothing else - the dev-configs bases and presets.
+
+- core-server bunfig.toml removed: every `make test-<pkg>` runs `bun test ./src`. Updated [gotchas](/conventions/gotchas.md).
+- Root bunfig.toml: `telemetry = false` only. No `minimumReleaseAge`: with floors at the latest, a fresh install fails on any floor younger than the gate (measured: 10 packages at 3 days).
+- Base: isolatedModules, moduleDetection force, noImplicitReturns; ignoreDeprecations gone. Browser base: verbatimModuleSyntax. Presets: noEmit. filter and core-worker: noUncheckedIndexedAccess. `BunCompiler.compile({ check })` type-checks before compiling; the app preset sets it. CommonJS emit rules out verbatimModuleSyntax and module Preserve for the packages.
+
 ## 2026-10-22 - eight peer majors raised; libsql 0.18 held
 
 Updated nothing else - version floors only.

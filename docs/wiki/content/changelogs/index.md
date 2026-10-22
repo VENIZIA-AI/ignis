@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-22 | [tsconfig Follows Bun, and the App Compile Type-Checks](./2026-10-22-bun-tsconfig) | Enhancement |
 | 2026-10-22 | [Dependencies at Their Latest, Eight Peer Majors Raised](./2026-10-22-dependencies-latest) | Breaking |
 | 2026-10-21 | [BunCompiler Compiles Bun Workers Into the Binary](./2026-10-21-bun-compiler-workers) | Feature |
 | 2026-10-21 | [The App Preset Lists Its Environment Keys and Ships Its Ignore Files](./2026-10-21-preset-env-example-and-ignore) | Enhancement |

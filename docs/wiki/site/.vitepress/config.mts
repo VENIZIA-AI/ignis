@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'tsconfig Follows Bun',
+                  link: '/changelogs/2026-10-22-bun-tsconfig',
+                },
+                {
                   text: 'Dependencies at Their Latest',
                   link: '/changelogs/2026-10-22-dependencies-latest',
                 },

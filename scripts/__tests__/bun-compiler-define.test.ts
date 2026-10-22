@@ -81,3 +81,34 @@ describe('BunCompiler.compile workers', () => {
     expect(result.stdout.toString().trim()).toBe('echo:ping');
   });
 });
+
+describe('BunCompiler.compile check', () => {
+  test('with check, a type error stops the compile', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ignis-compile-check-'));
+    tmpDirs.push(root);
+    const entrypoint = join(root, 'entry.ts');
+    writeFileSync(entrypoint, 'const count: number = "three";\nconsole.log(count);\n');
+
+    const compiled = BunCompiler.compile({
+      entrypoint,
+      outfile: join(root, 'bin'),
+      target: hostTarget,
+      check: true,
+    });
+
+    expect(compiled).rejects.toThrow('TS2322');
+  });
+
+  test('without check, the same entry compiles', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ignis-compile-nocheck-'));
+    tmpDirs.push(root);
+    const entrypoint = join(root, 'entry.ts');
+    const outfile = join(root, 'bin');
+    writeFileSync(entrypoint, 'const count: number = "three";\nconsole.log(count);\n');
+
+    await BunCompiler.compile({ entrypoint, outfile, target: hostTarget });
+    const result = await Bun.$`${outfile}`.quiet().nothrow();
+
+    expect(result.stdout.toString().trim()).toBe('three');
+  });
+});
