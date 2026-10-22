@@ -10,6 +10,7 @@ counted as concepts.
 
 Updated [release and publish](/process/release-publish.md).
 
+- The repository runs VULCAN 0.3.10.
 - `@venizia/ignis` names its presets in `"vulcan": { "presets": { "app", "lib" } }`; VULCAN 0.3.10 refuses the old `preset` / `lib` keys.
 
 ## 2026-10-22 - every package has the same layout; no committed .env.test
