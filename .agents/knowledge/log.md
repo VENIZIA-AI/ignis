@@ -10,6 +10,7 @@ counted as concepts.
 
 Updated nothing else - the dev-configs bases and presets.
 
+- Root bunfig.toml: `telemetry = false` only. No `minimumReleaseAge`: with floors at the latest, a fresh install fails on any floor younger than the gate (measured: 10 packages at 3 days).
 - Base: isolatedModules, moduleDetection force, noImplicitReturns; ignoreDeprecations gone. Browser base: verbatimModuleSyntax. Presets: noEmit. filter and core-worker: noUncheckedIndexedAccess. `BunCompiler.compile({ check })` type-checks before compiling; the app preset sets it. CommonJS emit rules out verbatimModuleSyntax and module Preserve for the packages.
 
 ## 2026-10-22 - eight peer majors raised; libsql 0.18 held
