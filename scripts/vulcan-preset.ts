@@ -2,7 +2,7 @@
  * Writes the publishable VULCAN presets of @venizia/ignis: presets/app (an API) and presets/lib (a
  * shared library). Each template names its dependencies the way package.json does
  * (`workspace:*`, `catalog:`); this resolves each to the exact workspace version and the root
- * catalog range, read from disk at call time, and writes packages/core-server/dist/vulcan-preset.
+ * catalog range, read from disk at call time, and writes packages/core-server/dist/presets.
  * Each kind is preset.json + files/; the lib also gets the lint and clean files of the app, so both
  * kinds lint the same way.
  * Usage: bun scripts/vulcan-preset.ts
@@ -14,7 +14,7 @@ import { join, relative, resolve } from 'node:path';
 const TEMPLATE_FOLDER = 'presets';
 const APP_KIND = 'app';
 const LIB_KIND = 'lib';
-const OUTPUT_FOLDER = 'packages/core-server/dist/vulcan-preset';
+const OUTPUT_FOLDER = 'packages/core-server/dist/presets';
 const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers', 'peerDependencies'];
 const CATALOG_MARKER = 'catalog:';
 const WORKSPACE_MARKER = 'workspace:';

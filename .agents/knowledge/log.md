@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - every package has the same layout; no committed .env.test
+
+Updated [build system](/process/build-system.md), [build, run, test](/overview/build-run-test.md), [testing](/process/testing.md).
+
+- Package root: `.configs/`, `src/`, `package.json`, `tsconfig.json`, `Makefile`, `README.md`, `LICENSE.md`. connectors and core-worker gained the LICENSE.md their `files` listed. One `scripts/force-update.sh` replaces nine copies; the unused `scripts/test.sh` hooks are gone; one `files` list.
+- The built presets live in `packages/core-server/dist/presets/{app,lib}` (was `dist/vulcan-preset`); `vulcan.preset` and `vulcan.lib` point there.
+- `TEST_ENV` in make/test.mk (NODE_ENV=test, logs in ./app_data) replaces the three `.env.test`; rule B-08 now says so.
+
 ## 2026-10-22 - tsconfig follows Bun; BunCompiler check
 
 Updated nothing else - the dev-configs bases and presets.

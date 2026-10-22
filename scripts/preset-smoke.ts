@@ -597,7 +597,7 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
 
   step({ label: 'the app answers GET /api/hello and every preset url' });
   const preset = await Bun.file(
-    join(presetDir, 'package', 'dist', 'vulcan-preset', 'app', 'preset.json'),
+    join(presetDir, 'package', 'dist', 'presets', 'app', 'preset.json'),
   ).json();
   if (!Array.isArray(preset.urls) || preset.urls.length === 0) {
     throw new Error('[preset-smoke] the packed preset names no urls');

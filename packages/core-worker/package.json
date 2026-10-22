@@ -50,7 +50,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -61,7 +61,7 @@
     "./dist/esm/index.js"
   ],
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {

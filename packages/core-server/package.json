@@ -181,9 +181,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -191,12 +189,12 @@
   },
   "sideEffects": false,
   "vulcan": {
-    "preset": "./dist/vulcan-preset/app/preset.json",
-    "lib": "./dist/vulcan-preset/lib/preset.json"
+    "preset": "./dist/presets/app/preset.json",
+    "lib": "./dist/presets/lib/preset.json"
   },
   "scripts": {
     "test": "bun test ./src",
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {
