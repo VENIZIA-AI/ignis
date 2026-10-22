@@ -189,8 +189,10 @@
   },
   "sideEffects": false,
   "vulcan": {
-    "preset": "./dist/presets/app/preset.json",
-    "lib": "./dist/presets/lib/preset.json"
+    "presets": {
+      "app": "./dist/presets/app/preset.json",
+      "lib": "./dist/presets/lib/preset.json"
+    }
   },
   "scripts": {
     "test": "bun test ./src",
