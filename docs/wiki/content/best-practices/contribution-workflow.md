@@ -188,7 +188,7 @@ make test-core-server
 ```
 
 > [!IMPORTANT]
-> Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). One package, `boot`, also owns its own `test` script (`NODE_ENV=test bun test --env-file=.env.test`); a bare `bun test` there silently skips both the environment and the env file. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker` and `test-core-server`. `filter` has no suite.
+> Run tests through the `make test-*` targets, not a bare `bun test` inside a package. The Makefile is the one home of the flags (`BUN_TEST_FLAGS ?= --parallel`, which implies `--isolate`). Each target runs `NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun test ./src`; a bare `bun test` misses that environment. The targets are `test-inversion`, `test-helpers`, `test-boot`, `test-kernel`, `test-connectors`, `test-core-worker` and `test-core-server`. `filter` has no suite.
 
 > [!NOTE]
 > Tests load `dist/`, not `src/`, so a stale build tests stale code. `make <package>` handles the ordering for you: each package's `make rebuild` type-checks first and only then cleans `dist/`, so a broken test aborts the run before anything is deleted.

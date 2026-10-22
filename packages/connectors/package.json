@@ -112,7 +112,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -120,7 +120,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {

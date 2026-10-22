@@ -181,9 +181,7 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
@@ -196,7 +194,7 @@
   },
   "scripts": {
     "test": "bun test ./src",
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {

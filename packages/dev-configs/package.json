@@ -100,13 +100,14 @@
     "LICENSE.md",
     "dist",
     "src/tsconfig",
+    "!**/__tests__",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ./scripts/force-update.sh",
+    "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },
   "dependencies": {

@@ -45,7 +45,7 @@ tags: [process, build]
    `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
-   rebuild`), `force-update` and, for `boot`, `test`. Examples keep their own scripts.
+   rebuild`), `force-update` (the shared `scripts/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
 5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
    (default `.configs/builders/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
    tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).

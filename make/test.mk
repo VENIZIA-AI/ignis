@@ -2,9 +2,8 @@
 
 # Packages with no suite of their own; their `test-<pkg>` says so and passes.
 NO_TEST := dev-configs filter
-# Packages whose package.json owns the test command (NODE_ENV=test + .env.test); `bun run` appends
-# the flags to it. The rest run `bun test` directly.
-TEST_SCRIPT := boot
+# The test environment, in one place: logs land in the gitignored ./app_data, not the package root.
+TEST_ENV := NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
 TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 
 # Packages with an entry claimed browser-pure (scripts/purity/manifest.ts); the rest skip.
@@ -29,7 +28,7 @@ BUN_TEST_FLAGS ?= --parallel
 test-all: $(addprefix test-,$(TEST_PACKAGES))
 
 $(addprefix test-,$(TEST_PACKAGES)): test-%:
-	@cd packages/$* && $(if $(filter $*,$(TEST_SCRIPT)),bun run test,bun test) ./src $(BUN_TEST_FLAGS)
+	@cd packages/$* && $(TEST_ENV) bun test ./src $(BUN_TEST_FLAGS)
 
 $(addprefix test-,$(NO_TEST)):
 	@echo "ℹ️  No test suite in this package - skipping."
