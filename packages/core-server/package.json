@@ -195,6 +195,7 @@
     "lib": "./dist/vulcan-preset/lib/preset.json"
   },
   "scripts": {
+    "test": "bun test ./src",
     "force-update": "sh ./scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
   },

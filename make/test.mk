@@ -29,7 +29,7 @@ BUN_TEST_FLAGS ?= --parallel
 test-all: $(addprefix test-,$(TEST_PACKAGES))
 
 $(addprefix test-,$(TEST_PACKAGES)): test-%:
-	@cd packages/$* && $(if $(filter $*,$(TEST_SCRIPT)),bun run test,bun test) $(BUN_TEST_FLAGS)
+	@cd packages/$* && $(if $(filter $*,$(TEST_SCRIPT)),bun run test,bun test) ./src $(BUN_TEST_FLAGS)
 
 $(addprefix test-,$(NO_TEST)):
 	@echo "ℹ️  No test suite in this package - skipping."
