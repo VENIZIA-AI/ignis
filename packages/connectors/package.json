@@ -137,7 +137,7 @@
     "drizzle-orm": "^0.45.4",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.13.13",
-    "meilisearch": "^0.59.0 || ^0.60.0",
+    "meilisearch": "^0.62.0",
     "pg": "^8.23.1",
     "postgres": "^3.4.9",
     "typesense": "^3.2.0"
