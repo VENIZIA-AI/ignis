@@ -6,6 +6,12 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-22 - the preset contract uses vulcan.presets
+
+Updated [release and publish](/process/release-publish.md).
+
+- `@venizia/ignis` names its presets in `"vulcan": { "presets": { "app", "lib" } }`; VULCAN 0.3.10 refuses the old `preset` / `lib` keys.
+
 ## 2026-10-22 - every package has the same layout; no committed .env.test
 
 Updated [build system](/process/build-system.md), [build, run, test](/overview/build-run-test.md), [testing](/process/testing.md).
