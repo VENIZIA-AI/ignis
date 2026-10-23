@@ -184,7 +184,9 @@ flavor = "oxfmt"
 
 Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `trailingComma` `"all"`, `semi` `true`, `bracketSpacing` `true`. The same table serves a React app; there is no separate frontend style.
 
-**`package.json` is formatted too.** `bun fmt` sorts the keys of a `package.json` in the order `sort-package-json` uses (`name`, `version`, `description`, ..., `scripts`, `dependencies`, `devDependencies`, `peerDependencies`, ..., `engines`) and sorts the names inside the dependency blocks. It changes nothing else: the order of `exports`, `scripts`, `files` and `publishConfig` is kept. `devz lint` and `make lint` check every `package.json` along with the code, and `devz lint --fix` rewrites them. `npm version`, `bun add`, `bun update` and `bun remove` keep a sorted file sorted. A project that wants its own key order sets `sortPackageJson = false` in `[fmt]`.
+**What it formats.** The code (`.ts`, `.tsx`, `.mts`, `.js`, `.mjs`) and every `.json`, `.jsonc`, `.yml`, `.yaml`, `.css`, `.html` and `.vue` file; Markdown is left alone. `devz lint` and `make lint` check all of them. Files a tool generates and rewrites on its own, such as drizzle-kit's `migration/meta/*_snapshot.json`, go in `.configs/formatters/.ignore` so a regenerate cannot turn lint red.
+
+**`package.json` is sorted.** `bun fmt` sorts the keys of a `package.json` in the order `sort-package-json` uses (`name`, `version`, `description`, ..., `scripts`, `dependencies`, `devDependencies`, `peerDependencies`, ..., `engines`) and sorts the names inside the dependency blocks. It changes nothing else: the order of `exports`, `scripts`, `files` and `publishConfig` is kept. `devz lint --fix` rewrites them. `npm version`, `bun add`, `bun update` and `bun remove` keep a sorted file sorted. A project that wants its own key order sets `sortPackageJson = false` in `[fmt]`.
 
 **Customization:** change a key in the table, or add `sortTailwindcss = true` where `tailwindcss` is installed.
 

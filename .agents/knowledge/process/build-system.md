@@ -96,7 +96,7 @@ tags: [process, build]
    `builtinModules`, so a bare `fs` import is caught as well as `node:fs`. And it passes
    `--env=disable`, because Bun otherwise inlines `process.env.NODE_ENV` at compile time and erases
    the exact read the gate exists to catch.
-10. `make lint` / `make lint-all` (packages only vs. packages + scripts) do not build
+10. `make lint` / `make lint-all` (packages only vs. packages + scripts + `lint-manifests` for the root package.json + `lint-files` for `.github`, `.agents`, `.configs` and the preset templates) do not build
     anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
     `eslint` and `bun fmt --no-script --check` (oxlint and ESLint take `-c .configs/<tool>.config.mts`; `bun fmt` reads the root `bunfig.toml` `[fmt]`). `make fmt` and
