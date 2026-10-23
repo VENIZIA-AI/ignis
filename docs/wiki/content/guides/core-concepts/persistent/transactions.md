@@ -240,8 +240,8 @@ export class OrderController extends BaseRestController {
   }
 
   @post({ configs: OrderRoutes.CREATE })
-  async createOrder(c: TRouteContext) {
-    const body = await c.req.json<{ order: TOrderCreate; items: TOrderItemCreate[] }>();
+  async createOrder(context: TRouteContext) {
+    const body = context.req.valid<{ order: TOrderCreate; items: TOrderItemCreate[] }>('json');
 
     const tx = await this._orderRepository.beginTransaction({
       isolationLevel: 'SERIALIZABLE',
@@ -255,7 +255,7 @@ export class OrderController extends BaseRestController {
       });
 
       await tx.commit();
-      return c.json(order, HTTP.ResultCodes.RS_2.Created);
+      return context.json(order, HTTP.ResultCodes.RS_2.Created);
     } catch (err) {
       try {
         await tx.rollback();

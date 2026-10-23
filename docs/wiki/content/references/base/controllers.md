@@ -306,7 +306,7 @@ Returns `{ configs, to }` where `to({ handler })` completes the registration and
 
 ### `defineJSXRoute<RouteConfig, ResponseType>(opts)`
 
-Defines a route that renders server-side HTML via `c.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
+Defines a route that renders server-side HTML via `context.html()`. Same signature as `defineRoute` but uses `getJSXRouteConfigs` instead of `getRouteConfigs`, which automatically adds an HTML response schema.
 
 ```typescript
 defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
@@ -503,8 +503,8 @@ const MyRouteConfig = {
 export class MyFeatureController extends BaseRestController {
 
   @api({ configs: MyRouteConfig })
-  getData(c: TRouteContext) {
-    return c.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
+  getData(context: TRouteContext) {
+    return context.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -561,21 +561,21 @@ const UserRoutes = {
 // ... inside a controller class
 
   @get({ configs: UserRoutes.LIST_USERS })
-  getAllUsers(c: TRouteContext) {
-    return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
+  getAllUsers(context: TRouteContext) {
+    return context.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 
   @get({ configs: UserRoutes.GET_USER })
-  getUserById(c: TRouteContext) {
-    const { id } = c.req.valid<{ id: string }>('param');
-    return c.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
+  getUserById(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
+    return context.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: UserRoutes.CREATE_USER })
-  createUser(c: TRouteContext) {
-    const { name } = c.req.valid<{ name: string }>('json');
+  createUser(context: TRouteContext) {
+    const { name } = context.req.valid<{ name: string }>('json');
     const newUser = { id: '2', name };
-    return c.json(newUser, HTTP.ResultCodes.RS_2.Created);
+    return context.json(newUser, HTTP.ResultCodes.RS_2.Created);
   }
 ```
 
@@ -639,9 +639,9 @@ this.defineJSXRoute({
     method: 'get',
     responses: {}, // HTML response schema is auto-merged
   },
-  handler: async (c) => {
+  handler: async (context) => {
     const data = await this.dashboardService.getData();
-    return c.html(<DashboardPage data={data} />);
+    return context.html(<DashboardPage data={data} />);
   },
   hook: (result, c) => {
     // Optional hook for post-processing

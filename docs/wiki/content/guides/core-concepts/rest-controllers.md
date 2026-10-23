@@ -29,8 +29,8 @@ export class UserController extends BaseRestController {
       }),
     },
   })
-  getAllUsers(c: TRouteContext) {
-    return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
+  getAllUsers(context: TRouteContext) {
+    return context.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -107,19 +107,19 @@ export class MyItemsController extends BaseRestController {
   }
 
   @get({ configs: TestRoutes.GET_DATA })
-  getData(c: TRouteContext) {
-    // 'c' is fully typed here, including c.req.valid and c.json return type
-    return c.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
+  getData(context: TRouteContext) {
+    // 'context' is fully typed here, including context.req.valid and context.json return type
+    return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: TestRoutes.CREATE_ITEM })
-  createItem(c: TRouteContext) {
-    // c.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json']['schema']
+  createItem(context: TRouteContext) {
+    // context.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json']['schema']
     // You can also provide an explicit type for stricter checking:
-    const body = c.req.valid<{ name: string; value: number }>('json');
+    const body = context.req.valid<{ name: string; value: number }>('json');
 
     // Return type is automatically validated against CREATE_ITEM.responses[200].content['application/json']['schema']
-    return c.json(
+    return context.json(
       {
         id: 'some-uuid',
         name: body.name,
@@ -180,8 +180,8 @@ const GetUsersRoute = {
 
 this.defineRoute({
   configs: GetUsersRoute,
-  handler: (c: TRouteContext) => {
-    return c.json([{ id: 1, name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
+  handler: (context: TRouteContext) => {
+    return context.json([{ id: 1, name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   },
 });
 ```
@@ -209,9 +209,9 @@ const GetUserByIdRoute = {
 this.bindRoute({
   configs: GetUserByIdRoute,
 }).to({
-  handler: (c: TRouteContext) => {
-    const { id } = c.req.valid<{ id: string }>('param');  // Use valid<T>() for type-safe validated params
-    return c.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
+  handler: (context: TRouteContext) => {
+    const { id } = context.req.valid<{ id: string }>('param');  // Use valid<T>() for type-safe validated params
+    return context.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   },
 });
 ```
@@ -280,15 +280,15 @@ this.defineJSXRoute({
       description: 'HTML home page',
     }),
   },
-  handler: (c) => {
+  handler: (context) => {
     const user = { name: 'John Doe' };
-    return c.html(<HomePage user={user} />);
+    return context.html(<HomePage user={user} />);
   },
 });
 ```
 
 **Key Points:**
-- The handler **must** return `c.html()` with a JSX component
+- The handler **must** return `context.html()` with a JSX component
 - JSX routes automatically include HTML content-type in OpenAPI documentation
 - Views are typically organized in `src/views/` directory
 - Components can be reused across multiple pages
@@ -353,7 +353,7 @@ export const MainLayout: FC<PropsWithChildren<MainLayoutProps>> = ({ title, chil
 
 ## Accessing Validated Request Data
 
-When you define Zod schemas in your route's `request` configuration (whether with decorators or manual definition), Hono's validation middleware automatically parses and validates the incoming data. You can access this validated data using `c.req.valid()`.
+When you define Zod schemas in your route's `request` configuration (whether with decorators or manual definition), Hono's validation middleware automatically parses and validates the incoming data. You can access this validated data using `context.req.valid()`.
 
 ```typescript
 import { z } from '@hono/zod-openapi';
@@ -375,22 +375,22 @@ const UserSchema = z.object({ name: z.string(), email: z.string().email() });
     // ... responses
   },
 })
-updateUser(c: TRouteContext) {
+updateUser(context: TRouteContext) {
   // Access validated data from the request
-  const { id } = c.req.valid('param');
-  const { notify } = c.req.valid('query');
-  const userUpdateData = c.req.valid('json'); // for body
+  const { id } = context.req.valid('param');
+  const { notify } = context.req.valid('query');
+  const userUpdateData = context.req.valid('json'); // for body
 
   console.log(`Updating user ${id} with data:`, userUpdateData);
   if (notify) {
     console.log('Notification is enabled.');
   }
 
-  return c.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
+  return context.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
-Using `c.req.valid()` is the recommended way to access request data as it ensures that the data conforms to the schema you've defined. For even better type safety, you can use the `TRouteContext` utility type.
+Using `context.req.valid()` is the recommended way to access request data as it ensures that the data conforms to the schema you've defined. For even better type safety, you can use the `TRouteContext` utility type.
 
 ```typescript
 import { z } from '@hono/zod-openapi';
@@ -413,22 +413,22 @@ const UpdateUserConfig = {
 } as const; // Use 'as const' for strict type inference
 
 @put({ configs: UpdateUserConfig })
-updateUser(c: TRouteContext) {
+updateUser(context: TRouteContext) {
   // Access validated data from the request with explicit types
-  const { id } = c.req.valid<{ id: string }>('param');
-  const { notify } = c.req.valid<{ notify?: string }>('query');
-  const userUpdateData = c.req.valid<{ name: string; email: string }>('json'); // for body
+  const { id } = context.req.valid<{ id: string }>('param');
+  const { notify } = context.req.valid<{ notify?: string }>('query');
+  const userUpdateData = context.req.valid<{ name: string; email: string }>('json'); // for body
 
   console.log(`Updating user ${id} with data:`, userUpdateData);
   if (notify) {
     console.log('Notification is enabled.');
   }
 
-  return c.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
+  return context.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
-Using `TRouteContext` provides a typed context object. By using `c.req.valid<T>()`, you ensure that the data you are accessing matches your expectations and provides autocomplete in your editor.
+Using `TRouteContext` provides a typed context object. By using `context.req.valid<T>()`, you ensure that the data you are accessing matches your expectations and provides autocomplete in your editor.
 
 ## See Also
 

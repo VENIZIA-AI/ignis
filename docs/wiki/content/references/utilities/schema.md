@@ -24,8 +24,8 @@ this.defineRoute({
     request: { params: idParamsSchema({ idType: 'number' }) },
     responses: jsonResponse({ schema: UserSchema, description: 'A single user object' }),
   },
-  handler: (c) => {
-    const { id } = c.req.valid('param');
+  handler: (context) => {
+    const { id } = context.req.valid('param');
     // ...
   },
 });

@@ -190,7 +190,7 @@ const READ_CONFIGURATIONS_CONFIG = {
 
 this.defineRoute({
   configs: READ_CONFIGURATIONS_CONFIG,
-  handler: context => context.json({ data: ['app.name=My App'] }),
+  handler: context => context.json({ data: ['app.name=My App'] }, HTTP.ResultCodes.RS_2.Ok),
 });
 ```
 

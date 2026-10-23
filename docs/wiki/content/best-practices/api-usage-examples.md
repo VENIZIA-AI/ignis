@@ -239,11 +239,11 @@ export class PageController extends BaseRestController {
         description: 'Welcome Page',
         responses: htmlResponse({ description: 'HTML Welcome Page' }),
       },
-      handler: (c) => {
+      handler: (context) => {
         const title = 'Welcome to IGNIS';
         
         // Return JSX directly
-        return c.html(
+        return context.html(
           <html>
             <head><title>{title}</title></head>
             <body>
@@ -273,12 +273,12 @@ export const rateLimiter = (opts: { maxRequests: number }): MiddlewareHandler =>
   const { maxRequests } = opts;
   const requests = new Map<string, number>();
 
-  return createMiddleware(async (c, next) => {
-    const ip = c.req.header('x-forwarded-for') ?? 'unknown';
+  return createMiddleware(async (context, next) => {
+    const ip = context.req.header('x-forwarded-for') ?? 'unknown';
     const count = requests.get(ip) ?? 0;
 
     if (count >= maxRequests) {
-      return c.json({ error: 'Too many requests' }, 429);
+      return context.json({ error: 'Too many requests' }, 429);
     }
 
     requests.set(ip, count + 1);
@@ -299,10 +299,10 @@ import { createMiddleware } from 'hono/factory';
 export const requestLogger = (): MiddlewareHandler => {
   const helper = new BaseHelper({ scope: 'RequestLogger' });
 
-  return createMiddleware(async (c, next) => {
+  return createMiddleware(async (context, next) => {
     const start = performance.now();
-    const method = c.req.method;
-    const path = c.req.path;
+    const method = context.req.method;
+    const path = context.req.path;
 
     helper.logger.info('[%s] %s - Started', method, path);
 
@@ -331,7 +331,7 @@ export class AdminController extends BaseRestController {
 
     this.defineRoute({
       configs: { method: 'get', path: '/dashboard', /* ... */ },
-      handler: (c) => c.json({ /* ... */ }),
+      handler: (context) => context.json({ /* ... */ }, HTTP.ResultCodes.RS_2.Ok),
     });
   }
 }
@@ -418,15 +418,15 @@ export class UserController extends BaseRestController {
   }
 
   @get({ configs: RouteConfigs.GET_USER_WITH_ORDERS })
-  async getUserWithOrders(c: TRouteContext) {
-    const { id } = c.req.valid<{ id: string }>('param');
+  async getUserWithOrders(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
     const result = await this.userService.getUserWithOrders(id);
 
     if (!result) {
       throw getError({ statusCode: 404, message: 'User not found' });
     }
 
-    return c.json(result, HTTP.ResultCodes.RS_2.Ok);
+    return context.json(result, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -521,8 +521,8 @@ Use `isApplicationError(error)` to test identity, never `instanceof` - the class
 
 ```typescript
 @get({ configs: RouteConfigs.GET_USER })
-async getUser(c: TRouteContext) {
-  const { id } = c.req.valid<{ id: string }>('param');
+async getUser(context: TRouteContext) {
+  const { id } = context.req.valid<{ id: string }>('param');
 
   const user = await this.userRepository.findById({ id });
 
@@ -533,7 +533,7 @@ async getUser(c: TRouteContext) {
     });
   }
 
-  return c.json(user, HTTP.ResultCodes.RS_2.Ok);
+  return context.json(user, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
@@ -558,8 +558,8 @@ All errors are automatically formatted:
 ### Try-Catch for Complex Operations
 
 ```typescript
-async processOrder(c: Context) {
-  const data = c.req.valid('json');
+async processOrder(context: Context) {
+  const data = context.req.valid('json');
 
   try {
     const tx = await this.orderRepository.beginTransaction({
@@ -578,7 +578,7 @@ async processOrder(c: Context) {
       });
 
       await tx.commit();
-      return c.json(order.data, HTTP.ResultCodes.RS_2.Created);
+      return context.json(order.data, HTTP.ResultCodes.RS_2.Created);
     } catch (error) {
       await tx.rollback();
       throw error;
