@@ -56,6 +56,8 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   protected resource: string;
   /** A count route, if the API has one. Absent, the total comes from `Content-Range`. */
   protected countPath?: string;
+  /** The segment after the resource that names the IGNIS find-one route. Absent, `findOne` asks the list route for one row. */
+  protected findOnePath?: string;
   /** The page size `find` asks for when its filter names no limit. Absent, the server's own default applies. */
   protected defaultLimit?: number;
   /** The segment after the resource that names the IGNIS search route. */
@@ -65,6 +67,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     dataSource: HttpDataSource;
     resource: string;
     countPath?: string;
+    findOnePath?: string;
     defaultLimit?: number;
     searchPath?: string;
   }) {
@@ -80,6 +83,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     this.dataSource = opts.dataSource;
     this.resource = opts.resource;
     this.countPath = opts.countPath;
+    this.findOnePath = opts.findOnePath;
     this.defaultLimit = defaultLimit;
     this.searchPath = opts.searchPath ?? 'search';
     this.entity = new HttpResourceEntity({ name: opts.resource });
@@ -285,6 +289,21 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     query?: THttpExtraQuery;
     options?: THttpRepositoryOptions;
   }): Promise<R | null> {
+    if (this.findOnePath) {
+      const one = await this.dataSource.read<R | null>({
+        paths: [this.resource, this.findOnePath],
+        query: this.buildQuery({
+          method: 'findOne',
+          query: opts.query,
+          params: { filter: opts.filter ?? {} },
+        }),
+        shape: 'one',
+        isEveryDefaultOff: true,
+        ...this.toCallOptions({ options: opts.options }),
+      });
+      return one.data ?? null;
+    }
+
     const rs = await this.dataSource.read<Array<R>>({
       paths: [this.resource],
       query: this.buildQuery({
