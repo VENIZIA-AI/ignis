@@ -62,7 +62,7 @@
     "devz": "./dist/cli/index.js"
   },
   "engines": {
-    "bun": ">=1.4"
+    "bun": ">=1.4.4"
   },
   "exports": {
     ".": {

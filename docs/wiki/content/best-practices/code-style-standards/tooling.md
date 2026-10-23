@@ -1,6 +1,6 @@
 # Tooling Configuration
 
-IGNIS lints with **oxlint**, formats with **oxfmt**, and keeps **ESLint** for one rule. All three read their settings from `@venizia/dev-configs`.
+IGNIS lints with **oxlint**, formats with **`bun fmt`**, and keeps **ESLint** for one rule. All three read their settings from `@venizia/dev-configs`. `bun fmt` needs Bun 1.4.4 or newer.
 
 ```typescript
 // .configs/lints/oxlint.config.mts
@@ -26,7 +26,7 @@ bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
 |------|-----|
 | `oxlint` | Every lint rule except naming conventions |
 | `oxlint-tsgolint` | Type-aware rules such as `no-floating-promises`. Install it next to `oxlint` |
-| `oxfmt` | Formatting. Prettier-compatible output |
+| `oxfmt` | Loads the formatter config. `bun fmt` does the formatting; Prettier-compatible output |
 | `eslint` | Runs one rule: `@typescript-eslint/naming-convention`, which oxlint cannot run yet |
 | `typescript` | Type checking and the build |
 
@@ -83,7 +83,7 @@ src/components/shadcn/**
 src/registry/*.generated.ts
 ```
 
-`devz lint` reads both files. Each pattern in `lints/.ignore` reaches oxlint and ESLint as `--ignore-pattern`; each pattern in `formatters/.ignore` reaches oxfmt as `!pattern`. A path that only the formatter should skip (vendored code you still lint) goes in `formatters/.ignore` alone.
+`devz lint` reads both files. Each pattern in `lints/.ignore` reaches oxlint and ESLint as `--ignore-pattern`; each pattern in `formatters/.ignore` reaches `bun fmt` as `--ignore-pattern`. A path that only the formatter should skip (vendored code you still lint) goes in `formatters/.ignore` alone.
 
 > [!NOTE]
 > An `ignorePatterns` entry inside a `.configs/` file does not work. oxlint and oxfmt resolve it against the config's own folder and refuse `..`, so it can never name a project path. A pattern on the command line resolves from the project root, which is why `devz lint` passes them that way. `dist` and `node_modules` are skipped through `.gitignore`.
@@ -213,7 +213,7 @@ export default defineConfig({
 
 | Command | What it does |
 |---|---|
-| `devz lint` | Checks the whole project: oxlint, then ESLint, then an oxfmt check. It stops at the first tool that fails |
+| `devz lint` | Checks the whole project: oxlint, then ESLint, then a `bun fmt --check`. It stops at the first tool that fails |
 | `devz lint --fix` | Fixes the whole project |
 | `devz lint src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
 | `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
@@ -224,7 +224,7 @@ In the IGNIS repository, the Makefile runs each package with its own tools:
 
 | Command | What it does |
 |---------|--------------|
-| `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then an oxfmt check |
+| `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then a `bun fmt --check` |
 | `make fmt-<pkg>` | Same tools with `--fix` and write mode |
 | `make lint-packages` / `make fmt` | Every package |
 | `make lint-all` | Packages and `scripts/` |

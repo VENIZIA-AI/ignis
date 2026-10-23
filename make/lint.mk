@@ -1,11 +1,12 @@
 # Lint and format the packages, the wiki scripts and scripts/.
 
 # Each project lints itself, from its own .configs/ and with its own tools (its node_modules/.bin).
-# oxlint owns the rules, ESLint runs only naming-convention (oxlint has no port yet), oxfmt formats.
+# oxlint owns the rules, ESLint runs only naming-convention (oxlint has no port yet), bun fmt formats, with the oxfmt config files.
 # Paths are ignored through .gitignore: `ignorePatterns` resolve against .configs/, not the project.
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
-# $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what oxfmt checks.
-LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs $(or $(2),.) && node_modules/.bin/oxfmt -c .configs/formatters/oxfmt.config.mts --check $(or $(3),$(FMT_GLOB))
+BUN_FMT_FLAGS := --no-script --config .configs/formatters/oxfmt.config.mts
+# $(1) project dir; $(2) what oxlint and ESLint lint (default .); $(3) what bun fmt checks.
+LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs $(or $(2),.) && bun fmt $(BUN_FMT_FLAGS) --check $(or $(3),$(FMT_GLOB))
 
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
@@ -43,8 +44,8 @@ lint-wiki:
 	@echo "🔍 Linting docs/wiki..."
 	@$(call LINT_PROJECT,docs/wiki,scripts,$(WIKI_FMT_GLOB))
 
-# `scripts/` is not a workspace member: its config and oxfmt resolve from the root package.json.
+# `scripts/` is not a workspace member: its oxfmt config resolves its imports from the root package.json.
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
-	@node_modules/.bin/oxfmt -c scripts/.configs/formatters/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
+	@bun fmt --no-script --config scripts/.configs/formatters/oxfmt.config.mts --check "scripts/**/*.{ts,mts,js,mjs}"
 	@bun check --no-pretty -p scripts/tsconfig.json

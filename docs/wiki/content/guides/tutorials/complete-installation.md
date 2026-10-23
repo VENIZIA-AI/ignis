@@ -411,7 +411,7 @@ Add the standard application scripts to your `package.json`:
 
 > **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
-`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and oxfmt with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
+`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and `bun fmt` with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 
 `devz clean` removes `dist` and the tool caches. The compile logic lives in `.configs/builders/compile.ts`, beside the other build settings, so the app root keeps only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`:
 
