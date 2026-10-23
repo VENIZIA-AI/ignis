@@ -30,7 +30,8 @@ ESM_TSCONFIG := .configs/builders/tsconfig.esm.json
 # leaves a dist with cjs/ and no esm/.
 EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
-FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
+# The code, and every package.json: bun fmt sorts its keys.
+FMT_GLOB := "**/{*.{ts,mts,tsx,js,mjs},package.json}"
 # bun fmt reads [fmt] from the root bunfig.toml; --no-script keeps a package.json "fmt" script from taking over.
 BUN_FMT_FLAGS := --no-script
 

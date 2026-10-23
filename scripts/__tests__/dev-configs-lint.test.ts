@@ -78,7 +78,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ .',
-      'bun fmt --no-script --check **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script --check **/{*.{ts,tsx,mts,js,mjs},package.json}',
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --fix .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --fix .',
-      'bun fmt --no-script **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script **/{*.{ts,tsx,mts,js,mjs},package.json}',
     ]);
   });
 
@@ -120,8 +120,26 @@ describe('devz', () => {
     );
   });
 
+  test('a package.json alone is only formatted, with its keys sorted', () => {
+    const { calls } = runLint({ args: ['packages/a/package.json'] });
+
+    expect(calls).toEqual([
+      'bun fmt --no-script --no-error-on-unmatched-pattern --check packages/a/package.json',
+    ]);
+  });
+
+  test('a package.json beside code reaches bun fmt only', () => {
+    const { calls } = runLint({ args: ['--fix', 'src/a.ts', 'package.json'] });
+
+    expect(calls).toEqual([
+      'oxlint -c .configs/lints/oxlint.config.mts --no-error-on-unmatched-pattern --fix src/a.ts',
+      'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --no-warn-ignored --fix src/a.ts',
+      'bun fmt --no-script --no-error-on-unmatched-pattern src/a.ts package.json',
+    ]);
+  });
+
   test('a list with no lintable file runs nothing and passes', () => {
-    const { exitCode, calls } = runLint({ args: ['README.md', 'package.json'] });
+    const { exitCode, calls } = runLint({ args: ['README.md', 'tsconfig.json'] });
 
     expect(exitCode).toBe(0);
     expect(calls).toEqual([]);
@@ -135,7 +153,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --ignore-pattern src/gen/** --ignore-pattern *.ts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --ignore-pattern src/gen/** --ignore-pattern *.ts .',
-      'bun fmt --no-script --check **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script --check **/{*.{ts,tsx,mts,js,mjs},package.json}',
     ]);
   });
 

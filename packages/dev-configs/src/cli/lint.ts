@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { basename, dirname, extname, join } from 'node:path';
 
 const LINT_CONFIG = '.configs/lints/oxlint.config.mts';
 const ESLINT_CONFIG = '.configs/lints/eslint.config.mjs';
@@ -7,7 +7,9 @@ const LINT_IGNORE_FILE = '.configs/lints/.ignore';
 const FORMAT_IGNORE_FILE = '.configs/formatters/.ignore';
 const ESLINT_CACHE = ['--cache', '--cache-location', 'node_modules/.cache/eslint/'];
 const LINTED_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.js', '.mjs']);
-const FORMAT_GLOB = '**/*.{ts,tsx,mts,js,mjs}';
+const MANIFEST = 'package.json';
+/** The code `bun fmt` formats, and every package.json, whose keys it sorts. */
+const FORMAT_GLOB = '**/{*.{ts,tsx,mts,js,mjs},package.json}';
 const FIX_FLAG = '--fix';
 
 /** One tool call: the tool name and its arguments, run from the project root. */
@@ -40,14 +42,18 @@ export class LintCommand {
       .filter(line => line !== '' && !line.startsWith('#'));
   }
 
-  /** The tool calls for these arguments, in order; empty when a file list holds nothing to lint. */
+  /**
+   * The tool calls for these arguments, in order; empty when a file list holds nothing to lint or
+   * format. oxlint and ESLint take the code files; `bun fmt` takes those and any package.json.
+   */
   static plan(opts: { root: string; args: string[] }): ILintStep[] {
     const fix = opts.args[0] === FIX_FLAG;
     const paths = fix ? opts.args.slice(1) : opts.args;
     const whole = paths.length === 0;
     const files = paths.filter(path => LINTED_EXTENSIONS.has(extname(path)));
+    const formatted = paths.filter(path => files.includes(path) || basename(path) === MANIFEST);
 
-    if (!whole && files.length === 0) {
+    if (!whole && formatted.length === 0) {
       return [];
     }
 
@@ -62,7 +68,7 @@ export class LintCommand {
     const unmatched = whole ? [] : ['--no-error-on-unmatched-pattern'];
     const eslintQuiet = whole ? [] : ['--no-warn-ignored'];
 
-    return [
+    const linters: ILintStep[] = [
       {
         tool: 'oxlint',
         args: [
@@ -86,18 +92,20 @@ export class LintCommand {
           ...targets,
         ],
       },
-      {
-        tool: 'bun',
-        args: [
-          'fmt',
-          '--no-script',
-          ...unmatched,
-          ...formatIgnore,
-          ...(fix ? [] : ['--check']),
-          ...(whole ? [FORMAT_GLOB] : files),
-        ],
-      },
     ];
+    const formatter: ILintStep = {
+      tool: 'bun',
+      args: [
+        'fmt',
+        '--no-script',
+        ...unmatched,
+        ...formatIgnore,
+        ...(fix ? [] : ['--check']),
+        ...(whole ? [FORMAT_GLOB] : formatted),
+      ],
+    };
+
+    return whole || files.length > 0 ? [...linters, formatter] : [formatter];
   }
 
   /** The tool's binary in the nearest `node_modules/.bin`, else its bare name for PATH to find. */
