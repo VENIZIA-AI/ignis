@@ -52,17 +52,15 @@ lint-manifests:
 fmt-manifests:
 	@bun fmt $(BUN_FMT_FLAGS) package.json
 
-# Files no project target reaches: the workflows, .agents, .configs and the preset templates. The VULCAN
-# manifest is written by `vulcan sync`; its own format is VULCAN's.
+# Files no project target reaches: the workflows, .agents, .configs and the preset templates.
 FILES_GLOB := "{.github,.agents,.configs,presets}/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
-FILES_IGNORE := --ignore-pattern ".agents/vulcan.manifest.json"
 
 lint-files:
 	@echo "🔍 Linting .github, .agents, .configs and presets..."
-	@bun fmt $(BUN_FMT_FLAGS) --check $(FILES_GLOB) $(FILES_IGNORE)
+	@bun fmt $(BUN_FMT_FLAGS) --check $(FILES_GLOB)
 
 fmt-files:
-	@bun fmt $(BUN_FMT_FLAGS) $(FILES_GLOB) $(FILES_IGNORE)
+	@bun fmt $(BUN_FMT_FLAGS) $(FILES_GLOB)
 
 # `scripts/` is not a workspace member: it formats from the root bunfig.toml too.
 lint-scripts:

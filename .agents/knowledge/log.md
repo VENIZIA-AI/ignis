@@ -15,6 +15,7 @@ Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-s
 - BREAKING: `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` and the `@venizia/dev-configs/formatters` subpath are removed. One style for backend and frontend.
 - `bun fmt` also covers json, jsonc, yaml, css, html and vue, not Markdown (Phat); `lint-files`/`fmt-files` reach `.github`, `.agents`, `.configs` and the preset templates, `lint-manifests`/`fmt-manifests` the root package.json. One-time format in its own commit; drizzle-kit snapshots are ignored in the examples.
 - Every tracked `package.json` is sorted by `bun fmt` (one-time sort in its own commit); a release bump with `npm version` keeps it sorted.
+- The repository runs VULCAN 0.3.12, whose `vulcan sync` writes a `bun fmt`-clean manifest.
 - Bun 1.4.4 is the floor. `bun lint` is not in a stable Bun yet, so oxlint and ESLint stay.
 
 ## 2026-10-23 - the http repository can call find-one

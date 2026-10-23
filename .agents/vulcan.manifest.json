@@ -56,28 +56,21 @@
       "name": "@venizia/ignis-worker",
       "dir": "core-worker",
       "path": "packages/core-worker",
-      "aliases": [
-        "worker",
-        "@venizia/ignis-core-worker"
-      ],
+      "aliases": ["worker", "@venizia/ignis-core-worker"],
       "retired": false
     },
     {
       "name": "@venizia/ignis",
       "dir": "core-server",
       "path": "packages/core-server",
-      "aliases": [
-        "core"
-      ],
+      "aliases": ["core"],
       "retired": false
     },
     {
       "name": "@venizia/ignis-docs",
       "dir": "docs-mcp",
       "path": "packages/docs-mcp",
-      "aliases": [
-        "docs"
-      ],
+      "aliases": ["docs"],
       "retired": true
     },
     {
