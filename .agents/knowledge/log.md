@@ -13,6 +13,7 @@ Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-s
 - `make lint`, `make fmt`, `lint-wiki`, `lint-scripts` and `devz lint` run `bun fmt --no-script`. The format is the `[fmt]` table of the root `bunfig.toml` (Bun inherits it from a parent folder): `printWidth = 100`, `singleQuote = true`, `arrowParens = "avoid"`, `flavor = "oxfmt"`. 0 differing files in 21 projects.
 - Every `oxfmt.config.mts` is deleted and `oxfmt` leaves the catalog and all manifests. `flavor = "oxfmt"` is required: without it 14 files differ.
 - BREAKING: `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` and the `@venizia/dev-configs/formatters` subpath are removed. One style for backend and frontend.
+- Every tracked `package.json` is checked and sorted by `bun fmt` (one-time sort in its own commit); a release bump with `npm version` keeps it sorted.
 - Bun 1.4.4 is the floor. `bun lint` is not in a stable Bun yet, so oxlint and ESLint stay.
 
 ## 2026-10-22 - the preset contract uses vulcan.presets
