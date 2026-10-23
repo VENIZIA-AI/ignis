@@ -120,12 +120,13 @@ See [gRPC Controllers](/guides/core-concepts/grpc-controllers) for the full deco
 
 ```typescript
 import { authorize, authenticate, Authentication, AuthorizationActions } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 app.delete(
   '/articles/:id',
   authenticate({ strategies: [Authentication.STRATEGY_JWT] }),
   authorize({ spec: { action: AuthorizationActions.DELETE, resource: 'Article' } }),
-  c => c.json({ deleted: true }),
+  context => context.json({ deleted: true }, HTTP.ResultCodes.RS_2.Ok),
 );
 ```
 
@@ -251,9 +252,9 @@ Set `Authorization.SKIP_AUTHORIZATION` from an earlier middleware to bypass auth
 import { Authorization } from '@venizia/ignis';
 import { createMiddleware } from 'hono/factory';
 
-const conditionalAuthzMiddleware = createMiddleware(async (c, next) => {
-  if (c.req.header('X-Internal-Service') === 'trusted-key') {
-    c.set(Authorization.SKIP_AUTHORIZATION, true);
+const conditionalAuthzMiddleware = createMiddleware(async (context, next) => {
+  if (context.req.header('X-Internal-Service') === 'trusted-key') {
+    context.set(Authorization.SKIP_AUTHORIZATION, true);
   }
   return next();
 });
@@ -264,13 +265,13 @@ const conditionalAuthzMiddleware = createMiddleware(async (c, next) => {
 ```typescript
 import { Authorization, Authentication } from '@venizia/ignis';
 
-const user = c.get(Authentication.CURRENT_USER);           // IAuthUser
-const rules = c.get(Authorization.RULES);                  // Map<string, unknown>, keyed by enforcer name
-const isSkipped = c.get(Authorization.SKIP_AUTHORIZATION);  // boolean
-const domain = c.get(Authorization.DOMAIN);                // untyped - see the warning below
+const user = context.get(Authentication.CURRENT_USER);           // IAuthUser
+const rules = context.get(Authorization.RULES);                  // Map<string, unknown>, keyed by enforcer name
+const isSkipped = context.get(Authorization.SKIP_AUTHORIZATION);  // boolean
+const domain = context.get(Authorization.DOMAIN);                // untyped - see the warning below
 
-c.set(Authorization.SKIP_AUTHORIZATION, true);
-c.set(Authorization.RULES, null); // force a rebuild later in the SAME request
+context.set(Authorization.SKIP_AUTHORIZATION, true);
+context.set(Authorization.RULES, null); // force a rebuild later in the SAME request
 ```
 
 > [!TIP]

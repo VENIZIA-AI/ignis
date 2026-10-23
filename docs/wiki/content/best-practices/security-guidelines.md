@@ -321,15 +321,15 @@ import { createMiddleware } from 'hono/factory';
 const rateLimiter = (opts: { windowMs: number; max: number }) => {
   const requests = new Map<string, { count: number; resetAt: number }>();
 
-  return createMiddleware(async (c, next) => {
-    const ip = c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? 'unknown';
+  return createMiddleware(async (context, next) => {
+    const ip = context.req.header('x-forwarded-for') ?? context.req.header('x-real-ip') ?? 'unknown';
     const now = Date.now();
     const record = requests.get(ip);
 
     if (!record || now > record.resetAt) {
       requests.set(ip, { count: 1, resetAt: now + opts.windowMs });
     } else if (record.count >= opts.max) {
-      return c.json({
+      return context.json({
         statusCode: 429,
         message: 'Too many requests. Please try again later.',
       }, 429);

@@ -140,8 +140,8 @@ Every request in IGNIS is automatically assigned a unique `requestId` for log co
 **Access request ID in handlers:**
 ```typescript
 // Inside a controller method - 'requestId' is the Hono request-id context variable
-async getUser(c: Context) {
-  const requestId = c.get('requestId');
+async getUser(context: Context) {
+  const requestId = context.get('requestId');
   this.logger.info('[%s] Processing user request', requestId);
   // ...
 }

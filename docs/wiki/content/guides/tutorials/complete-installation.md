@@ -324,8 +324,8 @@ export class HelloController extends BaseRestController {
   override binding() {}
 
   @api({ configs: helloRouteConfigs.sayHello })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
+  sayHello(context: Context) {
+    return context.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```

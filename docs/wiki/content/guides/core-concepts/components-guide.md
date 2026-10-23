@@ -169,13 +169,13 @@ export class NotificationController extends BaseRestController {
   }
 
   @post({ configs: NotificationRoutes.SEND })
-  async send(c: TRouteContext) {
-    const body = c.req.valid<{ userId: string; message: string }>('json');
+  async send(context: TRouteContext) {
+    const body = context.req.valid<{ userId: string; message: string }>('json');
     const result = await this._notificationService.send({
       userId: body.userId,
       message: body.message,
     });
-    return c.json(result, HTTP.ResultCodes.RS_2.Ok);
+    return context.json(result, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```

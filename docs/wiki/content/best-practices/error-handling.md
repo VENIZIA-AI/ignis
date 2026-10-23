@@ -186,23 +186,23 @@ import { BaseRestController, controller, get, post } from '@venizia/ignis';
 export class UserController extends BaseRestController {
 
   @post({ configs: RouteConfigs.CREATE_USER })
-  async createUser(c: TRouteContext) {
-    const data = c.req.valid<{ name: string; email: string }>('json');
+  async createUser(context: TRouteContext) {
+    const data = context.req.valid<{ name: string; email: string }>('json');
 
     // Service throws appropriate errors
     const user = await this.userService.createUser(data);
 
-    return c.json(user, HTTP.ResultCodes.RS_2.Created);
+    return context.json(user, HTTP.ResultCodes.RS_2.Created);
   }
 
   @get({ configs: RouteConfigs.GET_USER })
-  async getUser(c: TRouteContext) {
-    const { id } = c.req.valid<{ id: string }>('param');
+  async getUser(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
 
     // Service throws 404 if not found
     const user = await this.userService.getUserOrFail(id);
 
-    return c.json(user, HTTP.ResultCodes.RS_2.Ok);
+    return context.json(user, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -284,7 +284,7 @@ export class Application extends BaseApplication {
     // Custom error handler (optional) - the default AppErrorMiddleware already does this.
     // `this.server` is `{ hono, runtime, instance }` - reach the Hono app via getServer().
     this.getServer().onError((error, c) => {
-      const requestId = c.get('requestId') ?? 'unknown';
+      const requestId = context.get('requestId') ?? 'unknown';
 
       // Log all errors
       this.logger.error('[%s] Error | %s', requestId, error);
@@ -292,18 +292,18 @@ export class Application extends BaseApplication {
       // Handle known application errors - isApplicationError(), never `instanceof
       // ApplicationError` (unreliable across package boundaries)
       if (isApplicationError(error)) {
-        return c.json({
+        return context.json({
           statusCode: error.statusCode,
           message: error.message,
           normalized: error.normalized, // { text, code, args } - never undefined
           extra: error.extra,
           requestId,
-        }, error.statusCode as Parameters<typeof c.json>[1]);
+        }, error.statusCode as Parameters<typeof context.json>[1]);
       }
 
       // Handle Zod validation errors - Zod v4 exposes `issues`, not `errors`
       if (error.name === 'ZodError') {
-        return c.json({
+        return context.json({
           statusCode: 422,
           message: 'Validation failed',
           normalized: { text: 'Validation failed', code: MessageCode.DEFAULT, args: {} },
@@ -313,7 +313,7 @@ export class Application extends BaseApplication {
       }
 
       // Unknown errors - don't expose details
-      return c.json({
+      return context.json({
         statusCode: 500,
         message: 'Internal server error',
         normalized: { text: 'Internal server error', code: MessageCode.DEFAULT, args: {} },
