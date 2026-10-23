@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { basename, dirname, extname, join } from 'node:path';
+import { dirname, extname, join } from 'node:path';
 
 const LINT_CONFIG = '.configs/lints/oxlint.config.mts';
 const ESLINT_CONFIG = '.configs/lints/eslint.config.mjs';
@@ -7,9 +7,18 @@ const LINT_IGNORE_FILE = '.configs/lints/.ignore';
 const FORMAT_IGNORE_FILE = '.configs/formatters/.ignore';
 const ESLINT_CACHE = ['--cache', '--cache-location', 'node_modules/.cache/eslint/'];
 const LINTED_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.js', '.mjs']);
-const MANIFEST = 'package.json';
-/** The code `bun fmt` formats, and every package.json, whose keys it sorts. */
-const FORMAT_GLOBS = ['**/*.{ts,tsx,mts,js,mjs}', '**/package.json'];
+/** What `bun fmt` formats: the code, JSON (package.json keys are sorted), YAML, CSS, HTML and Vue - not Markdown. */
+const FORMATTED_EXTENSIONS = new Set([
+  ...LINTED_EXTENSIONS,
+  '.json',
+  '.jsonc',
+  '.yml',
+  '.yaml',
+  '.css',
+  '.html',
+  '.vue',
+]);
+const FORMAT_GLOB = '**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}';
 const FIX_FLAG = '--fix';
 
 /** One tool call: the tool name and its arguments, run from the project root. */
@@ -44,14 +53,14 @@ export class LintCommand {
 
   /**
    * The tool calls for these arguments, in order; empty when a file list holds nothing to lint or
-   * format. oxlint and ESLint take the code files; `bun fmt` takes those and any package.json.
+   * format. oxlint and ESLint take the code files; `bun fmt` takes those and the other formatted types.
    */
   static plan(opts: { root: string; args: string[] }): ILintStep[] {
     const fix = opts.args[0] === FIX_FLAG;
     const paths = fix ? opts.args.slice(1) : opts.args;
     const whole = paths.length === 0;
     const files = paths.filter(path => LINTED_EXTENSIONS.has(extname(path)));
-    const formatted = paths.filter(path => files.includes(path) || basename(path) === MANIFEST);
+    const formatted = paths.filter(path => FORMATTED_EXTENSIONS.has(extname(path)));
 
     if (!whole && formatted.length === 0) {
       return [];
@@ -101,7 +110,7 @@ export class LintCommand {
         ...unmatched,
         ...formatIgnore,
         ...(fix ? [] : ['--check']),
-        ...(whole ? FORMAT_GLOBS : formatted),
+        ...(whole ? [FORMAT_GLOB] : formatted),
       ],
     };
 
