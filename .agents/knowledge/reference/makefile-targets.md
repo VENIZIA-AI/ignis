@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**117 targets.**
+**119 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -43,13 +43,14 @@ generated:
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
-| `make fmt` | `fmt-packages fmt-manifests` | fmt-<pkg> for every package. |
+| `make fmt` | `fmt-packages fmt-manifests fmt-files` | fmt-<pkg> for every package. |
 | `make fmt-boot` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-connectors` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-core` | `fmt-core-server` | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-core-server` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-core-worker` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-dev-configs` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make fmt-files` | - | - |
 | `make fmt-filter` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
@@ -63,13 +64,14 @@ generated:
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts lint-manifests` | lint-packages, lint-scripts and lint-manifests (the root package.json). |
+| `make lint-all` | `lint-packages lint-scripts lint-manifests lint-files` | lint-packages, lint-scripts, lint-manifests (root package.json) and lint-files (.github, .agents, .configs, presets). |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core-server` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core-worker` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
+| `make lint-files` | - | - |
 | `make lint-filter` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-helpers` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |

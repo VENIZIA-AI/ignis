@@ -123,7 +123,9 @@ describe('devz', () => {
   test('a css file alone is only formatted', () => {
     const { calls } = runLint({ args: ['site/theme.css'] });
 
-    expect(calls).toEqual(['bun fmt --no-script --no-error-on-unmatched-pattern --check site/theme.css']);
+    expect(calls).toEqual([
+      'bun fmt --no-script --no-error-on-unmatched-pattern --check site/theme.css',
+    ]);
   });
 
   test('a package.json alone is only formatted, with its keys sorted', () => {
