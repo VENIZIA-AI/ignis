@@ -10,19 +10,9 @@
 
     /* The smoke test runs in Bun and loads the Worker by URL, so it needs Bun's types and none of
        the application's. */
-    "lib": [
-      "ES2025",
-      "DOM"
-    ],
-    "types": [
-      "bun"
-    ]
+    "lib": ["ES2025", "DOM"],
+    "types": ["bun"]
   },
-  "include": [
-    "../../test"
-  ],
-  "exclude": [
-    "../../node_modules",
-    "../../dist"
-  ]
+  "include": ["../../test"],
+  "exclude": ["../../node_modules", "../../dist"]
 }

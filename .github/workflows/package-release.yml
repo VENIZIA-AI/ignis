@@ -1,5 +1,5 @@
-name: "NPM Release"
-run-name: "NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}"
+name: 'NPM Release'
+run-name: 'NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}'
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ on:
         required: true
       build_mode:
         type: choice
-        description: "Version bump type (patch | minor | major | pre*)"
+        description: 'Version bump type (patch | minor | major | pre*)'
         options:
           - patch
           - minor
@@ -30,25 +30,25 @@ on:
           - premajor
           - prerelease
         required: true
-        default: "patch"
+        default: 'patch'
       issue:
         type: string
-        description: "Issue number the release commit serves (prefixes it with [#N])"
+        description: 'Issue number the release commit serves (prefixes it with [#N])'
         required: false
-        default: ""
+        default: ''
       dependencies_from:
         type: choice
-        description: "Where internal dependency ranges come from: the registry, or the workspace (a release chain - the previous package is published but npm may not show it yet)"
+        description: 'Where internal dependency ranges come from: the registry, or the workspace (a release chain - the previous package is published but npm may not show it yet)'
         options:
           - registry
           - workspace
         required: false
-        default: "registry"
+        default: 'registry'
       chain_released:
         type: string
-        description: "Comma-separated @venizia/* names published earlier in this chain - the registry gate trusts their workspace version"
+        description: 'Comma-separated @venizia/* names published earlier in this chain - the registry gate trusts their workspace version'
         required: false
-        default: ""
+        default: ''
 
 # Build order comes from the Makefile chain (dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-server, core-worker}); per-package dist dirs are in the `case` below. `kernel` sits beside `boot`, not after it. `core-server` (published as `@venizia/ignis`) depends on `kernel` AND `connectors` by version range, so both must be published first or the registry-existence check fails. `core-worker` depends on `kernel` only.
 #
@@ -88,8 +88,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

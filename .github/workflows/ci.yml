@@ -1,5 +1,5 @@
 name: CI
-run-name: "CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}"
+run-name: 'CI | ${{ github.event_name }} | ${{ github.head_ref || github.ref_name }}'
 
 # Manual only, by decision. These gates are a full build, seven test suites, lint and the purity
 # probe, and they used to fire on every pull request AND every push to develop - including the
@@ -74,7 +74,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6.4.0
         with:
-          node-version: "24"
+          node-version: '24'
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
