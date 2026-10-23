@@ -35,7 +35,7 @@ help:
 	@echo ""
 	@echo "Every package:"
 	@$(HELP_ROW) "lint / lint-packages" "lint-<pkg> for every package."
-	@$(HELP_ROW) "lint-all" "lint-packages and lint-scripts."
+	@$(HELP_ROW) "lint-all" "lint-packages, lint-scripts and lint-manifests (the root package.json)."
 	@$(HELP_ROW) "fmt / fmt-packages" "fmt-<pkg> for every package."
 	@$(HELP_ROW) "test-all" "test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel)."
 	@$(HELP_ROW) "purity" "Gate: every entry claimed browser-pure has no node builtin or global."

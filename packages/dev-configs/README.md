@@ -10,9 +10,9 @@ bun add -d @venizia/dev-configs oxlint oxlint-tsgolint eslint typescript
 ```
 
 `oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
-`prettier` (3, for the legacy `eslintConfigs`) and `typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
+`typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
 ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
-project that still runs ESLint with the Prettier rule installs `eslint prettier` and skips the oxc tools.
+project that only wants the full ESLint preset installs `eslint` and skips the oxc tools.
 
 ## Use it
 
@@ -233,13 +233,13 @@ arrowParens = "avoid"
 flavor = "oxfmt"
 ```
 
-`flavor = "oxfmt"` keeps the output IGNIS was formatted with; without it Bun formats like Prettier, which puts the first member of a long union type on its own `|` line. Bun's defaults supply the rest: `tabWidth` 2, `trailingComma` `"all"`, `semi`, `bracketSpacing`. `devz lint` runs `bun fmt --no-script` and passes each pattern of `.configs/formatters/.ignore` as `--ignore-pattern`.
+`flavor = "oxfmt"` keeps the output IGNIS was formatted with; without it Bun formats in its default flavor, which puts the first member of a long union type on its own `|` line. Bun's defaults supply the rest: `tabWidth` 2, `trailingComma` `"all"`, `semi`, `bracketSpacing`. `devz lint` runs `bun fmt --no-script` and passes each pattern of `.configs/formatters/.ignore` as `--ignore-pattern`.
 
 ### eslintConfigs
 
 `eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
-of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, Prettier as a lint
-rule, naming conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
+of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, naming
+conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
 
 | Rule | Setting |
 | :--- | :--- |

@@ -78,7 +78,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ .',
-      'bun fmt --no-script --check **/{*.{ts,tsx,mts,js,mjs},package.json}',
+      'bun fmt --no-script --check **/*.{ts,tsx,mts,js,mjs} **/package.json',
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --fix .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --fix .',
-      'bun fmt --no-script **/{*.{ts,tsx,mts,js,mjs},package.json}',
+      'bun fmt --no-script **/*.{ts,tsx,mts,js,mjs} **/package.json',
     ]);
   });
 
@@ -153,7 +153,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --ignore-pattern src/gen/** --ignore-pattern *.ts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --ignore-pattern src/gen/** --ignore-pattern *.ts .',
-      'bun fmt --no-script --check **/{*.{ts,tsx,mts,js,mjs},package.json}',
+      'bun fmt --no-script --check **/*.{ts,tsx,mts,js,mjs} **/package.json',
     ]);
   });
 

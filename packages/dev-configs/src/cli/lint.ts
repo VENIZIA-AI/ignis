@@ -9,7 +9,7 @@ const ESLINT_CACHE = ['--cache', '--cache-location', 'node_modules/.cache/eslint
 const LINTED_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.js', '.mjs']);
 const MANIFEST = 'package.json';
 /** The code `bun fmt` formats, and every package.json, whose keys it sorts. */
-const FORMAT_GLOB = '**/{*.{ts,tsx,mts,js,mjs},package.json}';
+const FORMAT_GLOBS = ['**/*.{ts,tsx,mts,js,mjs}', '**/package.json'];
 const FIX_FLAG = '--fix';
 
 /** One tool call: the tool name and its arguments, run from the project root. */
@@ -101,7 +101,7 @@ export class LintCommand {
         ...unmatched,
         ...formatIgnore,
         ...(fix ? [] : ['--check']),
-        ...(whole ? [FORMAT_GLOB] : formatted),
+        ...(whole ? FORMAT_GLOBS : formatted),
       ],
     };
 

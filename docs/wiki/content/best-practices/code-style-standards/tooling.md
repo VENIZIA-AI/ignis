@@ -180,7 +180,7 @@ flavor = "oxfmt"
 | `printWidth` | `100` | Maximum line length |
 | `singleQuote` | `true` | `'string'` (single quotes) |
 | `arrowParens` | `"avoid"` | `x => x` not `(x) => x` |
-| `flavor` | `"oxfmt"` | Keeps the output IGNIS was formatted with. Without it Bun formats like Prettier, which puts the first member of a long union on its own `|` line |
+| `flavor` | `"oxfmt"` | Keeps the output IGNIS was formatted with. Without it Bun formats in its default flavor, which puts the first member of a long union on its own `|` line |
 
 Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `trailingComma` `"all"`, `semi` `true`, `bracketSpacing` `true`. The same table serves a React app; there is no separate frontend style.
 
@@ -253,12 +253,11 @@ import { reactNamingConventionConfigs } from '@venizia/dev-configs/linters';
 export default reactNamingConventionConfigs;
 ```
 
-The browser tier adds one rule to the backend preset, plus two format changes:
+The browser tier adds one rule to the backend preset:
 
 | Adds | Setting |
 |---|---|
 | `no-restricted-properties` | bans `crypto.randomUUID`, which is `undefined` on a plain-http origin or in a WebView |
-| `browserOxfmtConfigs` | `arrowParens: 'always'` (`(x) => x`) and `bracketSameLine: true` (the closing `>` of a JSX element stays on its last attribute line) |
 | `tsconfig.browser.json` | `moduleResolution: bundler`, the `DOM` lib, `types: []` so no Bun types reach `dist` |
 
 The React tier adds these on top of the browser tier:

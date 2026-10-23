@@ -47,7 +47,7 @@ tags: [conventions, gotchas, debugging]
 - [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
 - [ignorePatterns in a .configs file resolve against .configs](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
-- [bun fmt formats long unions like Prettier unless flavor is oxfmt](#bun-fmt-formats-long-unions-like-prettier-unless-flavor-is-oxfmt)
+- [bun fmt formats long unions in its default flavor unless flavor is oxfmt](#bun-fmt-formats-long-unions-in-its-default-flavor-unless-flavor-is-oxfmt)
 - [Makefile: a $(call) glob with a comma, and .PHONY pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
 - [The ESLint config is .mjs: a TypeScript one needs jiti](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
 - [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
@@ -70,7 +70,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [A stale `.configs/builders/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
 - [`ignorePatterns` in a `.configs/` file resolve against `.configs/`](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
-- [bun fmt formats long unions like Prettier unless flavor is oxfmt](#bun-fmt-formats-long-unions-like-prettier-unless-flavor-is-oxfmt)
+- [bun fmt formats long unions in its default flavor unless flavor is oxfmt](#bun-fmt-formats-long-unions-in-its-default-flavor-unless-flavor-is-oxfmt)
 - [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
 - [The ESLint config is `.mjs`: a TypeScript one needs `jiti`](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
 - [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
@@ -662,9 +662,9 @@ relative to `.configs/`, not the project, so it matches nothing. Do not rely on 
 oxlint caught four real `no-unsafe-optional-chaining` cases. `(x?.y as T).z` still throws when `x` is
 undefined, because the cast ends the optional chain. They were in the connectors tests and are fixed.
 
-## bun fmt formats long unions like Prettier unless flavor is oxfmt
+## bun fmt formats long unions in its default flavor unless flavor is oxfmt
 
-`bun fmt` picks its flavor from `package.json`: with `oxfmt` listed it formats like oxfmt, which puts a leading `|` on each line of a long union type; without it, like Prettier, which does not. The `[fmt]` table of the root `bunfig.toml` therefore sets `flavor = "oxfmt"`; dropping the key changed 14 files. The oxfmt switch reformatted 16 files once.
+`bun fmt` picks its flavor from `package.json`: with `oxfmt` listed it formats like oxfmt, which puts a leading `|` on each line of a long union type; without it, in its default flavor, which does not. The `[fmt]` table of the root `bunfig.toml` therefore sets `flavor = "oxfmt"`; dropping the key changed 14 files. The oxfmt switch reformatted 16 files once.
 `docs/wiki/site/.vitepress/config.mts` is excluded from formatting to keep its one-entry-per-line
 sidebar layout.
 
