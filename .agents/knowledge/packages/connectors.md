@@ -88,7 +88,7 @@ The load-bearing decision is that a list with no `Content-Range` has NO total, r
 rather than folded into the page length - a count of 1 for a table of 7000 reads healthy everywhere
 it is consumed. Generated CRUD routes always send the header; a hand-written `respond()` need not,
 which is when it fires. `countPath` is opt-in for an API that publishes a count route, because one
-publishes `/count`, another `/search/count`, and another deleted it.
+publishes `/count`, another `/search/count`, and another deleted it. `findOnePath` is opt-in for the same reason: `defineCrudController` generates `GET /find-one`, which answers a missing row with HTTP 200 and no row (the connector always sends `x-request-count-data: false`, so the body is the bare row or `null`), and the connector reads it with `shape: 'one'` and returns `rs.data ?? null`; without it `findOne` asks the list route with `limit: 1`.
 
 An empty page is `records */N` - the total present, the range absent - and reads as that total; the
 start comes from the filter's `skip`/`offset`, the rule the server used. Missing it made `count()`

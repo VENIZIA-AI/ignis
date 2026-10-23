@@ -16,6 +16,12 @@ Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-s
 - Every tracked `package.json` is checked and sorted by `bun fmt` (one-time sort in its own commit); a release bump with `npm version` keeps it sorted.
 - Bun 1.4.4 is the floor. `bun lint` is not in a stable Bun yet, so oxlint and ESLint stay.
 
+## 2026-10-23 - the http repository can call find-one
+
+Updated [connectors](/packages/connectors.md).
+
+- `HttpRepository` takes an opt-in `findOnePath` next to `countPath`: `findOne` then reads `GET /<resource>/<findOnePath>` with `shape: 'one'` and returns `rs.data ?? null`. Default unchanged (the list route with `limit: 1`).
+
 ## 2026-10-22 - the preset contract uses vulcan.presets
 
 Updated [release and publish](/process/release-publish.md).

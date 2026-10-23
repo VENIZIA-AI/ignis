@@ -13,7 +13,7 @@ const stubFetch = (spec: { body?: unknown; contentRange?: string; status?: numbe
 
   globalThis.fetch = (async (url: string | URL) => {
     urls.push(String(url));
-    return new Response(JSON.stringify(spec.body ?? []), {
+    return new Response(JSON.stringify('body' in spec ? spec.body : []), {
       status: spec.status ?? 200,
       headers: spec.contentRange ? { 'content-range': spec.contentRange } : {},
     });
@@ -22,11 +22,12 @@ const stubFetch = (spec: { body?: unknown; contentRange?: string; status?: numbe
   return urls;
 };
 
-const build = (opts?: { countPath?: string }) =>
+const build = (opts?: { countPath?: string; findOnePath?: string }) =>
   new HttpRepository<{ id: string }>({
     dataSource: new HttpDataSource({ baseUrl: 'https://api.example.com' }),
     resource: 'tickets',
     countPath: opts?.countPath,
+    findOnePath: opts?.findOnePath,
   });
 
 describe('the total comes from the header, not from the page', () => {
@@ -135,6 +136,35 @@ describe('countPath is opt-in convention', () => {
     await build().count({ where: {} });
 
     expect(urls[0]).not.toContain('/count');
+  });
+});
+
+describe('findOnePath is opt-in convention', () => {
+  test('when named, the find-one route is asked and its row comes back bare', async () => {
+    const urls = stubFetch({ body: { id: 'a' } });
+
+    expect(
+      await build({ findOnePath: 'find-one' }).findOne({ filter: { where: { id: 'a' } } }),
+    ).toEqual({
+      id: 'a',
+    } as never);
+    expect(urls[0]).toContain('/tickets/find-one?');
+    expect(urls[0]).toContain('filter=');
+    expect(urls[0]).not.toContain('limit');
+  });
+
+  test('a missing row is a 200 with a null body, and answers null', async () => {
+    stubFetch({ body: null });
+
+    expect(await build({ findOnePath: 'find-one' }).findOne({ filter: {} })).toBeNull();
+  });
+
+  test('when absent, the list route is asked for one row', async () => {
+    const urls = stubFetch({ body: [{ id: 'a' }] });
+
+    expect(await build().findOne({ filter: {} })).toEqual({ id: 'a' } as never);
+    expect(urls[0]).not.toContain('find-one');
+    expect(urls[0]).toContain('limit');
   });
 });
 

@@ -179,6 +179,8 @@ The datasource is still injected at constructor param[0] - by its class, so a da
 
 TypeScript rejects a `MODEL` repository without `model` and a `REMOTE` one with it. A JavaScript caller gets the same answer at decoration time, as does an unknown `type`.
 
+`findOne` asks the list route for one row. Pass `findOnePath: 'find-one'` to the constructor to call `GET /products/find-one` instead, the route `defineCrudController` generates; it answers a missing row with HTTP 200 and no row, so `findOne` returns `null`. `countPath` does the same for the count route.
+
 The same repository writes through the IGNIS CRUD routes the other service generates:
 
 | Method | Request |
