@@ -21,7 +21,7 @@ const CLI = resolve(
   'cli',
   'index.ts',
 );
-const TOOLS = ['oxlint', 'eslint', 'oxfmt'];
+const TOOLS = ['oxlint', 'eslint', 'bun'];
 const tmpDirs: string[] = [];
 
 /** Folder of .configs to the content of its .ignore file. */
@@ -53,7 +53,7 @@ const makeProject = (opts: { ignore?: TIgnoreFiles; failing?: string } = {}) => 
 const runLint = (opts: { args: string[]; ignore?: TIgnoreFiles; failing?: string }) => {
   const project = makeProject({ ignore: opts.ignore, failing: opts.failing });
   const result = Bun.spawnSync({
-    cmd: ['bun', CLI, 'lint', ...opts.args],
+    cmd: [process.execPath, CLI, 'lint', ...opts.args],
     cwd: project.root,
     env: { PATH: `${project.bin}:${process.env.PATH ?? ''}` },
   });
@@ -78,7 +78,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ .',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts --check **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts --check **/*.{ts,tsx,mts,js,mjs}',
     ]);
   });
 
@@ -88,7 +88,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --fix .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --fix .',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts **/*.{ts,tsx,mts,js,mjs}',
     ]);
   });
 
@@ -98,7 +98,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --no-error-on-unmatched-pattern --deny-warnings src/a.ts src/b.tsx',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --no-warn-ignored src/a.ts src/b.tsx',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern --check src/a.ts src/b.tsx',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern --check src/a.ts src/b.tsx',
     ]);
   });
 
@@ -108,7 +108,7 @@ describe('devz', () => {
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --no-error-on-unmatched-pattern --fix src/a.ts',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --no-warn-ignored --fix src/a.ts',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern src/a.ts',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern src/a.ts',
     ]);
   });
 
@@ -128,24 +128,24 @@ describe('devz', () => {
   });
 
   // An ignore file resolves its patterns from its own folder, so each .ignore reaches its tools as
-  // command-line patterns, which resolve from the project root: --ignore-pattern, or !pattern for oxfmt.
+  // command-line patterns, which resolve from the project root: --ignore-pattern for every tool here.
   test('lints/.ignore reaches oxlint and eslint, comments and blank lines skipped', () => {
     const { calls } = runLint({ args: [], ignore: { lints: '# generated\nsrc/gen/**\n\n*.ts\n' } });
 
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --ignore-pattern src/gen/** --ignore-pattern *.ts --deny-warnings .',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --ignore-pattern src/gen/** --ignore-pattern *.ts .',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts --check **/*.{ts,tsx,mts,js,mjs}',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts --check **/*.{ts,tsx,mts,js,mjs}',
     ]);
   });
 
-  test('formatters/.ignore reaches oxfmt only', () => {
+  test('formatters/.ignore reaches bun fmt only', () => {
     const { calls } = runLint({ args: ['src/a.ts'], ignore: { formatters: 'src/vendor/**\n' } });
 
     expect(calls).toEqual([
       'oxlint -c .configs/lints/oxlint.config.mts --no-error-on-unmatched-pattern --deny-warnings src/a.ts',
       'eslint -c .configs/lints/eslint.config.mjs --cache --cache-location node_modules/.cache/eslint/ --no-warn-ignored src/a.ts',
-      'oxfmt -c .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern --check src/a.ts !src/vendor/**',
+      'bun fmt --no-script --config .configs/formatters/oxfmt.config.mts --no-error-on-unmatched-pattern --ignore-pattern src/vendor/** --check src/a.ts',
     ]);
   });
 

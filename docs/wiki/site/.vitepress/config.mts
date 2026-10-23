@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-23',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Format With bun fmt',
+                  link: '/changelogs/2026-10-23-bun-fmt',
+                },
+              ],
+            },
+            {
               text: '2026-10-22',
               collapsed: true,
               items: [

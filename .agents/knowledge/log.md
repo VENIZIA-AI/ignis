@@ -6,6 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-23 - the formatter runs through bun fmt
+
+Updated [build system](/process/build-system.md), [dev-configs](/packages/dev-configs.md), [build, run and test](/overview/build-run-test.md), [git workflow](/process/git-workflow.md) and [testing](/process/testing.md).
+
+- `make lint`, `make fmt`, `lint-wiki`, `lint-scripts` and `devz lint` format with `bun fmt --no-script --config <oxfmt config>`. Bun evaluates the config and formats natively; 0 differing files across 21 projects.
+- Bun 1.4.4 is the floor (`bun fmt` is new there); `bun lint` is not in a stable Bun yet.
+- Not done yet: the `[fmt]` table in `bunfig.toml` replacing the config files, and dropping `oxfmt`.
+
 ## 2026-10-22 - the preset contract uses vulcan.presets
 
 Updated [release and publish](/process/release-publish.md).

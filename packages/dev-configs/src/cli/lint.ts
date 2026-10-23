@@ -18,7 +18,7 @@ export interface ILintStep {
 }
 
 /**
- * `devz lint [--fix] [files]`: oxlint, then ESLint, then oxfmt, from the project's
+ * `devz lint [--fix] [files]`: oxlint, then ESLint, then `bun fmt`, from the project's
  * `.configs/lints/` and `.configs/formatters/`. With no file it checks the whole project; with
  * files it handles only those, as a pre-commit hook passes them.
  */
@@ -55,9 +55,10 @@ export class LintCommand {
     const lintIgnore = LintCommand.readIgnore({ root: opts.root, file: LINT_IGNORE_FILE }).flatMap(
       pattern => ['--ignore-pattern', pattern],
     );
-    const formatIgnore = LintCommand.readIgnore({ root: opts.root, file: FORMAT_IGNORE_FILE }).map(
-      pattern => `!${pattern}`,
-    );
+    const formatIgnore = LintCommand.readIgnore({
+      root: opts.root,
+      file: FORMAT_IGNORE_FILE,
+    }).flatMap(pattern => ['--ignore-pattern', pattern]);
     const unmatched = whole ? [] : ['--no-error-on-unmatched-pattern'];
     const eslintQuiet = whole ? [] : ['--no-warn-ignored'];
 
@@ -86,14 +87,16 @@ export class LintCommand {
         ],
       },
       {
-        tool: 'oxfmt',
+        tool: 'bun',
         args: [
-          '-c',
+          'fmt',
+          '--no-script',
+          '--config',
           FORMAT_CONFIG,
           ...unmatched,
+          ...formatIgnore,
           ...(fix ? [] : ['--check']),
           ...(whole ? [FORMAT_GLOB] : files),
-          ...formatIgnore,
         ],
       },
     ];

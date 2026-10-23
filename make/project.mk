@@ -31,6 +31,8 @@ ESM_TSCONFIG := .configs/builders/tsconfig.esm.json
 EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
+# bun fmt reads the project's oxfmt config; --no-script keeps a package.json "fmt" script from taking over.
+BUN_FMT_FLAGS := --no-script --config .configs/formatters/oxfmt.config.mts
 
 # Paths this package must not lint or format, relative to the package - generated files, bundles:
 #   LINT_IGNORE := src/generated.ts dev-dist/** public/**
@@ -38,7 +40,6 @@ FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
 # they resolve against .configs/ and match nothing.
 LINT_IGNORE ?=
 LINT_IGNORE_FLAGS = $(foreach glob,$(LINT_IGNORE),--ignore-pattern "$(glob)")
-FMT_IGNORE_GLOBS = $(foreach glob,$(LINT_IGNORE),"!$(glob)")
 
 .PHONY: build typecheck clean rebuild lint fmt
 
@@ -82,9 +83,9 @@ rebuild: typecheck clean
 lint:
 	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(LINT_IGNORE_FLAGS) .
 	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/formatters/oxfmt.config.mts --check $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+	@bun fmt $(BUN_FMT_FLAGS) --check $(FMT_GLOB) $(LINT_IGNORE_FLAGS)
 
 fmt:
 	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
 	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
-	@$(BIN)/oxfmt -c .configs/formatters/oxfmt.config.mts $(FMT_GLOB) $(FMT_IGNORE_GLOBS)
+	@bun fmt $(BUN_FMT_FLAGS) $(FMT_GLOB) $(LINT_IGNORE_FLAGS)
