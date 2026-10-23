@@ -7,7 +7,6 @@
     "@venizia/dev-configs": "workspace:*",
     "@venizia/ignis": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:"

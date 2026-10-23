@@ -3,7 +3,7 @@ import { ArtifactStereotypes, ArtifactTypes, type IScannedArtifact } from './com
 
 /** Renders the generated index: deterministic text, plain static imports, no IGNIS import - the object is type-checked where `registerArtifacts` receives it. */
 export class ArtifactIndexEmitter {
-  /** Mirrors `printWidth` in @venizia/dev-configs prettier settings. */
+  /** Mirrors `printWidth` in the root bunfig.toml `[fmt]` table. */
   static readonly PRINT_WIDTH = 100;
 
   static readonly DEFAULT_EXPORT_NAME = 'GeneratedArtifacts';
@@ -85,7 +85,7 @@ export class ArtifactIndexEmitter {
     ].join('\n');
   }
 
-  /** One line while it fits the repo's prettier width, else one name per line - so `prettier -l` on the generated file stays quiet. */
+  /** One line while it fits the print width, else one name per line - so `bun fmt --check` on the generated file stays quiet. */
   private static renderField(opts: { field: string; names: string[] }): string[] {
     const { field, names } = opts;
     const singleLine = `  ${field}: [${names.join(', ')}],`;

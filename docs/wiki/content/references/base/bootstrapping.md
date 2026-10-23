@@ -453,7 +453,7 @@ A class is emitted when all of the following hold:
 
 ### Output
 
-Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. The order mirrors `registerArtifacts`; the kernel re-sorts configurations among themselves by their `after` declarations at boot, so their order inside the field does not matter. A field wider than 100 columns wraps one name per line, so the file passes `oxfmt --check` unchanged. The header names the regenerate command.
+Deterministic: imports sorted by path, class names sorted within each field, one field per kind in the order `configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`, empty arrays kept. The order mirrors `registerArtifacts`; the kernel re-sorts configurations among themselves by their `after` declarations at boot, so their order inside the field does not matter. A field wider than 100 columns wraps one name per line, so the file passes `bun fmt --check` unchanged. The header names the regenerate command.
 
 ## Programmatic API
 

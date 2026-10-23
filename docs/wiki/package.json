@@ -23,22 +23,19 @@
     "wiki"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "docs/wiki"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "docs/wiki"
   },
   "files": [
     "README.md",
@@ -62,12 +59,14 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "typescript": "catalog:",
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
     "vue": "^3.5.44"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }

@@ -5,9 +5,7 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
@@ -15,13 +13,6 @@
     "jsxImportSource": "hono/jsx",
     "useDefineForClassFields": false
   },
-  "include": [
-    "src",
-    "scripts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data"
-  ]
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules", "dist", "app_data"]
 }

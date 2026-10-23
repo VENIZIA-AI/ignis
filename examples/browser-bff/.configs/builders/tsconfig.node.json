@@ -11,18 +11,9 @@
     /* The build tooling, not the application: this project holds `vite.config.ts` alone, which runs
        in node and needs `fileURLToPath`. `node` is scoped here rather than declared once for the
        whole package so it cannot reach `src`. */
-    "lib": [
-      "ES2025"
-    ],
-    "types": [
-      "node"
-    ]
+    "lib": ["ES2025"],
+    "types": ["node"]
   },
-  "include": [
-    "./vite.config.ts"
-  ],
-  "exclude": [
-    "../../node_modules",
-    "../../dist"
-  ]
+  "include": ["./vite.config.ts"],
+  "exclude": ["../../node_modules", "../../dist"]
 }

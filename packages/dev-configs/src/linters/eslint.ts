@@ -2,7 +2,6 @@ import js from '@eslint/js';
 import type { Linter } from 'eslint';
 import { defineConfig } from 'eslint/config';
 import n from 'eslint-plugin-n';
-import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import unicorn from 'eslint-plugin-unicorn';
 import tseslint from 'typescript-eslint';
 import {
@@ -88,15 +87,13 @@ const STRICT_RULES: Linter.RulesRecord = {
 };
 
 /**
- * The full ESLint preset, owned here: the LoopBack 4 rule set on the ESLint, typescript-eslint and
- * Prettier recommended presets, type-aware through the project service. A project on oxlint uses
+ * The full ESLint preset, owned here: the LoopBack 4 rule set on the ESLint and typescript-eslint
+ * recommended presets, type-aware through the project service. A project on oxlint uses
  * `oxlintConfigs` + `namingConventionConfigs` instead.
  */
 export const eslintConfigs: Linter.Config[] = defineConfig([
   js.configs.recommended,
   tseslint.configs.recommended,
-  // Last of the presets, so it turns off every stylistic rule that would fight the formatter.
-  prettierRecommended,
   {
     files: SOURCE_FILES,
     languageOptions: {
@@ -126,7 +123,6 @@ export const eslintConfigs: Linter.Config[] = defineConfig([
       '**/.babelrc.*',
       '**/eslint.config.*',
       '**/.eslintrc.*',
-      '**/.prettierrc.*',
     ],
   },
 ]);

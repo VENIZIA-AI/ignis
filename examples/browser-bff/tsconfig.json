@@ -10,9 +10,7 @@
   "files": [],
   "compilerOptions": {
     "paths": {
-      "@/*": [
-        "./src/worker/*"
-      ]
+      "@/*": ["./src/worker/*"]
     },
     "experimentalDecorators": true,
     "useDefineForClassFields": false

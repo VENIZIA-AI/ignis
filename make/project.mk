@@ -30,9 +30,10 @@ ESM_TSCONFIG := .configs/builders/tsconfig.esm.json
 # leaves a dist with cjs/ and no esm/.
 EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
-FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs}"
-# bun fmt reads the project's oxfmt config; --no-script keeps a package.json "fmt" script from taking over.
-BUN_FMT_FLAGS := --no-script --config .configs/formatters/oxfmt.config.mts
+# The code and every JSON, YAML, CSS, HTML and Vue file (package.json keys are sorted); not Markdown.
+FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
+# bun fmt reads [fmt] from the root bunfig.toml; --no-script keeps a package.json "fmt" script from taking over.
+BUN_FMT_FLAGS := --no-script
 
 # Paths this package must not lint or format, relative to the package - generated files, bundles:
 #   LINT_IGNORE := src/generated.ts dev-dist/** public/**

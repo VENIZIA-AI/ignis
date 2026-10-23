@@ -75,7 +75,7 @@ Deterministic text: header naming the regenerate command, imports sorted by path
 output file, POSIX separators, no extension), then one field per kind in `EMIT_ORDER`
 (`configurations`, `dataSources`, `components`, `repositories`, `services`, `controllers`), names sorted, empty arrays
 kept. A field wider than 100 columns wraps one name per line with trailing commas, so the file passes
-the repo's `oxfmt --check` untouched. No IGNIS import in the file - the object is type-checked where
+the repo's `bun fmt --check` untouched. No IGNIS import in the file - the object is type-checked where
 `registerArtifacts` receives it.
 
 ## Generated header names the command

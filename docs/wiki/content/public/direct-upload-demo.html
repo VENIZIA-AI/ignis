@@ -14,27 +14,52 @@
         --wait: #9a6700;
         --code: #f6f8fa;
       }
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
         padding: 2rem 1.25rem 4rem;
-        font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        font:
+          15px/1.6 ui-sans-serif,
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
         color: var(--ink);
         max-width: 60rem;
         margin-inline: auto;
       }
-      h1 { font-size: 1.5rem; margin: 0 0 0.25rem; }
-      h2 { font-size: 1rem; margin: 0 0 0.75rem; }
-      .lede { color: var(--dim); margin: 0 0 2rem; }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1rem;
+        margin: 0 0 0.75rem;
+      }
+      .lede {
+        color: var(--dim);
+        margin: 0 0 2rem;
+      }
       fieldset {
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 1rem 1.25rem 1.25rem;
         margin: 0 0 1.5rem;
       }
-      legend { font-weight: 600; padding-inline: 0.5rem; }
-      label { display: block; font-size: 0.85rem; color: var(--dim); margin-bottom: 0.25rem; }
-      input[type="text"], input[type="password"] {
+      legend {
+        font-weight: 600;
+        padding-inline: 0.5rem;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--dim);
+        margin-bottom: 0.25rem;
+      }
+      input[type='text'],
+      input[type='password'] {
         width: 100%;
         padding: 0.5rem 0.6rem;
         border: 1px solid var(--line);
@@ -52,8 +77,15 @@
         color: #fff;
         cursor: pointer;
       }
-      button:disabled { opacity: 0.45; cursor: not-allowed; }
-      ol.steps { list-style: none; padding: 0; margin: 0; }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      ol.steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
       ol.steps > li {
         border: 1px solid var(--line);
         border-left-width: 4px;
@@ -61,19 +93,42 @@
         padding: 0.9rem 1rem;
         margin-bottom: 0.75rem;
       }
-      li[data-state="idle"] { border-left-color: var(--line); opacity: 0.55; }
-      li[data-state="running"] { border-left-color: var(--wait); }
-      li[data-state="done"] { border-left-color: var(--ok); }
-      li[data-state="failed"] { border-left-color: var(--bad); }
-      .head { display: flex; align-items: baseline; gap: 0.6rem; }
+      li[data-state='idle'] {
+        border-left-color: var(--line);
+        opacity: 0.55;
+      }
+      li[data-state='running'] {
+        border-left-color: var(--wait);
+      }
+      li[data-state='done'] {
+        border-left-color: var(--ok);
+      }
+      li[data-state='failed'] {
+        border-left-color: var(--bad);
+      }
+      .head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
       .num {
         font-variant-numeric: tabular-nums;
         font-weight: 700;
         color: var(--dim);
       }
-      .title { font-weight: 600; }
-      .who { margin-left: auto; font-size: 0.78rem; color: var(--dim); }
-      .note { color: var(--dim); font-size: 0.88rem; margin: 0.35rem 0 0; }
+      .title {
+        font-weight: 600;
+      }
+      .who {
+        margin-left: auto;
+        font-size: 0.78rem;
+        color: var(--dim);
+      }
+      .note {
+        color: var(--dim);
+        font-size: 0.88rem;
+        margin: 0.35rem 0 0;
+      }
       pre {
         background: var(--code);
         border-radius: 6px;
@@ -84,8 +139,12 @@
         white-space: pre-wrap;
         word-break: break-word;
       }
-      pre:empty { display: none; }
-      .bad { color: var(--bad); }
+      pre:empty {
+        display: none;
+      }
+      .bad {
+        color: var(--bad);
+      }
     </style>
   </head>
   <body>
@@ -131,8 +190,9 @@
           <span class="who">browser &rarr; S3 (khong qua IGNIS)</span>
         </div>
         <p class="note">
-          Form multipart toi <code>postURL</code>. <code>file</code> PHAI la field cuoi - S3 doc theo
-          thu tu va bo qua moi thu sau no. S3 tu kiem chu ky, tien to khoa va khoang dung luong.
+          Form multipart toi <code>postURL</code>. <code>file</code> PHAI la field cuoi - S3 doc
+          theo thu tu va bo qua moi thu sau no. S3 tu kiem chu ky, tien to khoa va khoang dung
+          luong.
         </p>
         <pre id="o2"></pre>
       </li>
@@ -156,8 +216,7 @@
       const $ = id => document.getElementById(id);
       const setState = (n, state) => $('s' + n).setAttribute('data-state', state);
       const write = (n, value) => {
-        $('o' + n).textContent =
-          typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+        $('o' + n).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
       };
 
       const reset = () => {
@@ -173,12 +232,14 @@
       };
 
       /** Luot 1: xin giay phep. Kich thuoc gui kem de IGNIS tu choi som, truoc khi ky bat cu gi. */
-      const requestPolicy = async (opts) => {
+      const requestPolicy = async opts => {
         const response = await fetch(`${opts.base}/upload-policy`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...authHeaders() },
           body: JSON.stringify({
-            files: [{ fileName: opts.file.name, contentType: opts.file.type, size: opts.file.size }],
+            files: [
+              { fileName: opts.file.name, contentType: opts.file.type, size: opts.file.size },
+            ],
           }),
         });
 
@@ -191,7 +252,7 @@
       };
 
       /** Luot 2: thang toi S3. Moi field trong formData deu la mot dieu kien trong policy da ky. */
-      const postToStorage = async (opts) => {
+      const postToStorage = async opts => {
         const form = new FormData();
         for (const [key, value] of Object.entries(opts.policy.formData)) {
           form.append(key, value);
@@ -208,7 +269,7 @@
       };
 
       /** Luot 3: chot bang token, khong bang ten tep. */
-      const commit = async (opts) => {
+      const commit = async opts => {
         const response = await fetch(`${opts.base}/upload-commit`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...authHeaders() },
@@ -252,11 +313,17 @@
         try {
           setState(2, 'running');
           const status = await postToStorage({ policy, file });
-          write(2, `HTTP ${status} - ${file.size} byte di thang toi ${new URL(policy.postURL).host}`);
+          write(
+            2,
+            `HTTP ${status} - ${file.size} byte di thang toi ${new URL(policy.postURL).host}`,
+          );
           setState(2, 'done');
         } catch (error) {
           setState(2, 'failed');
-          write(2, `${error}\n\n403 o day thuong la: qua maxBytes, khoa khong khop tien to, policy het han, hoac CORS cua bucket chua cho phep POST.`);
+          write(
+            2,
+            `${error}\n\n403 o day thuong la: qua maxBytes, khoa khong khop tien to, policy het han, hoac CORS cua bucket chua cho phep POST.`,
+          );
           $('go').disabled = false;
           return;
         }

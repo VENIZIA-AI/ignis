@@ -201,15 +201,15 @@ describe('buildPreset', () => {
     const write = (path: string, content: string): void =>
       writeText({ root: repository.root, path, content });
     write('presets/app/files/.configs/lints/oxlint.config.mts', 'app lint\n');
-    write('presets/app/files/.configs/formatters/oxfmt.config.mts', 'app format\n');
+    write('presets/app/files/.configs/formatters/.ignore', 'app format\n');
     write('presets/app/files/.configs/builders/compile.ts', 'compile\n');
-    write('presets/lib/files/.configs/formatters/oxfmt.config.mts', 'lib format\n');
+    write('presets/lib/files/.configs/formatters/.ignore', 'lib format\n');
 
     const { written } = buildPreset(repository);
     const out = (path: string): string => readFileSync(join(repository.outDir, path), 'utf8');
 
     expect(out('lib/files/.configs/lints/oxlint.config.mts')).toBe('app lint\n');
-    expect(out('lib/files/.configs/formatters/oxfmt.config.mts')).toBe('lib format\n');
+    expect(out('lib/files/.configs/formatters/.ignore')).toBe('lib format\n');
     expect(existsSync(join(repository.outDir, 'lib/files/.configs/builders'))).toBe(false);
     expect(existsSync(join(repository.outDir, 'lib/files/_env.example'))).toBe(false);
     expect(written).toContain('lib/preset.json');

@@ -61,7 +61,7 @@ describe('ArtifactIndexEmitter', () => {
     expect(content.indexOf('configurations:')).toBeLessThan(content.indexOf('dataSources:'));
   });
 
-  test('a field wider than the prettier print width wraps one name per line with trailing commas', () => {
+  test('a field wider than the print width wraps one name per line with trailing commas', () => {
     const names = Array.from(
       { length: 6 },
       (_, index) => `VeryLongRepositoryNameNumber${index}Repository`,

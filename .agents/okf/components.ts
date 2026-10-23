@@ -30,7 +30,9 @@ export default defineRenderer({
           resource: COMPONENTS_DIR,
           tags: ['reference', 'components', 'core'],
         }) +
-        context.page.note({ seeAlso: 'Model: [component model](/architecture/component-model.md).' }) +
+        context.page.note({
+          seeAlso: 'Model: [component model](/architecture/component-model.md).',
+        }) +
         `**${total} component classes across ${facts.length} component directories.**\n\n` +
         ['| Directory | Classes |', '|---|---|', ...rows].join('\n') +
         '\n',

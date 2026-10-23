@@ -5,24 +5,13 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false,
-    "customConditions": [
-      "node"
-    ]
+    "customConditions": ["node"]
   },
-  "include": [
-    "src",
-    "scripts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data"
-  ]
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules", "dist", "app_data"]
 }

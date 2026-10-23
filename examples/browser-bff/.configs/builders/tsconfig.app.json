@@ -29,23 +29,13 @@
        by `make purity` and by running the thing. Not `tsc`. The split is still the right shape - it
        keeps the config file's node types out of the application's project, and the tsc-level
        guarantee appears for free if those `.d.ts` leaks are ever fixed. */
-    "lib": [
-      "ES2025",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "types": [
-      "vite/client"
-    ],
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
 
     /* `@` addresses `src/worker`, mirrored by `resolve.alias` in `vite.config.ts`. */
     "paths": {
-      "@/*": [
-        "../../src/worker/*"
-      ],
-      "~/*": [
-        "../../src/*"
-      ]
+      "@/*": ["../../src/worker/*"],
+      "~/*": ["../../src/*"]
     },
 
     /* esbuild - Vite's transformer - implements `experimentalDecorators` but NOT
@@ -62,11 +52,6 @@
        initialiser silently shadows what a base constructor already set. */
     "useDefineForClassFields": false
   },
-  "include": [
-    "../../src"
-  ],
-  "exclude": [
-    "../../node_modules",
-    "../../dist"
-  ]
+  "include": ["../../src"],
+  "exclude": ["../../node_modules", "../../dist"]
 }

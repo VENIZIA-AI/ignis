@@ -9,18 +9,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["./src/*"]
     },
     "useDefineForClassFields": false
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "app_data"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "app_data"]
 }

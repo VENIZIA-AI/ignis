@@ -48,23 +48,31 @@
     "venizia"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/inversion"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/inversion"
   },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": [
+    "./dist/cjs/index.js",
+    "./dist/esm/index.js"
+  ],
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -77,20 +85,9 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "!**/__tests__",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": [
-    "./dist/cjs/index.js",
-    "./dist/esm/index.js"
-  ],
   "scripts": {
     "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
@@ -102,10 +99,12 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }
