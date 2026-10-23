@@ -703,8 +703,8 @@ Add Prometheus metrics endpoint:
 @controller({ path: '/metrics' })
 export class MetricsController extends BaseRestController {
   @get({ configs: { path: '/', responses: { 200: { description: 'Prometheus metrics' } } } })
-  getMetrics(c: Context) {
-    return c.text(`
+  getMetrics(context: Context) {
+    return context.text(`
 # HELP http_requests_total Total HTTP requests
 # TYPE http_requests_total counter
 http_requests_total{method="GET",status="200"} ${requestCount}

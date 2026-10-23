@@ -89,7 +89,7 @@ After `registerDefaultMiddlewares()`, the application calls user-defined `static
 ```typescript
 interface IBodyLimitOptions extends IBaseMiddlewareOptions {
   maxSize: number;
-  onError?: (c: Context) => Response | Promise<Response>;
+  onError?: (context: Context) => Response | Promise<Response>;
 }
 ```
 
@@ -306,12 +306,12 @@ class NotFoundError extends Error {
 
 // In a controller
 @get({ configs: GetUserConfig })
-async getUser(c: TRouteContext) {
+async getUser(context: TRouteContext) {
   const user = await this.userRepository.findById(id);
   if (!user) {
     throw new NotFoundError(`User ${id} not found`);
   }
-  return c.json(user, HTTP.ResultCodes.RS_2.Ok);
+  return context.json(user, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
@@ -479,9 +479,9 @@ const ExampleConfig = {
 } as const;
 
 @get({ configs: ExampleConfig })
-async example(c: TRouteContext) {
-  const requestId = c.get('requestId');
-  return c.json({ requestId }, HTTP.ResultCodes.RS_2.Ok);
+async example(context: TRouteContext) {
+  const requestId = context.get('requestId');
+  return context.json({ requestId }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 

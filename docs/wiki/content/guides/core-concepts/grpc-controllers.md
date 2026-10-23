@@ -202,7 +202,7 @@ export class EchoController extends BaseGrpcController {
 | **Router** | `OpenAPIHono` | `Hono` (plain) |
 | **Route identifier** | `path` + HTTP method | `name` (Protobuf method name) |
 | **Handler signature** | `(c: TRouteContext) => Response` | `(opts: { request, context }) => ResponseMessage` |
-| **Response format** | `c.json()` calls | Protobuf message objects via `create()` |
+| **Response format** | `context.json()` calls | Protobuf message objects via `create()` |
 | **Schema** | Zod + OpenAPI | Protobuf (`@bufbuild/protobuf`) |
 | **`binding()` method** | Optional (can use decorators only) | Must be implemented (even if empty) |
 | **`configure()` return** | `OpenAPIHono` router | `void` (adapter mounted internally) |

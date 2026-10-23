@@ -44,9 +44,9 @@ export class TodoController extends BaseRestController {
   }
 
   @get({ configs: TodoRoutes.GET_ALL })
-  async getAll(c: TRouteContext) {
+  async getAll(context: TRouteContext) {
     const todos = await this.repository.find({ filter: {} });
-    return c.json(todos, HTTP.ResultCodes.RS_2.Ok);
+    return context.json(todos, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
@@ -202,21 +202,23 @@ const TodoRoutes = {
 @controller({ path: '/todos' })
 class TodoController extends BaseRestController {
   @get({ configs: TodoRoutes.GET_ALL })
-  async getAll(c: TRouteContext) { ... }
+  async getAll(context: TRouteContext) { ... }
 
   @get({ configs: TodoRoutes.GET_BY_ID })
-  async getById(c: TRouteContext) {
-    const { id } = c.req.valid<{ id: string }>('param');
+  async getById(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
     ...
   }
 
   @post({ configs: TodoRoutes.CREATE })
-  async create(c: TRouteContext) {
-    const data = c.req.valid('json');
+  async create(context: TRouteContext) {
+    const data = context.req.valid('json');
     ...
   }
 }
 ```
+
+Plain CRUD like this needs no hand-written controller: [`ControllerFactory.defineCrudController`](../core-concepts/rest-controllers#controllerfactory-for-crud-operations) generates all five routes from the model.
 
 | Term | Description |
 |------|-------------|

@@ -82,7 +82,7 @@ this.defineRoute({
     method: 'get',
     responses: htmlResponse({ description: 'Dashboard HTML page' }),
   },
-  handler: c => c.html(<h1>Dashboard</h1>),
+  handler: context => context.html(<h1>Dashboard</h1>),
 });
 ```
 
@@ -103,7 +103,7 @@ defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opt
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `configs` | `RouteConfig` (extends `IAuthRouteConfig`) | Yes | `path`, `method`, `responses`, plus the same `authenticate`/`authorize`/`request`/`middleware` fields `defineRoute` accepts |
-| `handler` | `TRouteHandler<ResponseType, RouteEnv>` | Yes | Receives the route context (`TRouteContext`); return `c.html(<Component />)` |
+| `handler` | `TRouteHandler<ResponseType, RouteEnv>` | Yes | Receives the route context (`TRouteContext`); return `context.html(<Component />)` |
 | `hook` | `Hook<...>` | No | Same validation hook `defineRoute` accepts |
 
 ### Behavior
@@ -130,7 +130,7 @@ getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteC
 
 - **Default response merged in first.** `htmlResponse({ description: 'HTML page' })` is the base object. Your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
 - **Everything else matches `defineRoute`.** Auth middleware, tags (`this.scope` is always appended), and OpenAPI security are built the same way as JSON routes via `buildRouteMiddlewares`.
-- **Handler contract is unchanged.** The handler still returns whatever `c.html(...)` produces (a `Response`). `defineJSXRoute` only changes how the route's OpenAPI shape is computed, not how the handler runs.
+- **Handler contract is unchanged.** The handler still returns whatever `context.html(...)` produces (a `Response`). `defineJSXRoute` only changes how the route's OpenAPI shape is computed, not how the handler runs.
 
 ## JSX setup
 
@@ -161,7 +161,7 @@ export type { Child, FC, PropsWithChildren } from 'hono/jsx';
 
 ### No separate renderer
 
-IGNIS registers no `jsxRenderer` middleware and no template engine. A handler builds a JSX tree and calls Hono's own `c.html()` on it - that call is what triggers rendering to an HTML string.
+IGNIS registers no `jsxRenderer` middleware and no template engine. A handler builds a JSX tree and calls Hono's own `context.html()` on it - that call is what triggers rendering to an HTML string.
 
 ## Component patterns
 
@@ -226,9 +226,9 @@ export class ViewController extends BaseRestController {
           [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Home page HTML' }),
         },
       },
-      handler: c => {
+      handler: context => {
         const timestamp = new Date().toISOString();
-        return c.html(<HomePage timestamp={timestamp} />);
+        return context.html(<HomePage timestamp={timestamp} />);
       },
     });
   }
@@ -240,11 +240,11 @@ export class ViewController extends BaseRestController {
 Hono JSX's intrinsic elements accept a `dangerouslySetInnerHTML` prop - an object with an `__html` string - matching React's escape hatch. Use it only for HTML you already trust (a stored template, sanitized markdown output) - never for unsanitized user input.
 
 ```tsx
-async previewTemplate(c: TRouteContext) {
-  const { templateId } = c.req.valid<{ templateId: string }>('param');
+async previewTemplate(context: TRouteContext) {
+  const { templateId } = context.req.valid<{ templateId: string }>('param');
   const template = await this.emailService.getTemplate(templateId);
 
-  return c.html(
+  return context.html(
     <html>
       <head>
         <title>Email Preview: {template.subject}</title>
