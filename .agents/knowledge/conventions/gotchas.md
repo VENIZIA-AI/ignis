@@ -261,7 +261,7 @@ use, and when a waiver goes stale, delete it rather than loosening the gate.
 `bun update --filter '*'` bumps every declared range in every workspace manifest to the version it
 resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
 `connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
-^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
+^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, ...). A published peer floor is a
 consumer contract: a consumer app pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
 migration guide promises those still satisfy the peers. After any `bun update`, diff
 `peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
