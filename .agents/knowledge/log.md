@@ -14,6 +14,12 @@ Updated [build system](/process/build-system.md), [dev-configs](/packages/dev-co
 - Bun 1.4.4 is the floor (`bun fmt` is new there); `bun lint` is not in a stable Bun yet.
 - Not done yet: the `[fmt]` table in `bunfig.toml` replacing the config files, and dropping `oxfmt`.
 
+## 2026-10-23 - the http repository can call find-one
+
+Updated [connectors](/packages/connectors.md).
+
+- `HttpRepository` takes an opt-in `findOnePath` next to `countPath`: `findOne` then reads `GET /<resource>/<findOnePath>` with `shape: 'one'` and returns `rs.data ?? null`. Default unchanged (the list route with `limit: 1`).
+
 ## 2026-10-22 - the preset contract uses vulcan.presets
 
 Updated [release and publish](/process/release-publish.md).
