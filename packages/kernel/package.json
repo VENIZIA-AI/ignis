@@ -116,7 +116,6 @@
     "@venizia/dev-configs": "workspace:*",
     "casbin": "^5.51.1",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",

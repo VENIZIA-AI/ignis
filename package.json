@@ -81,7 +81,6 @@
       "socket.io-client": "^4.8.4",
       "oxlint": "1.89.0",
       "oxlint-tsgolint": "7.0.2004",
-      "oxfmt": "0.74.0",
       "typescript-eslint": "^8.72.0"
     }
   },
@@ -93,7 +92,6 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "oxfmt": "catalog:",
     "typescript": "catalog:",
     "@venizia/vulcan": "0.3.10"
   }

@@ -69,7 +69,7 @@ sudo -u postgres psql -c "CREATE DATABASE my_app_db;"
 
 ## Step 3: Configure Your Editor (Optional)
 
-Install the extensions that match IGNIS' oxlint, oxfmt and ESLint setup:
+Install the extensions that match IGNIS' oxlint and ESLint setup:
 
 ```bash
 code --install-extension dbaeumer.vscode-eslint
@@ -82,10 +82,7 @@ Create `.vscode/settings.json` in your project:
 
 ```json
 {
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "oxc.oxc-vscode",
   "oxc.configPath": ".configs/lints/oxlint.config.mts",
-  "oxc.fmt.configPath": ".configs/formatters/oxfmt.config.mts",
   "oxc.typeAware": true,
   "eslint.options": { "overrideConfigFile": ".configs/lints/eslint.config.mjs" },
   "editor.codeActionsOnSave": {

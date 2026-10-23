@@ -1,2 +1,10 @@
-# Bun reads this file only from the directory a command runs in.
+# `bun fmt` reads [fmt] from the folder it runs in or any parent, so this one table is the format of
+# every package, the wiki, the scripts and the examples. `flavor = "oxfmt"` keeps the output this
+# repository was formatted with once `oxfmt` is no longer installed.
 telemetry = false
+
+[fmt]
+printWidth = 100
+singleQuote = true
+arrowParens = "avoid"
+flavor = "oxfmt"

@@ -12,10 +12,9 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (38)
+### `@venizia/dev-configs` (35)
 
 - `AstNodeTypes` class
-- `browserOxfmtConfigs` const
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
 - `ConstClassValuesRule` class
@@ -38,11 +37,9 @@ generated:
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
 - `NoUnusedVarsRule` class
-- `oxfmtConfigs` const
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
-- `prettierConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
@@ -56,12 +53,6 @@ generated:
 ### `@venizia/dev-configs/compilers` (1)
 
 - `BunCompiler` class
-
-### `@venizia/dev-configs/formatters` (3)
-
-- `browserOxfmtConfigs` const
-- `oxfmtConfigs` const
-- `prettierConfigs` const
 
 ### `@venizia/dev-configs/linters` (34)
 

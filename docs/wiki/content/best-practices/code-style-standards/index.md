@@ -1,6 +1,6 @@
 # Code Style Standards
 
-Maintain consistent code style using **oxfmt** (formatting) and **oxlint** (code quality, with ESLint kept for naming conventions). IGNIS provides centralized configurations via the `@venizia/dev-configs` package.
+Maintain consistent code style using **`bun fmt`** (formatting) and **oxlint** (code quality, with ESLint kept for naming conventions). IGNIS provides centralized configurations via the `@venizia/dev-configs` package.
 
 ## Quick Reference
 
@@ -36,7 +36,7 @@ Maintain consistent code style using **oxfmt** (formatting) and **oxlint** (code
 
 | Section | Description |
 |---------|-------------|
-| [Tooling](./tooling) | oxlint, oxfmt, ESLint, TypeScript configuration |
+| [Tooling](./tooling) | oxlint, bun fmt, ESLint, TypeScript configuration |
 | [Naming Conventions](./naming-conventions) | Classes, files, types, binding keys |
 | [Type Safety](./type-safety) | Avoiding `any`, explicit returns, generics |
 | [Function Patterns](./function-patterns) | Options object, naming, exports |

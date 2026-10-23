@@ -324,7 +324,6 @@
     "minio": "^8.0.7",
     "mqtt": "^5.16.1",
     "node-vault": "^0.13.0",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "pino": "^10.4.0",

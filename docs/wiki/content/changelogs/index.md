@@ -17,7 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
-| 2026-10-23 | [devz lint and make Format With bun fmt](./2026-10-23-bun-fmt) | Enhancement |
+| 2026-10-23 | [Formatting Moves to bun fmt and bunfig.toml](./2026-10-23-bun-fmt) | Breaking |
 | 2026-10-22 | [tsconfig Follows Bun, and the App Compile Type-Checks](./2026-10-22-bun-tsconfig) | Enhancement |
 | 2026-10-22 | [Dependencies at Their Latest, Eight Peer Majors Raised](./2026-10-22-dependencies-latest) | Breaking |
 | 2026-10-21 | [BunCompiler Compiles Bun Workers Into the Binary](./2026-10-21-bun-compiler-workers) | Feature |

@@ -474,7 +474,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'Format With bun fmt',
+                  text: 'Formatting Moves to bun fmt',
                   link: '/changelogs/2026-10-23-bun-fmt',
                 },
               ],

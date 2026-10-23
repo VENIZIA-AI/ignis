@@ -33,7 +33,6 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",

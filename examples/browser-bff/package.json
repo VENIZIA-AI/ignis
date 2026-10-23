@@ -52,7 +52,6 @@
     "@venizia/ignis-boot": "workspace:*",
     "@vitejs/plugin-react": "^6.1.2",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tailwindcss": "^4.3.3",

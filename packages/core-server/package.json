@@ -313,7 +313,6 @@
     "casbin": "^5.51.1",
     "eslint": "catalog:",
     "meilisearch": "^0.62.0",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "postgres": "catalog:",

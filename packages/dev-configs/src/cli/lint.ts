@@ -3,7 +3,6 @@ import { dirname, extname, join } from 'node:path';
 
 const LINT_CONFIG = '.configs/lints/oxlint.config.mts';
 const ESLINT_CONFIG = '.configs/lints/eslint.config.mjs';
-const FORMAT_CONFIG = '.configs/formatters/oxfmt.config.mts';
 const LINT_IGNORE_FILE = '.configs/lints/.ignore';
 const FORMAT_IGNORE_FILE = '.configs/formatters/.ignore';
 const ESLINT_CACHE = ['--cache', '--cache-location', 'node_modules/.cache/eslint/'];
@@ -19,8 +18,9 @@ export interface ILintStep {
 
 /**
  * `devz lint [--fix] [files]`: oxlint, then ESLint, then `bun fmt`, from the project's
- * `.configs/lints/` and `.configs/formatters/`. With no file it checks the whole project; with
- * files it handles only those, as a pre-commit hook passes them.
+ * `.configs/lints/` and `.configs/formatters/.ignore`. `bun fmt` takes its options from the `[fmt]` table
+ * of the nearest `bunfig.toml`. With no file it checks the whole project; with files it handles only
+ * those, as a pre-commit hook passes them.
  */
 export class LintCommand {
   /**
@@ -91,8 +91,6 @@ export class LintCommand {
         args: [
           'fmt',
           '--no-script',
-          '--config',
-          FORMAT_CONFIG,
           ...unmatched,
           ...formatIgnore,
           ...(fix ? [] : ['--check']),

@@ -6,13 +6,14 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
-## 2026-10-23 - the formatter runs through bun fmt
+## 2026-10-23 - formatting is bun fmt, configured in bunfig.toml
 
-Updated [build system](/process/build-system.md), [dev-configs](/packages/dev-configs.md), [build, run and test](/overview/build-run-test.md), [git workflow](/process/git-workflow.md) and [testing](/process/testing.md).
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run and test](/overview/build-run-test.md), [git workflow](/process/git-workflow.md), [testing](/process/testing.md), [boot](/packages/boot.md) and [monorepo layout](/overview/monorepo-layout.md).
 
-- `make lint`, `make fmt`, `lint-wiki`, `lint-scripts` and `devz lint` format with `bun fmt --no-script --config <oxfmt config>`. Bun evaluates the config and formats natively; 0 differing files across 21 projects.
-- Bun 1.4.4 is the floor (`bun fmt` is new there); `bun lint` is not in a stable Bun yet.
-- Not done yet: the `[fmt]` table in `bunfig.toml` replacing the config files, and dropping `oxfmt`.
+- `make lint`, `make fmt`, `lint-wiki`, `lint-scripts` and `devz lint` run `bun fmt --no-script`. The format is the `[fmt]` table of the root `bunfig.toml` (Bun inherits it from a parent folder): `printWidth = 100`, `singleQuote = true`, `arrowParens = "avoid"`, `flavor = "oxfmt"`. 0 differing files in 21 projects.
+- Every `oxfmt.config.mts` is deleted and `oxfmt` leaves the catalog and all manifests. `flavor = "oxfmt"` is required: without it 14 files differ.
+- BREAKING: `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` and the `@venizia/dev-configs/formatters` subpath are removed. One style for backend and frontend.
+- Bun 1.4.4 is the floor. `bun lint` is not in a stable Bun yet, so oxlint and ESLint stay.
 
 ## 2026-10-22 - the preset contract uses vulcan.presets
 

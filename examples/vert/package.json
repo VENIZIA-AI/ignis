@@ -48,7 +48,6 @@
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "catalog:",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",

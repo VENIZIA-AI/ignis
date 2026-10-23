@@ -62,7 +62,7 @@ dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core-se
 
 | Directory | npm name | Depends on | Purpose |
 |-----------|----------|------------|---------|
-| `dev-configs` | `@venizia/dev-configs` | - | Shared oxlint, oxfmt, ESLint, TypeScript configs |
+| `dev-configs` | `@venizia/dev-configs` | - | Shared oxlint, ESLint, TypeScript configs |
 | `inversion` | `@venizia/ignis-inversion` | dev-configs | IoC container, DI primitives |
 | `filter` | `@venizia/ignis-filter` | inversion | Isomorphic filter language. Deliberately not after helpers |
 | `helpers` | `@venizia/ignis-helpers` | inversion | Utilities, loggers, crypto, Redis, sockets |
