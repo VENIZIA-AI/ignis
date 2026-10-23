@@ -3,8 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "description": "IGNIS production reference: JWT (JWKS) authentication, scoped Casbin RBAC, transactions, row locks and relations on Postgres",
-  "engines": {
-    "bun": ">=1.4"
+  "license": "MIT",
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
   },
   "scripts": {
     "server:dev": "NODE_ENV=development bun run src/index.ts",
@@ -21,12 +24,6 @@
     "seed:authz": "NODE_ENV=development bun run scripts/seed-authz-test-data.ts",
     "test:authz": "bash scripts/test-authorization.sh"
   },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "catalog:",
     "@scalar/hono-api-reference": "catalog:",
@@ -52,5 +49,8 @@
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }

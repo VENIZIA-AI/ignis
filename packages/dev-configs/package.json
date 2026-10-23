@@ -42,26 +42,31 @@
     "venizia"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/dev-configs"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/dev-configs"
+  },
   "bin": {
     "devz": "./dist/cli/index.js"
   },
-  "engines": {
-    "bun": ">=1.4.4"
-  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "src/tsconfig",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -89,14 +94,6 @@
     "./tsconfig.react.json": "./src/tsconfig/tsconfig.react.json",
     "./package.json": "./package.json"
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "src/tsconfig",
-    "!**/__tests__",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
   },
@@ -111,6 +108,14 @@
     "eslint-plugin-prettier": "^5.5.7",
     "eslint-plugin-unicorn": "^78.0.0",
     "typescript-eslint": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "eslint": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "prettier": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",
@@ -136,12 +141,7 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "@types/bun": "catalog:",
-    "eslint": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "prettier": "catalog:",
-    "typescript": "catalog:"
+  "engines": {
+    "bun": ">=1.4.4"
   }
 }

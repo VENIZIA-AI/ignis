@@ -76,23 +76,28 @@
     "zod"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/core-server"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/core-server"
   },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -177,22 +182,8 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "!**/__tests__",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
-  },
-  "sideEffects": false,
-  "vulcan": {
-    "presets": {
-      "app": "./dist/presets/app/preset.json",
-      "lib": "./dist/presets/lib/preset.json"
-    }
   },
   "scripts": {
     "test": "bun test ./src",
@@ -206,6 +197,29 @@
     "@venizia/ignis-inversion": "workspace:*",
     "@venizia/ignis-kernel": "workspace:*",
     "reflect-metadata": "catalog:"
+  },
+  "devDependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "@connectrpc/connect": "catalog:",
+    "@electric-sql/pglite": "^0.5.10",
+    "@hono/node-server": "^2.1.5",
+    "@hono/swagger-ui": "^0.6.1",
+    "@libsql/client": "^0.17.4",
+    "@socket.io/bun-engine": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
+    "casbin": "^5.51.1",
+    "eslint": "catalog:",
+    "meilisearch": "^0.62.0",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "postgres": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:",
+    "typesense": "catalog:"
   },
   "peerDependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
@@ -297,27 +311,13 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "@asteasolutions/zod-to-openapi": "^9.1.0",
-    "@connectrpc/connect": "catalog:",
-    "@electric-sql/pglite": "^0.5.10",
-    "@hono/node-server": "^2.1.5",
-    "@hono/swagger-ui": "^0.6.1",
-    "@libsql/client": "^0.17.4",
-    "@socket.io/bun-engine": "catalog:",
-    "@types/bun": "catalog:",
-    "@types/nodemailer": "^8.0.2",
-    "@types/pg": "catalog:",
-    "@venizia/dev-configs": "workspace:*",
-    "@venizia/ignis-boot": "workspace:*",
-    "casbin": "^5.51.1",
-    "eslint": "catalog:",
-    "meilisearch": "^0.62.0",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "postgres": "catalog:",
-    "tsc-alias": "catalog:",
-    "typescript": "catalog:",
-    "typesense": "catalog:"
+  "engines": {
+    "bun": ">=1.4"
+  },
+  "vulcan": {
+    "presets": {
+      "app": "./dist/presets/app/preset.json",
+      "lib": "./dist/presets/lib/preset.json"
+    }
   }
 }

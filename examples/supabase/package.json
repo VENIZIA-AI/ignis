@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "description": "IGNIS on postgres-js with Supabase-style Row Level Security, driven by the request's user",
-  "engines": {
-    "bun": ">=1.4"
-  },
   "scripts": {
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
     "compile": "sh scripts/compile.sh",
@@ -36,5 +33,8 @@
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }

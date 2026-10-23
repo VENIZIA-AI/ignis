@@ -2,11 +2,8 @@
   "name": "browser-bff",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "description": "IGNIS as a Backend-for-Frontend inside a browser Worker - the same controllers, served from PGlite in OPFS, with no server running",
-  "engines": {
-    "bun": ">=1.4"
-  },
+  "type": "module",
   "scripts": {
     "server:dev": "APP_ENV_PGLITE_DATA_DIR=opfs-ahp://ignis-browser-bff vite --config .configs/builders/vite.config.ts",
     "compile": "sh scripts/compile.sh",
@@ -57,5 +54,8 @@
     "tailwindcss": "^4.3.3",
     "typescript": "catalog:",
     "vite": "^8.3.5"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }

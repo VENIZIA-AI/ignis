@@ -1,6 +1,7 @@
 {
   "name": "@venizia/ignis-workspace",
   "version": "0.0.0",
+  "private": true,
   "description": "High-performance TypeScript server infrastructure framework enterprise patterns (IoC, Repositories, Decorators) with Hono speed (~140k req/s). Built on Drizzle ORM, Zod validation, and convention-based bootstrapping for Bun and Node.js.",
   "keywords": [
     "backend",
@@ -25,25 +26,18 @@
     "venizia"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "private": true,
-  "engines": {
-    "bun": ">=1.4.4"
-  },
-  "overrides": {
-    "@electric-sql/pglite": "0.5.8"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
   },
   "workspaces": {
     "packages": [
@@ -92,7 +86,13 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "typescript": "catalog:",
-    "@venizia/vulcan": "0.3.10"
+    "@venizia/vulcan": "0.3.10",
+    "typescript": "catalog:"
+  },
+  "overrides": {
+    "@electric-sql/pglite": "0.5.8"
+  },
+  "engines": {
+    "bun": ">=1.4.4"
   }
 }
