@@ -11,18 +11,18 @@ LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.conf
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
 
-.PHONY: lint lint-all lint-packages lint-wiki lint-scripts lint-manifests lint-files fmt fmt-packages fmt-manifests fmt-files \
+.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files fmt-packages fmt-files \
         $(LINT_PKG_TARGETS) $(FMT_PKG_TARGETS)
 
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-lint-all: lint-packages lint-scripts lint-manifests lint-files lint-wiki
+lint-all: lint-packages lint-scripts lint-files lint-wiki
 	@echo "✅ All linting completed."
 
 lint-packages: $(LINT_PKG_TARGETS)
 
-fmt: fmt-packages fmt-manifests fmt-files
+lint-fix: fmt-packages fmt-files
 
 fmt-packages: $(FMT_PKG_TARGETS)
 
@@ -44,22 +44,15 @@ lint-wiki:
 	@echo "🔍 Linting docs/wiki..."
 	@$(call LINT_PROJECT,docs/wiki,scripts,$(WIKI_FMT_GLOB))
 
-# The root package.json belongs to no package target; the wiki and the examples check their own.
-lint-manifests:
-	@echo "🔍 Linting the root package.json..."
-	@bun fmt $(BUN_FMT_FLAGS) --check package.json
-
-fmt-manifests:
-	@bun fmt $(BUN_FMT_FLAGS) package.json
-
-# Files no project target reaches: the workflows, .agents, .configs, the preset templates and the examples
+# Files no project target reaches: the root package.json, the workflows, .agents, .configs, the preset
+# templates and the examples
 # (formatting only; an example keeps its own lint, typecheck and test scripts). drizzle-kit rewrites the
 # migration snapshots, and openapi-typescript writes rpc-client-app's schema.d.ts, on their own.
-FILES_GLOB := "{.github,.agents,.configs,presets,examples}/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
+FILES_GLOB := package.json "{.github,.agents,.configs,presets,examples}/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
 FILES_IGNORE := --ignore-pattern "examples/*/migration/meta/**" --ignore-pattern "examples/rpc-client-app/src/api/schema.d.ts"
 
 lint-files:
-	@echo "🔍 Linting .github, .agents, .configs, presets and examples..."
+	@echo "🔍 Linting package.json, .github, .agents, .configs, presets and examples..."
 	@bun fmt $(BUN_FMT_FLAGS) --check $(FILES_GLOB) $(FILES_IGNORE)
 
 fmt-files:

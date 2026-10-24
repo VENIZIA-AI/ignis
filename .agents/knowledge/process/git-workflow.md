@@ -20,7 +20,7 @@ tags: [process, git, contributing]
    `docs`, `chore`, `refactor`, `test`) after the issue number. A commit that serves several issues it
    cannot be split between lists each: `[#42][#44] ...`. The repository is public, so an issue
    describes the framework defect, never a consumer's internals.
-4. Before committing, run `make fmt` and `make build` to catch style and type issues early.
+4. Before committing, run `make lint-fix` and `make build` to catch style and type issues early.
    Packages have no `lint` or `lint:fix` script; the Makefile runs each package's own oxlint, ESLint
    and `bun fmt` (`make fmt-<package>` for one). `make lint-all` is the check-only equivalent (an example runs its own `bun run lint` in its folder), and the pre-commit hook (below)
    will block a commit that fails lint anyway.

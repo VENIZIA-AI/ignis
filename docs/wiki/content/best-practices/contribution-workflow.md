@@ -176,7 +176,7 @@ A commit that serves several issues it cannot be split between lists each: `[#42
 ```bash
 # Lint and format (from root) - zero warnings and zero errors is the bar
 make lint-all
-# Fix what can be fixed: make fmt (every package) or make fmt-<pkg> (one)
+# Fix what can be fixed: make lint-fix (every package) or make fmt-<pkg> (one)
 
 # Build all packages (from root) - tests run against dist/, so build first
 make build
