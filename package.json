@@ -80,12 +80,12 @@
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
-    "purity": "bun scripts/purity/cli.ts"
+    "purity": "bun scripts/checks/purity/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "@venizia/vulcan": "0.3.12",
+    "@venizia/vulcan": "0.3.13",
     "typescript": "catalog:"
   },
   "overrides": {

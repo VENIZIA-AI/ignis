@@ -205,7 +205,7 @@ specifier, and an inline `eslint-disable`. `make purity` backstops the first two
 
 ## make purity derives its rows from `exports`, never from a hand-written list
 
-`scripts/purity/manifest.ts` derives one row per published sub-path from each package's own
+`scripts/checks/purity/manifest.ts` derives one row per published sub-path from each package's own
 `package.json` `exports` map. Nothing is authored per entry, so a new sub-path is probed the day it
 ships. The hand-written list it replaced carried 11 rows and reported `11/11` while
 `@venizia/ignis-connectors/postgres` - the entry [browser-bff](/examples/browser-bff.md) imports -

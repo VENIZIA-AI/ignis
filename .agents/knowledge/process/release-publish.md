@@ -21,7 +21,7 @@ tags: [process, release, ci]
 - Pass `--issue <N>` - the release issue - so the commits a release makes (the workflow's
   `chore(<package>): release v...`) lead with `[#N]` like every other commit. The workflow takes
   it as its optional `issue` input.
-- Release from `develop` through `bun scripts/release.ts` (`--dry-run` first): it dispatches this
+- Release from `develop` through `bun scripts/release/release.ts` (`--dry-run` first): it dispatches this
   workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
   kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
   before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
@@ -44,11 +44,11 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 (`reference/public-surface.md`, `make surface-gen`) is committed, and `make build-all` gates it.
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on". Before
   #172 the first name was dropped unless `--chain-released` was passed (`args[seedIndex + 1]` with
-  `seedIndex = -1`); the parsing now lives in `scripts/release-args.ts` with its own test.
+  `seedIndex = -1`); the parsing now lives in `scripts/release/release-args.ts` with its own test.
 
 ## The VULCAN preset
 
-`@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app` and `vulcan.presets.lib` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has two kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`) and `presets/lib` (`--lib <name>`, a shared library: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib also gets the app's `.configs/` and its lint and clean scripts at build time. `scripts/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app` and `dist/presets/lib`, named by `vulcan.presets.app` and `vulcan.presets.lib`; the release workflow runs it after "Sync develop", so the preset names the release it ships in. `make preset-smoke` (`scripts/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
+`@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app` and `vulcan.presets.lib` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has two kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`) and `presets/lib` (`--lib <name>`, a shared library: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib also gets the app's `.configs/` and its lint and clean scripts at build time. `scripts/preset/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app` and `dist/presets/lib`, named by `vulcan.presets.app` and `vulcan.presets.lib`; the release workflow runs it after "Sync develop", so the preset names the release it ships in. `make preset-smoke` (`scripts/preset/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
 
 ## Steps
 
@@ -92,7 +92,7 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
    regression tests run first, so a probe that silently stopped detecting anything cannot leave the
    gate green for the wrong reason. This is the dependency-chain-aware build (see
    [build system](/process/build-system.md)) - releasing `core-server` also rebuilds everything
-   upstream of it. Then `make clean-install-$PACKAGE` (`scripts/clean-install/{cli,manifest}.ts`)
+   upstream of it. Then `make clean-install-$PACKAGE` (`scripts/checks/clean-install/{cli,manifest}.ts`)
    packs the package, installs it ALONE into an empty project with only its required peers plus the
    peers the manifest grants each sub-path, and loads every published sub-path under Bun `import`,
    Node ESM `import` and Node `require` - plus a browser build for every entry the purity gate

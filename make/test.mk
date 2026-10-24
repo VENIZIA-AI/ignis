@@ -6,7 +6,7 @@ NO_TEST := dev-configs filter
 TEST_ENV := NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
 TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 
-# Packages with an entry claimed browser-pure (scripts/purity/manifest.ts); the rest skip.
+# Packages with an entry claimed browser-pure (scripts/checks/purity/manifest.ts); the rest skip.
 PURE := inversion filter helpers kernel connectors core-worker
 
 TEST_TARGETS := $(addprefix test-,$(PACKAGES))
@@ -37,7 +37,7 @@ $(addprefix test-,$(NO_TEST)):
 # wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
-	@bun test scripts/__tests__
+	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__ scripts/wiki/__tests__
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -46,22 +46,22 @@ test-scripts:
 # ----------------------------------------------------------------------------
 purity:
 	@echo "🔍 Checking browser purity for all claimed entries..."
-	@bun scripts/purity/cli.ts
+	@bun scripts/checks/purity/cli.ts
 
 # Checks that read the built dist, so they run after a build, never in test-scripts.
 build-checks:
 	@echo "🔍 Checking the build output: self-contained sourcemaps, the oxlint subpath loads no ESLint..."
-	@bun test scripts/build-checks
+	@bun test scripts/build/build-checks
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
-	@bun test scripts/purity/__tests__
+	@bun test scripts/checks/purity/__tests__
 
 $(addprefix purity-,$(PURE)): purity-%:
 	@echo "🔍 Checking browser purity for $(call PKG_NAME,$*)..."
-	@bun scripts/purity/cli.ts $*
+	@bun scripts/checks/purity/cli.ts $*
 
 $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
@@ -69,14 +69,14 @@ $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 # ----------------------------------------------------------------------------
 # CLEAN-INSTALL TARGETS
 # Packs each package, installs it ALONE into an empty project with only its required peers plus the
-# ones scripts/clean-install/manifest.ts grants a sub-path, and loads every published sub-path under
+# ones scripts/checks/clean-install/manifest.ts grants a sub-path, and loads every published sub-path under
 # Bun, Node ESM, Node CJS and a browser build - hoisted and isolated. The workspace hoists every
 # optional peer, so a leak is invisible anywhere else. Needs a build first, and `node` on PATH.
 # ----------------------------------------------------------------------------
 clean-install:
 	@echo "🔍 Loading every published sub-path from a clean install..."
-	@bun scripts/clean-install/cli.ts
+	@bun scripts/checks/clean-install/cli.ts
 
 $(CLEAN_INSTALL_TARGETS): clean-install-%:
 	@echo "🔍 Loading every published sub-path of $* from a clean install..."
-	@bun scripts/clean-install/cli.ts $*
+	@bun scripts/checks/clean-install/cli.ts $*

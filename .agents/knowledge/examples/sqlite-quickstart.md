@@ -61,8 +61,7 @@ artifact.
 - **Explicit transactions need a local database.** A remote Turso url runs every statement on its
   own connection, so `BEGIN` cannot hold - `LibSqlDriver` refuses rather than letting it silently
   not apply.
-- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
-  runs its `bun test` in CI, no docker needed.
+- The smoke test runs with `bun test` inside the example folder, not in CI. No docker needed.
 
 ## Related
 - [pglite-quickstart](/examples/pglite-quickstart.md)

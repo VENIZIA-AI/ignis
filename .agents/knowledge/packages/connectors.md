@@ -160,7 +160,7 @@ test suite if one exists.
 does (see [Relational connector](/architecture/relational-connector.md)), so
 `spyOn(repository, 'beginTransaction').mockResolvedValue(new PostgresTransactionDouble())` behaves by
 the same already-ended and rollback-after-failure rules a real handle would, with no cast needed at
-the call site. It imports no driver: `scripts/purity/manifest.ts` measures the entry like every other
+the call site. It imports no driver: `scripts/checks/purity/manifest.ts` measures the entry like every other
 sub-path (`connectors/testing [import] 44.4 KB`), even though nothing ships it to a browser on
 purpose - it exists for `bun test`, not for an application bundle.
 
@@ -176,7 +176,7 @@ controllers (`AbstractSearchController`, `SearchControllerFactory`, `defineSearc
 `ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
-What each sub-path may need is pinned per sub-path in `scripts/clean-install/manifest.ts` and proved
+What each sub-path may need is pinned per sub-path in `scripts/checks/clean-install/manifest.ts` and proved
 by `make clean-install-connectors` - see [release and publish](/process/release-publish.md).
 
 | Sub-path | Source | Engine peer | Bundles for a browser |
@@ -530,7 +530,7 @@ the cache.
 
 ## Every published sub-path is probed, and eight rows are waived
 
-`scripts/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
+`scripts/checks/purity/manifest.ts` derives its rows from this package's `exports` map, so all 14 sub-paths
 are measured. It used to carry three hand-written rows - the root, `relational/core` and the PGlite
 driver - and reported `11/11` green while saying nothing about the other eleven. No ESLint rule
 guards this package either: `.configs/lints/eslint.config.mjs` is `namingConventionConfigs` alone, unlike `core-worker`,

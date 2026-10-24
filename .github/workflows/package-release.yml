@@ -372,7 +372,7 @@ jobs:
       # after the sync that brings in the chain's earlier releases.
       - name: Write the VULCAN preset
         if: ${{ env.PACKAGE == 'core-server' }}
-        run: bun scripts/vulcan-preset.ts
+        run: bun scripts/preset/vulcan-preset.ts
 
       # -------------------------------------------------------------------------
       # PUBLISH - deliberately ahead of every git write
@@ -420,7 +420,7 @@ jobs:
 
       # `next` must never sit below `latest`. A stable publish leaves `next` on an older prerelease, so every package is checked after each release. The registry serves the old dist-tags for minutes after a publish, so the just-published version and tag are passed in. Non-fatal: the script only warns, a tagging hiccup never rolls back a successful publish.
       - name: Keep next at or above latest
-        run: bun scripts/sync-next-tag.ts --published "$PACKAGE_NAME@$NEW_VERSION" --tag "$NPM_TAG"
+        run: bun scripts/release/sync-next-tag.ts --published "$PACKAGE_NAME@$NEW_VERSION" --tag "$NPM_TAG"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 

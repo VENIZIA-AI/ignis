@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**119 targets.**
+**118 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -50,12 +50,12 @@ generated:
 | `make fmt-core-server` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-core-worker` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-dev-configs` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-files` | - | - |
+| `make fmt-files` | - | Format check / write of .github, .agents, .configs, presets and examples. |
 | `make fmt-filter` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-kernel` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-manifests` | - | - |
+| `make fmt-manifests` | - | Format check / write of the root package.json (keys sorted). |
 | `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server` | fmt-<pkg> for every package. |
 | `make help` | - | Show this help message (a bare 'make' does the same). |
 | `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
@@ -64,19 +64,19 @@ generated:
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts lint-manifests lint-files` | lint-packages, lint-scripts, lint-manifests (root package.json) and lint-files (.github, .agents, .configs, presets). |
+| `make lint-all` | `lint-packages lint-scripts lint-manifests lint-files lint-wiki` | lint-packages, lint-scripts, lint-manifests (root package.json), lint-files (.github, .agents, .configs, presets, examples) and lint-wiki. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core-server` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core-worker` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
-| `make lint-files` | - | - |
+| `make lint-files` | - | Format check / write of .github, .agents, .configs, presets and examples. |
 | `make lint-filter` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-helpers` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-kernel` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
-| `make lint-manifests` | - | - |
+| `make lint-manifests` | - | Format check / write of the root package.json (keys sorted). |
 | `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server` | lint-<pkg> for every package. |
 | `make lint-scripts` | - | Format check + bun check type-check of scripts/. |
 | `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
@@ -118,7 +118,6 @@ generated:
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make update` | `install` | Force update all packages from NPM registry. |
-| `make update-all` | `install` | Force update all packages from NPM registry. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

@@ -123,7 +123,7 @@ When you add code to the kernel, import helpers through `@venizia/ignis-helpers/
 | [`packages/core-server/src/base/applications`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications) | `ServerApplication` added; `BaseApplication` now extends it |
 | [`packages/core-server/src/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/index.ts) | Re-exports the kernel, keeping the public surface whole |
 | [`packages/helpers/src/core.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/core.ts) | Widened with pure parse, retry and performance utilities |
-| [`scripts/purity`](https://github.com/VENIZIA-AI/ignis/blob/main/scripts/purity) | New browser purity gate |
+| [`scripts/checks/purity`](https://github.com/VENIZIA-AI/ignis/blob/main/scripts/checks/purity) | New browser purity gate |
 
 ## Related
 

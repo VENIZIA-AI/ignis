@@ -2,7 +2,7 @@
 
 UPDATE_TARGETS := $(addprefix update-,$(PACKAGES))
 
-.PHONY: install clean setup-hooks build build-all docs update update-all $(PACKAGES) $(UPDATE_TARGETS)
+.PHONY: install clean setup-hooks build build-all docs update $(PACKAGES) $(UPDATE_TARGETS)
 
 # ----------------------------------------------------------------------------
 # INSTALL & CLEAN
@@ -65,8 +65,6 @@ docs:
 # Note: 'bun install' triggers postinstall which runs force-update automatically
 # ----------------------------------------------------------------------------
 update: install
-
-update-all: install
 
 $(UPDATE_TARGETS): update-%:
 	@echo "🔄 Force updating $(call PKG_NAME,$*)..."

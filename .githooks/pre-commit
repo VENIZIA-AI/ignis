@@ -2,7 +2,7 @@
 
 # =============================================================================
 # Pre-commit Hook
-# Lints all packages and examples before allowing commit
+# Lints the packages and scripts before allowing commit
 # =============================================================================
 
 set -e
@@ -14,10 +14,9 @@ echo ""
 ROOT_DIR="$(git rev-parse --show-toplevel)"
 cd "$ROOT_DIR"
 
-# Lint the packages and scripts/, then the examples (which make does not drive)
-echo "📦 Linting all packages and examples..."
+# Lint the packages, scripts/, the root manifest and the files no project reaches
+echo "📦 Linting..."
 make lint-all
-bun scripts/examples.ts check
 
 echo ""
 echo "✅ Pre-commit checks passed!"

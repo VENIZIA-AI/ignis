@@ -89,7 +89,7 @@ The project uses a Makefile for common development tasks:
 | `make build-all` | Rebuild `core`, `core-worker`, `boot` and `docs`, then run `surface-check`, `wiki-links-check` and `wiki-anchors-check` |
 | `make clean` | Clean build artifacts from all packages |
 | `make lint` | Lint all packages |
-| `make lint-all` | Lint packages and scripts - with `bun scripts/examples.ts check` for the examples, this is the bar a PR must clear |
+| `make lint-all` | Lint packages, scripts and the files outside them - this is the bar a PR must clear; an example runs its own `bun run lint` |
 | `make test-all` | Run every package suite |
 | `make setup-hooks` | Point `core.hooksPath` at `.githooks` |
 | `make help` | Show all available commands |
@@ -176,7 +176,6 @@ A commit that serves several issues it cannot be split between lists each: `[#42
 ```bash
 # Lint and format (from root) - zero warnings and zero errors is the bar
 make lint-all
-bun scripts/examples.ts check   # the examples are not in make
 # Fix what can be fixed: make fmt (every package) or make fmt-<pkg> (one)
 
 # Build all packages (from root) - tests run against dist/, so build first

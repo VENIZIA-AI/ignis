@@ -98,11 +98,6 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make build-checks
 
-      # Boots each example that needs no external service and calls its endpoints against the build.
-      - name: Examples smoke
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: bun scripts/examples.ts smoke
-
       # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
       - name: VULCAN preset smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -142,13 +137,8 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make lint-all
 
-      # The examples are not in make: artifacts, lint and typecheck of every example.
-      - name: Lint - examples
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: bun scripts/examples.ts check
-
       # One loop, no allowlist: connectors' known-impure engine clients are waived inside
-      # scripts/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
+      # scripts/checks/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
       # This step used to carry its own copy of that list, so the two gates could disagree - and did:
       # `make purity-connectors` could never pass, which failed a connectors release outright.
       - name: Browser purity

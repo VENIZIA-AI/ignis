@@ -53,8 +53,7 @@ log files, both created on first boot by the `server:dev` script. `app_data/` is
   rollback. Under concurrency, route writes through a transaction.
 - `application.init()` must run before `application.start()`, or resolving the controller fails with
   `@app/instance is not bounded`.
-- This example is one of `SMOKE_EXAMPLES` in `scripts/examples.ts` - `bun scripts/examples.ts smoke`
-  runs its `bun test` in CI, no docker needed.
+- The smoke test runs with `bun test` inside the example folder, not in CI. No docker needed.
 
 ## Related
 - [sqlite-quickstart](/examples/sqlite-quickstart.md)
