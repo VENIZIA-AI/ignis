@@ -36,7 +36,7 @@ await request.getNetworkService().post({
 ## Who is affected
 
 - **Everyone.** No action needed for the new options; defaults are unchanged.
-- **A `NodeFetcher` with `defaultConfigs.headers`.** Bug fix: a call's `headers` replaced the whole default set, and a call with none dropped it, so the default `content-type` and any default token were not sent. A call's headers are now merged over the defaults name by name, and the call wins on a clash.
+- **A `NodeFetcher` with `defaultConfigs.headers`.** Bug fix: a call that passed no `headers` erased the defaults, so the default `content-type` and any default token were not sent. It now keeps them. A call that passes `headers` still replaces the defaults, as before.
 - **A caller that passed a plain-object body to `NodeFetcher`.** Bug fix: `fetch` received the object and sent `[object Object]`; it is now JSON.
 - **Anything reading `info` lines from `NodeFetcher`.** The request line is now `debug`.
 

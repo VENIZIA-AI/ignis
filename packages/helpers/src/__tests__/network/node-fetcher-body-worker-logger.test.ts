@@ -201,23 +201,16 @@ describe('NodeFetcher - headers', () => {
     expect(headersOf(captured)).toEqual({ 'content-type': 'application/json', 'x-app': 'one' });
   });
 
-  test("a call's headers are added to the defaults and win on a clash, whatever the case", async () => {
+  test("a call's headers replace the defaults, so a body can leave the content type to fetch", async () => {
     const captured = captureRequest();
     const fetcher = new NodeFetcher({
       name: 'h',
       defaultConfigs: { headers: { 'content-type': 'application/json', 'x-app': 'one' } },
     });
 
-    await fetcher.post({
-      url: 'http://example.test/a',
-      headers: { 'Content-Type': 'text/plain', authorization: 'Bearer t' },
-    });
+    await fetcher.post({ url: 'http://example.test/a', headers: { authorization: 'Bearer t' } });
 
-    expect(headersOf(captured)).toEqual({
-      'content-type': 'text/plain',
-      'x-app': 'one',
-      authorization: 'Bearer t',
-    });
+    expect(headersOf(captured)).toEqual({ authorization: 'Bearer t' });
   });
 
   test('no headers anywhere sends none', async () => {

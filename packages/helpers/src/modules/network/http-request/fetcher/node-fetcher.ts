@@ -96,17 +96,13 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
         : timeoutController.signal;
     }
 
-    // The call's headers go over the defaults name by name (case-insensitive). Spreading them into the config replaced the whole default set: the content type and a default token vanished.
-    const defaultHeaders = new Headers(this.defaultConfigs.headers);
-    new Headers(headers).forEach((value, name) => defaultHeaders.set(name, value));
-    const mergedHeaders = Object.fromEntries(defaultHeaders);
-
     const requestConfigs: RequestInit = {
       ...this.defaultConfigs,
       ...rest,
       method: method.toUpperCase(),
       body: this.serializeBody({ body }),
-      headers: Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined,
+      // The call's headers REPLACE the defaults (a caller that sends a multipart body leaves the content type out so `fetch` can write the boundary); a call with none keeps them. Spreading an absent `headers` over the config used to erase the defaults.
+      headers: headers ?? this.defaultConfigs.headers,
       signal: effectiveSignal,
     };
 

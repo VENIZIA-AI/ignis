@@ -419,7 +419,7 @@ Dispatches the request using the native `fetch` API. Behavior:
 
 - `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
 - `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body.
-- `headers` of the call are merged over `defaultConfigs.headers` name by name (case-insensitive); a call's value wins on a clash, and the defaults you did not override are kept.
+- `headers` of the call replace `defaultConfigs.headers` (a caller sending a `FormData` body leaves the content type out so `fetch` writes the boundary); a call that passes none keeps the defaults.
 - Query `params` are serialized by [`toQueryString`](#toquerystring) (with the fetcher's `queryString` options) and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
 - If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
   - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
