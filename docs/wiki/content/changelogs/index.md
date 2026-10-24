@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-24 | [The Fetcher and the Socket.IO Client Run in a Browser](./2026-10-24-browser-reusable-helpers) | Enhancement |
 | 2026-10-24 | [A Read's Result Type Follows Its fields](./2026-10-24-typed-fields-result) | Breaking |
 | 2026-10-23 | [Formatting Moves to bun fmt and bunfig.toml](./2026-10-23-bun-fmt) | Breaking |
 | 2026-10-23 | [The HTTP Repository Can Call the find-one Route](./2026-10-23-http-find-one-path) | Enhancement |

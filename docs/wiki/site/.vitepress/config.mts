@@ -474,7 +474,11 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'A Read\'s Result Type Follows fields',
+                  text: 'Fetcher and Socket.IO Client in a Browser',
+                  link: '/changelogs/2026-10-24-browser-reusable-helpers',
+                },
+                {
+                  text: "A Read's Result Type Follows fields",
                   link: '/changelogs/2026-10-24-typed-fields-result',
                 },
               ],

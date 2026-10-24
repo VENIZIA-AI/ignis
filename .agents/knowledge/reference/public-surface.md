@@ -238,7 +238,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (432)
+### `@venizia/ignis-helpers` (438)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -395,6 +395,7 @@ generated:
 - `IPoolWaiter` interface
 - `IPostPolicy` interface
 - `IPrintOptions` interface
+- `IQueryStringOptions` interface
 - `IQueueCallback` interface
 - `IRedisClusterHelperOptions` interface
 - `IRedisClusterHelperProps` interface
@@ -499,6 +500,8 @@ generated:
 - `parseContentDisposition` const
 - `parseMultipartBody` const
 - `PropsWithChildren` type
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `QueueStatuses` class
 - `readFormBody` const
@@ -568,6 +571,7 @@ generated:
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
+- `TFetcherLogger` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
 - `TFileExtension` type
@@ -603,6 +607,8 @@ generated:
 - `toQueryString` const
 - `toTrimmed` const
 - `TPrettify` type
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TQueueElement` type
 - `TQueueStatus` type
 - `TRedisClient` type
@@ -738,7 +744,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (145)
+### `@venizia/ignis-helpers/core` (151)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -794,6 +800,7 @@ generated:
 - `IPoolStats` interface
 - `IPoolWaiter` interface
 - `IPrintOptions` interface
+- `IQueryStringOptions` interface
 - `IRedisHelper` interface
 - `IRequestOptions` interface
 - `IRetryBackoffOptions` interface
@@ -825,6 +832,8 @@ generated:
 - `NodeFetchNetworkRequest` class
 - `OpaqueUidHelper` class
 - `ProjectRootRegistry` class
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `readFormBody` const
 - `RequestBodyErrors` const
@@ -853,6 +862,7 @@ generated:
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
+- `TFetcherLogger` type
 - `TLogLevel` type
 - `TNodePredicate` type
 - `toBoolean` const
@@ -860,6 +870,8 @@ generated:
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `toQueryString` const
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TreeBuilder` class
 - `TreeWalker` class
 - `TRegisterErrors` type
@@ -951,6 +963,15 @@ generated:
 - `TSocketIOEventHandler` type
 - `TSocketIOServerOptions` type
 - `TSocketIOValidateRoomFn` type
+
+### `@venizia/ignis-helpers/socket-io/client` (6)
+
+- `IOptions` interface
+- `ISocketIOClientOptions` interface
+- `SocketIOClientHelper` class
+- `SocketIOClientStates` class
+- `SocketIOConstants` class
+- `TSocketIOEventHandler` type
 
 ### `@venizia/ignis-helpers/bullmq` (2)
 
@@ -2271,7 +2292,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1030)
+### `@venizia/ignis` (1036)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2675,6 +2696,7 @@ generated:
 - `IProvideMetadata` interface
 - `IProvider` interface
 - `IQueryHandlerOptions` interface
+- `IQueryStringOptions` interface
 - `IQueueCallback` interface
 - `IReadableRepository` interface
 - `IReadRetryOptions` interface
@@ -2872,6 +2894,8 @@ generated:
 - `provide` const
 - `put` const
 - `QueryOperators` class
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `QueueStatuses` class
 - `ReadableCrudController` class
@@ -3072,6 +3096,7 @@ generated:
 - `TEventHandlerFunction` type
 - `TEventHandlerReference` type
 - `TEventHandlerType` type
+- `TFetcherLogger` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
 - `TFields` type
@@ -3166,6 +3191,8 @@ generated:
 - `TPrincipalPolicyRow` type
 - `TQueryOperator` type
 - `TQueryOperatorHandlers` type
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TQueueElement` type
 - `TQueueStatus` type
 - `trackableHeaders` const
