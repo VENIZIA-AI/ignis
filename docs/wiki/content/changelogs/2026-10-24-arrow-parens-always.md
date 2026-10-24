@@ -23,7 +23,7 @@ flavor = "oxfmt"
 ## What changed
 
 - **The format.** `arrowParens` was `"avoid"`. The other keys are unchanged.
-- **One reformat.** Every file `bun fmt` covers was reformatted once, in a commit of its own, so `git blame` skips it with `--ignore-rev`.
+- **One reformat.** Every file `bun fmt` covers was reformatted once.
 
 ## Who is affected
 
