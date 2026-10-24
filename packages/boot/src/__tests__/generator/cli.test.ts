@@ -1,14 +1,29 @@
 import { checkArtifactIndex, generateArtifactIndex } from '@/generator';
-import { describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const FIXTURES = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'artifacts');
 
+/** Every directory the tests make for an output file, removed once the file is done. */
+const directories: string[] = [];
+
+const outputFile = (name: string): string => {
+  const directory = mkdtempSync(join(tmpdir(), 'ignis-artifacts-'));
+  directories.push(directory);
+  return join(directory, name);
+};
+
+afterAll(() => {
+  for (const directory of directories) {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 describe('generateArtifactIndex / checkArtifactIndex', () => {
   test('generate writes the index; check is fresh right after; check is stale after a hand edit', () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+    const out = outputFile('artifacts.ts');
 
     const generated = generateArtifactIndex({ root: FIXTURES, out });
     expect(generated.written).toBe(true);
@@ -28,7 +43,7 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
   });
 
   test('check on a missing file reports stale with actual undefined', () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'missing.ts');
+    const out = outputFile('missing.ts');
 
     const result = checkArtifactIndex({ root: FIXTURES, out });
 
@@ -39,7 +54,7 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
 
 describe('checkArtifactIndex - the header is not drift', () => {
   test('a file whose first line differs but whose body matches is fresh; a body change is stale', () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+    const out = outputFile('artifacts.ts');
     const generated = generateArtifactIndex({ root: FIXTURES, out });
     const [header, ...body] = generated.content.split('\n');
 
@@ -136,7 +151,7 @@ describe('a broken file under a user --ignore never fails the run', () => {
 
 describe('generate / check with --source-module', () => {
   test('a named source module indexes its classes, the header records it, and check needs the same set', () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+    const out = outputFile('artifacts.ts');
 
     const generated = generateArtifactIndex({
       root: FIXTURES,
@@ -155,7 +170,7 @@ describe('generate / check with --source-module', () => {
   });
 
   test('without --source-module the header and the index are unchanged (positive control)', () => {
-    const out = join(mkdtempSync(join(tmpdir(), 'ignis-artifacts-')), 'artifacts.ts');
+    const out = outputFile('artifacts.ts');
 
     const generated = generateArtifactIndex({ root: FIXTURES, out });
 

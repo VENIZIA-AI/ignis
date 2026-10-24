@@ -1,6 +1,6 @@
 /** Crypto Algorithms Test Suite */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import C from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -399,6 +399,10 @@ describe('Crypto Algorithms', () => {
         aes = AES.withAlgorithm('aes-256-cbc');
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ignis-crypto-test-'));
         tmpFilePath = path.join(tmpDir, 'test-file.txt');
+      });
+
+      afterAll(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
       });
 
       test('TC-039: encryptFile/decryptFile roundtrip', () => {
