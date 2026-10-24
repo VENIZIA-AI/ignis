@@ -45,7 +45,7 @@ export const createUuidV5 = (): ((opts: { namespace: string; name: string }) => 
     return bytes;
   };
 
-  return opts => {
+  return (opts) => {
     const { namespace, name } = opts;
 
     const namespaceBytes = resolveNamespace({ namespace });

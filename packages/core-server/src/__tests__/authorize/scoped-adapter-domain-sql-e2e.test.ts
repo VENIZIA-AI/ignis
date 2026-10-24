@@ -71,7 +71,7 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       principal: { type: 'User', id: 'u1' },
     });
 
-    return rows.map(row => row.domain ?? null);
+    return rows.map((row) => row.domain ?? null);
   };
 
   beforeAll(async () => {

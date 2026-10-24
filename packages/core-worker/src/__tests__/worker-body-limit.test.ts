@@ -24,7 +24,7 @@ class BodyLimitWorkerApplication extends WorkerApplication {
   postConfigure() {}
 
   setupMiddlewares() {
-    this.getServer().post('/echo', async context =>
+    this.getServer().post('/echo', async (context) =>
       context.json({ length: (await context.req.text()).length }),
     );
   }
@@ -49,8 +49,8 @@ describe('WorkerApplication - configs.middlewares.bodyLimit', () => {
     const { port1, port2 } = new MessageChannel();
     await application.listen({ scope: port1 });
 
-    const received = new Promise<IBffResponseEnvelope>(resolve => {
-      port2.addEventListener('message', event => {
+    const received = new Promise<IBffResponseEnvelope>((resolve) => {
+      port2.addEventListener('message', (event) => {
         resolve(event.data);
       });
       port2.start();

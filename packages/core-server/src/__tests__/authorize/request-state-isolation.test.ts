@@ -64,7 +64,7 @@ const createRecordingEnforcer = (opts: {
      */
     async configure(): Promise<void> {
       state.configureCalls += 1;
-      await new Promise(resolve => setTimeout(resolve, opts.configureDelayMs ?? 5));
+      await new Promise((resolve) => setTimeout(resolve, opts.configureDelayMs ?? 5));
     }
 
     async buildRules(): Promise<AnyType> {
@@ -308,7 +308,7 @@ describe('AuthorizationEnforcerRegistry warms an enforcer once', () => {
 
       async configure(): Promise<void> {
         attempts += 1;
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
         if (attempts === 1) {
           throw new Error('warmup failed');
         }

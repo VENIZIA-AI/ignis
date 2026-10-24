@@ -136,7 +136,7 @@ export class BaseNetworkTcpServer<
   }
 
   configure() {
-    this.server = this.createServerFn(this.serverOptions, socket => {
+    this.server = this.createServerFn(this.serverOptions, (socket) => {
       this.onNewConnection({ socket });
     });
 
@@ -218,7 +218,7 @@ export class BaseNetworkTcpServer<
     });
 
     for (const extraEvent in this.extraEvents) {
-      socket.on(extraEvent, args => {
+      socket.on(extraEvent, (args) => {
         voidExecution({
           logger: this.logger,
           scope: 'onClientConnect',
@@ -320,8 +320,8 @@ export class BaseNetworkTcpServer<
 
     // Not guarded on `listening`: listen() is async (DNS lookup), so a shutdown() racing startup could skip close() and leave the server bound forever; close() on a never-listened server just logs ERR_SERVER_NOT_RUNNING below.
 
-    await new Promise<void>(resolve => {
-      server.close(error => {
+    await new Promise<void>((resolve) => {
+      server.close((error) => {
         if (error) {
           this.logger.for(this.shutdown.name).error('Failed to close server | Error: %s', error);
         }

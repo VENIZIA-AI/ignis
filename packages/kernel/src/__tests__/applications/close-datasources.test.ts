@@ -102,7 +102,7 @@ describe('RestApplication.closeDataSources', () => {
 
     await application.stop();
 
-    expect(DataSourceJournal.entries.filter(entry => entry.startsWith('close:'))).toEqual([
+    expect(DataSourceJournal.entries.filter((entry) => entry.startsWith('close:'))).toEqual([
       'close:OrdersDataSource',
       'close:BrokenDataSource',
       'close:AuditDataSource',
@@ -137,7 +137,7 @@ describe('RestApplication.closeDataSources', () => {
     await application.stop();
     await application.stop();
 
-    expect(DataSourceJournal.entries.filter(entry => entry.startsWith('close:')).length).toBe(2);
+    expect(DataSourceJournal.entries.filter((entry) => entry.startsWith('close:')).length).toBe(2);
   });
 
   test('the engine-neutral root has nothing to release', async () => {
@@ -154,19 +154,19 @@ describe('RestApplication.closeDataSources', () => {
 
     await application.stop();
 
-    expect(DataSourceJournal.entries.filter(entry => entry.startsWith('close:'))).toEqual([
+    expect(DataSourceJournal.entries.filter((entry) => entry.startsWith('close:'))).toEqual([
       'close:HangingDataSource',
       'close:OrdersDataSource',
     ]);
     expect(
       logger.calls
-        .filter(call => call.message.startsWith('Close timed out'))
-        .map(call => ({ level: call.level, key: call.args[0], timeoutMs: call.args[1] })),
+        .filter((call) => call.message.startsWith('Close timed out'))
+        .map((call) => ({ level: call.level, key: call.args[0], timeoutMs: call.args[1] })),
     ).toEqual([{ level: 'error', key: 'datasources.HangingDataSource', timeoutMs: 50 }]);
     expect(
       logger.calls
-        .filter(call => call.message.startsWith('Closed datasource'))
-        .map(call => call.args[0]),
+        .filter((call) => call.message.startsWith('Closed datasource'))
+        .map((call) => call.args[0]),
     ).toEqual(['datasources.OrdersDataSource']);
   });
 });

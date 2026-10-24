@@ -63,7 +63,7 @@ export class RouteConfigResolver {
     // A `.transform()` pipe has no shape to read, so every key it might hold counts.
     const isObjectSchema = schema instanceof z.ZodObject;
     const omittedKeys = isObjectSchema
-      ? droppedKeys.filter(key => Object.hasOwn(schema.shape, key))
+      ? droppedKeys.filter((key) => Object.hasOwn(schema.shape, key))
       : droppedKeys;
 
     if (omittedKeys.length === 0) {

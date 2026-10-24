@@ -15,7 +15,7 @@ import {
 import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
 import { type IRedisHelper } from '@/modules/redis';
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Connect a client and authenticate post-connection; the default authenticateFn mock returns { userId } from the auth data payload. */
 async function connectAndAuth(
@@ -561,7 +561,7 @@ describe('WebSocketServerHelper', () => {
       await connectAndAuth(helper, { clientId: 'client-1', socket });
 
       const calls = socket.send.mock.calls as any[][];
-      const connectedMsg = calls.find(call => {
+      const connectedMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.CONNECTED;
       });
@@ -655,7 +655,7 @@ describe('WebSocketServerHelper', () => {
       await wait(10);
 
       const calls = socket.send.mock.calls as any[][];
-      const errorMsg = calls.find(call => {
+      const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.ERROR;
       });
@@ -738,7 +738,7 @@ describe('WebSocketServerHelper', () => {
       await wait(10);
 
       const calls = socket.send.mock.calls as any[][];
-      const errorMsg = calls.find(call => {
+      const errorMsg = calls.find((call) => {
         const parsed = JSON.parse(call[0]);
         return parsed.event === WebSocketEvents.ERROR;
       });
@@ -2152,7 +2152,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
     await wait(150);
 
     const closeCalls = socket.close.mock.calls as any[][];
-    const timeoutCall = closeCalls.find(c => c[0] === 4002);
+    const timeoutCall = closeCalls.find((c) => c[0] === 4002);
     expect(timeoutCall).toBeDefined();
     expect(timeoutCall![1]).toBe('Heartbeat timeout');
   });
@@ -2178,7 +2178,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
 
     // Server should NOT publish any heartbeat event - clients send heartbeat, server only sweeps
     const publishCalls = mockBunServer.publish.mock.calls as any[][];
-    const heartbeatCall = publishCalls.find(c => {
+    const heartbeatCall = publishCalls.find((c) => {
       try {
         const parsed = JSON.parse(c[1]);
         return parsed.event === WebSocketEvents.HEARTBEAT;

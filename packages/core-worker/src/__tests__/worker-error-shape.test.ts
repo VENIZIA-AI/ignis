@@ -75,8 +75,8 @@ const requestThroughWorker = async (opts: { path: string }): Promise<IBffRespons
   const { port1, port2 } = new MessageChannel();
   await app.listen({ scope: port1 });
 
-  const received = new Promise<IBffResponseEnvelope>(resolve => {
-    port2.addEventListener('message', event => {
+  const received = new Promise<IBffResponseEnvelope>((resolve) => {
+    port2.addEventListener('message', (event) => {
       resolve(event.data as IBffResponseEnvelope);
     });
     port2.start();

@@ -107,22 +107,22 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       this.invokeHook({ scope: this.binding.name, execution: () => this.onOnline() });
     });
 
-    this.worker.on('exit', code => {
+    this.worker.on('exit', (code) => {
       this.invokeHook({ scope: this.binding.name, execution: () => this.onExit({ code }) });
     });
 
-    this.worker.on('error', error => {
+    this.worker.on('error', (error) => {
       this.invokeHook({
         scope: this.binding.name,
         execution: () => this.onError({ error: toError(error) }),
       });
     });
 
-    this.worker.on('message', message => {
+    this.worker.on('message', (message) => {
       this.invokeHook({ scope: this.binding.name, execution: () => this.onMessage({ message }) });
     });
 
-    this.worker.on('messageerror', error => {
+    this.worker.on('messageerror', (error) => {
       this.invokeHook({
         scope: this.binding.name,
         execution: () => this.onMessageError({ error }),

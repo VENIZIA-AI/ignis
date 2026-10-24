@@ -127,7 +127,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     this.queue = this.buildQueue({ queueName });
 
     // An 'error' event without a listener is re-thrown by EventEmitter - a Redis hiccup would take the whole process down.
-    this.queue.on('error', error => {
+    this.queue.on('error', (error) => {
       this.logger
         .for('queue-error')
         .error(
@@ -212,7 +212,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     const queueName = this.resolveQueueName();
     this.worker = this.buildWorker({
       queueName,
-      processor: async job => {
+      processor: async (job) => {
         if (this.onWorkerData) {
           const result = await this.onWorkerData(job);
           return result;
@@ -251,7 +251,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     });
 
     // An 'error' event without a listener is re-thrown by EventEmitter - a Redis hiccup would take the whole process down.
-    this.worker.on('error', error => {
+    this.worker.on('error', (error) => {
       this.logger
         .for('worker-error')
         .error(

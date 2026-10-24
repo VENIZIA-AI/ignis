@@ -60,7 +60,7 @@ export class NoteService extends BaseService {
   find(opts: { claims: Record<string, unknown> }): Promise<Array<TNote>> {
     return this.runAsUser({
       claims: opts.claims,
-      handler: transaction =>
+      handler: (transaction) =>
         this.noteRepository.find<TNote>({ filter: {}, options: { transaction } }),
     });
   }
@@ -75,7 +75,7 @@ export class NoteService extends BaseService {
   }): Promise<TNote> {
     return this.runAsUser({
       claims: opts.claims,
-      handler: async transaction => {
+      handler: async (transaction) => {
         const rs = await this.noteRepository.create<TNote>({
           data: opts.data,
           options: { transaction },
@@ -91,7 +91,7 @@ export class NoteService extends BaseService {
   }> {
     return this.runAsUser({
       claims: opts.claims,
-      handler: async transaction => {
+      handler: async (transaction) => {
         const rs = await this.noteRepository.deleteById<TNote>({
           id: opts.id,
           options: { transaction },

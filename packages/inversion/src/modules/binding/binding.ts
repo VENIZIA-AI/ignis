@@ -76,7 +76,7 @@ export class Binding<T = any> extends BaseHelper implements IBinding<T> {
   }
 
   setTags(...tags: string[]): this {
-    tags.forEach(t => this.tags.add(t));
+    tags.forEach((t) => this.tags.add(t));
     return this;
   }
 

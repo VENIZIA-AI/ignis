@@ -240,7 +240,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
       identifier: 'worker-processor',
       role: 'worker',
       redisConnection: buildRedisConnection(),
-      onWorkerData: async job => {
+      onWorkerData: async (job) => {
         processed.push(job);
         return { ok: true };
       },
@@ -287,7 +287,7 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     worker.emit('completed', buildJob(), { ok: true });
     worker.emit('failed', buildJob({ id: 'job-2' }), new Error('job blew up'));
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
 

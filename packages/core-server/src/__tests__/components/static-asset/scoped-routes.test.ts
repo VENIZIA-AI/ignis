@@ -46,7 +46,7 @@ class FakeMetaLinkRepository {
   readonly updateCalls: string[] = [];
 
   private matchRows(opts: { where: TMetaLinkRow }) {
-    return this.rows.filter(row =>
+    return this.rows.filter((row) =>
       Object.entries(opts.where).every(([key, value]) => row[key] === value),
     );
   }
@@ -147,7 +147,7 @@ const upload = (opts: {
 const objectPath = (opts: { route: string; key: string }) =>
   `/assets/${opts.route}/${encodeURIComponent(opts.key)}`;
 
-const storageMethods = (helper: FakeStorageHelper) => helper.calls.map(call => call.method);
+const storageMethods = (helper: FakeStorageHelper) => helper.calls.map((call) => call.method);
 
 describe('a route can be switched off one by one', () => {
   test('enabled: false leaves the route unregistered, and the storage is never asked', async () => {
@@ -294,7 +294,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects');
-    const names = ((await response.json()) as Array<{ name: string }>).map(item => item.name);
+    const names = ((await response.json()) as Array<{ name: string }>).map((item) => item.name);
 
     expect(names).toEqual(['tenant-a/photo.jpg']);
   });
@@ -308,8 +308,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     await router.request(`/assets/objects?prefix=${encodeURIComponent('tenant-a/pho')}`);
 
     const prefixes = helper.calls
-      .filter(call => call.method === 'listObjects')
-      .map(call => call.args['prefix']);
+      .filter((call) => call.method === 'listObjects')
+      .map((call) => call.args['prefix']);
     expect(prefixes).toEqual(['tenant-a/', 'tenant-a/pho']);
   });
 
@@ -438,7 +438,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const committed = (await commitResponse.json()) as { object: { key: string } };
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
-    expect(helper.calls.find(call => call.method === 'presignPost')?.args['keyPrefix']).toBe(
+    expect(helper.calls.find((call) => call.method === 'presignPost')?.args['keyPrefix']).toBe(
       'pending/tenant-a/',
     );
     expect(committed.object.key).toStartWith('tenant-a/');
@@ -491,7 +491,7 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
 
   /** A tenant-b object is seeded under both; the scope must never let a request reach it. */
   const touchesTenantB = (helper: FakeStorageHelper) =>
-    helper.calls.some(call => JSON.stringify(call.args).includes('tenant-b'));
+    helper.calls.some((call) => JSON.stringify(call.args).includes('tenant-b'));
 
   for (const [path, status] of [
     ['tenant-a/photo.jpg', 200],
@@ -664,7 +664,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
         sequence: 3,
       });
     }
-    expect(repository.rows.map(row => row.principalId)).toEqual(['product-1', 'variant-7']);
+    expect(repository.rows.map((row) => row.principalId)).toEqual(['product-1', 'variant-7']);
   });
 
   test('a stat without a content type falls back to the name, as the upload does', async () => {
@@ -689,7 +689,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       helper,
       metaLink: toMetaLinkConfig({
         repository,
-        createMetaLink: async hookOptions => {
+        createMetaLink: async (hookOptions) => {
           hookCalls.push(hookOptions);
           return repository.create({
             data: { objectName: hookOptions.uploadResult.object.key, storageType: 's3' },
@@ -732,7 +732,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       helper,
       metaLink: toMetaLinkConfig({
         repository,
-        createMetaLink: async hookOptions =>
+        createMetaLink: async (hookOptions) =>
           repository.create({ data: { objectName: hookOptions.uploadResult.object.key } }),
       }),
     });
@@ -777,7 +777,7 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
       mimetype: 'image/jpeg',
       'content-type': 'image/jpeg',
     });
-    expect(repository.rows.map(row => row.link)).toEqual([
+    expect(repository.rows.map((row) => row.link)).toEqual([
       '/assets/objects/photo.jpg',
       '/assets/objects/photo.jpg',
     ]);

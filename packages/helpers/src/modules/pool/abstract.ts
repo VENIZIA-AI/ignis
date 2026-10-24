@@ -104,7 +104,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     this.borrowed.delete(resource);
 
     if (this.isDestroyed) {
-      this.destroyResource({ resource }).catch(error => {
+      this.destroyResource({ resource }).catch((error) => {
         logger.warn('destroyResource error on release: %s', error);
       });
       return;
@@ -167,7 +167,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     }
 
     const toDestroy = this.idle.splice(0);
-    await Promise.all(toDestroy.map(resource => this.destroyResource({ resource })));
+    await Promise.all(toDestroy.map((resource) => this.destroyResource({ resource })));
   }
 
   // ----------------------------------------------------------------------------------------------------------
@@ -201,7 +201,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
   /** Fire-and-forget dispatch with logged rejection; shared by all dispatch call sites. */
   private safeDispatch(opts: { action: string }): void {
-    this.dispatch().catch(error => {
+    this.dispatch().catch((error) => {
       this.logger
         .for(this.dispatch.name)
         .warn('dispatch error | action: %s | Error: %s', opts.action, error);
@@ -297,7 +297,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
 
     // `destroy()` tears down what it can SEE - the waiter queue and the idle list. A resource whose create() was still in flight is in neither, so parking it in idle now would leave it alive with nothing left to reclaim it.
     if (this.isDestroyed) {
-      this.destroyResource({ resource }).catch(error => {
+      this.destroyResource({ resource }).catch((error) => {
         this.logger
           .for(this.handToWaiter.name)
           .warn('destroyResource error on a resource created after destroy(): %s', error);

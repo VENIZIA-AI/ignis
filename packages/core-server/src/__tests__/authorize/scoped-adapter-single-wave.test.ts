@@ -145,7 +145,7 @@ describe('ScopedCasbinAdapter - queryPrincipalPolicies', () => {
       principal: { type: 'User', id: 'u1' },
     });
 
-    expect(rows.map(row => row.kind)).toEqual(['direct', 'roleEdge', 'roleGrant']);
+    expect(rows.map((row) => row.kind)).toEqual(['direct', 'roleEdge', 'roleGrant']);
   });
 
   it('omits the metadata column when metadataColumnName is not mapped', async () => {
@@ -302,7 +302,7 @@ describe('ScopedCasbinAdapter - domainEdge rows become g3 lines', () => {
   it('emits nothing for domainEdge when the closure has no rows to give', async () => {
     const lines = await capturedLinesFor([]);
 
-    expect(lines.filter(line => line.startsWith('g3,'))).toEqual([]);
+    expect(lines.filter((line) => line.startsWith('g3,'))).toEqual([]);
   });
 });
 

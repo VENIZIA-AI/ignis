@@ -96,7 +96,7 @@ class DelayedPerUserAdapter implements FilteredAdapter {
     filter: { principal: { type: string; id: string | number } },
   ): Promise<void> {
     const { Helper } = await import('casbin');
-    await new Promise(resolve => setTimeout(resolve, this.delayMs));
+    await new Promise((resolve) => setTimeout(resolve, this.delayMs));
     Helper.loadPolicyLine(
       `p, ${filter.principal.type}_${filter.principal.id}, secret_${filter.principal.id}, read, allow`,
       model,

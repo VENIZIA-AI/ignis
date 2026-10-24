@@ -33,7 +33,7 @@ const clearEnv = () => {
 
 /** Renders one info object exactly as winston would through the console transport. */
 const renderConsoleLine = (logger: winston.Logger): string => {
-  const transport = logger.transports.find(el => el instanceof winston.transports.Console);
+  const transport = logger.transports.find((el) => el instanceof winston.transports.Console);
   expect(transport).toBeDefined();
 
   const seed = {
@@ -86,7 +86,7 @@ describe('resolveLoggerColorize - environment policy', () => {
   // development terminal. Every other environment ships its lines to a file or an aggregator.
   test.each(['staging', 'uat', 'alpha', 'beta', 'test', 'whatever'])(
     'NODE_ENV "%s" turns color off',
-    environment => {
+    (environment) => {
       clearEnv();
       process.env.NODE_ENV = environment;
 

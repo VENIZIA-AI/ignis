@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 const CORE = resolve(process.cwd(), 'src', '__tests__', 'fixtures', 'groups', 'core');
 const GROUPS_FILE = resolve(CORE, 'src', 'groups.ts');
 const names = (classes: ReadonlyArray<{ name: string }> | undefined): string[] =>
-  (classes ?? []).map(target => target.name);
+  (classes ?? []).map((target) => target.name);
 
 describe('GroupArtifactsResolver (source runs)', () => {
   test('a group resolves to the decorated classes under its folder in the defining package, and nothing else', async () => {

@@ -98,7 +98,7 @@ const TIERS: Array<{ name: string; anonymous: AnyType; strict: AnyType }> = [
  *
  * A resolver that could not tell (1) from (2) would collapse two different errors into one.
  */
-describe.each(TIERS)('the $name user-audit enricher - request context states', tier => {
+describe.each(TIERS)('the $name user-audit enricher - request context states', (tier) => {
   afterEach(() => {
     RequestContextRegistry.clearResolver();
   });
@@ -278,7 +278,7 @@ const ROUTE_TIERS: IRouteTier[] = [
 
 const FORGED_TIME = '2000-01-01T00:00:00.000Z';
 
-describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in user', tier => {
+describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in user', (tier) => {
   let repository: AnyType;
   let close: () => Promise<void>;
   let router: AnyType;

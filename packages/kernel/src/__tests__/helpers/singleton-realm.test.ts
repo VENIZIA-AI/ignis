@@ -83,7 +83,7 @@ describe('a second copy of the kernel is harmless, not forbidden', () => {
     ['AuthenticationStrategyRegistry'],
     ['AuthorizationEnforcerRegistry'],
     ['GrantBuilder'],
-  ])('%s resolves to ONE instance across both copies', name => {
+  ])('%s resolves to ONE instance across both copies', (name) => {
     const fromA = copyA[name].getInstance();
     const fromB = copyB[name].getInstance();
 

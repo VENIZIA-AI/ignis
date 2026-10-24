@@ -8,7 +8,7 @@ import {
 } from '@/utilities/performance.utility';
 
 /** `executeWithPerformanceMeasure` resolves from `.then(resolve)` and logs DONE from the later `.finally`, so DONE lands one microtask after the caller resumes - draining the loop once makes that ordering deterministic. */
-const flushPendingLogs = () => new Promise(resolve => setTimeout(resolve, 0));
+const flushPendingLogs = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const captureRejection = async (execution: Promise<unknown>): Promise<Error> => {
   try {
@@ -66,7 +66,7 @@ describe('executeWithPerformanceMeasure', () => {
       scope: 'TestScope',
       description: 'doing work',
       task: async () => {
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         return 'done-value';
       },
     });
@@ -92,7 +92,7 @@ describe('executeWithPerformanceMeasure', () => {
     });
 
     expect(result).toBe(42);
-    expect(lines.every(line => line.level === 'info')).toBe(true);
+    expect(lines.every((line) => line.level === 'info')).toBe(true);
   });
 
   test('includes args in both log lines when provided', async () => {

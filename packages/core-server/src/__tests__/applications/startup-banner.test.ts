@@ -91,7 +91,7 @@ describe('the startup banner reads the env names the framework publishes', () =>
   test('no line claims a datasource the framework never resolves', () => {
     process.env.APP_ENV_APPLICATION_DS_MIGRATION = 'pg_core';
 
-    expect(captureBanner().some(line => line.startsWith('Datasource |'))).toBe(false);
+    expect(captureBanner().some((line) => line.startsWith('Datasource |'))).toBe(false);
 
     delete process.env.APP_ENV_APPLICATION_DS_MIGRATION;
   });

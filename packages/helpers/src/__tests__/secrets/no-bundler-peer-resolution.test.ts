@@ -59,7 +59,7 @@ const runProbe = async (opts: { name: string; script: string }): Promise<IProbeR
     stderr: 'pipe',
   });
   const stdout = result.stdout.toString();
-  const marker = stdout.split('\n').find(line => line.startsWith('PROBE_REPORT:'));
+  const marker = stdout.split('\n').find((line) => line.startsWith('PROBE_REPORT:'));
   if (!marker) {
     throw new Error(
       `[no-bundler-peer-resolution] probe emitted no report | stdout: ${stdout} | stderr: ${result.stderr.toString()}`,

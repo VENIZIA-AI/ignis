@@ -83,7 +83,7 @@ export class AES extends BaseCryptoAlgorithm<
       return this.normalizeSecretKey({ secret, length, kdfSalt, kdfIterations });
     }
 
-    const entry = secret.find(e => e.id === id);
+    const entry = secret.find((e) => e.id === id);
     if (!entry) {
       throw getError({
         message: `[AES][resolveDecryptKey] No key in keyring matches ciphertext key id "${id}"`,

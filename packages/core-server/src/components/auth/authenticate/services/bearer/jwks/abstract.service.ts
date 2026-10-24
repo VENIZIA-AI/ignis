@@ -13,7 +13,7 @@ export abstract class AbstractJWKSTokenService<
       return;
     }
 
-    this.initPromise ??= this.initialize().catch(error => {
+    this.initPromise ??= this.initialize().catch((error) => {
       this.initPromise = null;
       throw error;
     });

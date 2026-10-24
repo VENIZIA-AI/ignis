@@ -29,7 +29,7 @@ const buildFakeDriver = (opts?: { applied?: Array<string>; failOn?: RegExp }) =>
       },
       query: async <R>(queryOpts: { statement: string }) => {
         statements.push(queryOpts.statement);
-        return [...ledger].map(name => ({ name })) as Array<R>;
+        return [...ledger].map((name) => ({ name })) as Array<R>;
       },
       release: () => {
         releaseCount += 1;
@@ -133,7 +133,7 @@ describe('RelationalMigrationRunner', () => {
     // runner must honour drizzle-kit's own breakpoints rather than hand the file over whole.
     expect(statements).toContain('CREATE TABLE a (id integer);');
     expect(statements).toContain('CREATE TABLE b (id integer);');
-    expect(statements.filter(statement => statement === 'BEGIN')).toHaveLength(1);
+    expect(statements.filter((statement) => statement === 'BEGIN')).toHaveLength(1);
   });
 
   test('the ledger table is configurable', async () => {
@@ -144,6 +144,6 @@ describe('RelationalMigrationRunner', () => {
     });
 
     expect(statements[0]).toContain('"my_ledger"');
-    expect(statements.some(statement => statement.includes('"ignis_migrations"'))).toBe(false);
+    expect(statements.some((statement) => statement.includes('"ignis_migrations"'))).toBe(false);
   });
 });

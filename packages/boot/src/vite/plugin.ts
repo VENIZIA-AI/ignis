@@ -40,14 +40,14 @@ export class IgnisArtifactsVitePlugin {
       enforce: 'pre',
       // Pre-bundling would hide `auto` inside a dependency chunk, out of reach of `load`.
       config: () => ({ optimizeDeps: { exclude: ['@venizia/ignis-boot'] } }),
-      configResolved: config => {
+      configResolved: (config) => {
         root ||= ArtifactSources.packageSource({ from: config.root });
         groupFiles = new Set(IgnisArtifactsPlugin.groupDefinitionFiles({ root }));
         classesByFile = IgnisArtifactsPlugin.pinnedClasses({ root, groupFiles: [...groupFiles] });
       },
-      resolveId: id =>
+      resolveId: (id) =>
         id === IgnisArtifactsPlugin.VIRTUAL ? IgnisArtifactsVitePlugin.RESOLVED_VIRTUAL : undefined,
-      load: id => {
+      load: (id) => {
         if (id === IgnisArtifactsVitePlugin.RESOLVED_VIRTUAL) {
           return IgnisArtifactsPlugin.render({ root });
         }

@@ -88,7 +88,7 @@ describe('ArtifactIndexHelper.flatten - groups', () => {
 
 describe('ArtifactGroup.siteFromStack', () => {
   const stack = (...frames: string[]): string =>
-    ['Error', ...frames.map(frame => `    at ${frame}`)].join('\n');
+    ['Error', ...frames.map((frame) => `    at ${frame}`)].join('\n');
 
   test('skips only the kernel\x27s own artifact-group file, matched on a path separator', () => {
     expect(

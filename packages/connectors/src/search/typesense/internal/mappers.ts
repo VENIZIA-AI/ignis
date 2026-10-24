@@ -68,7 +68,7 @@ export const mapSearchResult = <TDocument extends object>(
     result.groupedHits = raw['grouped_hits'];
   }
   if (Array.isArray(raw['hits'])) {
-    result.hits = raw['hits'].map(hit => mapSearchHit<TDocument>(hit));
+    result.hits = raw['hits'].map((hit) => mapSearchHit<TDocument>(hit));
   }
 
   return result;

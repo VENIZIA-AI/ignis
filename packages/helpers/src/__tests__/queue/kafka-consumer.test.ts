@@ -33,7 +33,7 @@ class FakeMessagesStream extends EventEmitter {
         continue;
       }
 
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         this.wakeUp = resolve;
       });
     }
@@ -131,7 +131,7 @@ const buildHelper = (opts: {
 
 const flush = async (): Promise<void> => {
   for (let index = 0; index < 4; index += 1) {
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
   }

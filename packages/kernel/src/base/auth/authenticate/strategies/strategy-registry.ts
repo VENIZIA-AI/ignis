@@ -59,7 +59,7 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
       return [];
     }
 
-    return names.filter(name => !this.has({ name }));
+    return names.filter((name) => !this.has({ name }));
   }
 
   /**

@@ -41,7 +41,7 @@ export class CombinedCases extends BaseTestCases {
       });
 
       // Should find -100
-      const allNegative = results.every(r => r.nValue !== null && r.nValue < 0);
+      const allNegative = results.every((r) => r.nValue !== null && r.nValue < 0);
       if (allNegative && results.length >= 1) {
         this.context.logger.info(
           '[NEGATIVE] PASSED | Found %d records with negative nValue',
@@ -49,7 +49,7 @@ export class CombinedCases extends BaseTestCases {
         );
         this.context.logger.info(
           '[NEGATIVE] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       } else {
         this.context.logger.error('[NEGATIVE] FAILED | Expected negative values');
@@ -70,7 +70,7 @@ export class CombinedCases extends BaseTestCases {
         },
       });
 
-      if (results.length >= 1 && results.every(r => r.nValue === 0)) {
+      if (results.length >= 1 && results.every((r) => r.nValue === 0)) {
         this.context.logger.info(
           '[ZERO] PASSED | Found %d records with nValue = 0',
           results.length,
@@ -329,18 +329,18 @@ export class CombinedCases extends BaseTestCases {
       });
 
       // Verify no overlap
-      const page1Ids = new Set(page1.map(r => r.id));
-      const hasOverlap = page2.some(r => page1Ids.has(r.id));
+      const page1Ids = new Set(page1.map((r) => r.id));
+      const hasOverlap = page2.some((r) => page1Ids.has(r.id));
 
       if (!hasOverlap && page1.length === 3 && page2.length === 3) {
         this.context.logger.info('[COMBO-PAGINATE] PASSED | Pagination works correctly');
         this.context.logger.info(
           '[COMBO-PAGINATE] Page 1 values: %j',
-          page1.map(r => r.nValue),
+          page1.map((r) => r.nValue),
         );
         this.context.logger.info(
           '[COMBO-PAGINATE] Page 2 values: %j',
-          page2.map(r => r.nValue),
+          page2.map((r) => r.nValue),
         );
       } else {
         this.context.logger.error('[COMBO-PAGINATE] FAILED | Pagination issue detected');

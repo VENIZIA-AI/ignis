@@ -56,7 +56,7 @@ describe('SqliteQueryExecutor - against a real in-memory libsql database', () =>
       offset: 1,
     });
 
-    expect(rows.map(row => row.id)).toEqual([2, 3]);
+    expect(rows.map((row) => row.id)).toEqual([2, 3]);
   });
 
   test('select with a column projection returns only those columns', async () => {

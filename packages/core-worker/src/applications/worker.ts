@@ -193,7 +193,7 @@ export abstract class WorkerApplication<
       // `dispatchMessage` never rejects - every failure inside it, including a failed post, is
       // caught and handled internally. This `.catch` only guards the sliver of code before its own
       // try block ever runs.
-      this.dispatchMessage({ scope, envelope }).catch(error => {
+      this.dispatchMessage({ scope, envelope }).catch((error) => {
         logger.error('Unexpected failure handling worker message | error: %s', error);
       });
     };

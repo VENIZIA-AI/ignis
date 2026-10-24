@@ -83,7 +83,7 @@ describe('shared AbstractRepository core helpers', () => {
         }
       };
 
-      const denialCodes = [relationalRepository, searchRepository].map(repository =>
+      const denialCodes = [relationalRepository, searchRepository].map((repository) =>
         denialCodeOf(repository),
       );
 

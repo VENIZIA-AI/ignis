@@ -26,7 +26,7 @@ const waitForServer = async (opts: { url: string; process: Bun.Subprocess }) => 
     }
 
     const isUp = await fetch(opts.url).then(
-      response => response.ok,
+      (response) => response.ok,
       () => false,
     );
 

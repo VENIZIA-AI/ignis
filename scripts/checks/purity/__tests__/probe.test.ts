@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { GLOBAL_PATTERNS, probeEntry, stripBundlerPathComments } from '../probe';
 
-const PROCESS_PATTERN = GLOBAL_PATTERNS.find(g => g.name === 'process')!;
+const PROCESS_PATTERN = GLOBAL_PATTERNS.find((g) => g.name === 'process')!;
 
 const FIXTURES = join(__dirname, 'fixtures');
 const REPOSITORY_ROOT = join(__dirname, '../../../..');

@@ -50,7 +50,7 @@ describe('the default environment prefix', () => {
     expect(keys.length).toBeGreaterThan(0);
     expect(keys).not.toContain('PATH');
     expect(keys).not.toContain('HOME');
-    expect(keys.filter(key => !key.startsWith('APP_ENV'))).toEqual([]);
+    expect(keys.filter((key) => !key.startsWith('APP_ENV'))).toEqual([]);
   };
 
   test('a blank APPLICATION_ENV_PREFIX falls back to APP_ENV, it does not swallow process.env', () => {

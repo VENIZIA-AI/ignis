@@ -77,7 +77,7 @@ export class MaxParamsOwnRule {
           'A function we write takes up to {{max}} positional parameters, not {{count}}: take one options object.',
       },
     },
-    create: context => {
+    create: (context) => {
       const max =
         typeof context.options[0] === 'number' ? context.options[0] : MaxParamsOwnRule.DEFAULT_MAX;
 

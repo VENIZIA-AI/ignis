@@ -184,7 +184,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
 
     // `ifAvailable` answers NOW instead of queueing, which is what lets this tab find out it is a
     // follower rather than hanging until the current leader goes away.
-    const hasWon = await locks.request(this.lockName, { ifAvailable: true }, async lock => {
+    const hasWon = await locks.request(this.lockName, { ifAvailable: true }, async (lock) => {
       if (!lock) {
         return false;
       }
@@ -264,7 +264,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
   }
 
   private heldUntilClosed(): Promise<void> {
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       this.releaseLeadership = resolve;
     });
   }
@@ -274,7 +274,7 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
       return Promise.resolve();
     }
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       this.roleWaiters.push(resolve);
     });
   }

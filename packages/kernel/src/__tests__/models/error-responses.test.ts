@@ -12,7 +12,7 @@ const toDocument = (opts: { routes: Record<string, TRouteResponses> }) => {
   const application = new OpenAPIHono();
 
   for (const [path, responses] of Object.entries(opts.routes)) {
-    application.openapi(createRoute({ method: 'get', path, responses }), context =>
+    application.openapi(createRoute({ method: 'get', path, responses }), (context) =>
       context.text('ok'),
     );
   }

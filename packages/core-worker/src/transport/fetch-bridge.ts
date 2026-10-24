@@ -65,8 +65,8 @@ const resolveRequestUrl = (input: RequestInfo | URL): string => {
 const toPrefixList = (basePath: string | Array<string>): Array<string> => {
   // Trailing slashes trimmed once, so the boundary test below is one comparison and one prefix check.
   const prefixes = (Array.isArray(basePath) ? basePath : [basePath])
-    .map(prefix => prefix.replace(/\/+$/, ''))
-    .filter(prefix => prefix.length > 0);
+    .map((prefix) => prefix.replace(/\/+$/, ''))
+    .filter((prefix) => prefix.length > 0);
 
   if (prefixes.length === 0) {
     throw getError({
@@ -100,7 +100,7 @@ export const installBffFetch = (opts: IInstallBffFetchOptions): (() => void) => 
       ? undefined
       : new Set(
           (Array.isArray(opts.origin) ? opts.origin : [opts.origin]).map(
-            value => new URL(value).origin,
+            (value) => new URL(value).origin,
           ),
         );
   const carrier = opts.carrier ?? (globalThis as unknown as IFetchCarrier);
@@ -122,7 +122,7 @@ export const installBffFetch = (opts: IInstallBffFetchOptions): (() => void) => 
     const { pathname } = url;
     const isOwnOrigin = origins === undefined || origins.has(url.origin);
     const isOwnPath = prefixes.some(
-      prefix => pathname === prefix || pathname.startsWith(`${prefix}/`),
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
 
     if (!isOwnOrigin || !isOwnPath) {

@@ -101,7 +101,7 @@ export abstract class AbstractApplication extends Container {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: `[executePostStartHooks] Failed post-start hook(s): ${failures
-        .map(failure => `${failure.identifier} (${failure.error})`)
+        .map((failure) => `${failure.identifier} (${failure.error})`)
         .join(', ')}`,
     });
   }
@@ -127,7 +127,7 @@ export abstract class AbstractApplication extends Container {
   protected registerCoreBindings() {
     this.bind<typeof this>({
       key: CoreBindings.APPLICATION_INSTANCE,
-    }).toProvider(_ => this);
+    }).toProvider((_) => this);
   }
 
   init() {

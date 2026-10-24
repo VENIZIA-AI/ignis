@@ -56,7 +56,7 @@ export const mergeWindowedResults = <TDocument extends object>(
     found: first.found,
     // AND-folded: the total is only exact if EVERY window ran to completion. One cut-off window
     // makes the merged count an estimate, and saying otherwise would relaunch the bug above.
-    isFoundExact: results.every(result => result.isFoundExact),
+    isFoundExact: results.every((result) => result.isFoundExact),
   };
 
   if (first.outOf !== undefined) {
@@ -66,7 +66,7 @@ export const mergeWindowedResults = <TDocument extends object>(
   // MAX, not sum: this field is read as latency, and the windows travel in ONE round trip. Summing
   // would make a windowed query graph at several times its actual wall-clock.
   const timings = results
-    .map(result => result.searchTimeMs)
+    .map((result) => result.searchTimeMs)
     .filter((value): value is number => typeof value === 'number');
   if (timings.length > 0) {
     merged.searchTimeMs = Math.max(...timings);
@@ -76,7 +76,7 @@ export const mergeWindowedResults = <TDocument extends object>(
     merged.facetCounts = first.facetCounts;
   }
 
-  const hits = results.flatMap(result => result.hits ?? []);
+  const hits = results.flatMap((result) => result.hits ?? []);
   if (hits.length > 0) {
     merged.hits = hits;
   }

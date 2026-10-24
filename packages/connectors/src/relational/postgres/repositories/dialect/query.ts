@@ -27,7 +27,7 @@ const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; opera
   const { column, value, operator } = opts;
 
   const items = sql.join(
-    value.map(item => sql`${item}`),
+    value.map((item) => sql`${item}`),
     sql`, `,
   );
 

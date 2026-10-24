@@ -121,7 +121,7 @@ describe('a compiled binary', () => {
     const result = await compile({ app, plugins: [frameworkSources] });
 
     expect(result.success).toBe(false);
-    expect(result.logs.map(log => log.message).join('\n')).toContain('ignis:artifacts');
+    expect(result.logs.map((log) => log.message).join('\n')).toContain('ignis:artifacts');
   }, 60_000);
 
   test('an app that never imports the auto module builds and runs with no plugin', async () => {
@@ -178,7 +178,7 @@ describe('a compiled binary', () => {
       throw: false,
     });
 
-    expect(result.logs.map(log => log.message).join('\n')).not.toContain('node:');
+    expect(result.logs.map((log) => log.message).join('\n')).not.toContain('node:');
     expect(result.success).toBe(true);
   }, 60_000);
 });

@@ -30,7 +30,7 @@ describe('BaseLogger - level dispatch to the single write() sink', () => {
     logger.emerg('d');
     logger.log('warn', 'e', 1, 2);
 
-    expect(logger.writes.map(w => w.level)).toEqual(['info', 'warn', 'error', 'emerg', 'warn']);
+    expect(logger.writes.map((w) => w.level)).toEqual(['info', 'warn', 'error', 'emerg', 'warn']);
     expect(logger.writes[4]).toEqual({ level: 'warn', message: 'e', args: [1, 2] });
   });
 

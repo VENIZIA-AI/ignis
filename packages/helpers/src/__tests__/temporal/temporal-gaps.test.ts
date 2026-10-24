@@ -333,7 +333,7 @@ describe('the date-picker bridge', () => {
 
   test.each(['America/New_York', 'Asia/Tokyo'])(
     'the host zone is the default, under %s',
-    hostZone => {
+    (hostZone) => {
       const moduleSource = path.resolve(PACKAGE_ROOT, 'src/modules/temporal/index.ts');
       const script = `
       const { TemporalHelper } = await import('${moduleSource}');

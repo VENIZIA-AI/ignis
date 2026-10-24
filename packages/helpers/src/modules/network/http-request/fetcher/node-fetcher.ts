@@ -26,7 +26,7 @@ const isRawBody = (body: unknown): boolean => {
     return true;
   }
 
-  return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some(name => {
+  return ['Blob', 'FormData', 'URLSearchParams', 'ReadableStream'].some((name) => {
     const ctor = Reflect.get(globalThis, name);
     return typeof ctor === 'function' && body instanceof ctor;
   });

@@ -11,7 +11,7 @@ import {
 } from '@venizia/ignis-helpers/socket-io';
 import { SocketIOBindingKeys } from '@/components/socket-io/common/keys';
 
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const waitFor = async (
   condition: () => boolean,
@@ -33,7 +33,7 @@ const getAvailablePort = (): Promise<number> => {
     const server = createServer();
     server.listen(0, () => {
       const address = server.address() as AddressInfo;
-      server.close(err => {
+      server.close((err) => {
         if (err) {
           reject(err);
         } else {
@@ -117,7 +117,7 @@ describe('SocketIOClientHelper', () => {
     port = await getAvailablePort();
     httpServer = createServer();
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       httpServer.listen(port, () => resolve());
     });
 
@@ -143,7 +143,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     await Promise.race([
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         httpServer.close(() => resolve());
       }),
       wait(1000).then(() => {}),
@@ -247,7 +247,7 @@ describe('SocketIOClientHelper', () => {
           path: '/io',
           extraHeaders: {},
         },
-        onDisconnected: reason => {
+        onDisconnected: (reason) => {
           disconnectReason = reason;
         },
       });
@@ -323,7 +323,7 @@ describe('SocketIOClientHelper', () => {
     test('should emit authenticate event to server', async () => {
       let didServerReceiveAuth = false;
 
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
           didServerReceiveAuth = true;
         });
@@ -349,7 +349,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should transition to AUTHENTICATED when server sends authenticated event', async () => {
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
           socket.emit(SocketIOConstants.EVENT_AUTHENTICATED, { id: socket.id });
         });
@@ -380,7 +380,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should transition to UNAUTHORIZED when server sends unauthenticated event', async () => {
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
           socket.emit(SocketIOConstants.EVENT_UNAUTHENTICATE, { message: 'Invalid token' });
         });
@@ -395,7 +395,7 @@ describe('SocketIOClientHelper', () => {
           path: '/io',
           extraHeaders: {},
         },
-        onUnauthenticated: message => {
+        onUnauthenticated: (message) => {
           unauthMessage = message;
         },
       });
@@ -412,7 +412,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should not allow authentication when already authenticated', async () => {
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
           socket.emit(SocketIOConstants.EVENT_AUTHENTICATED, { id: socket.id });
         });
@@ -460,7 +460,7 @@ describe('SocketIOClientHelper', () => {
 
       client.subscribe({
         event: 'test-event',
-        handler: data => {
+        handler: (data) => {
           receivedData = data;
         },
       });
@@ -654,8 +654,8 @@ describe('SocketIOClientHelper', () => {
     test('should emit events to server', async () => {
       let serverReceived: any = null;
 
-      ioServer.on('connection', socket => {
-        socket.on('client-message', data => {
+      ioServer.on('connection', (socket) => {
+        socket.on('client-message', (data) => {
           serverReceived = data;
         });
       });
@@ -757,7 +757,7 @@ describe('SocketIOClientHelper', () => {
     test('should emit join event to server', async () => {
       let joinedRooms: string[] = [];
 
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_JOIN, (data: { rooms: string[] }) => {
           joinedRooms = data.rooms;
         });
@@ -786,7 +786,7 @@ describe('SocketIOClientHelper', () => {
     test('should emit leave event to server', async () => {
       let leftRooms: string[] = [];
 
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_LEAVE, (data: { rooms: string[] }) => {
           leftRooms = data.rooms;
         });
@@ -861,7 +861,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should reset state to UNAUTHORIZED on shutdown', async () => {
-      ioServer.on('connection', socket => {
+      ioServer.on('connection', (socket) => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
           socket.emit(SocketIOConstants.EVENT_AUTHENTICATED, { id: socket.id });
         });
@@ -957,7 +957,7 @@ describe('SocketIOClientHelper', () => {
           extraHeaders: {},
           reconnection: false,
         } as IOptions,
-        onError: error => {
+        onError: (error) => {
           errorReceived = error;
         },
       });
@@ -1083,7 +1083,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
     port = await getAvailablePort();
     httpServer = createServer();
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       httpServer.listen(port, () => resolve());
     });
 
@@ -1109,7 +1109,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
     });
 
     await Promise.race([
-      new Promise<void>(resolve => {
+      new Promise<void>((resolve) => {
         httpServer.close(() => resolve());
       }),
       wait(1000).then(() => {}),
@@ -1151,11 +1151,11 @@ describe('SocketIOClientHelper - Edge Cases', () => {
       clients.push(client);
     }
 
-    await waitFor(() => clients.every(c => c.getSocketClient().connected), { timeout: 5000 });
+    await waitFor(() => clients.every((c) => c.getSocketClient().connected), { timeout: 5000 });
 
     expect(ioServer.sockets.sockets.size).toBe(clientCount);
 
-    clients.forEach(c => c.shutdown());
+    clients.forEach((c) => c.shutdown());
   });
 
   test('should handle receiving messages with empty/null handlers gracefully', async () => {

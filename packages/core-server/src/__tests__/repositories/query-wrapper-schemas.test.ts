@@ -86,7 +86,7 @@ describe('the CRUD factory routes keep the contract they had', () => {
 
   test.each(['FIND', 'FIND_BY_ID', 'FIND_ONE'] as const)(
     '%s takes no query string, and accepts a filter',
-    routeName => {
+    (routeName) => {
       const query = queryOf(routes[routeName].request);
 
       expect(query.safeParse({}).success).toBe(true);
@@ -96,7 +96,7 @@ describe('the CRUD factory routes keep the contract they had', () => {
 
   // `where` may ride in the query or the JSON body (long id lists outgrow a URL), so neither query
   // schema requires it; the handler refuses neither-or-both with a 400 - pinned in crud-factory.test.ts.
-  test.each(['UPDATE_BY', 'DELETE_BY'] as const)('%s takes where from the query', routeName => {
+  test.each(['UPDATE_BY', 'DELETE_BY'] as const)('%s takes where from the query', (routeName) => {
     const query = queryOf(routes[routeName].request);
 
     expect(query.safeParse({}).success).toBe(true);

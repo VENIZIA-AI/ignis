@@ -67,7 +67,7 @@ describe('buildSignedRequest - object key encoding', () => {
    */
   const keysNeedingEncoding = ['my file.txt', 'photos/2024/ảnh.png', 'a+b.txt', "it's (1).png"];
 
-  test.each(keysNeedingEncoding)('the signed path survives the wire unchanged: %s', async key => {
+  test.each(keysNeedingEncoding)('the signed path survives the wire unchanged: %s', async (key) => {
     const { url } = await buildSignedRequest({
       ...baseRequest,
       path: `/my-bucket/${key}`,

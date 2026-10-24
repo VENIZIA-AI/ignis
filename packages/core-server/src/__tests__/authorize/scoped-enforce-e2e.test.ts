@@ -180,7 +180,7 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
 describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
   test('member operator allowed on joined shop, denied elsewhere', async () => {
     // The single recursive CTE returns everything scoped to u1, so the three structural-tree queries fall through to the empty default. Role grants only - 'u1' has no direct grant.
-    const adapter = dbAdapter(text => {
+    const adapter = dbAdapter((text) => {
       if (text.includes('WITH RECURSIVE')) {
         return [
           {
@@ -314,7 +314,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
     // Completeness: membership (g2) and the resource edge (g4) MUST survive the cache round-trip.
     expect(cached).toContain('g2, User_1, Merchant_7');
     expect(cached).toContain('g4, OrderItem, Order');
-    expect(cached.some(line => line.startsWith('p,'))).toBe(true);
+    expect(cached.some((line) => line.startsWith('p,'))).toBe(true);
 
     // Second build → cache HIT → enforce nested resource (OrderItem ⊂ Order via g4) in member domain.
     const rules = await enforcer.buildRules({

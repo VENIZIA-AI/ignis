@@ -71,11 +71,11 @@ const PINNED = [
   'core.mail.body_source_refused',
 ];
 
-const allDefinitions = Object.values(CATALOGS).flatMap(catalog => Object.values(catalog));
+const allDefinitions = Object.values(CATALOGS).flatMap((catalog) => Object.values(catalog));
 
 describe('framework error catalog', () => {
   test('every published code is still exactly what clients branch on', () => {
-    const codes = allDefinitions.map(definition => definition.message.code).sort();
+    const codes = allDefinitions.map((definition) => definition.message.code).sort();
 
     expect(codes).toEqual([...PINNED].sort());
   });
@@ -88,7 +88,7 @@ describe('framework error catalog', () => {
   });
 
   test('no two catalogued errors share a code', () => {
-    const codes = allDefinitions.map(definition => definition.message.code);
+    const codes = allDefinitions.map((definition) => definition.message.code);
 
     expect(new Set(codes).size).toBe(codes.length);
   });

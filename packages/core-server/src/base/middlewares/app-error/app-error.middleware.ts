@@ -26,7 +26,7 @@ export class AppErrorMiddleware extends BaseAppErrorMiddleware {
       // Present, so an unresolved name here is a real misconfiguration and keeps its error line - a
       // node host always HAS an ambient environment, even when it is not set.
       environment: opts?.environment ?? (() => Environment.ambient),
-      formatError: opts?.formatError ?? (formatOpts => ErrorPrettier.format(formatOpts)),
+      formatError: opts?.formatError ?? ((formatOpts) => ErrorPrettier.format(formatOpts)),
     });
   }
 }

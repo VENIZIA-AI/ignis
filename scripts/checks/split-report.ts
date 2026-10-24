@@ -31,38 +31,39 @@ export class SplitReport {
     if (!existsSync(src)) {
       return;
     }
-    const facts = SplitReport.walk({ dir: src }).map(file => SplitReport.facts({ file }));
+    const facts = SplitReport.walk({ dir: src }).map((file) => SplitReport.facts({ file }));
     const rel = (file: string) => relative(opts.packageDir, file);
 
     const hubs = facts.filter(
-      f => ['types.ts', 'constants.ts'].includes(basename(f.file)) && f.exports > HUB_EXPORT_MARK,
+      (f) => ['types.ts', 'constants.ts'].includes(basename(f.file)) && f.exports > HUB_EXPORT_MARK,
     );
     const multiClass = facts.filter(
-      f => f.classes.length >= 2 && !SplitReport.isAbstractBasePair({ facts: f }),
+      (f) => f.classes.length >= 2 && !SplitReport.isAbstractBasePair({ facts: f }),
     );
     const strayTypes = facts.filter(
-      f => ['types.ts', 'constants.ts'].includes(basename(f.file)) && !f.file.includes('/common/'),
+      (f) =>
+        ['types.ts', 'constants.ts'].includes(basename(f.file)) && !f.file.includes('/common/'),
     );
-    const long = facts.filter(f => f.lines > SOFT_LINE_MARK);
+    const long = facts.filter((f) => f.lines > SOFT_LINE_MARK);
     const noBarrel = SplitReport.foldersWithoutIndex({ dir: src });
     const esm = join(opts.packageDir, 'dist/esm');
     const cycles = existsSync(esm) ? ModuleGraph.fromDirectory({ dir: esm }).cycles().length : -1;
 
     console.log(`\n## ${basename(opts.packageDir)} - ${facts.length} files`);
     const hubTitle = `hub candidates (> ${HUB_EXPORT_MARK} exports)`;
-    const hubRows = hubs.map(f => `${rel(f.file)} (${f.exports})`);
+    const hubRows = hubs.map((f) => `${rel(f.file)} (${f.exports})`);
     SplitReport.section({ title: hubTitle, rows: hubRows });
     const classTitle = 'files with 2+ exported classes';
-    const classRows = multiClass.map(f => `${rel(f.file)} (${f.classes.join(', ')})`);
+    const classRows = multiClass.map((f) => `${rel(f.file)} (${f.classes.join(', ')})`);
     SplitReport.section({ title: classTitle, rows: classRows });
     const strayTitle = 'types/constants outside common/';
-    const strayRows = strayTypes.map(f => rel(f.file));
+    const strayRows = strayTypes.map((f) => rel(f.file));
     SplitReport.section({ title: strayTitle, rows: strayRows });
     const barrelTitle = 'scope folders without index.ts';
-    const barrelRows = noBarrel.map(d => relative(opts.packageDir, d));
+    const barrelRows = noBarrel.map((d) => relative(opts.packageDir, d));
     SplitReport.section({ title: barrelTitle, rows: barrelRows });
     const longTitle = `over ${SOFT_LINE_MARK} lines (a prompt to explain, not a defect)`;
-    const longRows = long.map(f => `${rel(f.file)} (${f.lines})`);
+    const longRows = long.map((f) => `${rel(f.file)} (${f.lines})`);
     SplitReport.section({ title: longTitle, rows: longRows });
     const cycleMsg = cycles < 0 ? 'no dist' : cycles;
     console.log(`- import cycles in dist/esm: ${cycleMsg}`);
@@ -71,11 +72,11 @@ export class SplitReport {
   /** Every packages/* and examples/* directory that has a src/ folder. */
   static defaultTargets(): string[] {
     const packages = readdirSync(resolve('packages'))
-      .map(name => resolve('packages', name))
-      .filter(dir => existsSync(join(dir, 'src')));
+      .map((name) => resolve('packages', name))
+      .filter((dir) => existsSync(join(dir, 'src')));
     const examples = readdirSync(resolve('examples'))
-      .map(name => resolve('examples', name))
-      .filter(dir => existsSync(join(dir, 'src')));
+      .map((name) => resolve('examples', name))
+      .filter((dir) => existsSync(join(dir, 'src')));
     return [...packages, ...examples];
   }
 
@@ -92,7 +93,7 @@ export class SplitReport {
       file: opts.file,
       lines: text.split('\n').length,
       exports: [...text.matchAll(DECLARATION)].length,
-      classes: [...text.matchAll(EXPORTED_CLASS)].map(match => match[1]),
+      classes: [...text.matchAll(EXPORTED_CLASS)].map((match) => match[1]),
     };
   }
 
@@ -130,7 +131,9 @@ export class SplitReport {
       if (!statSync(full).isDirectory()) {
         continue;
       }
-      const hasTs = readdirSync(full).some(entry => entry.endsWith('.ts') && entry !== 'index.ts');
+      const hasTs = readdirSync(full).some(
+        (entry) => entry.endsWith('.ts') && entry !== 'index.ts',
+      );
       if (hasTs && !existsSync(join(full, 'index.ts'))) {
         out.push(full);
       }
@@ -143,7 +146,7 @@ export class SplitReport {
 if (import.meta.main) {
   const targets = process.argv.slice(2);
   const packages = targets.length
-    ? targets.map(target => resolve(target))
+    ? targets.map((target) => resolve(target))
     : SplitReport.defaultTargets();
   for (const packageDir of packages) {
     SplitReport.run({ packageDir });

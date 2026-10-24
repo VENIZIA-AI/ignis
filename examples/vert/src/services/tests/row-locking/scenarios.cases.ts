@@ -51,7 +51,7 @@ export class ScenariosCases extends BaseTestCases {
         this.context.logger.error(
           '[CASE 7] FAILED - Expected 1 unlocked row, got: %d | codes: %j',
           results.length,
-          results.map(r => r.code),
+          results.map((r) => r.code),
         );
       }
 

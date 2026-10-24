@@ -357,7 +357,7 @@ describe('review cases', () => {
       headers: { 'content-type': 'image/png' },
     });
 
-    expect(attempts.map(attempt => attempt.headers['content-type'])).toEqual([
+    expect(attempts.map((attempt) => attempt.headers['content-type'])).toEqual([
       'application/octet-stream',
       'image/png',
     ]);
@@ -472,7 +472,7 @@ describe('review cases', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: BASE_URL,
-      onUnauthorized: context => {
+      onUnauthorized: (context) => {
         seenSignal = context.signal;
         controller.abort();
         return true;
@@ -561,7 +561,11 @@ describe('list extras, asked for by name', () => {
     await repository.existsWith({ where: {} });
     await repository.findOne({ filter: {} });
 
-    expect(attempts.map(attempt => attempt.headers['x-request-extra'])).toEqual(['-*', '-*', '-*']);
+    expect(attempts.map((attempt) => attempt.headers['x-request-extra'])).toEqual([
+      '-*',
+      '-*',
+      '-*',
+    ]);
   });
 
   test('an unmarked { data, extra } body is not unwrapped as a list', async () => {

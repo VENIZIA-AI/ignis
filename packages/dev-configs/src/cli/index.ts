@@ -20,7 +20,7 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
 };
 
 main({ argv: process.argv.slice(2) }).then(
-  exitCode => process.exit(exitCode),
+  (exitCode) => process.exit(exitCode),
   (error: unknown) => {
     console.error(error);
     process.exit(1);

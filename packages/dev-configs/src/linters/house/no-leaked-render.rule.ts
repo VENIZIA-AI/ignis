@@ -4,7 +4,7 @@ import { HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /** `&&` directly under a JSX child: `disabled={a && b}` is a value, not something drawn. */
 const LEAKED_RENDER_SELECTOR = ['JSXElement', 'JSXFragment']
-  .map(parent => `${parent} > JSXExpressionContainer > LogicalExpression[operator='&&']`)
+  .map((parent) => `${parent} > JSXExpressionContainer > LogicalExpression[operator='&&']`)
   .join(', ');
 
 /**
@@ -24,14 +24,14 @@ export class NoLeakedRenderRule {
         leaked: 'Draw nothing with `cond ? <X /> : null`; `&&` draws 0 when cond is 0.',
       },
     },
-    create: context => ({
+    create: (context) => ({
       [LEAKED_RENDER_SELECTOR]: (node: Rule.Node) => {
         if (node.type !== 'LogicalExpression') {
           return;
         }
 
         const source = context.sourceCode;
-        const operator = source.getTokenAfter(node.left, token => token.value === '&&');
+        const operator = source.getTokenAfter(node.left, (token) => token.value === '&&');
         if (!operator) {
           return;
         }
@@ -40,7 +40,7 @@ export class NoLeakedRenderRule {
         context.report({
           node,
           messageId: 'leaked',
-          fix: fixer => fixer.replaceText(node, `${source.getText(node.left)} ? ${drawn} : null`),
+          fix: (fixer) => fixer.replaceText(node, `${source.getText(node.left)} ? ${drawn} : null`),
         });
       },
     }),

@@ -83,13 +83,13 @@ export class UpdateCases extends BaseTestCases {
       }
 
       const verified = await repo.find({ filter: { where: { group } } });
-      const allUpdated = verified.every(r => r.nValue === 999);
+      const allUpdated = verified.every((r) => r.nValue === 999);
       if (allUpdated) {
         this.context.logger.info('[case7UpdateAll] PASSED | All records updated to nValue=999');
       } else {
         this.context.logger.error(
           '[case7UpdateAll] FAILED | Not all records updated: %j',
-          verified.map(r => r.nValue),
+          verified.map((r) => r.nValue),
         );
       }
 

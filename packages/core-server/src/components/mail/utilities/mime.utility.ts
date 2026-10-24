@@ -295,7 +295,7 @@ function escapeQuotedString(value: string): string {
 function encodeRfc2231(value: string): string {
   return encodeURIComponent(value).replace(
     /[!'()*]/g,
-    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 }
 
@@ -374,8 +374,8 @@ function newBoundary(label: string): string {
 export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer> {
   const headers = buildHeaders(message);
   const attachments = message.attachments ?? [];
-  const inlineAttachments = attachments.filter(attachment => Boolean(attachment.cid));
-  const fileAttachments = attachments.filter(attachment => !attachment.cid);
+  const inlineAttachments = attachments.filter((attachment) => Boolean(attachment.cid));
+  const fileAttachments = attachments.filter((attachment) => !attachment.cid);
   const hasBothBodies = Boolean(message.text) && Boolean(message.html);
   const singleContentType = message.html ? ('text/html' as const) : ('text/plain' as const);
   const singleContent = message.html ?? message.text ?? '';

@@ -35,7 +35,7 @@ export class ArtifactScanCache {
     let directory = dirname(root);
     while (true) {
       const lockfile = ['bun.lock', 'bun.lockb', 'package-lock.json']
-        .map(name => join(directory, name))
+        .map((name) => join(directory, name))
         .find(existsSync);
       if (lockfile) {
         extras.push(lockfile);

@@ -91,7 +91,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
     test('a no-constructor repository class gets the datasource injected at param[0]', () => {
       const registry = MetadataRegistry.getInstance();
       const injects = registry.getInjectMetadata({ target: ProductSearchRepository });
-      const injectAtIndex0 = injects?.find(entry => entry.index === 0);
+      const injectAtIndex0 = injects?.find((entry) => entry.index === 0);
 
       expect(injectAtIndex0).toBeDefined();
       expect(injectAtIndex0?.key).toBe('datasources.AppSearchDataSource');
@@ -181,7 +181,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
       await controller['binding']();
 
       const distinctRoutes = new Set(
-        controller.router.routes.map(route => `${route.method} ${route.path}`),
+        controller.router.routes.map((route) => `${route.method} ${route.path}`),
       );
       expect(distinctRoutes.size).toBe(6);
     });

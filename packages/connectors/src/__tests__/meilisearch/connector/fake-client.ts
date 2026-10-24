@@ -181,7 +181,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
   }
 
   async getIndexes(): Promise<{ results: unknown[] }> {
-    return { results: [...this.indexes.values()].map(item => ({ uid: item.uid })) };
+    return { results: [...this.indexes.values()].map((item) => ({ uid: item.uid })) };
   }
 
   async deleteIndex(uid: string): Promise<IFakeTask> {
@@ -281,7 +281,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         let rows = [...index.documents.values()];
 
         if (filter) {
-          rows = rows.filter(document => matchesFilter({ document, filter }));
+          rows = rows.filter((document) => matchesFilter({ document, filter }));
         }
 
         const total = rows.length;
@@ -290,9 +290,9 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         let page = rows.slice(start, end);
 
         if (fields?.length) {
-          page = page.map(document =>
+          page = page.map((document) =>
             Object.fromEntries(
-              fields.filter(key => key in document).map(key => [key, document[key]]),
+              fields.filter((key) => key in document).map((key) => [key, document[key]]),
             ),
           );
         }
@@ -341,19 +341,19 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         let rows = [...index.documents.values()];
 
         if (filter) {
-          rows = rows.filter(document => matchesFilter({ document, filter }));
+          rows = rows.filter((document) => matchesFilter({ document, filter }));
         }
 
         if (query) {
-          rows = rows.filter(document =>
+          rows = rows.filter((document) =>
             Object.values(document).some(
-              value => typeof value === 'string' && value.includes(query),
+              (value) => typeof value === 'string' && value.includes(query),
             ),
           );
         }
 
         // Real hits carry engine metadata alongside the stored document.
-        const hits = rows.map(document => ({
+        const hits = rows.map((document) => ({
           ...document,
           ['_rankingScore']: 0.9,
           ['_formatted']: document,

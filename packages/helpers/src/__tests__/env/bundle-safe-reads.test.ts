@@ -51,7 +51,7 @@ const runBundled = async (opts: {
   const line = run.stdout
     .toString()
     .split('\n')
-    .find(text => text.startsWith('RESULT:'));
+    .find((text) => text.startsWith('RESULT:'));
   if (!line) {
     throw new Error(
       `[bundle-safe-reads] bundle emitted no result | stderr: ${run.stderr.toString()}`,

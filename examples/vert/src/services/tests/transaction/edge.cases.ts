@@ -219,7 +219,7 @@ export class EdgeCases extends BaseTestCases {
       // Remaining: 50 - 10 = 40 records
       // A find without a limit returns DEFAULT_LIMIT (10) rows.
       const remaining = await repo.find({ filter: { where: { group }, limit: operationCount } });
-      const updated = remaining.filter(r => r.nValue === 999);
+      const updated = remaining.filter((r) => r.nValue === 999);
 
       const expectedRemaining = 40; // 50 - 10 deleted
       const expectedUpdated = 24; // values 260-490 (step 10) = 24 values

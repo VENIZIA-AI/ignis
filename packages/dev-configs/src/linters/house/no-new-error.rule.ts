@@ -19,7 +19,7 @@ export class NoNewErrorRule {
           'Throw through getError({ message }) (or an ApplicationError), not `{{form}}`: only an ApplicationError carries the status, code and args.',
       },
     },
-    create: context => {
+    create: (context) => {
       const report = (opts: { node: Rule.Node; form: string }) =>
         context.report({ node: opts.node, messageId: 'newError', data: { form: opts.form } });
 

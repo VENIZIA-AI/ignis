@@ -96,10 +96,10 @@ export abstract class RestApplication<
 
     this.bind<typeof this.server>({
       key: CoreBindings.APPLICATION_SERVER,
-    }).toProvider(_ => this.server);
+    }).toProvider((_) => this.server);
     this.bind<typeof this.rootRouter>({
       key: CoreBindings.APPLICATION_ROOT_ROUTER,
-    }).toProvider(_ => this.rootRouter);
+    }).toProvider((_) => this.rootRouter);
   }
 
   /** The correlation id every host stamps - see {@link RequestIdGenerator} for why `crypto.randomUUID` is refused. */
@@ -383,7 +383,7 @@ export abstract class RestApplication<
       'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',
       steps.length,
       performance.now() - t,
-      steps.map(step => step.name).join(' -> '),
+      steps.map((step) => step.name).join(' -> '),
     );
   }
 
@@ -692,7 +692,7 @@ export abstract class RestApplication<
     ];
     const collisions = ArtifactBindingKeys.findDerivedCollisions({
       entries: kinds.flatMap(([targets, namespace]) =>
-        targets.map(target => ({
+        targets.map((target) => ({
           target,
           namespace,
           binding: registry.getArtifactMetadata({ target })?.binding,
@@ -791,7 +791,7 @@ export abstract class RestApplication<
       }).key;
     for (const entry of provides) {
       this.bind({ key: entry.key })
-        .toProvider(container => {
+        .toProvider((container) => {
           const instance = container.get<Record<string | symbol, () => unknown>>({
             key: componentKey,
           });

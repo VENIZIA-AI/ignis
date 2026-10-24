@@ -147,7 +147,7 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
         },
         responses: { 200: { description: 'ok' } },
       }),
-      context => context.json({}),
+      (context) => context.json({}),
     );
 
     const document = application.getOpenAPI31Document({
@@ -161,7 +161,7 @@ describe('ChangePasswordRequestSchema documents what it validates', () => {
   test('the required list is exactly the fields validation rejects when missing', () => {
     const schema = documentBody().content['application/json'].schema;
 
-    const requiredByValidation = Object.keys(VALID_BODY).filter(field => {
+    const requiredByValidation = Object.keys(VALID_BODY).filter((field) => {
       const withoutField = Object.fromEntries(
         Object.entries(VALID_BODY).filter(([key]) => key !== field),
       );

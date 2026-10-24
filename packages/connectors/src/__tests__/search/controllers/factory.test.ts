@@ -80,7 +80,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
 
     // OpenAPIHono.openapi() registers more than one internal `.routes` entry per call (pre-existing Hono behavior), so route counts dedupe via Set.
     const distinctRoutes = new Set(
-      controller.router.routes.map(route => `${route.method} ${route.path}`),
+      controller.router.routes.map((route) => `${route.method} ${route.path}`),
     );
     expect(distinctRoutes.size).toBe(2);
     expect(distinctRoutes).toContain('POST /search');
@@ -102,7 +102,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
     await controller['binding']();
 
     const distinctRoutes = new Set(
-      controller.router.routes.map(route => `${route.method} ${route.path}`),
+      controller.router.routes.map((route) => `${route.method} ${route.path}`),
     );
     expect(distinctRoutes).toEqual(new Set(['POST /search']));
   });

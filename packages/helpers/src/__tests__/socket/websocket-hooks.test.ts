@@ -13,7 +13,7 @@ import {
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 
-const flush = () => new Promise<void>(resolve => setImmediate(resolve));
+const flush = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 class MockRedisClient extends EventEmitter {
   status = 'ready';

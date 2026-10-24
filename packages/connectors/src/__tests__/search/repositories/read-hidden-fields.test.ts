@@ -13,7 +13,7 @@ const buildRepository = (opts: {
   dataSource.fakeConnector.searchResponse = {
     found: opts.hits.length,
     isFoundExact: true,
-    hits: opts.hits.map(document => ({ document })),
+    hits: opts.hits.map((document) => ({ document })),
   };
 
   const repository = new ReadableSearchRepository(dataSource, { entityClass: ProductDocument });

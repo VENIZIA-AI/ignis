@@ -180,7 +180,7 @@ describe('buildPreset', () => {
     const { written } = buildPreset(repository);
 
     expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
-    expect(written.some(path => path.startsWith('lib/'))).toBe(false);
+    expect(written.some((path) => path.startsWith('lib/'))).toBe(false);
   });
 
   test('the lib preset resolves its markers, peerDependencies included', () => {

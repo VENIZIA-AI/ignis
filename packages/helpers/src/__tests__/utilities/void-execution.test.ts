@@ -15,7 +15,7 @@ const buildLogger = () => {
   return { logger, errors };
 };
 
-const tick = () => new Promise(resolve => setTimeout(resolve, 0));
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe('voidExecution', () => {
   test('a synchronous value passes through untouched - nothing logged, nothing thrown', () => {

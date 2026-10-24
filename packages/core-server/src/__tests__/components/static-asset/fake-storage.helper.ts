@@ -42,8 +42,8 @@ export class FakeStorageHelper extends BaseStorageHelper {
   /** Names (bucket + object) which reached any object-level backend call. */
   objectCallNames(): string[] {
     return this.calls
-      .filter(call => typeof call.args['name'] === 'string')
-      .map(call => String(call.args['name']));
+      .filter((call) => typeof call.args['name'] === 'string')
+      .map((call) => String(call.args['name']));
   }
 
   hasObject(opts: IObjectLocation): boolean {
@@ -221,7 +221,7 @@ export class FakeStorageHelper extends BaseStorageHelper {
     const { bucket, objects } = opts;
     this.calls.push({
       method: 'removeObjects',
-      args: { bucket: bucket.name, names: objects.map(object => object.key) },
+      args: { bucket: bucket.name, names: objects.map((object) => object.key) },
     });
 
     for (const object of objects) {

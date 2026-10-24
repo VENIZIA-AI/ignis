@@ -542,7 +542,7 @@ export class KafkaConsumerHelper<
       }
     }
 
-    this.closeOldClient(oldClient).catch(error => {
+    this.closeOldClient(oldClient).catch((error) => {
       this.logger.warn(
         '[rebuildClient] background close of old client failed (ignored) | Error: %s',
         toError(error).message,
@@ -565,7 +565,7 @@ export class KafkaConsumerHelper<
             }
           });
         }),
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           timeoutHandle = setTimeout(resolve, this.shutdownTimeout);
         }),
       ]);

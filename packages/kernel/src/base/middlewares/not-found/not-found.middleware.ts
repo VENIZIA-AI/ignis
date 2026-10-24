@@ -6,7 +6,7 @@ import { REQUEST_ID_KEY } from '../common';
 export const notFoundHandler = (opts: { logger?: ILogger }) => {
   const { logger = console } = opts;
 
-  const mw: NotFoundHandler = async context => {
+  const mw: NotFoundHandler = async (context) => {
     const requestId = context.get(REQUEST_ID_KEY);
 
     // WARN, not ERROR: an unrouted path is the callers mistake, and this middleware is installed

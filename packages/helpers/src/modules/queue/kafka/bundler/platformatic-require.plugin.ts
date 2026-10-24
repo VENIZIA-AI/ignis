@@ -5,7 +5,7 @@ import { KafkaBundlerPluginNames, PlatformaticRequireSpecifiers } from './common
 export const platformaticRequirePlugin = (): BunPlugin => ({
   name: KafkaBundlerPluginNames.PLATFORMATIC_REQUIRE,
   setup(build) {
-    build.onLoad({ filter: PlatformaticRequireSpecifiers.MODULE_FILTER }, async args => {
+    build.onLoad({ filter: PlatformaticRequireSpecifiers.MODULE_FILTER }, async (args) => {
       const source = await Bun.file(args.path).text();
       const imports: string[] = [];
 

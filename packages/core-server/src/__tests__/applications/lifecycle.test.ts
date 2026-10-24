@@ -132,10 +132,10 @@ describe('BaseApplication - getBootSequence()', () => {
       config: buildConfigs(),
     });
 
-    const stepNames = application['getBootSequence']().map(step => step.name);
+    const stepNames = application['getBootSequence']().map((step) => step.name);
 
     expect(ServerBootSteps.SCHEME_SET.size).toBe(16);
-    expect(stepNames.every(name => ServerBootSteps.isValid(name))).toBe(true);
+    expect(stepNames.every((name) => ServerBootSteps.isValid(name))).toBe(true);
     expect(ServerBootSteps.isValid('not-a-step')).toBe(false);
   });
 
@@ -145,7 +145,7 @@ describe('BaseApplication - getBootSequence()', () => {
       config: buildConfigs(),
     });
 
-    const stepNames = application['getBootSequence']().map(step => step.name);
+    const stepNames = application['getBootSequence']().map((step) => step.name);
 
     expect(stepNames).toEqual([
       'printStartUpInfo',

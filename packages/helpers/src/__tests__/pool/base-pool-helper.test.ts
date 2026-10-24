@@ -8,7 +8,7 @@ function counterPool(size: number) {
   const pool = new BasePoolHelper<number>({
     size,
     create: () => ++n,
-    destroy: r => {
+    destroy: (r) => {
       destroyed.push(r);
     },
   });
@@ -37,11 +37,11 @@ describe('BasePoolHelper — core acquire/release', () => {
     const { pool } = counterPool(1);
     const a = await pool.acquire();
     let b: number | undefined;
-    const pending = pool.acquire().then(r => {
+    const pending = pool.acquire().then((r) => {
       b = r;
     });
     // While `a` is borrowed and size=1, the second acquire must WAIT.
-    await new Promise(r => setTimeout(r, 10));
+    await new Promise((r) => setTimeout(r, 10));
     expect(b).toBeUndefined();
     pool.release({ resource: a });
     await pending;
@@ -93,7 +93,7 @@ describe('BasePoolHelper — waiting, timeout, load-shed', () => {
     const order: string[] = [];
     const w1 = pool.acquire().then(() => order.push('w1'));
     const w2 = pool.acquire().then(() => order.push('w2'));
-    await new Promise(r => setTimeout(r, 5));
+    await new Promise((r) => setTimeout(r, 5));
     pool.release({ resource: a }); // → w1
     await w1;
     pool.release({ resource: a }); // → w2 (a is the same single resource)
@@ -163,10 +163,10 @@ describe('BasePoolHelper — validate/reset hooks', () => {
     const pool = new BasePoolHelper<number>({
       size: 2,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
-      validate: r => !invalid.has(r),
+      validate: (r) => !invalid.has(r),
     });
     const a = await pool.acquire(); // resource 1
     pool.release({ resource: a });
@@ -182,7 +182,7 @@ describe('BasePoolHelper — validate/reset hooks', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      reset: r => {
+      reset: (r) => {
         reset.push(r);
       },
     });
@@ -198,7 +198,7 @@ describe('BasePoolHelper — use()', () => {
   test('use() releases the resource on success', async () => {
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n });
-    const result = await pool.use({ execution: async r => `used-${r}` });
+    const result = await pool.use({ execution: async (r) => `used-${r}` });
     expect(result).toBe('used-1');
     expect(pool.getStats()).toEqual({ size: 1, available: 1, borrowed: 0, pending: 0 });
   });
@@ -209,7 +209,7 @@ describe('BasePoolHelper — use()', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
     });
@@ -228,7 +228,7 @@ describe('BasePoolHelper — use()', () => {
     expect(pool.getStats().available).toBe(0);
     expect(pool.getStats().borrowed).toBe(0);
     // a fresh resource is created on the next use
-    const result = await pool.use({ execution: async r => r });
+    const result = await pool.use({ execution: async (r) => r });
     expect(result).toBe(2);
   });
 });
@@ -240,7 +240,7 @@ describe('BasePoolHelper — destroy()', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
     });
@@ -257,7 +257,7 @@ describe('BasePoolHelper — destroy()', () => {
 
     // releasing a borrowed resource after destroy() destroys it
     pool.release({ resource: a });
-    await new Promise(r => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
     expect(destroyed).toContain(a);
 
     let acqErr: unknown;

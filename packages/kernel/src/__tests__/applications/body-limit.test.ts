@@ -26,10 +26,10 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   await application['registerDefaultMiddlewares']();
 
   const server = application.getServer();
-  server.post('/echo', async context =>
+  server.post('/echo', async (context) =>
     context.json({ length: (await context.req.text()).length }),
   );
-  server.post('/upload/file', async context =>
+  server.post('/upload/file', async (context) =>
     context.json({ length: (await context.req.text()).length }),
   );
 
@@ -142,7 +142,8 @@ describe('configs.middlewares.bodyLimit', () => {
         bodyLimit: {
           enable: true,
           maxSize: 1024,
-          onError: context => context.json({ custom: true }, HTTP.ResultCodes.RS_4.ContentTooLarge),
+          onError: (context) =>
+            context.json({ custom: true }, HTTP.ResultCodes.RS_4.ContentTooLarge),
         },
       },
     });
@@ -200,7 +201,7 @@ const bootApplication = async (opts: {
   await application.initialize();
 
   const server = application.getServer();
-  server.post('/echo', async context =>
+  server.post('/echo', async (context) =>
     context.json({ length: (await context.req.text()).length }),
   );
 

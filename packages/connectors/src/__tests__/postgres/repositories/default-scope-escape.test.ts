@@ -56,7 +56,7 @@ describe('mergeWhere - a default OR-group survives a caller OR-group', () => {
     expect(flat).toContain('status');
 
     // Both groups must end up as separate conjuncts - either one alone would widen the query.
-    const composed = conjuncts(merged).filter(entry => 'or' in entry);
+    const composed = conjuncts(merged).filter((entry) => 'or' in entry);
     expect(composed).toHaveLength(2);
   });
 });

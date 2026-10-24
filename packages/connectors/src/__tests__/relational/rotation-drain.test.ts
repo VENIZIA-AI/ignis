@@ -152,7 +152,7 @@ describe('Relational onSecretRotated - draining a client that has no end()', () 
       });
     }
 
-    const live = dataSource.builds.filter(client => !client.closed);
+    const live = dataSource.builds.filter((client) => !client.closed);
     expect(live).toEqual([dataSource.getClient()]);
   });
 

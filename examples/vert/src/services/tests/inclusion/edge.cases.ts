@@ -25,7 +25,7 @@ export class EdgeCases extends BaseTestCases {
         },
         options: { shouldSkipDefaultFilter: true },
       });
-      const testProductIds = testProducts.map(p => p.id);
+      const testProductIds = testProducts.map((p) => p.id);
 
       // Get test channel IDs (only channels with test names)
       const testChannels = await saleChannelRepo.find({
@@ -36,7 +36,7 @@ export class EdgeCases extends BaseTestCases {
           fields: ['id'],
         },
       });
-      const testChannelIds = testChannels.map(c => c.id);
+      const testChannelIds = testChannels.map((c) => c.id);
 
       // Delete only junction records that reference our test products
       let deletedJunctionCount = 0;
@@ -211,7 +211,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       await junctionRepo.createAll({
-        data: products.data!.map(p => ({ productId: p.id, saleChannelId: channel.data.id })),
+        data: products.data!.map((p) => ({ productId: p.id, saleChannelId: channel.data.id })),
       });
 
       // Find multiple products with inclusions

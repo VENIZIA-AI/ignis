@@ -21,8 +21,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (results.length === 4) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
-        const hasNoThree = priorities.every(p => p !== 3);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
+        const hasNoThree = priorities.every((p) => p !== 3);
         if (hasNoThree) {
           this.context.logger.info('[CASE 5] PASSED | Found 4 records with priority != 3');
           this.context.logger.info('[CASE 5] Priorities: %j', priorities);
@@ -55,8 +55,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (gtResults.length === 2) {
-        const priorities = gtResults.map(r => (r.jValue as any)?.priority);
-        const allGreater = priorities.every(p => p > 3);
+        const priorities = gtResults.map((r) => (r.jValue as any)?.priority);
+        const allGreater = priorities.every((p) => p > 3);
         if (allGreater) {
           this.context.logger.info('[CASE 6] PASSED | gt: Found 2 records with priority > 3');
           this.context.logger.info('[CASE 6] Priorities: %j', priorities);
@@ -78,8 +78,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (gteResults.length === 3) {
-        const priorities = gteResults.map(r => (r.jValue as any)?.priority);
-        const allGte = priorities.every(p => p >= 3);
+        const priorities = gteResults.map((r) => (r.jValue as any)?.priority);
+        const allGte = priorities.every((p) => p >= 3);
         if (allGte) {
           this.context.logger.info('[CASE 6] PASSED | gte: Found 3 records with priority >= 3');
           this.context.logger.info('[CASE 6] Priorities: %j', priorities);
@@ -115,8 +115,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (ltResults.length === 2) {
-        const scores = ltResults.map(r => (r.jValue as any)?.metadata?.score);
-        const allLess = scores.every(s => s < 80);
+        const scores = ltResults.map((r) => (r.jValue as any)?.metadata?.score);
+        const allLess = scores.every((s) => s < 80);
         if (allLess) {
           this.context.logger.info('[CASE 7] PASSED | lt: Found 2 records with score < 80');
           this.context.logger.info('[CASE 7] Scores: %j', scores);
@@ -138,8 +138,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (lteResults.length === 3) {
-        const scores = lteResults.map(r => (r.jValue as any)?.metadata?.score);
-        const allLte = scores.every(s => s <= 85);
+        const scores = lteResults.map((r) => (r.jValue as any)?.metadata?.score);
+        const allLte = scores.every((s) => s <= 85);
         if (allLte) {
           this.context.logger.info('[CASE 7] PASSED | lte: Found 3 records with score <= 85');
           this.context.logger.info('[CASE 7] Scores: %j', scores);
@@ -175,8 +175,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (likeResults.length === 2) {
-        const levels = likeResults.map(r => (r.jValue as any)?.metadata?.level);
-        const allMatch = levels.every(l => l.includes('igh'));
+        const levels = likeResults.map((r) => (r.jValue as any)?.metadata?.level);
+        const allMatch = levels.every((l) => l.includes('igh'));
         if (allMatch) {
           this.context.logger.info(
             '[CASE 8] PASSED | like: Found 2 records with level containing "igh"',
@@ -229,8 +229,8 @@ export class OperatorsCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
-        const allCorrect = priorities.every(p => p > 2);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
+        const allCorrect = priorities.every((p) => p > 2);
         if (allCorrect) {
           this.context.logger.info('[CASE 12] PASSED | Combined filter returned 3 records');
           this.context.logger.info('[CASE 12] Priorities: %j', priorities);

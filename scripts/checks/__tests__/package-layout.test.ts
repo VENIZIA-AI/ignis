@@ -28,17 +28,17 @@ const trackedRootOf = (opts: { name: string }): string[] => {
       listed
         .trim()
         .split('\n')
-        .map(path => path.slice(prefix.length).split('/')[0]),
+        .map((path) => path.slice(prefix.length).split('/')[0]),
     ),
   ].sort();
 };
 
 describe('package layout', () => {
-  test.each(PACKAGES)('%s tracks exactly the shared root entries', name => {
+  test.each(PACKAGES)('%s tracks exactly the shared root entries', (name) => {
     expect(trackedRootOf({ name })).toEqual(REQUIRED);
   });
 
-  test.each(PACKAGES)('%s publishes the shared files list', async name => {
+  test.each(PACKAGES)('%s publishes the shared files list', async (name) => {
     const manifest = await Bun.file(join(ROOT, 'packages', name, 'package.json')).json();
     // dev-configs also ships its tsconfig bases, which consumers extend.
     const expected =
@@ -47,7 +47,7 @@ describe('package layout', () => {
     expect(manifest.files).toEqual(expected);
   });
 
-  test.each(PACKAGES)('%s runs force-update from the shared root script', async name => {
+  test.each(PACKAGES)('%s runs force-update from the shared root script', async (name) => {
     const manifest = await Bun.file(join(ROOT, 'packages', name, 'package.json')).json();
 
     expect(manifest.scripts['force-update']).toBe('sh ../../scripts/build/force-update.sh');

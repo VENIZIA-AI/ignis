@@ -25,7 +25,7 @@ export const configurationTable = pgTable(
     description: text('description'),
     group: text('group').notNull(),
   },
-  table => [
+  (table) => [
     unique('UQ_Configuration_code').on(table.code),
     index('IDX_Configuration_group').on(table.group),
     foreignKey({

@@ -175,7 +175,7 @@ export class AuthorizationPolicyBuilder {
 
   /** All `action_inherits` rows for the standard {@link AuthorizationActions.LATTICE}. Seed once, idempotently. */
   static actionLattice() {
-    return AuthorizationActions.LATTICE.map(action => this.actionInherits(action));
+    return AuthorizationActions.LATTICE.map((action) => this.actionInherits(action));
   }
 
   /** A domain inherits another (casbin `g3`): a grant in the parent domain cascades to the child. e.g. Merchant ⊂ Organizer. */

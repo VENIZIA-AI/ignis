@@ -113,7 +113,7 @@ export class UserPolicyLineCache extends BaseHelper {
     try {
       const parsed = JSON.parse(opts.raw);
 
-      if (!Array.isArray(parsed) || parsed.some(line => typeof line !== 'string')) {
+      if (!Array.isArray(parsed) || parsed.some((line) => typeof line !== 'string')) {
         throw getError({
           message: '[UserPolicyLineCache] Cached payload is not an array of policy lines.',
         });

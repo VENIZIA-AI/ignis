@@ -402,7 +402,7 @@ export class SocketIOServerHelper extends BaseHelper {
       .then(() => {
         logger.info('Joined default rooms | id: %s | rooms: %s', id, this.defaultRooms);
       })
-      .catch(error => {
+      .catch((error) => {
         logger.error(
           'Failed to join default rooms | id: %s | rooms: %s | error: %s',
           id,
@@ -494,7 +494,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
           joinLogger.info('Joined rooms | id: %s | rooms: %s', id, allowedRooms);
         })
-        .catch(error => {
+        .catch((error) => {
           joinLogger.error(
             'Failed to join rooms | id: %s | rooms: %s | error: %s',
             id,
@@ -516,11 +516,11 @@ export class SocketIOServerHelper extends BaseHelper {
       // `Promise.resolve` per room: socket.io declares `leave(room): Promise<void> | void` - the
       // default adapter is synchronous, a clustered one is not - and `Promise.all` over a mixed
       // iterable is what the previous `any`-typed payload was hiding.
-      Promise.all(rooms.map(room => Promise.resolve(socket.leave(room))))
+      Promise.all(rooms.map((room) => Promise.resolve(socket.leave(room))))
         .then(() => {
           leaveLogger.info('Left rooms | id: %s | rooms: %s', id, rooms);
         })
-        .catch(error => {
+        .catch((error) => {
           leaveLogger.error(
             'Failed to leave rooms | id: %s | rooms: %s | error: %s',
             id,
@@ -642,7 +642,7 @@ export class SocketIOServerHelper extends BaseHelper {
       voidExecution({
         logger: this.logger,
         scope: 'close',
-        execution: this.io.close(error => {
+        execution: this.io.close((error) => {
           if (error) {
             reject(error);
             return;

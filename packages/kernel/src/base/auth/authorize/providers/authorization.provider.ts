@@ -16,7 +16,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
   }
 
   value(): TAuthorizeFn {
-    return opts => {
+    return (opts) => {
       return this.createAuthorizeMiddleware(opts);
     };
   }
@@ -50,7 +50,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
         if (
           options?.alwaysAllowRoles?.length &&
-          userRoles.some(r => options.alwaysAllowRoles!.includes(r))
+          userRoles.some((r) => options.alwaysAllowRoles!.includes(r))
         ) {
           logger.warn(
             'SKIP checking authorization | User has always-allow role | userRoles: %s',
@@ -59,7 +59,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           return next();
         }
 
-        if (spec.allowedRoles?.length && userRoles.some(r => spec.allowedRoles!.includes(r))) {
+        if (spec.allowedRoles?.length && userRoles.some((r) => spec.allowedRoles!.includes(r))) {
           logger.warn('GRANT access | User has allowed role for route | userRoles: %s', userRoles);
           return next();
         }

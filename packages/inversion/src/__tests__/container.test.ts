@@ -37,7 +37,7 @@ describe('Binding - resolvers and scopes', () => {
     container.bind({ key: 'base' }).toValue(10);
     container
       .bind({ key: 'derived' })
-      .toProvider(dependencyContainer => dependencyContainer.get<number>({ key: 'base' }) + 5);
+      .toProvider((dependencyContainer) => dependencyContainer.get<number>({ key: 'base' }) + 5);
 
     expect(container.get<number>({ key: 'derived' })).toBe(15);
   });
@@ -194,16 +194,16 @@ describe('Container - storage semantics', () => {
     container.bind({ key: 'repositories.Gamma' }).toValue('c');
 
     const all = container.findByTag({ tag: 'services' });
-    expect(all.map(binding => binding.key).sort()).toEqual(['services.Alpha', 'services.Beta']);
+    expect(all.map((binding) => binding.key).sort()).toEqual(['services.Alpha', 'services.Beta']);
 
     const excludedByArray = container.findByTag({ tag: 'services', exclude: ['services.Alpha'] });
-    expect(excludedByArray.map(binding => binding.key)).toEqual(['services.Beta']);
+    expect(excludedByArray.map((binding) => binding.key)).toEqual(['services.Beta']);
 
     const excludedBySet = container.findByTag({
       tag: 'services',
       exclude: new Set(['services.Beta']),
     });
-    expect(excludedBySet.map(binding => binding.key)).toEqual(['services.Alpha']);
+    expect(excludedBySet.map((binding) => binding.key)).toEqual(['services.Alpha']);
   });
 });
 

@@ -45,13 +45,13 @@ export class TreeBuilder extends BaseHelper {
   static leaves<T>(opts: { root: ITreeNode<T>; includePath?: false }): ITreeNode<T>[];
   /** `includePath: true` returns the chain from the root alongside each leaf - recomputing it from the tree afterward would cost a second full traversal. */
   static leaves<T>(opts: ILeavesOptions<T>): ITreeNode<T>[] | INodeWithPath<T>[] {
-    return TreeBuilder.collect({ ...opts, matches: node => node.children.length === 0 });
+    return TreeBuilder.collect({ ...opts, matches: (node) => node.children.length === 0 });
   }
 
   static nonLeaves<T>(opts: { root: ITreeNode<T>; includePath: true }): INodeWithPath<T>[];
   static nonLeaves<T>(opts: { root: ITreeNode<T>; includePath?: false }): ITreeNode<T>[];
   static nonLeaves<T>(opts: ILeavesOptions<T>): ITreeNode<T>[] | INodeWithPath<T>[] {
-    return TreeBuilder.collect({ ...opts, matches: node => node.children.length > 0 });
+    return TreeBuilder.collect({ ...opts, matches: (node) => node.children.length > 0 });
   }
 
   private static collect<T>(opts: {

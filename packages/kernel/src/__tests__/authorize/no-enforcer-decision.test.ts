@@ -45,14 +45,14 @@ class TestAuthorizationEnforcer implements IAuthorizationEnforcer {
   }): Promise<TAuthorizationDecision> {
     const rules = opts.rules as TTestRule[];
     const matching = rules.filter(
-      rule => rule.action === opts.request.action && rule.resource === opts.request.resource,
+      (rule) => rule.action === opts.request.action && rule.resource === opts.request.resource,
     );
 
     if (matching.length === 0) {
       return AuthorizationDecisions.ABSTAIN;
     }
 
-    return matching.some(rule => rule.effect === 'deny')
+    return matching.some((rule) => rule.effect === 'deny')
       ? AuthorizationDecisions.DENY
       : AuthorizationDecisions.ALLOW;
   }
@@ -184,8 +184,8 @@ describe('AuthorizationProvider - no-enforcer branch honours defaultDecision', (
     expect(error).toBeUndefined();
     expect(hasCalledNext).toBe(true);
 
-    const debugLines = logger.lines.filter(line => line.sink === 'debug');
-    const warnLines = logger.lines.filter(line => line.sink === 'warn');
+    const debugLines = logger.lines.filter((line) => line.sink === 'debug');
+    const warnLines = logger.lines.filter((line) => line.sink === 'warn');
     expect(debugLines.length).toBe(0);
     expect(warnLines.length).toBe(1);
     expect(warnLines[0].message).toContain('No enforcers registered');

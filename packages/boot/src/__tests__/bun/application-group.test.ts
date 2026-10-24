@@ -16,7 +16,7 @@ describe('the application group', () => {
     });
     const names = Object.values(index)
       .flat()
-      .map(target => target.name)
+      .map((target) => target.name)
       .sort();
     expect(names).toEqual([
       'CategoryService',
@@ -45,7 +45,7 @@ describe('the application group', () => {
     });
     const names = Object.values(index)
       .flat()
-      .map(target => target.name)
+      .map((target) => target.name)
       .sort();
     expect(names).toEqual(['CategoryService', 'StockRepository', 'StockService']);
   });

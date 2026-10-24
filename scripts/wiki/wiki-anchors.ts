@@ -28,7 +28,7 @@ interface IBrokenAnchor {
 
 const walk = (opts: { dir: string; extension: string }): string[] => {
   const { dir, extension } = opts;
-  return readdirSync(dir).flatMap(name => {
+  return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) {
       return walk({ dir: full, extension });
@@ -54,7 +54,7 @@ export class AnchorCheck {
     for (const file of files) {
       const route = routeOf({ file, root: opts.dist, extension: '.html' });
       const ids = new Set(
-        [...readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map(match => match[1]),
+        [...readFileSync(file, 'utf8').matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]),
       );
       anchorsByRoute.set(route, ids);
     }
@@ -89,7 +89,7 @@ export class AnchorCheck {
     const files = walk({ dir: opts.content, extension: '.md' });
     for (const file of files) {
       // Fenced code carries example links that are not ours to resolve.
-      const body = readFileSync(file, 'utf8').replace(/```[\s\S]*?```/g, match =>
+      const body = readFileSync(file, 'utf8').replace(/```[\s\S]*?```/g, (match) =>
         match.replace(/[^\n]/g, ' '),
       );
       const lines = body.split('\n');

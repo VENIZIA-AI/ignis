@@ -85,7 +85,7 @@ export class ReadCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[case4FindWithFilter] FAILED | Order ASC incorrect: %j',
-          orderedAsc.map(r => r.nValue),
+          orderedAsc.map((r) => r.nValue),
         );
       }
 
@@ -97,7 +97,7 @@ export class ReadCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[case4FindWithFilter] FAILED | Order DESC incorrect: %j',
-          orderedDesc.map(r => r.nValue),
+          orderedDesc.map((r) => r.nValue),
         );
       }
 
@@ -124,7 +124,7 @@ export class ReadCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[case4FindWithFilter] FAILED | Skip incorrect: %j',
-          skipped.map(r => r.nValue),
+          skipped.map((r) => r.nValue),
         );
       }
 

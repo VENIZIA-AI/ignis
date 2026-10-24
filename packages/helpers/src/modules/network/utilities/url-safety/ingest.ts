@@ -41,7 +41,7 @@ export class UrlIngest {
       });
     }
 
-    const offender = addresses.find(entry =>
+    const offender = addresses.find((entry) =>
       UrlPolicy.isNonPublicAddress({ address: entry.address }),
     );
 

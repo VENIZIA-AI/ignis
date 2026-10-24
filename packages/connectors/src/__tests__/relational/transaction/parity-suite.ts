@@ -149,7 +149,7 @@ const PARITY_CASES: ITransactionParityCase[] = [
         handle.transaction.rollback(),
       ]);
 
-      expect(outcomes.map(outcome => outcome.status)).toEqual(['fulfilled', 'rejected']);
+      expect(outcomes.map((outcome) => outcome.status)).toEqual(['fulfilled', 'rejected']);
       expect(outcomes[1]).toMatchObject({ reason: { message: ALREADY_ENDED_ROLLBACK } });
       expect(handle.countEndStatements()).toBe(1);
     },

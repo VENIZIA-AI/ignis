@@ -38,7 +38,7 @@ const manifestRoot = (opts: { name: string; version: string }): string => {
  * read them - so every key is cleared BEFORE each test, not only after, and the runner's own
  * values are put back once the file is done.
  */
-const inherited = new Map(ENV_KEYS.map(key => [key, process.env[key]]));
+const inherited = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 beforeEach(() => {
   for (const key of ENV_KEYS) {

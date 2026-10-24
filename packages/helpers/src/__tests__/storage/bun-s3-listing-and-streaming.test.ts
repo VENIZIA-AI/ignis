@@ -30,7 +30,7 @@ const buildHelper = (opts: {
     pageIndex += 1;
 
     return {
-      contents: page.keys.map(key => ({ key, size: 1, eTag: 'tag' })),
+      contents: page.keys.map((key) => ({ key, size: 1, eTag: 'tag' })),
       isTruncated: page.isTruncated ?? false,
       nextContinuationToken: page.isTruncated ? `token-${pageIndex}` : undefined,
     };
@@ -51,7 +51,7 @@ describe('BunS3Helper.listObjects - pagination', () => {
 
     const objects = await helper.listObjects({ bucket: { name: 'assets' } });
 
-    expect(objects.map(object => object.name)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(objects.map((object) => object.name)).toEqual(['a', 'b', 'c', 'd', 'e']);
     expect(calls).toHaveLength(3);
     expect(calls[0].continuationToken).toBeUndefined();
     expect(calls[1].continuationToken).toBe('token-1');

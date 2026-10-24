@@ -17,7 +17,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
   }
 
   value(): TAuthenticateFn<RouteEnv> {
-    return opts => {
+    return (opts) => {
       return this.createAuthenticateMiddleware(opts);
     };
   }

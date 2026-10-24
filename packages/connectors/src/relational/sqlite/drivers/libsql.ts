@@ -84,7 +84,7 @@ export class LibSqlDriver<
       maxWaitingClients,
       scope: scope ?? LibSqlDriver.name,
       create: () => this.client,
-      destroy: resource => this.scrubSession({ resource }),
+      destroy: (resource) => this.scrubSession({ resource }),
     });
   }
 
@@ -154,7 +154,7 @@ export class LibSqlDriver<
         // Discard cannot throw the connection away - there is one client and no
         // replacement. The slot is re-created from the same instance after the destroy
         // hook scrubs it, so the next waiter never inherits an unknown transaction.
-        this.slot.discard({ resource: client }).catch(error => {
+        this.slot.discard({ resource: client }).catch((error) => {
           this.logger.for('release').error('Failed to discard the libsql slot | Error: %s', error);
         });
       },

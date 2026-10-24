@@ -43,7 +43,7 @@ export const formatLogMessage = (opts: {
 }): string => {
   const { message, args, inspectOptions = buildInspectOptions() } = opts;
 
-  const placeholders = (message.match(PLACEHOLDER_PATTERN) ?? []).filter(token => token !== '%%');
+  const placeholders = (message.match(PLACEHOLDER_PATTERN) ?? []).filter((token) => token !== '%%');
 
   const widened = args.map((arg, index) => {
     const placeholder = placeholders[index];

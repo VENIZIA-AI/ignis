@@ -54,7 +54,7 @@ describe('normalized - transform', () => {
       messageCode: 'server.core.stock.low',
       statusCode: HTTP.ResultCodes.RS_4.Conflict,
       messageArgs: { available: 2 },
-      transform: snapshot => {
+      transform: (snapshot) => {
         seen.push(snapshot);
 
         return {

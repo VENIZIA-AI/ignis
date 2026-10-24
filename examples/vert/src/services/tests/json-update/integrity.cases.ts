@@ -229,7 +229,7 @@ export class IntegrityCases extends BaseTestCases {
           filter: { where: { group: groupId } },
         });
 
-        const allVerified = configs.every(c => (c.jValue as any)?.verified === true);
+        const allVerified = configs.every((c) => (c.jValue as any)?.verified === true);
 
         if (allVerified) {
           this.context.logger.info(

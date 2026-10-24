@@ -14,7 +14,7 @@ interface IDeferred<T> {
 
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
-  const promise = new Promise<T>(innerResolve => {
+  const promise = new Promise<T>((innerResolve) => {
     resolve = innerResolve;
   });
 
@@ -28,7 +28,7 @@ const withTimeout = <T>(opts: { promise: Promise<T> }): Promise<T | 'TIMED_OUT'>
 
   return Promise.race([
     promise,
-    new Promise<'TIMED_OUT'>(resolve => {
+    new Promise<'TIMED_OUT'>((resolve) => {
       const timer = setTimeout(() => {
         resolve('TIMED_OUT');
       }, SETTLE_TIMEOUT);
@@ -38,10 +38,10 @@ const withTimeout = <T>(opts: { promise: Promise<T> }): Promise<T | 'TIMED_OUT'>
 };
 
 const flush = async (): Promise<void> => {
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     setImmediate(resolve);
   });
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     setImmediate(resolve);
   });
 };

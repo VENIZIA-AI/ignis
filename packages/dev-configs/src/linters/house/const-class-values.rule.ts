@@ -22,7 +22,7 @@ export class ConstClassValuesRule {
           'An enumerable string is a const class plus TConstValue<typeof X>, not a union of string literals.',
       },
     },
-    create: context => {
+    create: (context) => {
       const options: unknown = context.options[0];
       const configured = readField({ node: options, key: 'namePattern' });
       const namePattern = new RegExp(

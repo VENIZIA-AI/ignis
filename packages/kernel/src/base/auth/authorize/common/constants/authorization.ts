@@ -180,9 +180,9 @@ export class AuthorizationPolicyVariants {
     this.ACTION_INHERITS,
   ] as const;
 
-  static readonly ACTION_SCHEME_SET = new Set(this.ALL.map(variant => variant.action.toString()));
+  static readonly ACTION_SCHEME_SET = new Set(this.ALL.map((variant) => variant.action.toString()));
 
-  static readonly RULE_SCHEME_SET = new Set(this.ALL.map(variant => variant.rule.toString()));
+  static readonly RULE_SCHEME_SET = new Set(this.ALL.map((variant) => variant.rule.toString()));
 
   static isValidAction(input: string): boolean {
     return this.ACTION_SCHEME_SET.has(input);

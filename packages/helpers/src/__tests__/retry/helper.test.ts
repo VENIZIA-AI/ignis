@@ -102,7 +102,7 @@ describe('runWithTimeout', () => {
       await RetryHelper.runWithTimeout({
         operation: 'slow',
         timeoutMs: 20,
-        execution: () => new Promise(resolve => setTimeout(resolve, 5000)),
+        execution: () => new Promise((resolve) => setTimeout(resolve, 5000)),
       });
     } catch (error) {
       caught = error;
@@ -278,7 +278,7 @@ describe('executeWithRetry', () => {
         maxAttempts: 1,
         maxTotalMs: 60,
         perAttemptTimeoutMs: 10_000,
-        execution: () => new Promise(resolve => setTimeout(resolve, 30_000)),
+        execution: () => new Promise((resolve) => setTimeout(resolve, 30_000)),
       });
     } catch (error) {
       caught = error;
@@ -496,7 +496,7 @@ describe('executeWithRetryUntil', () => {
         calls += 1;
         return 'ok';
       },
-      until: attemptResult => attemptResult === 'ok',
+      until: (attemptResult) => attemptResult === 'ok',
     });
 
     expect(result).toBe('ok');
@@ -516,7 +516,7 @@ describe('executeWithRetryUntil', () => {
         calls += 1;
         return response;
       },
-      until: attemptResult => attemptResult !== null,
+      until: (attemptResult) => attemptResult !== null,
     });
 
     expect(result).toBe('visible');
@@ -551,7 +551,7 @@ describe('executeWithRetryUntil', () => {
         calls += 1;
         return null;
       },
-      until: attemptResult => attemptResult !== null,
+      until: (attemptResult) => attemptResult !== null,
     });
 
     expect(calls).toBe(3);
@@ -597,7 +597,7 @@ describe('executeWithRetryUntil', () => {
           }
           throw getError({ message: 'connection refused' });
         },
-        until: attemptResult => attemptResult === 'done',
+        until: (attemptResult) => attemptResult === 'done',
       });
     } catch (error) {
       caught = error;
@@ -625,7 +625,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       logger: fakeLogger,
       execution: () => null,
-      until: attemptResult => attemptResult !== null,
+      until: (attemptResult) => attemptResult !== null,
     });
 
     expect(warnCalls.length).toBe(1);
@@ -642,10 +642,10 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: async () => {
         executions += 1;
-        await new Promise(resolve => setTimeout(resolve, 60));
+        await new Promise((resolve) => setTimeout(resolve, 60));
         return 'fresh';
       },
-      until: attemptResult => attemptResult === 'fresh',
+      until: (attemptResult) => attemptResult === 'fresh',
     });
 
     expect(result).toBe('fresh');
@@ -698,7 +698,7 @@ describe('executeWithRetryUntil', () => {
       backoff: FAST_BACKOFF,
       execution: async () => {
         executions += 1;
-        await new Promise(resolve => setTimeout(resolve, 20));
+        await new Promise((resolve) => setTimeout(resolve, 20));
         return 'stale';
       },
       until: () => false,

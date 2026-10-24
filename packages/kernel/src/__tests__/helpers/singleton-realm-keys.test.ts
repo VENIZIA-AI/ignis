@@ -49,7 +49,7 @@ describe('realm keys - one holder, one key', () => {
   test('a key never changes shape by accident - the symbol it produces is the contract', () => {
     // Two copies of this package agree only because `Symbol.for` is fed the identical string. A
     // rename here silently splits state, so the exact values are pinned rather than derived.
-    expect(HOLDERS.map(holder => holder.key).sort()).toEqual([
+    expect(HOLDERS.map((holder) => holder.key).sort()).toEqual([
       'authentication-strategy-registry',
       'authorization-enforcer-registry',
       'grant-builder',

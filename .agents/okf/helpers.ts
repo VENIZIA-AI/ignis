@@ -12,14 +12,17 @@ export default defineRenderer({
   collect: ({ context }) => {
     const dirs = context.source.listDirs({ dir: MODULES_DIR });
     const modules = context.source
-      .exportedClasses({ dirs: dirs.map(dir => `${MODULES_DIR}/${dir}`), suffix: 'Helper' })
-      .map(entry => ({ module: entry.dir.slice(MODULES_DIR.length + 1), classes: entry.classes }));
+      .exportedClasses({ dirs: dirs.map((dir) => `${MODULES_DIR}/${dir}`), suffix: 'Helper' })
+      .map((entry) => ({
+        module: entry.dir.slice(MODULES_DIR.length + 1),
+        classes: entry.classes,
+      }));
 
     const utilitiesPath = join(context.root, UTILITIES_DIR);
     const utilities = existsSync(utilitiesPath)
       ? readdirSync(utilitiesPath)
-          .filter(name => name.endsWith(UTILITY_SUFFIX))
-          .map(name => name.slice(0, -UTILITY_SUFFIX.length))
+          .filter((name) => name.endsWith(UTILITY_SUFFIX))
+          .map((name) => name.slice(0, -UTILITY_SUFFIX.length))
           .sort()
       : [];
 
@@ -28,8 +31,8 @@ export default defineRenderer({
   render: ({ context, facts }) => {
     const total = facts.modules.reduce((sum, entry) => sum + entry.classes.length, 0);
 
-    const rows = facts.modules.map(entry => {
-      const classes = entry.classes.map(name => `\`${name}\``).join(' · ') || '_(see source)_';
+    const rows = facts.modules.map((entry) => {
+      const classes = entry.classes.map((name) => `\`${name}\``).join(' · ') || '_(see source)_';
 
       return `| \`${entry.module}/\` | ${classes} |`;
     });
@@ -47,7 +50,7 @@ export default defineRenderer({
         `**${total} helper classes across ${facts.modules.length} modules, ${facts.utilities.length} utilities.**\n\n` +
         ['## Modules', '', '| Module | Classes |', '|---|---|', ...rows].join('\n') +
         '\n\n## Utilities\n\n' +
-        (facts.utilities.map(name => `\`${name}\``).join(' · ') || '-') +
+        (facts.utilities.map((name) => `\`${name}\``).join(' · ') || '-') +
         '\n',
     };
   },

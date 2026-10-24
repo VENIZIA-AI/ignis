@@ -167,7 +167,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       if (provider) {
         await provider
           .shutdown()
-          .catch(shutdownError =>
+          .catch((shutdownError) =>
             logger.error(
               'Failed to shut down partially-built provider during fallback | error: %s',
               shutdownError,

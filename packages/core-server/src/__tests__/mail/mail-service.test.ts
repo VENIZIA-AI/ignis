@@ -114,7 +114,7 @@ describe('MailService - sendBatch', () => {
     ]);
 
     expect(results).toHaveLength(3);
-    expect(results.map(result => result.success)).toEqual([true, false, true]);
+    expect(results.map((result) => result.success)).toEqual([true, false, true]);
     expect(transport.sentMessages).toHaveLength(2);
   });
 

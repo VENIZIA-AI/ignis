@@ -138,7 +138,7 @@ describe('BaseStorageHelper.getObjectStream - the range fallback', () => {
     await reader.cancel();
 
     // `destroy()` emits `close` on a later tick, so the flag is read after the loop drains.
-    await new Promise(resolve => setImmediate(resolve));
+    await new Promise((resolve) => setImmediate(resolve));
 
     expect(helper.isDestroyed).toBe(true);
   });

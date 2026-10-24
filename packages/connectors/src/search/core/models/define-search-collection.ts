@@ -119,7 +119,7 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
     seenNames.add(definitionField.name);
   }
 
-  const idField = fields.find(item => item.name === 'id');
+  const idField = fields.find((item) => item.name === 'id');
   let resolvedFields: readonly ISearchFieldDefinition[] = fields;
 
   if (!idField) {
@@ -132,7 +132,7 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
 
   // Engine-neutral rule only: defaultSort must reference an existing field; per-engine constraints (Typesense's numeric-scalar requirement) belong to that engine's compiler.
   if (defaultSort) {
-    const sortField = resolvedFields.find(item => item.name === defaultSort);
+    const sortField = resolvedFields.find((item) => item.name === defaultSort);
 
     if (!sortField) {
       throw getError({
@@ -143,7 +143,7 @@ export const defineSearchCollection = <const T extends ISearchCollectionDefiniti
 
   if (defaultQueryBy) {
     for (const queryByFieldName of defaultQueryBy) {
-      const queryByField = resolvedFields.find(item => item.name === queryByFieldName);
+      const queryByField = resolvedFields.find((item) => item.name === queryByFieldName);
 
       if (!queryByField) {
         throw getError({

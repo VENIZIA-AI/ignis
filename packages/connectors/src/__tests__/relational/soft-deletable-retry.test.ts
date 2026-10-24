@@ -180,7 +180,7 @@ describe('SoftDeletableRelationalRepository.findById - read retry', () => {
         retry: {
           maxAttempts: 3,
           backoff: FAST_RETRY_BACKOFF,
-          until: row => row?.status === 'ready',
+          until: (row) => row?.status === 'ready',
         },
       },
     });

@@ -34,13 +34,15 @@ const renderThroughTransport = (opts: {
 };
 
 const findConsoleTransport = (logger: winston.Logger): winston.transport => {
-  const transport = logger.transports.find(el => el instanceof winston.transports.Console);
+  const transport = logger.transports.find((el) => el instanceof winston.transports.Console);
   expect(transport).toBeDefined();
   return transport!;
 };
 
 const findFileTransport = (logger: winston.Logger): winston.transport => {
-  const transport = logger.transports.find(el => el instanceof winston.transports.DailyRotateFile);
+  const transport = logger.transports.find(
+    (el) => el instanceof winston.transports.DailyRotateFile,
+  );
   expect(transport).toBeDefined();
   return transport!;
 };

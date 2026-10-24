@@ -56,7 +56,7 @@ describe('@venizia/ignis/testing', () => {
 
     const namesOf = (source: Record<string, unknown>) =>
       Object.keys(source)
-        .filter(key => key !== 'default')
+        .filter((key) => key !== 'default')
         .sort();
 
     expect(namesOf(entry)).toEqual(namesOf(connectorsEntry));

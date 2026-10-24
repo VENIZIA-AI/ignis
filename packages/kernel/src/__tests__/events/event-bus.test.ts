@@ -61,7 +61,7 @@ const HANDLER_KEY = 'events.test-handler';
 
 /** Flushes the microtask queue AND any pending timers - `queueMicrotask` alone does not wait out the retry backoff sleeps. */
 const flush = (opts?: { ms?: number }): Promise<void> => {
-  return new Promise(resolve => setTimeout(resolve, opts?.ms ?? 0));
+  return new Promise((resolve) => setTimeout(resolve, opts?.ms ?? 0));
 };
 
 const buildBus = (): {
@@ -108,7 +108,7 @@ describe('EventBus - publish never blocks and never throws', () => {
 
     expect(() => bus.publish({ name: 'otherEvent', payload: { flag: true } })).not.toThrow();
 
-    const debugCalls = logger.calls.filter(call => call.level === 'debug');
+    const debugCalls = logger.calls.filter((call) => call.level === 'debug');
     expect(debugCalls).toHaveLength(1);
     expect(debugCalls[0].message).toContain('No handler registered');
   });
@@ -129,7 +129,7 @@ describe('EventBus - default retry (no `retry` given) is unchanged from before j
 
     expect(handler.handleCalls).toHaveLength(3);
     expect(handler.handleCalls[2].event.payload).toEqual({ value: 42 });
-    expect(logger.calls.filter(call => call.level === 'error')).toHaveLength(0);
+    expect(logger.calls.filter((call) => call.level === 'error')).toHaveLength(0);
   });
 
   test('a handler failing every time is attempted exactly 3 times, then gives up with one log line', async () => {
@@ -146,7 +146,7 @@ describe('EventBus - default retry (no `retry` given) is unchanged from before j
 
     expect(handler.handleCalls).toHaveLength(3);
 
-    const errorCalls = logger.calls.filter(call => call.level === 'error');
+    const errorCalls = logger.calls.filter((call) => call.level === 'error');
     expect(errorCalls).toHaveLength(1);
 
     const [errorCall] = errorCalls;
@@ -477,7 +477,7 @@ describe('EventBus - handler shapes: binding key vs function', () => {
       name: 'testEvent',
       handler: {
         type: EventHandlerTypes.FUNCTION,
-        fn: async fnOpts => {
+        fn: async (fnOpts) => {
           calls.push({ event: fnOpts.event });
         },
       },
@@ -638,7 +638,7 @@ describe('EventBus - synchronous handlers', () => {
 
     expect(handler.handleCalls).toHaveLength(3);
 
-    const errorCalls = logger.calls.filter(call => call.level === 'error');
+    const errorCalls = logger.calls.filter((call) => call.level === 'error');
     expect(errorCalls).toHaveLength(1);
     expect(errorCalls[0].message).toContain('Handler exhausted retries');
     expect(errorCalls[0].args).toContain('trace-sync');

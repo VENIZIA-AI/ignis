@@ -16,7 +16,7 @@ describe('auto artifacts across the kernel and boot', () => {
     }
 
     const index = await resolve({ group: BillingArtifacts });
-    expect((index.services ?? []).map(target => target.name)).toEqual(['InvoiceService']);
+    expect((index.services ?? []).map((target) => target.name)).toEqual(['InvoiceService']);
   });
 
   test('boot\x27s AutoArtifactGroup is the kernel\x27s group protocol', () => {

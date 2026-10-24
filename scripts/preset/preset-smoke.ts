@@ -159,7 +159,7 @@ const assertHello = async (opts: { cwd: string; urls: string[] }): Promise<void>
       }
 
       body = await fetch(`http://127.0.0.1:${port}/api/hello`).then(
-        response => (response.ok ? response.json() : undefined),
+        (response) => (response.ok ? response.json() : undefined),
         () => undefined,
       );
 
@@ -211,7 +211,7 @@ const findLeftoverTokens = (opts: { folder: string }): string[] => {
 };
 
 const assertScaffold = (opts: { appDir: string }): void => {
-  const extra = readdirSync(opts.appDir).filter(entry => !APP_ROOT_ENTRIES.has(entry));
+  const extra = readdirSync(opts.appDir).filter((entry) => !APP_ROOT_ENTRIES.has(entry));
   if (extra.length > 0) {
     throw new Error(`[preset-smoke] the app root holds more than it may: ${extra.join(', ')}`);
   }
@@ -230,7 +230,7 @@ const assertScaffold = (opts: { appDir: string }): void => {
     `APP_ENV_APPLICATION_NAME=${APP}`,
     'APP_ENV_LOGGER_LEVEL=',
   ]) {
-    if (!example.split('\n').some(entry => entry.startsWith(line))) {
+    if (!example.split('\n').some((entry) => entry.startsWith(line))) {
       throw new Error(`[preset-smoke] .env.example has no ${line} line`);
     }
   }
@@ -258,7 +258,7 @@ const assertIgnoreFiles = (opts: { dir: string }): void => {
 
     const active = readFileSync(path, 'utf8')
       .split('\n')
-      .filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
+      .filter((line) => line.trim() !== '' && !line.trim().startsWith('#'));
 
     if (active.length > 0) {
       throw new Error(`[preset-smoke] ${path} ships an active pattern: ${active.join(', ')}`);
@@ -300,7 +300,7 @@ const waitForHello = async (opts: { port: number }): Promise<unknown> => {
 
   while (Date.now() < deadline && body === undefined) {
     body = await fetch(`http://127.0.0.1:${opts.port}/api/hello`).then(
-      response => (response.ok ? response.json() : undefined),
+      (response) => (response.ok ? response.json() : undefined),
       () => undefined,
     );
 
@@ -320,7 +320,7 @@ const assertLeakRefused = (opts: { projectDir: string; buildWithCommit: string[]
     ignoreFile,
     dockerignore
       .split('\n')
-      .filter(line => !line.includes('.env'))
+      .filter((line) => !line.includes('.env'))
       .join('\n'),
   );
   const leaking = Bun.spawnSync({

@@ -68,7 +68,7 @@ export class TestAuthorizationEnforcer
       return this.options.defaultDecision;
     }
 
-    const matching = rules.filter(rule => {
+    const matching = rules.filter((rule) => {
       if (rule.action !== request.action || rule.resource !== request.resource) {
         return false;
       }
@@ -89,11 +89,11 @@ export class TestAuthorizationEnforcer
       return this.options.defaultDecision;
     }
 
-    if (matching.some(r => r.effect === 'deny')) {
+    if (matching.some((r) => r.effect === 'deny')) {
       return AuthorizationDecisions.DENY;
     }
 
-    return matching.some(r => r.effect === 'allow')
+    return matching.some((r) => r.effect === 'allow')
       ? AuthorizationDecisions.ALLOW
       : this.options.defaultDecision;
   }

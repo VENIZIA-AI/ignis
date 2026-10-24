@@ -134,7 +134,7 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   }
 
   if (Array.isArray(value)) {
-    return value.map(entry => deepSanitize(entry, nested));
+    return value.map((entry) => deepSanitize(entry, nested));
   }
 
   const source = value;

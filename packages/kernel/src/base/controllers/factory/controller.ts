@@ -95,28 +95,28 @@ export class ControllerFactory extends BaseHelper {
         if (isEnabled('count')) {
           this.defineRoute({
             configs: routeDefinitions.COUNT,
-            handler: async context => this.count({ context }),
+            handler: async (context) => this.count({ context }),
           });
         }
 
         if (isEnabled('find')) {
           this.defineRoute({
             configs: routeDefinitions.FIND,
-            handler: async context => this.find({ context }),
+            handler: async (context) => this.find({ context }),
           });
         }
 
         if (isEnabled('findOne')) {
           this.defineRoute({
             configs: routeDefinitions.FIND_ONE,
-            handler: async context => this.findOne({ context }),
+            handler: async (context) => this.findOne({ context }),
           });
         }
 
         if (isEnabled('findById')) {
           this.defineRoute({
             configs: routeDefinitions.FIND_BY_ID,
-            handler: async context => this.findById({ context }),
+            handler: async (context) => this.findById({ context }),
           });
         }
 
@@ -128,35 +128,35 @@ export class ControllerFactory extends BaseHelper {
         if (isEnabled('create')) {
           this.defineRoute({
             configs: routeDefinitions.CREATE,
-            handler: async context => this.create({ context }),
+            handler: async (context) => this.create({ context }),
           });
         }
 
         if (isEnabled('updateById')) {
           this.defineRoute({
             configs: routeDefinitions.UPDATE_BY_ID,
-            handler: async context => this.updateById({ context }),
+            handler: async (context) => this.updateById({ context }),
           });
         }
 
         if (isEnabled('updateBy')) {
           this.defineRoute({
             configs: routeDefinitions.UPDATE_BY,
-            handler: async context => this.updateBy({ context }),
+            handler: async (context) => this.updateBy({ context }),
           });
         }
 
         if (isEnabled('deleteById')) {
           this.defineRoute({
             configs: routeDefinitions.DELETE_BY_ID,
-            handler: async context => this.deleteById({ context }),
+            handler: async (context) => this.deleteById({ context }),
           });
         }
 
         if (isEnabled('deleteBy')) {
           this.defineRoute({
             configs: routeDefinitions.DELETE_BY,
-            handler: async context => this.deleteBy({ context }),
+            handler: async (context) => this.deleteBy({ context }),
           });
         }
       }

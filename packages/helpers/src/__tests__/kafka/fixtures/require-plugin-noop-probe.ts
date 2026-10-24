@@ -51,7 +51,7 @@ const probe = async (): Promise<void> => {
   }
 };
 
-probe().catch(error => {
+probe().catch((error) => {
   console.error(error);
   process.exit(1);
 });

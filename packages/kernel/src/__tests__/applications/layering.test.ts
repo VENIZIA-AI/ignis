@@ -99,7 +99,7 @@ describe('the kernel application layering - what left, not only what arrived', (
   });
 
   test('the two sets overlap only where an override is the point', () => {
-    const shared = ABSTRACT_APPLICATION_MEMBERS.filter(member =>
+    const shared = ABSTRACT_APPLICATION_MEMBERS.filter((member) =>
       REST_APPLICATION_MEMBERS.includes(member),
     );
 
@@ -127,7 +127,7 @@ describe('the kernel application layering - what left, not only what arrived', (
       config: buildConfigs(),
     });
 
-    const members = ABSTRACT_APPLICATION_MEMBERS.filter(name => name !== 'constructor');
+    const members = ABSTRACT_APPLICATION_MEMBERS.filter((name) => name !== 'constructor');
     for (const member of members) {
       expect(typeof (application as unknown as Record<string, unknown>)[member]).toBe('function');
     }

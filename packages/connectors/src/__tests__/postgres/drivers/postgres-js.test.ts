@@ -12,8 +12,8 @@ const build = (failOn?: string) => {
 
   return {
     driver,
-    statements: () => sql.reserved.flatMap(connection => connection.statements),
-    releases: () => sql.reserved.flatMap(connection => connection.releases),
+    statements: () => sql.reserved.flatMap((connection) => connection.statements),
+    releases: () => sql.reserved.flatMap((connection) => connection.releases),
     ended: () => sql.ended,
   };
 };

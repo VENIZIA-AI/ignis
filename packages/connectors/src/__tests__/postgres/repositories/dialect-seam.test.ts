@@ -34,8 +34,8 @@ const compile = (expression: SQL | undefined): string =>
 class SqliteShapedDialect extends FilterBuilder {
   protected override get operators(): TQueryOperatorHandlers {
     return {
-      eq: opts => sql`${opts.column} IS ${opts.value}`,
-      like: opts => sql`${opts.column} GLOB ${opts.value}`,
+      eq: (opts) => sql`${opts.column} IS ${opts.value}`,
+      like: (opts) => sql`${opts.column} GLOB ${opts.value}`,
     };
   }
 
@@ -91,7 +91,7 @@ const toWhere = (builder: FilterBuilder, where: AnyType) =>
 const toOrderBy = (builder: FilterBuilder, order: string[]) =>
   builder
     .toOrderBy({ tableName: 'dialect_seam_accounts', schema: accounts, order })
-    .map(entry => compile(entry));
+    .map((entry) => compile(entry));
 
 describe('FilterBuilder - the operator table is an override seam', () => {
   test('a subclass supplying its own table changes the emitted operator SQL', () => {

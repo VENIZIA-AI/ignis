@@ -221,7 +221,7 @@ describe('Route registration - decorator, imperative, fluent', () => {
     await restController.configure();
 
     const mounted = new Set(
-      restController.getRouter().routes.map(route => `${route.method} ${route.path}`),
+      restController.getRouter().routes.map((route) => `${route.method} ${route.path}`),
     );
 
     expect(mounted).toContain('GET /get-route');
@@ -254,7 +254,7 @@ describe('Route registration - decorator, imperative, fluent', () => {
     await restController.configure();
 
     const mounted = new Set(
-      restController.getRouter().routes.map(route => `${route.method} ${route.path}`),
+      restController.getRouter().routes.map((route) => `${route.method} ${route.path}`),
     );
     expect(mounted).toContain('GET /imperative');
     expect(mounted).toContain('POST /fluent');
@@ -289,7 +289,7 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
     const duplicates = restController
       .getRouter()
-      .routes.filter(route => route.method === 'GET' && route.path === '/dup');
+      .routes.filter((route) => route.method === 'GET' && route.path === '/dup');
     expect(duplicates.length).toBeGreaterThan(1);
 
     const response = await restController.getRouter().request('/dup');

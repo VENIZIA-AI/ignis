@@ -73,7 +73,7 @@ describe('WebSocketBindingKeys', () => {
 
   test('should have exactly 10 binding keys', () => {
     const keys = Object.getOwnPropertyNames(WebSocketBindingKeys).filter(
-      k => !['length', 'prototype', 'name'].includes(k),
+      (k) => !['length', 'prototype', 'name'].includes(k),
     );
     expect(keys).toHaveLength(10);
   });

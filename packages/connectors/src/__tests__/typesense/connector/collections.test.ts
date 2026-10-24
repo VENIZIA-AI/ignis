@@ -9,7 +9,7 @@ describe('TypesenseConnector collections', () => {
   test('createCollection calls collections().create', async () => {
     const { helper, fake } = makeHelper();
     await helper.createCollection({ schema });
-    expect(fake.calls.some(c => c.op === 'collections.create')).toBe(true);
+    expect(fake.calls.some((c) => c.op === 'collections.create')).toBe(true);
   });
 
   test('createCollection is idempotent (swallows 409)', async () => {
@@ -50,7 +50,7 @@ describe('TypesenseConnector collections', () => {
       collectionByName: { products: { name: 'products' } },
     });
     const result = await helper.ensureCollection({ schema });
-    expect(fake.calls.some(c => c.op === 'collections.create')).toBe(true);
+    expect(fake.calls.some((c) => c.op === 'collections.create')).toBe(true);
     expect(result.name).toBe('products');
   });
 
@@ -68,7 +68,7 @@ describe('TypesenseConnector collections', () => {
       name: 'products',
       fields: [{ name: 'sku', type: 'string', optional: true }],
     });
-    const call = fake.calls.find(c => c.op === 'collections.update');
+    const call = fake.calls.find((c) => c.op === 'collections.update');
     expect(call).toBeTruthy();
     expect(call?.args[1]).toEqual({ fields: [{ name: 'sku', type: 'string', optional: true }] });
   });
@@ -83,7 +83,7 @@ describe('TypesenseConnector collections', () => {
   test('upsertAlias calls aliases().upsert with collection_name', async () => {
     const { helper, fake } = makeHelper();
     await helper.upsertAlias({ name: 'products', collection: 'products_v2' });
-    const call = fake.calls.find(c => c.op === 'aliases.upsert');
+    const call = fake.calls.find((c) => c.op === 'aliases.upsert');
     const expectedMapping: Record<string, unknown> = {};
     expectedMapping['collection_name'] = 'products_v2';
     expect(call?.args).toEqual(['products', expectedMapping]);

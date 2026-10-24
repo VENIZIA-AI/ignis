@@ -170,7 +170,7 @@ export class CreateCases extends BaseTestCases {
       );
 
       const results = await Promise.all(promises);
-      const successCount = results.filter(r => r.count === 1).length;
+      const successCount = results.filter((r) => r.count === 1).length;
 
       if (successCount === concurrentCount) {
         this.context.logger.info(
@@ -214,12 +214,12 @@ export class CreateCases extends BaseTestCases {
               nValue: 100,
             },
           })
-          .catch(err => ({ error: err, count: 0 })),
+          .catch((err) => ({ error: err, count: 0 })),
       );
 
       const raceResults = await Promise.all(racePromises);
-      const raceSuccessCount = raceResults.filter(r => !('error' in r) && r.count === 1).length;
-      const raceErrorCount = raceResults.filter(r => 'error' in r).length;
+      const raceSuccessCount = raceResults.filter((r) => !('error' in r) && r.count === 1).length;
+      const raceErrorCount = raceResults.filter((r) => 'error' in r).length;
 
       // Only 1 should succeed (first to acquire the code), others should fail
       if (raceSuccessCount === 1 && raceErrorCount === 4) {

@@ -34,7 +34,7 @@ const toWhere = (where: AnyType) =>
 const toOrderBy = (order: string[]) =>
   dialect
     .toOrderBy({ tableName: TABLE_NAME, schema: table, order })
-    .map(entry => compile(entry).sql);
+    .map((entry) => compile(entry).sql);
 
 const transform = (data: Record<string, unknown>) =>
   dialect.transformUpdate({ tableName: TABLE_NAME, schema: table, data });

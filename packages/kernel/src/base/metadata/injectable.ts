@@ -12,7 +12,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 export const injectable = <ApplicationType = unknown>(
   opts: IArtifactMetadata<ApplicationType>,
 ): ClassDecorator => {
-  return target => {
+  return (target) => {
     if (!ArtifactTypes.isValid(opts.type)) {
       throw getError({
         message: `[injectable][${target.name}] Invalid artifact type: '${opts.type}' | Expected one of: ${[...ArtifactTypes.SCHEME_SET].join(', ')}`,

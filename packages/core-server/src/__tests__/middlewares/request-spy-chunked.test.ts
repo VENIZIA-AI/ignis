@@ -12,7 +12,7 @@ const buildServer = () => {
   const spy = new RequestSpyMiddleware();
 
   server.use('*', spy.value());
-  server.post('/echo', context => {
+  server.post('/echo', (context) => {
     return context.json({ ok: true });
   });
 

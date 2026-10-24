@@ -123,4 +123,4 @@ export const ApplicationLogger = {
 };
 
 // Runs whenever LoggerFactory is imported as a value - which core's Container and every application entrypoint already do. This is what makes BaseHelper resolve real loggers on the server while its own import graph stays browser-pure.
-LoggerResolver.use({ resolver: opts => LoggerFactory.getLogger(opts.scopes) });
+LoggerResolver.use({ resolver: (opts) => LoggerFactory.getLogger(opts.scopes) });
