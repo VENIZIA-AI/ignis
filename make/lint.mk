@@ -54,9 +54,9 @@ fmt-manifests:
 
 # Files no project target reaches: the workflows, .agents, .configs, the preset templates and the examples
 # (formatting only; an example keeps its own lint, typecheck and test scripts). drizzle-kit rewrites the
-# migration snapshots on its own.
+# migration snapshots, and openapi-typescript writes rpc-client-app's schema.d.ts, on their own.
 FILES_GLOB := "{.github,.agents,.configs,presets,examples}/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
-FILES_IGNORE := --ignore-pattern "examples/*/migration/meta/**"
+FILES_IGNORE := --ignore-pattern "examples/*/migration/meta/**" --ignore-pattern "examples/rpc-client-app/src/api/schema.d.ts"
 
 lint-files:
 	@echo "🔍 Linting .github, .agents, .configs, presets and examples..."
