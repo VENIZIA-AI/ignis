@@ -60,8 +60,8 @@ It is also served over MCP by **`atlas`** (written into `.mcp.json` per machine 
 | `version` | Compare the `@venizia/*` packages installed in a directory with the newest known versions |
 | `changes` | List the changelog entries between two versions of a package, or between two dates |
 
-Maintaining it is rule P-03: change a fact in the code, update the concept and `log.md` in the same
-change. Generated reference files come from `make okf-gen` (and `surface-gen`, `symbols-gen`,
+Maintaining it is rule P-03: change a fact in the code, update the concept in the same change.
+Generated reference files come from `make okf-gen` (and `surface-gen`, `symbols-gen`,
 `releases-gen` for the public surface, symbol and release tables) - VULCAN targets, included from
 `vulcan.mk`. `make okf-check-strict` validates (OKF v0.2 plus the house rules); it is a CI gate, not a
 commit gate. The `knowledge-sync` skill re-verifies the bundle against the code periodically.
