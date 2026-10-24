@@ -390,9 +390,12 @@ Native `fetch`-based fetcher implementation.
 constructor(opts: {
   name: string;
   defaultConfigs: RequestInit;
-  logger?: any;
+  queryString?: IQueryStringOptions;
+  logger?: TFetcherLogger;
 })
 ```
+
+`queryString` decides how `params` are written into the url (see [`toQueryString`](#toquerystring)); omitted, it is `node:querystring`'s behavior. `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`: a logger with only those two methods is accepted as is. `getWorker()` returns the global `fetch`.
 
 #### INodeFetchRequestOptions
 
@@ -409,17 +412,19 @@ interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
 ##### `send(opts, logger?)`
 
 ```typescript
-override async send(opts: INodeFetchRequestOptions, logger?: any): Promise<Response>
+override async send(opts: INodeFetchRequestOptions, logger?: TFetcherLogger): Promise<Response>
 ```
 
 Dispatches the request using the native `fetch` API. Behavior:
 
 - `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
-- Query `params` are serialized with `node:querystring` and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
+- `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body.
+- `headers` of the call replace `defaultConfigs.headers` (a caller sending a `FormData` body leaves the content type out so `fetch` writes the boundary); a call that passes none keeps the defaults.
+- Query `params` are serialized by [`toQueryString`](#toquerystring) (with the fetcher's `queryString` options) and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
 - If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
   - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
   - The timer is cleared as soon as the request settles.
-- If `logger` is passed, logs `'URL: %s | Props: %s | Timeout: %s'` at `info` level with the request config run through `redactSecrets()`.
+- If `logger` is passed, logs `'[send] URL: %s | Props: %s | Timeout: %s'` at `debug` level with the request config run through `redactSecrets()`; the body is never logged, only its size. With no logger nothing is logged and no default logger is built, so the call is safe in a browser.
 
 ---
 
@@ -442,6 +447,7 @@ interface INodeFetchNetworkRequestOptions {
   name: string;
   networkOptions: RequestInit & {
     baseUrl?: string;
+    queryString?: IQueryStringOptions;
   };
 }
 ```
@@ -463,9 +469,28 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 
 ---
 
+### `toQueryString`
+
+```typescript
+toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
+```
+
+Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
+
+| Option | Value | Effect |
+|---|---|---|
+| `nullish` | `'empty'` (default) | `a=` |
+| | `'skip'` | the pair is left out (inside an array too) |
+| `nested` | `'drop'` (default) | an object is an empty value; an array repeats its key |
+| | `'json'` | an object **or an array** is ONE JSON parameter: `ids=%5B1%2C2%5D`, `filter=%7B%22where%22...`; primitives are unchanged |
+
+A client that sends a JSON filter passes `{ nullish: 'skip', nested: 'json' }`, through `NodeFetchNetworkRequest`'s `networkOptions.queryString`.
+
+---
+
 ### Request Logging and Redaction
 
-Neither fetcher logs anything by default. `send()` and every shortcut accept an **optional** `logger` as the second argument, guarded internally with `logger?.for(...)`. Pass a logger to get an `info`-level line per request - typically `this.logger`, whether the caller is a `BaseHelper` subclass or extends `BaseNetworkRequest` directly:
+Neither fetcher logs anything by default. `send()` and every shortcut accept an **optional** `logger` as the second argument, guarded internally with `logger?.debug(...)` (the axios fetcher keeps `logger?.for(...)` and `info`). Pass a logger to get a line per request - typically `this.logger`, whether the caller is a `BaseHelper` subclass or extends `BaseNetworkRequest` directly:
 
 ```typescript
 await this.getNetworkService().post({ url, body }, this.logger);

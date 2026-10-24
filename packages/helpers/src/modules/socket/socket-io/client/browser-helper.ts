@@ -1,0 +1,337 @@
+import { HTTP } from '@/common/constants/http';
+import { type ValueOrPromise } from '@/common/types';
+import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
+import type { Socket } from 'socket.io-client';
+// The leaf files, never the `../common` barrel: it reaches the server types, which name node modules.
+import { SocketIOClientStates, SocketIOConstants } from '../common/constants';
+import type {
+  IOptions,
+  ISocketIOClientOptions,
+  TSocketIOClientState,
+} from '../common/types/client';
+import type { TSocketIOEventHandler } from '../common/types/hooks';
+
+/**
+ * The socket.io client with nothing node in its graph, so a browser bundle can hold it: `socket.io-client`
+ * is handed in as `module` (`{ io }` from the app's own `import`) instead of being found on disk.
+ * `@venizia/ignis-helpers/socket-io` extends it and finds the module itself when none is handed in.
+ */
+export class SocketIOClientHelper extends BaseHelper {
+  private host: string;
+  private options: IOptions;
+  private client: Socket;
+  private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
+
+  // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe() has nothing to hand to socket.off() and the listener stays bound forever
+  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<any>, (data: any) => void>> =
+    new Map();
+
+  private onConnected?: () => ValueOrPromise<void>;
+  private onDisconnected?: (reason: string) => ValueOrPromise<void>;
+  private onError?: (error: Error) => ValueOrPromise<void>;
+  private onAuthenticated?: () => ValueOrPromise<void>;
+  private onUnauthenticated?: (message: string) => ValueOrPromise<void>;
+
+  protected readonly clientModule?: typeof import('socket.io-client');
+
+  constructor(opts: ISocketIOClientOptions) {
+    super({ scope: opts.identifier });
+
+    this.identifier = opts.identifier;
+    this.host = opts.host;
+    this.options = opts.options;
+    this.clientModule = opts.module;
+
+    this.onConnected = opts.onConnected;
+    this.onDisconnected = opts.onDisconnected;
+    this.onError = opts.onError;
+    this.onAuthenticated = opts.onAuthenticated;
+    this.onUnauthenticated = opts.onUnauthenticated;
+
+    this.configure();
+  }
+
+  /** The `socket.io-client` module to connect with. Here only the one handed in; a subclass may find one. */
+  protected resolveModule(): typeof import('socket.io-client') {
+    if (!this.clientModule) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[SocketIOClientHelper][${this.identifier}] option 'module' is required: pass { io } from 'socket.io-client'`,
+      });
+    }
+
+    return this.clientModule;
+  }
+
+  getState(): TSocketIOClientState {
+    return this.state;
+  }
+
+  configure() {
+    const logger = this.logger.for(this.configure.name);
+
+    if (this.client) {
+      logger.info('SocketIO Client already established | id: %s', this.identifier);
+      return;
+    }
+
+    const { io } = this.resolveModule();
+    this.client = io(this.host, this.options);
+
+    // Socket.IO client fires 'connect', NOT 'connection' (server-side only)
+    this.client.on('connect', () => {
+      logger.info('Connected | id: %s', this.identifier);
+
+      Promise.resolve(this.onConnected?.()).catch(error => {
+        logger.error('onConnected callback error | error: %s', error);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_DISCONNECT, (reason: string) => {
+      logger.info('Disconnected | id: %s | reason: %s', this.identifier, reason);
+      this.state = SocketIOClientStates.UNAUTHORIZED;
+
+      Promise.resolve(this.onDisconnected?.(reason)).catch(error => {
+        logger.error('onDisconnected callback error | error: %s', error);
+      });
+    });
+
+    this.client.on('connect_error', (error: Error) => {
+      logger.error('Connection error | id: %s | error: %s', this.identifier, error);
+
+      Promise.resolve(this.onError?.(error)).catch(err => {
+        logger.error('onError callback error | error: %s', err);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_AUTHENTICATED, (data: unknown) => {
+      logger.info('Authenticated | id: %s | data: %j', this.identifier, data);
+      this.state = SocketIOClientStates.AUTHENTICATED;
+
+      Promise.resolve(this.onAuthenticated?.()).catch(error => {
+        logger.error('onAuthenticated callback error | error: %s', error);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_UNAUTHENTICATE, (data: { message?: string }) => {
+      logger.warn('Unauthenticated | id: %s | data: %j', this.identifier, data);
+      this.state = SocketIOClientStates.UNAUTHORIZED;
+
+      Promise.resolve(this.onUnauthenticated?.(data?.message ?? '')).catch(error => {
+        logger.error('onUnauthenticated callback error | error: %s', error);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_PING, () => {
+      logger.debug('Ping received | id: %s', this.identifier);
+    });
+  }
+
+  getSocketClient(): Socket {
+    return this.client;
+  }
+
+  authenticate() {
+    const logger = this.logger.for(this.authenticate.name);
+
+    if (!this.client?.connected) {
+      logger.warn('Cannot authenticate | id: %s | reason: not connected', this.identifier);
+      return;
+    }
+
+    if (this.state !== SocketIOClientStates.UNAUTHORIZED) {
+      logger.warn('Cannot authenticate | id: %s | currentState: %s', this.identifier, this.state);
+      return;
+    }
+
+    this.state = SocketIOClientStates.AUTHENTICATING;
+    this.client.emit(SocketIOConstants.EVENT_AUTHENTICATE);
+    logger.info('Authentication requested | id: %s', this.identifier);
+  }
+
+  subscribe<T = unknown>(opts: {
+    event: string;
+    handler: TSocketIOEventHandler<T>;
+    ignoreDuplicate?: boolean;
+  }) {
+    const logger = this.logger.for(this.subscribe.name);
+    const { event, handler, ignoreDuplicate = true } = opts;
+
+    if (!handler) {
+      logger.warn('No handler provided | event: %s', event);
+      return;
+    }
+
+    if (ignoreDuplicate && this.client.hasListeners(event)) {
+      logger.info('Handler already exists | event: %s', event);
+      return;
+    }
+
+    // Wrap handler in try-catch for error safety (catches both sync throws and async rejections)
+    const wrappedHandler = (data: T) => {
+      try {
+        Promise.resolve(handler(data)).catch(error => {
+          logger.error('Handler error | event: %s | error: %s', event, error);
+        });
+      } catch (error) {
+        logger.error('Handler error | event: %s | error: %s', event, error);
+      }
+    };
+
+    if (!this.wrappedHandlers.has(event)) {
+      this.wrappedHandlers.set(event, new Map());
+    }
+    this.wrappedHandlers.get(event)!.set(handler, wrappedHandler);
+
+    this.client.on(event, wrappedHandler);
+    logger.info('Subscribed | event: %s', event);
+  }
+
+  subscribeMany(opts: {
+    events: Record<string, TSocketIOEventHandler>;
+    ignoreDuplicate?: boolean;
+  }) {
+    const { events, ignoreDuplicate } = opts;
+
+    for (const event in events) {
+      this.subscribe({
+        event,
+        handler: events[event],
+        ignoreDuplicate,
+      });
+    }
+  }
+
+  unsubscribe(opts: { event: string; handler?: TSocketIOEventHandler }) {
+    const logger = this.logger.for(this.unsubscribe.name);
+    const { event, handler } = opts;
+
+    if (!this.client?.hasListeners(event)) {
+      logger.info('No listeners to remove | event: %s', event);
+      return;
+    }
+
+    if (handler) {
+      const wrappedHandler = this.wrappedHandlers.get(event)?.get(handler);
+      if (!wrappedHandler) {
+        logger.info('Handler was not subscribed through this helper | event: %s', event);
+        return;
+      }
+
+      this.client.off(event, wrappedHandler);
+      this.wrappedHandlers.get(event)?.delete(handler);
+
+      if (!this.wrappedHandlers.get(event)?.size) {
+        this.wrappedHandlers.delete(event);
+      }
+
+      logger.info('Removed specific handler | event: %s', event);
+      return;
+    }
+
+    this.client.off(event);
+    this.wrappedHandlers.delete(event);
+    logger.info('Removed all handlers | event: %s', event);
+  }
+
+  unsubscribeMany(opts: { events: string[] }) {
+    for (const event of opts.events) {
+      this.unsubscribe({ event });
+    }
+  }
+
+  connect() {
+    const logger = this.logger.for(this.connect.name);
+
+    if (!this.client) {
+      logger.info('Invalid client to connect | id: %s', this.identifier);
+      return;
+    }
+
+    this.client.connect();
+  }
+
+  disconnect() {
+    const logger = this.logger.for(this.disconnect.name);
+
+    if (!this.client) {
+      logger.info('Invalid client to disconnect | id: %s', this.identifier);
+      return;
+    }
+
+    this.client.disconnect();
+  }
+
+  emit<T = unknown>(opts: { topic: string; data: T; doLog?: boolean; callback?: () => void }) {
+    const logger = this.logger.for(this.emit.name);
+    const { topic, data, doLog = false, callback } = opts;
+
+    if (!this.client?.connected) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: 'Invalid socket client state to emit',
+      });
+    }
+
+    if (!topic) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: 'Topic is required to emit',
+      });
+    }
+
+    this.client.emit(topic, data);
+
+    if (callback) {
+      setImmediate(callback);
+    }
+
+    if (doLog) {
+      logger.info('Emitted | topic: %s | data: %j', topic, data);
+    }
+  }
+
+  joinRooms(opts: { rooms: string[] }) {
+    const logger = this.logger.for(this.joinRooms.name);
+    const { rooms } = opts;
+
+    if (!this.client?.connected) {
+      logger.warn('Cannot join rooms | id: %s | reason: not connected', this.identifier);
+      return;
+    }
+
+    this.client.emit(SocketIOConstants.EVENT_JOIN, { rooms });
+    logger.info('Join rooms requested | id: %s | rooms: %j', this.identifier, rooms);
+  }
+
+  leaveRooms(opts: { rooms: string[] }) {
+    const logger = this.logger.for(this.leaveRooms.name);
+    const { rooms } = opts;
+
+    if (!this.client?.connected) {
+      logger.warn('Cannot leave rooms | id: %s | reason: not connected', this.identifier);
+      return;
+    }
+
+    this.client.emit(SocketIOConstants.EVENT_LEAVE, { rooms });
+    logger.info('Leave rooms requested | id: %s | rooms: %j', this.identifier, rooms);
+  }
+
+  shutdown() {
+    const logger = this.logger.for(this.shutdown.name);
+    logger.info('Shutting down SocketIO client | id: %s', this.identifier);
+
+    if (this.client) {
+      this.client.removeAllListeners();
+
+      if (this.client.connected) {
+        this.client.disconnect();
+      }
+    }
+
+    this.wrappedHandlers.clear();
+    this.state = SocketIOClientStates.UNAUTHORIZED;
+    logger.info('SocketIO client shutdown complete | id: %s', this.identifier);
+  }
+}

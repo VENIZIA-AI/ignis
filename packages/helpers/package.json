@@ -137,6 +137,12 @@
       "require": "./dist/cjs/modules/socket/socket-io/index.js",
       "default": "./dist/cjs/modules/socket/socket-io/index.js"
     },
+    "./socket-io/client": {
+      "types": "./dist/cjs/modules/socket/socket-io/browser.d.ts",
+      "import": "./dist/esm/modules/socket/socket-io/browser.js",
+      "require": "./dist/cjs/modules/socket/socket-io/browser.js",
+      "default": "./dist/cjs/modules/socket/socket-io/browser.js"
+    },
     "./bullmq": {
       "types": "./dist/cjs/modules/queue/bullmq/index.d.ts",
       "import": "./dist/esm/modules/queue/bullmq/index.js",

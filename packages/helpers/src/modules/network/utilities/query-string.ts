@@ -1,4 +1,4 @@
-import { type AnyObject } from '@/common/types';
+import { type AnyObject, type TConstValue } from '@/common/types';
 
 /** The punctuation of a query string, named so a reader sees the role rather than the character. */
 export class QueryStringSeparators {
@@ -8,6 +8,30 @@ export class QueryStringSeparators {
   static readonly PAIR = '&';
   /** Between a name and its value. */
   static readonly ASSIGN = '=';
+}
+
+/** What a `null` or `undefined` value becomes. */
+export class QueryStringNullishModes {
+  /** An empty value (`a=`): what `node:querystring` does. */
+  static readonly EMPTY = 'empty';
+  /** The pair is left out. */
+  static readonly SKIP = 'skip';
+}
+export type TQueryStringNullishMode = TConstValue<typeof QueryStringNullishModes>;
+
+/** What an object or an array value becomes. */
+export class QueryStringNestedModes {
+  /** An empty value (an array repeats its key instead): what `node:querystring` does. */
+  static readonly DROP = 'drop';
+  /** One JSON-encoded parameter (`ids=[1,2]`, `filter={"where":{}}`), the shape a JSON filter travels in. */
+  static readonly JSON = 'json';
+}
+export type TQueryStringNestedMode = TConstValue<typeof QueryStringNestedModes>;
+
+/** How {@link toQueryString} treats the values `node:querystring` has no answer for. Both default to its behavior. */
+export interface IQueryStringOptions {
+  nullish?: TQueryStringNullishMode;
+  nested?: TQueryStringNestedMode;
 }
 
 /**
@@ -21,10 +45,21 @@ export class QueryStringSeparators {
  * reading "undefined".
  *
  * Diffed against `node:querystring` across 22 shapes with zero mismatches.
+ *
+ * `nullish: 'skip'` leaves a null or undefined pair out. `nested: 'json'` sends an object or an
+ * array as ONE JSON parameter instead (an array does not repeat its key), so a filter object survives
+ * the trip. The defaults keep the behavior above.
  */
-export const toQueryString = (opts: { params: AnyObject }): string => {
-  const { params } = opts;
+export const toQueryString = (opts: { params: AnyObject } & IQueryStringOptions): string => {
+  const {
+    params,
+    nullish = QueryStringNullishModes.EMPTY,
+    nested = QueryStringNestedModes.DROP,
+  } = opts;
   const parts: string[] = [];
+  const isSkipped = (value: unknown) =>
+    nullish === QueryStringNullishModes.SKIP && (value === null || value === undefined);
+  const isJson = nested === QueryStringNestedModes.JSON;
 
   // A primitive only. `querystring` drops an object or a nested array to an empty value rather than
   // stringifying it, and a caller that passed one meant something this format cannot carry anyway.
@@ -37,9 +72,24 @@ export const toQueryString = (opts: { params: AnyObject }): string => {
   for (const [key, value] of entries) {
     const name = encodeURIComponent(key);
 
+    if (isSkipped(value)) {
+      continue;
+    }
+
+    if (isJson && typeof value === 'object' && value !== null) {
+      parts.push(
+        `${name}${QueryStringSeparators.ASSIGN}${encodeURIComponent(JSON.stringify(value))}`,
+      );
+      continue;
+    }
+
     // An array repeats the key, which is what a server reading a list expects.
     if (Array.isArray(value)) {
       for (const entry of value) {
+        if (isSkipped(entry)) {
+          continue;
+        }
+
         parts.push(`${name}${QueryStringSeparators.ASSIGN}${encode(entry)}`);
       }
 

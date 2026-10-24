@@ -5,6 +5,9 @@ import { type AnyObject } from '@/common/types';
 import type { ILogger } from '@/modules/logger/common/types';
 import { type TFetcherVariant } from '../common';
 
+/** What a fetcher calls on the logger it is handed, so a host logger with only these two (a browser app's) is accepted as is. */
+export type TFetcherLogger = Pick<ILogger, 'debug' | 'info'>;
+
 export interface IRequestOptions {
   url: string;
   method?: THttpMethod;
@@ -19,13 +22,13 @@ export interface IFetchable<
   RS,
   W = unknown,
 > {
-  send(opts: RQ, logger?: ILogger): Promise<RS>;
-  get(opts: RQ, logger?: ILogger): Promise<RS>;
-  post(opts: RQ, logger?: ILogger): Promise<RS>;
-  put(opts: RQ, logger?: ILogger): Promise<RS>;
-  patch(opts: RQ, logger?: ILogger): Promise<RS>;
-  delete(opts: RQ, logger?: ILogger): Promise<RS>;
-  query(opts: RQ, logger?: ILogger): Promise<RS>;
+  send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  get(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  post(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  put(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  patch(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  delete(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
+  query(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
 
   getVariant(): V;
   getWorker(): W;
@@ -42,12 +45,16 @@ export abstract class AbstractNetworkFetchableHelper<
   protected variant: V;
   protected worker: W;
 
-  constructor(opts: { name: string; variant: V }) {
+  constructor(opts: { name: string; variant: V; worker?: W }) {
     this.name = opts.name;
     this.variant = opts.variant;
+
+    if (opts.worker !== undefined) {
+      this.worker = opts.worker;
+    }
   }
 
-  abstract send(opts: RQ, logger?: ILogger): Promise<RS>;
+  abstract send(opts: RQ, logger?: TFetcherLogger): Promise<RS>;
 
   getProtocol(url: string) {
     return url.startsWith('http:') ? HTTP.Protocols.HTTP : HTTP.Protocols.HTTPS;
@@ -61,32 +68,32 @@ export abstract class AbstractNetworkFetchableHelper<
     return this.worker;
   }
 
-  get(opts: RQ, logger?: ILogger) {
+  get(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.GET }, logger);
   }
 
-  post(opts: RQ, logger?: ILogger) {
+  post(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.POST }, logger);
   }
 
-  put(opts: RQ, logger?: ILogger) {
+  put(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.PUT }, logger);
   }
 
-  patch(opts: RQ, logger?: ILogger) {
+  patch(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.PATCH }, logger);
   }
 
-  delete(opts: RQ, logger?: ILogger) {
+  delete(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.DELETE }, logger);
   }
 
-  query(opts: RQ, logger?: ILogger) {
+  query(opts: RQ, logger?: TFetcherLogger) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: HTTP.Methods.QUERY }, logger);
   }
