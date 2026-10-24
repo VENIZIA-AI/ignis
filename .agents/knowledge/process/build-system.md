@@ -42,7 +42,7 @@ tags: [process, build]
    `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
    that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
-   `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
+   `build`, `clean`, `rebuild`, `lint` and `lint-fix`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
    rebuild`), `force-update` (the shared `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
@@ -62,7 +62,7 @@ tags: [process, build]
    as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
-   `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
+   `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`lint-fix`
    (generated files, bundles) sets `LINT_IGNORE := src/generated.ts dev-dist/**` before the include:
    `--ignore-pattern` for oxlint and ESLint, `--ignore-pattern` for `bun fmt` too, all resolved from the package root
    (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
@@ -100,7 +100,7 @@ tags: [process, build]
     anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
     `eslint` and `bun fmt --no-script --check` (oxlint and ESLint take `-c .configs/<tool>.config.mts`; `bun fmt` reads the root `bunfig.toml` `[fmt]`). `make lint-fix` and
-    `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
+    `make lint-fix-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
     format-checks the wiki. Packages carry no lint scripts in `package.json`; apps (the
     examples and the VULCAN preset) carry the app script standard in step 13. make does not drive the
     examples; each one runs its own `bun run lint`, `bun run typecheck` and `bun test` from its folder. Each project lists
