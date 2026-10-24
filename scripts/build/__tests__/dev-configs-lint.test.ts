@@ -15,6 +15,7 @@ const CLI = resolve(
   import.meta.dir,
   '..',
   '..',
+  '..',
   'packages',
   'dev-configs',
   'src',

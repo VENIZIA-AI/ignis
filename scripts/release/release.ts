@@ -7,12 +7,12 @@
  * release once died on a range belonging to core-server, six minutes after a connectors release made
  * it stale. Dispatching by hand invites exactly that.
  *
- *   bun scripts/release.ts                      # every package that needs one, in order
- *   bun scripts/release.ts kernel connectors    # just these, still ordered and still sequential
- *   bun scripts/release.ts --dry-run            # print the plan, dispatch nothing
- *   bun scripts/release.ts --mode patch         # default is prerelease
- *   bun scripts/release.ts --yes                # skip the confirmation prompt
- *   bun scripts/release.ts --issue 80           # prefix every release commit with [#80]
+ *   bun scripts/release/release.ts                      # every package that needs one, in order
+ *   bun scripts/release/release.ts kernel connectors    # just these, still ordered and still sequential
+ *   bun scripts/release/release.ts --dry-run            # print the plan, dispatch nothing
+ *   bun scripts/release/release.ts --mode patch         # default is prerelease
+ *   bun scripts/release/release.ts --yes                # skip the confirmation prompt
+ *   bun scripts/release/release.ts --issue 80           # prefix every release commit with [#80]
  */
 
 import { parseReleaseArgs, type TReleaseMode } from './release-args';

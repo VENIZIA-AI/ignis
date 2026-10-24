@@ -138,7 +138,7 @@ jobs:
         run: make lint-all
 
       # One loop, no allowlist: connectors' known-impure engine clients are waived inside
-      # scripts/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
+      # scripts/checks/purity/manifest.ts, where the release workflow's `make purity-<pkg>` sees them too.
       # This step used to carry its own copy of that list, so the two gates could disagree - and did:
       # `make purity-connectors` could never pass, which failed a connectors release outright.
       - name: Browser purity

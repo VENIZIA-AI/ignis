@@ -10,7 +10,7 @@
  * reimplemented slugifier reports working links as broken and hides real ones. Reading the emitted
  * `id="..."` removes the guess.
  *
- * Requires a build: run `make docs` first. Run from the repo root: bun scripts/wiki-anchors.ts
+ * Requires a build: run `make docs` first. Run from the repo root: bun scripts/wiki/wiki-anchors.ts
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';

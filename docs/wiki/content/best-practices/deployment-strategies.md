@@ -290,7 +290,7 @@ Total time:        8.47s
 
 ### Force Update Strategy
 
-Keep dependencies in sync with the NPM registry using the shared `scripts/force-update.sh`, exposed as the `force-update` script in every package:
+Keep dependencies in sync with the NPM registry using the shared `scripts/build/force-update.sh`, exposed as the `force-update` script in every package:
 
 ```bash
 # Update to latest stable versions (from a package directory)

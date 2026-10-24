@@ -10,7 +10,7 @@
  * `ORDER_RUNS` times. Inside the workspace every optional peer resolves, so a leak there is
  * invisible; here it fails on the line that pulls it.
  *
- * Usage: bun scripts/clean-install/cli.ts [package ...] [--keep]
+ * Usage: bun scripts/checks/clean-install/cli.ts [package ...] [--keep]
  */
 import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -26,7 +26,7 @@ import {
 } from './manifest';
 import type { IInstallRow } from './manifest';
 
-const REPOSITORY_ROOT = join(import.meta.dir, '../..');
+const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 const WORKSPACE_SCOPE = '@venizia/';
 const LINKERS = ['hoisted', 'isolated'];
 const TYPELESS_PACKAGE_WARNING = 'MODULE_TYPELESS_PACKAGE_JSON';

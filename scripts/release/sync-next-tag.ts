@@ -3,9 +3,9 @@
  * `next` may hold a prerelease, but never a version below `latest`: a consumer that installs `next`
  * must not receive an older build than one that installs `latest`.
  *
- *   bun scripts/sync-next-tag.ts             # move every `next` that is missing or below `latest`
- *   bun scripts/sync-next-tag.ts --dry-run   # print what it would do, change nothing
- *   bun scripts/sync-next-tag.ts --published @venizia/ignis@0.3.1 --tag latest
+ *   bun scripts/release/sync-next-tag.ts             # move every `next` that is missing or below `latest`
+ *   bun scripts/release/sync-next-tag.ts --dry-run   # print what it would do, change nothing
+ *   bun scripts/release/sync-next-tag.ts --published @venizia/ignis@0.3.1 --tag latest
  *
  * `--published` names the version a publish just put under `--tag`. The registry serves the old
  * dist-tags for minutes after a publish, so that version is used for the package instead of what

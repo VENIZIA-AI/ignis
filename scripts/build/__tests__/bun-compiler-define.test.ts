@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { BunCompiler } from '../../packages/dev-configs/src/compilers/bun';
+import { BunCompiler } from '../../../packages/dev-configs/src/compilers/bun';
 
 /**
  * `BunCompiler.compile({ define })` is how a compile script bakes a value (the build stamp) into

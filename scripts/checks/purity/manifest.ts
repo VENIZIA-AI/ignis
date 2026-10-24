@@ -31,7 +31,7 @@ export interface IPurityEntry {
  * imports were among the eleven nobody was checking.
  */
 export interface IPurityClaim {
-  /** Directory under `packages/`, and the token `bun scripts/purity/cli.ts <token>` filters on. */
+  /** Directory under `packages/`, and the token `bun scripts/checks/purity/cli.ts <token>` filters on. */
   package: string;
   /**
    * Sub-paths (as spelled in `exports`) when the claim covers only PART of the published surface.
@@ -114,9 +114,9 @@ const PURITY_CLAIMS: IPurityClaim[] = [
  * importing the module, before any row is read.
  *
  * Not `getError`/`ApplicationError`: this file runs standalone from the repository root via
- * `bun scripts/purity/cli.ts`, outside every workspace package, and `@venizia/ignis-helpers` does
+ * `bun scripts/checks/purity/cli.ts`, outside every workspace package, and `@venizia/ignis-helpers` does
  * not resolve from here (no root-level `node_modules` link, and installing one is out of bounds
- * for this gate). `scripts/check-catalog.ts`, the sibling script in this same directory, is the
+ * for this gate). `scripts/checks/check-catalog.ts`, the sibling script in this same directory, is the
  * established precedent for a plain `Error` in this specific, dependency-free tooling tier.
  */
 export const assertNoWorkspaceExternal = (manifest: IPurityEntry[]): IPurityEntry[] => {
@@ -140,7 +140,7 @@ export const assertNoWorkspaceExternal = (manifest: IPurityEntry[]): IPurityEntr
 
 type TExportsTarget = string | Record<string, string>;
 
-const REPOSITORY_ROOT = join(__dirname, '../..');
+const REPOSITORY_ROOT = join(__dirname, '../../..');
 
 const readExportsMap = (opts: { package: string }): Record<string, TExportsTarget> => {
   const manifestPath = join(REPOSITORY_ROOT, 'packages', opts.package, 'package.json');

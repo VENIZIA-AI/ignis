@@ -1,7 +1,7 @@
 /**
  * Informational report behind the file-splitting convention (conventions/file-splitting.md):
  * hub candidates, stray types files, scope folders without a barrel, files over the soft mark,
- * and import cycles per package. Never a gate. Usage: bun scripts/split-report.ts [packages/kernel]
+ * and import cycles per package. Never a gate. Usage: bun scripts/checks/split-report.ts [packages/kernel]
  * - with no argument, scans every packages/* and examples/* directory that has a src/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';

@@ -13,7 +13,7 @@ import { dirname, join, relative, resolve } from 'node:path';
  * is; they build nothing.
  */
 
-const REPO_ROOT = resolve(import.meta.dir, '..', '..');
+const REPO_ROOT = resolve(import.meta.dir, '..', '..', '..');
 const PACKAGES_DIR = join(REPO_ROOT, 'packages');
 
 type TSourceMap = { sources?: string[]; sourcesContent?: (string | null)[] };

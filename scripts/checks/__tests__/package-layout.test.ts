@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 /** Every framework package keeps the same root: nothing missing, nothing extra. */
 
-const ROOT = join(import.meta.dir, '..', '..');
+const ROOT = join(import.meta.dir, '..', '..', '..');
 const PACKAGES = readdirSync(join(ROOT, 'packages')).sort();
 const REQUIRED = [
   '.configs',
@@ -50,6 +50,6 @@ describe('package layout', () => {
   test.each(PACKAGES)('%s runs force-update from the shared root script', async name => {
     const manifest = await Bun.file(join(ROOT, 'packages', name, 'package.json')).json();
 
-    expect(manifest.scripts['force-update']).toBe('sh ../../scripts/force-update.sh');
+    expect(manifest.scripts['force-update']).toBe('sh ../../scripts/build/force-update.sh');
   });
 });

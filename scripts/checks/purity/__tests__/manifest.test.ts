@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { assertNoWorkspaceExternal, deriveEntries, PURITY_MANIFEST } from '../manifest';
 import type { IPurityEntry } from '../manifest';
 
-const REPOSITORY_ROOT = join(__dirname, '../../..');
+const REPOSITORY_ROOT = join(__dirname, '../../../..');
 
 const readPublishedTargets = (opts: { package: string }): string[] => {
   const manifestPath = join(REPOSITORY_ROOT, 'packages', opts.package, 'package.json');

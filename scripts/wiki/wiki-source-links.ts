@@ -9,7 +9,7 @@
  * of the same five prefixes (checked only under `.agents/knowledge`). A path exists when `git
  * ls-files` tracks it, as a file or as a directory prefix - a gitignored build artifact or local
  * planning doc is never a valid target, since GitHub, and a tracked-only checkout, never has it
- * either. Run from the repo root: bun scripts/wiki-source-links.ts (both the file walk and `git
+ * either. Run from the repo root: bun scripts/wiki/wiki-source-links.ts (both the file walk and `git
  * ls-files` resolve against the current working directory).
  */
 import { execFileSync } from 'node:child_process';
