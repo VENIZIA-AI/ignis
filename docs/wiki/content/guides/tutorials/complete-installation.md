@@ -101,7 +101,7 @@ export default defineConfig(oxlintConfigs);
 [fmt]
 printWidth = 100
 singleQuote = true
-arrowParens = "avoid"
+arrowParens = "always"
 flavor = "oxfmt"
 ```
 
