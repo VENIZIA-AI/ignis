@@ -45,7 +45,7 @@ tags: [process, build]
    `build`, `clean`, `rebuild`, `lint` and `fmt`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
-   rebuild`), `force-update` (the shared `scripts/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
+   rebuild`), `force-update` (the shared `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
 5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
    (default `.configs/builders/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
    tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
@@ -57,7 +57,7 @@ tags: [process, build]
    and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
    aliases. Every ESM pass runs `tsc -p .configs/builders/tsconfig.esm.json`, then `tsc-alias` with
    `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
-   then `bun ../../scripts/esm-marker.ts`, which writes `dist/esm/package.json` with
+   then `bun ../../scripts/build/esm-marker.ts`, which writes `dist/esm/package.json` with
    `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
    as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
@@ -81,7 +81,7 @@ tags: [process, build]
 7. Gotcha: the type-check pass covers `src/__tests__/` too, even though those tests never ship in
    `dist`. A type error in a test file blocks the build of production code that never touches it -
    in both `rebuild` and `build`, for every package.
-8. `make purity` bundles every entry in `scripts/purity/manifest.ts` with
+8. `make purity` bundles every entry in `scripts/checks/purity/manifest.ts` with
    `bun build --target=browser` and fails on node builtins or node globals (`process.`,
    `__dirname`, `__filename`, `createRequire`). Six packages claim a browser-pure surface:
    `inversion`, `filter`, `helpers` (`/core` and `/common` only), `kernel`, `core-worker` and
@@ -114,9 +114,9 @@ tags: [process, build]
 11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
     target runs oxlint, `bun fmt` and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
-    `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
+    `make test-scripts` runs their unit tests (the `__tests__` directories under each `scripts/<group>/`, positive and negative case per gate).
 12. `make clean-install` packs every package and installs each one alone into an empty project
-    under `tmpdir()`, with its required peers plus the peers `scripts/clean-install/manifest.ts`
+    under `tmpdir()`, with its required peers plus the peers `scripts/checks/clean-install/manifest.ts`
     grants a sub-path. It does not build, and it refuses to start when its result could be wrong:
     - a package's newest `src/` file (outside `__tests__`) is newer than its newest `dist/` file -
       run `make build` first. The stamp is the whole `dist/`, not `index.js`, because the build is
@@ -125,7 +125,7 @@ tags: [process, build]
       `~/.node_libraries` exists - any of them would satisfy a missing peer;
     - a non-private package has no claim - a config-only package such as `dev-configs` carries an
       explicit `configOnly` claim and gets no row;
-    - a browser-claimed ESM entry (from `scripts/purity/manifest.ts`) matches no row, which would
+    - a browser-claimed ESM entry (from `scripts/checks/purity/manifest.ts`) matches no row, which would
       skip its browser build. The CJS entries never match by design.
 
     After each install it also checks every `@venizia/*` entry in the sandbox `bun.lock` resolves to

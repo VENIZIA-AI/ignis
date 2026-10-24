@@ -18,7 +18,7 @@ export interface IReleaseArgs {
   named: Array<string>;
 }
 
-/** Parses the command line of scripts/release.ts. Throws on an `--issue` that is not a number. */
+/** Parses the command line of scripts/release/release.ts. Throws on an `--issue` that is not a number. */
 export const parseReleaseArgs = (args: ReadonlyArray<string>): IReleaseArgs => {
   const modeIndex = args.indexOf('--mode');
   const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;

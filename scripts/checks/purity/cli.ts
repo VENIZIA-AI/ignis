@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { PURITY_MANIFEST } from './manifest';
 import { probeEntry } from './probe';
 
-const REPOSITORY_ROOT = join(__dirname, '../..');
+const REPOSITORY_ROOT = join(__dirname, '../../..');
 
 const run = async (): Promise<void> => {
   const filter = process.argv[2];
@@ -65,7 +65,7 @@ const run = async (): Promise<void> => {
           `  ✗ ${row.label.padEnd(labelWidth)} STALE WAIVER - this entry is browser-pure now`,
         );
         console.log(
-          `    Drop it from \`impure\` in scripts/purity/manifest.ts so the gate measures it again`,
+          `    Drop it from \`impure\` in scripts/checks/purity/manifest.ts so the gate measures it again`,
         );
         continue;
       }

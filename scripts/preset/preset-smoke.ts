@@ -2,7 +2,7 @@
  * Gate for the VULCAN preset of @venizia/ignis: packs the workspace, creates an app from the PACKED
  * preset in a temp folder outside this repository and runs the app's own checks, so nothing passes
  * because of this repository's hoisted node_modules or a file the tarball dropped.
- * Usage: bun scripts/preset-smoke.ts   (needs a build: the packed tarballs ship dist)
+ * Usage: bun scripts/preset/preset-smoke.ts   (needs a build: the packed tarballs ship dist)
  *
  *   VULCAN_CMD  how to run VULCAN (default `bun x @venizia/vulcan@latest`)
  *   VULCAN_TGZ  comma-separated packed VULCAN tarballs, installed in place of the registry copies
@@ -643,7 +643,7 @@ const smoke = async (opts: { root: string; scratch: string }): Promise<void> => 
 };
 
 if (import.meta.main) {
-  const root = resolve(import.meta.dir, '..');
+  const root = resolve(import.meta.dir, '..', '..');
   const scratch = mkdtempSync(join(tmpdir(), 'ignis-preset-smoke-'));
 
   try {

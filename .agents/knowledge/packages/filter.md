@@ -121,14 +121,14 @@ It sits **beside** helpers in the dependency chain, not after it:
 
 ## Isomorphic by construction, and it is enforced
 
-The guard is **not** a per-package test - it is the centralized `scripts/purity/` tool that covers
+The guard is **not** a per-package test - it is the centralized `scripts/checks/purity/` tool that covers
 every entry point the monorepo claims is browser-pure (filter, inversion, helpers `/core` and
-`/common`, kernel, core-worker, connectors). `scripts/purity/manifest.ts` reads filter's own
+`/common`, kernel, core-worker, connectors). `scripts/checks/purity/manifest.ts` reads filter's own
 `exports` map, so both sub-paths land in the gate under both conditions - four rows, `.` and
 `./schemas` times ESM and CJS. Run it with `make purity-filter`, or `make purity` for all of them. It
 probes `dist/`, so build the package first.
 
-`scripts/purity/probe.ts` shells out to the `bun build` CLI - not the in-process `Bun.build()`, which
+`scripts/checks/purity/probe.ts` shells out to the `bun build` CLI - not the in-process `Bun.build()`, which
 resolves this workspace's symlinked dependencies to directories and dies - with
 `--target=browser --format=esm --env=disable --metafile=...`, then fails on any node builtin import,
 any unresolved external, or any Node global (`process.`, `__dirname`, `__filename`, `createRequire(`)

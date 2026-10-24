@@ -5,7 +5,7 @@
  * catalog range, read from disk at call time, and writes packages/core-server/dist/presets.
  * Each kind is preset.json + files/; the lib also gets the lint and clean files of the app, so both
  * kinds lint the same way.
- * Usage: bun scripts/vulcan-preset.ts
+ * Usage: bun scripts/preset/vulcan-preset.ts
  */
 import { Glob } from 'bun';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -231,7 +231,7 @@ export const buildPreset = (opts: { root: string; outDir: string }): IBuildPrese
 };
 
 if (import.meta.main) {
-  const root = resolve(import.meta.dir, '..');
+  const root = resolve(import.meta.dir, '..', '..');
   const outDir = join(root, OUTPUT_FOLDER);
   const { written, resolved } = buildPreset({ root, outDir });
 

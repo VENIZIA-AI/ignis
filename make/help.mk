@@ -43,6 +43,8 @@ help:
 	@echo ""
 	@echo "Repository scripts and wiki:"
 	@$(HELP_ROW) "lint-scripts" "Format check + bun check type-check of scripts/."
+	@$(HELP_ROW) "lint-manifests / fmt-manifests" "Format check / write of the root package.json (keys sorted)."
+	@$(HELP_ROW) "lint-files / fmt-files" "Format check / write of .github, .agents, .configs and presets."
 	@$(HELP_ROW) "lint-wiki" "Lint docs/wiki scripts and check its format."
 	@$(HELP_ROW) "test-scripts" "Run the repository gate scripts' own regression tests."
 	@$(HELP_ROW) "purity-test" "Run the purity probe's own regression tests."

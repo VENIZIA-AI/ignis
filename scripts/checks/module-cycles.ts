@@ -1,7 +1,7 @@
 /**
  * Lists import cycles in a built ESM directory. bun turns every member of a
  * cycle into a lazy initializer, and a barrel `export *` over such a member
- * can leave its exports undefined. Usage: bun scripts/module-cycles.ts
+ * can leave its exports undefined. Usage: bun scripts/checks/module-cycles.ts
  * packages/helpers/dist/esm [--max 0]
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -130,14 +130,14 @@ const run = (): number => {
   });
   const dir = positionals[0];
   if (!dir) {
-    console.error('usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]');
+    console.error('usage: bun scripts/checks/module-cycles.ts <dist/esm dir> [--max <n>]');
     return 2;
   }
 
   let max = Number.POSITIVE_INFINITY;
   if (values.max !== undefined) {
     if (!/^\d+$/.test(values.max)) {
-      console.error('usage: bun scripts/module-cycles.ts <dist/esm dir> [--max <n>]');
+      console.error('usage: bun scripts/checks/module-cycles.ts <dist/esm dir> [--max <n>]');
       return 2;
     }
     max = Number(values.max);

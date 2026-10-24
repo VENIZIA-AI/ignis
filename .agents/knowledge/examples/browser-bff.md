@@ -57,7 +57,7 @@ a new sub-path was imported. Rolldown's CommonJS interop shim then read `__filen
 takes inside a Worker, hence the second.
 
 Every package in `PURITY_CLAIMS` now dual-builds and publishes an `import` condition, and
-`assertBrowserImportCondition` in `scripts/purity/manifest.ts` fails the gate if one stops. Measured
+`assertBrowserImportCondition` in `scripts/checks/purity/manifest.ts` fails the gate if one stops. Measured
 on the production build: the page chunk fell from **682 KB to 54 KB**, because the ESM entry is
 tree-shakeable where the CommonJS one was not.
 

@@ -13,7 +13,7 @@ import { join } from 'node:path';
  * So the gate cannot see a leak of such a transitive peer into the entry it was granted to.
  */
 export interface IInstallClaim {
-  /** Directory under `packages/`, and the token `bun scripts/clean-install/cli.ts <token>` filters on. */
+  /** Directory under `packages/`, and the token `bun scripts/checks/clean-install/cli.ts <token>` filters on. */
   package: string;
   /** Optional peers a sub-path needs, keyed as spelled in `exports`. Each must be a declared peer. */
   requires?: Record<string, string[]>;
@@ -118,7 +118,7 @@ export interface IInstallRow {
   importedAfter: string[];
 }
 
-const REPOSITORY_ROOT = join(import.meta.dir, '../..');
+const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 
 export const readPackageManifest = (opts: { package: string }): IPackageManifest =>
   JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'packages', opts.package, 'package.json'), 'utf8'));

@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
  * module that process loaded. It reads the build output as it is; it builds nothing.
  */
 
-const DEV_CONFIGS_DIR = resolve(import.meta.dir, '..', '..', 'packages', 'dev-configs');
+const DEV_CONFIGS_DIR = resolve(import.meta.dir, '..', '..', '..', 'packages', 'dev-configs');
 const SUBPATH_ENTRY = join(DEV_CONFIGS_DIR, 'dist', 'linters', 'oxlint-presets.js');
 const BARREL_ENTRY = join(DEV_CONFIGS_DIR, 'dist', 'linters', 'index.js');
 

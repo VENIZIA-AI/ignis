@@ -53,7 +53,7 @@
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:dev": "vitepress dev site",
     "docs:preview": "vitepress preview site",
-    "force-update": "sh ../../scripts/force-update.sh"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "devDependencies": {
     "@types/bun": "catalog:",

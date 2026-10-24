@@ -80,7 +80,7 @@
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
-    "purity": "bun scripts/purity/cli.ts"
+    "purity": "bun scripts/checks/purity/cli.ts"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
