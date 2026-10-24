@@ -9,6 +9,7 @@ import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { model, repository } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import type { ISearchCollectionDefinition, TSearchDocument } from '@/search/core/models/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 
@@ -39,7 +40,9 @@ class ProductDocument extends BaseSearchEntity {
 }
 
 @repository({ model: ProductDocument, dataSource: AppSearchDataSource })
-class ProductSearchRepository extends DefaultSearchRepository {}
+class ProductSearchRepository extends DefaultSearchRepository<
+  TSearchDocument<ISearchCollectionDefinition>
+> {}
 
 // --- Scenario 2: a dual-schema entity (pg `schema` + `searchCollection`) --------------------
 

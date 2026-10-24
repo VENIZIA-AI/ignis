@@ -27,7 +27,7 @@ export abstract class AbstractCrudController<
     scope: string;
     path: string;
     isStrict?: boolean;
-    repository: AbstractRepository<TDataObject, TPersistObject>;
+    repository: AbstractRepository<TDataObject, TPersistObject, AnyType>;
     definitions: AnyType;
   }) {
     super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });

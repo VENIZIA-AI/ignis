@@ -7,7 +7,10 @@ import type {
   IUpdatableRepository,
   TCount,
   TDataWithRange,
+  TByIdFilter,
+  TFields,
   TFilter,
+  TRow,
   TSchemaType,
   TWhere,
 } from '@venizia/ignis-kernel/repository';
@@ -211,33 +214,43 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   }
 
   /** With `extra`: what the route answered beside the rows, typed by what was asked for. */
-  async find<R = E, const Extra extends TExtraRequest = TExtraRequest>(opts: {
-    filter: TFilter<E>;
+  async find<
+    R = unknown,
+    const Extra extends TExtraRequest = TExtraRequest,
+    const F extends TFields<E> = TFields<E>,
+  >(opts: {
+    filter: TFilter<E, F>;
     query?: THttpExtraQuery;
     options: THttpRepositoryOptions & { shouldQueryRange: true; extra: Extra };
-  }): Promise<TDataWithRange<R> & { extra: TExtraResult<Extra> }>;
-  async find<R = E>(opts: {
-    filter: TFilter<E>;
+  }): Promise<TDataWithRange<TRow<E, R, F>> & { extra: TExtraResult<Extra> }>;
+  async find<R = unknown, const F extends TFields<E> = TFields<E>>(opts: {
+    filter: TFilter<E, F>;
     query?: THttpExtraQuery;
     options: THttpRepositoryOptions & { shouldQueryRange: true };
-  }): Promise<TDataWithRange<R>>;
-  async find<R = E, const Extra extends TExtraRequest = TExtraRequest>(opts: {
-    filter?: TFilter<E>;
+  }): Promise<TDataWithRange<TRow<E, R, F>>>;
+  async find<
+    R = unknown,
+    const Extra extends TExtraRequest = TExtraRequest,
+    const F extends TFields<E> = TFields<E>,
+  >(opts: {
+    filter?: TFilter<E, F>;
     query?: THttpExtraQuery;
     options: THttpRepositoryOptions & { extra: Extra };
-  }): Promise<{ data: Array<R>; extra: TExtraResult<Extra> }>;
-  async find<R = E>(opts: {
-    filter?: TFilter<E>;
+  }): Promise<{ data: Array<TRow<E, R, F>>; extra: TExtraResult<Extra> }>;
+  async find<R = unknown, const F extends TFields<E> = TFields<E>>(opts: {
+    filter?: TFilter<E, F>;
     query?: THttpExtraQuery;
     options?: THttpRepositoryOptions;
-  }): Promise<Array<R>>;
+  }): Promise<Array<TRow<E, R, F>>>;
   /** `extra` or the range decided at run time: the caller narrows the union. */
-  async find<R = E>(opts: {
-    filter?: TFilter<E>;
+  async find<R = unknown, const F extends TFields<E> = TFields<E>>(opts: {
+    filter?: TFilter<E, F>;
     query?: THttpExtraQuery;
     options?: THttpRepositoryOptions & { shouldQueryRange?: boolean; extra?: TExtraRequest };
   }): Promise<
-    Array<R> | TDataWithRange<R> | { data: Array<R>; extra: TExtraResult<TExtraRequest> }
+    | Array<TRow<E, R, F>>
+    | TDataWithRange<TRow<E, R, F>>
+    | { data: Array<TRow<E, R, F>>; extra: TExtraResult<TExtraRequest> }
   >;
   async find<R = E>(opts: {
     filter?: TFilter<E>;
@@ -284,13 +297,13 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     };
   }
 
-  async findOne<R = E>(opts: {
-    filter?: TFilter<E>;
+  async findOne<R = unknown, const F extends TFields<E> = TFields<E>>(opts: {
+    filter?: TFilter<E, F>;
     query?: THttpExtraQuery;
     options?: THttpRepositoryOptions;
-  }): Promise<R | null> {
+  }): Promise<TRow<E, R, F> | null> {
     if (this.findOnePath) {
-      const one = await this.dataSource.read<R | null>({
+      const one = await this.dataSource.read<TRow<E, R, F> | null>({
         paths: [this.resource, this.findOnePath],
         query: this.buildQuery({
           method: 'findOne',
@@ -304,7 +317,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       return one.data ?? null;
     }
 
-    const rs = await this.dataSource.read<Array<R>>({
+    const rs = await this.dataSource.read<Array<TRow<E, R, F>>>({
       paths: [this.resource],
       query: this.buildQuery({
         method: 'findOne',
@@ -318,13 +331,13 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
   }
 
   /** The server answers `null`, never 404, for a missing id. A `where` would be replaced by the id. */
-  async findById<R = E>(opts: {
+  async findById<R = unknown, const F extends TFields<E> = TFields<E>>(opts: {
     id: string | number;
-    filter?: Omit<TFilter<E>, 'where'>;
+    filter?: TByIdFilter<E, F>;
     query?: THttpExtraQuery;
     options?: THttpRepositoryOptions;
-  }): Promise<R | null> {
-    const rs = await this.dataSource.read<R>({
+  }): Promise<TRow<E, R, F> | null> {
+    const rs = await this.dataSource.read<TRow<E, R, F>>({
       paths: this.getIdPaths({ id: opts.id }),
       query: this.buildQuery({
         method: 'findById',
