@@ -22,7 +22,6 @@ coverage/
 
 # Development files
 .eslintrc*
-.prettierrc*
 .editorconfig
 .vscode/
 .idea/

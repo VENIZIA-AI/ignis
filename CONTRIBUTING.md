@@ -157,7 +157,7 @@ make build
 
 ### Code Style
 
-We use ESLint and Prettier via `@venizia/dev-configs`:
+We use oxlint, ESLint and `bun fmt` via `@venizia/dev-configs` and the root `bunfig.toml`:
 
 ```bash
 # Check code style

@@ -6,6 +6,24 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-10-23 - formatting is bun fmt, configured in bunfig.toml
+
+Updated [dev-configs](/packages/dev-configs.md), [build system](/process/build-system.md), [gotchas](/conventions/gotchas.md), [build, run and test](/overview/build-run-test.md), [git workflow](/process/git-workflow.md), [testing](/process/testing.md), [boot](/packages/boot.md) and [monorepo layout](/overview/monorepo-layout.md).
+
+- `make lint`, `make fmt`, `lint-wiki`, `lint-scripts` and `devz lint` run `bun fmt --no-script`. The format is the `[fmt]` table of the root `bunfig.toml` (Bun inherits it from a parent folder): `printWidth = 100`, `singleQuote = true`, `arrowParens = "avoid"`, `flavor = "oxfmt"`. 0 differing files in 21 projects.
+- Every `oxfmt.config.mts` is deleted and `oxfmt` leaves the catalog and all manifests. `flavor = "oxfmt"` is required: without it 14 files differ.
+- BREAKING: `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` and the `@venizia/dev-configs/formatters` subpath are removed. One style for backend and frontend.
+- `bun fmt` also covers json, jsonc, yaml, css, html and vue, not Markdown (Phat); `lint-files`/`fmt-files` reach `.github`, `.agents`, `.configs` and the preset templates, `lint-manifests`/`fmt-manifests` the root package.json. One-time format in its own commit; drizzle-kit snapshots are ignored in the examples.
+- Every tracked `package.json` is sorted by `bun fmt` (one-time sort in its own commit); a release bump with `npm version` keeps it sorted.
+- The repository runs VULCAN 0.3.12, whose `vulcan sync` writes a `bun fmt`-clean manifest.
+- Bun 1.4.4 is the floor. `bun lint` is not in a stable Bun yet, so oxlint and ESLint stay.
+
+## 2026-10-23 - the http repository can call find-one
+
+Updated [connectors](/packages/connectors.md).
+
+- `HttpRepository` takes an opt-in `findOnePath` next to `countPath`: `findOne` then reads `GET /<resource>/<findOnePath>` with `shape: 'one'` and returns `rs.data ?? null`. Default unchanged (the list route with `limit: 1`).
+
 ## 2026-10-22 - the preset contract uses vulcan.presets
 
 Updated [release and publish](/process/release-publish.md).

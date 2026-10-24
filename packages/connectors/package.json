@@ -1,11 +1,16 @@
 {
   "name": "@venizia/ignis-connectors",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
-  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": false,
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -108,17 +113,9 @@
     },
     "./package.json": "./package.json"
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "!**/__tests__",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": false,
   "scripts": {
     "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild"
@@ -129,6 +126,16 @@
     "@venizia/ignis-inversion": "workspace:*",
     "@venizia/ignis-kernel": "workspace:*",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@types/pg": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "tsc-alias": "catalog:",
+    "typescript": "catalog:"
   },
   "peerDependencies": {
     "@electric-sql/pglite": "^0.5.10",
@@ -174,15 +181,7 @@
       "optional": true
     }
   },
-  "devDependencies": {
-    "@types/bun": "catalog:",
-    "@types/pg": "catalog:",
-    "@venizia/dev-configs": "workspace:*",
-    "eslint": "catalog:",
-    "oxfmt": "catalog:",
-    "oxlint": "catalog:",
-    "oxlint-tsgolint": "catalog:",
-    "tsc-alias": "catalog:",
-    "typescript": "catalog:"
+  "engines": {
+    "bun": ">=1.4"
   }
 }

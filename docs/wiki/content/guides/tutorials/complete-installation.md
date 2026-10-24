@@ -37,12 +37,12 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint
+bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint eslint
 ```
 
 **What `@venizia/dev-configs` provides:**
 - Centralized oxlint configuration (lint rules)
-- Centralized oxfmt configuration (formatting)
+- Formatting with `bun fmt`, configured in `bunfig.toml`
 - The naming-convention rule for ESLint, the one rule oxlint cannot run yet
 - Shared TypeScript base configs
 - Consistent code style across all IGNIS projects
@@ -95,13 +95,14 @@ import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint';
 export default defineConfig(oxlintConfigs);
 ```
 
-`.configs/formatters/oxfmt.config.mts` sets the formatting:
+`bunfig.toml` sets the formatting, in the `[fmt]` table that `bun fmt` reads:
 
-```typescript
-import { defineConfig } from 'oxfmt';
-import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
-
-export default defineConfig(oxfmtConfigs);
+```toml
+[fmt]
+printWidth = 100
+singleQuote = true
+arrowParens = "avoid"
+flavor = "oxfmt"
 ```
 
 `.configs/lints/eslint.config.mjs` runs what oxlint cannot: the naming convention and the house rules (at most 5 positional parameters, errors through `getError`):
@@ -112,14 +113,9 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 export default houseConfigs;
 ```
 
-oxlint and oxfmt skip `dist` and `node_modules` through your `.gitignore`, so no ignore file is needed.
+oxlint and `bun fmt` skip `dist` and `node_modules` through your `.gitignore`, so no ignore file is needed.
 
-> **Customization:** To override a formatting option, spread the base config:
-> ```typescript
-> import { defineConfig } from 'oxfmt';
-> import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
-> export default defineConfig({ ...oxfmtConfigs, printWidth: 120 });
-> ```
+> **Customization:** To override a formatting option, change its key in `[fmt]`, for example `printWidth = 120`.
 > To change a lint rule, use its rule class. See [Tooling Configuration](/best-practices/code-style-standards/tooling).
 
 > **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards/) for detailed configuration options.
@@ -411,7 +407,7 @@ Add the standard application scripts to your `package.json`:
 
 > **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
-`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and oxfmt with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
+`devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and `bun fmt` with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 
 `devz clean` removes `dist` and the tool caches. The compile logic lives in `.configs/builders/compile.ts`, beside the other build settings, so the app root keeps only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`:
 

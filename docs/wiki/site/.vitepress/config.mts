@@ -470,6 +470,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-23',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Formatting Moves to bun fmt',
+                  link: '/changelogs/2026-10-23-bun-fmt',
+                },
+                {
+                  text: 'HTTP Repository find-one Route',
+                  link: '/changelogs/2026-10-23-http-find-one-path',
+                },
+              ],
+            },
+            {
               text: '2026-10-22',
               collapsed: true,
               items: [

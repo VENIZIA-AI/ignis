@@ -64,7 +64,7 @@ tags: [process, build]
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
    `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`fmt`
    (generated files, bundles) sets `LINT_IGNORE := src/generated.ts dev-dist/**` before the include:
-   `--ignore-pattern` for oxlint and ESLint, `"!<glob>"` for oxfmt, all resolved from the package root
+   `--ignore-pattern` for oxlint and ESLint, `--ignore-pattern` for `bun fmt` too, all resolved from the package root
    (`ignorePatterns` inside `.configs/` would resolve against `.configs/` and match nothing). No package ships its
    tests in `dist` - they stay sources under `src/__tests__/` that `bun test` runs directly. A
    package that emits them into `dist` makes a bare `bun test` execute every test once per copy -
@@ -96,25 +96,25 @@ tags: [process, build]
    `builtinModules`, so a bare `fs` import is caught as well as `node:fs`. And it passes
    `--env=disable`, because Bun otherwise inlines `process.env.NODE_ENV` at compile time and erases
    the exact read the gate exists to catch.
-10. `make lint` / `make lint-all` (packages only vs. packages + scripts) do not build
+10. `make lint` / `make lint-all` (packages only vs. packages + scripts + `lint-manifests` for the root package.json + `lint-files` for `.github`, `.agents`, `.configs` and the preset templates) do not build
     anything - run them after a build, not instead of one. `make lint-<package>` takes the directory
     name (`lint-kernel`): it `cd`s into the package and runs its own `node_modules/.bin/oxlint`,
-    `eslint` and `oxfmt --check`, each with `-c .configs/<tool>.config.mts`. `make fmt` and
+    `eslint` and `bun fmt --no-script --check` (oxlint and ESLint take `-c .configs/<tool>.config.mts`; `bun fmt` reads the root `bunfig.toml` `[fmt]`). `make fmt` and
     `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
     format-checks the wiki. Packages carry no lint scripts in `package.json`; apps (the
     examples and the VULCAN preset) carry the app script standard in step 13. make does not drive the
     examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
     example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
-    `eslint`, `oxlint`, `oxlint-tsgolint` and `oxfmt` in its own `devDependencies` (`catalog:`);
-    the root declares `oxfmt` and `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
+    `eslint`, `oxlint` and `oxlint-tsgolint` in its own `devDependencies` (`catalog:`);
+    the root declares `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
     knowledge, atlas and agent tooling. Versions are pinned in
     the root `workspaces.catalog`. Type-aware oxlint on `packages/kernel` (253 files) took about
-    0.8s against 8.16s for ESLint; oxfmt 0.06s against 2.16s for Prettier.
+    0.8s against 8.16s for ESLint.
     `--report-unused-disable-directives` is not used: oxlint does not run the naming rule, so it
     would flag every naming-convention disable comment as unused.
 11. Repository scripts under `scripts/` are TypeScript run by Bun with no build; `scripts/tsconfig.json`
     (bun types, bundler resolution, `noEmit`) is what the editor and `make lint-scripts` check - that
-    target runs oxlint, oxfmt and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
+    target runs oxlint, `bun fmt` and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
     `make test-scripts` runs their unit tests (`scripts/__tests__`, positive and negative case per gate).
 12. `make clean-install` packs every package and installs each one alone into an empty project
     under `tmpdir()`, with its required peers plus the peers `scripts/clean-install/manifest.ts`

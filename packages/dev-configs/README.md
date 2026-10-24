@@ -1,18 +1,18 @@
 # @venizia/dev-configs
 
-The oxlint, oxfmt, ESLint, Prettier and TypeScript settings every IGNIS package is built with. Install
+The oxlint, ESLint and TypeScript settings every IGNIS package is built with. Install
 it as a dev dependency in an application that wants the same rules.
 
 ## Install
 
 ```bash
-bun add -d @venizia/dev-configs oxlint oxlint-tsgolint oxfmt eslint typescript
+bun add -d @venizia/dev-configs oxlint oxlint-tsgolint eslint typescript
 ```
 
-`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `oxfmt` (>=0.73.0), `eslint` (9 or 10),
-`prettier` (3) and `typescript` (5 or 6) are optional peers. Install only the tools you use. Keep the
+`oxlint` (>=1.88.0), `oxlint-tsgolint` (>=7.0.2004), `eslint` (9 or 10),
+`typescript` (5 or 6) are optional peers. Install only the tools you use. Formatting is `bun fmt` (Bun 1.4.4 or newer), set in `bunfig.toml`: see [Formatting](#formatting). Keep the
 ESLint config `.mjs`: a TypeScript one (`.mts`) makes ESLint require `jiti`, one more dependency. A
-project that still runs ESLint and Prettier installs `eslint prettier` and skips the oxc tools.
+project that only wants the full ESLint preset installs `eslint` and skips the oxc tools.
 
 ## Use it
 
@@ -27,14 +27,6 @@ export default defineConfig(oxlintConfigs);
 ```
 
 ```typescript
-// .configs/formatters/oxfmt.config.mts
-import { defineConfig } from 'oxfmt';
-import { oxfmtConfigs } from '@venizia/dev-configs/formatters';
-
-export default defineConfig(oxfmtConfigs);
-```
-
-```typescript
 // .configs/lints/eslint.config.mjs - what oxlint cannot run: naming convention + house rules
 import { houseConfigs } from '@venizia/dev-configs/linters';
 
@@ -44,7 +36,7 @@ export default houseConfigs;
 ```bash
 oxlint -c .configs/lints/oxlint.config.mts --deny-warnings
 eslint -c .configs/lints/eslint.config.mjs .
-oxfmt -c .configs/formatters/oxfmt.config.mts --check "**/*.{ts,tsx,mts,js,mjs}"
+bun fmt --check "**/*.{ts,tsx,mts,js,mjs}"
 ```
 
 `tsconfig.json` stays at the project root. Bun, the editor and oxlint's type-aware engine only find it
@@ -75,7 +67,6 @@ browser version. A React project swaps it for the React version, which builds on
 | Tool | Backend | Browser | React |
 | :--- | :--- | :--- | :--- |
 | oxlint | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
-| oxfmt | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
 | ESLint | `houseConfigs` | `houseConfigs` | `reactHouseConfigs` |
 | tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
@@ -113,7 +104,6 @@ Every IGNIS package and example does.
 | :--- | :--- |
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
-| `@venizia/dev-configs/formatters` | `oxfmtConfigs`, `browserOxfmtConfigs`, `prettierConfigs` |
 | `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
@@ -231,33 +221,25 @@ export default defineConfig({
 });
 ```
 
-### oxfmtConfigs and prettierConfigs
+### Formatting
 
-`oxfmtConfigs` (type `OxfmtConfig`) and `prettierConfigs` hold the same seven options, so the output
-matches. oxfmt differs from Prettier on long union types, which it breaks with a leading `|` per line.
+There is no formatter preset to import: `bun fmt` reads the `[fmt]` table of `bunfig.toml` in the folder it runs in or any parent, so one table at the repository root serves every package. The same table serves backend, browser and React code.
 
-| Setting | Value |
-| :--- | :--- |
-| `printWidth` | `100` |
-| `tabWidth` | `2` |
-| `singleQuote` | `true` |
-| `semi` | `true` |
-| `trailingComma` | `'all'` |
-| `bracketSpacing` | `true` |
-| `arrowParens` | `'avoid'` |
+```toml
+[fmt]
+printWidth = 100
+singleQuote = true
+arrowParens = "avoid"
+flavor = "oxfmt"
+```
 
-`browserOxfmtConfigs` is `oxfmtConfigs` with two changes for browser and React code:
-
-| Setting | Value | Effect |
-| :--- | :--- | :--- |
-| `arrowParens` | `'always'` | `(x) => x` instead of `x => x` |
-| `bracketSameLine` | `true` | The closing `>` of a multi-line JSX element stays on its last attribute line, which keeps JSX diffs small |
+`flavor = "oxfmt"` keeps the output IGNIS was formatted with; without it Bun formats in its default flavor, which puts the first member of a long union type on its own `|` line. Bun's defaults supply the rest: `tabWidth` 2, `trailingComma` `"all"`, `semi`, `bracketSpacing`. `devz lint` runs `bun fmt --no-script` and passes each pattern of `.configs/formatters/.ignore` as `--ignore-pattern`.
 
 ### eslintConfigs
 
 `eslintConfigs` keeps its shape and resolves to the same rules as before, but is now owned here instead
-of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, Prettier as a lint
-rule, naming conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
+of wrapping `@minimaltech/eslint-node`: ESLint recommended, typescript-eslint, naming
+conventions, `curly`, `eslint-plugin-n`, plus these IGNIS rules:
 
 | Rule | Setting |
 | :--- | :--- |

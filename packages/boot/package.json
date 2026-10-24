@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.3.6",
+  "version": "0.4.0",
   "description": "Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports.",
   "keywords": [
     "artifact-index",
@@ -15,23 +15,34 @@
     "venizia"
   ],
   "homepage": "https://ignis.venizia.ai",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/boot"
-  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
+  "license": "MIT",
   "author": {
     "name": "VENIZIA AI Developer",
     "email": "developer@venizia.ai",
     "url": "https://venizia.ai"
   },
-  "license": "MIT",
-  "engines": {
-    "bun": ">=1.4"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/boot"
   },
+  "bin": {
+    "ignis-artifacts": "./dist/cjs/clis/artifacts.js"
+  },
+  "files": [
+    "README.md",
+    "LICENSE.md",
+    "dist",
+    "!**/__tests__",
+    "!**/*.tsbuildinfo"
+  ],
+  "sideEffects": [
+    "./dist/cjs/bun/auto.js",
+    "./dist/esm/bun/auto.js"
+  ],
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -74,20 +85,9 @@
       "default": "./dist/cjs/build-info/index.js"
     }
   },
-  "files": [
-    "README.md",
-    "LICENSE.md",
-    "dist",
-    "!**/__tests__",
-    "!**/*.tsbuildinfo"
-  ],
   "publishConfig": {
     "access": "public"
   },
-  "sideEffects": [
-    "./dist/cjs/bun/auto.js",
-    "./dist/esm/bun/auto.js"
-  ],
   "scripts": {
     "force-update": "sh ../../scripts/force-update.sh",
     "prepublishOnly": "make rebuild",
@@ -101,7 +101,6 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
@@ -110,7 +109,7 @@
   "peerDependencies": {
     "typescript": "^5.0.0 || ^6.0.0"
   },
-  "bin": {
-    "ignis-artifacts": "./dist/cjs/clis/artifacts.js"
+  "engines": {
+    "bun": ">=1.4"
   }
 }

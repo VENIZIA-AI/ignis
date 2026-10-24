@@ -56,11 +56,11 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 ## Lint and hooks
 
 ```bash
-make lint             # lint packages/ only (oxlint, naming-convention ESLint, oxfmt --check)
+make lint             # lint packages/ only (oxlint, naming-convention ESLint, bun fmt --check)
 make lint-<package>   # one package, by directory name: make lint-kernel
 make lint-all         # packages and scripts/
 bun scripts/examples.ts check   # examples: artifact index, lint, typecheck (not in make)
-make fmt              # format packages/ (oxfmt); make fmt-<package> for one
+make fmt              # format packages/ (bun fmt); make fmt-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks

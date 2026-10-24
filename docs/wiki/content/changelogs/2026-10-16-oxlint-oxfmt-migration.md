@@ -108,4 +108,4 @@ oxlint exits 0 when it finds only warnings, so every lint call passes `--deny-wa
 
 See [Tooling Configuration](/best-practices/code-style-standards/tooling) for the full setup and rule customization.
 
-**Files:** [`packages/dev-configs/src/linters/oxlint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/oxlint.ts), [`packages/dev-configs/src/formatters/oxfmt.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/formatters/oxfmt.ts), [`packages/dev-configs/src/linters/eslint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/eslint.ts), [`Makefile`](https://github.com/VENIZIA-AI/ignis/blob/main/Makefile)
+**Files:** [`packages/dev-configs/src/linters/oxlint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/oxlint.ts), [`packages/dev-configs/src/linters/eslint.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs/src/linters/eslint.ts), [`Makefile`](https://github.com/VENIZIA-AI/ignis/blob/main/Makefile)

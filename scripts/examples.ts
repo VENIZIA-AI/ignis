@@ -40,7 +40,7 @@ const lint = async (): Promise<number> => {
   return run({ command: ['bun', 'run', '--filter', './examples/*', 'lint'] });
 };
 
-// oxlint and oxfmt do not typecheck, and no example is in `make build-all` - a codemod once left an
+// oxlint and bun fmt do not typecheck, and no example is in `make build-all` - a codemod once left an
 // example that could not compile and every gate stayed green.
 const typecheck = async (): Promise<number> => {
   console.log('🔍 Typechecking all examples...');

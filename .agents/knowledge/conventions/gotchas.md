@@ -47,7 +47,7 @@ tags: [conventions, gotchas, debugging]
 - [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
 - [ignorePatterns in a .configs file resolve against .configs](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
-- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [bun fmt formats long unions in its default flavor unless flavor is oxfmt](#bun-fmt-formats-long-unions-in-its-default-flavor-unless-flavor-is-oxfmt)
 - [Makefile: a $(call) glob with a comma, and .PHONY pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
 - [The ESLint config is .mjs: a TypeScript one needs jiti](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
 - [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
@@ -70,7 +70,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [A stale `.configs/builders/*.tsbuildinfo` makes `tsc` emit nothing](#a-stale-configstsbuildinfo-makes-tsc-emit-nothing)
 - [`ignorePatterns` in a `.configs/` file resolve against `.configs/`](#ignorepatterns-in-a-configs-file-resolve-against-configs)
 - [oxlint finds bugs ESLint missed](#oxlint-finds-bugs-eslint-missed)
-- [oxfmt formats long unions differently from Prettier](#oxfmt-formats-long-unions-differently-from-prettier)
+- [bun fmt formats long unions in its default flavor unless flavor is oxfmt](#bun-fmt-formats-long-unions-in-its-default-flavor-unless-flavor-is-oxfmt)
 - [Makefile: a `$(call ...)` glob with a comma, and `.PHONY` pattern rules](#makefile-a-call-glob-with-a-comma-and-phony-pattern-rules)
 - [The ESLint config is `.mjs`: a TypeScript one needs `jiti`](#the-eslint-config-is-mjs-a-typescript-one-needs-jiti)
 - [oxlint exits 0 on warnings](#oxlint-exits-0-on-warnings)
@@ -261,7 +261,7 @@ use, and when a waiver goes stale, delete it rather than loosening the gate.
 `bun update --filter '*'` bumps every declared range in every workspace manifest to the version it
 resolved - including `peerDependencies`. On 2026-09-04 one run raised 28 peer floors across
 `connectors`, `core-server`, `core-worker`, `helpers`, `kernel` and `dev-configs` (`hono ^4.12.30 ->
-^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, `prettier ^3.0.0 -> ^3.9.6`, ...). A published peer floor is a
+^4.13.7`, `pg ^8.21.0 -> ^8.23.0`, ...). A published peer floor is a
 consumer contract: a consumer app pins `hono` 4.12.30 and `pg` 8.21.0 through `overrides`, and the
 migration guide promises those still satisfy the peers. After any `bun update`, diff
 `peerDependencies` against HEAD and restore every floor you did not mean to raise; widen or narrow a
@@ -662,9 +662,9 @@ relative to `.configs/`, not the project, so it matches nothing. Do not rely on 
 oxlint caught four real `no-unsafe-optional-chaining` cases. `(x?.y as T).z` still throws when `x` is
 undefined, because the cast ends the optional chain. They were in the connectors tests and are fixed.
 
-## oxfmt formats long unions differently from Prettier
+## bun fmt formats long unions in its default flavor unless flavor is oxfmt
 
-oxfmt puts a leading `|` on each line of a long union type. The switch reformatted 16 files once.
+`bun fmt` picks its flavor from `package.json`: with `oxfmt` listed it formats like oxfmt, which puts a leading `|` on each line of a long union type; without it, in its default flavor, which does not. The `[fmt]` table of the root `bunfig.toml` therefore sets `flavor = "oxfmt"`; dropping the key changed 14 files. The oxfmt switch reformatted 16 files once.
 `docs/wiki/site/.vitepress/config.mts` is excluded from formatting to keep its one-entry-per-line
 sidebar layout.
 
@@ -681,7 +681,7 @@ ESLint 10 loads a TypeScript config (`.ts`, `.mts`, `.cts`) only through `jiti`,
 this - bun links `jiti` as ESLint's optional peer when another package already pulled it in - so the
 repository ran green while a clean install of the packed `@venizia/dev-configs` failed. To keep the
 dependency out, every `.configs/eslint.config.*` is `.mjs` (plain JavaScript, loaded natively). oxlint
-and oxfmt read `.mts` configs on their own, so those stay `.mts`.
+reads `.mts` configs on its own, so those stay `.mts`.
 
 ## oxlint exits 0 on warnings
 

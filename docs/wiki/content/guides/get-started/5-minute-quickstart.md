@@ -70,7 +70,6 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./services/core-api/.configs/builders/Dockerfile
 ./services/core-api/.configs/builders/compile.ts
 ./services/core-api/.configs/formatters/.ignore
-./services/core-api/.configs/formatters/oxfmt.config.mts
 ./services/core-api/.configs/lints/.ignore
 ./services/core-api/.configs/lints/eslint.config.mjs
 ./services/core-api/.configs/lints/oxlint.config.mts
@@ -83,7 +82,7 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./services/core-api/tsconfig.json
 ```
 
-The app root holds only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`. Every other setting lives in `.configs/`: `lints/` for oxlint and ESLint, `formatters/` for oxfmt, `builders/` for the compile script and the Dockerfile.
+The app root holds only `.configs/`, `src/`, `package.json`, `tsconfig.json` and `.env.example`. Every other setting lives in `.configs/`: `lints/` for oxlint and ESLint, `formatters/` for the `bun fmt` ignore list, `builders/` for the compile script and the Dockerfile.
 
 Important files:
 

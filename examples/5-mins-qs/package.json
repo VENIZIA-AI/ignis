@@ -3,9 +3,6 @@
   "version": "0.0.0",
   "private": true,
   "description": "5-minute quickstart example",
-  "engines": {
-    "bun": ">=1.4"
-  },
   "scripts": {
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "compile": "sh scripts/compile.sh",
@@ -30,10 +27,12 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "eslint": "catalog:",
-    "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "oxlint-tsgolint": "catalog:",
     "tsc-alias": "catalog:",
     "typescript": "catalog:"
+  },
+  "engines": {
+    "bun": ">=1.4"
   }
 }

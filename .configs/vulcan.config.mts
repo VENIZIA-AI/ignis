@@ -14,7 +14,11 @@ export default {
     { dir: 'boot', name: '@venizia/ignis-boot' },
     { dir: 'kernel', name: '@venizia/ignis-kernel' },
     { dir: 'connectors', name: '@venizia/ignis-connectors' },
-    { dir: 'core-worker', name: '@venizia/ignis-worker', aliases: ['worker', '@venizia/ignis-core-worker'] },
+    {
+      dir: 'core-worker',
+      name: '@venizia/ignis-worker',
+      aliases: ['worker', '@venizia/ignis-core-worker'],
+    },
     { dir: 'core-server', name: '@venizia/ignis', aliases: ['core'] },
     { dir: 'docs-mcp', name: '@venizia/ignis-docs', aliases: ['docs'], retired: true },
     { dir: 'atlas', name: '@venizia/ignis-atlas', retired: true },
@@ -40,9 +44,19 @@ export default {
       },
       'makefile-targets',
     ],
-    regions: [{ id: 'packages-table', file: 'overview/monorepo-layout.md', renderer: 'packages-table' }],
+    regions: [
+      { id: 'packages-table', file: 'overview/monorepo-layout.md', renderer: 'packages-table' },
+    ],
     sections: {
-      order: ['overview', 'architecture', 'packages', 'conventions', 'process', 'examples', 'reference'],
+      order: [
+        'overview',
+        'architecture',
+        'packages',
+        'conventions',
+        'process',
+        'examples',
+        'reference',
+      ],
       labels: {
         overview: 'Overview',
         architecture: 'Architecture',
@@ -62,10 +76,12 @@ export default {
       copy: {
         en: {
           heading: 'Understand IGNIS, one concept at a time.',
-          tagline: 'The IGNIS framework, end to end - packages, architecture, conventions, process and examples.',
+          tagline:
+            'The IGNIS framework, end to end - packages, architecture, conventions, process and examples.',
           sectionDescriptions: {
             overview: 'Start here - what IGNIS is and how to work in it.',
-            architecture: 'How the pieces fit: DI, lifecycle, repositories, and cross-cutting design.',
+            architecture:
+              'How the pieces fit: DI, lifecycle, repositories, and cross-cutting design.',
             packages: 'The published framework packages.',
             conventions: 'How the code is written - patterns, style, and gotchas.',
             process: 'How the team works - build, test, release, git.',
