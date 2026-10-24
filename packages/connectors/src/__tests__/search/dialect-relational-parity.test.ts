@@ -140,7 +140,7 @@ interface IDialectUnderTest {
 
 /** All three, for the semantic cases where every dialect must agree regardless of capability. */
 const DIALECTS: IDialectUnderTest[] = [
-  { name: 'relational', compile: where => relationalOutcome(where) },
+  { name: 'relational', compile: (where) => relationalOutcome(where) },
   ...SEARCH_DIALECTS.map(({ name, dialect }) => ({
     name,
     compile: (where: TWhere) => searchOutcome(dialect, where),
@@ -249,7 +249,7 @@ describe('search <-> relational parity - absorbing semantics (no engine may opt 
 
       expectMatchesNothing(
         dialect.compile({
-          and: [{ status: 'published' }, { or: permittedOrgIds.map(orgId => ({ orgId })) }],
+          and: [{ status: 'published' }, { or: permittedOrgIds.map((orgId) => ({ orgId })) }],
         }),
         dialect.name,
       );

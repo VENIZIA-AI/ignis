@@ -202,7 +202,7 @@ describe('Storage Path Validation', () => {
       const objectName = 'photos/2024/my file.jpg';
       const encoded = objectName
         .split('/')
-        .map(s => encodeURIComponent(s))
+        .map((s) => encodeURIComponent(s))
         .join('/');
       expect(encoded).toBe('photos/2024/my%20file.jpg');
       expect(encoded).not.toContain('%2F'); // No encoded slashes
@@ -212,7 +212,7 @@ describe('Storage Path Validation', () => {
       const encoded = 'photos/2024/my%20file.jpg';
       const decoded = encoded
         .split('/')
-        .map(s => decodeURIComponent(s))
+        .map((s) => decodeURIComponent(s))
         .join('/');
       expect(decoded).toBe('photos/2024/my file.jpg');
     });
@@ -222,16 +222,16 @@ describe('Storage Path Validation', () => {
       // First encode
       const encoded1 = objectName
         .split('/')
-        .map(s => encodeURIComponent(s))
+        .map((s) => encodeURIComponent(s))
         .join('/');
       // Decode and re-encode should be idempotent
       const decoded = encoded1
         .split('/')
-        .map(s => decodeURIComponent(s))
+        .map((s) => decodeURIComponent(s))
         .join('/');
       const encoded2 = decoded
         .split('/')
-        .map(s => encodeURIComponent(s))
+        .map((s) => encodeURIComponent(s))
         .join('/');
       expect(encoded1).toBe(encoded2);
     });
@@ -240,7 +240,7 @@ describe('Storage Path Validation', () => {
       const objectName = 'my project/sub folder/file (1).jpg';
       const encoded = objectName
         .split('/')
-        .map(s => encodeURIComponent(s))
+        .map((s) => encodeURIComponent(s))
         .join('/');
       expect(encoded).toBe('my%20project/sub%20folder/file%20(1).jpg');
     });

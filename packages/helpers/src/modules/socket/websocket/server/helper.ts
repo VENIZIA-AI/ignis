@@ -638,7 +638,7 @@ export class WebSocketServerHelper<
 
     Promise.resolve()
       .then(() => this.authenticateFn((payload ?? {}) as AuthDataType))
-      .then(async result => {
+      .then(async (result) => {
         // Re-validate client still exists (may have disconnected during async auth)
         if (!this.clients.has(clientId)) {
           logger.warn('Client disconnected during authentication | id: %s', clientId);
@@ -749,7 +749,7 @@ export class WebSocketServerHelper<
             }),
         });
       })
-      .catch(error => {
+      .catch((error) => {
         logger.error('Authentication error | id: %s | error: %s', clientId, error);
         this.sendToClient({
           clientId,
@@ -775,7 +775,7 @@ export class WebSocketServerHelper<
 
     const INTERNAL_PREFIX = 'ws:';
     const MAX_ROOM_NAME_LENGTH = 256;
-    const sanitizedRooms = rooms.filter(r => {
+    const sanitizedRooms = rooms.filter((r) => {
       return (
         typeof r === 'string' &&
         r.length > 0 &&
@@ -821,7 +821,7 @@ export class WebSocketServerHelper<
 
         logger.info('Joined rooms | id: %s | rooms: %j', clientId, allowedRooms);
       })
-      .catch(error => {
+      .catch((error) => {
         logger.error(
           'Failed to join rooms | id: %s | rooms: %j | error: %s',
           clientId,
@@ -846,7 +846,7 @@ export class WebSocketServerHelper<
     }
 
     // Only leave rooms the client has actually joined - prevents unsubscribing from internal topics
-    const validRooms = rooms.filter(r => client.rooms.has(r));
+    const validRooms = rooms.filter((r) => client.rooms.has(r));
     if (!validRooms.length) {
       return;
     }

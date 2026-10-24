@@ -76,7 +76,7 @@ class EchoController extends BaseRestController {
     }).to({
       handler: async (context: TRouteContext) => {
         const { files } = await parseMultipartBody({ context });
-        return context.json({ names: files.map(file => file.originalname) }, 200);
+        return context.json({ names: files.map((file) => file.originalname) }, 200);
       },
     });
   }

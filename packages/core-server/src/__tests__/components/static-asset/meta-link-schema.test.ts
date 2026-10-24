@@ -47,7 +47,7 @@ const metaLinkColumns = () => ({
 
 @model({ type: 'entity', skipMigrate: true })
 class NamespacedMetaLinkModel extends BaseRelationalEntity<typeof NamespacedMetaLinkModel.schema> {
-  static override schema = applicationSchema.table('MetaLink', metaLinkColumns(), def => [
+  static override schema = applicationSchema.table('MetaLink', metaLinkColumns(), (def) => [
     index('IDX_Namespaced_MetaLink_bucketName').on(def.bucketName),
   ]);
 }

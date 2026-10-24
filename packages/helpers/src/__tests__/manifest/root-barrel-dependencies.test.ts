@@ -18,7 +18,7 @@ const packageNameOf = (specifier: string): string => {
 const resolveRelative = (opts: { from: string; specifier: string }): string | undefined => {
   const base = resolve(dirname(opts.from), opts.specifier);
   const candidates = [base, `${base}.ts`, resolve(base, 'index.ts')];
-  return candidates.find(candidate => candidate.endsWith('.ts') && existsSync(candidate));
+  return candidates.find((candidate) => candidate.endsWith('.ts') && existsSync(candidate));
 };
 
 /** Every bare package the root barrel loads at import time, following relative imports transitively. */
@@ -36,7 +36,7 @@ const collectLoadTimePackages = (opts: { entry: string }): Set<string> => {
 
     const source = readFileSync(file, 'utf8');
     const specifiers = [...source.matchAll(STATIC_SPECIFIER), ...source.matchAll(BARE_IMPORT)].map(
-      match => match[1],
+      (match) => match[1],
     );
 
     for (const specifier of specifiers) {
@@ -69,7 +69,7 @@ describe('helpers manifest - the root barrel declares everything it loads', () =
     ]);
 
     const loaded = collectLoadTimePackages({ entry: ROOT_BARREL });
-    const undeclared = [...loaded].filter(name => !declared.has(name)).sort();
+    const undeclared = [...loaded].filter((name) => !declared.has(name)).sort();
 
     expect(loaded.size).toBeGreaterThan(2);
     expect(undeclared).toEqual([]);

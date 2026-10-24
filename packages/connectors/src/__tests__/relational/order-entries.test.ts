@@ -93,7 +93,7 @@ const pgDialect = new PgDialect();
 const postgresQueryDialect = new PostgresQueryDialect();
 
 const compilePostgres = (entries: SQL[]): string[] =>
-  entries.map(entry => pgDialect.sqlToQuery(entry).sql);
+  entries.map((entry) => pgDialect.sqlToQuery(entry).sql);
 
 const captureError = (task: () => unknown): ApplicationError => {
   try {
@@ -225,7 +225,7 @@ describe('toOrderBy - expressions', () => {
 
   test.each([['constructor'], ['__proto__'], ['toString'], ['hasOwnProperty']])(
     'a key %p inherited by the expressions object is an unknown column, not a resolved one',
-    key => {
+    (key) => {
       const error = captureError(() =>
         toPostgresOrderByWithExpressions([`${key} ASC`], pgExpressions),
       );
@@ -361,7 +361,7 @@ describe('toOrderBy - runtime order on PGlite', () => {
       .innerJoin(pgGroups, eq(pgItems.groupId, pgGroups.id))
       .orderBy(...order);
 
-    return rows.map(row => row.id);
+    return rows.map((row) => row.id);
   };
 
   beforeAll(async () => {
@@ -437,7 +437,7 @@ describe('toOrderBy - runtime order on libsql', () => {
       .innerJoin(sqliteGroups, eq(sqliteItems.groupId, sqliteGroups.id))
       .orderBy(...order);
 
-    return rows.map(row => row.id);
+    return rows.map((row) => row.id);
   };
 
   beforeAll(async () => {
@@ -463,7 +463,7 @@ describe('toOrderBy - runtime order on libsql', () => {
 
   test('the compiled list ends in exactly one id tie-breaker', () => {
     const compiled = toSqliteOrderByWithExpressions(['groupLabel ASC', 'displayName DESC']).map(
-      entry => sqliteDialect.sqlToQuery(entry).sql,
+      (entry) => sqliteDialect.sqlToQuery(entry).sql,
     );
 
     expect(compiled).toEqual([

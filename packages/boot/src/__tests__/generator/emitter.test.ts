@@ -70,11 +70,11 @@ describe('ArtifactIndexEmitter', () => {
       outFile: join(ROOT, 'generated', 'artifacts.ts'),
       exportName: 'GeneratedArtifacts',
       command: { root: 'src', out: 'src/generated/artifacts.ts' },
-      artifacts: names.map(name => artifact('repository', name, `repositories/${name}.ts`)),
+      artifacts: names.map((name) => artifact('repository', name, `repositories/${name}.ts`)),
     });
 
     expect(content).toContain(
-      ['  repositories: [', ...names.map(name => `    ${name},`), '  ],'].join('\n'),
+      ['  repositories: [', ...names.map((name) => `    ${name},`), '  ],'].join('\n'),
     );
     expect(content).toContain('  services: [],');
   });

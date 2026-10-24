@@ -28,7 +28,7 @@ const buildRepository = () => {
 /** The permission-scope shape, spelled the way application code spells it. */
 const emptyPermissionScope = () => {
   const permittedIds: string[] = [];
-  return { or: permittedIds.map(id => ({ id })) };
+  return { or: permittedIds.map((id) => ({ id })) };
 };
 
 describe('absorbing filter - read path', () => {

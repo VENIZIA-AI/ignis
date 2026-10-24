@@ -32,7 +32,7 @@ describe('uuidV4 - getRandomValues fallback', () => {
     const generate = buildFallback();
     const ids = Array.from({ length: 10_000 }, () => generate());
 
-    expect(ids.filter(id => !UUID_V4.test(id))).toEqual([]);
+    expect(ids.filter((id) => !UUID_V4.test(id))).toEqual([]);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
@@ -47,7 +47,7 @@ describe('uuidV4 - getRandomValues fallback', () => {
         continue;
       }
 
-      const seen = new Set(ids.map(id => id[position]));
+      const seen = new Set(ids.map((id) => id[position]));
       const floor = position === 16 ? 4 : 16;
       if (seen.size < floor) {
         constantPositions.push(position);

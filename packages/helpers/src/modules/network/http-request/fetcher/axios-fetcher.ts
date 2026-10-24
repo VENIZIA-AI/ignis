@@ -68,7 +68,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
       params,
       data,
       headers,
-      paramsSerializer: { serialize: p => stringify(p) },
+      paramsSerializer: { serialize: (p) => stringify(p) },
       ...rest,
     };
 

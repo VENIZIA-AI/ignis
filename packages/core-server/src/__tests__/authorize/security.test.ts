@@ -253,7 +253,7 @@ describe('Security Tests', () => {
     test('should handle concurrent middleware executions without cross-contamination', async () => {
       setupSecurityTest({
         loadRulesFn: async ({ user }) => {
-          await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 10));
           if (user.userId === 'admin') {
             return [{ action: 'delete', resource: 'User', effect: 'allow' as const }];
           }

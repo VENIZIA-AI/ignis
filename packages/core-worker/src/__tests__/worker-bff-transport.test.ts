@@ -19,7 +19,7 @@ type TMessageListener = (event: MessageEvent) => void;
  * always runs after the microtask queue has fully drained, regardless of how many `await` levels
  * are stacked ahead of it, which is what makes this reliable instead of tick-counting.
  */
-const flushMicrotasks = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0));
+const flushMicrotasks = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 /**
  * Answers what a promise DID within a window, so a test can assert "this settled" without hanging
@@ -37,7 +37,7 @@ const settleWithin = async (opts: {
       () => 'resolved' as const,
       () => 'rejected' as const,
     ),
-    new Promise<'pending'>(resolve => setTimeout(() => resolve('pending'), timeoutMs)),
+    new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), timeoutMs)),
   ]);
 };
 
@@ -430,7 +430,7 @@ const TRANSPORT_SOURCE = path.resolve(__dirname, '..', 'transport', 'worker.ts')
 const lastJsonLine = (opts: { output: string }): string =>
   opts.output
     .split('\n')
-    .filter(line => line.startsWith('{'))
+    .filter((line) => line.startsWith('{'))
     .at(-1) ?? '{}';
 
 describe('WorkerBffTransport outside a secure context', () => {

@@ -40,7 +40,7 @@ for (const path of paths) {
     test('RFC 9562 version 7 shape: version nibble 7, variant 10xx, lowercase hex', () => {
       const ids = generateMany({ generator: path.build(), count: 1000 });
 
-      expect(ids.filter(id => !UUID_V7.test(id))).toEqual([]);
+      expect(ids.filter((id) => !UUID_V7.test(id))).toEqual([]);
     });
 
     // A burst borrows the next millisecond when the 4096-step counter runs out, so an id minted

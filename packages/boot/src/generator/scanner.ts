@@ -45,10 +45,10 @@ export class ArtifactScanner extends BaseHelper {
     const skipped: IScanSkipped[] = [];
 
     const artifacts = this.sortArtifacts(
-      kept.flatMap(filePath => this.scanFile({ filePath, sourceModules, resolver, skipped })),
+      kept.flatMap((filePath) => this.scanFile({ filePath, sourceModules, resolver, skipped })),
     );
     const ignored = this.sortArtifacts(
-      hidden.flatMap(filePath => this.scanHiddenFile({ filePath, sourceModules, resolver })),
+      hidden.flatMap((filePath) => this.scanHiddenFile({ filePath, sourceModules, resolver })),
     );
     for (const artifact of ignored) {
       skipped.push({
@@ -95,11 +95,13 @@ export class ArtifactScanner extends BaseHelper {
     for (const relative of sources) {
       if (
         relative.endsWith('.d.ts') ||
-        opts.defaultGlobs.some(pattern => matchesGlob(relative, pattern))
+        opts.defaultGlobs.some((pattern) => matchesGlob(relative, pattern))
       ) {
         continue;
       }
-      const target = opts.userGlobs.some(pattern => matchesGlob(relative, pattern)) ? hidden : kept;
+      const target = opts.userGlobs.some((pattern) => matchesGlob(relative, pattern))
+        ? hidden
+        : kept;
       target.push(join(opts.root, relative));
     }
 
@@ -133,7 +135,7 @@ export class ArtifactScanner extends BaseHelper {
     const exportedNames = this.collectExportClauseNames({ source });
     const found: IScannedArtifact[] = [];
 
-    ts.forEachChild(source, node => {
+    ts.forEachChild(source, (node) => {
       if (!ts.isClassDeclaration(node) || !node.name) {
         return;
       }
@@ -155,7 +157,7 @@ export class ArtifactScanner extends BaseHelper {
       }
 
       const modifiers = ts.getModifiers(node) ?? [];
-      const has = (kind: ts.SyntaxKind): boolean => modifiers.some(m => m.kind === kind);
+      const has = (kind: ts.SyntaxKind): boolean => modifiers.some((m) => m.kind === kind);
       const isNamedExport =
         (has(ts.SyntaxKind.ExportKeyword) && !has(ts.SyntaxKind.DefaultKeyword)) ||
         exportedNames.has(className);
@@ -345,8 +347,8 @@ export class ArtifactScanner extends BaseHelper {
 
   private asArtifactType(opts: { raw: string }): TArtifactType | undefined {
     const { raw } = opts;
-    return ArtifactStereotypes.EMIT_ORDER.map(entry => entry.type)
+    return ArtifactStereotypes.EMIT_ORDER.map((entry) => entry.type)
       .concat(ArtifactTypes.MODEL)
-      .find(type => type === raw);
+      .find((type) => type === raw);
   }
 }

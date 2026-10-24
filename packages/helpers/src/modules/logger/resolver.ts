@@ -59,10 +59,10 @@ class ResolvedLogger extends AbstractLogger {
 /** The only logger code `BaseHelper` reaches, so this module must stay free of node imports - `BaseHelper` sits under every base class in the framework. */
 export class LoggerResolver {
   /** Declared before `active` because static field initialisers run in declaration order. */
-  private static readonly consoleResolver: TLoggerResolver = opts => {
+  private static readonly consoleResolver: TLoggerResolver = (opts) => {
     // Warned here, on the first line actually routed to the console, not when a helper merely acquires its logger: a script that imports the barrel and installs a provider before logging must stay silent.
     LoggerResolver.warnConsoleFallbackOnce();
-    return ConsoleLogger.get({ scope: opts.scopes.filter(el => el && el.length > 0).join('-') });
+    return ConsoleLogger.get({ scope: opts.scopes.filter((el) => el && el.length > 0).join('-') });
   };
 
   private static active: TLoggerResolver = this.consoleResolver;
@@ -120,4 +120,4 @@ export class LoggerResolver {
 // graph carrying `LoggerFactory` does - is what upgrades every helper from the console fallback,
 // including helpers constructed before it loaded: the logger is resolved on first use, not in the
 // constructor.
-loggerSlot.resolve = opts => LoggerResolver.resolve({ scopes: opts.scopes });
+loggerSlot.resolve = (opts) => LoggerResolver.resolve({ scopes: opts.scopes });

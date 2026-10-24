@@ -147,10 +147,10 @@ describe('typesense-search', () => {
     async () => {
       const result = await searchUntil({
         body: { mode: 'keyword', query: 'TypeScript', queryBy: ['title', 'content'] },
-        predicate: rs => rs.hits.some(hit => hit.document.id === typescriptId),
+        predicate: (rs) => rs.hits.some((hit) => hit.document.id === typescriptId),
       });
 
-      expect(result.hits.map(hit => hit.document.id)).not.toContain(draftId);
+      expect(result.hits.map((hit) => hit.document.id)).not.toContain(draftId);
     },
   );
 
@@ -164,10 +164,10 @@ describe('typesense-search', () => {
           queryBy: ['title'],
           filter: { where: { category: 'company' } },
         },
-        predicate: rs => rs.hits.some(hit => hit.document.id === draftId),
+        predicate: (rs) => rs.hits.some((hit) => hit.document.id === draftId),
       });
 
-      expect(result.hits.map(hit => hit.document.id)).not.toContain(typescriptId);
+      expect(result.hits.map((hit) => hit.document.id)).not.toContain(typescriptId);
     },
   );
 

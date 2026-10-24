@@ -71,7 +71,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
     if (options?.delay && options.delay > 0) {
       const timeout = setTimeout(() => {
-        this.queue.enqueue(job).catch(error => {
+        this.queue.enqueue(job).catch((error) => {
           this.logger
             .for(this.enqueueVerificationEmail.name)
             .error('Failed to enqueue delayed job | jobId: %s | error: %s', jobId, error);
@@ -158,7 +158,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
           );
 
         const timeout = setTimeout(() => {
-          this.queue.enqueue(job).catch(reenqueueError => {
+          this.queue.enqueue(job).catch((reenqueueError) => {
             this.logger
               .for(this.processJob.name)
               .error('Failed to re-enqueue job | jobId: %s | error: %s', job.id, reenqueueError);

@@ -24,7 +24,7 @@ import { injectable, pickRegistrationOptions } from './injectable';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
-  return target => {
+  return (target) => {
     injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
 
     const defaultLimit = metadata.settings?.defaultLimit;
@@ -55,7 +55,7 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 
 /** Registers a datasource with driver and auto-discovery settings. */
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
-  return target => {
+  return (target) => {
     injectable({
       type: ArtifactTypes.DATASOURCE,
       ...pickRegistrationOptions({ metadata: metadata ?? {} }),
@@ -150,7 +150,7 @@ const registerDataSourceInjection = (opts: {
     MetadataKeys.INJECT,
     target,
   );
-  const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
+  const injectAtIndex0 = ownInjects?.find((entry) => entry?.index === 0);
 
   if (injectAtIndex0) {
     // `@inject({ target })` carries no key; read the one recorded on the class. The function form
@@ -318,7 +318,7 @@ export const repository = <
 >(
   metadata?: TRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
-  return target => {
+  return (target) => {
     const registry = MetadataRegistry.getInstance();
     if (!metadata) {
       applyRepositoryMetadata({

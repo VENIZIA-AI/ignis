@@ -549,9 +549,9 @@ const adapterFor = (opts: {
   }>;
   catalog: Array<{ subject: string; method: string; code: string; action: string }>;
 }) => {
-  const catalogByCode = new Map(opts.catalog.map(entry => [entry.code, entry]));
+  const catalogByCode = new Map(opts.catalog.map((entry) => [entry.code, entry]));
 
-  const grantQueryRows = opts.grantRows.map(row => {
+  const grantQueryRows = opts.grantRows.map((row) => {
     const catalogEntry = catalogByCode.get(String(row.targetId));
     if (catalogEntry) {
       return {
@@ -567,7 +567,7 @@ const adapterFor = (opts: {
     }
 
     const resourceSubject =
-      opts.catalog.find(entry => row.metadata?.ops.includes(entry.method))?.subject ?? '';
+      opts.catalog.find((entry) => row.metadata?.ops.includes(entry.method))?.subject ?? '';
 
     return {
       subjectId: row.subjectId,

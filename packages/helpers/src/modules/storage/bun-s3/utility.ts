@@ -21,7 +21,7 @@ const hmacSHA256 = async (opts: {
 
 const toHex = (opts: { bytes: Uint8Array }): string =>
   Array.from(opts.bytes)
-    .map(byte => byte.toString(16).padStart(2, '0'))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
 
 const sha256Hex = async (opts: { data: string }): Promise<string> => {
@@ -33,14 +33,14 @@ const sha256Hex = async (opts: { data: string }): Promise<string> => {
 const encodeSigV4Component = (opts: { value: string }): string =>
   encodeURIComponent(opts.value).replace(
     /[!'()*]/g,
-    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 
 /** Signing the raw path answers 403 SignatureDoesNotMatch, because `fetch` encodes it on the wire. Separators stay literal. */
 const encodeSigV4Path = (opts: { path: string }): string =>
   opts.path
     .split('/')
-    .map(segment => encodeSigV4Component({ value: segment }))
+    .map((segment) => encodeSigV4Component({ value: segment }))
     .join('/');
 
 /** `x-amz-copy-source`: S3 URL-decodes it once and splits `?versionId=` off, so a raw `?`, `%` or `+` names another object and a non-Latin-1 key is not a legal header value. */
@@ -61,7 +61,7 @@ const buildCanonicalQueryString = (query?: Record<string, string>): string => {
   return keys
     .sort()
     .map(
-      key =>
+      (key) =>
         `${encodeSigV4Component({ value: key })}=${encodeSigV4Component({ value: query[key] })}`,
     )
     .join('&');
@@ -140,7 +140,7 @@ export async function buildSignedRequest(opts: {
   }
 
   const sortedKeys = Object.keys(canonicalHeadersMap).sort();
-  const canonicalHeaders = sortedKeys.map(k => `${k}:${canonicalHeadersMap[k]}\n`).join('');
+  const canonicalHeaders = sortedKeys.map((k) => `${k}:${canonicalHeadersMap[k]}\n`).join('');
   const signedHeaders = sortedKeys.join(';');
 
   const canonicalRequest = [
@@ -383,7 +383,7 @@ export async function buildPresignedUrl(opts: {
     method,
     canonicalPath,
     canonicalQueryString,
-    sortedKeys.map(key => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
+    sortedKeys.map((key) => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
     signedHeaders,
     'UNSIGNED-PAYLOAD',
   ].join('\n');

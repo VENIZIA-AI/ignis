@@ -83,7 +83,7 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client.on('connect', () => {
       logger.info('Connected | id: %s', this.identifier);
 
-      Promise.resolve(this.onConnected?.()).catch(error => {
+      Promise.resolve(this.onConnected?.()).catch((error) => {
         logger.error('onConnected callback error | error: %s', error);
       });
     });
@@ -92,7 +92,7 @@ export class SocketIOClientHelper extends BaseHelper {
       logger.info('Disconnected | id: %s | reason: %s', this.identifier, reason);
       this.state = SocketIOClientStates.UNAUTHORIZED;
 
-      Promise.resolve(this.onDisconnected?.(reason)).catch(error => {
+      Promise.resolve(this.onDisconnected?.(reason)).catch((error) => {
         logger.error('onDisconnected callback error | error: %s', error);
       });
     });
@@ -100,7 +100,7 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client.on('connect_error', (error: Error) => {
       logger.error('Connection error | id: %s | error: %s', this.identifier, error);
 
-      Promise.resolve(this.onError?.(error)).catch(err => {
+      Promise.resolve(this.onError?.(error)).catch((err) => {
         logger.error('onError callback error | error: %s', err);
       });
     });
@@ -109,7 +109,7 @@ export class SocketIOClientHelper extends BaseHelper {
       logger.info('Authenticated | id: %s | data: %j', this.identifier, data);
       this.state = SocketIOClientStates.AUTHENTICATED;
 
-      Promise.resolve(this.onAuthenticated?.()).catch(error => {
+      Promise.resolve(this.onAuthenticated?.()).catch((error) => {
         logger.error('onAuthenticated callback error | error: %s', error);
       });
     });
@@ -118,7 +118,7 @@ export class SocketIOClientHelper extends BaseHelper {
       logger.warn('Unauthenticated | id: %s | data: %j', this.identifier, data);
       this.state = SocketIOClientStates.UNAUTHORIZED;
 
-      Promise.resolve(this.onUnauthenticated?.(data?.message ?? '')).catch(error => {
+      Promise.resolve(this.onUnauthenticated?.(data?.message ?? '')).catch((error) => {
         logger.error('onUnauthenticated callback error | error: %s', error);
       });
     });
@@ -171,7 +171,7 @@ export class SocketIOClientHelper extends BaseHelper {
     // Wrap handler in try-catch for error safety (catches both sync throws and async rejections)
     const wrappedHandler = (data: T) => {
       try {
-        Promise.resolve(handler(data)).catch(error => {
+        Promise.resolve(handler(data)).catch((error) => {
           logger.error('Handler error | event: %s | error: %s', event, error);
         });
       } catch (error) {

@@ -33,7 +33,7 @@ class HelloController extends BaseRestController {
           schema: z.object({ message: z.string() }),
         }),
       },
-      handler: context => {
+      handler: (context) => {
         helloHandlerRunCount += 1;
         return context.json({ message: 'hello from the worker' }, 200);
       },
@@ -75,7 +75,7 @@ class FakeWorkerScope implements IWorkerMessageScope {
   }
 }
 
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Polls instead of racing a fixed delay: a passing run costs one tick, a failing one still ends. */
 const waitFor = async (opts: { condition: () => boolean; timeoutMs: number }): Promise<boolean> => {
@@ -134,11 +134,11 @@ describe('WorkerApplication.listen()', () => {
 
     await app.listen({ scope: port1 });
 
-    const received = new Promise<IBffResponseEnvelope>(resolve => {
+    const received = new Promise<IBffResponseEnvelope>((resolve) => {
       // Left uninferred deliberately: `MessagePort`'s own `addEventListener` overloads resolve to a
       // slightly different `MessageEvent` type than the ambient global one, and an explicit
       // annotation here forces a mismatch between the two that inference alone avoids.
-      port2.addEventListener('message', event => {
+      port2.addEventListener('message', (event) => {
         resolve(event.data as IBffResponseEnvelope);
       });
       port2.start();
@@ -231,7 +231,7 @@ describe('WorkerApplication.listen() - the boot window', () => {
       true,
     );
 
-    const answeredIds = (scope.posted as IBffResponseEnvelope[]).map(response => response.id);
+    const answeredIds = (scope.posted as IBffResponseEnvelope[]).map((response) => response.id);
     expect(answeredIds).toEqual(['boot-window-a', 'boot-window-b', 'boot-window-c']);
     expect(helloHandlerRunCount).toBe(3);
   });

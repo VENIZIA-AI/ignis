@@ -155,7 +155,7 @@ const resolveTemplate = (opts: {
 };
 
 const listFiles = (opts: { dir: string; folder: string }): string[] =>
-  [...new Glob('**/*').scanSync({ cwd: join(opts.dir, opts.folder), dot: true })].map(path =>
+  [...new Glob('**/*').scanSync({ cwd: join(opts.dir, opts.folder), dot: true })].map((path) =>
     join(opts.folder, path),
   );
 
@@ -187,7 +187,7 @@ const writeKind = (opts: {
 
   return [
     join(opts.kind, 'preset.json'),
-    ...listFiles({ dir: kindDir, folder: FILES_FOLDER }).map(path => join(opts.kind, path)),
+    ...listFiles({ dir: kindDir, folder: FILES_FOLDER }).map((path) => join(opts.kind, path)),
   ];
 };
 

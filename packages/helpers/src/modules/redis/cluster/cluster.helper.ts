@@ -12,7 +12,7 @@ export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   constructor(opts: IRedisClusterHelperOptions) {
     const { autoConnect = true } = opts;
 
-    const startupNodes = opts.nodes.map(node => ({
+    const startupNodes = opts.nodes.map((node) => ({
       host: node.host,
       port: int(node.port),
       password: node.password,

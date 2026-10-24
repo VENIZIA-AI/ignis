@@ -43,7 +43,7 @@ describe('a v7 generator ignores whatever it is called with', () => {
   for (const { name, generator } of v7Generators) {
     test(`${name} - still a current v7 string`, () => {
       const before = Date.now();
-      const ids = STRAY_ARGUMENTS.map(args => callWith({ generator, args }));
+      const ids = STRAY_ARGUMENTS.map((args) => callWith({ generator, args }));
       const after = Date.now();
 
       for (const id of ids) {
@@ -60,7 +60,7 @@ describe('a v7 generator ignores whatever it is called with', () => {
     const fromArray = Array.from({ length: 3 }, uuidV7);
     const mapped = ['a', 'b'].map(uuidV7);
 
-    expect([...fromArray, ...mapped].every(id => UUID_V7.test(id))).toBe(true);
+    expect([...fromArray, ...mapped].every((id) => UUID_V7.test(id))).toBe(true);
   });
 });
 
@@ -79,7 +79,7 @@ describe('an older helpers version already holding the v7 slot', () => {
     const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
     const report: { ids: Array<string>; current: boolean } = JSON.parse(run.stdout.toString());
 
-    expect(report.ids.every(id => UUID_V7.test(id))).toBe(true);
+    expect(report.ids.every((id) => UUID_V7.test(id))).toBe(true);
     expect(report.current).toBe(true);
   });
 });
@@ -111,7 +111,7 @@ describe('an older helpers version already holding a UuidHelper instance', () =>
 describe('a v4 generator ignores whatever it is called with', () => {
   for (const { name, generator } of v4Generators) {
     test(`${name} - still a v4 string`, () => {
-      const ids = STRAY_ARGUMENTS.map(args => callWith({ generator, args }));
+      const ids = STRAY_ARGUMENTS.map((args) => callWith({ generator, args }));
 
       for (const id of ids) {
         expect(typeof id).toBe('string');
@@ -145,11 +145,11 @@ describe('the native v4 path never forwards an argument', () => {
     Object.defineProperty(crypto, 'randomUUID', { value: strict, configurable: true });
 
     const generate = createUuidV4();
-    const ids = STRAY_ARGUMENTS.map(args => callWith({ generator: generate, args }));
+    const ids = STRAY_ARGUMENTS.map((args) => callWith({ generator: generate, args }));
 
     expect(prototypeRandomUuid).toBeDefined();
     expect(received.length).toBe(STRAY_ARGUMENTS.length);
-    expect(received.every(count => count === 0)).toBe(true);
-    expect(ids.every(id => id === '00000000-0000-4000-8000-000000000000')).toBe(true);
+    expect(received.every((count) => count === 0)).toBe(true);
+    expect(ids.every((id) => id === '00000000-0000-4000-8000-000000000000')).toBe(true);
   });
 });

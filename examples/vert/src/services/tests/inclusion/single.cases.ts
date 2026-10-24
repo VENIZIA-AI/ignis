@@ -165,7 +165,7 @@ export class SingleCases extends BaseTestCases {
           fields: ['id'],
         },
       });
-      const testProductIds = testProducts.map(p => p.id);
+      const testProductIds = testProducts.map((p) => p.id);
 
       // Find junction records only for our test products
       const allRelations = await saleChannelProductRepo.find({

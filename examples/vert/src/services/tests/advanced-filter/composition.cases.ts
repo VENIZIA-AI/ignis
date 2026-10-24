@@ -32,7 +32,7 @@ export class CompositionCases extends BaseTestCases {
         this.context.logger.error('[LOGIC] FAILED | Expected 2 records, got %d', results.length);
         this.context.logger.error(
           'Results: %j',
-          results.map(r => ({ n: r.nValue, t: r.tValue })),
+          results.map((r) => ({ n: r.nValue, t: r.tValue })),
         );
       }
     } catch (e) {

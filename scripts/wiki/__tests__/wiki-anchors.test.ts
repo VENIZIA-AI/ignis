@@ -83,22 +83,22 @@ describe('AnchorCheck', () => {
   });
 
   test('accepts an id VitePress emits but a GitHub slugifier would not', () => {
-    expect(broken.map(entry => entry.target)).not.toContain('#construction-sentinel');
+    expect(broken.map((entry) => entry.target)).not.toContain('#construction-sentinel');
   });
 
   test('reports a dead fragment on an existing page, with its line', () => {
-    const dead = broken.find(entry => entry.target === '#no-such-heading');
+    const dead = broken.find((entry) => entry.target === '#no-such-heading');
     expect(dead?.reason).toBe('dead anchor');
     expect(dead?.line).toBe(4);
   });
 
   test('reports a link to a page that does not exist', () => {
-    const missing = broken.find(entry => entry.target === '/nope#api');
+    const missing = broken.find((entry) => entry.target === '/nope#api');
     expect(missing?.reason).toBe('missing page');
   });
 
   test('resolves relative, parent-relative and absolute targets', () => {
-    const targets = broken.map(entry => entry.target);
+    const targets = broken.map((entry) => entry.target);
     expect(targets).not.toContain('./index.md#overview');
     expect(targets).not.toContain('../reference.md#api');
     expect(targets).not.toContain('/reference#api');

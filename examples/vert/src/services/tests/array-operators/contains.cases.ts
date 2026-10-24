@@ -111,7 +111,7 @@ export class ContainsCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const names = results.map(r => r.name).sort();
+        const names = results.map((r) => r.name).sort();
         if (names.includes('Product A') && names.includes('Product C')) {
           this.context.logger.info('[CASE 3] PASSED | Found 2 products with featured tag');
           this.context.logger.info('[CASE 3] Products: %j', names);
@@ -181,7 +181,7 @@ export class ContainsCases extends BaseTestCases {
       // Product B: [electronics, premium] ⊆ superset ✓
       // Product E: [] ⊆ superset ✓ (empty is subset of everything)
       if (results.length === 3) {
-        const names = results.map(r => r.name).sort();
+        const names = results.map((r) => r.name).sort();
         this.context.logger.info('[CASE 5] PASSED | Found 3 products that are subsets');
         this.context.logger.info('[CASE 5] Products: %j', names);
       } else {
@@ -191,7 +191,7 @@ export class ContainsCases extends BaseTestCases {
         );
         this.context.logger.error(
           '[CASE 5] Products: %j',
-          results.map(r => ({ name: r.name, tags: r.tags })),
+          results.map((r) => ({ name: r.name, tags: r.tags })),
         );
       }
     } catch (error) {

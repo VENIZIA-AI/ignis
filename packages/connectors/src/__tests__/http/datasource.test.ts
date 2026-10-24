@@ -76,7 +76,7 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
 
     await dataSource.read({ paths: ['tickets'] });
 
-    expect(attempts.map(attempt => attempt.headers['x-auth-provider'])).toEqual([
+    expect(attempts.map((attempt) => attempt.headers['x-auth-provider'])).toEqual([
       'keycloak',
       'keycloak',
     ]);
@@ -168,7 +168,7 @@ describe('the recovery hook decides, not the transport', () => {
 
     await dataSource.read({ paths: ['tickets'] });
 
-    expect(attempts.map(attempt => attempt.headers.authorization)).toEqual([
+    expect(attempts.map((attempt) => attempt.headers.authorization)).toEqual([
       'Bearer stale',
       'Bearer refreshed',
     ]);
@@ -270,7 +270,7 @@ describe('headersResolver runs on every send', () => {
     locale = 'vi';
     await dataSource.read({ paths: ['tickets'] });
 
-    expect(attempts.map(attempt => attempt.headers['x-locale'])).toEqual(['en', 'vi']);
+    expect(attempts.map((attempt) => attempt.headers['x-locale'])).toEqual(['en', 'vi']);
   });
 
   test('the 401 retry re-runs it after the refresh', async () => {
@@ -288,7 +288,10 @@ describe('headersResolver runs on every send', () => {
 
     await dataSource.read({ paths: ['tickets'] });
 
-    expect(attempts.map(attempt => attempt.headers['x-merchant-id'])).toEqual(['before', 'after']);
+    expect(attempts.map((attempt) => attempt.headers['x-merchant-id'])).toEqual([
+      'before',
+      'after',
+    ]);
   });
 
   test("it wins over settings.headers, a call's own headers win over it, the connector wins over all", async () => {
@@ -346,15 +349,15 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      headersResolver: context => {
+      headersResolver: (context) => {
         seen.push({ hook: 'headers', context });
         return undefined;
       },
-      authTokenResolver: context => {
+      authTokenResolver: (context) => {
         seen.push({ hook: 'token', context });
         return undefined;
       },
-      onUnauthorized: context => {
+      onUnauthorized: (context) => {
         seen.push({ hook: 'unauthorized', context });
         return false;
       },
@@ -367,7 +370,7 @@ describe('the hooks are told which request they serve', () => {
       method: 'POST',
       url: 'https://api.example.com/auth/sign-in?a=1',
     };
-    expect(seen.map(entry => entry.hook)).toEqual(['token', 'headers', 'unauthorized']);
+    expect(seen.map((entry) => entry.hook)).toEqual(['token', 'headers', 'unauthorized']);
     for (const entry of seen) {
       expect(entry.context).toEqual(expected);
     }
@@ -380,8 +383,8 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: context => (isPublic(context) ? undefined : { value: 'session' }),
-      onUnauthorized: context => {
+      authTokenResolver: (context) => (isPublic(context) ? undefined : { value: 'session' }),
+      onUnauthorized: (context) => {
         if (isPublic(context)) {
           return false;
         }
@@ -404,7 +407,7 @@ describe('the hooks are told which request they serve', () => {
 
     const dataSource = new HttpDataSource({
       baseUrl: 'https://api.example.com',
-      authTokenResolver: context =>
+      authTokenResolver: (context) =>
         context.paths[0] === 'auth' ? undefined : { value: 'session' },
     });
 

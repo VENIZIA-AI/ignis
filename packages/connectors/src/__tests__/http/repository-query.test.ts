@@ -64,7 +64,7 @@ describe('an extra query rides beside the filter', () => {
     await repository.count({ where: { id: 'a' }, query: { scope: 's' } });
     await repository.existsWith({ where: { id: 'a' }, query: { scope: 's' } });
 
-    expect(calls.map(call => call.url.searchParams.get('scope'))).toEqual(['s', 's', 's', 's']);
+    expect(calls.map((call) => call.url.searchParams.get('scope'))).toEqual(['s', 's', 's', 's']);
   });
 
   test('count on a countPath carries it beside where', async () => {

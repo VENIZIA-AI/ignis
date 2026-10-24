@@ -106,7 +106,7 @@ export class RecursiveTreeSql {
     RecursiveTreeSql.assertValidIdentifier({ field: 'name', value: name });
     RecursiveTreeSql.assertValidIdentifier({ field: 'idColumn', value: idColumn });
     RecursiveTreeSql.assertValidIdentifier({ field: 'parentColumn', value: parentColumn });
-    columns.forEach(column =>
+    columns.forEach((column) =>
       RecursiveTreeSql.assertValidIdentifier({ field: 'columns', value: column }),
     );
 
@@ -137,11 +137,13 @@ export class RecursiveTreeSql {
     const cteIdentifier = sql.identifier(name);
     const idIdentifier = sql.identifier(idColumn);
     const parentIdentifier = sql.identifier(parentColumn);
-    const extraIdentifiers = columns.map(column => sql.identifier(column));
+    const extraIdentifiers = columns.map((column) => sql.identifier(column));
 
     const baseColumnList = sql.join([idIdentifier, parentIdentifier, ...extraIdentifiers], sql`, `);
     const recursiveColumnList = sql.join(
-      [idIdentifier, parentIdentifier, ...extraIdentifiers].map(identifier => sql`t.${identifier}`),
+      [idIdentifier, parentIdentifier, ...extraIdentifiers].map(
+        (identifier) => sql`t.${identifier}`,
+      ),
       sql`, `,
     );
 

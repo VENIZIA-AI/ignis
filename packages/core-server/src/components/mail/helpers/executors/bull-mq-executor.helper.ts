@@ -244,7 +244,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.workerHelpers = [];
 
     const results = await Promise.allSettled(
-      workerHelpers.map(workerHelper => workerHelper.worker.close()),
+      workerHelpers.map((workerHelper) => workerHelper.worker.close()),
     );
 
     const failures: Error[] = [];
@@ -300,7 +300,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     if (failures.length > 0) {
       throw getError({
         message: `[close] Incomplete BullMQ mail executor teardown | failures: ${failures
-          .map(failure => failure.message)
+          .map((failure) => failure.message)
           .join(' | ')}`,
       });
     }

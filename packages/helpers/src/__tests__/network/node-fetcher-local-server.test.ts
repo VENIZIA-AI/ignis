@@ -12,7 +12,7 @@ beforeAll(() => {
       const url = new URL(req.url);
 
       if (url.pathname === '/slow') {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         return new Response('late');
       }
 

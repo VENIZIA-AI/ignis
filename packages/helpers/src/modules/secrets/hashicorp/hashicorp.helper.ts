@@ -147,7 +147,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     }
     const delayMs = Math.max(0, opts.ttlSeconds * this.renewBeforeRatio * 1000);
     this.tokenTimer = this.timers.set(() => {
-      this.handleTokenRenewal().catch(error => {
+      this.handleTokenRenewal().catch((error) => {
         this.logger
           .for(this.scheduleTokenRenewal.name)
           .error('Token renewal handler crashed | error: %s', error);
@@ -167,7 +167,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
         2 ** (this.tokenRenewalRetryCount - 1),
     );
     this.tokenTimer = this.timers.set(() => {
-      this.handleTokenRenewal().catch(error => {
+      this.handleTokenRenewal().catch((error) => {
         this.logger
           .for(this.scheduleTokenRenewalRetry.name)
           .error('Token renewal retry handler crashed | error: %s', error);

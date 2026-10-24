@@ -33,8 +33,8 @@ const buildDataSource = (failOn?: string) => {
 
 /** Flattened statements/releases across every physical connection the pool ever handed out. */
 const statementsOf = (pool: FakePool): string[] =>
-  pool.clients.flatMap(client => client.statements);
-const releasesOf = (pool: FakePool) => pool.clients.flatMap(client => client.releases);
+  pool.clients.flatMap((client) => client.statements);
+const releasesOf = (pool: FakePool) => pool.clients.flatMap((client) => client.releases);
 
 describe('beginTransaction - happy path', () => {
   test('COMMIT releases the connection back to the pool, undestroyed', async () => {
@@ -275,8 +275,8 @@ describe('beginTransaction - acquisition and concurrency', () => {
 
     // One wins, the other must hit the already-ended guard - never two control
     // statements and never a double release of the same physical connection.
-    expect(outcomes.filter(outcome => outcome.status === 'fulfilled')).toHaveLength(1);
-    expect(outcomes.filter(outcome => outcome.status === 'rejected')).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome.status === 'fulfilled')).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome.status === 'rejected')).toHaveLength(1);
     // A single beginTransaction() acquires exactly ONE physical connection: the race is on
     // the two finish() calls over that one connection, not on two separate acquisitions.
     expect(pool.clients).toHaveLength(1);

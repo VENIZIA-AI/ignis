@@ -151,7 +151,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
       filter: { where: { code: { like: 'P_ADV_%' } } },
     });
     await this.saleChannelProductRepository.deleteAll({
-      where: { productId: { inq: products.map(product => product.id) } },
+      where: { productId: { inq: products.map((product) => product.id) } },
     });
     await this.saleChannelRepository.deleteAll({ where: { name: 'AdvChannel' } });
     await this.productRepository.deleteAll({ where: { code: { like: 'P_ADV_%' } } });

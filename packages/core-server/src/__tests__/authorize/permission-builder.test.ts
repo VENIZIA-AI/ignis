@@ -94,13 +94,13 @@ describe('AuthorizationPermissionBuilder.crud', () => {
     });
     expect(rows).toHaveLength(AuthorizationPermissionBuilder.DEFAULT_CRUD_METHODS.length);
 
-    const find = rows.find(r => r.method === 'find');
+    const find = rows.find((r) => r.method === 'find');
     expect(find?.code).toBe('SaleOrder.find');
     expect(find?.action).toBe(AuthorizationActions.READ);
     expect(find?.name).toBe('SaleOrder.find');
     expect(find?.description).toBeNull();
 
-    const del = rows.find(r => r.method === 'deleteById');
+    const del = rows.find((r) => r.method === 'deleteById');
     expect(del?.action).toBe(AuthorizationActions.DELETE);
   });
 

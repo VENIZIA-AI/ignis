@@ -93,11 +93,11 @@ export class ArtifactSources {
 
     const { folder } = opts;
     const ignored = opts.ignore ?? [];
-    const picked = artifacts.filter(artifact => {
+    const picked = artifacts.filter((artifact) => {
       const path = relative(packageSource, artifact.filePath);
       return (
         (folder === undefined || path.split(sep).slice(0, -1).includes(folder)) &&
-        !ignored.some(pattern => matchesGlob(path, pattern))
+        !ignored.some((pattern) => matchesGlob(path, pattern))
       );
     });
     return ArtifactSources.runningArtifacts({ artifacts: picked, from: opts.site });
@@ -127,9 +127,9 @@ export class ArtifactSources {
     const segments = relative(packageRoot, dirname(from)).split(sep);
     const tree = segments
       .map((_segment, index) => join(packageRoot, ...segments.slice(0, index + 1)))
-      .find(candidate => existsSync(compiledPath({ tree: candidate, artifact: probe })));
+      .find((candidate) => existsSync(compiledPath({ tree: candidate, artifact: probe })));
 
-    return opts.artifacts.map(artifact => {
+    return opts.artifacts.map((artifact) => {
       const compiled = tree ? compiledPath({ tree, artifact }) : undefined;
       if (!compiled || !existsSync(compiled)) {
         throw getError({

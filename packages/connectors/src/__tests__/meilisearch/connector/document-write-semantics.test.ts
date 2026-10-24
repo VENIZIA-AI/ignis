@@ -76,7 +76,7 @@ describe('MeilisearchConnector - explicit id wins over a pk-carrying patch', () 
 
     const sentIds = client.updateDocumentsCalls
       .flat()
-      .map(entry => (entry as Record<string, unknown>)['id']);
+      .map((entry) => (entry as Record<string, unknown>)['id']);
     expect(sentIds.sort()).toEqual(['2', '3']);
 
     const patchedIds = ['2', '3'];

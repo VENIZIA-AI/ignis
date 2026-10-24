@@ -47,7 +47,7 @@ const captureLoggedLines = async (opts: { environment?: string }): Promise<strin
 
   const application = new Hono();
   application.use(middleware.value());
-  application.post('/users', context => context.json({ ok: true }));
+  application.post('/users', (context) => context.json({ ok: true }));
 
   await application.request('/users', {
     method: 'POST',

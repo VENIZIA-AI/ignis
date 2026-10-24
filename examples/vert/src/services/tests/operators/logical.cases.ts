@@ -56,7 +56,7 @@ export class LogicalCases extends BaseTestCases {
       });
 
       // Should find nValue=10 (0<10<15) and nValue=50 (45<50<100)
-      const values = results.map(r => r.nValue);
+      const values = results.map((r) => r.nValue);
       if (results.length === 2 && values.includes(10) && values.includes(50)) {
         this.context.logger.info('[DEEP-NESTED] PASSED | Found records with nValue 10 and 50');
       } else {
@@ -84,8 +84,8 @@ export class LogicalCases extends BaseTestCases {
       });
 
       const expectedValues = [10, 30, 50];
-      const actualValues = results.map(r => r.nValue);
-      const allFound = expectedValues.every(v => actualValues.includes(v));
+      const actualValues = results.map((r) => r.nValue);
+      const allFound = expectedValues.every((v) => actualValues.includes(v));
 
       if (allFound && results.length === 3) {
         this.context.logger.info('[OR-MULTI] PASSED | OR correctly matches all 3 values');
@@ -119,7 +119,7 @@ export class LogicalCases extends BaseTestCases {
 
       // Should find records where tValue is not null AND (nValue=10 OR nValue=20)
       const allValid = results.every(
-        r => r.tValue !== null && (r.nValue === 10 || r.nValue === 20),
+        (r) => r.tValue !== null && (r.nValue === 10 || r.nValue === 20),
       );
 
       if (allValid && results.length === 2) {

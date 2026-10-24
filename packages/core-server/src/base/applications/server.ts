@@ -149,7 +149,7 @@ export abstract class ServerApplication<
           ...this.getServerRuntimeOptions(),
         }),
       )
-        .then(rs => {
+        .then((rs) => {
           this.serverInstance = rs;
           this.configs.port = rs.port;
           this.inspectRoutes();
@@ -191,11 +191,11 @@ export abstract class ServerApplication<
       }
 
       import('@hono/node-server')
-        .then(module => {
+        .then((module) => {
           const { serve } = module;
 
           // Resolve from the listening callback, not serve()'s synchronous return - only then is the socket bound and the OS-assigned port (config port `0`) known.
-          const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
+          const rs = serve({ fetch: server.fetch, port, hostname: host }, (info) => {
             this.configs.port = info.port;
             this.inspectRoutes();
             this.logger
@@ -212,7 +212,7 @@ export abstract class ServerApplication<
             resolve(rs);
           });
         })
-        .catch(error => {
+        .catch((error) => {
           this.logger
             .for(this.start.name)
             .error('Failed to import @hono/node-server | Error: %s', error);

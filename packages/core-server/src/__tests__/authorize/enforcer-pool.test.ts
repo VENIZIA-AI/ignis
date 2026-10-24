@@ -16,7 +16,7 @@ class DelayedPerUserAdapter implements FilteredAdapter {
     filter: { principal: { type: string; id: string | number } },
   ): Promise<void> {
     const { Helper } = await import('casbin');
-    await new Promise(resolve => setTimeout(resolve, this.delayMs));
+    await new Promise((resolve) => setTimeout(resolve, this.delayMs));
     Helper.loadPolicyLine(
       `p, ${filter.principal.type}_${filter.principal.id}, SYSTEM_WIDE, ${filter.principal.id}_secret, read, allow`,
       model,
@@ -141,7 +141,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
       context: asTypedContext({}),
     });
     e.destroy();
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
     let error: unknown;
     try {
       await e.evaluate({

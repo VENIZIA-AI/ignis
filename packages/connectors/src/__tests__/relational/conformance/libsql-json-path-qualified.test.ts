@@ -126,7 +126,7 @@ const renderWhere = (where: TWhere): string =>
 const renderOrderBy = (order: string[]): string[] =>
   builder
     .toOrderBy({ tableName: ORDER_MODEL_NAME, schema: orderTable, order })
-    .map(entry => compile(entry));
+    .map((entry) => compile(entry));
 
 /** Every `"metadata"` in the statement belongs to the order table - none is left bare. */
 const expectOnlyQualifiedMetadata = (statement: string) => {
@@ -164,7 +164,7 @@ const selectJoinedOrderIds = async (opts: {
       : filtered.orderBy(orderTable.id);
 
     const rows = await ordered;
-    return { ids: rows.map(row => row.id) };
+    return { ids: rows.map((row) => row.id) };
   } catch (error) {
     // Drizzle wraps the driver error; the database's own refusal is its cause.
     if (error instanceof Error && error.cause instanceof Error) {
@@ -285,7 +285,7 @@ describe('SQLite - a JSON-path key in the relational query API (aliased tables)'
     };
     const rows = await orderRepository.find<IOrderRow>({ filter });
 
-    expect(rows.map(row => ({ id: row.id, supplierId: row.supplier?.id }))).toEqual([
+    expect(rows.map((row) => ({ id: row.id, supplierId: row.supplier?.id }))).toEqual([
       { id: 2, supplierId: 2 },
       { id: 4, supplierId: 1 },
       { id: 1, supplierId: 1 },
@@ -304,7 +304,9 @@ describe('SQLite - a JSON-path key in the relational query API (aliased tables)'
     };
     const rows = await supplierRepository.find<ISupplierRow>({ filter });
 
-    expect(rows.map(row => ({ id: row.id, orders: row.orders?.map(order => order.id) }))).toEqual([
+    expect(
+      rows.map((row) => ({ id: row.id, orders: row.orders?.map((order) => order.id) })),
+    ).toEqual([
       { id: 1, orders: [4, 1] },
       { id: 2, orders: [2] },
     ]);

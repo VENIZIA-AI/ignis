@@ -34,7 +34,7 @@ export class LintIgnore {
 
     const rules = new Set([
       ...Object.keys(config.rules ?? {}),
-      ...(config.overrides ?? []).flatMap(override => Object.keys(override.rules ?? {})),
+      ...(config.overrides ?? []).flatMap((override) => Object.keys(override.rules ?? {})),
     ]);
 
     return {
@@ -42,8 +42,8 @@ export class LintIgnore {
       overrides: [
         ...(config.overrides ?? []),
         {
-          files: patterns.map(pattern => LintIgnore.toGlob({ pattern })),
-          rules: Object.fromEntries([...rules].map(name => [name, 'off'])),
+          files: patterns.map((pattern) => LintIgnore.toGlob({ pattern })),
+          rules: Object.fromEntries([...rules].map((name) => [name, 'off'])),
         },
       ],
     };

@@ -81,7 +81,7 @@ const UPLOAD_LABEL_NAMES = [
 export const findLabelsInQuery = (opts: {
   query: Record<string, string>;
   names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter(name => opts.query[name] !== undefined);
+}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
 
 /** Refused before the body is read: a route that ignored them would store an unlabelled row. */
 const refuseLabelsInQuery = (opts: {
@@ -99,7 +99,7 @@ const refuseLabelsInQuery = (opts: {
 };
 
 /** The commit body carries four of the five: the object key - and so `folderPath` - was fixed when the policy was issued. */
-const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter(name => name !== 'folderPath');
+const COMMIT_LABEL_NAMES = UPLOAD_LABEL_NAMES.filter((name) => name !== 'folderPath');
 
 // A multipart form hands strings; a JSON commit body may hand `sequence` as a number.
 const readUploadLabels = (opts: {
@@ -122,10 +122,10 @@ const readUploadLabels = (opts: {
   };
 };
 
-const readObjectName: (rawObjectName: string) => string = rawObjectName => rawObjectName;
+const readObjectName: (rawObjectName: string) => string = (rawObjectName) => rawObjectName;
 
 /** Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/` must be percent-encoded too (Hono decodes it back before the handler reads the param). */
-const encodeObjectPath: (objectPath: string) => string = objectPath => {
+const encodeObjectPath: (objectPath: string) => string = (objectPath) => {
   return encodeURIComponent(objectPath);
 };
 
@@ -332,7 +332,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKETS, ...getBucketsRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 const buckets = await helper.getBuckets();
                 return ctx.json(buckets, HTTP.ResultCodes.RS_2.Ok);
               },
@@ -344,7 +344,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKET_BY_NAME, ...getBucketByNameRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 const params = ctx.req.valid<TBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
@@ -366,7 +366,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.CREATE_BUCKET, ...createBucketRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 const params = ctx.req.valid<TBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
@@ -388,7 +388,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.DELETE_BUCKET, ...deleteBucketRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 const params = ctx.req.valid<TBucketParams>('param');
                 const bucketName = await resolveBucket({
                   configured: bucket,
@@ -413,7 +413,7 @@ export class AssetControllerFactory extends BaseHelper {
           this.bindRoute({
             configs: { ...definitions.GET_OBJECT_BY_NAME, ...getObjectByNameRoute.override },
           }).to({
-            handler: async ctx => {
+            handler: async (ctx) => {
               const params = ctx.req.valid<TObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
@@ -495,7 +495,7 @@ export class AssetControllerFactory extends BaseHelper {
               ...downloadObjectByNameRoute.override,
             },
           }).to({
-            handler: async ctx => {
+            handler: async (ctx) => {
               const params = ctx.req.valid<TObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
@@ -568,7 +568,7 @@ export class AssetControllerFactory extends BaseHelper {
               middleware: uploadMiddleware,
             },
           }).to({
-            handler: async ctx => {
+            handler: async (ctx) => {
               // A configured bucket drops `params` from this route entirely, so it is read only when it exists.
               const bucketParam = hasConfiguredBucket
                 ? undefined
@@ -593,7 +593,7 @@ export class AssetControllerFactory extends BaseHelper {
                   });
                 }
                 const invalidSegmentIndex = folderSegments.findIndex(
-                  segment => !helper.isValidSegment({ segment }),
+                  (segment) => !helper.isValidSegment({ segment }),
                 );
                 if (invalidSegmentIndex !== -1) {
                   throw getError({
@@ -620,13 +620,13 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               const spoolPaths = filesArray
-                .map(file => file.path)
+                .map((file) => file.path)
                 .filter((filePath): filePath is string => Boolean(filePath));
 
               let uploaded: IUploadResult[];
               try {
                 // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
-                const modifiedFiles: IUploadFile[] = filesArray.map(file => {
+                const modifiedFiles: IUploadFile[] = filesArray.map((file) => {
                   const buffer = file.buffer ?? (file.path ? readFileSync(file.path) : undefined);
 
                   if (!buffer?.length) {
@@ -753,7 +753,7 @@ export class AssetControllerFactory extends BaseHelper {
           this.bindRoute({
             configs: { ...definitions.DELETE_OBJECT, ...deleteObjectRoute.override },
           }).to({
-            handler: async ctx => {
+            handler: async (ctx) => {
               const params = ctx.req.valid<TObjectParams>('param');
               const bucketName = await resolveBucket({
                 configured: bucket,
@@ -807,7 +807,7 @@ export class AssetControllerFactory extends BaseHelper {
                     .for('DELETE_OBJECT')
                     .info('Successfully to delete MetaLink for %s/%s', bucketName, objectName);
                 })
-                .catch(error => {
+                .catch((error) => {
                   this.logger
                     .for('DELETE_OBJECT')
                     .error(
@@ -828,7 +828,7 @@ export class AssetControllerFactory extends BaseHelper {
           this.bindRoute({
             configs: { ...definitions.LIST_OBJECTS, ...listObjectsRoute.override },
           }).to({
-            handler: async ctx => {
+            handler: async (ctx) => {
               // A configured bucket drops `params` from this route entirely, so it is read only when it exists.
               const bucketParam = hasConfiguredBucket
                 ? undefined
@@ -886,7 +886,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 if (!(await directUpload.authorize({ context: ctx }))) {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
@@ -939,7 +939,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_COMMIT, ...uploadCommitRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 const commitQuery = ctx.req.query();
                 refuseLabelsInQuery({ query: commitQuery, names: COMMIT_LABEL_NAMES });
                 refuseLabelsInQuery({
@@ -985,7 +985,7 @@ export class AssetControllerFactory extends BaseHelper {
                 // caller their upload did not work when it did.
                 await helper
                   .removeObject({ bucket: bucketRef, object: pendingObject })
-                  .catch(error => {
+                  .catch((error) => {
                     this.logger
                       .for('UPLOAD_COMMIT')
                       .warn(
@@ -1059,7 +1059,7 @@ export class AssetControllerFactory extends BaseHelper {
             this.bindRoute({
               configs: { ...definitions.RECREATE_METALINK, ...recreateMetaLinkRoute.override },
             }).to({
-              handler: async ctx => {
+              handler: async (ctx) => {
                 // This route takes no labels anywhere: one in the query would land an unlabelled row.
                 refuseLabelsInQuery({
                   query: ctx.req.query(),

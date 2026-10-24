@@ -148,7 +148,7 @@ class SearchWireKeys {
 
   /** camelCase field -> wire key, built once from ENTRIES so `wireKey` is O(1) per lookup, not O(n) per field per query. */
   private static readonly WIRE_BY_FIELD: Record<string, string> = Object.fromEntries(
-    SearchWireKeys.ENTRIES.map(entry => [entry.from, entry.to]),
+    SearchWireKeys.ENTRIES.map((entry) => [entry.from, entry.to]),
   );
 
   /** Resolves a camelCase field to its wire key; unmapped keys (`page`, `offset`) pass through. */
@@ -322,7 +322,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const { field, nearVector, k, alpha, distanceThreshold, ef } = opts;
 
     const vectorCsv = (nearVector ?? [])
-      .map(value => this.escapeValue({ field, value }))
+      .map((value) => this.escapeValue({ field, value }))
       .join(', ');
 
     let clause = `${field}:([${vectorCsv}]`;
@@ -475,7 +475,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     // Parenthesised once two clauses actually join, reproducing byte-for-byte what the previous
     // `{ and: [defaultWhere, where] }` merge emitted through the logical-group path.
-    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+    return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
       ? parenthesize(combined)
       : combined;
   }
@@ -490,7 +490,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     }
 
     return order
-      .map(entry => {
+      .map((entry) => {
         const { field, direction } = parseOrderEntry({ entry });
 
         assertKnownField({ field, engine: ENGINE, capabilities, method: 'toOrderBy' });
@@ -509,7 +509,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     const { value, capabilities, isDisjunction } = opts;
     const items = Array.isArray(value) ? value : [value];
 
-    const clauses = items.map(item => this.compileWhere({ where: item as TWhere, capabilities }));
+    const clauses = items.map((item) => this.compileWhere({ where: item as TWhere, capabilities }));
 
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what
@@ -548,7 +548,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     // Parenthesised only when more than one operator actually contributed a filter, preserving the
     // exact shape callers already assert on for the single-operator case.
-    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+    return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
       ? parenthesize(combined)
       : combined;
   }
@@ -717,7 +717,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
       });
     }
 
-    return value.map(item => this.escapeValue({ field, value: item })).join(',');
+    return value.map((item) => this.escapeValue({ field, value: item })).join(',');
   }
 
   /** Shared by `between` and `notBetween` so the two cannot disagree on what a valid range is. */

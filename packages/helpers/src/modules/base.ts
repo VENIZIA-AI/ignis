@@ -13,7 +13,7 @@ export class BaseHelper {
   /** The helper's logger, resolved on first read - a helper that never logs never builds one. */
   get logger(): ILogger {
     const scopes = [this.scope, this.identifier].filter(
-      scope => typeof scope === 'string' && scope.length > 0,
+      (scope) => typeof scope === 'string' && scope.length > 0,
     );
     const logger = resolveHelperLogger({ scopes });
 

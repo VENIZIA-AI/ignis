@@ -27,5 +27,5 @@ export const isNotFoundError = (opts: { error: unknown }): boolean => {
 
   const marker = `${source?.code ?? ''} ${source?.name ?? ''}`.toLowerCase();
 
-  return ['nosuchkey', 'nosuchbucket', 'notfound'].some(needle => marker.includes(needle));
+  return ['nosuchkey', 'nosuchbucket', 'notfound'].some((needle) => marker.includes(needle));
 };

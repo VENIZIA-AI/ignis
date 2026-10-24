@@ -12,7 +12,7 @@ const ENV_KEYS = [
   ...BuildInfoEnvironmentKeys.BRANCH,
   ...BuildInfoEnvironmentKeys.BUILT_AT,
 ];
-const inherited = new Map(ENV_KEYS.map(key => [key, process.env[key]]));
+const inherited = new Map(ENV_KEYS.map((key) => [key, process.env[key]]));
 
 /** Pins the three fields the resolver reads from the environment, so a test never depends on this checkout's git state. */
 const pinEnvironment = (): void => {

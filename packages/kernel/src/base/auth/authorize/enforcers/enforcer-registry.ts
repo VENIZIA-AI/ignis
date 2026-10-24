@@ -68,7 +68,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   }) {
     const { container, enforcers } = opts;
 
-    const names = enforcers.map(e => e.name);
+    const names = enforcers.map((e) => e.name);
     const duplicateNames = names.filter((n, i) => names.indexOf(n) !== i);
     if (duplicateNames.length) {
       throw getError({

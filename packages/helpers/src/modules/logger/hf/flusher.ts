@@ -62,7 +62,7 @@ export class HfLogFlusher {
   }
 
   private static buildDefaultSink(filePath?: string): THfSink {
-    return batch => {
+    return (batch) => {
       const rendered =
         (batch.dropped > 0
           ? `${new Date().toISOString()} [warn] HfLogFlusher ring lapped - ${batch.dropped} entries overwritten before they could be read\n`
@@ -109,7 +109,7 @@ export class HfLogFlusher {
       await this.deliverBatch({ lines, dropped });
 
       if (this.flushIndex < ring.writeIndex) {
-        await new Promise(resolve => setImmediate(resolve));
+        await new Promise((resolve) => setImmediate(resolve));
       }
     }
   }
@@ -129,7 +129,7 @@ export class HfLogFlusher {
   start(intervalMs = HF_DEFAULT_FLUSH_INTERVAL_MS): void {
     this.stop();
     this.timer = setInterval(() => {
-      this.flush().catch(error => {
+      this.flush().catch((error) => {
         console.error('[HfLogFlusher][start] Flush failed | error: ', error);
       });
     }, intervalMs);

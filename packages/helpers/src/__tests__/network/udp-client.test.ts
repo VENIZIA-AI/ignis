@@ -12,7 +12,7 @@ interface IDeferred<T> {
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
 
-  const promise = new Promise<T>(promiseResolve => {
+  const promise = new Promise<T>((promiseResolve) => {
     resolve = promiseResolve;
   });
 
@@ -52,7 +52,7 @@ const waitForLoggedError = async (opts: {
       return opts.recorded[0];
     }
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, 10);
     });
   }
@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 const bindRawSocket = (): Promise<{ socket: dgram.Socket; port: number }> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const socket = dgram.createSocket({ type: 'udp4' });
     openSockets.push(socket);
 
@@ -101,7 +101,7 @@ describe('NetworkUdpClient - bind and round trip', () => {
       host: '127.0.0.1',
       // Port 0 asks the OS for a free port - the only way to bind deterministically in a test.
       port: 0,
-      onBind: options => {
+      onBind: (options) => {
         bound.resolve({ port: options.port, socket: options.socket });
       },
       onConnected: () => {
@@ -130,7 +130,7 @@ describe('NetworkUdpClient - bind and round trip', () => {
       onBind: () => {
         bound.resolve();
       },
-      onData: options => {
+      onData: (options) => {
         received.resolve({
           message: options.message.toString(),
           remoteInfo: options.remoteInfo,
@@ -157,7 +157,7 @@ describe('NetworkUdpClient - bind and round trip', () => {
     const { socket: peer, port: peerPort } = await bindRawSocket();
 
     const peerReceived = createDeferred<string>();
-    peer.on('message', message => {
+    peer.on('message', (message) => {
       peerReceived.resolve(message.toString());
     });
 
@@ -266,7 +266,7 @@ describe('NetworkUdpClient - error paths', () => {
       identifier: 'udp-address-in-use',
       host: '127.0.0.1',
       port,
-      onError: options => {
+      onError: (options) => {
         failed.resolve(options.error);
       },
     });

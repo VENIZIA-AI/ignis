@@ -31,7 +31,7 @@ const selectIds = async (opts: { where?: TWhere; order?: string[] }): Promise<nu
   const rows = await filtered.orderBy(
     ...dialect.toOrderBy({ tableName: TABLE, schema: table, order: opts.order ?? ['id ASC'] }),
   );
-  return rows.map(row => row.id);
+  return rows.map((row) => row.id);
 };
 
 beforeAll(async () => {

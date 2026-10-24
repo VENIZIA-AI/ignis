@@ -50,7 +50,7 @@ export class AutoArtifactsLoader {
     artifacts: IScannedArtifact[];
   }): Promise<TGeneratedArtifactIndex> {
     const emitted = opts.artifacts
-      .filter(artifact => artifact.type !== ArtifactTypes.MODEL)
+      .filter((artifact) => artifact.type !== ArtifactTypes.MODEL)
       .sort(
         (left, right) =>
           left.filePath.localeCompare(right.filePath) ||
@@ -66,9 +66,9 @@ export class AutoArtifactsLoader {
     const index: Record<string, Array<TClass<AnyType>>> = {};
     for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
       const classes = emitted
-        .filter(artifact => artifact.type === type)
+        .filter((artifact) => artifact.type === type)
         .sort((left, right) => left.className.localeCompare(right.className))
-        .flatMap(artifact => loaded.get(artifact) ?? []);
+        .flatMap((artifact) => loaded.get(artifact) ?? []);
       if (classes.length > 0) {
         index[field] = classes;
       }

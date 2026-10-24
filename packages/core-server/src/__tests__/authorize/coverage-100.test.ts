@@ -23,6 +23,6 @@ describe('CasbinAuthorizationEnforcer — destroy() pool-reject guard (enforcer:
     };
 
     expect(() => enforcer.destroy()).not.toThrow(); // synchronous call returns; rejection handled by .catch
-    await new Promise(resolve => setTimeout(resolve, 0)); // let the .catch microtask run (covers line 126)
+    await new Promise((resolve) => setTimeout(resolve, 0)); // let the .catch microtask run (covers line 126)
   });
 });

@@ -49,7 +49,7 @@ class CrudFactoryAccountRepository {}
 class CrudFactoryDocumentRepository {}
 
 const mountedRoutes = (opts: { router: { routes: Array<{ method: string; path: string }> } }) => {
-  return new Set(opts.router.routes.map(route => `${route.method} ${route.path}`));
+  return new Set(opts.router.routes.map((route) => `${route.method} ${route.path}`));
 };
 
 describe('ControllerFactory.defineCrudController - generated routes', () => {
@@ -77,7 +77,7 @@ describe('ControllerFactory.defineCrudController - generated routes', () => {
       ]),
     );
 
-    const paths = restController.getRouter().routes.map(route => route.path);
+    const paths = restController.getRouter().routes.map((route) => route.path);
     expect(paths.indexOf('/count')).toBeLessThan(paths.indexOf('/:id'));
     expect(paths.indexOf('/find-one')).toBeLessThan(paths.indexOf('/:id'));
   });
@@ -373,7 +373,7 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
     [{}, 'no headers'],
     [{ 'content-type': 'application/json' }, 'a json content-type and no body'],
     [{ 'content-type': 'text/plain' }, 'a text content-type and no body'],
-  ])('DELETE / with a query where works with %#: %s', async headers => {
+  ])('DELETE / with a query where works with %#: %s', async (headers) => {
     const { router, calls } = await buildBulkController({
       name: `BulkDeleteHabit${JSON.stringify(headers).length}Controller`,
     });

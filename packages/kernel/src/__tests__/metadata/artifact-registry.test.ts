@@ -45,7 +45,7 @@ describe('MetadataRegistry - artifact metadata', () => {
       metadata: { methodName: 'second', key: 'a.second' },
     });
 
-    expect(registry.getProvideMetadata({ target: Holder }).map(m => m.key)).toEqual([
+    expect(registry.getProvideMetadata({ target: Holder }).map((m) => m.key)).toEqual([
       'a.first',
       'a.second',
     ]);

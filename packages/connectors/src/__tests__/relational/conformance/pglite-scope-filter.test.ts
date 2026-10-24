@@ -153,7 +153,7 @@ beforeEach(async () => {
 describe('scopeFilter - read verbs are scoped to the current tenant', () => {
   test('find hides every other tenant entirely', async () => {
     const rows = await repository.find({ filter: { order: ['id asc'] } });
-    expect(rows.map(row => row.name)).toEqual(['a-active']);
+    expect(rows.map((row) => row.name)).toEqual(['a-active']);
   });
 
   test('findOne / findById scope the same way as find', async () => {
@@ -179,7 +179,7 @@ describe('scopeFilter - read verbs are scoped to the current tenant', () => {
     });
 
     // Both of tenant-a's rows (soft-deleted included), never tenant-b's.
-    expect(rows.map(row => row.name).sort()).toEqual(['a-active', 'a-deleted']);
+    expect(rows.map((row) => row.name).sort()).toEqual(['a-active', 'a-deleted']);
   });
 });
 
@@ -266,14 +266,14 @@ describe("scopeFilter - onMissing: 'allow' applies no scope", () => {
     allowTenant = null;
 
     const rows = await allowRepository.find({ filter: { order: ['id asc'] } });
-    expect(rows.map(row => row.name)).toEqual(['a-active', 'a-deleted', 'b-active', 'b-deleted']);
+    expect(rows.map((row) => row.name)).toEqual(['a-active', 'a-deleted', 'b-active', 'b-deleted']);
   });
 
   test('the same model still scopes normally once the resolver returns a value', async () => {
     allowTenant = 'tenant-a';
 
     const rows = await allowRepository.find({ filter: { order: ['id asc'] } });
-    expect(rows.map(row => row.name)).toEqual(['a-active', 'a-deleted']);
+    expect(rows.map((row) => row.name)).toEqual(['a-active', 'a-deleted']);
   });
 });
 

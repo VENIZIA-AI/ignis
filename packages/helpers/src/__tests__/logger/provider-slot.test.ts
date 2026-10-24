@@ -27,7 +27,7 @@ const runInFreshProcess = async (opts: { name: string; body: string }): Promise<
     const line = result.stdout
       .toString()
       .split('\n')
-      .find(text => text.startsWith('RESULT:'));
+      .find((text) => text.startsWith('RESULT:'));
     if (!line) {
       throw new Error(`[provider-slot] no result | stderr: ${result.stderr.toString()}`);
     }

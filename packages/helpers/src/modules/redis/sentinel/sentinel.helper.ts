@@ -20,7 +20,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
       redisOptions = {},
     } = opts;
 
-    const normalizedSentinels = sentinels.map(sentinel => ({
+    const normalizedSentinels = sentinels.map((sentinel) => ({
       host: sentinel.host,
       port: int(sentinel.port ?? 26379),
     }));

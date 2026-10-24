@@ -119,7 +119,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const syncCheck: string = helper.nextId({ isAvailable: () => true });
     const asyncCheck: Promise<string> = helper.nextId({ isAvailable: async () => true });
 
-    expect([noArgs, emptyObject, syncCheck].every(id => typeof id === 'string')).toBe(true);
+    expect([noArgs, emptyObject, syncCheck].every((id) => typeof id === 'string')).toBe(true);
     // No underscore: this helper has no delimiter configured, and a per-call prefix does not turn
     // one on. The two toggles stay independent.
     expect(prefixOnly).toMatch(/^INV[0-9ABCDEFGHJKMNPQRSTVWXYZ]{6}$/);
@@ -141,7 +141,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const seen: Array<string> = [];
 
     const id = new OpaqueUidHelper().nextId({
-      isAvailable: candidate => {
+      isAvailable: (candidate) => {
         seen.push(candidate);
         return true;
       },
@@ -154,7 +154,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const rejected: Array<string> = [];
 
     const id = new OpaqueUidHelper().nextId({
-      isAvailable: candidate => {
+      isAvailable: (candidate) => {
         if (rejected.length < 3) {
           rejected.push(candidate);
           return false;
@@ -174,7 +174,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
       prefix: { enable: true, value: 'INV' },
       delimiter: { enable: true, value: '-' },
     }).nextId({
-      isAvailable: candidate => {
+      isAvailable: (candidate) => {
         candidates.push(candidate);
         return true;
       },
@@ -224,7 +224,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const rejected: Array<string> = [];
 
     const id = await new OpaqueUidHelper().nextId({
-      isAvailable: async candidate => {
+      isAvailable: async (candidate) => {
         if (rejected.length < 3) {
           rejected.push(candidate);
           return false;
@@ -268,7 +268,7 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const helper = new OpaqueUidHelper({ length: 4 });
 
     for (let index = 0; index < 200; index++) {
-      issued.add(helper.nextId({ isAvailable: candidate => !issued.has(candidate) }));
+      issued.add(helper.nextId({ isAvailable: (candidate) => !issued.has(candidate) }));
     }
 
     // 200 distinct ids out of 200 draws: the callback removed every within-batch collision, which a
@@ -351,7 +351,7 @@ describe('OpaqueUidHelper - sampling is unbiased', () => {
     });
 
     const alphabet = helper.getAlphabet();
-    const counts = new Map<string, number>(alphabet.split('').map(character => [character, 0]));
+    const counts = new Map<string, number>(alphabet.split('').map((character) => [character, 0]));
 
     const draws = 2_000;
     for (let index = 0; index < draws; index++) {

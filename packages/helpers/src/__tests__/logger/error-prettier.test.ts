@@ -488,7 +488,7 @@ describe('ErrorPrettier stack budget', () => {
     const block = ErrorPrettier.format({ error: captured(), maxStackFrames: 1 });
     const frames = (block.split('stack:\n')[1] ?? '')
       .split('\n')
-      .filter(line => line.includes(' at '));
+      .filter((line) => line.includes(' at '));
 
     expect(frames).toHaveLength(1);
   });

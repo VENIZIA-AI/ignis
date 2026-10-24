@@ -19,7 +19,7 @@ interface IDeferred<T> {
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
 
-  const promise = new Promise<T>(promiseResolve => {
+  const promise = new Promise<T>((promiseResolve) => {
     resolve = promiseResolve;
   });
 
@@ -81,16 +81,16 @@ afterEach(() => {
 const startServer = (opts: {
   onClientData?: (options: { id: string; data: Buffer | string }) => void;
 }): Promise<{ server: NetworkTlsTcpServer; port: number }> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const server = NetworkTlsTcpServer.newInstance({
       identifier: 'tls-tcp-test-server',
       serverOptions: { key, cert },
       listenOptions: { port: 0, host: '127.0.0.1' },
       authenticateOptions: { required: false },
-      onClientData: options => {
+      onClientData: (options) => {
         opts.onClientData?.({ id: options.id, data: options.data });
       },
-      onServerReady: options => {
+      onServerReady: (options) => {
         const address = options.server.address() as AddressInfo;
         resolve({ server, port: address.port });
       },
@@ -109,7 +109,7 @@ describe('NetworkTlsTcpServer / NetworkTlsTcpClient - real handshake', () => {
   test('a TLS client completes the handshake and round trips a payload', async () => {
     const serverReceived = createDeferred<string>();
     const { server, port } = await startServer({
-      onClientData: options => {
+      onClientData: (options) => {
         server.emit({ clientId: options.id, payload: `echo:${options.data.toString()}` });
         serverReceived.resolve(options.data.toString());
       },
@@ -124,7 +124,7 @@ describe('NetworkTlsTcpServer / NetworkTlsTcpClient - real handshake', () => {
       onConnected: () => {
         connected.resolve();
       },
-      onData: options => {
+      onData: (options) => {
         clientReceived.resolve(options.message.toString());
       },
     });
@@ -152,7 +152,7 @@ describe('NetworkTlsTcpServer / NetworkTlsTcpClient - real handshake', () => {
     const client = NetworkTlsTcpClient.newInstance({
       identifier: 'tls-tcp-test-client-untrusted',
       options: { port, host: '127.0.0.1' },
-      onError: error => {
+      onError: (error) => {
         failed.resolve(error);
       },
     });

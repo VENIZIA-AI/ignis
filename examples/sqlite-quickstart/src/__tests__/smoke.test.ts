@@ -85,7 +85,7 @@ describe('sqlite-quickstart', () => {
     expect(response.status).toBe(200);
 
     const { data } = NoteListResponse.parse(await response.json());
-    expect(data.find(note => note.id === noteId)?.comments).toEqual([
+    expect(data.find((note) => note.id === noteId)?.comments).toEqual([
       expect.objectContaining({ noteId, text: 'A comment' }),
     ]);
   });

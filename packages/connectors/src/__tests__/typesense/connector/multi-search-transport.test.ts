@@ -39,7 +39,7 @@ const responseWith = (opts: {
 };
 
 const entriesOf = (fake: { calls: Array<{ op: string; args: unknown[] }> }) => {
-  const call = fake.calls.find(entry => entry.op === 'multiSearch.perform');
+  const call = fake.calls.find((entry) => entry.op === 'multiSearch.perform');
   return ((call?.args[0] as { searches?: Record<string, unknown>[] })?.searches ?? []) as Record<
     string,
     unknown
@@ -47,7 +47,7 @@ const entriesOf = (fake: { calls: Array<{ op: string; args: unknown[] }> }) => {
 };
 
 const callCount = (fake: { calls: Array<{ op: string }> }) =>
-  fake.calls.filter(call => call.op === 'multiSearch.perform').length;
+  fake.calls.filter((call) => call.op === 'multiSearch.perform').length;
 
 describe('search() - one collection is the arity-1 case of the transport', () => {
   test('a page within the ceiling sends ONE entry and passes params through untouched', async () => {
@@ -87,7 +87,7 @@ describe('search() - window splitting', () => {
     await helper.search({ collection: 'products', params: { q: '*', ['per_page']: 600 } });
 
     expect(callCount(fake)).toBe(1);
-    expect(entriesOf(fake).map(entry => [entry['offset'], entry['limit']])).toEqual([
+    expect(entriesOf(fake).map((entry) => [entry['offset'], entry['limit']])).toEqual([
       [0, 250],
       [250, 250],
       [500, 100],
@@ -113,7 +113,7 @@ describe('search() - window splitting', () => {
 
     await helper.search({ collection: 'products', params: { q: '*', offset: 1000, limit: 400 } });
 
-    expect(entriesOf(fake).map(entry => entry['offset'])).toEqual([1000, 1250]);
+    expect(entriesOf(fake).map((entry) => entry['offset'])).toEqual([1000, 1250]);
   });
 
   test('hits from every window are concatenated in order', async () => {

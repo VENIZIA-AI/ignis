@@ -75,7 +75,7 @@ export class SourceLinkCheck {
   run(): { checked: number; missing: IMiss[] } {
     const repoRoot = this.repoRoot;
     const tracked = SourceLinkCheck.loadTracked(repoRoot);
-    const files = this.dirs.flatMap(dir => SourceLinkCheck.walk(resolve(repoRoot, dir)));
+    const files = this.dirs.flatMap((dir) => SourceLinkCheck.walk(resolve(repoRoot, dir)));
     let checked = 0;
     const missing: IMiss[] = [];
     for (const file of files) {
@@ -83,7 +83,7 @@ export class SourceLinkCheck {
       if (SourceLinkCheck.isAlwaysSkipped(relPath)) {
         continue;
       }
-      const skipProse = this.skipProseUnder.some(dir => SourceLinkCheck.isUnder(relPath, dir));
+      const skipProse = this.skipProseUnder.some((dir) => SourceLinkCheck.isUnder(relPath, dir));
       const lines = readFileSync(file, 'utf8').split('\n');
       if (SourceLinkCheck.isUnder(relPath, KNOWLEDGE_DIR)) {
         const resource = SourceLinkCheck.extractResourceLine(lines);
@@ -130,13 +130,13 @@ export class SourceLinkCheck {
   }
 
   private static extractPaths(text: string, skipProse: boolean): string[] {
-    const found = [...text.matchAll(GITHUB_LINK_PATTERN)].map(match =>
+    const found = [...text.matchAll(GITHUB_LINK_PATTERN)].map((match) =>
       SourceLinkCheck.stripLineSuffix(match[1]),
     );
     if (skipProse) {
       return found;
     }
-    const prose = [...text.matchAll(BACKTICK_PATTERN)].map(match =>
+    const prose = [...text.matchAll(BACKTICK_PATTERN)].map((match) =>
       SourceLinkCheck.stripLineSuffix(match[1]),
     );
     return [...found, ...prose];
@@ -165,7 +165,7 @@ export class SourceLinkCheck {
         .trim()
         .replace(/^["']|["']$/g, '')
         .replace(/\/+$/, '');
-      if (value && RESOURCE_PREFIXES.some(prefix => value.startsWith(prefix))) {
+      if (value && RESOURCE_PREFIXES.some((prefix) => value.startsWith(prefix))) {
         return { line: index + 1, path: value };
       }
     }
@@ -173,7 +173,7 @@ export class SourceLinkCheck {
   }
 
   private static isAlwaysSkipped(relPath: string): boolean {
-    return ALWAYS_SKIP.some(skip => SourceLinkCheck.isUnder(relPath, skip));
+    return ALWAYS_SKIP.some((skip) => SourceLinkCheck.isUnder(relPath, skip));
   }
 
   private static isUnder(relPath: string, dir: string): boolean {
@@ -184,7 +184,7 @@ export class SourceLinkCheck {
     if (!existsSync(dir)) {
       return [];
     }
-    return readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         return SourceLinkCheck.walk(full);

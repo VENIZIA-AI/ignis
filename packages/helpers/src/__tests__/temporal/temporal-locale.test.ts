@@ -118,7 +118,7 @@ for (const locale of LOCALES) {
           hourCycle: 'h12',
         })
           .formatToParts(new Date(EVENING_UTC))
-          .find(part => part.type === 'dayPeriod')?.value;
+          .find((part) => part.type === 'dayPeriod')?.value;
 
         expect(helper.format({ value: EVENING_UTC, pattern: 'hh:mm h A a' })).toBe(
           `${isSaigon ? '03:30 3' : '08:30 8'} ${marker} ${marker?.toLowerCase()}`,

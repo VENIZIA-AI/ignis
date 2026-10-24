@@ -88,7 +88,7 @@ describe('production code never imports the testing entry', () => {
   test('no file outside src/testing and __tests__ imports it', async () => {
     const importers = await findImporters({ pattern: '**/*.ts' });
     const production = importers.filter(
-      file => !file.startsWith('testing/') && !file.includes('__tests__/'),
+      (file) => !file.startsWith('testing/') && !file.includes('__tests__/'),
     );
 
     expect(production).toEqual([]);

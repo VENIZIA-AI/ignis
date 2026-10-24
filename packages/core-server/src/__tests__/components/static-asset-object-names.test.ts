@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 /** Hono ALREADY percent-decodes a path param before the handler sees it, so a second decode is a bug: `report_100%.pdf` comes back as the invalid escape `%.p` and 400s forever, and an object named `a%2Fb.png` decodes twice into `a/b.png` - a DIFFERENT object that GET and DELETE would silently address. */
 const buildServer = () => {
   const app = new Hono();
-  app.get('/objects/:objectName', context => {
+  app.get('/objects/:objectName', (context) => {
     return context.json({ objectName: context.req.param('objectName') });
   });
 

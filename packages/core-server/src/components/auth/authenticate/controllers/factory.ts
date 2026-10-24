@@ -74,7 +74,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             description: 'Success Response',
           }),
         },
-        handler: async context => {
+        handler: async (context) => {
           const body = await context.req.json();
           const rs = await this.service.signIn(context, body);
           return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -101,7 +101,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             description: 'Success Response',
           }),
         },
-        handler: async context => {
+        handler: async (context) => {
           const body = await context.req.json();
           const rs = await this.service.signUp(context, body);
           return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -126,7 +126,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           }),
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
-        handler: async context => {
+        handler: async (context) => {
           const body = await context.req.json();
           const rs = await this.service.changePassword(context, body);
           return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -145,7 +145,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           }),
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
-        handler: async context => {
+        handler: async (context) => {
           if (!this.service.refreshToken) {
             return throwNotSupported({
               scope: AuthController.name,
@@ -167,7 +167,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             query: z.object({
               withUserInformation: z
                 .enum(['true', 'false', '1', '0'])
-                .transform(value => value === 'true' || value === '1')
+                .transform((value) => value === 'true' || value === '1')
                 .optional()
                 .openapi({
                   description: 'Whether to attach user information to currentUser',
@@ -188,7 +188,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           },
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
-        handler: async context => {
+        handler: async (context) => {
           const { withUserInformation = false } = context.req.valid<{
             withUserInformation?: boolean;
           }>('query');
@@ -224,7 +224,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           }),
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
-        handler: async context => {
+        handler: async (context) => {
           if (!this.service.getUserInformation) {
             return throwNotSupported({
               scope: AuthController.name,

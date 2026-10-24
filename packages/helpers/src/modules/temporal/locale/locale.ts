@@ -97,7 +97,7 @@ export class TemporalLocale {
     const table = this.tableOf({
       key: `month-${width}`,
       size: MONTHS,
-      read: index => formatter.format(Date.UTC(2024, index, 15)),
+      read: (index) => formatter.format(Date.UTC(2024, index, 15)),
     });
     return table[month - 1];
   }
@@ -109,7 +109,7 @@ export class TemporalLocale {
     const table = this.tableOf({
       key: `weekday-${width}`,
       size: WEEKDAYS,
-      read: index => formatter.format(MONDAY + index * DAY_MILLISECONDS),
+      read: (index) => formatter.format(MONDAY + index * DAY_MILLISECONDS),
     });
     return table[dayOfWeek - 1];
   }
@@ -124,10 +124,10 @@ export class TemporalLocale {
     const table = this.tableOf({
       key: 'day-period',
       size: 2,
-      read: index =>
+      read: (index) =>
         formatter
           .formatToParts(Date.UTC(2024, 0, 1, index === 0 ? 1 : NOON + 1))
-          .find(part => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
+          .find((part) => part.type === 'dayPeriod')?.value ?? (index === 0 ? 'AM' : 'PM'),
     });
     const marker = (opts.meridiem ?? table)[opts.hour < NOON ? 0 : 1];
     return opts.isLowerCase ? marker.toLocaleLowerCase(this.locale) : marker;

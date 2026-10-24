@@ -81,7 +81,7 @@ export class PGliteDriver<
         await this.client.waitReady;
         return this.client;
       },
-      destroy: resource => this.scrubSession({ resource }),
+      destroy: (resource) => this.scrubSession({ resource }),
     });
   }
 
@@ -141,7 +141,7 @@ export class PGliteDriver<
         // Discard cannot throw the session away - there is one and no replacement.
         // The slot is re-created from the same instance after the destroy hook
         // scrubs it, so the next waiter never inherits an unknown transaction.
-        this.slot.discard({ resource: client }).catch(error => {
+        this.slot.discard({ resource: client }).catch((error) => {
           this.logger.for('release').error('Failed to discard the PGlite slot | Error: %s', error);
         });
       },

@@ -22,7 +22,7 @@ export const executePromiseWithLimit = async <T>(opts: {
   const executing = new Set();
 
   for (const task of tasks) {
-    const promise = task().then(result => {
+    const promise = task().then((result) => {
       executing.delete(promise);
       return result;
     });

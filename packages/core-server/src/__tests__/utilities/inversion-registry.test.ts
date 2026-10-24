@@ -94,7 +94,7 @@ describe('RepositoryMetadataMixin', () => {
 
     expect(registry.getRepositoryBinding({ name: 'RegistryTestAlphaRepository' })).toBeDefined();
     expect(
-      registry.getModels({ dataSource: RegistryTestAlphaDataSource as AnyType }).map(model => {
+      registry.getModels({ dataSource: RegistryTestAlphaDataSource as AnyType }).map((model) => {
         return model.tableName;
       }),
     ).toEqual(['registry_test_alpha']);
@@ -116,7 +116,7 @@ describe('RepositoryMetadataMixin', () => {
 
     expect(registry.getRepositoryBinding({ name: 'RegistryTestBetaRepository' })).toBeDefined();
     expect(
-      registry.getModels({ dataSource: RegistryTestBetaDataSource as AnyType }).map(model => {
+      registry.getModels({ dataSource: RegistryTestBetaDataSource as AnyType }).map((model) => {
         return model.tableName;
       }),
     ).toEqual(['registry_test_beta_table']);

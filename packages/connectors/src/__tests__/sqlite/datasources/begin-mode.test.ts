@@ -18,7 +18,7 @@ describe('BaseSqliteDataSource - beginMode validation', () => {
       SqliteBeginModes.EXCLUSIVE,
     ];
 
-    const statements = modes.map(beginMode => dataSource.exposeBeginStatement({ beginMode }));
+    const statements = modes.map((beginMode) => dataSource.exposeBeginStatement({ beginMode }));
 
     expect(statements).toEqual(['BEGIN DEFERRED', 'BEGIN IMMEDIATE', 'BEGIN EXCLUSIVE']);
   });

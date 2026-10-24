@@ -130,7 +130,7 @@ export class WinstonLoggerFactory {
       host: process.env.APP_ENV_LOGGER_DGRAM_HOST,
       port: int(process.env.APP_ENV_LOGGER_DGRAM_PORT),
       label: process.env.APP_ENV_LOGGER_DGRAM_LABEL,
-      levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map(el => el.trim()) ?? [],
+      levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map((el) => el.trim()) ?? [],
     };
 
     return {

@@ -154,15 +154,15 @@ const mergeFields = (opts: {
     return base;
   }
 
-  const overrideByName = new Map(override.map(item => [item.name, item]));
+  const overrideByName = new Map(override.map((item) => [item.name, item]));
 
-  const merged = base.map(baseField => {
+  const merged = base.map((baseField) => {
     const match = overrideByName.get(baseField.name);
     return match ? { ...baseField, ...match } : baseField;
   });
 
-  const baseNames = new Set(base.map(item => item.name));
-  const appended = override.filter(item => !baseNames.has(item.name));
+  const baseNames = new Set(base.map((item) => item.name));
+  const appended = override.filter((item) => !baseNames.has(item.name));
 
   return [...merged, ...appended];
 };
@@ -210,7 +210,7 @@ const assertNestedFieldsEnabled = (opts: { schema: CollectionCreateSchema }): vo
     return;
   }
 
-  const dotted = schema.fields.find(item => item.name.includes('.'));
+  const dotted = schema.fields.find((item) => item.name.includes('.'));
 
   if (!dotted) {
     return;
@@ -229,8 +229,8 @@ export const compileTypesenseCollection = (opts: {
   const { name, fields, defaultSort, engineOverrides } = definition;
 
   const compiledFields = fields
-    .filter(item => item.name !== RESERVED_ID_FIELD_NAME)
-    .map(item => compileField({ field: item }));
+    .filter((item) => item.name !== RESERVED_ID_FIELD_NAME)
+    .map((item) => compileField({ field: item }));
 
   let schema: CollectionCreateSchema = {
     name,
@@ -238,7 +238,7 @@ export const compileTypesenseCollection = (opts: {
   };
 
   if (defaultSort !== undefined) {
-    const sortField = fields.find(item => item.name === defaultSort);
+    const sortField = fields.find((item) => item.name === defaultSort);
 
     // A defaultSort naming an undeclared field would otherwise be forwarded verbatim and rejected by the engine - fail here with the field named, same as the type check.
     if (!sortField) {

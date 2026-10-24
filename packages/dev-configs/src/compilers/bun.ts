@@ -55,7 +55,7 @@ export class BunCompiler {
       throw new Error(
         [
           `[BunCompiler] compile failed for entrypoint "${entrypoint}":`,
-          ...built.logs.map(log => `[${log.level}] ${log.message}`),
+          ...built.logs.map((log) => `[${log.level}] ${log.message}`),
         ].join('\n'),
       );
     }

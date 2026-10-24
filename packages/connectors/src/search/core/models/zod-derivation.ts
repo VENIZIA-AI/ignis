@@ -54,7 +54,7 @@ const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodType | undefined 
 
 const buildShape = (fields: readonly ISearchFieldDefinition[]): Record<string, z.ZodType> => {
   const entries = fields
-    .map(field => [field.name, buildFieldSchema(field)] as const)
+    .map((field) => [field.name, buildFieldSchema(field)] as const)
     .filter((entry): entry is [string, z.ZodType] => entry[1] !== undefined);
 
   return Object.fromEntries(entries);

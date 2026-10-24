@@ -73,7 +73,7 @@ export class Application extends BaseApplication {
       '*',
       bodyLimit({
         maxSize: 100 * 1024 * 1024,
-        onError: context => context.json({}, HTTP.ResultCodes.RS_4.ContentTooLarge),
+        onError: (context) => context.json({}, HTTP.ResultCodes.RS_4.ContentTooLarge),
       }),
     );
   }

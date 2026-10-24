@@ -26,7 +26,7 @@ export class JWKSController extends BaseRestController {
   override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: RouteConfigs.GET_JWKS_CERTS,
-      handler: async context => {
+      handler: async (context) => {
         const jwks = await this.jwksService.getJWKSAsync();
         context.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
         return context.json(jwks, HTTP.ResultCodes.RS_2.Ok);

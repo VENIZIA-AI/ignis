@@ -18,7 +18,7 @@ export class LoggerFormats {
 export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
 
 // -------------------------------------------------------------
-const extraLogEnvs = (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim());
+const extraLogEnvs = (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map((el) => el.trim());
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
 
 /** debug() gate, computed ONCE at module load: DEBUG truthy and NODE_ENV unset or allowlisted. Shared across every logger implementation - runtime env changes need a restart. */

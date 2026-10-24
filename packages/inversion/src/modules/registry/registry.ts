@@ -54,7 +54,7 @@ export class MetadataRegistry extends BaseHelper {
   getKeys<Target extends object = object>(opts: { target: Target }): TBindingKey[] {
     const { target } = opts;
     return (
-      Reflect.getMetadataKeys(target)?.filter(key => {
+      Reflect.getMetadataKeys(target)?.filter((key) => {
         return typeof key === 'symbol' || typeof key === 'string';
       }) ?? []
     );
@@ -64,7 +64,7 @@ export class MetadataRegistry extends BaseHelper {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(
-      name => name !== 'constructor' && typeof prototype[name] === 'function',
+      (name) => name !== 'constructor' && typeof prototype[name] === 'function',
     );
     return methods;
   }

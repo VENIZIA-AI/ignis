@@ -20,7 +20,7 @@ const ORIGIN = 'http://ignis.internal';
 const ORDER_NOT_FOUND_CODE = 'server.sale.order.not_found';
 
 const QUANTITY_SCHEMA = z.object({
-  quantity: z.number().refine(n => Number.isInteger(n * 10000), {
+  quantity: z.number().refine((n) => Number.isInteger(n * 10000), {
     message: 'Must not exceed 4 decimal places',
     params: { code: 'numeric.decimal.too_many_places' },
   }),
@@ -193,8 +193,8 @@ const probeWorker = async (opts: { path: string }): Promise<IProbedResponse> => 
   const { port1, port2 } = new MessageChannel();
   await application.listen({ scope: port1 });
 
-  const received = new Promise<IBffResponseEnvelope>(resolve => {
-    port2.addEventListener('message', event => {
+  const received = new Promise<IBffResponseEnvelope>((resolve) => {
+    port2.addEventListener('message', (event) => {
       resolve(event.data as IBffResponseEnvelope);
     });
     port2.start();

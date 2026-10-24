@@ -28,7 +28,7 @@ const AUDIT_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
 
 /** A `.transform()` pipe is no object schema, so the typed signature refuses it; held untyped to reach the runtime guard without a cast. */
 const untypedSchemas: Record<string, AnyType> = {
-  transformed: z.object({ code: z.string() }).transform(value => value),
+  transformed: z.object({ code: z.string() }).transform((value) => value),
 };
 
 type TRouteWithBody = {
@@ -68,7 +68,7 @@ const toDocumentedBody = (opts: { route: TRouteWithBody }) => {
       request: { body: opts.route.request.body },
       responses: { 200: { description: 'ok' } },
     }),
-    context => context.text('ok'),
+    (context) => context.text('ok'),
   );
 
   const document = application.getOpenAPI31Document({
@@ -98,7 +98,7 @@ describe('the CRUD factory default write bodies leave out what the entity stamps
     expect(toBodyKeys({ route: routes.CREATE })).toEqual(Object.keys(auditedShape).sort());
     expect(toBodyKeys({ route: routes.UPDATE_BY_ID })).toEqual(
       Object.keys(auditedShape)
-        .filter(key => key !== 'id')
+        .filter((key) => key !== 'id')
         .sort(),
     );
   });
@@ -136,7 +136,7 @@ describe('the CRUD factory default write bodies leave out what the entity stamps
       },
     });
 
-    const bodies = [routes.CREATE, routes.UPDATE_BY_ID, routes.UPDATE_BY].map(route =>
+    const bodies = [routes.CREATE, routes.UPDATE_BY_ID, routes.UPDATE_BY].map((route) =>
       toBody({ route }),
     );
 
@@ -169,7 +169,9 @@ describe('the default body is the entity schema itself when nothing is dropped',
   });
 
   test('a refined schema with nothing to drop is used as it is, refinement included', () => {
-    const refinedSchema = z.object({ code: z.string() }).refine(value => value.code !== 'RESERVED');
+    const refinedSchema = z
+      .object({ code: z.string() })
+      .refine((value) => value.code !== 'RESERVED');
     const routes = buildRoutes({ create: refinedSchema });
 
     expect(toBody({ route: routes.CREATE })).toBe(refinedSchema);
@@ -180,7 +182,7 @@ describe('the default body is the entity schema itself when nothing is dropped',
   test('a refined schema that must lose a key points at routes.<route>.request.body', () => {
     const refinedSchema = z
       .object({ code: z.string(), createdAt: z.string().optional() })
-      .refine(value => value.code !== 'RESERVED');
+      .refine((value) => value.code !== 'RESERVED');
 
     expect(() =>
       buildRoutes({
@@ -194,7 +196,7 @@ describe('the default body is the entity schema itself when nothing is dropped',
   });
 
   test('a custom body on every write route leaves a refined entity schema alone', () => {
-    const refinedSchema = z.object(auditedShape).refine(value => value.code !== 'RESERVED');
+    const refinedSchema = z.object(auditedShape).refine((value) => value.code !== 'RESERVED');
     const customBody = z.object({ code: z.string() });
 
     const routes = buildRoutes({

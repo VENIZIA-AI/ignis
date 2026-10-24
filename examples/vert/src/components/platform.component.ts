@@ -160,7 +160,7 @@ export class PlatformComponent extends BaseComponent {
   @provide({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
   basicOptions(): TBasicTokenServiceOptions {
     return {
-      verifyCredentials: async opts => {
+      verifyCredentials: async (opts) => {
         const authenticationService = this.application.get<AuthenticationService>({
           key: { namespace: BindingNamespaces.SERVICE, key: AuthenticationService.name },
         });

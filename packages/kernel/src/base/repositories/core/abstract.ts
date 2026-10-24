@@ -332,7 +332,7 @@ export abstract class AbstractRepository<
     return this.executeReadWithRetry<Array<R>>({
       operation: 'find',
       options: opts.options,
-      defaultUntil: result => result.length > 0,
+      defaultUntil: (result) => result.length > 0,
       // `R` is named here, so the row is `R`; TypeScript cannot resolve `TRow` for an unresolved `R`.
       execution: () => this.find<R>({ filter: opts.filter, options }) as Promise<Array<R>>,
     });
@@ -348,7 +348,7 @@ export abstract class AbstractRepository<
     return this.executeReadWithRetry<TDataWithRange<R>>({
       operation: 'find',
       options: opts.options,
-      defaultUntil: result => result.data.length > 0,
+      defaultUntil: (result) => result.data.length > 0,
       execution: () =>
         this.find<R>({ filter: opts.filter, options }) as unknown as Promise<TDataWithRange<R>>,
     });
@@ -364,7 +364,7 @@ export abstract class AbstractRepository<
     return this.executeReadWithRetry<TNullable<R>>({
       operation: 'findOne',
       options: opts.options,
-      defaultUntil: result => result !== null && result !== undefined,
+      defaultUntil: (result) => result !== null && result !== undefined,
       execution: () => this.findOne<R>({ filter: opts.filter, options }) as Promise<TNullable<R>>,
     });
   }

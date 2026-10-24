@@ -8,7 +8,7 @@ const apiKey = process.env['APP_ENV_TYPESENSE_API_KEY'];
 const hasEnv = Boolean(rawNodes && apiKey);
 
 const parseNodes = (value: string) =>
-  value.split(',').map(part => {
+  value.split(',').map((part) => {
     const [protocol, host, port] = part.split(':');
     return {
       protocol: protocol || 'http',

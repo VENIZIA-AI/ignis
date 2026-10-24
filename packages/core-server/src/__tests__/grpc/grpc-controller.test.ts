@@ -314,7 +314,7 @@ describe('BaseGrpcController - ConnectRPC module handed over through the options
     const routerOpts: Array<Record<string, unknown> | undefined> = [];
     const module: IConnectRpcModule = {
       connect: {
-        createConnectRouter: opts => {
+        createConnectRouter: (opts) => {
           calls.push('createConnectRouter');
           routerOpts.push(opts);
           return { service: () => calls.push('service'), handlers: [] } as AnyType;
@@ -374,7 +374,7 @@ describe('BaseGrpcController - interceptors from the component options', () => {
     ctrl.interceptors = interceptors;
     ctrl.connectRpcModule = {
       connect: {
-        createConnectRouter: opts => {
+        createConnectRouter: (opts) => {
           routerOpts.push(opts);
           return { service: () => {}, handlers: [] } as AnyType;
         },

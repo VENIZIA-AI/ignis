@@ -65,7 +65,7 @@ export const isOperatorObject = (value: unknown): value is Record<string, unknow
     return false;
   }
 
-  return keys.every(key => QueryOperators.isValid(key));
+  return keys.every((key) => QueryOperators.isValid(key));
 };
 
 /**

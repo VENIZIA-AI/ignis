@@ -19,7 +19,7 @@ export const saleChannelTable = pgTable(
     description: text('description'),
     isActive: boolean('is_active').notNull().default(true),
   },
-  table => [
+  (table) => [
     unique('UQ_SaleChannel_code').on(table.code),
     index('IDX_SaleChannel_name').on(table.name),
     index('IDX_SaleChannel_isActive').on(table.isActive),

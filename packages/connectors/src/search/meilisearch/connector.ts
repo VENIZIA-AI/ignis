@@ -90,30 +90,30 @@ export class MeilisearchConnector extends BaseSearchConnector {
   }
 
   readonly collection: ISearchCollectionScoped<IMeilisearchIndexPlan, unknown, never> = {
-    create: opts => this.createCollection(opts),
-    ensure: opts => this.ensureCollection(opts),
-    get: opts => this.getCollection(opts),
+    create: (opts) => this.createCollection(opts),
+    ensure: (opts) => this.ensureCollection(opts),
+    get: (opts) => this.getCollection(opts),
     list: () => this.listCollections(),
-    exists: opts => this.collectionExists(opts),
+    exists: (opts) => this.collectionExists(opts),
     patchSchema: () => this.patchCollectionSchema(),
-    delete: opts => this.deleteCollection(opts),
+    delete: (opts) => this.deleteCollection(opts),
   };
 
   /** Meilisearch has no alias layer; a zero-downtime reindex swaps two index uids atomically. */
   readonly swap: ISearchSwapScoped = {
-    indexes: opts => this.swapIndexes(opts),
+    indexes: (opts) => this.swapIndexes(opts),
   };
 
   /** A flat per-index dictionary. There is no named, linkable synonym-set resource. */
   readonly synonyms: ISearchSynonymScoped = {
-    set: opts => this.setSynonyms(opts),
-    get: opts => this.getSynonyms(opts),
-    reset: opts => this.resetSynonyms(opts),
+    set: (opts) => this.setSynonyms(opts),
+    get: (opts) => this.getSynonyms(opts),
+    reset: (opts) => this.resetSynonyms(opts),
   };
 
   readonly document: ISearchDocumentScoped = {
     get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
-    count: opts => this.countDocuments(opts),
+    count: (opts) => this.countDocuments(opts),
     create: <T extends object>(opts: { collection: string; document: T }) =>
       this.createDocument(opts),
     upsert: <T extends object>(opts: { collection: string; document: T }) =>
@@ -125,12 +125,12 @@ export class MeilisearchConnector extends BaseSearchConnector {
       document: Partial<T>;
       filterBy: string;
     }) => this.updateByFilter(opts),
-    delete: opts => this.deleteDocument(opts),
-    deleteBy: opts => this.deleteByFilter(opts),
-    deleteAll: opts => this.deleteAllDocuments(opts),
+    delete: (opts) => this.deleteDocument(opts),
+    deleteBy: (opts) => this.deleteByFilter(opts),
+    deleteAll: (opts) => this.deleteAllDocuments(opts),
     import: <T extends object>(opts: { collection: string; documents: T[]; batchSize?: number }) =>
       this.importDocuments(opts),
-    export: opts => this.exportDocuments(opts),
+    export: (opts) => this.exportDocuments(opts),
   };
 
   /** Never throws - `BaseSearchConnector.ping()` reads `.ok` and returns it, so a probe failure has to resolve as `{ ok: false }` rather than surface as a 503. */
@@ -185,7 +185,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         });
       }
 
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
       intervalMs = Math.min(intervalMs * 2, MAX_TASK_INTERVAL_MS);
     }
   }
@@ -214,7 +214,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         this.logger.for(this.createCollection.name).info('Created index | uid: %s', schema.uid);
       },
       tolerate: {
-        when: error => MeilisearchInternal.isAlreadyExistsError({ error }),
+        when: (error) => MeilisearchInternal.isAlreadyExistsError({ error }),
         handle: () => {
           this.logger
             .for(this.createCollection.name)
@@ -335,7 +335,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       run: async () => {
         await this.awaitWrite({
           method: this.swapIndexes.name,
-          run: () => this.client.swapIndexes(pairs.map(indexes => ({ indexes }))),
+          run: () => this.client.swapIndexes(pairs.map((indexes) => ({ indexes }))),
         });
         this.logger
           .for(this.swapIndexes.name)
@@ -355,7 +355,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       }
 
       for (const term of entry.synonyms) {
-        dictionary[term] = entry.synonyms.filter(other => other !== term);
+        dictionary[term] = entry.synonyms.filter((other) => other !== term);
       }
     }
 
@@ -579,7 +579,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         for (let index = 0; index < ids.length; index += MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE) {
           const batch = ids.slice(index, index + MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE);
           // `[primaryKey]: id` last: each matched row keeps its own id even if the patch carries one.
-          const documents = batch.map(id => ({ ...document, [primaryKey]: id }));
+          const documents = batch.map((id) => ({ ...document, [primaryKey]: id }));
           await this.awaitWrite({
             method: this.updateByFilter.name,
             run: () => this.client.index(collection).updateDocuments(documents),
@@ -810,7 +810,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
           ...(includeFields?.length ? { fields: includeFields } : {}),
         });
 
-        return rows.map(row => JSON.stringify(row)).join('\n');
+        return rows.map((row) => JSON.stringify(row)).join('\n');
       },
     });
 
@@ -834,7 +834,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         return mapSearchResult<TDocument>(raw);
       },
       tolerate: {
-        when: error => MeilisearchInternal.isNotFoundError({ error }),
+        when: (error) => MeilisearchInternal.isNotFoundError({ error }),
         handle: () => {
           this.logger
             .for(this.search.name)
@@ -869,7 +869,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       run: () => {
         const common = isRecord(commonParams) ? commonParams : {};
 
-        const queries = searches.filter(isRecord).map(entry => {
+        const queries = searches.filter(isRecord).map((entry) => {
           const { collection, ...rest } = entry;
 
           // `common` first: a per-query param overrides the shared default, never the reverse.

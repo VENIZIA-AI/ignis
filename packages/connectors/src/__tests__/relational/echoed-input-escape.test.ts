@@ -32,7 +32,7 @@ const UNSAFE: Array<{ label: string; raw: string; escaped: string }> = [
 
 /** Whether a message still carries a raw C0, DEL, C1, U+2028 or U+2029 character. */
 const hasUnsafeCharacter = (message: string): boolean =>
-  [...message].some(character => {
+  [...message].some((character) => {
     const code = character.charCodeAt(0);
     return code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
   });

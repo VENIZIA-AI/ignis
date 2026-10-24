@@ -16,7 +16,7 @@ const copyApp = (name: string): string => {
   const root = join(workspace, name);
   cpSync(join(FIXTURES, 'auto', 'app'), root, {
     recursive: true,
-    filter: path => !path.includes('app_data'),
+    filter: (path) => !path.includes('app_data'),
   });
   return root;
 };

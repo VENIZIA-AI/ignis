@@ -126,7 +126,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
         if (
           !Array.isArray(list) ||
           list.length !== length ||
-          !list.every(entry => typeof entry === 'string')
+          !list.every((entry) => typeof entry === 'string')
         ) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -153,7 +153,7 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
 
     // No entry for the exact tag: one for the same language serves - `vi` reads a `vi-VN` entry.
     const language = new Intl.Locale(locale).language;
-    const match = Object.keys(this.names).find(key => new Intl.Locale(key).language === language);
+    const match = Object.keys(this.names).find((key) => new Intl.Locale(key).language === language);
     const names = match === undefined ? undefined : this.names[match];
     this.namesByLocale.set(locale, names);
     return names;
@@ -341,12 +341,12 @@ export abstract class AbstractTemporalHelper extends BaseHelper implements ITemp
       return { start, end: this.earliestOf({ parts: nextParts, tz }) };
     }
 
-    const started = starts.instants.filter(instant => instant <= epoch);
+    const started = starts.instants.filter((instant) => instant <= epoch);
     const start = started.at(-1) ?? starts.instants[0] ?? starts.forward;
 
     const nexts = this.instantsOf({ parts: nextParts, tz });
-    const following = nexts.instants.find(instant => instant > start) ?? nexts.forward;
-    const repeated = starts.instants.find(instant => instant > start);
+    const following = nexts.instants.find((instant) => instant > start) ?? nexts.forward;
+    const repeated = starts.instants.find((instant) => instant > start);
     return { start, end: repeated === undefined ? following : Math.min(repeated, following) };
   }
 

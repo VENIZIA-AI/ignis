@@ -229,11 +229,11 @@ describe('a malformed `error` degrades, never throws', () => {
 });
 
 describe('MessageCode guards hostile input instead of throwing', () => {
-  test.each([[123], [null], [undefined], [{}], [['a', 'b']]])('isValid(%p) is false', value => {
+  test.each([[123], [null], [undefined], [{}], [['a', 'b']]])('isValid(%p) is false', (value) => {
     expect(MessageCode.isValid(value)).toBe(false);
   });
 
-  test.each([[123], [['a']], [{}]])('resolve(%p) falls back to the default', value => {
+  test.each([[123], [['a']], [{}]])('resolve(%p) falls back to the default', (value) => {
     expect(MessageCode.resolve(value as never)).toBe(MessageCode.DEFAULT);
   });
 });

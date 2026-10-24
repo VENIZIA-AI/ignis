@@ -28,7 +28,7 @@ export class ServiceCertsController extends BaseRestController {
   override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: ServiceCertsRouteConfigs.GET_SERVICE_CERTS,
-      handler: async context => {
+      handler: async (context) => {
         const jwks = await this.signer.getPublicJWKS();
         context.header('Cache-Control', 'public, max-age=600, stale-while-revalidate=86400');
         return context.json(jwks, HTTP.ResultCodes.RS_2.Ok);

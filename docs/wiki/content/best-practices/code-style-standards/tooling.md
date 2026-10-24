@@ -171,7 +171,7 @@ Automatic code formatting eliminates style debates. `bun fmt` reads the `[fmt]` 
 [fmt]
 printWidth = 100
 singleQuote = true
-arrowParens = "avoid"
+arrowParens = "always"
 flavor = "oxfmt"
 ```
 
@@ -179,7 +179,7 @@ flavor = "oxfmt"
 |---------|-------|-------------|
 | `printWidth` | `100` | Maximum line length |
 | `singleQuote` | `true` | `'string'` (single quotes) |
-| `arrowParens` | `"avoid"` | `x => x` not `(x) => x` |
+| `arrowParens` | `"always"` | `(x) => x` not `x => x` |
 | `flavor` | `"oxfmt"` | Keeps the output IGNIS was formatted with. Without it Bun formats in its default flavor, which puts the first member of a long union on its own `|` line |
 
 Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `trailingComma` `"all"`, `semi` `true`, `bracketSpacing` `true`. The same table serves a React app; there is no separate frontend style.

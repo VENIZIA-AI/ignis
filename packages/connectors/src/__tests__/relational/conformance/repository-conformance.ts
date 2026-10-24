@@ -172,7 +172,7 @@ export const runRepositoryConformance = (opts: {
         filter: { where: { score: { gte: 20 } }, order: ['score DESC'] },
       });
 
-      expect(rows.map(row => row.name)).toEqual(['gamma', 'beta']);
+      expect(rows.map((row) => row.name)).toEqual(['gamma', 'beta']);
     });
 
     /**
@@ -230,7 +230,7 @@ export const runRepositoryConformance = (opts: {
         },
       });
 
-      expect(rows.map(row => row.name)).toEqual(['alpha', 'gamma']);
+      expect(rows.map((row) => row.name)).toEqual(['alpha', 'gamma']);
     });
 
     test('count() honours its where', async () => {
@@ -298,7 +298,7 @@ export const runRepositoryConformance = (opts: {
 
       // `gamma` satisfies the caller's where and fails the
       // scope; a merge that lost the default would return it.
-      expect(rows.map(row => row.name)).toEqual(['alpha', 'beta']);
+      expect(rows.map((row) => row.name)).toEqual(['alpha', 'beta']);
     });
 
     test('the defaultFilter also scopes findById() and count()', async () => {
@@ -405,7 +405,7 @@ export const runRepositoryConformance = (opts: {
           return;
         }
 
-        expect((await execution()).map(row => row.name)).toEqual(['alpha']);
+        expect((await execution()).map((row) => row.name)).toEqual(['alpha']);
       },
     );
 
@@ -427,8 +427,8 @@ export const runRepositoryConformance = (opts: {
           filter: { where: { name: { nlike: 'alpha' } } },
         });
 
-        const matchedNames = matched.map(row => row.name).sort();
-        const rejectedNames = rejected.map(row => row.name).sort();
+        const matchedNames = matched.map((row) => row.name).sort();
+        const rejectedNames = rejected.map((row) => row.name).sort();
 
         if (capabilities.caseInsensitiveLike) {
           // `nlike` is the dangerous half: it silently
@@ -462,7 +462,7 @@ export const runRepositoryConformance = (opts: {
         const page = await repository.find<IConformanceRow>({
           filter: { order: ['score ASC'], skip, limit: pageSize },
         });
-        seen.push(...page.map(row => row.id));
+        seen.push(...page.map((row) => row.id));
       }
 
       expect(seen).toHaveLength(total);
@@ -485,8 +485,8 @@ export const runRepositoryConformance = (opts: {
           filter: { order: ['score DESC'] },
         });
 
-        const ascendingIndex = ascending.findIndex(row => row.name === 'nulled');
-        const descendingIndex = descending.findIndex(row => row.name === 'nulled');
+        const ascendingIndex = ascending.findIndex((row) => row.name === 'nulled');
+        const descendingIndex = descending.findIndex((row) => row.name === 'nulled');
 
         expect(ascending).toHaveLength(4);
         expect(descending).toHaveLength(4);
@@ -517,7 +517,7 @@ export const runRepositoryConformance = (opts: {
           return;
         }
 
-        expect((await execution()).map(row => row.name)).toEqual(['alpha', 'beta']);
+        expect((await execution()).map((row) => row.name)).toEqual(['alpha', 'beta']);
       },
     );
 

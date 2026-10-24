@@ -133,7 +133,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
 
       this.client
         .quit()
-        .then(rs => {
+        .then((rs) => {
           resolve(rs === 'OK');
         })
         .catch(reject);
@@ -299,7 +299,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return [];
     }
 
-    return values.map(el => (el ? (transform ? transform(el) : (el as AnyType)) : null));
+    return values.map((el) => (el ? (transform ? transform(el) : (el as AnyType)) : null));
   }
 
   keys(opts: { key: string }): Promise<string[]> {
@@ -503,7 +503,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.publish.name);
     const { topics, payload, useCompress = false } = opts;
 
-    const validTopics = topics?.filter(topic => !isEmpty({ value: topic }));
+    const validTopics = topics?.filter((topic) => !isEmpty({ value: topic }));
     if (!validTopics?.length) {
       logger.error('No topic(s) to publish!');
       return;
@@ -520,7 +520,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     // `topics` is caller-supplied, so an unbounded fan-out here is a caller-sized burst on one connection.
     await executePromiseWithLimit({
       limit: RedisConcurrency.PUBLISH_LIMIT,
-      tasks: validTopics.map(topic => () => this.client.publish(topic, packet)),
+      tasks: validTopics.map((topic) => () => this.client.publish(topic, packet)),
     });
   }
 

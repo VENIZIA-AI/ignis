@@ -12,7 +12,7 @@ describe('TypesenseConnector search', () => {
     });
     expect(result.found).toBe(2);
     // One collection is still ONE call - it is simply the arity-1 case of the multi_search transport.
-    const call = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
     const [request] = (call?.args ?? []) as Array<{ searches: unknown[] }>;
     expect(request.searches).toEqual([{ q: 'shoe', collection: 'products' }]);
   });
@@ -85,8 +85,8 @@ describe('TypesenseConnector search', () => {
       searches: [{ collection: 'products', q: 'x' }],
       commonParams: { q: 'x' },
     });
-    expect(fake.calls.some(c => c.op === 'multiSearch.perform')).toBe(true);
-    const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
+    expect(fake.calls.some((c) => c.op === 'multiSearch.perform')).toBe(true);
+    const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect((ms!.args[0] as { searches: unknown[] }).searches.length).toBe(1);
   });
 
@@ -100,7 +100,7 @@ describe('TypesenseConnector search', () => {
         { collection: 'categories', q: 'x' },
       ],
     });
-    const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect(ms?.args[0]).toEqual({
       searches: [
         { collection: 'products', q: 'x' },
@@ -121,7 +121,7 @@ describe('TypesenseConnector search', () => {
       ],
       union: true,
     });
-    const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect(ms?.args[0]).toEqual({
       union: true,
       searches: [
@@ -140,7 +140,7 @@ describe('TypesenseConnector search', () => {
       params: { q: 'x' },
       options: { cacheSearchResultsForSeconds: 60 },
     });
-    const call = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
     // record('multiSearch.perform', reqs, common, options) => args[2] is the options
     expect(call?.args[2]).toEqual({ cacheSearchResultsForSeconds: 60 });
   });
@@ -152,7 +152,7 @@ describe('TypesenseConnector search', () => {
       searches: [{ collection: 'products', q: 'x' }],
       options: { abortSignal: abortController.signal },
     });
-    const ms = fake.calls.find(c => c.op === 'multiSearch.perform');
+    const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect((ms!.args[2] as { abortSignal: AbortSignal }).abortSignal).toBe(abortController.signal);
   });
 });

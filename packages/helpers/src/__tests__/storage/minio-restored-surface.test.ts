@@ -118,7 +118,7 @@ describe('MinioHelper - the deprecated backend still meets the storage contract'
     const helper = buildHelper({ listObjects: () => Readable.from(entries, { objectMode: true }) });
     const objects = await helper.listObjects({ bucket: { name: 'assets' }, maxKeys: 2 });
 
-    expect(objects.map(object => object.name)).toEqual(['object-0.png', 'object-1.png']);
+    expect(objects.map((object) => object.name)).toEqual(['object-0.png', 'object-1.png']);
   });
 
   test('an absent maxKeys returns everything the driver streamed', async () => {

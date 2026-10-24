@@ -43,12 +43,12 @@ const buildServer = (opts: {
   }
   server.use(middleware.value());
   // Reads the RAW stream, as a proxy does.
-  server.put('/upload', async context => {
+  server.put('/upload', async (context) => {
     const bytes = new Uint8Array(await new Response(context.req.raw.body).arrayBuffer());
     return context.json({ bytes: Array.from(bytes) });
   });
-  server.post('/text', async context => context.json({ text: await context.req.raw.text() }));
-  server.post('/signed', async context => context.json({ text: await context.req.text() }));
+  server.post('/text', async (context) => context.json({ text: await context.req.raw.text() }));
+  server.post('/signed', async (context) => context.json({ text: await context.req.text() }));
 
   return server;
 };

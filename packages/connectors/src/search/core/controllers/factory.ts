@@ -102,14 +102,14 @@ export class SearchControllerFactory extends BaseHelper {
         if (isEnabled('search')) {
           this.defineRoute({
             configs: routeDefinitions.SEARCH,
-            handler: async context => this.search({ context }),
+            handler: async (context) => this.search({ context }),
           });
         }
 
         if (isEnabled('multiSearch')) {
           this.defineRoute({
             configs: routeDefinitions.MULTI_SEARCH,
-            handler: async context => this.multiSearch({ context }),
+            handler: async (context) => this.multiSearch({ context }),
           });
         }
       }

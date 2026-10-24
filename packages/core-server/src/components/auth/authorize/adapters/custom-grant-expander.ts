@@ -83,8 +83,8 @@ export class CustomGrantExpander extends BaseHelper {
     const seen = new Set<string>();
     const pairs: Array<{ subject: string; method: string }> = [];
 
-    const candidates = opts.customRows.flatMap(row =>
-      row.ops.map(op => ({ subject: row.objectSubject, method: op })),
+    const candidates = opts.customRows.flatMap((row) =>
+      row.ops.map((op) => ({ subject: row.objectSubject, method: op })),
     );
 
     for (const candidate of candidates) {
@@ -98,7 +98,7 @@ export class CustomGrantExpander extends BaseHelper {
     }
 
     const catalog = await this.queryOperationCatalog({ pairs });
-    const byKey = new Map(catalog.map(entry => [`${entry.subject}.${entry.method}`, entry]));
+    const byKey = new Map(catalog.map((entry) => [`${entry.subject}.${entry.method}`, entry]));
     const lines: string[] = [];
     const rejections: string[] = [];
 
@@ -162,7 +162,7 @@ export class CustomGrantExpander extends BaseHelper {
       SELECT permission.subject, permission.method, permission.code, permission.action
       FROM ${permissionTable} permission
       WHERE (permission.subject, permission.method) IN (${sql.join(
-        opts.pairs.map(pair => sql`(${pair.subject}, ${pair.method})`),
+        opts.pairs.map((pair) => sql`(${pair.subject}, ${pair.method})`),
         sql`, `,
       )})
         AND permission.method <> ${AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD}${this.softDeleteClause(

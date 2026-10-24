@@ -395,9 +395,9 @@ describe('AmazonSesTransportHelper - send', () => {
     );
 
     const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
-    const fromLine = raw.split('\r\n').find(line => line.startsWith('From:'));
+    const fromLine = raw.split('\r\n').find((line) => line.startsWith('From:'));
     expect(fromLine).toMatch(/^From: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <no-reply@example\.com>$/);
-    expect([...fromLine!].every(char => char.charCodeAt(0) <= 127)).toBe(true);
+    expect([...fromLine!].every((char) => char.charCodeAt(0) <= 127)).toBe(true);
   });
 
   test('a long non-ASCII subject splits into multiple encoded-words without cutting a character in half', async () => {
@@ -412,12 +412,12 @@ describe('AmazonSesTransportHelper - send', () => {
     const [sent] = fakeClient.sentCommands;
     const raw = (sent.Content.Raw.Data as Buffer).toString('utf-8');
     const encodedWords = [...raw.matchAll(/=\?UTF-8\?B\?([A-Za-z0-9+/=]+)\?=/g)].map(
-      match => match[1],
+      (match) => match[1],
     );
 
     expect(encodedWords.length).toBeGreaterThan(1);
     const decoded = encodedWords
-      .map(word => Buffer.from(word, 'base64').toString('utf-8'))
+      .map((word) => Buffer.from(word, 'base64').toString('utf-8'))
       .join('');
     expect(decoded).toBe(subject);
     expect(decoded).not.toContain('\uFFFD');
@@ -458,7 +458,7 @@ describe('AmazonSesTransportHelper - send', () => {
     const toBlock = raw
       .split('\r\n\r\n')[0]
       .split('\r\n')
-      .filter(l => l.startsWith('To:') || l.startsWith(' '));
+      .filter((l) => l.startsWith('To:') || l.startsWith(' '));
     expect(toBlock.join('').replace('To: ', '')).toBe(longAddress);
   });
 

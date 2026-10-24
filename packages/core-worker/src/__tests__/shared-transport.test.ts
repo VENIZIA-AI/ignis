@@ -47,7 +47,7 @@ class AnsweringWorker {
     };
 
     this.handler(BffEnvelope.decodeRequest({ envelope }))
-      .then(response => BffEnvelope.encodeResponse({ response, id: envelope.id }))
+      .then((response) => BffEnvelope.encodeResponse({ response, id: envelope.id }))
       .then(dispatch)
       // A thrown handler comes back as an ERROR envelope, which is what `WorkerApplication.listen()`
       // does. A fake that simply went quiet would make every failure look like a timeout.
@@ -147,7 +147,7 @@ const removeLockManager = (): void => {
   });
 };
 
-const flush = (ms = 30): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const flush = (ms = 30): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Every suite gets its own channel, so a leaked transport cannot answer another test's requests. */
 let channelSequence = 0;

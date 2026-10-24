@@ -18,9 +18,9 @@ const UNLISTED = [/^extensions\/(components|helpers)\/template\//, /^index$/];
 const config = await Bun.file(CONFIG).text();
 const linked = new Set(
   [...config.matchAll(/link:\s*'([^']+)'/g)]
-    .map(m => m[1])
-    .filter(l => !l.startsWith('http'))
-    .map(l => l.replace(/#.*$/, '').replace(/^\//, '').replace(/\/$/, '/index')),
+    .map((m) => m[1])
+    .filter((l) => !l.startsWith('http'))
+    .map((l) => l.replace(/#.*$/, '').replace(/^\//, '').replace(/\/$/, '/index')),
 );
 
 const pages: Array<string> = [];
@@ -29,15 +29,15 @@ for await (const file of new Glob('**/*.md').scan(CONTENT)) {
 }
 
 const orphans = pages
-  .filter(page => !UNLISTED.some(pattern => pattern.test(page)))
-  .filter(page => {
+  .filter((page) => !UNLISTED.some((pattern) => pattern.test(page)))
+  .filter((page) => {
     const asDirectory = page.endsWith('/index') ? page.slice(0, -'/index'.length) : null;
     return !linked.has(page) && !(asDirectory !== null && linked.has(asDirectory));
   });
 
-const dead = [...new Set([...linked])].filter(link => {
+const dead = [...new Set([...linked])].filter((link) => {
   const candidates = [link, `${link}/index`, link.replace(/\/index$/, '')];
-  return !candidates.some(candidate => pages.includes(candidate));
+  return !candidates.some((candidate) => pages.includes(candidate));
 });
 
 const problems: Array<string> = [];

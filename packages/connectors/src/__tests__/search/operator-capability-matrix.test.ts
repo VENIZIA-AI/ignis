@@ -144,7 +144,7 @@ const probeOperator = (dialect: ISearchQueryDialect, operator: string): TProbe =
 describe('operator capability matrix - completeness', () => {
   test('every operator in the vocabulary has a cell, and no cell is stale', () => {
     const unclassified = [...QueryOperators.SCHEME_SET].filter(
-      operator => EXPECTED[operator] === undefined,
+      (operator) => EXPECTED[operator] === undefined,
     );
 
     expect(
@@ -153,7 +153,7 @@ describe('operator capability matrix - completeness', () => {
     ).toEqual([]);
 
     const stale = Object.keys(EXPECTED).filter(
-      operator => !QueryOperators.SCHEME_SET.has(operator),
+      (operator) => !QueryOperators.SCHEME_SET.has(operator),
     );
 
     expect(stale, 'these cells classify operators QueryOperators no longer defines').toEqual([]);
@@ -162,7 +162,7 @@ describe('operator capability matrix - completeness', () => {
   for (const { name, dialect } of DIALECTS) {
     test(`${name}: answers canExpress for every operator in the vocabulary`, () => {
       const unanswered = [...QueryOperators.SCHEME_SET].filter(
-        operator => typeof dialect.canExpress({ operator }) !== 'boolean',
+        (operator) => typeof dialect.canExpress({ operator }) !== 'boolean',
       );
 
       expect(unanswered).toEqual([]);

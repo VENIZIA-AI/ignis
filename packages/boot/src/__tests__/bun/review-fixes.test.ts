@@ -36,7 +36,7 @@ describe('rewriteGroups - layouts and refusals', () => {
       "import { ArtifactGroup } from '@venizia/ignis-kernel';\nexport const A = ArtifactGroup.define({ folder: 'duplicates' });\n",
     );
     const locals = [...output.matchAll(/import \{ TwinService as (\w+) \}/g)].map(
-      match => match[1],
+      (match) => match[1],
     );
     expect(locals).toHaveLength(2);
     expect(new Set(locals).size).toBe(2);
@@ -84,7 +84,7 @@ describe('groupDefinitionFiles - workspace layouts', () => {
       root: join(root, 'apps', 'web', 'src'),
     });
     expect(files).toContain(GROUPS_FILE);
-    expect(files.some(file => file.endsWith('own-groups.ts'))).toBe(true);
+    expect(files.some((file) => file.endsWith('own-groups.ts'))).toBe(true);
   });
 });
 

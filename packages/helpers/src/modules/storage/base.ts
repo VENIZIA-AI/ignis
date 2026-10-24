@@ -122,7 +122,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
 
     const segments = normalized.split('/');
 
-    if (segments.some(s => s.length === 0)) {
+    if (segments.some((s) => s.length === 0)) {
       this.logger
         .for(this.isValidKeyPath.name)
         .error('Path contains empty segments (double slashes): %s', pathStr);
@@ -200,7 +200,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const bucketName = opts.bucket.name;
     const encodedName = opts.object.key
       .split('/')
-      .map(segment => encodeURIComponent(segment))
+      .map((segment) => encodeURIComponent(segment))
       .join('/');
 
     return `${this.defaultLinkPrefix}${bucketName}/${encodedName}`;
@@ -305,7 +305,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     });
 
     // Every key is resolved and validated before the first write, so one bad key stores nothing.
-    const keys = files.map(file => {
+    const keys = files.map((file) => {
       const naming: TUploadNaming = {
         originalName: file.originalName,
         folderPath: file.folderPath,

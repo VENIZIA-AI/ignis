@@ -75,12 +75,12 @@ export class ClauseOptionsCases extends BaseTestCases {
       if (results.length === 2 && results[0].price > results[1].price) {
         this.context.logger.info(
           '[CASE 13] PASSED | User order preserved | prices: %j',
-          results.map(r => r.price),
+          results.map((r) => r.price),
         );
       } else {
         this.context.logger.error(
           '[CASE 13] FAILED | Expected DESC order | Got: %j',
-          results.map(r => r.price),
+          results.map((r) => r.price),
         );
       }
     } catch (error) {

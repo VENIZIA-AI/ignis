@@ -331,7 +331,7 @@ describe('Mail attachments - size limit', () => {
 
     expect(result.success).toBe(true);
     const attachments = transport.sentMessages[0].attachments ?? [];
-    const byteLengths = attachments.map(attachment =>
+    const byteLengths = attachments.map((attachment) =>
       Buffer.isBuffer(attachment.content) ? attachment.content.byteLength : -1,
     );
     expect(byteLengths).toEqual([1024, 5, 8192]);
@@ -472,7 +472,7 @@ describe('Mail attachments - every transport', () => {
 
   for (const { name } of noRootTransports()) {
     test(`${name}: the service refuses a path with no root, and the transport never sees it`, async () => {
-      const underTest = noRootTransports().find(candidate => candidate.name === name);
+      const underTest = noRootTransports().find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
       if (!underTest) {
         return;
@@ -489,7 +489,7 @@ describe('Mail attachments - every transport', () => {
 
     test(`${name}: the service refuses a symlink escape, and the transport never sees it`, async () => {
       const underTest = buildTransports({ attachmentRoot }).find(
-        candidate => candidate.name === name,
+        (candidate) => candidate.name === name,
       );
       expect(underTest).toBeDefined();
       if (!underTest) {
@@ -506,7 +506,7 @@ describe('Mail attachments - every transport', () => {
     });
 
     test(`${name}: called directly, the transport refuses a path instead of reading it`, async () => {
-      const underTest = noRootTransports().find(candidate => candidate.name === name);
+      const underTest = noRootTransports().find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
       if (!underTest) {
         return;
@@ -523,7 +523,7 @@ describe('Mail attachments - every transport', () => {
 
     test(`${name}: a file inside the root reaches the transport as content, never as a path`, async () => {
       const underTest = buildTransports({ attachmentRoot }).find(
-        candidate => candidate.name === name,
+        (candidate) => candidate.name === name,
       );
       expect(underTest).toBeDefined();
       if (!underTest) {
@@ -586,7 +586,7 @@ describe('Mail body - only strings reach a transport', () => {
 
   for (const { name } of buildTransports({})) {
     test(`${name}: the service refuses an object body, and the transport never sees it`, async () => {
-      const underTest = buildTransports({}).find(candidate => candidate.name === name);
+      const underTest = buildTransports({}).find((candidate) => candidate.name === name);
       expect(underTest).toBeDefined();
       if (!underTest) {
         return;
@@ -603,7 +603,7 @@ describe('Mail body - only strings reach a transport', () => {
   }
 
   test('nodemailer called directly refuses an object body instead of reading it', async () => {
-    const underTest = buildTransports({}).find(candidate => candidate.name === 'nodemailer');
+    const underTest = buildTransports({}).find((candidate) => candidate.name === 'nodemailer');
     expect(underTest).toBeDefined();
     if (!underTest) {
       return;
@@ -620,7 +620,7 @@ describe('Mail body - only strings reach a transport', () => {
 const buildWebStream = (opts: { chunkBytes: number; chunkCount: number }) => {
   const state = { pulledChunks: 0, cancelled: false };
   const stream = new ReadableStream<Uint8Array>({
-    pull: controller => {
+    pull: (controller) => {
       if (state.pulledChunks >= opts.chunkCount) {
         controller.close();
         return;
@@ -638,7 +638,7 @@ const buildWebStream = (opts: { chunkBytes: number; chunkCount: number }) => {
 };
 
 const withTimeout = async (opts: { promise: Promise<unknown>; milliseconds: number }) => {
-  const timer = new Promise(resolve => {
+  const timer = new Promise((resolve) => {
     setTimeout(() => resolve('timed-out'), opts.milliseconds);
   });
 
@@ -710,7 +710,7 @@ describe('Mail attachments - streams are released when a send is refused', () =>
   });
 
   test('ses called directly releases the attachment stream it refused to send', async () => {
-    const underTest = buildTransports({}).find(candidate => candidate.name === 'amazon-ses');
+    const underTest = buildTransports({}).find((candidate) => candidate.name === 'amazon-ses');
     expect(underTest).toBeDefined();
     if (!underTest) {
       return;
@@ -897,7 +897,7 @@ describe('Mail attachments - review fixes', () => {
   });
 
   test('nodemailer is told to open no file and fetch no URL on its own', async () => {
-    const underTest = buildTransports({}).find(candidate => candidate.name === 'nodemailer');
+    const underTest = buildTransports({}).find((candidate) => candidate.name === 'nodemailer');
     expect(underTest).toBeDefined();
     if (!underTest) {
       return;

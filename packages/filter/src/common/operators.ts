@@ -23,7 +23,7 @@ const validateNumericRange = (opts: { op: string; value: unknown }): boolean => 
     });
   }
 
-  return value.every(v => typeof v === 'number');
+  return value.every((v) => typeof v === 'number');
 };
 
 /** Query operators for building where conditions (comparison, pattern, null, array, logical). */

@@ -53,7 +53,7 @@ export class MinioHelper extends BaseStorageHelper {
     }
 
     const buckets = await this.getBuckets();
-    const bucket = buckets.find(el => el.name === opts.bucket.name);
+    const bucket = buckets.find((el) => el.name === opts.bucket.name);
     return bucket ?? null;
   }
 
@@ -182,7 +182,7 @@ export class MinioHelper extends BaseStorageHelper {
     const { bucket, objects } = opts;
     await this.client.removeObjects(
       bucket.name,
-      objects.map(object => object.key),
+      objects.map((object) => object.key),
     );
   }
 
@@ -203,7 +203,7 @@ export class MinioHelper extends BaseStorageHelper {
       // `destroy()` stops the stream only eventually; pushing past it mutates a resolved array.
       let isSettled = false;
 
-      stream.on('data', obj => {
+      stream.on('data', (obj) => {
         if (isSettled) {
           return;
         }
@@ -232,7 +232,7 @@ export class MinioHelper extends BaseStorageHelper {
         resolve(objects);
       });
 
-      stream.on('error', err => {
+      stream.on('error', (err) => {
         if (isSettled) {
           return;
         }

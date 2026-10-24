@@ -77,7 +77,7 @@ const runBinary = (opts: { mode: string }): string => {
     run.stdout
       .toString()
       .split('\n')
-      .find(line => line.startsWith('RESULT')) ??
+      .find((line) => line.startsWith('RESULT')) ??
     `no RESULT line | ${run.stderr.toString().slice(0, 300)}`
   );
 };

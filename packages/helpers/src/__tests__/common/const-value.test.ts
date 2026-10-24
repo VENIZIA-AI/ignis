@@ -21,10 +21,10 @@ describe('TStringConstValue / TNumberConstValue / TConstValue - literal unions',
   test('a value mapped into a new object literal keeps the literal union', () => {
     const rows: { value: TPeriod }[] = [{ value: Periods.HALF_DAY }, { value: Periods.DAY }];
 
-    const mapped = rows.map(row => ({ value: row.value, label: row.value.toUpperCase() }));
+    const mapped = rows.map((row) => ({ value: row.value, label: row.value.toUpperCase() }));
     const typed: { value: TPeriod; label: string }[] = mapped;
 
-    expect(typed.map(row => row.value)).toEqual(['12h', '24h']);
+    expect(typed.map((row) => row.value)).toEqual(['12h', '24h']);
   });
 
   test('a let initialised from a value keeps the literal union, strings and numbers alike', () => {

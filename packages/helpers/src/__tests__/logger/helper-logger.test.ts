@@ -33,11 +33,11 @@ const buildRecorder = (): { lines: Array<string>; resolve: TLoggerResolver } => 
       error: record('error'),
       emerg: record('emerg'),
       log: (level, message) => lines.push(`${tag}|log:${level}|${message}`),
-      for: methodName => make({ scopes: [...opts.scopes, methodName] }),
+      for: (methodName) => make({ scopes: [...opts.scopes, methodName] }),
     };
   };
 
-  return { lines, resolve: opts => make({ scopes: opts.scopes }) };
+  return { lines, resolve: (opts) => make({ scopes: opts.scopes }) };
 };
 
 describe('BaseHelper.logger', () => {

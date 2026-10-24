@@ -245,7 +245,7 @@ export const probeEntry = async (opts: {
   // default, regardless of whether the read is reachable. That erases the very read this probe
   // exists to catch, and the erasure depends on the ambient `NODE_ENV` the probe happens to run
   // under - the same failure shape as the undetected leak this gate was built to prevent.
-  const externalArgs = external.flatMap(specifier => ['--external', specifier]);
+  const externalArgs = external.flatMap((specifier) => ['--external', specifier]);
   const proc = Bun.spawn(
     [
       'bun',
@@ -301,9 +301,9 @@ export const probeEntry = async (opts: {
     requestedExternal: new Set(external),
   });
   const scannableText = stripBundlerPathComments(stdout);
-  const matched = GLOBAL_PATTERNS.filter(g => g.pattern.test(scannableText));
-  const globals = matched.filter(g => g.severity === 'error').map(g => g.name);
-  const guardedGlobals = matched.filter(g => g.severity === 'guarded').map(g => g.name);
+  const matched = GLOBAL_PATTERNS.filter((g) => g.pattern.test(scannableText));
+  const globals = matched.filter((g) => g.severity === 'error').map((g) => g.name);
+  const guardedGlobals = matched.filter((g) => g.severity === 'guarded').map((g) => g.name);
 
   if (builtins.length > 0 || unresolvedExternals.length > 0) {
     const reasons: string[] = [];

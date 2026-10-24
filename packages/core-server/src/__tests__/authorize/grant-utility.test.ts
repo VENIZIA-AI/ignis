@@ -16,7 +16,7 @@ describe('AuthorizationActions.CUSTOM', () => {
   });
 
   it('is absent from the action lattice - it is a grant mode, not an action', () => {
-    const members = AuthorizationActions.LATTICE.flatMap(edge => [edge.child, edge.parent]);
+    const members = AuthorizationActions.LATTICE.flatMap((edge) => [edge.child, edge.parent]);
     expect(members).not.toContain('custom');
   });
 });
@@ -501,8 +501,8 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
       catalog: CATALOG,
     });
 
-    expect(rows.map(row => row.action).sort()).toEqual(['read', 'write']);
-    expect(rows.some(row => row.action === 'custom')).toBe(false);
+    expect(rows.map((row) => row.action).sort()).toEqual(['read', 'write']);
+    expect(rows.some((row) => row.action === 'custom')).toBe(false);
   });
 
   it('emits a tier row plus a custom row for the uncovered remainder', () => {
@@ -528,7 +528,7 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
       catalog: CATALOG,
     });
 
-    expect(rows.map(row => row.action).sort()).toEqual(['execute', 'read']);
+    expect(rows.map((row) => row.action).sort()).toEqual(['execute', 'read']);
   });
 
   it('does NOT collapse a partially covered tier - three of four read ops stays custom', () => {
@@ -578,15 +578,15 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
       catalog: memoCatalog,
     });
 
-    expect(rows.map(row => row.action).sort()).toEqual(['read', 'write']);
-    expect(rows.some(row => row.action === 'manage')).toBe(false);
+    expect(rows.map((row) => row.action).sort()).toEqual(['read', 'write']);
+    expect(rows.some((row) => row.action === 'manage')).toBe(false);
   });
 
   it('collapses the 9 default CRUD ops into read+write, not manage, when there is no custom op', () => {
     const widgetCatalog = CATALOG.filter(
-      entry => entry.subject === 'Order' && entry.method !== 'export',
-    ).map(entry => ({ ...entry, subject: 'Widget' }));
-    const widgetOps = widgetCatalog.map(entry => entry.method);
+      (entry) => entry.subject === 'Order' && entry.method !== 'export',
+    ).map((entry) => ({ ...entry, subject: 'Widget' }));
+    const widgetOps = widgetCatalog.map((entry) => entry.method);
 
     const rows = grantBuilder.planGrant({
       subject: SUBJECT,
@@ -595,8 +595,8 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
       catalog: widgetCatalog,
     });
 
-    expect(rows.map(row => row.action).sort()).toEqual(['read', 'write']);
-    expect(rows.some(row => row.action === 'manage')).toBe(false);
+    expect(rows.map((row) => row.action).sort()).toEqual(['read', 'write']);
+    expect(rows.some((row) => row.action === 'manage')).toBe(false);
   });
 
   it('still collapses into one manage row when the subject spans all three narrow tiers', () => {
@@ -625,10 +625,10 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
       catalog: oddCatalog,
     });
 
-    expect(rows.some(row => row.action === 'manage')).toBe(false);
-    expect(rows.some(row => row.action === 'read')).toBe(true);
+    expect(rows.some((row) => row.action === 'manage')).toBe(false);
+    expect(rows.some((row) => row.action === 'read')).toBe(true);
     expect(
-      rows.some(row => row.action === 'archive-only' && row.targetId === 'Gadget.archive'),
+      rows.some((row) => row.action === 'archive-only' && row.targetId === 'Gadget.archive'),
     ).toBe(true);
   });
 
@@ -669,8 +669,8 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
     });
 
     expect(rows.length).toBe(2);
-    expect(rows.map(row => row.targetId)).toEqual(['Order.find', 'Order.create']);
-    expect(rows.map(row => row.action)).toEqual(['read', 'create']);
+    expect(rows.map((row) => row.targetId)).toEqual(['Order.find', 'Order.create']);
+    expect(rows.map((row) => row.action)).toEqual(['read', 'create']);
   });
 
   it('throws on an op absent from the catalog for this resource subject', () => {
@@ -691,7 +691,7 @@ describe('GrantBuilder.planGrant - tier collapsing', () => {
         subject: SUBJECT,
         resource: RESOURCE,
         intent: { ops: ['find'] },
-        catalog: CATALOG.filter(entry => entry.subject === 'Invoice'),
+        catalog: CATALOG.filter((entry) => entry.subject === 'Invoice'),
       }),
     ).toThrow();
   });

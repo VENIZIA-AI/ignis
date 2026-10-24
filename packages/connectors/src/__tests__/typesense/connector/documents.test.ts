@@ -14,7 +14,7 @@ describe('TypesenseConnector documents', () => {
     const doc: IProduct = { id: '1', title: 'Shoe' };
     const result = await helper.createDocument<IProduct>({ collection: 'products', document: doc });
     expect(result).toEqual(doc);
-    expect(fake.calls.some(c => c.op === 'documents.create')).toBe(true);
+    expect(fake.calls.some((c) => c.op === 'documents.create')).toBe(true);
   });
 
   test('getDocument retrieves by id', async () => {
@@ -29,7 +29,7 @@ describe('TypesenseConnector documents', () => {
       collection: 'products',
       document: { id: '1', title: 'X' },
     });
-    expect(fake.calls.some(c => c.op === 'documents.upsert')).toBe(true);
+    expect(fake.calls.some((c) => c.op === 'documents.upsert')).toBe(true);
   });
 
   test('deleteDocument returns true; false on 404', async () => {
@@ -51,7 +51,7 @@ describe('TypesenseConnector documents', () => {
       batchSize: 2,
     });
     // 5 docs / batch 2 => 3 import calls.
-    expect(fake.calls.filter(c => c.op === 'documents.import').length).toBe(3);
+    expect(fake.calls.filter((c) => c.op === 'documents.import').length).toBe(3);
     // Each call returns 1 success + 1 fail => 3 success, 3 fail.
     expect(result.count.success).toBe(3);
     expect(result.count.fail).toBe(3);
@@ -79,7 +79,7 @@ describe('TypesenseConnector documents', () => {
     expect(
       await helper.deleteByFilter({ collection: 'products', filterBy: 'status:=archived' }),
     ).toBe(7);
-    const delCall = fake.calls.find(c => c.op === 'documents.delete');
+    const delCall = fake.calls.find((c) => c.op === 'documents.delete');
     const expected: Record<string, unknown> = {};
     expected['filter_by'] = 'status:=archived';
     expect(delCall?.args[2]).toEqual(expected);
@@ -93,7 +93,7 @@ describe('TypesenseConnector documents', () => {
       filterBy: 'status:=draft',
     });
     expect(result.updatedCount).toBe(4);
-    const updCall = fake.calls.find(c => c.op === 'documents.update');
+    const updCall = fake.calls.find((c) => c.op === 'documents.update');
     const expected: Record<string, unknown> = {};
     expected['filter_by'] = 'status:=draft';
     expect(updCall?.args[3]).toEqual(expected);
@@ -114,7 +114,7 @@ describe('TypesenseConnector documents', () => {
       batchSize: 0,
     });
     // batchSize 0 must NOT loop forever; falls back to default 100 => exactly 1 import call.
-    expect(fake.calls.filter(c => c.op === 'documents.import').length).toBe(1);
+    expect(fake.calls.filter((c) => c.op === 'documents.import').length).toBe(1);
   });
 
   test('importDocuments forwards dirty_values and throwOnFail:false', async () => {
@@ -125,7 +125,7 @@ describe('TypesenseConnector documents', () => {
       action: TypesenseImportActions.CREATE,
       dirtyValues: TypesenseDirtyValues.COERCE_OR_DROP,
     });
-    const call = fake.calls.find(c => c.op === 'documents.import');
+    const call = fake.calls.find((c) => c.op === 'documents.import');
     // call.args = [collection, documents, importParams]
 
     const expected: Record<string, unknown> = { action: 'create', throwOnFail: false };
@@ -158,7 +158,7 @@ describe('TypesenseConnector documents', () => {
       id: '1',
       document: { title: 'New' },
     });
-    const call = fake.calls.find(c => c.op === 'documents.update');
+    const call = fake.calls.find((c) => c.op === 'documents.update');
     expect(call?.args[1]).toBe('1'); // the bound document id
   });
 
@@ -167,7 +167,7 @@ describe('TypesenseConnector documents', () => {
     const isOk = await helper.deleteAllDocuments({ collection: 'products' });
     expect(isOk).toBe(true);
     // Full-collection delete: id is undefined, args[2] holds the truncate params.
-    const call = fake.calls.find(c => c.op === 'documents.delete');
+    const call = fake.calls.find((c) => c.op === 'documents.delete');
     expect(call?.args[2]).toEqual({ truncate: true });
   });
 
@@ -258,7 +258,7 @@ describe('TypesenseConnector documents', () => {
   test('importDocuments defaults action to create', async () => {
     const { helper, fake } = makeHelper();
     await helper.importDocuments({ collection: 'products', documents: [{ id: '1' }] });
-    const call = fake.calls.find(c => c.op === 'documents.import');
+    const call = fake.calls.find((c) => c.op === 'documents.import');
     expect(call?.args[2]).toMatchObject({ action: 'create' });
   });
 
@@ -270,7 +270,7 @@ describe('TypesenseConnector documents', () => {
       batchSize: 500,
       ignoreNotFound: true,
     });
-    const call = fake.calls.find(c => c.op === 'documents.delete');
+    const call = fake.calls.find((c) => c.op === 'documents.delete');
 
     const expected: Record<string, unknown> = {};
     expected['filter_by'] = 'status:=archived';

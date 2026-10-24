@@ -122,7 +122,7 @@ describe('BaseApplication - registerDynamicBindings', () => {
 
     await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
 
-    expect(order.filter(name => name === 'Sibling')).toHaveLength(1);
+    expect(order.filter((name) => name === 'Sibling')).toHaveLength(1);
   });
 
   test('a second pass does NOT re-configure bindings already configured', async () => {

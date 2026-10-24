@@ -36,7 +36,7 @@ export class ScenariosCases extends BaseTestCases {
         this.context.logger.error('[SCENARIO] FAILED | Expected Pro Monitor then Gaming Chair');
         this.context.logger.error(
           'Results: %j',
-          results.map(r => ({ name: r.name, price: r.price })),
+          results.map((r) => ({ name: r.name, price: r.price })),
         );
       }
     } catch (e) {
@@ -65,8 +65,8 @@ export class ScenariosCases extends BaseTestCases {
       // Config 3 is 2024.
 
       if (results.length === 2) {
-        const codes = results.map(r => r.code);
-        if (codes.some(c => c.includes('C_ADV_1')) && codes.some(c => c.includes('C_ADV_2'))) {
+        const codes = results.map((r) => r.code);
+        if (codes.some((c) => c.includes('C_ADV_1')) && codes.some((c) => c.includes('C_ADV_2'))) {
           this.context.logger.info('[SCENARIO] PASSED | Correctly filtered date strings in JSON');
           return;
         }
@@ -74,7 +74,7 @@ export class ScenariosCases extends BaseTestCases {
       this.context.logger.error('[SCENARIO] FAILED | Expected 2 records (2025)');
       this.context.logger.error(
         'Results: %j',
-        results.map(r => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })),
+        results.map((r) => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })),
       );
     } catch (e) {
       this.context.logger.error('[SCENARIO] FAILED | %s', (e as Error).message);

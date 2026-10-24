@@ -12,7 +12,7 @@ interface IDeferred<T> {
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
 
-  const promise = new Promise<T>(promiseResolve => {
+  const promise = new Promise<T>((promiseResolve) => {
     resolve = promiseResolve;
   });
 
@@ -27,14 +27,14 @@ let serverCounter = 0;
 const startServer = (
   opts: Partial<Omit<ITcpSocketServerOptions, 'createServerFn'>> = {},
 ): Promise<{ server: NetworkTcpServer; port: number }> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const server = NetworkTcpServer.newInstance({
       identifier: `tcp-server-test-${serverCounter++}`,
       serverOptions: {},
       listenOptions: { port: 0, host: '127.0.0.1' },
       authenticateOptions: { required: false },
       ...opts,
-      onServerReady: options => {
+      onServerReady: (options) => {
         opts.onServerReady?.(options);
 
         const address = options.server.address() as AddressInfo;
@@ -47,7 +47,7 @@ const startServer = (
 };
 
 const connectClient = (opts: { port: number }): Promise<Socket> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const socket = connect({ port: opts.port, host: '127.0.0.1' }, () => {
       resolve(socket);
     });
@@ -57,7 +57,7 @@ const connectClient = (opts: { port: number }): Promise<Socket> => {
 };
 
 const closeSocket = (opts: { socket: Socket }): Promise<void> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     if (opts.socket.destroyed) {
       resolve();
       return;
@@ -103,7 +103,7 @@ const waitForLoggedError = async (opts: {
       return opts.recorded[0];
     }
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, 10);
     });
   }
@@ -112,7 +112,7 @@ const waitForLoggedError = async (opts: {
 };
 
 afterEach(async () => {
-  await Promise.all(openSockets.splice(0).map(socket => closeSocket({ socket })));
+  await Promise.all(openSockets.splice(0).map((socket) => closeSocket({ socket })));
 
   const servers = openServers.splice(0);
   for (const server of servers) {
@@ -129,7 +129,7 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
   test('server listens on the OS assigned port and hands the server to onServerReady', async () => {
     let readyServer: AnyType;
     const { port } = await startServer({
-      onServerReady: options => {
+      onServerReady: (options) => {
         readyServer = options.server;
       },
     });
@@ -142,7 +142,7 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
   test('a connected client is tracked with an id, a Date connectedAt and an authenticated state', async () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });
@@ -163,14 +163,14 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
   test('onClientData receives what the client writes and emit() writes back to that client', async () => {
     const received = createDeferred<{ id: string; data: string }>();
     const { server, port } = await startServer({
-      onClientData: options => {
+      onClientData: (options) => {
         received.resolve({ id: options.id, data: options.data.toString() });
       },
     });
 
     const socket = await connectClient({ port });
     const echoed = createDeferred<string>();
-    socket.on('data', data => {
+    socket.on('data', (data) => {
       echoed.resolve(data.toString());
     });
 
@@ -185,7 +185,7 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
   test('a disconnecting client fires onClientClose and is removed from the registry', async () => {
     const closed = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
-      onClientClose: options => {
+      onClientClose: (options) => {
         closed.resolve({ id: options.id });
       },
     });
@@ -239,7 +239,7 @@ describe('NetworkTcpServer - authentication flow', () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
       authenticateOptions: { required: true, duration: 30_000 },
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });
@@ -267,7 +267,7 @@ describe('NetworkTcpServer - authentication flow', () => {
     const socket = await connectClient({ port });
 
     const payload = createDeferred<string>();
-    socket.on('data', data => {
+    socket.on('data', (data) => {
       payload.resolve(data.toString());
     });
 
@@ -285,7 +285,7 @@ describe('NetworkTcpServer - authentication flow', () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
       authenticateOptions: { required: true, duration },
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });
@@ -295,7 +295,7 @@ describe('NetworkTcpServer - authentication flow', () => {
     server.doAuthenticate({ id, state: 'authenticated' });
 
     // No event marks "the kick did not happen" - only outliving the deadline proves it.
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, duration * 6);
     });
 
@@ -352,7 +352,7 @@ describe('NetworkTcpServer - authentication flow', () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
       authenticateOptions: { required: true, duration: 30_000 },
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });
@@ -373,7 +373,7 @@ describe('NetworkTcpServer - hook hardening', () => {
 
     // The hook is only reachable if the constructor actually stores it.
     const { server } = await startServer({
-      onClientError: options => {
+      onClientError: (options) => {
         failed.resolve({ id: options.id, error: options.error });
       },
     });
@@ -495,7 +495,7 @@ describe('NetworkTcpServer - emit guards', () => {
   test('emit of an EMPTY payload writes nothing to the socket', async () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });
@@ -504,13 +504,13 @@ describe('NetworkTcpServer - emit guards', () => {
     const { id } = await connected.promise;
 
     let receivedBytes = 0;
-    socket.on('data', data => {
+    socket.on('data', (data) => {
       receivedBytes += data.length;
     });
 
     server.emit({ clientId: id, payload: '' });
 
-    await new Promise(resolve => {
+    await new Promise((resolve) => {
       setTimeout(resolve, 50);
     });
 
@@ -520,7 +520,7 @@ describe('NetworkTcpServer - emit guards', () => {
   test('emit to a NON writable socket logs instead of throwing', async () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
-      onClientConnected: options => {
+      onClientConnected: (options) => {
         connected.resolve({ id: options.id });
       },
     });

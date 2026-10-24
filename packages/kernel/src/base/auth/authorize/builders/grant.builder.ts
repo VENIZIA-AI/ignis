@@ -192,10 +192,10 @@ export class GrantBuilder extends BaseHelper {
       throw getError({ message: '[planGrant] intent.ops must not be empty.' });
     }
 
-    const subjectCatalog = opts.catalog.filter(entry => entry.subject === opts.resource.subject);
-    const byMethod = new Map(subjectCatalog.map(entry => [entry.method, entry]));
+    const subjectCatalog = opts.catalog.filter((entry) => entry.subject === opts.resource.subject);
+    const byMethod = new Map(subjectCatalog.map((entry) => [entry.method, entry]));
 
-    const unknown = ops.filter(op => !byMethod.has(op));
+    const unknown = ops.filter((op) => !byMethod.has(op));
     if (unknown.length) {
       throw getError({
         message: `[planGrant] Unknown operations for resource "${opts.resource.subject}": ${unknown.join(', ')}`,
@@ -218,7 +218,7 @@ export class GrantBuilder extends BaseHelper {
       this.collapseRemainingIntoTiers({ subjectCatalog, remaining, rows, tierRow });
     }
 
-    const leftover = ops.filter(op => remaining.has(op));
+    const leftover = ops.filter((op) => remaining.has(op));
 
     if (!leftover.length) {
       return rows;
@@ -270,20 +270,20 @@ export class GrantBuilder extends BaseHelper {
     const { subjectCatalog, remaining, rows, tierRow } = opts;
 
     // manage equals read+write+execute only when the subject has at least one operation in EACH narrow tier; otherwise manage also covers a future tier, which is more than the narrow tiers confer today.
-    const spansAllNarrowTiers = GrantBuilder.NARROW_TIERS.every(tier => {
+    const spansAllNarrowTiers = GrantBuilder.NARROW_TIERS.every((tier) => {
       const covered = this.actionsCoveredBy({ tier });
-      return subjectCatalog.some(entry => covered.has(entry.action));
+      return subjectCatalog.some((entry) => covered.has(entry.action));
     });
 
     const manageCovered = this.actionsCoveredBy({ tier: AuthorizationActions.MANAGE });
     const manageOps = subjectCatalog
-      .filter(entry => manageCovered.has(entry.action))
-      .map(entry => entry.method);
+      .filter((entry) => manageCovered.has(entry.action))
+      .map((entry) => entry.method);
 
     if (
       spansAllNarrowTiers &&
       manageOps.length &&
-      manageOps.every(method => remaining.has(method))
+      manageOps.every((method) => remaining.has(method))
     ) {
       rows.push(tierRow(AuthorizationActions.MANAGE));
       for (const method of manageOps) {
@@ -296,10 +296,10 @@ export class GrantBuilder extends BaseHelper {
     for (const tier of GrantBuilder.NARROW_TIERS) {
       const covered = this.actionsCoveredBy({ tier });
       const methods = subjectCatalog
-        .filter(entry => covered.has(entry.action))
-        .map(entry => entry.method);
+        .filter((entry) => covered.has(entry.action))
+        .map((entry) => entry.method);
 
-      if (!methods.length || !methods.every(method => remaining.has(method))) {
+      if (!methods.length || !methods.every((method) => remaining.has(method))) {
         continue;
       }
 

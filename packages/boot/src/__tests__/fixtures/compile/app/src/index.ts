@@ -5,7 +5,7 @@ const names = (
   index: Record<string, ReadonlyArray<{ name: string }> | undefined> | undefined,
 ): string =>
   Object.values(index ?? {})
-    .flatMap(classes => (classes ?? []).map(target => target.name))
+    .flatMap((classes) => (classes ?? []).map((target) => target.name))
     .sort()
     .join(',');
 

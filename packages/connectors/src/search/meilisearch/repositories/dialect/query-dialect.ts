@@ -126,7 +126,7 @@ class SearchWireKeys {
 
   /** Resolves a camelCase field to its wire key; unmapped keys (`page`) pass through. */
   static wireKey(field: string): string {
-    return SearchWireKeys.ENTRIES.find(entry => entry.from === field)?.to ?? field;
+    return SearchWireKeys.ENTRIES.find((entry) => entry.from === field)?.to ?? field;
   }
 }
 
@@ -392,7 +392,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
 
     // Parenthesised once two clauses actually join, reproducing byte-for-byte what the previous
     // `{ and: [defaultWhere, where] }` merge emitted through the logical-group path.
-    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+    return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
       ? parenthesize(combined)
       : combined;
   }
@@ -413,7 +413,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
 
   private toOrderBy(opts: { order: string[] }): string {
     return opts.order
-      .map(entry => {
+      .map((entry) => {
         const { field, direction } = parseOrderEntry({ entry });
 
         return `${field}:${direction}`;
@@ -430,7 +430,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     const { value, capabilities, isDisjunction } = opts;
     const items = Array.isArray(value) ? value : [value];
 
-    const clauses = items.map(item => this.compileWhere({ where: item as TWhere, capabilities }));
+    const clauses = items.map((item) => this.compileWhere({ where: item as TWhere, capabilities }));
 
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what
@@ -475,7 +475,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
 
     // Parenthesised only when more than one operator actually contributed a filter, preserving the
     // exact shape callers already assert on for the single-operator case.
-    return clauses.filter(clause => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
+    return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
       ? parenthesize(combined)
       : combined;
   }
@@ -597,7 +597,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       });
     }
 
-    return value.map(item => this.escapeValue({ field, value: item })).join(', ');
+    return value.map((item) => this.escapeValue({ field, value: item })).join(', ');
   }
 
   /** Shared by `between` and `notBetween` so the two cannot disagree on what a valid range is. */

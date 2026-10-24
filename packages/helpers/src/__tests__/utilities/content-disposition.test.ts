@@ -24,7 +24,7 @@ describe('createContentDispositionHeader', () => {
 
   test.each(['Kiểm kê.xlsx', 'Báo cáo [Q3] & tổng hợp #1!.xlsx', '日本語.pdf'])(
     'the name reads back unchanged: %s',
-    filename => {
+    (filename) => {
       expect(parseContentDisposition({ header: toHeaderValue({ filename }) }).filename).toBe(
         filename,
       );

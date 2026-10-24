@@ -313,7 +313,7 @@ export class ModifiedByCases extends UserAuditCases {
             id: recordId,
             data: { nValue: (idx + 1) * 100, modifiedBy: user },
           })
-          .catch(err => ({ error: err })),
+          .catch((err) => ({ error: err })),
       );
 
       await Promise.all(updatePromises);
@@ -372,7 +372,7 @@ export class ModifiedByCases extends UserAuditCases {
       // Create real Users for FK constraint
       const creator = await this.createTestUser(`CASE15_CREATOR_${uniqueId}`);
       const users = await Promise.all(
-        ['EDITOR1', 'EDITOR2', 'EDITOR3', 'REVIEWER', 'APPROVER'].map(name =>
+        ['EDITOR1', 'EDITOR2', 'EDITOR3', 'REVIEWER', 'APPROVER'].map((name) =>
           this.createTestUser(`CASE15_${name}_${uniqueId}`),
         ),
       );

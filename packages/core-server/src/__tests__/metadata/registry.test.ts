@@ -107,7 +107,7 @@ class RegistryAccountController {}
 describe('MetadataRegistry - routes', () => {
   test('getRoutes preserves registration order', () => {
     const routes = registry.getRoutes({ target: RegistryFirstController.prototype });
-    const paths = Array.from(routes?.values() ?? []).map(route => route.path);
+    const paths = Array.from(routes?.values() ?? []).map((route) => route.path);
 
     expect(paths).toEqual(['/base', '/first']);
   });

@@ -128,14 +128,14 @@ const purityFindingsFrom = ({ output }: { output: string }): string[] => {
   }[];
 
   const messages = results[0]?.messages ?? [];
-  const fatal = messages.filter(message => message.ruleId === null);
+  const fatal = messages.filter((message) => message.ruleId === null);
   if (fatal.length > 0) {
     throw new Error(`ESLint could not parse the probe: ${fatal[0]?.message}`);
   }
 
   return messages
-    .filter(message => message.ruleId !== null && PURITY_RULES.has(message.ruleId))
-    .map(message => `${message.ruleId}: ${message.message}`);
+    .filter((message) => message.ruleId !== null && PURITY_RULES.has(message.ruleId))
+    .map((message) => `${message.ruleId}: ${message.message}`);
 };
 
 const lintAs = async ({ path, source }: { path: string; source: string }): Promise<string[]> => {
@@ -337,10 +337,10 @@ describe('browser purity is enforced at author time', () => {
         messages: { message: string; line: number }[];
       }[];
 
-      const offenders = results.flatMap(result =>
+      const offenders = results.flatMap((result) =>
         result.messages
-          .filter(message => message.message === RANDOM_UUID_MESSAGE)
-          .map(message => `${result.filePath}:${message.line}`),
+          .filter((message) => message.message === RANDOM_UUID_MESSAGE)
+          .map((message) => `${result.filePath}:${message.line}`),
       );
 
       expect(offenders).toEqual([]);

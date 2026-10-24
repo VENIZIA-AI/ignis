@@ -64,7 +64,7 @@ export class EdgeCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const allAdmin = results.every(r => (r.jValue as any)?.role === 'admin');
+        const allAdmin = results.every((r) => (r.jValue as any)?.role === 'admin');
         if (allAdmin) {
           this.context.logger.info(
             '[CASE 18] PASSED | Plain object key "role" works (found 2 admins)',
@@ -210,8 +210,8 @@ export class EdgeCases extends BaseTestCases {
       // Should find 2 records: priority=5 and priority=10
       // Should NOT crash on priority='high', priority=null, or missing priority
       if (results.length === 2) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
-        const allNumericAndGreater = priorities.every(p => typeof p === 'number' && p > 3);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
+        const allNumericAndGreater = priorities.every((p) => typeof p === 'number' && p > 3);
         if (allNumericAndGreater) {
           this.context.logger.info(
             '[CASE 20] PASSED | Numeric operator safe on mixed types (found %d)',

@@ -718,7 +718,7 @@ export abstract class FilterBuilder extends BaseHelper {
       return false;
     }
 
-    return keys.every(key => QueryOperators.isValid(key));
+    return keys.every((key) => QueryOperators.isValid(key));
   }
 
   /**
@@ -794,7 +794,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { key, value, tableName, schema } = opts;
 
     const clauses = (Array.isArray(value) ? value : [value])
-      .map(inner => this.toWhere({ tableName, schema, where: inner }))
+      .map((inner) => this.toWhere({ tableName, schema, where: inner }))
       .filter((c): c is SQL => !!c);
 
     if (clauses.length === 0) {
@@ -863,7 +863,7 @@ export abstract class FilterBuilder extends BaseHelper {
         MEMBERSHIP_OPERATORS.has(op) &&
         Array.isArray(operand) &&
         operand.length > 0 &&
-        operand.every(entry => typeof entry === 'number')
+        operand.every((entry) => typeof entry === 'number')
       ) {
         return true;
       }

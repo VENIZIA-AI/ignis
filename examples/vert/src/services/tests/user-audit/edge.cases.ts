@@ -530,7 +530,7 @@ export class EdgeCases extends UserAuditCases {
         .from(Configuration.schema)
         .where(eq(Configuration.schema.group, group));
 
-      const nullRecord = records.find(r => r.code?.includes('NULL'));
+      const nullRecord = records.find((r) => r.code?.includes('NULL'));
 
       if (nullRecord) {
         const isNull = nullRecord.createdBy === null;

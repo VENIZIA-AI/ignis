@@ -198,7 +198,7 @@ export class BunS3Helper extends BaseStorageHelper {
     }
 
     const buckets = await this.getBuckets();
-    return buckets.find(bucket => bucket.name === name) ?? null;
+    return buckets.find((bucket) => bucket.name === name) ?? null;
   }
 
   async createBucket(opts: { bucket: IBucketRef }): Promise<IBucketInfo | null> {

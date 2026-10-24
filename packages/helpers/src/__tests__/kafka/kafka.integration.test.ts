@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 
 const BROKERS = (process.env.APP_ENV_KAFKA_BROKERS ?? '')
   .split(',')
-  .map(s => s.trim())
+  .map((s) => s.trim())
   .filter(Boolean);
 
 const SASL: SASLOptions | undefined =
@@ -296,7 +296,7 @@ describe('KafkaConsumerHelper (live)', () => {
 
       const got = new Set<string>();
       let resolveAll!: () => void;
-      const allReceived = new Promise<void>(resolve => {
+      const allReceived = new Promise<void>((resolve) => {
         resolveAll = resolve;
       });
       const consumer = makeConsumer(async ({ message }) => {
@@ -337,7 +337,7 @@ describe('KafkaConsumerHelper (live)', () => {
       let didJoin = false;
       let doneCount = 0;
       let resolveDone!: () => void;
-      const donePromise = new Promise<void>(resolve => {
+      const donePromise = new Promise<void>((resolve) => {
         resolveDone = resolve;
       });
       const consumer = makeConsumer(
@@ -384,7 +384,7 @@ describe('KafkaConsumerHelper (live)', () => {
 
       let errorSeen: Error | null = null;
       let resolveErr!: () => void;
-      const errPromise = new Promise<void>(resolve => {
+      const errPromise = new Promise<void>((resolve) => {
         resolveErr = resolve;
       });
       const consumer = makeConsumer(
@@ -430,7 +430,7 @@ describe('KafkaConsumerHelper (live)', () => {
 
       // First consumer: consume one message and commit its offset.
       let resolveFirst!: () => void;
-      const firstReceived = new Promise<void>(resolve => {
+      const firstReceived = new Promise<void>((resolve) => {
         resolveFirst = resolve;
       });
       const first = KafkaConsumerHelper.newInstance({
@@ -478,7 +478,7 @@ describe('KafkaConsumerHelper (live)', () => {
           'second.start',
         );
         // Give it time to (not) redeliver.
-        await new Promise(resolve => setTimeout(resolve, 6_000));
+        await new Promise((resolve) => setTimeout(resolve, 6_000));
         expect(didRedeliver).toBe(false);
       } finally {
         await withTimeout(second.close(), 15_000, 'second.close').catch(() => {});
@@ -556,7 +556,7 @@ describe('KafkaConsumerHelper (live)', () => {
           consumer.startLagMonitoring({ topics: [topic], interval: 2_000 }),
         ).not.toThrow();
         expect(() => consumer.startLagMonitoring({ topics: [topic] })).not.toThrow(); // duplicate
-        await new Promise(resolve => setTimeout(resolve, 3_000));
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
         expect(() => consumer.stopLagMonitoring()).not.toThrow();
         expect(() => consumer.stopLagMonitoring()).not.toThrow(); // duplicate
       } finally {
@@ -601,9 +601,9 @@ describe('KafkaConsumerHelper (live)', () => {
         // Drive the real reconnect path - tear the stream down, then rebuild; the settle delay mirrors the real reconnectDelayMs and lets each stream's async _destroy() remove its per-stream consumer listeners.
         for (let i = 0; i < 6; i++) {
           consumer['destroyDeadStream']();
-          await new Promise(resolve => setTimeout(resolve, 400));
+          await new Promise((resolve) => setTimeout(resolve, 400));
           await consumer['attemptReconnect']({ attempt: i + 1, maxAttempts: 999, delayMs: 0 });
-          await new Promise(resolve => setTimeout(resolve, 400));
+          await new Promise((resolve) => setTimeout(resolve, 400));
         }
 
         // Steady state after cycling must return to the single-stream baseline - _destroy() reclaimed every old stream's listeners, no removeAllListeners needed.

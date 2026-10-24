@@ -96,7 +96,7 @@ export abstract class BaseSearchDataSource<
     const hiddenByCollection = this.hiddenFieldsByCollection();
 
     // Same friendly -> wire mapping search() uses, unioning each entry's hidden fields into excludeFields per collection.
-    const wireSearches = searches.map(entry => ({
+    const wireSearches = searches.map((entry) => ({
       collection: entry.collection,
       ...dialect.toWireParams({
         query: toSearchQueryParams(this.applyHiddenExclusion({ entry, hiddenByCollection })),
@@ -118,7 +118,7 @@ export abstract class BaseSearchDataSource<
   protected discoverCollections(): TSearchSchema {
     return this.discoverDefinitions<ISearchCollectionDefinition>({
       kind: 'collection',
-      read: modelClass => this.readCollectionDefinition(modelClass),
+      read: (modelClass) => this.readCollectionDefinition(modelClass),
     });
   }
 

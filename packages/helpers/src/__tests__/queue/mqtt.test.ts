@@ -62,7 +62,7 @@ const buildHelper = (opts?: Partial<IMQTTClientOptions>): TestMQTTClientHelper =
 };
 
 const flush = async (): Promise<void> => {
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     setImmediate(resolve);
   });
 };
@@ -109,9 +109,9 @@ describe('MQTTClientHelper — hooks, subscribe/publish guards, teardown', () =>
     const helper = buildHelper({
       onConnect: () => calls.push('connect'),
       onDisconnect: () => calls.push('disconnect'),
-      onMessage: payload => messages.push(payload),
-      onError: error => errors.push(error),
-      onClose: error => closes.push(error),
+      onMessage: (payload) => messages.push(payload),
+      onError: (error) => errors.push(error),
+      onClose: (error) => closes.push(error),
     });
 
     const client = helper.fakeClient;
@@ -125,7 +125,7 @@ describe('MQTTClientHelper — hooks, subscribe/publish guards, teardown', () =>
     expect(messages.length).toBe(1);
     expect(messages[0].topic).toBe('topic-a');
     expect(messages[0].message.toString()).toBe('hello');
-    expect(errors.map(error => error.message)).toEqual(['driver blew up']);
+    expect(errors.map((error) => error.message)).toEqual(['driver blew up']);
     expect(closes).toEqual([undefined]);
   });
 

@@ -10,7 +10,7 @@ const FORM_CONTENT_TYPES = [
 /** Whether a route declares a form body, so its validator will parse one. */
 export const hasFormBody = (opts: { content?: Record<string, unknown> }): boolean => {
   const { content } = opts;
-  return content !== undefined && FORM_CONTENT_TYPES.some(contentType => contentType in content);
+  return content !== undefined && FORM_CONTENT_TYPES.some((contentType) => contentType in content);
 };
 
 /**
@@ -21,7 +21,7 @@ export const hasFormBody = (opts: { content?: Record<string, unknown> }): boolea
 export const formBodyReader: MiddlewareHandler = async (context, next) => {
   const contentType = context.req.header(HTTP.Headers.CONTENT_TYPE) ?? '';
 
-  if (FORM_CONTENT_TYPES.some(formType => contentType.includes(formType))) {
+  if (FORM_CONTENT_TYPES.some((formType) => contentType.includes(formType))) {
     await readFormBody({ req: context.req });
   }
 

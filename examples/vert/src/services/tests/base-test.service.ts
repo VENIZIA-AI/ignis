@@ -44,7 +44,7 @@ export abstract class BaseTestService extends BaseService {
   protected caseContext(): ITestCaseContext {
     return {
       logger: this.logger,
-      logCase: title => this.logCase(title),
+      logCase: (title) => this.logCase(title),
       configurationRepository: this.configurationRepository,
       productRepository: this.productRepository,
       saleChannelRepository: this.saleChannelRepository,

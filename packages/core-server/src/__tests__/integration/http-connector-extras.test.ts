@@ -59,7 +59,7 @@ class ExtrasController extends BaseRestController {
               keys: ['status', 'category', 'tag'],
               compute: ({ keys }) => {
                 facetCalls.push(keys);
-                return Object.fromEntries(keys.map(key => [key, { [key]: 1 }]));
+                return Object.fromEntries(keys.map((key) => [key, { [key]: 1 }]));
               },
             },
           },

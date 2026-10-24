@@ -291,9 +291,9 @@ describe('toInclude - parent UNRESTRICTED, child scoped: the child stays scoped'
       filter: { order: ['id asc'], include: [{ relation: 'products' }] },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
-    expect(merchants[0].products?.map(product => product.name)).toEqual(['a-product-under-m1']);
-    expect(merchants[1].products?.map(product => product.name)).toEqual(['a-product-under-m2']);
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
+    expect(merchants[0].products?.map((product) => product.name)).toEqual(['a-product-under-m1']);
+    expect(merchants[1].products?.map((product) => product.name)).toEqual(['a-product-under-m2']);
   });
 });
 
@@ -306,8 +306,8 @@ describe('toInclude - parent scoped, child UNRESTRICTED: the child is unscoped, 
       filter: { order: ['id asc'], include: [{ relation: 'products' }] },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A']);
-    expect(merchants[0].products?.map(product => product.name).sort()).toEqual([
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A']);
+    expect(merchants[0].products?.map((product) => product.name).sort()).toEqual([
       'a-product-under-m1',
       'leaked-b-product-under-m1',
     ]);
@@ -327,16 +327,16 @@ describe('toInclude - nested include, three levels, mixed', () => {
       },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A', 'Merchant B']);
 
     const [merchantA, merchantB] = merchants;
-    expect(merchantA.products?.map(product => product.name)).toEqual(['a-product-under-m1']);
-    expect(merchantA.products?.[0].reviews?.map(review => review.body).sort()).toEqual([
+    expect(merchantA.products?.map((product) => product.name)).toEqual(['a-product-under-m1']);
+    expect(merchantA.products?.[0].reviews?.map((review) => review.body).sort()).toEqual([
       'cross-tenant-review-under-a-product',
       'good-a-review',
     ]);
 
-    expect(merchantB.products?.map(product => product.name)).toEqual(['a-product-under-m2']);
+    expect(merchantB.products?.map((product) => product.name)).toEqual(['a-product-under-m2']);
     expect(merchantB.products?.[0].reviews).toEqual([]);
   });
 
@@ -352,19 +352,19 @@ describe('toInclude - nested include, three levels, mixed', () => {
       },
     });
 
-    expect(merchants.map(merchant => merchant.name)).toEqual(['Merchant A']);
-    expect(merchants[0].products?.map(product => product.name).sort()).toEqual([
+    expect(merchants.map((merchant) => merchant.name)).toEqual(['Merchant A']);
+    expect(merchants[0].products?.map((product) => product.name).sort()).toEqual([
       'a-product-under-m1',
       'leaked-b-product-under-m1',
     ]);
 
     const productWithReviews = merchants[0].products?.find(
-      product => product.name === 'a-product-under-m1',
+      (product) => product.name === 'a-product-under-m1',
     );
-    expect(productWithReviews?.reviews?.map(review => review.body)).toEqual(['good-a-review']);
+    expect(productWithReviews?.reviews?.map((review) => review.body)).toEqual(['good-a-review']);
 
     const productWithoutReviews = merchants[0].products?.find(
-      product => product.name === 'leaked-b-product-under-m1',
+      (product) => product.name === 'leaked-b-product-under-m1',
     );
     expect(productWithoutReviews?.reviews).toEqual([]);
   });

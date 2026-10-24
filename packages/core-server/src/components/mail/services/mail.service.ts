@@ -90,7 +90,7 @@ export class MailService extends BaseService implements IMailService {
         .for(this.sendBatch.name)
         .info('Sending batch of %d emails with concurrency: %d', messages.length, concurrency);
 
-      const tasks = messages.map(message => async () => {
+      const tasks = messages.map((message) => async () => {
         try {
           return await this.send(message);
         } catch (error) {
@@ -106,7 +106,7 @@ export class MailService extends BaseService implements IMailService {
         limit: concurrency,
       });
 
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r) => r.success).length;
       this.logger
         .for(this.sendBatch.name)
         .info(

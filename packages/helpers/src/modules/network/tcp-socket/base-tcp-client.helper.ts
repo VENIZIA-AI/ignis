@@ -209,7 +209,7 @@ export class BaseNetworkTcpClient<
       this.onClosed?.({ client });
     });
 
-    client.on('error', error => {
+    client.on('error', (error) => {
       this.onError?.(error);
     });
   }

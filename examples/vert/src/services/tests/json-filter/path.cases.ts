@@ -127,13 +127,13 @@ export class PathCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const levels = results.map(r => (r.jValue as any)?.metadata?.level);
-        const allHigh = levels.every(l => l === 'high');
+        const levels = results.map((r) => (r.jValue as any)?.metadata?.level);
+        const allHigh = levels.every((l) => l === 'high');
         if (allHigh) {
           this.context.logger.info('[CASE 3] PASSED | Found 2 records with level = "high"');
           this.context.logger.info(
             '[CASE 3] Names: %j',
-            results.map(r => (r.jValue as any)?.name),
+            results.map((r) => (r.jValue as any)?.name),
           );
         } else {
           this.context.logger.error('[CASE 3] FAILED | Not all results have level = "high"');

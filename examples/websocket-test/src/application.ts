@@ -51,7 +51,7 @@ export class Application extends BaseApplication {
     // A client sends this token in its `authenticate` message before it can join a room or
     // exchange messages - the handshake IGNIS requires regardless of transport.
     const expectedToken = process.env.APP_ENV_AUTH_TOKEN ?? 'demo-token';
-    const authenticateFn: TWebSocketAuthenticateFn = data => {
+    const authenticateFn: TWebSocketAuthenticateFn = (data) => {
       const token = typeof data.token === 'string' ? data.token : undefined;
       if (token !== expectedToken) {
         return null;

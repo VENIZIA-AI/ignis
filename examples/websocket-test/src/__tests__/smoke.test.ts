@@ -54,7 +54,7 @@ const connectAuthenticated = (opts: { wsUrl: string; token: string }) =>
     socket.addEventListener('open', () => {
       socket.send(JSON.stringify({ event: 'authenticate', data: { token: opts.token } }));
     });
-    socket.addEventListener('message', event => {
+    socket.addEventListener('message', (event) => {
       const message = parseMessage(event.data);
       if (message.event === 'connected') {
         resolve(socket);
@@ -71,13 +71,13 @@ const connectRejected = (opts: { wsUrl: string }) =>
     socket.addEventListener('open', () => {
       socket.send(JSON.stringify({ event: 'authenticate', data: { token: 'wrong-token' } }));
     });
-    socket.addEventListener('message', event => {
+    socket.addEventListener('message', (event) => {
       const message = parseMessage(event.data);
       if (message.event === 'connected') {
         reject(new Error('expected authentication to fail'));
       }
     });
-    socket.addEventListener('close', event => resolve(event.code));
+    socket.addEventListener('close', (event) => resolve(event.code));
     socket.addEventListener('error', () => reject(new Error('WebSocket connection error')));
   });
 
@@ -126,8 +126,8 @@ describe('websocket-test', () => {
       const socket = await connectAuthenticated({ wsUrl, token: AUTH_TOKEN });
 
       try {
-        const received = new Promise<{ message: string }>(resolve => {
-          socket.addEventListener('message', event => {
+        const received = new Promise<{ message: string }>((resolve) => {
+          socket.addEventListener('message', (event) => {
             const message = parseMessage(event.data);
             if (message.event === 'chat:message') {
               resolve(ChatMessageDataSchema.parse(message.data));
