@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-24',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Read\'s Result Type Follows fields',
+                  link: '/changelogs/2026-10-24-typed-fields-result',
+                },
+              ],
+            },
+            {
               text: '2026-10-23',
               collapsed: true,
               items: [
