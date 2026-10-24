@@ -1,5 +1,5 @@
 import { BuildInfoEnvironmentKeys, BuildInfoResolver } from '@/build-info';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
@@ -18,8 +18,17 @@ const initRepository = async (opts: { root: string }): Promise<void> => {
   await Bun.$`git symbolic-ref HEAD refs/heads/stamped`.cwd(opts.root).quiet();
 };
 
+/** Every directory a test makes, removed once the file is done. */
+const roots: string[] = [];
+
+const makeRoot = (opts: { prefix: string }): string => {
+  const root = mkdtempSync(join(tmpdir(), opts.prefix));
+  roots.push(root);
+  return root;
+};
+
 const manifestRoot = (opts: { name: string; version: string }): string => {
-  const root = mkdtempSync(join(tmpdir(), 'ignis-build-info-'));
+  const root = makeRoot({ prefix: 'ignis-build-info-' });
   writeFileSync(join(root, 'package.json'), JSON.stringify(opts));
   return root;
 };
@@ -38,6 +47,10 @@ beforeEach(() => {
 });
 
 afterAll(() => {
+  for (const root of roots) {
+    rmSync(root, { recursive: true, force: true });
+  }
+
   for (const [key, value] of inherited) {
     if (value === undefined) {
       delete process.env[key];
@@ -111,7 +124,7 @@ describe('BuildInfoResolver.resolve', () => {
 
   /** A directory with no manifest and no git is exactly a Distroless image; it must not throw. */
   test('nothing to read anywhere: every unknown field reads "unspecified"', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'ignis-build-info-bare-'));
+    const root = makeRoot({ prefix: 'ignis-build-info-bare-' });
 
     const info = await BuildInfoResolver.getInstance().resolve({ root });
 
@@ -123,7 +136,7 @@ describe('BuildInfoResolver.resolve', () => {
 
   /** `JSON.parse` types nothing: a manifest with a numeric `name` must not put a number in the stamp. */
   test('a manifest whose fields are the wrong type is ignored field by field', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'ignis-build-info-typed-'));
+    const root = makeRoot({ prefix: 'ignis-build-info-typed-' });
     writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 42, version: '1.4.2' }));
 
     const info = await BuildInfoResolver.getInstance().resolve({ root });

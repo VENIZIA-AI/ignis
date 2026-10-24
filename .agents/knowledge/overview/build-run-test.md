@@ -59,7 +59,7 @@ and `core`. See [testing](/process/testing.md) for the full list of targets.
 make lint             # lint packages/ only (oxlint, naming-convention ESLint, bun fmt --check)
 make lint-<package>   # one package, by directory name: make lint-kernel
 make lint-all         # packages and scripts/
-make fmt              # format packages/ (bun fmt); make fmt-<package> for one
+make lint-fix         # fix packages/ and the files no package reaches (bun fmt); make fmt-<package> for one
 make purity           # bundle every entry claimed browser-pure, fail on node builtins or globals
 make purity-<package> # one package: inversion, filter, helpers, kernel, connectors, core-worker
 make setup-hooks      # git config core.hooksPath .githooks
