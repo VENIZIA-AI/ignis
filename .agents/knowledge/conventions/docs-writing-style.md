@@ -26,7 +26,7 @@ stripped first, which is how this concept can name the characters it forbids.
 The English-only and no-version-number rules are convention, not code. Nothing catches a version
 pinned in prose, so the only check on those two is your own eye.
 
-Nothing runs `okf-check-strict` for you either. The pre-commit hook runs `make lint-all` and `bun scripts/examples.ts check`, and nothing more,
+Nothing runs `okf-check-strict` for you either. The pre-commit hook runs `make lint-all`, and nothing more,
 and the CI workflow that calls it is `workflow_dispatch` only and is not a required status check -
 so running it before you land a bundle change is on the author. See
 [onboarding](/overview/onboarding.md) for the commands and [build system](/process/build-system.md)

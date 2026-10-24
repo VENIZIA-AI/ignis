@@ -17,7 +17,7 @@ FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
 lint: lint-packages
 	@echo "✅ Linting completed."
 
-lint-all: lint-packages lint-scripts lint-manifests lint-files
+lint-all: lint-packages lint-scripts lint-manifests lint-files lint-wiki
 	@echo "✅ All linting completed."
 
 lint-packages: $(LINT_PKG_TARGETS)

@@ -1,6 +1,6 @@
 // Smoke test: boots the real application against a local Postgres (docker compose) and proves RLS
-// with HTTP requests. Skipped when the database is unreachable - this example is not in
-// SMOKE_EXAMPLES (scripts/examples.ts), so CI never needs the database up. Bun awaits an async
+// with HTTP requests. Skipped when the database is unreachable - CI does not run this
+// example's tests, so it never needs the database up. Bun awaits an async
 // `describe` callback before collecting its tests, so the reachability probe can gate
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).

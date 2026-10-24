@@ -41,8 +41,7 @@ docker compose down -v
 - A rejected client receives `unauthenticated` on its own socket, then the disconnect
   (`reason: 'io server disconnect'`). Until 2026-09-23 the notice went through the Redis emitter
   and always lost the race to the disconnect; the smoke test now asserts the notice arrives.
-- This example needs `docker compose up -d` first; it is not in the `SMOKE_EXAMPLES`
-  list of `scripts/examples.ts`, so it runs locally, not in CI.
+- This example needs `docker compose up -d` first; its `bun test` runs locally, not in CI.
 
 ## Related
 - [websocket-test](/examples/websocket-test.md)

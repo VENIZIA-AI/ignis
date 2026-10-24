@@ -103,8 +103,7 @@ tags: [process, build]
     `make fmt-<package>` do the same with fixes. `make lint-wiki` lints `docs/wiki/scripts` and
     format-checks the wiki. Packages carry no lint scripts in `package.json`; apps (the
     examples and the VULCAN preset) carry the app script standard in step 13. make does not drive the
-    examples: `bun scripts/examples.ts check` runs the artifact index, lint and typecheck of every
-    example, and `bun scripts/examples.ts smoke` the smoke tests that need no external service. Each project lists
+    examples; each one runs its own `bun run lint`, `bun run typecheck` and `bun test` from its folder. Each project lists
     `eslint`, `oxlint` and `oxlint-tsgolint` in its own `devDependencies` (`catalog:`);
     the root declares `@venizia/dev-configs` for `scripts/`, and `@venizia/vulcan` for the
     knowledge, atlas and agent tooling. Versions are pinned in
