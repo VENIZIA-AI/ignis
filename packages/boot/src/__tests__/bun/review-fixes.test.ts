@@ -6,7 +6,7 @@ import {
   IgnisArtifactsPlugin,
 } from '@/bun';
 import { ArtifactScanner } from '@/generator';
-import { describe, expect, spyOn, test } from 'bun:test';
+import { afterAll, describe, expect, spyOn, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -57,8 +57,17 @@ describe('rewriteGroups - layouts and refusals', () => {
 });
 
 describe('groupDefinitionFiles - workspace layouts', () => {
+  const roots: string[] = [];
+
+  afterAll(() => {
+    for (const root of roots) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   test('finds a workspace dependency linked in a hoisted node_modules above the app, and the app\x27s own src', () => {
     const root = mkdtempSync(join(tmpdir(), 'ignis-hoisted-'));
+    roots.push(root);
     mkdirSync(join(root, 'node_modules', '@fixture'), { recursive: true });
     symlinkSync(CORE, join(root, 'node_modules', '@fixture', 'core'));
     mkdirSync(join(root, 'apps', 'web', 'src'), { recursive: true });
