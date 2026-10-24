@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**116 targets.**
+**118 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -44,6 +44,8 @@ generated:
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
+| `make fmt-scripts` | - | Format check + bun check type-check of scripts/ / format scripts/. |
+| `make fmt-wiki` | - | Lint docs/wiki scripts and check its format / the same with --fix and write mode. |
 | `make help` | - | Show this help message (a bare 'make' does the same). |
 | `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
 | `make install` | - | Install all dependencies with bun. |
@@ -60,7 +62,7 @@ generated:
 | `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
 | `make lint-filter` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
-| `make lint-fix` | `lint-fix-packages fmt-files` | Fix what can be fixed: lint-fix-<pkg> for every package and fmt-files. |
+| `make lint-fix` | `lint-fix-packages fmt-files fmt-scripts fmt-wiki` | Fix what lint-all checks: lint-fix-<pkg> for every package, fmt-files, fmt-scripts and fmt-wiki. |
 | `make lint-fix-boot` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make lint-fix-connectors` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make lint-fix-core` | `lint-fix-core-server` | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
@@ -76,8 +78,8 @@ generated:
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-kernel` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-packages` | `lint-dev-configs lint-inversion lint-filter lint-helpers lint-boot lint-kernel lint-connectors lint-core-worker lint-core-server` | lint-<pkg> for every package. |
-| `make lint-scripts` | - | Format check + bun check type-check of scripts/. |
-| `make lint-wiki` | - | Lint docs/wiki scripts and check its format. |
+| `make lint-scripts` | - | Format check + bun check type-check of scripts/ / format scripts/. |
+| `make lint-wiki` | - | Lint docs/wiki scripts and check its format / the same with --fix and write mode. |
 | `make okf-check` | - | Gate: OKF v0.2 conformance. |
 | `make okf-check-strict` | - | Gate: OKF v0.2 plus the house rules - links, style, coverage, freshness. |
 | `make okf-coverage` | - | Report bundle coverage against the source inventory. |

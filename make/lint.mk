@@ -11,7 +11,7 @@ LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.conf
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
 LINT_FIX_PKG_TARGETS := $(addprefix lint-fix-,$(PACKAGES))
 
-.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files lint-fix-packages fmt-files \
+.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files lint-fix-packages fmt-files fmt-scripts fmt-wiki \
         $(LINT_PKG_TARGETS) $(LINT_FIX_PKG_TARGETS)
 
 lint: lint-packages
@@ -22,7 +22,8 @@ lint-all: lint-packages lint-scripts lint-files lint-wiki
 
 lint-packages: $(LINT_PKG_TARGETS)
 
-lint-fix: lint-fix-packages fmt-files
+# Everything lint-all checks: the packages, the files no package reaches, scripts/ and the wiki.
+lint-fix: lint-fix-packages fmt-files fmt-scripts fmt-wiki
 
 lint-fix-packages: $(LINT_FIX_PKG_TARGETS)
 
@@ -44,6 +45,10 @@ lint-wiki:
 	@echo "🔍 Linting docs/wiki..."
 	@$(call LINT_PROJECT,docs/wiki,scripts,$(WIKI_FMT_GLOB))
 
+# The wiki's fixer: the same tools as lint-wiki, with --fix and write mode.
+fmt-wiki:
+	@cd docs/wiki && node_modules/.bin/oxlint -c .configs/lints/oxlint.config.mts --fix scripts && node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs --fix scripts && bun fmt $(BUN_FMT_FLAGS) $(WIKI_FMT_GLOB)
+
 # Files no project target reaches: the root package.json, the workflows, .agents, .configs, the preset
 # templates and the examples
 # (formatting only; an example keeps its own lint, typecheck and test scripts). drizzle-kit rewrites the
@@ -59,7 +64,11 @@ fmt-files:
 	@bun fmt $(BUN_FMT_FLAGS) $(FILES_GLOB) $(FILES_IGNORE)
 
 # `scripts/` is not a workspace member: it formats from the root bunfig.toml too.
+SCRIPTS_FMT_GLOB := "scripts/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
 lint-scripts:
 	@echo "🔍 Linting scripts/..."
-	@bun fmt $(BUN_FMT_FLAGS) --check "scripts/**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
+	@bun fmt $(BUN_FMT_FLAGS) --check $(SCRIPTS_FMT_GLOB)
 	@bun check --no-pretty -p scripts/tsconfig.json
+
+fmt-scripts:
+	@bun fmt $(BUN_FMT_FLAGS) $(SCRIPTS_FMT_GLOB)
