@@ -3,8 +3,43 @@
 import type { TConstValue } from '@venizia/ignis-inversion';
 import type { Sorts } from './operators';
 
-/** Fields selection - an array of field names to include, or an object keyed by field name (`true` includes, `false` excludes). */
-export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
+/** Fields selection - an array of field names to include, or an object keyed by field name; only a `true` entry selects (a `false` is ignored by the query layer). `any` for an untyped model. */
+export type TFields<T = any> = 0 extends 1 & T
+  ? any
+  : Partial<{ [K in keyof T]: boolean }> | ReadonlyArray<keyof T>;
+
+/**
+ * The keys a `fields` selection keeps, which is what the query layer reads: an array names them, an
+ * object keeps its `true` entries. An empty selection, an object with no `true`, or a value the type
+ * cannot read (`boolean`, a non-literal array) keeps the whole row - the same as the runtime.
+ */
+type TSelectedKeys<T, F> =
+  F extends ReadonlyArray<infer K>
+    ? K & keyof T
+    : F extends object
+      ? {
+          [K in keyof F]: boolean extends F[K] ? 0 : F[K] extends true ? K : never;
+        }[keyof F] extends infer U
+        ? 0 extends U
+          ? keyof T
+          : U & keyof T
+        : keyof T
+      : keyof T;
+
+/** The keys a model declares optional (`items?: ...`): relations, which an `include` adds beside the selected columns. */
+type TOptionalKeys<T> = { [K in keyof T]-?: {} extends Pick<T, K> ? K : never }[keyof T];
+
+/** The row `fields` leaves: `Pick` of the selected keys, the whole row when nothing narrows it. A model with no known keys (`any`, `object`) stays `any`: there is nothing to pick from. */
+export type TSelectedRow<T, F> = [keyof T] extends [never]
+  ? any
+  : [TSelectedKeys<T, F>] extends [never]
+    ? T
+    : [keyof T] extends [TSelectedKeys<T, F>]
+      ? T
+      : Pick<T, TSelectedKeys<T, F> | TOptionalKeys<T>>;
+
+/** The row of a read: `R` when the caller named it (`find<MyType>`), else the row `fields` leaves. `unknown` is the "not named" marker. */
+export type TRow<T, R, F> = unknown extends R ? TSelectedRow<T, F> : R;
 
 /**
  * Branded read-shape for a timestamp column normalized to ISO 8601 (`isoTimestamp` in
@@ -125,12 +160,20 @@ type TOrderKey<T> = (keyof T & string) | TJsonPathKey<T>;
 export type TOrderEntry<T> = TOrderKey<T> | `${TOrderKey<T>} ${TOrderDirection}`;
 
 /** Comprehensive filter configuration used across all repository query methods. */
-export type TFilter<T = any> = {
+export type TFilter<T = any, F extends TFields<T> = TFields<T>> = {
   where?: TWhere<T>;
-  fields?: TFields;
+  fields?: F;
   include?: TInclusion[];
   order?: string[];
   limit?: number;
   offset?: number;
   skip?: number;
+};
+
+/** The filter of a read by id: no `where` (the id is the `where`), `fields` typed like `TFilter`. */
+export type TByIdFilter<T = any, F extends TFields<T> = TFields<T>> = Omit<
+  TFilter<T>,
+  'where' | 'fields'
+> & {
+  fields?: F;
 };

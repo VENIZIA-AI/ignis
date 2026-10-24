@@ -2,7 +2,7 @@ import type { AbstractEntity } from '@/base/models';
 import { SchemaTypes } from '@/base/models/common/constants';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
@@ -71,7 +71,8 @@ export class ControllerFactory extends BaseHelper {
       TDataObject,
       TPersistObject
     > {
-      constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
+      // Any extra options: a repository whose options narrow `IExtraOptions` (a typed transaction) must fit.
+      constructor(repository: AbstractRepository<TDataObject, TPersistObject, AnyType>) {
         super({
           scope: name,
           path: basePath,

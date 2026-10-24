@@ -194,11 +194,12 @@ generated:
 
 ## filter
 
-### `@venizia/ignis-filter` (21)
+### `@venizia/ignis-filter` (24)
 
 - `parseOrderEntry` const
 - `QueryOperators` class
 - `Sorts` class
+- `TByIdFilter` type
 - `TFields` type
 - `TFilter` type
 - `TInclusion` type
@@ -211,6 +212,8 @@ generated:
 - `TOrderEntry` type
 - `TParsedOrderEntry` type
 - `TQueryOperator` type
+- `TRow` type
+- `TSelectedRow` type
 - `TSkip` type
 - `TSortDirection` type
 - `TSqlFragment` type
@@ -1142,7 +1145,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (414)
+### `@venizia/ignis-kernel` (417)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1446,6 +1449,7 @@ generated:
 - `TBindingScope` type
 - `TBindingValueType` type
 - `TBootStep` type
+- `TByIdFilter` type
 - `TCasbinDomainMatchingFunction` type
 - `TCasbinEnforcerCachedDriver` type
 - `TCasbinEnforcerModelDriver` type
@@ -1538,10 +1542,12 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
+- `TSelectedRow` type
 - `TServiceCallerEntry` type
 - `TSignInRequest` type
 - `TSignUpRequest` type
@@ -1585,7 +1591,7 @@ generated:
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (33)
+### `@venizia/ignis-kernel/repository` (37)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1608,17 +1614,21 @@ generated:
 - `RepositoryTypes` class
 - `SchemaTypes` class
 - `SearchErrorCodes` class
+- `TByIdFilter` type
 - `TCount` type
 - `TDataRange` type
 - `TDataWithRange` type
 - `TExtraRequest` type
 - `TExtraResult` type
+- `TFields` type
 - `TFilter` type
 - `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
+- `TRow` type
 - `TSchemaType` type
+- `TSelectedRow` type
 - `TWhere` type
 
 ## connectors
@@ -2261,7 +2271,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1027)
+### `@venizia/ignis` (1030)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2999,6 +3009,7 @@ generated:
 - `TBuildInfoRecord` type
 - `TBullQueueRole` type
 - `TBunServerInstance` type
+- `TByIdFilter` type
 - `TCasbinDomainMatchingFunction` type
 - `TCasbinEnforcerCachedDriver` type
 - `TCasbinEnforcerModelDriver` type
@@ -3197,6 +3208,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRow` type
 - `TRpcHandler` type
 - `TRpcMiddleware` type
 - `TRuntimeModule` type
@@ -3207,6 +3219,7 @@ generated:
 - `TSecFetchSite` type
 - `TSecretProvider` type
 - `TSecretRotationHandler` type
+- `TSelectedRow` type
 - `TServerBootStep` type
 - `TServiceCallerEntry` type
 - `TSignInRequest` type

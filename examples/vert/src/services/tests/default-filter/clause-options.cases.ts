@@ -114,7 +114,7 @@ export class ClauseOptionsCases extends BaseTestCases {
       if (results.length === 1 && results[0].name === 'Field Test') {
         // Check that only selected fields are returned
         const hasDescription = 'description' in results[0];
-        if (!hasDescription || results[0].description === undefined) {
+        if (!hasDescription || (results[0] as Record<string, unknown>).description === undefined) {
           this.context.logger.info('[CASE 24] PASSED | Field selection works with default filter');
         } else {
           this.context.logger.info('[CASE 24] INFO | All fields returned despite selection');

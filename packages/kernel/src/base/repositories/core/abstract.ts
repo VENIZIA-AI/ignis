@@ -24,7 +24,14 @@ import {
   RepositoryErrorCodes,
   RepositoryOperationScopes,
 } from '../common/constants';
-import type { TFilter, TInclusion, TWhere } from '@venizia/ignis-filter';
+import type {
+  TByIdFilter,
+  TFields,
+  TFilter,
+  TInclusion,
+  TRow,
+  TWhere,
+} from '@venizia/ignis-filter';
 
 /**
  * Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
@@ -326,7 +333,8 @@ export abstract class AbstractRepository<
       operation: 'find',
       options: opts.options,
       defaultUntil: result => result.length > 0,
-      execution: () => this.find<R>({ filter: opts.filter, options }),
+      // `R` is named here, so the row is `R`; TypeScript cannot resolve `TRow` for an unresolved `R`.
+      execution: () => this.find<R>({ filter: opts.filter, options }) as Promise<Array<R>>,
     });
   }
 
@@ -341,7 +349,8 @@ export abstract class AbstractRepository<
       operation: 'find',
       options: opts.options,
       defaultUntil: result => result.data.length > 0,
-      execution: () => this.find<R>({ filter: opts.filter, options }),
+      execution: () =>
+        this.find<R>({ filter: opts.filter, options }) as unknown as Promise<TDataWithRange<R>>,
     });
   }
 
@@ -356,7 +365,7 @@ export abstract class AbstractRepository<
       operation: 'findOne',
       options: opts.options,
       defaultUntil: result => result !== null && result !== undefined,
-      execution: () => this.findOne<R>({ filter: opts.filter, options }),
+      execution: () => this.findOne<R>({ filter: opts.filter, options }) as Promise<TNullable<R>>,
     });
   }
 
@@ -364,26 +373,29 @@ export abstract class AbstractRepository<
 
   abstract existsWith(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<boolean>;
 
-  abstract find<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options: TFindRangeOptions<TOptions, R>;
-  }): Promise<TDataWithRange<R>>;
+  abstract find<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options: TFindRangeOptions<TOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TDataWithRange<TRow<TDataObject, R, F>>>;
 
-  abstract find<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options?: TFindOptions<TOptions, R>;
-  }): Promise<R[]>;
+  abstract find<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options?: TFindOptions<TOptions, TRow<TDataObject, R, F>>;
+  }): Promise<Array<TRow<TDataObject, R, F>>>;
 
-  abstract findOne<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options?: TFindOneOptions<TOptions, R>;
-  }): Promise<TNullable<R>>;
+  abstract findOne<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options?: TFindOneOptions<TOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TNullable<TRow<TDataObject, R, F>>>;
 
-  abstract findById<R = TDataObject>(opts: {
+  abstract findById<
+    R = unknown,
+    const F extends TFields<TDataObject> = TFields<TDataObject>,
+  >(opts: {
     id: IdType;
-    filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: TFindOneOptions<TOptions, R>;
-  }): Promise<TNullable<R>>;
+    filter?: TByIdFilter<TDataObject, F>;
+    options?: TFindOneOptions<TOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TNullable<TRow<TDataObject, R, F>>>;
 
   abstract create(opts: {
     data: TPersistObject;
