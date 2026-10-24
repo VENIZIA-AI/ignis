@@ -1,8 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { tokenStore } from "./api/client";
-import { AuthForm } from "./auth-form";
-import { Configurations } from "./configurations";
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { tokenStore } from './api/client';
+import { AuthForm } from './auth-form';
+import { Configurations } from './configurations';
 
 export const App = () => {
   const queryClient = useQueryClient();

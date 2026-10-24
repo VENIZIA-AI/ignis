@@ -1,8 +1,8 @@
-import createFetchClient from "openapi-fetch";
-import createClient from "openapi-react-query";
-import type { paths } from "./schema";
+import createFetchClient from 'openapi-fetch';
+import createClient from 'openapi-react-query';
+import type { paths } from './schema';
 
-const TOKEN_KEY = "ignis.token";
+const TOKEN_KEY = 'ignis.token';
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
@@ -11,14 +11,14 @@ export const tokenStore = {
 };
 
 // Relative: the Vite dev server proxies /api to rpc-api-server.
-export const fetchClient = createFetchClient<paths>({ baseUrl: "/api" });
+export const fetchClient = createFetchClient<paths>({ baseUrl: '/api' });
 
 // Once signed in, every request carries the token.
 fetchClient.use({
   onRequest: ({ request }) => {
     const token = tokenStore.get();
     if (token) {
-      request.headers.set("Authorization", `Bearer ${token}`);
+      request.headers.set('Authorization', `Bearer ${token}`);
     }
     return request;
   },
