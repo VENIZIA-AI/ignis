@@ -26,6 +26,3 @@ Root tooling of the IGNIS monorepo, grouped by purpose. Each group keeps its tes
 because both need a build. `build/__tests__/` also holds the two tests of `packages/dev-configs`
 (`BunCompiler` and `devz lint`): that package builds everything under its `src`, so its tests cannot
 live there.
-
-`scripts/release-local.ts` is a per-developer script, untracked and excluded through
-`.git/info/exclude`; it belongs to no group.
