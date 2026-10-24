@@ -39,8 +39,7 @@ docker compose down -v
 
 - Authentication is a message after connect, not an upgrade-time header check - a raw `WebSocket`
   client needs no custom headers to reach the handshake step.
-- This example needs `docker compose up -d` first; it is not in the `SMOKE_EXAMPLES`
-  list of `scripts/examples.ts`, so it runs locally, not in CI.
+- This example needs `docker compose up -d` first; its `bun test` runs locally, not in CI.
 
 ## Related
 - [socket-io-test](/examples/socket-io-test.md)

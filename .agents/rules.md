@@ -112,7 +112,7 @@ Chặn: <what blocks, or "không có">
 
 | ID | Rule |
 |---|---|
-| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`, and the examples with `bun scripts/examples.ts check`. |
+| **B-01** | **Bun only, and the repo's own scripts.** Never npm, yarn or pnpm. TypeScript compiles with `tsc` directly - never `npx`, `bunx` or `bun x` for compilation. Build with `make build` inside the package or `make <pkg>` from the root; lint with `make lint-<pkg>` or `make lint-all`, and an example with `bun run lint` in its own folder. |
 | **B-02** | **Extends V-B-02.** The build is green too, after every change, not only before "done". Non-negotiable; nothing is complete until it passes. |
 | **B-03** | **Extends V-B-03.** A step that failed or was skipped is reported as such, never folded into a pass. |
 | **B-04** | **Know the two build traps.** A stale `.tsbuildinfo` makes `tsc` believe it is up to date and emit nothing - a build that prints `DONE` over an empty `dist/`; `make clean` (part of `make rebuild`) removes the ones under `.configs/` too. `tsc-alias` must read the package's root `tsconfig.json`: pointed at a `.configs/` file it resolves `paths` there and leaves every `@/` import unrewritten. Build through `make` (`make/project.mk` type-checks every emitted program before `clean`, and calls each tool by absolute path), and confirm the `DONE` line. |
@@ -159,7 +159,7 @@ Most of these rules hold because agents read this file. Only these have tooling 
 
 | Rule | Enforced by | Actually blocks? |
 |---|---|---|
-| B-02 | `.githooks/pre-commit` runs `make lint-all` and `bun scripts/examples.ts check` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
+| B-02 | `.githooks/pre-commit` runs `make lint-all` (after `make setup-hooks`); `make build` and the tests run by hand | Lint blocks a commit; build and tests are not gated |
 | C-05, V-C-02, V-C-06, V-C-14 | ESLint `houseConfigs` (`venizia/no-new-error`, `venizia/max-params-own`, the naming convention) through `make lint-all` | Yes, at pre-commit |
 | P-03 | `make okf-check-strict` in CI; the `knowledge-sync` skill periodically | Blocks a pull request, not a commit - a per-commit check cannot tell whether prose is still true |
 | Agent setup | `make vulcan-doctor` in CI (after `make vulcan-sync`); locally by hand | Blocks a pull request; not run at pre-commit |

@@ -231,12 +231,12 @@ Every example lives in [`examples/`](examples/).
 
 | Example | What it shows | Smoke test |
 | :--- | :--- | :--- |
-| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | CI (`bun scripts/examples.ts smoke`) |
-| [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | CI |
-| [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | CI |
-| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | CI (Bun Worker) |
-| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application | CI |
-| [rpc-api-server](examples/rpc-api-server/) | A REST API with JWT sign-up/sign-in, CRUD behind the token, and server-rendered JSX pages, on PGlite | CI |
+| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | Its own `bun test` |
+| [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | Its own `bun test` |
+| [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | Its own `bun test` |
+| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | Its own `bun test` (Bun Worker) |
+| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application | Its own `bun test` |
+| [rpc-api-server](examples/rpc-api-server/) | A REST API with JWT sign-up/sign-in, CRUD behind the token, and server-rendered JSX pages, on PGlite | Its own `bun test` |
 | [rpc-client-app](examples/rpc-client-app/) | The React client for `rpc-api-server`, with hooks generated from its OpenAPI document | none - client only |
 | [typesense-search](examples/typesense-search/) | A search API on Typesense alone, no PostgreSQL | Local (`docker compose up -d`) |
 | [socket-io-test](examples/socket-io-test/) | Socket.IO with Redis-backed rooms behind a mandatory authentication handshake | Local (docker) |
@@ -262,7 +262,6 @@ bun install
 make build          # every package in dependency order, then the wiki and its checks
 make test-all
 make lint-all
-bun scripts/examples.ts check   # the examples: artifact index, lint, typecheck
 ```
 
 IGNIS needs Bun 1.4 or later, for applications and contributors alike.

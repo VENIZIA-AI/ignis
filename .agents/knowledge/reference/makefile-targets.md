@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**119 targets.**
+**118 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -64,7 +64,7 @@ generated:
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
 | `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
-| `make lint-all` | `lint-packages lint-scripts lint-manifests lint-files` | lint-packages, lint-scripts, lint-manifests (root package.json) and lint-files (.github, .agents, .configs, presets). |
+| `make lint-all` | `lint-packages lint-scripts lint-manifests lint-files lint-wiki` | lint-packages, lint-scripts, lint-manifests (root package.json), lint-files (.github, .agents, .configs, presets) and lint-wiki. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-connectors` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-core` | `lint-core-server` | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
@@ -118,7 +118,6 @@ generated:
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make update` | `install` | Force update all packages from NPM registry. |
-| `make update-all` | `install` | Force update all packages from NPM registry. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

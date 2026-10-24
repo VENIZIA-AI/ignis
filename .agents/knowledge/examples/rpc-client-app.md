@@ -38,8 +38,7 @@ bun run compile           # bun check, then vite build - fails where the client 
 
 ## Notable / non-obvious
 
-- `bun run test` passes with no tests (`--pass-with-no-tests`) and the example is not in `SMOKE_EXAMPLES` - only the server side of
-  the pair gets a smoke test in CI.
+- `bun run test` passes with no tests (`--pass-with-no-tests`); only the server side of the pair has a smoke test.
 - `bun run generate` needs the server running; regenerate after any change to
   `rpc-api-server`'s routes or schemas, or the build fails on the mismatch.
 
