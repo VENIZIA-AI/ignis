@@ -43,18 +43,7 @@ generated:
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
-| `make fmt-boot` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-connectors` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-core` | `fmt-core-server` | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-core-server` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-core-worker` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-dev-configs` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
-| `make fmt-filter` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-helpers` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-inversion` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-kernel` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
-| `make fmt-packages` | `fmt-dev-configs fmt-inversion fmt-filter fmt-helpers fmt-boot fmt-kernel fmt-connectors fmt-core-worker fmt-core-server` | - |
 | `make help` | - | Show this help message (a bare 'make' does the same). |
 | `make helpers` | `inversion` | Rebuild one package, after its dependencies. |
 | `make install` | - | Install all dependencies with bun. |
@@ -71,7 +60,18 @@ generated:
 | `make lint-dev-configs` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
 | `make lint-filter` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
-| `make lint-fix` | `fmt-packages fmt-files` | Fix what can be fixed: fmt-<pkg> for every package and fmt-files. |
+| `make lint-fix` | `lint-fix-packages fmt-files` | Fix what can be fixed: lint-fix-<pkg> for every package and fmt-files. |
+| `make lint-fix-boot` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-connectors` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core` | `lint-fix-core-server` | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core-server` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-core-worker` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-dev-configs` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-filter` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-helpers` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-inversion` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-kernel` | - | Apply oxlint --fix, ESLint --fix and bun fmt to one package. |
+| `make lint-fix-packages` | `lint-fix-dev-configs lint-fix-inversion lint-fix-filter lint-fix-helpers lint-fix-boot lint-fix-kernel lint-fix-connectors lint-fix-core-worker lint-fix-core-server` | - |
 | `make lint-helpers` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-inversion` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
 | `make lint-kernel` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |

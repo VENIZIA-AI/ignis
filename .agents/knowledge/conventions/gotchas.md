@@ -671,7 +671,7 @@ sidebar layout.
 ## Makefile: a $(call) glob with a comma, and .PHONY pattern rules
 
 - A `$(call ...)` argument containing `{ts,js}` splits on the comma. Put such a glob in a variable.
-- Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `fmt-%` are static
+- Make skips the implicit-rule search for `.PHONY` targets, so `lint-%` and `lint-fix-%` are static
   pattern rules (`$(LINT_PKG_TARGETS): lint-%:`), not plain `lint-%:` rules.
 
 ## The ESLint config is .mjs: a TypeScript one needs jiti

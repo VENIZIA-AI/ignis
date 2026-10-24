@@ -42,7 +42,7 @@ BUN_FMT_FLAGS := --no-script
 LINT_IGNORE ?=
 LINT_IGNORE_FLAGS = $(foreach glob,$(LINT_IGNORE),--ignore-pattern "$(glob)")
 
-.PHONY: build typecheck clean rebuild lint fmt
+.PHONY: build typecheck clean rebuild lint lint-fix
 
 # tsconfig.json covers the tests too, so a broken test fails here, before anything is emitted.
 typecheck:
@@ -86,7 +86,7 @@ lint:
 	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs $(LINT_IGNORE_FLAGS) .
 	@bun fmt $(BUN_FMT_FLAGS) --check $(FMT_GLOB) $(LINT_IGNORE_FLAGS)
 
-fmt:
+lint-fix:
 	@$(BIN)/oxlint -c .configs/lints/oxlint.config.mts --fix $(LINT_IGNORE_FLAGS) .
 	@$(BIN)/eslint -c .configs/lints/eslint.config.mjs --fix $(LINT_IGNORE_FLAGS) .
 	@bun fmt $(BUN_FMT_FLAGS) $(FMT_GLOB) $(LINT_IGNORE_FLAGS)

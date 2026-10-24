@@ -220,7 +220,7 @@ In the IGNIS repository, the Makefile runs each package with its own tools:
 | Command | What it does |
 |---------|--------------|
 | `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then a `bun fmt --check` |
-| `make fmt-<pkg>` | Same tools with `--fix` and write mode |
+| `make lint-fix-<pkg>` | Same tools with `--fix` and write mode |
 | `make lint-packages` / `make lint-fix` | Every package (and, for `lint-fix`, the files no package reaches) |
 | `make lint-all` | Packages and `scripts/` |
 | `make lint-wiki` | Lint and format-check `docs/wiki/scripts` |
