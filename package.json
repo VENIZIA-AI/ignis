@@ -85,7 +85,7 @@
   "devDependencies": {
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
-    "@venizia/vulcan": "0.3.13",
+    "@venizia/vulcan": "0.4.0",
     "typescript": "catalog:"
   },
   "overrides": {
