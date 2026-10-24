@@ -55,7 +55,6 @@ The command produces this tree, plus the files of the coding agents on your mach
 
 ```text
 ./.agents/knowledge/index.md
-./.agents/knowledge/log.md
 ./.agents/knowledge/packages/core-api.md
 ./.agents/rules.md
 ./.agents/vulcan.manifest.json

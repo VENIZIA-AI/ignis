@@ -18,7 +18,6 @@ import { join, relative, resolve } from 'node:path';
 
 // Auto-generated or free-form history content; never held to the "path exists" gate.
 const ALWAYS_SKIP = [
-  '.agents/knowledge/log.md',
   '.agents/knowledge/reference/public-surface.md',
   '.agents/knowledge/reference/source-map.md',
   '.agents/knowledge/reference/components.md',
