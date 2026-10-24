@@ -22,7 +22,7 @@ tags: [process, git, contributing]
    describes the framework defect, never a consumer's internals.
 4. Before committing, run `make lint-fix` and `make build` to catch style and type issues early.
    Packages have no `lint` or `lint:fix` script; the Makefile runs each package's own oxlint, ESLint
-   and `bun fmt` (`make fmt-<package>` for one). `make lint-all` is the check-only equivalent (an example runs its own `bun run lint` in its folder), and the pre-commit hook (below)
+   and `bun fmt` (`make lint-fix-<package>` for one). `make lint-all` is the check-only equivalent (an example runs its own `bun run lint` in its folder), and the pre-commit hook (below)
    will block a commit that fails lint anyway.
 5. If git hooks aren't wired up yet, run `make setup-hooks` once - it runs `git config
    core.hooksPath .githooks`, pointing git at the repo's `.githooks/` directory instead of

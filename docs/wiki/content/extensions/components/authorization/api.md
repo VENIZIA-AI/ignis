@@ -398,6 +398,9 @@ interface ICasbinEnforcerCachedRedis {
 | `voters` | `TAuthorizationVoter[]` | - | Custom voter functions for this route |
 | `domain` | `IAuthorizationDomainSource \| TAuthorizationDomainResolver` | - | Per-route domain source for scoped RBAC. Omitted -> falls back to the global `domainResolver`, then `SYSTEM_WIDE` |
 
+> [!WARNING]
+> Voters run after the role shortcuts. A principal that holds a role in `alwaysAllowRoles`, or in the route's `allowedRoles`, is let through before any voter runs, so a voter cannot deny it. Give a service principal no bypass role, and grant its routes with an explicit role and policy, or with a voter that returns `ALLOW`.
+
 ```typescript
 interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = string> {
   action: TAction;

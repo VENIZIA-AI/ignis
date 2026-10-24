@@ -9,10 +9,10 @@ BUN_FMT_FLAGS := --no-script
 LINT_PROJECT = cd $(1) && node_modules/.bin/oxlint -c .configs/lints/oxlint.config.mts --deny-warnings $(or $(2),.) && node_modules/.bin/eslint -c .configs/lints/eslint.config.mjs $(or $(2),.) && bun fmt $(BUN_FMT_FLAGS) --check $(or $(3),$(FMT_GLOB))
 
 LINT_PKG_TARGETS := $(addprefix lint-,$(PACKAGES))
-FMT_PKG_TARGETS := $(addprefix fmt-,$(PACKAGES))
+LINT_FIX_PKG_TARGETS := $(addprefix lint-fix-,$(PACKAGES))
 
-.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files fmt-packages fmt-files \
-        $(LINT_PKG_TARGETS) $(FMT_PKG_TARGETS)
+.PHONY: lint lint-all lint-fix lint-packages lint-wiki lint-scripts lint-files lint-fix-packages fmt-files \
+        $(LINT_PKG_TARGETS) $(LINT_FIX_PKG_TARGETS)
 
 lint: lint-packages
 	@echo "✅ Linting completed."
@@ -22,9 +22,9 @@ lint-all: lint-packages lint-scripts lint-files lint-wiki
 
 lint-packages: $(LINT_PKG_TARGETS)
 
-lint-fix: fmt-packages fmt-files
+lint-fix: lint-fix-packages fmt-files
 
-fmt-packages: $(FMT_PKG_TARGETS)
+lint-fix-packages: $(LINT_FIX_PKG_TARGETS)
 
 # Static pattern rules: make skips implicit-rule search for .PHONY targets, so a plain `lint-%`
 # would never match. The release workflow calls `make lint-<package dir>`.
@@ -32,8 +32,8 @@ $(LINT_PKG_TARGETS): lint-%:
 	@echo "🔍 Linting packages/$*..."
 	@$(MAKE) --no-print-directory -C packages/$* lint
 
-$(FMT_PKG_TARGETS): fmt-%:
-	@$(MAKE) --no-print-directory -C packages/$* fmt
+$(LINT_FIX_PKG_TARGETS): lint-fix-%:
+	@$(MAKE) --no-print-directory -C packages/$* lint-fix
 
 # site/ is the VitePress theme, written to its API (a `Layout` render method), so only the wiki's
 # own scripts are linted; the formatter also covers its CSS, Vue and JSON. The sidebar config (.vitepress/config.mts) keeps its one-entry-per-line
