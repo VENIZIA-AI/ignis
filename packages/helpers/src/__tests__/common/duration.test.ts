@@ -151,3 +151,38 @@ describe('DurationMultipliers.parse - written durations', () => {
     expect(DurationMultipliers.parseToMilliseconds('nonsense')).toBeNull();
   });
 });
+
+describe('DurationMultipliers - an inherited property name is not a unit', () => {
+  const INHERITED = ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__'];
+
+  test('toMilliseconds answers null, not NaN', () => {
+    for (const unit of INHERITED) {
+      expect(DurationMultipliers.toMilliseconds({ unit: unit as never, value: 5 })).toBeNull();
+    }
+  });
+
+  test('fromMilliseconds answers null', () => {
+    for (const unit of INHERITED) {
+      expect(
+        DurationMultipliers.fromMilliseconds({ milliseconds: 5, unit: unit as never }),
+      ).toBeNull();
+    }
+  });
+
+  test('convert answers null for an inherited name on either side', () => {
+    for (const unit of INHERITED) {
+      expect(
+        DurationMultipliers.convert({ value: 5, from: unit as never, to: 'second' }),
+      ).toBeNull();
+      expect(
+        DurationMultipliers.convert({ value: 5, from: 'second', to: unit as never }),
+      ).toBeNull();
+    }
+  });
+
+  test('a real unit still converts', () => {
+    expect(DurationMultipliers.toMilliseconds({ unit: 'minute', value: 2 })).toBe(120_000);
+    expect(DurationMultipliers.fromMilliseconds({ milliseconds: 120_000, unit: 'minute' })).toBe(2);
+    expect(DurationMultipliers.convert({ value: 2, from: 'minute', to: 'second' })).toBe(120);
+  });
+});

@@ -13,3 +13,16 @@ describe('SystemEnvsHelper', () => {
     return expect(provider.lease({ path: 'db', key: 'k' })).rejects.toThrow(/not supported/i);
   });
 });
+
+describe('SystemEnvsHelper - an inherited property name is not a secret', () => {
+  test.each(['constructor', 'toString', '__proto__'])(
+    '%s falls back to the default',
+    async (key) => {
+      const provider = new SystemEnvsHelper({});
+
+      expect(await provider.get({ path: 'ignored', key, defaultValue: 'fallback' })).toBe(
+        'fallback',
+      );
+    },
+  );
+});

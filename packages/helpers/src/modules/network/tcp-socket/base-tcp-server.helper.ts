@@ -94,7 +94,8 @@ export class BaseNetworkTcpServer<
       identifier: opts.identifier,
     });
 
-    this.clients = Object.assign({});
+    // No prototype: `getClient({ id: 'constructor' })` must find nothing, not `Object`.
+    this.clients = Object.create(null);
 
     this.serverOptions = opts.serverOptions;
     this.listenOptions = opts.listenOptions;
@@ -311,7 +312,7 @@ export class BaseNetworkTcpServer<
       client.socket.destroy();
     }
 
-    this.clients = {};
+    this.clients = Object.create(null);
 
     const server = this.server;
     if (!server) {

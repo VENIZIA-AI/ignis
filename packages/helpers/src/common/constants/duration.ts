@@ -142,20 +142,26 @@ export class DurationMultipliers {
     [DurationUnits.YEAR]: this.YEAR,
   };
 
+  /** The multiplier of a known unit, `null` for anything else - inherited property names included. */
+  private static multiplierOf(unit: unknown): number | null {
+    return typeof unit === 'string' && DurationUnits.isValid(unit) ? this.BY_UNIT[unit] : null;
+  }
+
   /**
    * `null` rather than a throw, so a caller that wants an error raises its own with its own context.
    * Every method here answers the same way.
    *
-   * One map read, not a validity check followed by a read: an unknown unit is already `undefined`.
+   * The unit is checked against {@link DurationUnits.SCHEME_SET} first: a plain-object read alone
+   * would answer `'constructor'` or `'toString'` with a member of `Object.prototype`, not `undefined`.
    */
   static toMilliseconds(opts: IDuration | null): number | null {
     if (!opts) {
       return null;
     }
 
-    const multiplier = this.BY_UNIT[opts.unit];
+    const multiplier = this.multiplierOf(opts.unit);
 
-    if (multiplier === undefined || !Number.isFinite(opts.value)) {
+    if (multiplier === null || !Number.isFinite(opts.value)) {
       return null;
     }
 
@@ -164,9 +170,9 @@ export class DurationMultipliers {
 
   /** The inverse of {@link toMilliseconds}. Fractional on purpose - rounding here would silently lose a 36-hour window asked for in days. */
   static fromMilliseconds(opts: { milliseconds: number; unit: TDurationUnit }): number | null {
-    const multiplier = this.BY_UNIT[opts?.unit];
+    const multiplier = this.multiplierOf(opts?.unit);
 
-    if (multiplier === undefined || !Number.isFinite(opts.milliseconds)) {
+    if (multiplier === null || !Number.isFinite(opts.milliseconds)) {
       return null;
     }
 
@@ -175,10 +181,10 @@ export class DurationMultipliers {
 
   /** Unit to unit, through milliseconds. Fractional, for the reason {@link fromMilliseconds} gives. */
   static convert(opts: { value: number; from: TDurationUnit; to: TDurationUnit }): number | null {
-    const source = this.BY_UNIT[opts?.from];
-    const target = this.BY_UNIT[opts?.to];
+    const source = this.multiplierOf(opts?.from);
+    const target = this.multiplierOf(opts?.to);
 
-    if (source === undefined || target === undefined || !Number.isFinite(opts.value)) {
+    if (source === null || target === null || !Number.isFinite(opts.value)) {
       return null;
     }
 
