@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-26 | [TSearchScopeResolver Is Exported](./2026-10-26-search-scope-type-export) | Bug Fix |
 | 2026-10-26 | [The Deprecated Model Settings Keys Are Removed](./2026-10-26-remove-deprecated-model-settings) | Breaking |
 | 2026-10-25 | [A Guide to Model Settings](./2026-10-25-model-settings-guide) | Enhancement |
 | 2026-10-25 | [Model Settings Are Grouped Under query and access](./2026-10-25-model-settings-query-access) | Breaking |
