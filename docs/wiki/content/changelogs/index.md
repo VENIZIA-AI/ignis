@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-26 | [dev-configs Warns on String-Literal Unions and Explicit Casts](./2026-10-26-dev-configs-warn-const-class-and-casts) | Enhancement |
 | 2026-10-26 | [@model: type Is Optional, skipMigrate Becomes migration.use](./2026-10-26-model-type-and-migration-settings) | Enhancement |
 | 2026-10-26 | [TSearchScopeResolver Is Exported](./2026-10-26-search-scope-type-export) | Bug Fix |
 | 2026-10-26 | [The Release Sweep Includes Every Dependent](./2026-10-26-release-sweep-cascade) | Bug Fix |

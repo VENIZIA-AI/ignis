@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'dev-configs Warns on Unions and Casts',
+                  link: '/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts',
+                },
+                {
                   text: 'Model type and migration',
                   link: '/changelogs/2026-10-26-model-type-and-migration-settings',
                 },
