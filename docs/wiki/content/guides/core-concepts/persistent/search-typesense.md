@@ -436,6 +436,38 @@ Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ign
 
 It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 
+### Scope the search per request
+
+Search repositories ignore `@model` `scopeFilter` (the model refuses to boot with one), so a search route sees every document unless you scope it. Give the factory a `scope`: a function of the request context that returns the filter this caller may search within.
+
+```typescript
+import { Authentication, ScopeFilters } from '@venizia/ignis';
+
+const ScopedSearchController = SearchControllerFactory.defineSearchController({
+  entity: ArticleDocument,
+  repository: { name: ArticleRepository.name },
+  controller: { name: 'ArticleSearchController', basePath: '/articles' },
+  routes: { multiSearch: { enabled: false } }, // a scoped controller cannot serve multi-search
+  scope: ({ context }) => {
+    const user = context.get(Authentication.CURRENT_USER);
+
+    if (user?.isAdmin) {
+      return ScopeFilters.UNRESTRICTED;
+    }
+
+    return user?.merchantId ? { merchantId: user.merchantId } : null; // null refuses the request (403)
+  },
+});
+```
+
+| `scope` returns | The request |
+|---|---|
+| A `where` | The server ANDs it into `input.filter.where`. The client's own `where` sits inside the AND, so it can narrow the scope and never widen or remove it |
+| `ScopeFilters.UNRESTRICTED` | No scope for this call (an admin, a system job) |
+| `null`, `undefined`, or it throws | Refused with `403`; nothing is searched |
+
+A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` and `engineParams` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`.
+
 ## Transactions and Locking
 
 The typesense connector has no transaction or row-level-locking model. Passing a `transaction` or `lock` option to any repository method throws:

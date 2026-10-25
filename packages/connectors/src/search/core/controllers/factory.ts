@@ -10,6 +10,7 @@ import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
+import type { TSearchScopeResolver } from './scope';
 import { defineSearchRouteConfigs } from './definition';
 
 /** Per-route enable/disable switches for the generated search controller. */
@@ -43,6 +44,19 @@ export interface ISearchControllerOptions<
 
   /** Per-route enable/disable configuration. */
   routes?: ISearchCustomizableRoutes;
+
+  /**
+   * A function of the request context returning the filter this caller may search within. It is
+   * ANDed into `input.filter.where` on the server: the client's own `where` can narrow it, never
+   * widen or remove it. Fails closed - a scope that is null, undefined or throws refuses the
+   * request with 403. Return `ScopeFilters.UNRESTRICTED` to apply none for a trusted caller.
+   *
+   * `raw` mode and `engineParams` hand the engine its own wire parameters, and a multi-search entry
+   * carries a raw `filterBy`; none can take a scope, so a scoped controller refuses `raw` and
+   * `engineParams` (400) and must disable the multi-search route (`routes.multiSearch.enabled:
+   * false`), which `defineSearchController` requires.
+   */
+  scope?: TSearchScopeResolver;
 }
 
 /** Factory for generating turnkey search controllers (single-collection + cross-collection) from entity definitions. */
@@ -60,12 +74,18 @@ export class SearchControllerFactory extends BaseHelper {
     ConfigurableOptions extends object = {},
     TDataObject extends object = TEntityDataObject<TEntity>,
   >(defOpts: ISearchControllerOptions<TEntity>) {
-    const { controller, entity, authenticate, authorize, routes } = defOpts;
+    const { controller, entity, authenticate, authorize, routes, scope } = defOpts;
 
     const { name, basePath = 'unknown_path', isStrict = true } = controller;
     if (!basePath || basePath === 'unknown_path') {
       throw getError({
         message: `[defineSearchController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
+      });
+    }
+
+    if (scope && routes?.multiSearch?.enabled !== false) {
+      throw getError({
+        message: `[defineSearchController] A scoped search controller cannot serve multi-search | name: ${name} | set routes.multiSearch.enabled to false`,
       });
     }
 
@@ -90,6 +110,7 @@ export class SearchControllerFactory extends BaseHelper {
           isStrict,
           repository,
           definitions: routeDefinitions,
+          searchScope: scope as TSearchScopeResolver<RouteEnv> | undefined,
         });
       }
 
