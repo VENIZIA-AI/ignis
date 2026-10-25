@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'CORS in the Default Stack',
+                  link: '/changelogs/2026-10-25-cors-in-the-default-stack',
+                },
+                {
                   text: 'CRUD Write Routes and Read-Only Authorize',
                   link: '/changelogs/2026-10-25-crud-write-routes-read-authorize',
                 },
