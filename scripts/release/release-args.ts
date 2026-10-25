@@ -33,7 +33,7 @@ export const parseReleaseArgs = (args: ReadonlyArray<string>): IReleaseArgs => {
   // A value is skipped by its position right after its own flag - never by its text, and never by
   // `args[-1 + 1]` when the flag is absent, which once dropped the first package name.
   const valueIndexes = new Set(
-    [modeIndex, seedIndex, issueIndex].filter(index => index >= 0).map(index => index + 1),
+    [modeIndex, seedIndex, issueIndex].filter((index) => index >= 0).map((index) => index + 1),
   );
   const named = args.filter((arg, index) => !arg.startsWith('--') && !valueIndexes.has(index));
 

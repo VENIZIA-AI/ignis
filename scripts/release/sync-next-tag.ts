@@ -116,7 +116,7 @@ const main = async (): Promise<void> => {
 
   for (const name of await readNames()) {
     try {
-      const registry = await readDistTags(name).catch(error => {
+      const registry = await readDistTags(name).catch((error) => {
         // The registry may not list a package that was only just published.
         if (published?.name === name) {
           return {};

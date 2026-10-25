@@ -149,6 +149,10 @@ tags: [process, build]
     and throws. `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
     the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
 
+`make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) against the built
+packages and reports every failing example before it fails; CI runs it after `make build-all` and the workspace
+bin link. Lint only format-checks the examples, so a type a package forgot to export breaks here first.
+
 ## Related
 
 - [Makefile targets](/reference/makefile-targets.md)

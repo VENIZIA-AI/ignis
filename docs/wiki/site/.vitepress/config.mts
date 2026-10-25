@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'TSearchScopeResolver Exported',
+                  link: '/changelogs/2026-10-26-search-scope-type-export',
+                },
+                {
                   text: 'Release Sweep Includes Dependents',
                   link: '/changelogs/2026-10-26-release-sweep-cascade',
                 },
