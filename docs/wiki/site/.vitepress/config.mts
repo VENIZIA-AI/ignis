@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Search Controller Scope',
+                  link: '/changelogs/2026-10-25-search-controller-scope',
+                },
+                {
                   text: 'scopeFilter Write Guard',
                   link: '/changelogs/2026-10-25-scope-filter-write-guard',
                 },

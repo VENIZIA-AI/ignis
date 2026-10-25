@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-25 | [A Search Controller Can Be Scoped Per Request](./2026-10-25-search-controller-scope) | New Feature |
 | 2026-10-25 | [scopeFilter Now Holds Writes to the Scope](./2026-10-25-scope-filter-write-guard) | Breaking |
 | 2026-10-25 | [CORS Is Installed First, So Framework Errors Carry Its Headers](./2026-10-25-cors-in-the-default-stack) | Bug Fix |
 | 2026-10-25 | [A CRUD Write Route No Longer Inherits a Read-Only Authorize](./2026-10-25-crud-write-routes-read-authorize) | Security |
