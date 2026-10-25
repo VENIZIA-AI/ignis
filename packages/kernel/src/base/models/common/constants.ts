@@ -27,3 +27,18 @@ export class ModelTypes {
 
 /** Valid model type values. */
 export type TModelType = TConstValue<typeof ModelTypes>;
+
+/** The path-param id shape an entity family resolves to (`AbstractEntity.getIdType()`). */
+export class IdSchemaTypes {
+  static readonly NUMBER = 'number';
+  static readonly STRING = 'string';
+
+  static readonly SCHEME_SET = new Set<string>([this.NUMBER, this.STRING]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid id schema type values. */
+export type TIdSchemaType = TConstValue<typeof IdSchemaTypes>;

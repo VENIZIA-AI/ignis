@@ -3,6 +3,7 @@ import type { TContext } from '@/base/controllers/common/types';
 import { type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
 import type { IAuthUser } from '../../../authenticate/common/types';
+import type { TAuthorizationDomainSource } from '../constants';
 
 export interface IAuthorizationRole {
   readonly name: string;
@@ -30,7 +31,7 @@ export interface IAuthorizationUser extends IAuthUser {
 
 /** Declarative description of where to read the request domain from. */
 export interface IAuthorizationDomainSource {
-  from: 'param' | 'header' | 'query' | 'context';
+  from: TAuthorizationDomainSource;
   key: string;
   type: string; // domain type, e.g. 'Merchant' | 'Organizer'
 }

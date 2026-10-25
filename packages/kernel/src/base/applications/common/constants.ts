@@ -26,3 +26,18 @@ export class ArtifactIndexFields {
 export type TArtifactIndexField = TConstValue<typeof ArtifactIndexFields>;
 
 export const SecFetchSiteValues = ['same-origin', 'same-site', 'none', 'cross-site'] as const;
+
+/** The `encoding` of `ICompressOptions`. */
+export class CompressEncodings {
+  static readonly GZIP = 'gzip';
+  static readonly DEFLATE = 'deflate';
+
+  static readonly SCHEME_SET = new Set<string>([this.GZIP, this.DEFLATE]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid compress encoding values. */
+export type TCompressEncoding = TConstValue<typeof CompressEncodings>;

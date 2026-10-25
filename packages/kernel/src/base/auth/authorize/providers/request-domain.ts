@@ -1,7 +1,7 @@
 import type { TContext } from '@/base/controllers/common/types';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { Env } from 'hono';
-import { AuthorizationDomainScopes } from '../common/constants';
+import { AuthorizationDomainScopes, AuthorizationDomainSources } from '../common/constants';
 import type {
   IAuthorizationDomainSource,
   IAuthorizationSpec,
@@ -15,16 +15,16 @@ export const readDeclarative = (opts: {
 }): TNullable<string> => {
   const { source, context } = opts;
   switch (source.from) {
-    case 'param': {
+    case AuthorizationDomainSources.PARAM: {
       return context.req.param(source.key) ?? null;
     }
-    case 'header': {
+    case AuthorizationDomainSources.HEADER: {
       return context.req.header(source.key) ?? null;
     }
-    case 'query': {
+    case AuthorizationDomainSources.QUERY: {
       return context.req.query(source.key) ?? null;
     }
-    case 'context': {
+    case AuthorizationDomainSources.CONTEXT: {
       const value = context.get(source.key as any);
       return value == null ? null : String(value);
     }

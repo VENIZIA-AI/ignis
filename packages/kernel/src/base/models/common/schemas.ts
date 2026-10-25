@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import type { TIdSchemaType } from './types';
+import type { TIdSchemaType } from './constants';
 
 /**
  * The error RESPONSE for OpenAPI docs - here, beside the REST layer that already needs `@hono/zod-openapi`.

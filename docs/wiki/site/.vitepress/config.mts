@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Kernel String Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-kernel-string-domains-const-classes',
+                },
+                {
                   text: 'Model type and migration',
                   link: '/changelogs/2026-10-26-model-type-and-migration-settings',
                 },
