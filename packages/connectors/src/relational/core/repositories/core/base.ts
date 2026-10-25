@@ -219,8 +219,9 @@ export abstract class RelationalBaseRepository<
   protected applyScopeFilter<DO = any>(opts: {
     userFilter?: TFilter<DO>;
     dangerouslySkipScopeFilter?: boolean;
+    mutation?: string;
   }): TFilter<DO> {
-    const { userFilter, dangerouslySkipScopeFilter } = opts;
+    const { userFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
     if (dangerouslySkipScopeFilter) {
       return userFilter ?? {};
@@ -241,7 +242,21 @@ export abstract class RelationalBaseRepository<
     }
 
     if (scopeWhere !== null && scopeWhere !== undefined) {
-      return this.queryDialect.mergeFilter({ defaultFilter: { where: scopeWhere }, userFilter });
+      // A write reaches only the rows it may write: the shared (null) rows a read scope allows need `write.sharedRows`.
+      const effectiveWhere =
+        mutation === undefined
+          ? scopeWhere
+          : ScopeWriteGuard.mutationWhere({
+              settings: scopeFilterSettings,
+              model: this.entity.name,
+              operation: mutation,
+              scopeWhere,
+            });
+
+      return this.queryDialect.mergeFilter({
+        defaultFilter: { where: effectiveWhere },
+        userFilter,
+      });
     }
 
     if (scopeFilterSettings.onMissing === ScopeFilterMissingBehaviors.ALLOW) {
@@ -261,10 +276,16 @@ export abstract class RelationalBaseRepository<
     userFilter?: TFilter<DO>;
     shouldSkipDefaultFilter?: boolean;
     dangerouslySkipScopeFilter?: boolean;
+    /** The name of the write (`update`, `delete`) when the filter selects rows to change: the row scope then leaves out the shared rows unless `write.sharedRows`. */
+    mutation?: string;
   }): TFilter<DO> {
-    const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter } = opts;
+    const { userFilter, shouldSkipDefaultFilter, dangerouslySkipScopeFilter, mutation } = opts;
 
-    const scopedFilter = this.applyScopeFilter<DO>({ userFilter, dangerouslySkipScopeFilter });
+    const scopedFilter = this.applyScopeFilter<DO>({
+      userFilter,
+      dangerouslySkipScopeFilter,
+      mutation,
+    });
 
     if (shouldSkipDefaultFilter) {
       return scopedFilter;

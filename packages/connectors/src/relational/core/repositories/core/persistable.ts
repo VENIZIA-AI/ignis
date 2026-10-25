@@ -171,6 +171,7 @@ export class PersistableRelationalRepository<
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
+      mutation: 'update',
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -281,6 +282,7 @@ export class PersistableRelationalRepository<
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
+      mutation: 'delete',
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
