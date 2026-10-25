@@ -1166,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (425)
+### `@venizia/ignis-kernel` (435)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1196,6 +1196,7 @@ generated:
 - `AuthorizationActions` class
 - `AuthorizationDecisions` class
 - `AuthorizationDomainScopes` class
+- `AuthorizationDomainSources` class
 - `AuthorizationEnforcerRegistry` class
 - `AuthorizationEnforcerTypes` class
 - `AuthorizationErrors` const
@@ -1207,6 +1208,7 @@ generated:
 - `AuthorizationRoles` class
 - `authorize` const
 - `AuthorizeBindingKeys` class
+- `AuthorizeModelFormats` class
 - `BaseAppErrorMiddleware` class
 - `BaseComponent` class
 - `BaseConfiguration` class
@@ -1232,6 +1234,7 @@ generated:
 - `commonResponseHeaders` const
 - `CommonStatuses` class
 - `component` const
+- `CompressEncodings` class
 - `conditionalCountResponse` const
 - `configuration` const
 - `Container` class
@@ -1315,6 +1318,7 @@ generated:
 - `IDeprecatedModelMetadata` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
+- `IdSchemaTypes` class
 - `IdType` type
 - `IEntityStatics` interface
 - `IEventHandler` interface
@@ -1383,6 +1387,7 @@ generated:
 - `JOSEStandards` class
 - `jsonContent` const
 - `jsonResponse` const
+- `JWKSAlgorithms` class
 - `JWKSKeyDrivers` class
 - `JWKSKeyFormats` class
 - `JWKSModes` class
@@ -1434,6 +1439,7 @@ generated:
 - `RestPaths` class
 - `RoleStatuses` class
 - `RouteConfigResolver` class
+- `RoutePathScopes` class
 - `rpc` const
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
@@ -1465,10 +1471,12 @@ generated:
 - `TAuthorizationDecision` type
 - `TAuthorizationDomainResolver` type
 - `TAuthorizationDomainScope` type
+- `TAuthorizationDomainSource` type
 - `TAuthorizationEnforcerType` type
 - `TAuthorizationPolicyVariant` type
 - `TAuthorizationVoter` type
 - `TAuthorizeFn` type
+- `TAuthorizeModelFormat` type
 - `TAuthStrategy` type
 - `TBasicTokenServiceOptions` type
 - `TBindingKey` type
@@ -1482,6 +1490,7 @@ generated:
 - `TCasbinEnforcerModelDriver` type
 - `TCasbinRuleVariant` type
 - `TChangePasswordRequest` type
+- `TCompressEncoding` type
 - `TContext` type
 - `TControllerMetadata` type
 - `TControllerTransport` type
@@ -1570,6 +1579,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRoutePathScope` type
 - `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
@@ -2302,7 +2312,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1045)
+### `@venizia/ignis` (1055)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2360,6 +2370,7 @@ generated:
 - `AuthorizationActions` class
 - `AuthorizationDecisions` class
 - `AuthorizationDomainScopes` class
+- `AuthorizationDomainSources` class
 - `AuthorizationEnforcerRegistry` class
 - `AuthorizationEnforcerTypes` class
 - `AuthorizationErrors` const
@@ -2372,6 +2383,7 @@ generated:
 - `authorize` const
 - `AuthorizeBindingKeys` class
 - `AuthorizeComponent` class
+- `AuthorizeModelFormats` class
 - `awaitHook` const
 - `BaseAppErrorMiddleware` class
 - `BaseApplication` class
@@ -2427,6 +2439,7 @@ generated:
 - `commonResponseHeaders` const
 - `CommonStatuses` class
 - `component` const
+- `CompressEncodings` class
 - `conditionalCountResponse` const
 - `configuration` const
 - `ConsoleLogger` class
@@ -2626,6 +2639,7 @@ generated:
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
+- `IdSchemaTypes` class
 - `IdType` type
 - `IDuration` interface
 - `IECDHEncryptedPayload` interface
@@ -2835,6 +2849,7 @@ generated:
 - `JOSEStandards` class
 - `jsonContent` const
 - `jsonResponse` const
+- `JWKSAlgorithms` class
 - `JWKSController` class
 - `JWKSIssuerAuthenticationStrategy` class
 - `JWKSIssuerTokenService` class
@@ -2970,6 +2985,7 @@ generated:
 - `RetryJitterModes` class
 - `RoleStatuses` class
 - `RouteConfigResolver` class
+- `RoutePathScopes` class
 - `rpc` const
 - `RSA` class
 - `RSAAlgorithmType` type
@@ -3036,10 +3052,12 @@ generated:
 - `TAuthorizationDecision` type
 - `TAuthorizationDomainResolver` type
 - `TAuthorizationDomainScope` type
+- `TAuthorizationDomainSource` type
 - `TAuthorizationEnforcerType` type
 - `TAuthorizationPolicyVariant` type
 - `TAuthorizationVoter` type
 - `TAuthorizeFn` type
+- `TAuthorizeModelFormat` type
 - `TAuthStrategy` type
 - `TBasicTokenServiceOptions` type
 - `TBindingKey` type
@@ -3060,6 +3078,7 @@ generated:
 - `TClass` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
+- `TCompressEncoding` type
 - `TConstructor` type
 - `TConstValue` type
 - `TContentType` type
@@ -3253,6 +3272,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRoutePathScope` type
 - `TRow` type
 - `TRpcHandler` type
 - `TRpcMiddleware` type

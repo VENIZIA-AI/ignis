@@ -51,3 +51,19 @@ export class JWKSKeyFormats {
 }
 
 export type TJWKSKeyFormat = TConstValue<typeof JWKSKeyFormats>;
+
+/** The signing algorithms a JWKS issuer supports. */
+export class JWKSAlgorithms {
+  static readonly ES256 = 'ES256';
+  static readonly RS256 = 'RS256';
+  static readonly EDDSA = 'EdDSA';
+
+  static readonly SCHEME_SET = new Set<string>([this.ES256, this.RS256, this.EDDSA]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid JWKS algorithm values. */
+export type TJWKSAlgorithm = TConstValue<typeof JWKSAlgorithms>;

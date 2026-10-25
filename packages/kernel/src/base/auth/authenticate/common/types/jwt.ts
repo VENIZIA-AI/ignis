@@ -2,7 +2,13 @@ import type { IdType } from '@/base/models/common';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers/core';
 import type { JWTPayload } from 'jose';
-import type { JOSEStandards, JWKSModes, TJWKSKeyDriver, TJWKSKeyFormat } from '../constants';
+import type {
+  JOSEStandards,
+  JWKSModes,
+  TJWKSAlgorithm,
+  TJWKSKeyDriver,
+  TJWKSKeyFormat,
+} from '../constants';
 import type { IAuthUser } from './strategy';
 
 /**
@@ -78,8 +84,6 @@ export interface IJWSTokenServiceOptions {
   /** Claims stamped on every issued token. A configured value WINS over one supplied in the payload. */
   sign?: IJWTSignOptions;
 }
-
-export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
 
 export interface IJWKSIssuerOptions {
   mode: typeof JWKSModes.ISSUER;
