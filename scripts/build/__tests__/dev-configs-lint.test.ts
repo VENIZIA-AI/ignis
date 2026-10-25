@@ -28,14 +28,17 @@ const tmpDirs: string[] = [];
 /** Folder of .configs to the content of its .ignore file. */
 type TIgnoreFiles = Partial<Record<'lints' | 'formatters', string>>;
 
-/** A project with stub linters on PATH that log their arguments, one line per call. */
+/** A project with stub linters in its own node_modules/.bin that log their arguments, one line per call. */
 const makeProject = (opts: { ignore?: TIgnoreFiles; failing?: string } = {}) => {
   const root = mkdtempSync(join(tmpdir(), 'ignis-dev-configs-lint-'));
   tmpDirs.push(root);
-  const bin = join(root, 'stub-bin');
+  // The stubs live in the project's own `node_modules/.bin`, the first place `devz` looks for a tool.
+  // Left on PATH alone they lose to the real binaries of any enclosing repository, so the tests would
+  // depend on where `tmpdir()` points.
+  const bin = join(root, 'node_modules', '.bin');
   const log = join(root, 'calls.log');
 
-  mkdirSync(bin);
+  mkdirSync(bin, { recursive: true });
   for (const tool of TOOLS) {
     const body = tool === opts.failing ? 'exit 1' : `echo "${tool} $*" >> "${log}"`;
     writeFileSync(join(bin, tool), `#!/bin/sh\n${body}\n`);
