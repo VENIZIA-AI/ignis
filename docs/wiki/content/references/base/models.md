@@ -23,7 +23,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;
@@ -66,7 +66,7 @@ export const articleTable = pgTable('Article', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
@@ -92,13 +92,13 @@ export const postTable = pgTable('Post', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Author extends ModelFactory.defineEntity({
   table: authorTable,
   relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Post extends ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ author: one(authorTable) }),
@@ -124,7 +124,6 @@ export const accountTable = pgTable('Account', {
 });
 
 @model({
-  type: 'entity',
   settings: { hiddenProperties: ['password'] },
 })
 export class Account extends ModelFactory.defineEntity({ table: accountTable }) {}
@@ -136,7 +135,6 @@ export class Account extends ModelFactory.defineEntity({ table: accountTable }) 
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Note extends ModelFactory.defineEntity({ table: noteTable }) {} // noteTable has an isDeleted column
@@ -150,7 +148,6 @@ Pass `options: { shouldSkipDefaultFilter: true }` on a query to bypass it. See [
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { limit: { default: 50 } } },
 })
 export class Event extends ModelFactory.defineEntity({ table: eventTable }) {}
@@ -164,7 +161,6 @@ See [Pagination](/references/base/filter-system/fields-order-pagination#default-
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { authorize: { principal: 'User' } },
 })
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
@@ -185,7 +181,7 @@ export const tagTable = pgTable('Tag', {
   label: text('label').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Tag extends BaseEntity<typeof tagTable> {
   static override schema = tagTable;
 }

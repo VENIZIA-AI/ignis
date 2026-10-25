@@ -27,7 +27,7 @@ export const saleChannelTable = pgTable(
 );
 
 /** Many-to-many with Product through SaleChannelProduct. */
-@model({ type: 'entity' })
+@model()
 export class SaleChannel extends ModelFactory.defineEntity({
   table: saleChannelTable,
   relations: () => ({

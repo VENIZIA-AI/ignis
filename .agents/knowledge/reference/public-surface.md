@@ -1166,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (421)
+### `@venizia/ignis-kernel` (425)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1312,6 +1312,7 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
+- `IDeprecatedModelMetadata` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
 - `IdType` type
@@ -1335,6 +1336,7 @@ generated:
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelMigrationSettings` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
@@ -1390,6 +1392,7 @@ generated:
 - `MetadataRegistry` class
 - `MigrationStatuses` class
 - `model` const
+- `ModelTypes` class
 - `notFoundHandler` const
 - `NumberIdType` type
 - `OffsetSchema` const
@@ -1535,6 +1538,7 @@ generated:
 - `TLockStrength` type
 - `TMixinOpts` type
 - `TModelClass` type
+- `TModelType` type
 - `toContentRange` const
 - `toEntityId` const
 - `TOffset` type
@@ -2298,7 +2302,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1041)
+### `@venizia/ignis` (1045)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2618,6 +2622,7 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
+- `IDeprecatedModelMetadata` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
@@ -2669,6 +2674,7 @@ generated:
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelMigrationSettings` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
@@ -2864,6 +2870,7 @@ generated:
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `model` const
 - `ModelFactory` class
+- `ModelTypes` class
 - `ModuleUtility` class
 - `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
@@ -3164,6 +3171,7 @@ generated:
 - `TMixinOpts` type
 - `TMixinTarget` type
 - `TModelClass` type
+- `TModelType` type
 - `TNodePredicate` type
 - `TNodeServerInstance` type
 - `TNullable` type

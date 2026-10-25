@@ -237,7 +237,6 @@ import {
 import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['deletedAt'],
     query: { filter: { where: { deletedAt: null } } },

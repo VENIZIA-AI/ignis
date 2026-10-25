@@ -40,7 +40,7 @@ export const saleChannelProductTable = pgTable(
 );
 
 /** Each `one()` reads its columns off the matching foreign key. */
-@model({ type: 'entity' })
+@model()
 export class SaleChannelProduct extends ModelFactory.defineEntity({
   table: saleChannelProductTable,
   relations: () => ({ product: one(productTable), saleChannel: one(saleChannelTable) }),

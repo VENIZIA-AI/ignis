@@ -223,7 +223,6 @@ import { countryTable } from '@/schemas';
 import { countryRepository } from '@/repositories';
 
 @model({
-  type: 'entity',
   settings: { query: { limit: { default: 200 } } }, // small lookup table - default to 200 rows
 })
 export class Country extends BaseEntity<typeof Country.schema> {
@@ -250,7 +249,6 @@ An explicit `limit` is checked before the query runs. The repository reads the c
 
 ```typescript
 @model({
-  type: 'entity',
   // Reports run bigger pages than a list screen, so this model says so explicitly.
   settings: { query: { limit: { max: 5000 } } },
 })

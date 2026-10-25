@@ -19,7 +19,7 @@ export const configurationTable = pgTable('configurations', {
   description: text('description'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Configuration extends ModelFactory.defineEntity({ table: configurationTable }) {}
 
 export type TConfiguration = TEntityObject<typeof Configuration>;

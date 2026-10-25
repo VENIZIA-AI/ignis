@@ -49,13 +49,13 @@ export const postTable = pgTable('Post', {
   title: text('title').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Author extends ModelFactory.defineEntity({
   table: authorTable,
   relations: () => ({ posts: many(postTable, { relationName: 'author' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Post extends ModelFactory.defineEntity({
   table: postTable,
   relations: () => ({ author: one(authorTable) }),

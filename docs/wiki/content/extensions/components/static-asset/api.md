@@ -902,7 +902,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
 
 **Indexes:** `bucket_name`, `object_name`, `storage_type`, `is_synced`, and a composite index on `(principal_type, principal_id, sequence)` for ordering within one principal.
 
-`@model({ type: 'entity', skipMigrate: true })` on `BaseMetaLinkModel` means IGNIS's schema migration skips this table. Create it manually, once, per database.
+`@model({ migration: { use: false } })` on `BaseMetaLinkModel` marks it for migration tooling that reads the registry to skip. IGNIS generates no migrations, so the table comes from you: either export `BaseMetaLinkModel.schema` from the schema file your `drizzle-kit` reads (as `examples/vert/src/migration-schema.ts` does), or create it by hand, once, per database.
 
 ### MetaLink lifecycle
 

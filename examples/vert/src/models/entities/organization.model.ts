@@ -19,7 +19,7 @@ export const organizationTable = pgTable('Organization', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Organization extends ModelFactory.defineEntity({ table: organizationTable }) {}
 
 export type TOrganization = TEntityObject<typeof Organization>;

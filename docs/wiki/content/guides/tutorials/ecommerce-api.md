@@ -104,7 +104,7 @@ export const categoryTable = pgTable('Category', {
   parentId: text('parent_id'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Category extends ModelFactory.defineEntity({
   table: categoryTable,
   relations: () => ({
@@ -149,7 +149,7 @@ export const productTable = pgTable('Product', {
   imageUrl: text('image_url'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Product extends ModelFactory.defineEntity({
   table: productTable,
   relations: () => ({
@@ -194,14 +194,14 @@ export const cartItemTable = pgTable('CartItem', {
   quantity: integer('quantity').default(1).notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Cart extends ModelFactory.defineEntity({
   table: cartTable,
   // Pairs with the `cart` relation on CartItem
   relations: () => ({ items: many(cartItemTable, { relationName: 'cart' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class CartItem extends ModelFactory.defineEntity({
   table: cartItemTable,
   relations: () => ({
@@ -260,14 +260,14 @@ export const orderItemTable = pgTable('OrderItem', {
   quantity: integer('quantity').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Order extends ModelFactory.defineEntity({
   table: orderTable,
   // Pairs with the `order` relation on OrderItem
   relations: () => ({ items: many(orderItemTable, { relationName: 'order' }) }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class OrderItem extends ModelFactory.defineEntity({
   table: orderItemTable,
   relations: () => ({

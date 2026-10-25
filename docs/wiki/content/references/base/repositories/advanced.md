@@ -259,7 +259,6 @@ Fields like `password` must never leave the database by accident. Declare them o
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'secret', 'apiKey'],
   },

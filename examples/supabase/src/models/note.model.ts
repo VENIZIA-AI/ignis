@@ -64,7 +64,7 @@ export const noteTable = ignisExample.table(
   ],
 );
 
-@model({ type: 'entity' })
+@model()
 export class Note extends ModelFactory.defineEntity({ table: noteTable }) {}
 
 export type TNote = TEntityObject<typeof Note>;

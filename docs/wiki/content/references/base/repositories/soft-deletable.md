@@ -30,7 +30,6 @@ import {
 } from '@venizia/ignis';
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['deletedAt'],
     query: { filter: { where: { deletedAt: null } } },

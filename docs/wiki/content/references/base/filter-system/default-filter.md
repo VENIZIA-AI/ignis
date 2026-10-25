@@ -14,7 +14,6 @@ import { model, BaseEntity } from '@venizia/ignis';
 import { userTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -163,7 +162,6 @@ Any `TFilter` property is valid inside `settings.query.filter` - `where`, `limit
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { deletedAt: null } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {}
@@ -182,7 +180,6 @@ await postRepository.updateById({
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { limit: { default: 1000 } } },
 })
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}

@@ -9,7 +9,7 @@ import {
 import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
 /** One row per (object, owner) pairing, NOT per object: one product image attached to the product and to each variant is the common case, so `(bucketName, objectName)` is indexed and deliberately NOT unique. */
-@model({ type: 'entity', skipMigrate: true })
+@model({ migration: { use: false } })
 export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema> {
   static override schema = pgTable(
     'MetaLink',

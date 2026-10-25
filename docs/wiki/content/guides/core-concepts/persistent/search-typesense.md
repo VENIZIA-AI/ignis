@@ -31,7 +31,6 @@ import {
 } from '@venizia/ignis/typesense';
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['internalNote'],
     query: {
