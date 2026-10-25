@@ -84,7 +84,7 @@ describe('scopeFilter write guard', () => {
       getConnector: () => driver.createConnector({ schema: { itemsTable } }),
     } as AnyType;
 
-    return new repositoryClass(dataSource, { entityClass }) as DefaultCRUDRepository<AnyType>;
+    return new repositoryClass(dataSource, { entityClass }) as AnyType;
   };
 
   const allRows = async () => {
