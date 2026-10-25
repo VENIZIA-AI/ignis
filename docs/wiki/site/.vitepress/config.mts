@@ -482,6 +482,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-25-browser-and-web-worker-guide',
                 },
                 {
+                  text: 'RecursiveTreeSql Schema and Anchor Filter',
+                  link: '/changelogs/2026-10-25-recursive-tree-schema-and-anchor-filter',
+                },
+                {
                   text: 'Inherited Property Names',
                   link: '/changelogs/2026-10-25-inherited-property-names',
                 },
