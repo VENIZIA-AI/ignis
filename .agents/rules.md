@@ -86,25 +86,28 @@ IGNIS is infrastructure other products stand on. A shortcut here ships to every 
 ### The minimap (P-09)
 
 <!-- minimap-shape:start -->
-One shape, so every session draws the same map. Column headers follow the chat language.
+One shape, so every session draws the same map. The labels are not fixed words: the human reader's
+owner profile supplies them (column headers, status marks, the blocker label, the language). For
+another agent, use the plain format that agent asked for. Placeholders below stand for those labels.
 
 ```
-| # | Bước | Trạng thái |
+| # | <step column> | <status column> |
 |---|---|---|
-| 1 | <an outcome, with a way to verify it> | ✅ |
-| 2 | <an outcome> | ◀ ĐANG Ở ĐÂY |
-| 3 | <an outcome> | ⬜ |
+| 1 | <an outcome, with a way to verify it> | <done mark> |
+| 2 | <an outcome> | <current mark> |
+| 3 | <an outcome> | <pending mark> |
 
-Chặn: <what blocks, or "không có">
+<blocked label>: <what blocks, or the profile's "none" word>
 ```
 
 - The first message of a task posts the map **before** any work starts. Executing before the map
-  exists is how work drifts out of the human's sight.
+  exists is how work drifts out of the reader's sight.
 - A step is an outcome with a verification, never an activity: "kernel suite green after the
   change", not "run tests".
-- Exactly one row carries `◀ ĐANG Ở ĐÂY`. A step is ✅ only after its verification ran (B-03).
+- Exactly one row carries the `<current mark>`. A step takes the `<done mark>` only after its
+  verification ran (B-03).
 - When the plan changes, the map changes and the message says why. A blocker is named on the
-  `Chặn` line, never buried in prose.
+  `<blocked label>` line, never buried in prose.
 - For a framework change the rows are at least the ladder of P-04.
 <!-- minimap-shape:end -->
 
