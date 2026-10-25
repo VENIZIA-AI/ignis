@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Model type and migration',
+                  link: '/changelogs/2026-10-26-model-type-and-migration-settings',
+                },
+                {
                   text: 'TSearchScopeResolver Exported',
                   link: '/changelogs/2026-10-26-search-scope-type-export',
                 },
