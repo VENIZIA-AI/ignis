@@ -141,18 +141,18 @@ export abstract class AbstractRepository<
     return this.modelSettings?.hiddenProperties ?? [];
   }
 
-  /** Default where from @model settings.defaultFilter.where, AND-merged into every query unless skipped. */
+  /** Default where from @model settings.query.filter.where, AND-merged into every query unless skipped. */
   protected get defaultWhere(): TWhere | undefined {
-    return this.modelSettings?.defaultFilter?.where;
+    return this.modelSettings?.query?.filter?.where;
   }
 
   protected get defaultLimit(): number | undefined {
-    return this.modelSettings?.defaultLimit;
+    return this.modelSettings?.query?.limit?.default;
   }
 
   /** Largest `limit` a caller may ask for, when the model declares one; undefined leaves the tier's own default in force. */
   protected get maxLimit(): number | undefined {
-    return this.modelSettings?.maxLimit;
+    return this.modelSettings?.query?.limit?.max;
   }
 
   /**

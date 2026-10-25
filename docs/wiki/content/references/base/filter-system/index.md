@@ -53,7 +53,7 @@ LIMIT 20
 - **`TFilter` maps straight to SQL.** Every property corresponds to one clause of the generated query - see the table below.
 - **`where` takes a bare value or an operator object.** A bare value is implicit equality (`null` becomes `IS NULL`, an array becomes `IN`). An operator object keys into one of the operator families.
 - **Multiple `where` keys are an implicit AND.** A dot-notation key (`'metadata.path'`) targets a JSON/JSONB column instead of a top-level column, and accepts the same operators. IGNIS casts the operand automatically when it's a number.
-- **A model's `settings.defaultFilter` merges into every query for that model** - see [Default filter](#default-filter) below.
+- **A model's `settings.query.filter` merges into every query for that model** - see [Default filter](#default-filter) below. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
 
 | Filter property | SQL equivalent | Purpose |
 |---|---|---|
@@ -84,12 +84,12 @@ Full operator-by-operator tables, one line each, live on the [Quick Reference](.
 
 - **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).
 - **`order`** takes `'field ASC'` / `'field DESC'` strings, including JSON paths.
-- **`limit`**, when omitted, resolves through `query.limit ?? model settings.defaultLimit ?? 10`. An explicit value above the model's `settings.maxLimit` (default `1000`) throws before the query runs.
+- **`limit`**, when omitted, resolves through `query.limit ?? model settings.query.limit.default ?? 10`. An explicit value above the model's `settings.query.limit.max` (default `1000`) throws before the query runs.
 - **`skip` / `offset`** both map to SQL `OFFSET`.
 
 ### Default filter
 
-- **Applies automatically.** A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
+- **Applies automatically.** A model's `settings.query.filter` merges into every read, update, and delete for that model.
 - **AND-composes on collision.** When the default and the caller's filter constrain the same field, IGNIS AND-composes the two conditions instead of one replacing the other.
 - **One override escape.** When the default and the caller **both** give that field a plain scalar, the caller's value replaces the default outright - the one intentional opt-out, and it needs no `shouldSkipDefaultFilter`. If either side is an operator object, the two AND-compose instead. The full collision table lives on the [Default Filter](./default-filter) page.
 
@@ -99,7 +99,7 @@ import { postTable } from '@/schemas';
 
 @model({
   type: 'entity',
-  settings: { defaultFilter: { where: { isDeleted: false } } },
+  settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {
   static override schema = postTable;
@@ -130,8 +130,8 @@ Each operator family and every long-form topic has its own page:
 | [Logical Operators](./logical-operators) | Implicit/explicit `and`, `or`, `not`, empty-group semantics |
 | [Array Operators](./array-operators) | `contains`, `containedBy`, `overlaps` (PostgreSQL array columns) |
 | [JSON Filtering](./json-filtering) | Dot-path queries into JSON/JSONB columns |
-| [Fields, Order & Pagination](./fields-order-pagination) | `fields`, `order`, `limit`/`skip`/`offset`, `defaultLimit` |
-| [Default Filter](./default-filter) | `settings.defaultFilter`, the collision/narrowing law, `shouldSkipDefaultFilter` |
+| [Fields, Order & Pagination](./fields-order-pagination) | `fields`, `order`, `limit`/`skip`/`offset`, `settings.query.limit.default` |
+| [Default Filter](./default-filter) | `settings.query.filter`, the collision/narrowing law, `shouldSkipDefaultFilter` |
 | [Application Usage](./application-usage) | How a filter flows controller -> service -> repository |
 | [Use Case Gallery](./use-cases) | Real-world filters with the SQL they produce |
 | [Tips & Edge Cases](./tips) | Performance notes and common gotchas |
@@ -139,7 +139,7 @@ Each operator family and every long-form topic has its own page:
 ## See also
 
 - [Repositories](../repositories/) - the `find`/`count`/`updateAll`/`deleteAll` verbs that take a `filter`
-- [Models](/references/base/models) - `settings.defaultFilter` and `settings.hiddenProperties`
+- [Models](/references/base/models) - `settings.query.filter` and `settings.hiddenProperties`
 - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - filters in a real endpoint
 - [Quick Reference Card](/references/quick-reference.md) - all IGNIS APIs on one page
 

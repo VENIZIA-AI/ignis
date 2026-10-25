@@ -191,9 +191,9 @@ is where the model registry, the repository bindings, and datasource auto-discov
 The model registry is keyed by registered name (`@model({ tableName })` > `TABLE_NAME` > class name)
 AND by schema object (`getModelEntryBySchema`, a WeakMap). A schema claimed by a SECOND model drops
 out of that map rather than answering with whichever registered last - two models over one drizzle
-table would otherwise apply the wrong `hiddenProperties`/`scopeFilter`. A relation carries only its schema, and
+table would otherwise apply the wrong `hiddenProperties`/`access`. A relation carries only its schema, and
 a lookup by SQL table name missed every model whose table name differed from its registered name -
-`include` then dropped its `hiddenProperties` and `scopeFilter`.
+`include` then dropped its `hiddenProperties` and `access`.
 
 ## Generated bulk routes take `where` in the query or the body
 
@@ -305,7 +305,7 @@ side effect (patching `.openapi()` onto the shared prototype) and calls
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 
-`IModelSettings.scopeFilter` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
+`IModelSettings.access` (`helpers/inversion/common/types/model.ts`; the old `scopeFilter` key is deprecated and removed in 0.4.3) is the model-settings surface for
 a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
 is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
 (`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the

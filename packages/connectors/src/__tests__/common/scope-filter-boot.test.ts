@@ -28,7 +28,7 @@ const register = (opts: {
   registry.getAllModels().set(opts.name, {
     target: opts.target as never,
     metadata: {
-      settings: opts.withScopeFilter ? { scopeFilter: { resolve: () => null } } : {},
+      settings: opts.withScopeFilter ? { access: { resolve: () => null } } : {},
     } as never,
     schema: {},
   });
@@ -99,10 +99,10 @@ describe('assertScopeFilterSupported - the write guard settings', () => {
     }
   }
 
-  const registerGuarded = (scopeFilter: Record<string, unknown>) => {
+  const registerGuarded = (access: Record<string, unknown>) => {
     registry.getAllModels().set('GuardedOrder', {
       target: GuardedOrder as never,
-      metadata: { settings: { scopeFilter: { resolve: () => null, ...scopeFilter } } } as never,
+      metadata: { settings: { access: { resolve: () => null, ...access } } } as never,
       schema: {},
     });
   };
@@ -133,19 +133,19 @@ describe('assertScopeFilterSupported - the write guard settings', () => {
     );
   });
 
-  test('a writeGuard that is neither reject nor assign fails at boot', () => {
-    registerGuarded({ writeGuard: 'ignore' });
+  test('a write mode that is neither reject nor assign fails at boot', () => {
+    registerGuarded({ write: { mode: 'ignore' } });
 
     expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).toThrow(
-      /writeGuard 'ignore'/,
+      /write\.mode 'ignore'/,
     );
   });
 
   test('reject and assign pass', () => {
-    registerGuarded({ writeGuard: 'assign' });
+    registerGuarded({ write: { mode: 'assign' } });
     expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).not.toThrow();
 
-    registerGuarded({ writeGuard: 'reject' });
+    registerGuarded({ write: { mode: 'reject' } });
     expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).not.toThrow();
   });
 });

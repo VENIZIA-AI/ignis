@@ -46,7 +46,7 @@ export class RepositoryTypes {
 /** Valid repository type values. */
 export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
 
-/** What a row-scope filter (`@model` settings.scopeFilter) does when `resolve()` returns null/undefined. */
+/** What a row-scope filter (`@model` settings.access) does when `resolve()` returns null/undefined. */
 export class ScopeFilterMissingBehaviors {
   /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */
   static readonly DENY = 'deny';
@@ -64,7 +64,7 @@ export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingB
 
 /**
  * What a scoped write does with a row whose scope column disagrees with the resolved scope
- * (`@model` settings.scopeFilter.writeGuard). A scope that returns `ScopeFilters.UNRESTRICTED`
+ * (`@model` settings.access.write.mode). A scope that returns `ScopeFilters.UNRESTRICTED`
  * passes either way.
  */
 export class ScopeWriteGuards {
@@ -105,7 +105,7 @@ export class RepositoryErrorCodes {
     parts: ['core', 'repository', 'operation_not_allowed'],
   });
 
-  /** A write whose scope column disagrees with the resolved scope, or whose scope cannot be verified (`scopeFilter` write guard). */
+  /** A write whose scope column disagrees with the resolved scope, or whose scope cannot be verified (`access` write guard). */
   static readonly SCOPE_WRITE_DENIED = MessageCode.build({
     parts: ['core', 'repository', 'scope_write_denied'],
   });

@@ -6,7 +6,7 @@ import {
   ScopeFilters,
   ScopeWriteGuards,
 } from '@venizia/ignis-kernel';
-import type { IScopeFilterSettings, TWhere } from '@venizia/ignis-kernel';
+import type { IModelAccessSettings, TWhere } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
 
 type TScalar = string | number | bigint | boolean | Date | null;
@@ -41,7 +41,7 @@ const intersect = (opts: { left: Set<string | null>; right: Set<string | null> }
 };
 
 /**
- * The write side of `@model` settings.scopeFilter. The resolved scope is a `where`; the guard reads
+ * The write side of `@model` settings.access. The resolved scope is a `where`; the guard reads
  * from it the columns it constrains and the values it allows, and holds every written row to them.
  *
  * Only shapes that can be checked are read: a column equal to a scalar or `null`, `{ eq }`, `{ inq }`
@@ -211,7 +211,7 @@ export class ScopeWriteGuard {
    * so writes nothing, when any row is outside the scope.
    */
   static apply<Row extends Record<string, unknown>>(opts: {
-    settings: IScopeFilterSettings;
+    settings: IModelAccessSettings;
     model: string;
     rows: Row[];
     operation: 'create' | 'update';
@@ -255,13 +255,13 @@ export class ScopeWriteGuard {
         throw ScopeWriteGuard.denied({
           model,
           operation,
-          detail: `the resolved scope constrains column '${undeclared}', which scopeFilter.columns does not declare`,
+          detail: `the resolved scope constrains column '${undeclared}', which access.columns does not declare`,
         });
       }
     }
 
-    const isAssign = settings.writeGuard === ScopeWriteGuards.ASSIGN && operation === 'create';
-    const sharedRows = settings.sharedRows === true;
+    const isAssign = settings.write?.mode === ScopeWriteGuards.ASSIGN && operation === 'create';
+    const sharedRows = settings.write?.sharedRows === true;
 
     return rows.map((row) => {
       let result = row;
@@ -270,14 +270,19 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          // Absent means the database default, usually `null`, so it is held to the `null` rule.
-          if (operation === 'update' || sharedRows) {
+          if (operation === 'update') {
             continue;
           }
 
+          // `assign` first: stamping gives the row an owner, which is safer than leaving it shared.
           const only = allowed.size === 1 ? [...allowed][0] : undefined;
           if (isAssign && only !== undefined && only !== null) {
             result = { ...result, [column]: only };
+            continue;
+          }
+
+          // Absent means the database default, usually `null`, so it is held to the `null` rule.
+          if (sharedRows) {
             continue;
           }
 
@@ -321,7 +326,7 @@ export class ScopeWriteGuard {
       statusCode: WRITE_DENIED_STATUS,
       messageCode: RepositoryErrorCodes.SCOPE_WRITE_DENIED,
       message: [
-        `[${operation}] write refused by scopeFilter | entity: ${model}`,
+        `[${operation}] write refused by the access scope | entity: ${model}`,
         ...(column ? [`column: ${column}`] : []),
         detail,
       ].join(' | '),

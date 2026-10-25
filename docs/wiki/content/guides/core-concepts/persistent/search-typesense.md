@@ -34,8 +34,10 @@ import {
   type: 'entity',
   settings: {
     hiddenProperties: ['internalNote'],
-    defaultFilter: { where: { status: 'published' } },
-    defaultLimit: 20,
+    query: {
+      filter: { where: { status: 'published' } },
+      limit: { default: 20 },
+    },
   },
 })
 export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
@@ -59,7 +61,7 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
 export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
 ```
 
-The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `defaultFilter`, `defaultLimit` - work identically here. `hiddenProperties` compiles to Typesense's `exclude_fields`; `defaultFilter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
+The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `query.filter`, `query.limit.default` - work identically here. `hiddenProperties` compiles to Typesense's `exclude_fields`; `query.filter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
 
 ### The `field` DSL
 
@@ -261,7 +263,7 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 |                                            | PostgreSQL repositories                             | Search repositories                                                                                                                            |
 | ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Range queries                              | Extra `COUNT(*)` query for `shouldQueryRange: true` | Single search call already returns `found` - no second query needed                                                                            |
-| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws, no override). `deleteAll` with no effective filter (no `where` and no `@model defaultFilter`) also throws. Passing `options.force: true` truncates the whole collection instead |
+| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws, no override). `deleteAll` with no effective filter (no `where` and no `@model` `query.filter`) also throws. Passing `options.force: true` truncates the whole collection instead |
 | Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateAll`/`deleteAll` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
 | `createAll`                                | Native bulk insert, returns each row                | Delegates to Typesense's bulk import; "created" rows are the input rows whose per-row response didn't report `success: false`                  |
 
@@ -277,7 +279,7 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 
 Beyond the `find()` tier (filter-only reads that return documents), `search()` is the search-engine entry point. It is one method whose shape is selected by `mode`, so TypeScript narrows the options to just that mode's fields. You never juggle every parameter at once. `mode` defaults to `keyword`.
 
-The `keyword`/`semantic`/`hybrid` modes reuse the same filter translation as `find()` (`@model defaultFilter`, `hiddenProperties`, `where`/`order`/`limit`), then layer the search term or vector on top. The `raw` mode is a full passthrough with no translation.
+The `keyword`/`semantic`/`hybrid` modes reuse the same filter translation as `find()` (`@model` `query.filter`, `hiddenProperties`, `where`/`order`/`limit`), then layer the search term or vector on top. The `raw` mode is a full passthrough with no translation.
 
 **`keyword`** - full-text search:
 
@@ -316,7 +318,7 @@ await repository.search({
 > [!NOTE]
 > `semantic` and `hybrid` default `prefix=false`: prefix matching is meaningless for vector search. Remote embedders (OpenAI/Google/...) reject it too (`Prefix search is not supported for remote embedders`). Pass `engineParams: { prefix: true }` to override.
 
-**`raw`** - native Typesense params, no `TFilter`/`defaultFilter`/`hiddenProperties` translation. Use it for any engine feature the modes above do not model:
+**`raw`** - native Typesense params, no `TFilter`/`query.filter`/`hiddenProperties` translation. Use it for any engine feature the modes above do not model:
 
 ```typescript
 await repository.search({
@@ -326,7 +328,7 @@ await repository.search({
 ```
 
 > [!NOTE]
-> `raw` skips `@model defaultFilter`, so it can surface documents the `find()`/`keyword` tiers would hide (for example non-`published` articles). Apply any tenant or visibility filtering explicitly in `params.filter_by` when exposing raw search over HTTP.
+> `raw` skips `@model` `query.filter`, so it can surface documents the `find()`/`keyword` tiers would hide (for example non-`published` articles). Apply any tenant or visibility filtering explicitly in `params.filter_by` when exposing raw search over HTTP.
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
@@ -438,7 +440,7 @@ It registers `POST /search` (request body is the mode-discriminated schema, so v
 
 ### Scope the search per request
 
-Search repositories ignore `@model` `scopeFilter` (the model refuses to boot with one), so a search route sees every document unless you scope it. Give the factory a `scope`: a function of the request context that returns the filter this caller may search within.
+Search repositories ignore the `@model` `access` setting (a model that sets it refuses to boot), so a search route sees every document unless you scope it. Give the factory a `scope`: a function of the request context that returns the filter this caller may search within.
 
 ```typescript
 import { Authentication, ScopeFilters } from '@venizia/ignis';

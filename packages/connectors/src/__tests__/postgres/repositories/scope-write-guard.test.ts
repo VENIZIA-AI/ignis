@@ -106,7 +106,7 @@ describe('scopeFilter write guard', () => {
     await client.exec(
       'CREATE TABLE write_guard_items (id serial primary key, merchant_id text, name text, deleted_at timestamp)',
     );
-  });
+  }, 30_000);
 
   beforeEach(async () => {
     scope = { merchantId: 'm-a' };

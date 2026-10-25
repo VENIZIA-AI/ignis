@@ -214,14 +214,14 @@ Apply automatic filters to all repository queries. This is commonly used for sof
 @model({
   type: 'entity',
   settings: {
-    defaultFilter: { where: { isDeleted: false } },
+    query: { filter: { where: { isDeleted: false } } },
     hiddenProperties: ['deletedAt'],
   },
 })
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
-The default filter is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
+The default filter (set with `settings.query.filter`; the old `defaultFilter` key is deprecated and removed in 0.4.3) is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
 
 ```typescript
 // Normal query - auto-filters out soft-deleted records
@@ -277,8 +277,8 @@ The `@model` decorator accepts the following metadata:
 | `tableName` | `string` | Optional explicit table name |
 | `skipMigrate` | `boolean` | Skip this model during migrations |
 | `settings.hiddenProperties` | `string[]` | Properties excluded from all query results |
-| `settings.defaultFilter` | `TFilter` | Default filter auto-applied to all queries |
-| `settings.defaultLimit` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
+| `settings.query.filter` | `TFilter` | Default filter auto-applied to all queries |
+| `settings.query.limit.default` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
 
 ## Model Template

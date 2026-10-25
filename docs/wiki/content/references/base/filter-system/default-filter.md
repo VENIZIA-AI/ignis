@@ -7,7 +7,7 @@ lastUpdated: 2026-07-23
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
+A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -15,7 +15,7 @@ import { userTable } from '@/schemas';
 
 @model({
   type: 'entity',
-  settings: { defaultFilter: { where: { isDeleted: false }, limit: 100 } },
+  settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
@@ -26,9 +26,9 @@ export class User extends BaseEntity<typeof User.schema> {
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `settings.defaultFilter` | `TFilter` | none | Filter merged into every query for the model - `where`, `limit`, `offset`, `order`, `fields`, `include` are all valid inside it. |
-| `settings.defaultLimit` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap. Independent of `defaultFilter` - see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution). |
-| `options.shouldSkipDefaultFilter` | `boolean` | `false` | Skips the `defaultFilter` merge for one call. Does not drop `defaultLimit`. |
+| `settings.query.filter` | `TFilter` | none | Filter merged into every query for the model - `where`, `limit`, `offset`, `order`, `fields`, `include` are all valid inside it. |
+| `settings.query.limit.default` | `number` (positive integer) | `DEFAULT_LIMIT` (`10`) | Per-model row cap. Independent of `settings.query.filter` - see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution). |
+| `options.shouldSkipDefaultFilter` | `boolean` | `false` | Skips the `settings.query.filter` merge for one call. Does not drop `settings.query.limit.default`. |
 
 ```typescript
 import { userRepository } from '@/repositories';
@@ -39,7 +39,7 @@ await userRepository.find({ filter: { where: { status: 'active' } } });
 
 ## Merge semantics
 
-`applyDefaultFilter()` merges the model's `defaultFilter` with the caller's filter via `FilterBuilder.mergeFilter()`.
+`applyDefaultFilter()` merges the model's `settings.query.filter` with the caller's filter via `FilterBuilder.mergeFilter()`.
 
 - **`where` narrows per-key.** See the narrowing law below.
 - **Everything else is user-wins-if-provided.** A caller value replaces the default, but a caller value of `undefined` never does. A filter built by spreading an optional object can't silently blow away a tenant scope or a limit.
@@ -100,7 +100,7 @@ await repository.find({
 ```
 
 > [!WARNING] It does not lift a row scope
-> `shouldSkipDefaultFilter` clears `settings.defaultFilter` only. A model's `settings.scopeFilter` is AND-composed on top and stays applied - a tenant or ownership boundary must not be liftable by an options flag. See [`@model` options](/references/base/models-reference#options).
+> `shouldSkipDefaultFilter` clears `settings.query.filter` only. A model's `settings.access` is AND-composed on top and stays applied - a tenant or ownership boundary must not be liftable by an options flag. See [`@model` options](/references/base/models-reference#options).
 
 `updateById` and `deleteById` merge the default filter into their `{ id }` condition the same way `updateAll`/`deleteAll` merge it into their `where`. The bypass applies to all four identically:
 
@@ -157,14 +157,14 @@ interface IWithTransaction {
 
 ## Configuring a default filter
 
-Any `TFilter` property is valid inside `defaultFilter` - `where`, `limit`, `offset`, `order`, `fields`, `include` (see [Filter System Overview](./)). Two shapes cover most cases.
+Any `TFilter` property is valid inside `settings.query.filter` - `where`, `limit`, `offset`, `order`, `fields`, `include` (see [Filter System Overview](./)). Two shapes cover most cases.
 
 **Soft delete or multi-tenant scoping** - a `where` clause that every query must carry:
 
 ```typescript
 @model({
   type: 'entity',
-  settings: { defaultFilter: { where: { deletedAt: null } } },
+  settings: { query: { filter: { where: { deletedAt: null } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {}
 
@@ -178,12 +178,12 @@ await postRepository.updateById({
 });
 ```
 
-**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution)). Unlike `defaultFilter`, it is not dropped by `shouldSkipDefaultFilter`:
+**Query-limit protection** - prefer the dedicated `settings.query.limit.default` over a `limit` inside `settings.query.filter`. It resolves independently (`query.limit ?? settings.query.limit.default ?? 10`, see [Fields, Order & Pagination -> Default limit resolution](./fields-order-pagination#default-limit-resolution)). Unlike `settings.query.filter`, it is not dropped by `shouldSkipDefaultFilter`:
 
 ```typescript
 @model({
   type: 'entity',
-  settings: { defaultLimit: 1000 },
+  settings: { query: { limit: { default: 1000 } } },
 })
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
 
@@ -191,11 +191,11 @@ await logEntryRepository.find({ filter: {} }); // LIMIT 1000
 await logEntryRepository.find({ filter: { limit: 50 } }); // LIMIT 50
 ```
 
-`@model` validates `defaultLimit` at decoration time - it must be a positive integer or the class throws on load.
+`@model` validates `settings.query.limit.default` at decoration time - it must be a positive integer or the class throws on load.
 
 ## Relation include default filters
 
-`include` also applies the related model's `defaultFilter`, and it can be bypassed or scoped per relation:
+`include` also applies the related model's `settings.query.filter`, and it can be bypassed or scoped per relation:
 
 ```typescript
 await repository.find({
@@ -214,7 +214,7 @@ await repository.find({
 ```
 +------------------+     +--------------------------+     +------------------+
 |  Model Settings  | --> | RelationalBaseRepository  | --> | Repository Method |
-|  defaultFilter   |     | applyDefaultFilter()      |     | find/count/etc   |
+|  query.filter    |     | applyDefaultFilter()      |     | find/count/etc   |
 +------------------+     +--------------------------+     +------------------+
                                      |
                                      v
@@ -233,7 +233,7 @@ getDefaultLimit(): number | undefined
 applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`. `modelSettings` is a protected getter on `AbstractRepository` (`packages/kernel/src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
+`getDefaultFilter()` reads `this.modelSettings?.query?.filter`. `modelSettings` is a protected getter on `AbstractRepository` (`packages/kernel/src/base/repositories/core/abstract.ts`), resolved from `MetadataRegistry` by the entity's constructor - not by name string - on first access, then memoized.
 
 Read verbs (`find`/`findOne`/`findById`/`count`) call `applyDefaultFilter()` directly. Write verbs (`updateById`/`updateAll`/`deleteById`/`deleteAll`) route through the shared `_update`/`_delete` helpers instead. Those helpers call it against `{ where: opts.where }` (or `{ id }` for the `ById` forms) before building the SQL condition.
 
@@ -256,7 +256,7 @@ queryDialect.mergeFilter({
 ## See also
 
 - [Filter System Overview](./) - the `filter` shape and every operator family
-- [Fields, Order & Pagination](./fields-order-pagination) - `defaultLimit` resolution in full
+- [Fields, Order & Pagination](./fields-order-pagination) - `settings.query.limit.default` resolution in full
 - [Advanced Repository Features](../repositories/advanced.md) - transactions, `log`/`lock` options, empty-where protection
 - [Repository Mixins (Removed)](../repositories/mixins.md) - history of the removed `DefaultFilterMixin`
 
@@ -266,5 +266,5 @@ queryDialect.mergeFilter({
 - [`packages/connectors/src/relational/core/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`applyScopeFilter`/`getDefaultFilter`/`getDefaultLimit`
 - [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find`/`findOne`/`count` calling `applyDefaultFilter`
 - [`packages/connectors/src/relational/core/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/persistable.ts) - `_update`/`_delete` calling `applyDefaultFilter` for `updateById`/`updateAll`/`deleteById`/`deleteAll`
-- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit`/`maxLimit` validation
+- [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator, `settings.query.limit.default`/`settings.query.limit.max` validation
 - [`packages/kernel/src/base/repositories/common/types/options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/options.ts) - `IExtraOptions`, `IWithTransaction`

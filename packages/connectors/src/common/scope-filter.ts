@@ -5,7 +5,7 @@ import { BaseSearchEntity } from '@/search/core/models';
 import { getTableColumns, is, Table } from 'drizzle-orm';
 
 /**
- * Refuses to boot when `settings.scopeFilter` is declared where it cannot be honoured. Both cases
+ * Refuses to boot when `settings.access` is declared where it cannot be honoured. Both cases
  * are silent at runtime and fail in OPPOSITE directions: a search-backed model returns more rows,
  * a context-less one returns none. The caller supplies `asyncContextEnabled` so no application
  * config type reaches into this tier.
@@ -18,7 +18,7 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
   const invalidWriteGuard: string[] = [];
 
   for (const [name, entry] of models) {
-    if (!entry.metadata?.settings?.scopeFilter) {
+    if (!entry.metadata?.settings?.access) {
       continue;
     }
 
@@ -33,10 +33,11 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
       withoutAmbientContext.push(name);
     }
 
-    const { writeGuard, columns } = entry.metadata.settings.scopeFilter;
+    const { columns, write } = entry.metadata.settings.access;
+    const writeGuard = write?.mode;
 
     if (writeGuard !== undefined && !ScopeWriteGuards.isValid(writeGuard)) {
-      invalidWriteGuard.push(`${name}: writeGuard '${String(writeGuard)}' is not reject or assign`);
+      invalidWriteGuard.push(`${name}: write.mode '${String(writeGuard)}' is not reject or assign`);
     }
 
     if (columns !== undefined) {
@@ -57,10 +58,10 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
   if (searchBacked.length > 0) {
     throw getError({
       message: [
-        `[assertScopeFilterSupported] settings.scopeFilter on a search-backed model | models: ${searchBacked.join(', ')}`,
+        `[assertScopeFilterSupported] settings.access on a search-backed model | models: ${searchBacked.join(', ')}`,
         'Search repositories never read this setting, so no row scope is applied.',
         'Unlike the relational path, a missing scope here returns MORE rows rather than none - nothing fails, the result is just wider.',
-        'Scope the search query in the application, and remove settings.scopeFilter from the model.',
+        'Scope the search query in the application, and remove settings.access from the model.',
       ].join(' | '),
     });
   }
@@ -68,8 +69,8 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
   if (invalidWriteGuard.length > 0) {
     throw getError({
       message: [
-        `[assertScopeFilterSupported] invalid settings.scopeFilter write guard | ${invalidWriteGuard.join(' | ')}`,
-        'writeGuard is reject or assign; columns, when declared, names properties of the model.',
+        `[assertScopeFilterSupported] invalid settings.access write guard | ${invalidWriteGuard.join(' | ')}`,
+        'write.mode is reject or assign; columns, when declared, names properties of the model.',
       ].join(' | '),
     });
   }
@@ -77,10 +78,10 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
   if (withoutAmbientContext.length > 0) {
     throw getError({
       message: [
-        `[assertScopeFilterSupported] settings.scopeFilter declared while asyncContext.enable is false | models: ${withoutAmbientContext.join(', ')}`,
-        'scopeFilter.resolve() takes no arguments, so the ambient request context is its only input.',
+        `[assertScopeFilterSupported] settings.access declared while asyncContext.enable is false | models: ${withoutAmbientContext.join(', ')}`,
+        'access.resolve() takes no arguments, so the ambient request context is its only input.',
         'With no context store every resolve() returns undefined, onMissing denies by default, and EVERY query on these models matches zero rows - with nothing naming the flag as the cause.',
-        'Set asyncContext.enable to true, or remove settings.scopeFilter.',
+        'Set asyncContext.enable to true, or remove settings.access.',
       ].join(' | '),
     });
   }
