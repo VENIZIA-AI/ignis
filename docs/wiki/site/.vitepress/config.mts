@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'RecursiveTreeSql Schema and Anchor Filter',
+                  link: '/changelogs/2026-10-25-recursive-tree-schema-and-anchor-filter',
+                },
+              ],
+            },
+            {
               text: '2026-10-24',
               collapsed: true,
               items: [
