@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'scopeFilter Write Guard',
+                  link: '/changelogs/2026-10-25-scope-filter-write-guard',
+                },
+                {
                   text: 'CORS in the Default Stack',
                   link: '/changelogs/2026-10-25-cors-in-the-default-stack',
                 },

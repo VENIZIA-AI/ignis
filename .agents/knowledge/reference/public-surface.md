@@ -1166,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (417)
+### `@venizia/ignis-kernel` (419)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1433,6 +1433,7 @@ generated:
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
 - `serverStream` const
@@ -1566,6 +1567,7 @@ generated:
 - `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
 - `TSelectedRow` type
@@ -2292,7 +2294,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1036)
+### `@venizia/ignis` (1038)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2965,6 +2967,7 @@ generated:
 - `ScopedCasbinAdapter` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
 - `SecretProviders` class
@@ -3242,6 +3245,7 @@ generated:
 - `TS3Audience` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
 - `TSecretProvider` type

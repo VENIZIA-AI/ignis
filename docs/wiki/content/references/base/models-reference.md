@@ -97,6 +97,24 @@ Marks a class as a database entity and configures its behavior.
 | `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings - declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates the static `AUTHORIZATION_SUBJECT` property |
 
+#### Write guard
+
+`scopeFilter` also holds writes to the scope. A `create`, `createAll` or an update payload that names a scope column is checked against the scope `resolve()` returns; a row outside it is refused with HTTP 403 and the code `core.repository.scope_write_denied`, and nothing is written (for `createAll`, not even the valid rows). The error names the entity and the column, never a value.
+
+| Setting | Meaning |
+|---|---|
+| `writeGuard` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
+| `sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, or move a row into that shared set. Default `false`. Reading shared rows is a separate matter, see below |
+| `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
+
+The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
+
+A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `sharedRows: true`. The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
+
+An empty list scope, `{ merchantId: { in: [] } }`, refuses every create and every update that names the column.
+
+To write across scopes on purpose (a system job, an admin role), return `ScopeFilters.UNRESTRICTED` from `resolve()`: it bypasses the guard and nothing is stamped. Not checked: an update that does not name the scope column (the scoped `where` already confines it) and raw statements that bypass the repository.
+
 > [!WARNING] `scopeFilter` is not a default filter
 > `shouldSkipDefaultFilter` clears `settings.defaultFilter`. It does **not** clear `settings.scopeFilter` - the row scope stays applied on every query. That is the point: a scope is a security boundary, and an options flag must not be able to lift it.
 
