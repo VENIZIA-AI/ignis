@@ -16,7 +16,6 @@ import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['costPrice'],
     query: {
@@ -114,7 +113,7 @@ import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis/postgres';
 import { productTable } from './product.table';
 
-@model({ type: 'entity', settings: { hiddenProperties: ['costPrice'] } })
+@model({ settings: { hiddenProperties: ['costPrice'] } })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
@@ -133,7 +132,6 @@ import { ModelFactory } from '@venizia/ignis/postgres';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
@@ -182,7 +180,6 @@ import { currentMerchantId, isPlatformAdmin } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: {
     access: {
       resolve: () => {
@@ -228,7 +225,6 @@ export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
 };
 
 @model({
-  type: 'entity',
   settings: {
     access: {
       resolve: () => {
@@ -274,7 +270,6 @@ import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: {
     access: {
       resolve: () => ({ merchantId: currentMerchantId() }),
@@ -312,7 +307,6 @@ import { currentMerchantIds } from '@/utilities/merchant';
 import { taxTypeTable } from './tax-type.table';
 
 @model({
-  type: 'entity',
   settings: {
     access: {
       resolve: () => ({
@@ -347,7 +341,6 @@ import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: {
     access: {
       resolve: () => ({ merchantId: currentMerchantId() }),
@@ -391,7 +384,6 @@ import { ModelFactory } from '@venizia/ignis/postgres';
 import { productTable } from './product.table';
 
 @model({
-  type: 'entity',
   settings: { query: { limit: { default: 20, max: 200 } } },
 })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
@@ -417,7 +409,7 @@ import { model } from '@venizia/ignis';
 import { ModelFactory } from '@venizia/ignis/postgres';
 import { productTable } from './product.table';
 
-@model({ type: 'entity', settings: { authorize: { principal: 'Product' } } })
+@model({ settings: { authorize: { principal: 'Product' } } })
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 ```
 
@@ -468,7 +460,6 @@ export const runAsSystem = <T>(task: () => Promise<T>): Promise<T> => {
 };
 
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['costPrice'],
     query: {

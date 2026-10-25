@@ -21,12 +21,17 @@ import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, pickRegistrationOptions } from './injectable';
+import { normalizeModelMetadata } from './model-metadata';
 import { assertNoRemovedModelSettings } from './model-settings';
 
 /** Registers a model class with its static schema and relations. */
-export const model = (metadata: IModelMetadata): ClassDecorator => {
+export const model = (input: IModelMetadata = {}): ClassDecorator => {
   return (target) => {
-    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
+    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata: input }) })(
+      target,
+    );
+
+    const metadata = normalizeModelMetadata({ model: target.name, metadata: input });
 
     assertNoRemovedModelSettings({ model: target.name, settings: metadata.settings });
     const { settings } = metadata;

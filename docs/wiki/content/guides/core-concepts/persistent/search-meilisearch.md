@@ -26,7 +26,7 @@ The collection DSL is the same one the Typesense connector uses. What changes is
 import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
 import { model } from '@venizia/ignis';
 
-@model({ type: 'entity' })
+@model()
 export class ArticleDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'articles',

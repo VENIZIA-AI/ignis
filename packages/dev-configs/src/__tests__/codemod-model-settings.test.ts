@@ -388,3 +388,62 @@ describe('devz codemod model-settings - the command', () => {
     expect(errors.join('\n')).toContain('Usage: devz codemod model-settings');
   });
 });
+
+describe('migrateModelSettings - skipMigrate', () => {
+  const skip = (metadata: string) => `@model({ ${metadata} })\nclass Product {}\n`;
+
+  test('skipMigrate: true becomes migration: { use: false }', () => {
+    expect(run(skip('skipMigrate: true')).output).toBe(skip('migration: { use: false }'));
+  });
+
+  test('skipMigrate: false is the default and is removed', () => {
+    expect(run(skip("type: 'entity', skipMigrate: false")).output).toBe(skip("type: 'entity'"));
+    expect(run(skip('skipMigrate: false')).output).toBe('@model({ })\nclass Product {}\n');
+  });
+
+  test('it works beside the settings in the same decorator, and keeps the other keys', () => {
+    const result = run(skip("type: 'entity', skipMigrate: true, settings: { defaultLimit: 5 }"));
+
+    expect(result.rewritten).toBe(2);
+    expect(result.output).toBe(
+      skip(
+        "type: 'entity', migration: { use: false }, settings: { query: { limit: { default: 5 } } }",
+      ),
+    );
+  });
+
+  test('the comment above it stays', () => {
+    const result = run(`@model({
+  // created by hand
+  skipMigrate: true,
+})
+class Product {}
+`);
+
+    expect(result.output).toContain('// created by hand');
+    expect(result.output).toContain('migration: { use: false }');
+  });
+
+  test.each([
+    ['a variable', 'skipMigrate: shouldSkip', /not a boolean literal/],
+    ['a shorthand', 'skipMigrate', /shorthand/],
+    ['an existing migration', 'skipMigrate: true, migration: { use: false }', /both set/],
+  ])('%s is reported and left untouched', (_name, metadata, pattern) => {
+    const source = skip(metadata);
+    const result = run(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.output).toBe(source);
+    expect(result.reports[0]?.reason).toMatch(pattern);
+  });
+
+  test('running it twice changes nothing the second time', () => {
+    const first = run(skip('skipMigrate: true'));
+
+    expect(run(first.output).changed).toBe(false);
+  });
+
+  test('a model that never set it is left alone', () => {
+    expect(run(skip("type: 'entity'")).changed).toBe(false);
+  });
+});

@@ -13,7 +13,7 @@ export const roleTable = pgTable('Role', {
   ...extraRoleColumns(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Role extends ModelFactory.defineEntity({ table: roleTable }) {}
 
 export type TRole = TEntityObject<typeof Role>;

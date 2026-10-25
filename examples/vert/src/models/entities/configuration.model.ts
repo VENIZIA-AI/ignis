@@ -40,7 +40,7 @@ export const configurationTable = pgTable(
  * `creator` reads its columns off the `created_by` foreign key. `modified_by` has no foreign key,
  * so `modifier` names its columns.
  */
-@model({ type: 'entity' })
+@model()
 export class Configuration extends ModelFactory.defineEntity({
   table: configurationTable,
   relations: () => ({

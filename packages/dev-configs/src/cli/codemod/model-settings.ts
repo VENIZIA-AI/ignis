@@ -28,7 +28,8 @@ const QUERY_KEYS = { defaultFilter: 'filter', defaultLimit: 'default', maxLimit:
 const OLD_KEYS = new Set<string>([...Object.keys(QUERY_KEYS), 'scopeFilter']);
 
 /**
- * Rewrites the `settings` object literal of `@model({ ... })` from the flat keys to the grouped ones:
+ * Rewrites `@model({ ... })` from the old keys to the grouped ones. `skipMigrate` becomes
+ * `migration: { use: false }`. In the `settings` object literal:
  * `defaultFilter` to `query.filter`, `defaultLimit` and `maxLimit` to `query.limit.default` and
  * `query.limit.max`, `scopeFilter` to `access` (`writeGuard` to `write.mode`, `sharedRows` to
  * `write.sharedRows`).
@@ -321,6 +322,44 @@ export const migrateModelSettings = (opts: {
     rewritten += 1;
   };
 
+  /**
+   * `skipMigrate: true` becomes `migration: { use: false }`; `skipMigrate: false` is the default and
+   * is removed. Anything that is not a boolean literal, or a model that already has `migration`, is
+   * reported and left alone.
+   */
+  const migrateSkipMigrate = (argument: ts.ObjectLiteralExpression) => {
+    const property = argument.properties.find((candidate) => nameOf(candidate) === 'skipMigrate');
+    if (!property) {
+      return;
+    }
+
+    if (!typescript.isPropertyAssignment(property)) {
+      report(property, 'skipMigrate is a shorthand property; left untouched');
+      return;
+    }
+
+    if (argument.properties.some((candidate) => nameOf(candidate) === 'migration')) {
+      report(property, 'skipMigrate and migration are both set; left untouched');
+      return;
+    }
+
+    const { initializer } = property;
+    if (initializer.kind === typescript.SyntaxKind.TrueKeyword) {
+      edits.push({
+        start: property.getStart(sourceFile),
+        end: property.end,
+        text: 'migration: { use: false }',
+      });
+    } else if (initializer.kind === typescript.SyntaxKind.FalseKeyword) {
+      edits.push(removal(property));
+    } else {
+      report(property, 'skipMigrate is not a boolean literal; left untouched');
+      return;
+    }
+
+    rewritten += 1;
+  };
+
   const visit = (node: ts.Node) => {
     if (
       typescript.isDecorator(node) &&
@@ -348,6 +387,8 @@ export const migrateModelSettings = (opts: {
             );
           }
         }
+
+        migrateSkipMigrate(argument);
       }
     }
 

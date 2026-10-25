@@ -14,3 +14,16 @@ export class SchemaTypes {
 }
 
 export type TSchemaType = TConstValue<typeof SchemaTypes>;
+
+/** What `@model` declares. Only ENTITY (a table-backed model) exists; `type` may be left out. */
+export class ModelTypes {
+  static readonly ENTITY = 'entity';
+  static readonly SCHEME_SET = new Set([this.ENTITY]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid model type values. */
+export type TModelType = TConstValue<typeof ModelTypes>;

@@ -107,7 +107,7 @@ export const todoTable = pgTable('Todo', {
 });
 
 // 2. Build the model class from the table, decorated with @model
-@model({ type: 'entity' })
+@model()
 export class Todo extends ModelFactory.defineEntity({ table: todoTable }) {}
 
 // 3. The row type for a Todo

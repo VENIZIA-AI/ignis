@@ -188,11 +188,11 @@ await userRepository.updateBy({
 export const userTable = pgTable('users', { /* ... */ });
 
 // ❌ BAD - registered under 'user_accounts', looked up as 'users'
-@model({ type: 'entity', tableName: 'user_accounts' })
+@model({ tableName: 'user_accounts' })
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 // ✅ GOOD - set no `tableName`; both keys are the table's name, 'users'
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 ```
 
@@ -270,7 +270,7 @@ try {
 import { User } from './user.model';
 
 // ❌ BAD - array literal is evaluated at module load, while the cycle is still open
-@model({ type: 'entity' })
+@model()
 export class Order extends BaseRelationalEntity<typeof Order.schema> {
   static override relations: TRelationConfig[] = [
     { name: 'owner', type: RelationTypes.ONE, schema: User.schema, metadata: { ... } },
@@ -278,7 +278,7 @@ export class Order extends BaseRelationalEntity<typeof Order.schema> {
 }
 
 // ✅ GOOD - resolver defers the User.schema read until after both modules finish loading
-@model({ type: 'entity' })
+@model()
 export class Order extends BaseRelationalEntity<typeof Order.schema> {
   static override relations = (): TRelationConfig[] => [
     { name: 'owner', type: RelationTypes.ONE, schema: User.schema, metadata: { ... } },

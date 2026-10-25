@@ -8,7 +8,7 @@ import {
 
 // A search collection replaces a Drizzle pgTable: `field.*` declares the wire shape instead of
 // column builders. `id` is auto-prepended, so it is never listed here.
-@model({ type: 'entity' })
+@model()
 export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
   static override schema = defineSearchCollection({
     name: 'articles',

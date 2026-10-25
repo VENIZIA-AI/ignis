@@ -26,14 +26,14 @@ export const commentTable = sqliteTable('comments', {
   text: text('text').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Note extends ModelFactory.defineEntity({
   table: noteTable,
   relations: () => ({ comments: many(commentTable, { relationName: 'note' }) }),
 }) {}
 
 /** `one(noteTable)` reads its columns off the single foreign key `note_id`. */
-@model({ type: 'entity' })
+@model()
 export class Comment extends ModelFactory.defineEntity({
   table: commentTable,
   relations: () => ({ note: one(noteTable) }),

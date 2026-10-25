@@ -65,9 +65,9 @@ Marks a class as a database entity and configures its behavior.
 
 ```typescript
 @model({
-  type: 'entity' | 'view',
+  type?: 'entity',
   tableName?: string,
-  skipMigrate?: boolean,
+  migration?: { use?: boolean },
   settings?: {
     hiddenProperties?: string[],
     query?: {
@@ -87,9 +87,9 @@ Marks a class as a database entity and configures its behavior.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `type` | `'entity' \| 'view'` | Entity type - `'entity'` for tables, `'view'` for database views |
+| `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default; any other value throws when the decorator runs |
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
-| `skipMigrate` | `boolean` | Skip this model during schema migrations |
+| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). The old `skipMigrate: true` is `migration: { use: false }`; it still works in this release and is removed in 0.4.4 |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
 | `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
 | `settings.access` | `IModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
@@ -268,7 +268,7 @@ export const userTable = pgTable('User', {
   name: text('name').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 ```
 
@@ -288,7 +288,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
   static override TABLE_NAME = 'User';
@@ -314,7 +314,7 @@ export class User extends BaseEntity<typeof User.schema> {
 Pass schema in the constructor.
 
 ```typescript
-@model({ type: 'entity' })
+@model()
 export class User extends BaseEntity<typeof userTable> {
   constructor() {
     super({ name: 'User', schema: userTable });
@@ -411,13 +411,13 @@ export const profileTable = pgTable('Profile', {
   userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({
   table: userTable,
   relations: () => ({ profile: one(profileTable) }), // the inverse side
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Profile extends ModelFactory.defineEntity({
   table: profileTable,
   relations: () => ({ user: one(userTable) }), // owns the key - `profile` pairs with it
@@ -460,7 +460,6 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
 
 @model({
-  type: 'entity',
   settings: { hiddenProperties: ['password', 'secret'] },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -513,7 +512,6 @@ import { model, BaseEntity } from '@venizia/ignis';
 import { postTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: {
     query: {
       filter: {
@@ -897,7 +895,7 @@ All columns are nullable by default (no `NOT NULL`), since typically only one va
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
 
-@model({ type: 'entity' })
+@model()
 export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
   static override schema = pgTable('AppConfig', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),

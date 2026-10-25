@@ -18,7 +18,7 @@ export const userTable = pgTable('User', {
 });
 
 /** `hiddenProperties` keeps `password` and `secret` out of every repository read and write response. */
-@model({ type: 'entity', settings: { hiddenProperties: ['password', 'secret'] } })
+@model({ settings: { hiddenProperties: ['password', 'secret'] } })
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;

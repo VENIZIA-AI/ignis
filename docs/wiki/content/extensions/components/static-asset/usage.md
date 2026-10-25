@@ -148,7 +148,7 @@ import { PostgresDataSource } from '@/datasources';
 export class MetaLinkRepository extends BaseMetaLinkRepository {}
 ```
 
-**2. Table.** `BaseMetaLinkModel` sets `skipMigrate: true`, so create it manually:
+**2. Table.** IGNIS generates no migrations, and `BaseMetaLinkModel` is marked `migration: { use: false }` for tooling that reads the registry. Either export its schema from the file your `drizzle-kit` reads (`export const metaLinkTable = BaseMetaLinkModel.schema;`, as `examples/vert/src/migration-schema.ts` does) and generate the migration, or create the table by hand:
 
 ```sql
 CREATE TABLE "MetaLink" (
@@ -223,7 +223,7 @@ argument:
 ```typescript
 const commerceSchema = pgSchema('commerce');
 
-@model({ type: 'entity' })
+@model()
 export class MetaLinkModel extends BaseRelationalEntity<typeof MetaLinkModel.schema> {
   static override schema = commerceSchema.table('MetaLink', { /* the MetaLink columns */ });
 }

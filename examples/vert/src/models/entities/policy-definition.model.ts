@@ -14,7 +14,7 @@ export const policyDefinitionTable = pgTable('PolicyDefinition', {
   ...extraPolicyDefinitionColumns({ idType: 'string' }),
 });
 
-@model({ type: 'entity' })
+@model()
 export class PolicyDefinition extends ModelFactory.defineEntity({ table: policyDefinitionTable }) {}
 
 export type TPolicyDefinition = TEntityObject<typeof PolicyDefinition>;

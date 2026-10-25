@@ -1,4 +1,4 @@
-import type { AbstractEntity } from '@/base/models';
+import type { AbstractEntity, TModelType } from '@/base/models';
 import type {
   ScopeFilters,
   TFilter,
@@ -119,11 +119,35 @@ export interface IModelSettings {
   authorize?: IModelAuthorizeSettings;
 }
 
+/** Whether tooling that reads the model registry should migrate this model (`@model({ migration })`). */
+export interface IModelMigrationSettings {
+  /** Default `true`. `false` marks the model as one a migration tool leaves alone. IGNIS generates no migrations itself. */
+  use?: boolean;
+}
+
+/** One deprecated metadata key a model still uses, and the key that replaces it. */
+export interface IDeprecatedModelMetadata {
+  key: string;
+  use: string;
+}
+
 export interface IModelMetadata extends IArtifactRegistrationOptions {
-  type: 'entity' | 'view';
+  /** Optional: `ModelTypes.ENTITY` is the only value and the default. */
+  type?: TModelType;
   tableName?: string;
+
+  /** Migration marker for consumer tooling that reads the public registry. */
+  migration?: IModelMigrationSettings;
+
+  /**
+   * @deprecated Use `migration: { use: false }`. Removed in 0.4.4. On a registry entry it is
+   * derived (`!migration.use`) so tooling that reads it keeps working this release.
+   */
   skipMigrate?: boolean;
   settings?: IModelSettings;
+
+  /** Set by the decorator, read by the boot warning; not for application code. */
+  deprecatedMetadata?: IDeprecatedModelMetadata[];
 }
 
 export interface IEntityStatics {

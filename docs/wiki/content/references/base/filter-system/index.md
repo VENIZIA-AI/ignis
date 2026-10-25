@@ -98,7 +98,6 @@ import { model, BaseEntity } from '@venizia/ignis';
 import { postTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {
