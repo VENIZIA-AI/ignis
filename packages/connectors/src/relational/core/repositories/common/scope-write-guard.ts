@@ -1,3 +1,4 @@
+import { ScopeWriteOperations, type TScopeWriteOperation } from './constants';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
@@ -389,7 +390,7 @@ export class ScopeWriteGuard {
     settings: IModelAccessSettings;
     model: string;
     rows: Row[];
-    operation: 'create' | 'update';
+    operation: TScopeWriteOperation;
   }): Row[] {
     const { settings, model, rows, operation } = opts;
     const scope = settings.resolve();
@@ -401,7 +402,10 @@ export class ScopeWriteGuard {
     if (scope === null || scope === undefined) {
       // An update is already confined by the scoped `where`, which under `deny` matches no row; the
       // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
-      if (settings.onMissing === ScopeFilterMissingBehaviors.ALLOW || operation === 'update') {
+      if (
+        settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
+        operation === ScopeWriteOperations.UPDATE
+      ) {
         return rows;
       }
 

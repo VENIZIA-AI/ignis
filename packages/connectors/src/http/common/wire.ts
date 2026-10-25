@@ -1,3 +1,4 @@
+import { HttpReadShapes, type THttpReadShape } from './constants';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HttpExtraRequest } from '@venizia/ignis-kernel/repository';
@@ -117,10 +118,10 @@ export class HttpWire {
    * Anything else asked for as a list throws: counting it as one row is how `existsWith` answers true
    * for an empty result and a page reports a length it does not have.
    */
-  static unwrapRows<R>(opts: { body: unknown; shape: 'list' | 'one'; url: string }): R {
+  static unwrapRows<R>(opts: { body: unknown; shape: THttpReadShape; url: string }): R {
     const { body, shape, url } = opts;
 
-    if (shape === 'one' || Array.isArray(body)) {
+    if (shape === HttpReadShapes.ONE || Array.isArray(body)) {
       return body as R;
     }
 

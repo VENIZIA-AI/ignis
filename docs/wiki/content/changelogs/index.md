@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-26 | [Connectors String Options Are Const Classes](./2026-10-26-connectors-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [A Shared Row Can No Longer Be Changed or Deleted Without sharedRows](./2026-10-26-shared-rows-writes-need-shared-rows) | Security |
 | 2026-10-26 | [dev-configs Warns on String-Literal Unions and Explicit Casts](./2026-10-26-dev-configs-warn-const-class-and-casts) | Enhancement |

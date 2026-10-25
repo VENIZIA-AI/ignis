@@ -1,3 +1,4 @@
+import type { TIdSchemaType } from '@venizia/ignis-kernel';
 import { CoreErrorCodes } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -16,7 +17,7 @@ type TSQLiteTextColumn = SQLiteTextBuilderInitial<string, [string, ...string[]],
 // column is required in the insert type even when a `defaultPolymorphic` gives it a runtime default.
 type TPrincipalColumnDef<
   Discriminator extends string,
-  IdType extends 'number' | 'string',
+  IdType extends TIdSchemaType,
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 > = (IdType extends 'number'
@@ -37,7 +38,7 @@ type TPrincipalColumnDef<
 
 export const generatePrincipalColumnDefs = <
   Discriminator extends string = 'principal',
-  IdType extends 'number' | 'string' = 'number',
+  IdType extends TIdSchemaType = 'number',
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 >(
@@ -91,7 +92,7 @@ export const generatePrincipalColumnDefs = <
 export const enrichPrincipal = <
   ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
   Discriminator extends string = string,
-  IdType extends 'number' | 'string' = 'number' | 'string',
+  IdType extends TIdSchemaType = TIdSchemaType,
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 >(

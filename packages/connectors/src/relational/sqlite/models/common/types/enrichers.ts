@@ -1,3 +1,5 @@
+import type { TIdSchemaType } from '@venizia/ignis-kernel';
+
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{
     dataType: string;
@@ -22,7 +24,7 @@ export type TIdEnricherOptions = {
 
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
-  PolymorphicIdType extends 'number' | 'string' = 'number' | 'string',
+  PolymorphicIdType extends TIdSchemaType = TIdSchemaType,
   Nullable extends boolean = false,
   NullableDiscriminator extends boolean = true,
 > = {
@@ -50,7 +52,7 @@ export type TTzEnricherOptions = {
 };
 
 export type TUserAuditColumnOpts = {
-  dataType: 'string' | 'number';
+  dataType: TIdSchemaType;
   columnName: string;
   allowAnonymous?: boolean;
 };
