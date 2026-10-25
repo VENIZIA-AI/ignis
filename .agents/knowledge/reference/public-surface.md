@@ -2294,7 +2294,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1038)
+### `@venizia/ignis` (1039)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2769,6 +2769,7 @@ generated:
 - `IServiceAuthOptions` interface
 - `IServiceMixin` interface
 - `isFloat` const
+- `IShutdownSignalsOptions` interface
 - `isInt` const
 - `isNotFoundError` const
 - `ISnowflakeParsedId` interface

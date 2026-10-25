@@ -9,11 +9,15 @@ import type {
   IServerApplication,
   IServerApplicationConfigs,
   IServerRuntimeConfigs,
+  IShutdownSignalsOptions,
   TNodeServerInstance,
 } from './common';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
+
+const DEFAULT_SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
+const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
 
 const DEFAULT_SERVER_HOST = 'localhost';
 const DEFAULT_SERVER_PORT = 3000;
@@ -260,6 +264,91 @@ export abstract class ServerApplication<
     } finally {
       await this.closeDataSources();
     }
+  }
+
+  /** Set once `installShutdownSignals` ran; holds the way back, so a second call is a no-op. */
+  protected shutdownSignals?: { uninstall: () => void };
+
+  /**
+   * Stops the application on a signal (SIGTERM and SIGINT by default), then exits the process.
+   * Opt-in: nothing is installed until you call it, usually right after `start()`.
+   *
+   * - Calls `stop()` once. A second signal while it runs is ignored.
+   * - Exits 0 when `stop()` finishes, 1 when it throws or does not finish within `timeoutMs`.
+   * - Idempotent: calling it again returns the same uninstall function and adds no listener.
+   * - Returns an uninstall function that removes the listeners and the pending timeout.
+   */
+  installShutdownSignals(opts: IShutdownSignalsOptions = {}): () => void {
+    if (this.shutdownSignals) {
+      return this.shutdownSignals.uninstall;
+    }
+
+    const {
+      signals = DEFAULT_SHUTDOWN_SIGNALS,
+      timeoutMs = DEFAULT_SHUTDOWN_TIMEOUT_MS,
+      exit = (code: number) => process.exit(code),
+    } = opts;
+
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+      throw getError({
+        message: `[installShutdownSignals] timeoutMs must be a positive number of milliseconds | value: ${String(timeoutMs)}`,
+      });
+    }
+
+    const log = this.logger.for(this.installShutdownSignals.name);
+    let isShuttingDown = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const finish = (code: number) => {
+      clearTimeout(timer);
+      exit(code);
+    };
+
+    const onSignal = (signal: NodeJS.Signals) => {
+      if (isShuttingDown) {
+        log.warn('Signal %s ignored | shutdown already in progress', signal);
+        return;
+      }
+
+      isShuttingDown = true;
+      log.info('Signal %s received | stopping the application | timeout: %s ms', signal, timeoutMs);
+
+      timer = setTimeout(() => {
+        log.error('Shutdown did not finish within %s ms | forcing exit', timeoutMs);
+        exit(1);
+      }, timeoutMs);
+
+      this.stop().then(
+        () => {
+          log.info('Application stopped | exiting');
+          finish(0);
+        },
+        (error: unknown) => {
+          log.error(
+            'Shutdown failed | error: %s',
+            error instanceof Error ? error.message : String(error),
+          );
+          finish(1);
+        },
+      );
+    };
+
+    const listeners = signals.map((signal) => {
+      const listener = () => onSignal(signal);
+      process.on(signal, listener);
+      return { signal, listener };
+    });
+
+    const uninstall = () => {
+      clearTimeout(timer);
+      for (const { signal, listener } of listeners) {
+        process.off(signal, listener);
+      }
+      this.shutdownSignals = undefined;
+    };
+
+    this.shutdownSignals = { uninstall };
+    return uninstall;
   }
 
   protected async stopServer(): Promise<void> {
