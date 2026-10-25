@@ -13,6 +13,7 @@ import type {
   TEntityPersistObject,
 } from '../common';
 import { PersistableCrudController } from './crud';
+import { assertWriteVerbsDeclareAuthorize } from './authorize-guard';
 import { defineControllerRouteConfigs } from './definition';
 import { registerFactoryRepositoryInjection } from './repository-injection';
 
@@ -44,6 +45,14 @@ export class ControllerFactory extends BaseHelper {
         message: `[defineCrudController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
       });
     }
+
+    assertWriteVerbsDeclareAuthorize({
+      controllerName: name,
+      authorize,
+      routes,
+      readonly: controller.readonly,
+      enabledRoutes: controller.enabledRoutes,
+    });
 
     const entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new entityClass();

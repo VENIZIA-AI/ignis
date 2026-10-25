@@ -859,7 +859,7 @@ When resolving authorization for a route:
 1. **Endpoint `authenticate: { skip: true }`** - No authorize (auth skipped entirely)
 2. **Endpoint `authorize: { skip: true }`** - No authorize (explicitly skipped)
 3. **Endpoint `authorize: { ... }`** - Override controller authorize
-4. **Controller `authorize`** - Default fallback
+4. **Controller `authorize`** - Default fallback. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) cannot take a controller-level spec whose action is `read`: `defineCrudController` throws at boot unless the route declares its own `authorize`, the controller is `readonly`, or the route is not enabled.
 
 ### Authentication Examples
 
@@ -916,6 +916,11 @@ const OrderController = ControllerFactory.defineCrudController({
       request: { body: CustomOrderCreateSchema },
       response: { schema: CustomOrderResponseSchema },
     },
+    // The other write routes need their own authorize too: a controller-level `read` is refused on them
+    updateById: { authorize: { action: 'write', resource: 'orders' } },
+    updateBy: { authorize: { action: 'write', resource: 'orders' } },
+    deleteById: { authorize: { action: 'write', resource: 'orders' } },
+    deleteBy: { authorize: { action: 'write', resource: 'orders' } },
   },
 });
 ```
