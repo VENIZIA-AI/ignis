@@ -55,9 +55,10 @@ export interface IScopeFilterSettings {
   writeGuard?: TScopeWriteGuard;
 
   /**
-   * `true` lets `null` be written to a scope column: a row without an owner is shared. Default
-   * `false`, so `null` is refused like any other value outside the scope. Only widens what a write
-   * may store; reads are scoped as before.
+   * `true` lets a restricted caller write `null` to a scope column, or leave it out on create: the
+   * row has no owner and is shared. Default `false`, so `null` is refused like any other value
+   * outside the scope, even when the resolved scope has a `null` branch (that branch lets the caller
+   * READ shared rows, a separate permission). Reads are scoped as before.
    */
   sharedRows?: boolean;
 

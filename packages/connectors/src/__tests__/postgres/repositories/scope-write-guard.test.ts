@@ -59,12 +59,6 @@ class SoftItem extends BaseRelationalEntity<typeof itemsTable> {
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, sharedRows: true } } })
-class SharedOrItem extends BaseRelationalEntity<typeof itemsTable> {
-  static override schema = itemsTable;
-  static override TABLE_NAME = 'write_guard_items';
-}
-
 const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
@@ -398,33 +392,50 @@ describe('scopeFilter write guard', () => {
       or: [{ merchantId: { in: ids } }, { merchantId: null }],
     });
 
-    test('an id in the list, null and an id outside the list', async () => {
-      scope = sharedScope(['m-a', 'm-b']);
+    test.each([
+      ['RejectItem', RejectItem],
+      ['SharedItem', SharedItem],
+    ])(
+      '%s: an id in the list is accepted and an id outside the list is refused',
+      async (_name, entity) => {
+        scope = sharedScope(['m-a', 'm-b']);
+        const repository = build(entity);
+
+        await repository.create({ data: { merchantId: 'm-a', name: 'in-list' } });
+        await repository.create({ data: { merchantId: 'm-b', name: 'also-in-list' } });
+        await refusal(repository.create({ data: { merchantId: 'm-c', name: 'outside' } }));
+
+        expect((await rows()).map((row) => row.name)).toEqual(['in-list', 'also-in-list']);
+      },
+    );
+
+    test('the null branch is a read permission: null and an absent column are refused without sharedRows', async () => {
+      scope = sharedScope(['m-a']);
       const repository = build(RejectItem);
 
-      await repository.create({ data: { merchantId: 'm-a', name: 'in-list' } });
-      await repository.create({ data: { merchantId: 'm-b', name: 'also-in-list' } });
+      const withNull = await refusal(
+        repository.create({ data: { merchantId: null, name: 'shared' } }),
+      );
+      await refusal(repository.create({ data: { name: 'no-owner' } }));
+
+      expect(withNull.message).toContain('merchantId');
+      expect(await rows()).toEqual([]);
+    });
+
+    test('with sharedRows true null and an absent column are accepted', async () => {
+      scope = sharedScope(['m-a']);
+      const repository = build(SharedItem);
+
       await repository.create({ data: { merchantId: null, name: 'shared' } });
-      await refusal(repository.create({ data: { merchantId: 'm-c', name: 'outside' } }));
+      await repository.create({ data: { name: 'no-owner' } });
 
-      expect((await rows()).map((row) => row.name)).toEqual(['in-list', 'also-in-list', 'shared']);
+      expect(await rows()).toEqual([
+        { merchantId: null, name: 'shared' },
+        { merchantId: null, name: 'no-owner' },
+      ]);
     });
 
-    test('null is allowed without sharedRows because the scope itself lists it', async () => {
-      scope = sharedScope(['m-a']);
-
-      await build(RejectItem).create({ data: { merchantId: null, name: 'shared' } });
-      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
-    });
-
-    test('an absent scope column is allowed too, since the scope allows null', async () => {
-      scope = sharedScope(['m-a']);
-
-      await build(RejectItem).create({ data: { name: 'no-owner' } });
-      expect((await rows()).map((row) => row.name)).toEqual(['no-owner']);
-    });
-
-    test('createAll with one id outside the list writes nothing', async () => {
+    test('createAll with a null row and no sharedRows writes nothing', async () => {
       scope = sharedScope(['m-a']);
 
       await refusal(
@@ -432,30 +443,79 @@ describe('scopeFilter write guard', () => {
           data: [
             { merchantId: 'm-a', name: 'ok' },
             { merchantId: null, name: 'shared' },
-            { merchantId: 'm-z', name: 'bad' },
           ],
         }),
       );
       expect(await rows()).toEqual([]);
     });
 
-    test('an update may move a row to null or to another listed id, not outside the list', async () => {
+    test('an update may move a row to another listed id; to null only with sharedRows; never outside the list', async () => {
       scope = sharedScope(['m-a', 'm-b']);
       const repository = build(RejectItem);
       const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
 
-      await repository.updateById({ id: created.data.id, data: { merchantId: null } });
       await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
       await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-c' } }));
-
       expect((await rows()).map((row) => row.merchantId)).toEqual(['m-b']);
+
+      await build(SharedItem).updateById({ id: created.data.id, data: { merchantId: null } });
+      expect((await rows()).map((row) => row.merchantId)).toEqual([null]);
     });
 
-    test('sharedRows still matters when the scope does not list null', async () => {
+    test('UNRESTRICTED still bypasses it', async () => {
+      scope = ScopeFilters.UNRESTRICTED;
+
+      await build(RejectItem).create({ data: { merchantId: null, name: 'shared' } });
+      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
+    });
+
+    test('sharedRows also grants null when the scope has no null branch', async () => {
       scope = { merchantId: 'm-a' };
 
       await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
-      await build(SharedOrItem).create({ data: { merchantId: null, name: 'shared' } });
+      await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
+      expect((await rows()).map((row) => row.name)).toEqual(['shared']);
+    });
+  });
+
+  describe('an empty list scope', () => {
+    test('refuses every create, including null and an absent column', async () => {
+      scope = { merchantId: { in: [] } };
+      const repository = build(RejectItem);
+
+      await refusal(repository.create({ data: { merchantId: 'm-a', name: 'a' } }));
+      await refusal(repository.create({ data: { merchantId: null, name: 'null' } }));
+      await refusal(repository.create({ data: { name: 'absent' } }));
+      await refusal(repository.createAll({ data: [{ merchantId: 'm-a', name: 'a' }] }));
+      expect(await rows()).toEqual([]);
+    });
+
+    test('refuses every update that names the column, whatever the value', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+      scope = { merchantId: { in: [] } };
+
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-a' } }));
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } }));
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+
+    test('an inq with no values behaves the same', async () => {
+      scope = { merchantId: { inq: [] } };
+
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
+      expect(await rows()).toEqual([]);
+    });
+
+    test('an empty list inside an or-null scope accepts only through sharedRows', async () => {
+      scope = { or: [{ merchantId: { in: [] } }, { merchantId: null }] };
+
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
+      await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
+      await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
+      await refusal(build(SharedItem).create({ data: { merchantId: 'm-a', name: 'a' } }));
       expect((await rows()).map((row) => row.name)).toEqual(['shared']);
     });
   });

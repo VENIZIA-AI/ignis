@@ -104,12 +104,14 @@ Marks a class as a database entity and configures its behavior.
 | Setting | Meaning |
 |---|---|
 | `writeGuard` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `sharedRows` | `true` allows `null` on the scope columns (a row with no owner is shared) even when the resolved scope does not list `null`. Default `false`. Not needed when the scope itself allows `null`, see below |
+| `sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, or move a row into that shared set. Default `false`. Reading shared rows is a separate matter, see below |
 | `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
 
 The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
 
-A shared-rows scope works without `sharedRows`: `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` allows the ids and `null` (an absent column counts as `null`), and refuses any other id. The reads of such a scope are unchanged.
+A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `sharedRows: true`. The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
+
+An empty list scope, `{ merchantId: { in: [] } }`, refuses every create and every update that names the column.
 
 To write across scopes on purpose (a system job, an admin role), return `ScopeFilters.UNRESTRICTED` from `resolve()`: it bypasses the guard and nothing is stamped. Not checked: an update that does not name the scope column (the scoped `where` already confines it) and raw statements that bypass the repository.
 

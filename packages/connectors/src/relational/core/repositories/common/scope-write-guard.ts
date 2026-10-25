@@ -270,9 +270,8 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          // Absent means the database default, usually `null`: allowed when the scope itself allows
-          // `null` (shared rows are visible to this caller) or the model opted in with `sharedRows`.
-          if (operation === 'update' || sharedRows || allowed.has(null)) {
+          // Absent means the database default, usually `null`, so it is held to the `null` rule.
+          if (operation === 'update' || sharedRows) {
             continue;
           }
 
@@ -291,11 +290,11 @@ export class ScopeWriteGuard {
         }
 
         const normalised = isScalar(value) ? normalise(value) : undefined;
-        // `null` is allowed when the scope itself allows it (an `or` with a null branch) or the model
-        // opted in with `sharedRows`.
-        const isShared = normalised === null && sharedRows;
+        // A `null` branch in the scope lets this caller READ shared rows. Writing one (or moving a
+        // row into the shared set) is a separate permission: only `sharedRows` grants it.
+        const isOutside = normalised === null ? !sharedRows : !allowed.has(normalised as string);
 
-        if (normalised === undefined || (!isShared && !allowed.has(normalised))) {
+        if (normalised === undefined || isOutside) {
           throw ScopeWriteGuard.denied({
             model,
             operation,

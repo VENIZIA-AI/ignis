@@ -19,6 +19,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 - **The scope is read from the resolved `where`.** Equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Another shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with its own message.
 - **New settings on `scopeFilter`.** `writeGuard: 'reject' | 'assign'` (default `reject`), `sharedRows: true` to allow `null`, and an optional `columns` list.
 - **`assign`** fills a scope column that is absent from a created row when the scope is a single equality. A value that is present and disagrees is still refused; an `inq` scope cannot be assigned.
+- **`sharedRows` grants writing shared rows.** With `sharedRows: true`, a restricted caller may create a row with `null` or no value in the scope column, or move a row into the shared set. Without it, `null` and an absent column are refused.
 - **`columns` moves a failure to boot.** When declared, each name must exist on the model, checked at boot. Without it the guard checks every column the resolved scope constrains, at write time.
 
 ## The error you will see
@@ -38,7 +39,7 @@ It names the entity and the column, never a value. A scope the guard cannot veri
 ## Who is affected
 
 - **Models with `scopeFilter` whose code creates, or moves, rows in another scope** under a resolver that returns a `where`: a webhook, a provisioning worker, an admin back office. Their writes now fail.
-- **Models with a nullable scope column that stores shared rows (`null`).** If the resolver lists `null` in the scope, as in `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }`, nothing to do: the scope allows `null` and the ids, and refuses any other id. If the resolver does not list `null`, set `sharedRows: true` on the model.
+- **Models with a nullable scope column that stores shared rows (`null`).** Set `sharedRows: true` on the model. A `null` branch in the scope, as in `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }`, lets the caller read shared rows only: if your resolver lists `null`, restricted callers still cannot write shared rows unless `sharedRows` is true. The ids in the list are accepted either way.
 - **A create with no scope column set** now fails, unless `writeGuard: 'assign'` fills it or `sharedRows` is on.
 - **Models whose scope is built with an `or` over several columns, ranges or `like`.** Writes are refused as unverifiable. Express the scope with equality or `inq`, or return `UNRESTRICTED` for that caller.
 - **A create while the scope cannot be resolved** (`resolve()` returns `null` and `onMissing` is `deny`) is refused. An update there still matches no row, as before.
