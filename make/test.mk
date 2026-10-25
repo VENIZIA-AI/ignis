@@ -13,7 +13,7 @@ TEST_TARGETS := $(addprefix test-,$(PACKAGES))
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
-.PHONY: test-all test-scripts build-checks purity purity-test clean-install \
+.PHONY: test-all test-scripts build-checks examples-check purity purity-test clean-install \
         $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
@@ -52,6 +52,19 @@ purity:
 build-checks:
 	@echo "🔍 Checking the build output: self-contained sourcemaps, the oxlint subpath loads no ESLint..."
 	@bun test scripts/build/build-checks
+
+# Every example type-checks against the built packages, so a type a package forgot to export, or a
+# signature that changed, breaks here and not in a consumer. Reports every failing example, then
+# fails. Needs a build and `bun install --frozen-lockfile` after it (the workspace links).
+examples-check:
+	@echo "🔍 Type-checking the examples..."
+	@failed=""; \
+	for dir in examples/*/; do \
+	  name=$$(basename $$dir); \
+	  [ -f "$$dir/tsconfig.json" ] || continue; \
+	  if (cd $$dir && $(CURDIR)/node_modules/.bin/tsc --noEmit -p tsconfig.json); then echo "  ok   $$name"; else echo "  FAIL $$name"; failed="$$failed $$name"; fi; \
+	done; \
+	if [ -n "$$failed" ]; then echo "❌ examples that do not type-check:$$failed"; exit 1; fi
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.

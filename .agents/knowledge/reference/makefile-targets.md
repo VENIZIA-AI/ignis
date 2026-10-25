@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**118 targets.**
+**119 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -42,6 +42,7 @@ generated:
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
 | `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make examples-check` | - | Gate: every example type-checks against the built packages. Needs a build. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |
 | `make fmt-scripts` | - | Format check + bun check type-check of scripts/ / format scripts/. |

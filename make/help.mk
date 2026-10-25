@@ -71,6 +71,7 @@ help:
 	@$(HELP_ROW) "release ARGS=\"...\"" "Dispatch the release workflow per package, e.g. ARGS=\"kernel --mode patch\"."
 	@$(HELP_ROW) "catalog-check" "Gate: every catalogued dep is referenced as \"catalog:\", none drifted."
 	@$(HELP_ROW) "preset-build" "Write the VULCAN preset (packages/core-server/dist/presets) with this workspace's versions."
+	@$(HELP_ROW) "examples-check" "Gate: every example type-checks against the built packages. Needs a build."
 	@$(HELP_ROW) "preset-smoke" "Gate: an app created from the packed preset typechecks, lints, tests and answers /api/hello. Needs a build."
 	@echo ""
 	@echo "Development (use bun run directly):"
