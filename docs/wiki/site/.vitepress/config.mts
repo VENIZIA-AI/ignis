@@ -478,6 +478,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-search-scope-type-export',
                 },
                 {
+                  text: 'Release Sweep Includes Dependents',
+                  link: '/changelogs/2026-10-26-release-sweep-cascade',
+                },
+                {
                   text: 'Deprecated Model Settings Removed',
                   link: '/changelogs/2026-10-26-remove-deprecated-model-settings',
                 },
