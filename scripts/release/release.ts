@@ -7,7 +7,7 @@
  * release once died on a range belonging to core-server, six minutes after a connectors release made
  * it stale. Dispatching by hand invites exactly that.
  *
- *   bun scripts/release/release.ts                      # every package that needs one, in order
+ *   bun scripts/release/release.ts                      # every changed package and every package that depends on one, in order
  *   bun scripts/release/release.ts kernel connectors    # just these, still ordered and still sequential
  *   bun scripts/release/release.ts --dry-run            # print the plan, dispatch nothing
  *   bun scripts/release/release.ts --mode patch         # default is prerelease
@@ -16,6 +16,7 @@
  */
 
 import { parseReleaseArgs, type TReleaseMode } from './release-args';
+import { planFullSweep } from './release-plan';
 
 const WORKFLOW = 'package-release.yml';
 const BRANCH = 'develop';
@@ -51,6 +52,8 @@ interface IPackageState {
   localVersion: string;
   publishedVersion: string | null;
   changedFiles: number;
+  /** The workspace packages this one ships as dependencies or peer dependencies (npm names). */
+  dependsOn: string[];
 }
 
 const run = async (opts: {
@@ -69,7 +72,7 @@ const run = async (opts: {
   return { stdout: stdout.trim(), exitCode };
 };
 
-const readJson = async (path: string): Promise<Record<string, string>> => {
+const readJson = async (path: string): Promise<Record<string, any>> => {
   return JSON.parse(await Bun.file(path).text());
 };
 
@@ -169,6 +172,8 @@ const collectState = async (opts: {
         distTag: opts.distTag,
       }),
       changedFiles: await countChangedSinceRelease({ name }),
+      // Only what is published counts: `dependencies` and `peerDependencies`, never `devDependencies`.
+      dependsOn: Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
     });
   }
 
@@ -371,8 +376,20 @@ const main = async (): Promise<void> => {
   await assertReleasable({ isDryRun });
 
   const states = await collectState({ names: candidates, distTag: toDistTag({ mode }) });
-  // An explicit request is honoured as given; a full sweep releases only what actually changed.
-  const plan = requested.length > 0 ? states : states.filter(state => state.changedFiles > 0);
+  // An explicit request is honoured as given. A full sweep releases what changed AND every package
+  // that depends on it: the published manifests pin internal dependencies exactly, so a package left
+  // behind keeps pointing at the old version and consumers install both copies.
+  const cascadedFrom = new Map<string, string[]>();
+  let plan = states;
+  if (requested.length === 0) {
+    const planned = planFullSweep({ packages: states });
+    for (const entry of planned) {
+      if (entry.cascadedFrom) {
+        cascadedFrom.set(entry.name, entry.cascadedFrom);
+      }
+    }
+    plan = states.filter(state => planned.some(entry => entry.name === state.name));
+  }
 
   if (plan.length === 0) {
     console.log('Nothing to release - no package has source changes since its last release.');
@@ -385,8 +402,10 @@ const main = async (): Promise<void> => {
       state.changedFiles === Number.POSITIVE_INFINITY
         ? 'never released'
         : `${state.changedFiles} file(s)`;
+    const cascade = cascadedFrom.get(state.name);
+    const why = cascade ? `  (no source change: depends on ${cascade.join(', ')}, pinned exactly)` : '';
     console.log(
-      `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}`,
+      `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}${why}`,
     );
   }
 

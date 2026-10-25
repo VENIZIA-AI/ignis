@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Release Sweep Includes Dependents',
+                  link: '/changelogs/2026-10-26-release-sweep-cascade',
+                },
+                {
                   text: 'Deprecated Model Settings Removed',
                   link: '/changelogs/2026-10-26-remove-deprecated-model-settings',
                 },
