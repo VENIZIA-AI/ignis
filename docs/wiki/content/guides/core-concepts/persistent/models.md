@@ -221,7 +221,7 @@ Apply automatic filters to all repository queries. This is commonly used for sof
 export class Article extends ModelFactory.defineEntity({ table: articleTable }) {}
 ```
 
-The default filter (set with `settings.query.filter`; the old `defaultFilter` key is deprecated and removed in 0.4.3) is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
+The default filter (set with `settings.query.filter`) is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
 
 ```typescript
 // Normal query - auto-filters out soft-deleted records

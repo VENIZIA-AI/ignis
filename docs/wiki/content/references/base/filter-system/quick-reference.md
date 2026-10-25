@@ -157,7 +157,7 @@ So `{ 'metadata.score': { gt: 80 } }` compares as a number, and `{ 'metadata.cod
 
 ## Default Filter
 
-A model's `settings.query.filter` merges into every read, update, and delete for that model. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
+A model's `settings.query.filter` merges into every read, update, and delete for that model.
 
 | Collision shape | Result |
 |---|---|

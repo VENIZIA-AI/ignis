@@ -73,7 +73,7 @@ class ProductDualSearchRepository {}
   type: 'entity',
   settings: {
     hiddenProperties: ['secretCode'],
-    defaultFilter: { where: { isActive: true } },
+    query: { filter: { where: { isActive: true } } },
   },
 })
 class SprocketDocument extends BaseSearchEntity {

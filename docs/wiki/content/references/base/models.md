@@ -132,7 +132,7 @@ export class Account extends ModelFactory.defineEntity({ table: accountTable }) 
 
 ### Apply a default filter
 
-`settings.query.filter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete. The old `defaultFilter` key is deprecated and removed in 0.4.3.
+`settings.query.filter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete.
 
 ```typescript
 @model({

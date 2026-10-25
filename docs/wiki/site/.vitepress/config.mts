@@ -470,6 +470,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Deprecated Model Settings Removed',
+                  link: '/changelogs/2026-10-26-remove-deprecated-model-settings',
+                },
+              ],
+            },
+            {
               text: '2026-10-25',
               collapsed: true,
               items: [

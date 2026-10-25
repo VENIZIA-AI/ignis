@@ -177,10 +177,9 @@ export abstract class RelationalBaseRepository<
   /**
    * The model's `access` settings. Same override seam as `getDefaultFilter()` - a repository with no
    * resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid
-   * touching `modelSettings`/`entity` at all. The name is kept from before `scopeFilter` became
-   * `access`, so an existing override keeps working.
+   * touching `modelSettings`/`entity` at all.
    */
-  getScopeFilterSettings(): IModelAccessSettings | undefined {
+  getAccessSettings(): IModelAccessSettings | undefined {
     return this.modelSettings?.access;
   }
 
@@ -194,7 +193,7 @@ export abstract class RelationalBaseRepository<
     rows: Row[];
     operation: 'create' | 'update';
   }): Row[] {
-    const settings = this.getScopeFilterSettings();
+    const settings = this.getAccessSettings();
     if (!settings) {
       return opts.rows;
     }
@@ -227,7 +226,7 @@ export abstract class RelationalBaseRepository<
       return userFilter ?? {};
     }
 
-    const scopeFilterSettings = this.getScopeFilterSettings();
+    const scopeFilterSettings = this.getAccessSettings();
     if (!scopeFilterSettings) {
       return userFilter ?? {};
     }

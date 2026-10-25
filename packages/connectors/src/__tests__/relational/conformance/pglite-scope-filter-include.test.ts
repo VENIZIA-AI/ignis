@@ -145,7 +145,7 @@ let currentReviewTenant: TTenantState = 'tenant-a';
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentMerchantTenant === '__throw__') {
           throw new ScopeResolutionError('merchant scope resolution blew up');
@@ -166,7 +166,7 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentProductTenant === '__throw__') {
           throw new ScopeResolutionError('product scope resolution blew up');
@@ -177,7 +177,7 @@ class ScopeIncludeMerchantEntity extends BasePostgresEntity {
       },
     },
     // Exercises "shouldSkipDefaultFilter bypasses defaultFilter, never scopeFilter" from the relation side.
-    defaultFilter: { where: { name: { neq: 'hidden-by-default' } } },
+    query: { filter: { where: { name: { neq: 'hidden-by-default' } } } },
   },
 })
 class ScopeIncludeProductEntity extends BasePostgresEntity {
@@ -197,7 +197,7 @@ class ScopeIncludeProductOpenEntity extends BasePostgresEntity {
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () =>
         currentAllowProductTenant == null
           ? currentAllowProductTenant
@@ -215,7 +215,7 @@ class ScopeIncludeProductAllowEntity extends BasePostgresEntity {
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentReviewTenant === '__throw__') {
           throw new ScopeResolutionError('review scope resolution blew up');

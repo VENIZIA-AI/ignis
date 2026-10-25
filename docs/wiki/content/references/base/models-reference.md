@@ -91,7 +91,7 @@ Marks a class as a database entity and configures its behavior.
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
-| `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). The old `defaultFilter` key is deprecated and removed in 0.4.3 |
+| `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
 | `settings.access` | `IModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
 | `settings.query.limit.default` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
 | `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Must be a positive integer (validated at decoration time). Falls back to `DEFAULT_MAX_LIMIT` (1000). An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) |

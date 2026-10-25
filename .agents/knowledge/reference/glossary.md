@@ -100,7 +100,7 @@ classes directly. See [kernel](/packages/kernel.md).
 
 **Model** - An `AbstractEntity` subclass (`packages/kernel/src/base/models/base.ts`) pairing a name
 with a Drizzle or document schema via `getSchema()`, plus `@model` settings (`hiddenProperties`,
-`query.filter`; the old `defaultFilter` key is deprecated and removed in 0.4.3) read by the repository layer. See [kernel](/packages/kernel.md).
+`query.filter`) read by the repository layer. See [kernel](/packages/kernel.md).
 
 **Namespace** - The fixed first segment of a binding key, one of the `BindingNamespaces` constants
 (`components`, `datasources`, `repositories`, `models`, `services`, `middlewares`, `providers`,

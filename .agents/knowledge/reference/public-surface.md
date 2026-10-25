@@ -1166,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (423)
+### `@venizia/ignis-kernel` (421)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1312,7 +1312,6 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelSetting` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
 - `IdType` type
@@ -1365,7 +1364,6 @@ generated:
 - `IRpcMetadata` interface
 - `isClass` const
 - `isClassProvider` const
-- `IScopeFilterSettings` interface
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
 - `IServerConfigMixin` interface
@@ -2298,7 +2296,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1043)
+### `@venizia/ignis` (1041)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2618,7 +2616,6 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelSetting` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
@@ -2755,7 +2752,6 @@ generated:
 - `IScopedCasbinEntities` interface
 - `IScopedCasbinPolicyFilter` interface
 - `IScopedCasbinTable` interface
-- `IScopeFilterSettings` interface
 - `isDatabaseTransaction` const
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface

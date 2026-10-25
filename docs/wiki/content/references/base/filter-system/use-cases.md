@@ -31,7 +31,7 @@ const deletedRecords = await repository.find({
 
 Notice: `is`/`isn` against a nullable timestamp is the whole pattern - no separate `deleted: boolean` column needed.
 
-If every query on a model should exclude deleted rows, encode this once as `settings.query.filter` (the old `defaultFilter` key is deprecated and removed in 0.4.3) instead of repeating it at every call site. See [Default Filter](./default-filter).
+If every query on a model should exclude deleted rows, encode this once as `settings.query.filter` instead of repeating it at every call site. See [Default Filter](./default-filter).
 
 ## E-commerce product search
 

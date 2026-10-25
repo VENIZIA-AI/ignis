@@ -96,7 +96,7 @@ const resolveScope = (state: TScopeState) => {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentMerchantScope) } },
+  settings: { access: { resolve: () => resolveScope(currentMerchantScope) } },
 })
 class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
   static override TABLE_NAME = MERCHANT_TABLE;
@@ -106,7 +106,7 @@ class ScopeUnrestrictedMerchantEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentProductScope) } },
+  settings: { access: { resolve: () => resolveScope(currentProductScope) } },
 })
 class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
   static override TABLE_NAME = PRODUCT_TABLE;
@@ -116,7 +116,7 @@ class ScopeUnrestrictedProductEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve: () => resolveScope(currentReviewScope) } },
+  settings: { access: { resolve: () => resolveScope(currentReviewScope) } },
 })
 class ScopeUnrestrictedReviewEntity extends BasePostgresEntity {
   static override TABLE_NAME = REVIEW_TABLE;

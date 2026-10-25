@@ -111,7 +111,7 @@ transaction support; `typesense` and `meilisearch` add no repository classes at 
 dialects. See [Repository hierarchy](/architecture/repository-hierarchy.md).
 
 Hidden fields (`@model` `hiddenProperties`) and default filters (`@model` `query.filter`, e.g. soft
-delete; the old `defaultFilter` key is deprecated and removed in 0.4.3) are applied at the SQL/query level by each connector's base repository, not by post-processing
+delete) are applied at the SQL/query level by each connector's base repository, not by post-processing
 the result.
 
 ## DataSources and connectors

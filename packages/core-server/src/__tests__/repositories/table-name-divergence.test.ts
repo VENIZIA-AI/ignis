@@ -38,8 +38,7 @@ const divergedTable = pgTable('diverged_y', {
   tableName: 'diverged_y',
   settings: {
     hiddenProperties: ['secret'],
-    defaultFilter: { where: { isActive: true } },
-    defaultLimit: 5,
+    query: { filter: { where: { isActive: true } }, limit: { default: 5 } },
   },
 })
 class DivergedEntity extends BasePostgresEntity {

@@ -319,7 +319,7 @@ const scopedFixtureTable = pgTable('security_fixture_scoped_entities', {
 /** Fixture entity carrying a real @model `defaultFilter` (soft-delete style), so `applyDefaultFilter` is exercised through its actual `getDefaultFilter()`/`modelSettings` resolution path, not a mocked registry. */
 @model({
   type: 'entity',
-  settings: { defaultFilter: { where: { isDeleted: false }, limit: 100 } },
+  settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },
 })
 class ScopedFixtureEntity extends BasePostgresEntity {
   static override schema = scopedFixtureTable;
