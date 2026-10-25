@@ -83,10 +83,15 @@ export class PersistableRelationalRepository<
       this.logger.for('_create').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
+    const values = this.guardScopedWrite({
+      rows: opts.data as Array<Record<string, unknown>>,
+      operation: 'create',
+    }) as Array<PersistObject>;
+
     const rs = await this.queryExecutor.insert<R>({
       connector: this.resolveConnector({ transaction }),
       table: this.entity.schema,
-      values: opts.data,
+      values,
       returning: this.getVisibleProperties(),
       shouldReturn,
     });
@@ -160,6 +165,8 @@ export class PersistableRelationalRepository<
     if (log?.use) {
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
+
+    this.guardScopedWrite({ rows: [opts.data as Record<string, unknown>], operation: 'update' });
 
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },

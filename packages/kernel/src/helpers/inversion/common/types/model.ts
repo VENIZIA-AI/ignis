@@ -3,6 +3,7 @@ import type {
   ScopeFilters,
   TFilter,
   TScopeFilterMissingBehavior,
+  TScopeWriteGuard,
   TWhere,
 } from '@/base/repositories';
 import type { TClass, TNullable, TValueOrResolver } from '@venizia/ignis-helpers/common';
@@ -35,6 +36,37 @@ export interface IScopeFilterSettings {
    * per MODEL - it cannot express a per-USER bypass; use `ScopeFilters.UNRESTRICTED` for that.
    */
   onMissing?: TScopeFilterMissingBehavior;
+
+  /**
+   * What a create, createAll or an update payload that names a scope column does when its value
+   * disagrees with the resolved scope. `reject` (default) refuses the write and writes nothing - for
+   * `createAll` not even the valid rows. `assign` also fills a scope column that is ABSENT from a
+   * created row, when the scope is a single equality; a value that is present and disagrees is
+   * still refused.
+   *
+   * The scope's columns and allowed values are read from the resolved `where` (equality, `eq`, `inq`
+   * and arrays, joined by `and`). Any other shape cannot be checked, and the write is refused with
+   * its own message - never skipped. `ScopeFilters.UNRESTRICTED` bypasses the guard too, which is the
+   * deliberate way to write across scopes (system scope, an admin role).
+   *
+   * Not checked: an update that does not name the scope column (the row was already selected through
+   * the scoped `where`), and raw statements that bypass the repository.
+   */
+  writeGuard?: TScopeWriteGuard;
+
+  /**
+   * `true` lets `null` be written to a scope column: a row without an owner is shared. Default
+   * `false`, so `null` is refused like any other value outside the scope. Only widens what a write
+   * may store; reads are scoped as before.
+   */
+  sharedRows?: boolean;
+
+  /**
+   * The property names the write guard checks. Optional: with none declared the guard checks every
+   * column the resolved scope constrains. When declared, each name must exist on the model (checked
+   * at boot), and a resolved scope that constrains any other column is refused as unverifiable.
+   */
+  columns?: string[];
 }
 
 export interface IModelSettings {

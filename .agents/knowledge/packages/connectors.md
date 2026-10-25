@@ -418,11 +418,22 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
-**`scopeFilter` NEVER covers `create`.** Scope is a `where` AND-ed into the query and an `INSERT` has
-no `where` to AND into - `applyDefaultFilter` appears only in `_update` and `_delete`
-(`persistable.ts`), never in `_create`. Structural, not an omission, and it means NOTHING stops a
-caller inserting a row owned by somebody else: validating ownership at insert time is the
-application's job, permanently.
+**The write guard covers `create` and an update payload that names a scope column.** Scope is a
+`where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
+(`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`
+through `guardScopedWrite`). It reads the columns and allowed values from the resolved `where`
+(equality, `eq`, `inq`/`in`, arrays, joined by `and`) and holds every written row to them; a row
+that disagrees, or lacks the column on create, throws a 403 `core.repository.scope_write_denied`
+naming the entity and the column, never a value, and writes nothing (all of `createAll`). Settings
+on `scopeFilter`: `writeGuard` `reject` (default) or `assign` (fills an ABSENT column from an
+equality scope; a present, disagreeing value is still refused), `sharedRows` (allows `null`),
+`columns` (validated at boot against the model, and a resolved scope that constrains any other
+column is refused). A scope shape it cannot check (`or`, ranges, `like`, nested paths) is refused
+with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
+guard too - the deliberate hatch for system scope and admin roles; an unresolved scope refuses a
+create under `deny` and leaves an update to the scoped `where`. NOT covered: an update that does not
+name the scope column (already confined by the scoped `where`), raw drizzle statements, and
+per-row or polymorphic ownership below.
 
 **The mirror trap, on the side that IS scoped:** an administrative method that legitimately targets
 another principal's rows (`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows,

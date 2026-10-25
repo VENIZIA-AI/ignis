@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'scopeFilter Write Guard',
+                  link: '/changelogs/2026-10-25-scope-filter-write-guard',
+                },
+                {
                   text: 'CRUD Write Routes and Read-Only Authorize',
                   link: '/changelogs/2026-10-25-crud-write-routes-read-authorize',
                 },

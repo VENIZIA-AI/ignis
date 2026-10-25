@@ -1,0 +1,358 @@
+import { PGlite } from '@electric-sql/pglite';
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+import type { AnyType } from '@venizia/ignis-helpers/common';
+import { isApplicationError } from '@venizia/ignis-helpers/core';
+import { model, RepositoryErrorCodes, ScopeFilters } from '@venizia/ignis-kernel';
+import { BaseRelationalEntity } from '@/relational/core/models';
+import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
+import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
+import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
+import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
+
+/**
+ * The write side of `scopeFilter`, against a real PGlite: a create or an update payload that lands a
+ * row outside the resolved scope is refused, and nothing is written when it is.
+ */
+const itemsTable = pgTable('write_guard_items', {
+  id: serial('id').primaryKey(),
+  merchantId: text('merchant_id'),
+  name: text('name'),
+});
+
+/** What `resolve()` returns right now: the test sets it per case. */
+let scope: AnyType = { merchantId: 'm-a' };
+const resolve = () => scope;
+
+@model({ type: 'entity', settings: { scopeFilter: { resolve } } })
+class RejectItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+@model({ type: 'entity', settings: { scopeFilter: { resolve, writeGuard: 'assign' } } })
+class AssignItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+@model({ type: 'entity', settings: { scopeFilter: { resolve, sharedRows: true } } })
+class SharedItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+@model({ type: 'entity', settings: { scopeFilter: { resolve, columns: ['merchantId'] } } })
+class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+const refusal = async (task: Promise<unknown>) => {
+  try {
+    await task;
+  } catch (error) {
+    if (isApplicationError(error)) {
+      return error;
+    }
+
+    throw error;
+  }
+
+  throw new Error('expected the write to be refused');
+};
+
+describe('scopeFilter write guard', () => {
+  const client = new PGlite();
+  let driver: PGliteDriver<AnyType>;
+
+  const build = (entityClass: AnyType) => {
+    const dataSource = {
+      getQueryDialect: () => new PostgresQueryDialect(),
+      getQueryExecutor: () => new PostgresQueryExecutor(),
+      getConnector: () => driver.createConnector({ schema: { itemsTable } }),
+    } as AnyType;
+
+    return new DefaultCRUDRepository<AnyType>(dataSource, { entityClass });
+  };
+
+  const rows = async () => {
+    const result = await client.query<{ merchantId: string | null; name: string }>(
+      'SELECT merchant_id AS "merchantId", name FROM write_guard_items ORDER BY id',
+    );
+    return result.rows;
+  };
+
+  beforeAll(async () => {
+    await client.waitReady;
+    driver = new PGliteDriver<AnyType>({ client });
+    await client.exec(
+      'CREATE TABLE write_guard_items (id serial primary key, merchant_id text, name text)',
+    );
+  });
+
+  beforeEach(async () => {
+    scope = { merchantId: 'm-a' };
+    await client.exec('TRUNCATE write_guard_items RESTART IDENTITY');
+  });
+
+  afterAll(async () => {
+    await driver.end();
+  });
+
+  describe('create and createAll', () => {
+    test('a row inside the scope is written', async () => {
+      await build(RejectItem).create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+
+    test('a row outside the scope is refused with 403, the code, the model and the column - and no value', async () => {
+      const error = await refusal(
+        build(RejectItem).create({ data: { merchantId: 'm-secret-other', name: 'one' } }),
+      );
+
+      expect(error.statusCode).toBe(403);
+      expect(error.message).toContain('write_guard_items');
+      expect(error.message).toContain('merchantId');
+      expect(error.message).not.toContain('m-secret-other');
+      expect(error.message).not.toContain('m-a');
+      expect(error.normalized.code).toBe(RepositoryErrorCodes.SCOPE_WRITE_DENIED);
+      expect(await rows()).toEqual([]);
+    });
+
+    test('a row without the scope column is refused', async () => {
+      const error = await refusal(build(RejectItem).create({ data: { name: 'one' } }));
+
+      expect(error.message).toContain('the scope column is missing');
+      expect(await rows()).toEqual([]);
+    });
+
+    test('createAll: one bad row refuses the whole batch and nothing is written', async () => {
+      const error = await refusal(
+        build(RejectItem).createAll({
+          data: [
+            { merchantId: 'm-a', name: 'ok-1' },
+            { merchantId: 'm-b', name: 'bad' },
+            { merchantId: 'm-a', name: 'ok-2' },
+          ],
+        }),
+      );
+
+      expect(error.message).toContain('merchantId');
+      expect(await rows()).toEqual([]);
+    });
+
+    test('createAll: every row inside the scope is written', async () => {
+      await build(RejectItem).createAll({
+        data: [
+          { merchantId: 'm-a', name: 'ok-1' },
+          { merchantId: 'm-a', name: 'ok-2' },
+        ],
+      });
+
+      expect((await rows()).map((row) => row.name)).toEqual(['ok-1', 'ok-2']);
+    });
+
+    test('an inq scope allows each of its values and refuses others', async () => {
+      scope = { merchantId: { inq: ['m-a', 'm-b'] } };
+      await build(RejectItem).createAll({
+        data: [
+          { merchantId: 'm-a', name: 'a' },
+          { merchantId: 'm-b', name: 'b' },
+        ],
+      });
+
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-c', name: 'c' } }));
+      expect((await rows()).map((row) => row.name)).toEqual(['a', 'b']);
+    });
+
+    test('an eq operator, an array and an and-combination are read like an equality', async () => {
+      scope = { and: [{ merchantId: { eq: 'm-a' } }, { merchantId: ['m-a', 'm-b'] }] };
+      await build(RejectItem).create({ data: { merchantId: 'm-a', name: 'ok' } });
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
+
+      expect((await rows()).map((row) => row.name)).toEqual(['ok']);
+    });
+  });
+
+  describe('update', () => {
+    test('a payload that moves a row to another scope is refused and the row stays', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      const error = await refusal(
+        repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } }),
+      );
+
+      expect(error.message).toContain('merchantId');
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+
+    test('a payload that sets the scope column to null is refused', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: null } }));
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+
+    test('a payload that keeps the scope column inside the scope is written', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      await repository.updateById({
+        id: created.data.id,
+        data: { merchantId: 'm-a', name: 'two' },
+      });
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'two' }]);
+    });
+
+    test('a payload that does not name the scope column is not checked', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      await repository.updateById({ id: created.data.id, data: { name: 'renamed' } });
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'renamed' }]);
+    });
+  });
+
+  describe('assign', () => {
+    test('fills an absent scope column from an equality scope', async () => {
+      await build(AssignItem).create({ data: { name: 'one' } });
+
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+
+    test('still refuses a value that is present and disagrees', async () => {
+      await refusal(build(AssignItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
+      expect(await rows()).toEqual([]);
+    });
+
+    test('cannot assign from an inq scope, so an absent column is refused', async () => {
+      scope = { merchantId: { inq: ['m-a', 'm-b'] } };
+
+      await refusal(build(AssignItem).create({ data: { name: 'one' } }));
+      expect(await rows()).toEqual([]);
+    });
+
+    test('createAll stamps every row that lacks the column', async () => {
+      await build(AssignItem).createAll({
+        data: [{ name: 'one' }, { merchantId: 'm-a', name: 'two' }],
+      });
+
+      expect(await rows()).toEqual([
+        { merchantId: 'm-a', name: 'one' },
+        { merchantId: 'm-a', name: 'two' },
+      ]);
+    });
+  });
+
+  describe('UNRESTRICTED and a missing scope', () => {
+    test('UNRESTRICTED passes a cross-scope write and stamps nothing', async () => {
+      scope = ScopeFilters.UNRESTRICTED;
+
+      await build(AssignItem).createAll({
+        data: [
+          { merchantId: 'm-other', name: 'explicit' },
+          { merchantId: null, name: 'shared' },
+          { name: 'absent' },
+        ],
+      });
+
+      expect(await rows()).toEqual([
+        { merchantId: 'm-other', name: 'explicit' },
+        { merchantId: null, name: 'shared' },
+        { merchantId: null, name: 'absent' },
+      ]);
+    });
+
+    test('UNRESTRICTED lets an update move a row to another scope', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+      scope = ScopeFilters.UNRESTRICTED;
+
+      await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
+      expect(await rows()).toEqual([{ merchantId: 'm-b', name: 'one' }]);
+    });
+
+    test('a scope that cannot be resolved refuses a create (onMissing defaults to deny)', async () => {
+      scope = undefined;
+
+      const error = await refusal(
+        build(RejectItem).create({ data: { merchantId: 'm-a', name: 'one' } }),
+      );
+      expect(error.message).toContain('no scope could be resolved');
+    });
+
+    test('an update under an unresolved scope is left to the scoped where, which matches no row', async () => {
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+      scope = undefined;
+
+      const result = await repository.updateById({
+        id: created.data.id,
+        data: { name: 'changed' },
+      });
+      expect(result.count).toBe(0);
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+  });
+
+  describe('sharedRows', () => {
+    test('null is refused by default and allowed with sharedRows', async () => {
+      await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
+      await build(SharedItem).create({ data: { merchantId: null, name: 'shared' } });
+
+      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
+    });
+
+    test('sharedRows still refuses a value from another scope', async () => {
+      await refusal(build(SharedItem).create({ data: { merchantId: 'm-b', name: 'bad' } }));
+    });
+
+    test('sharedRows lets an absent scope column through', async () => {
+      await build(SharedItem).create({ data: { name: 'no-owner' } });
+
+      expect(await rows()).toEqual([{ merchantId: null, name: 'no-owner' }]);
+    });
+  });
+
+  describe('a scope that cannot be verified', () => {
+    test.each([
+      ['or', { or: [{ merchantId: 'm-a' }, { merchantId: 'm-b' }] }, /'or'/],
+      ['a range', { merchantId: { gt: 'm' } }, /operator 'gt'/],
+      ['two operators', { merchantId: { eq: 'm-a', neq: 'm-b' } }, /2 operators/],
+      ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
+    ])(
+      '%s refuses the write with its own message, never a skip',
+      async (_label, resolved, pattern) => {
+        scope = resolved;
+
+        const error = await refusal(
+          build(RejectItem).create({ data: { merchantId: 'm-a', name: 'one' } }),
+        );
+        expect(error.message).toMatch(/cannot be verified/);
+        expect(error.message).toMatch(pattern);
+        expect(await rows()).toEqual([]);
+      },
+    );
+  });
+
+  describe('declared columns', () => {
+    test('a scope that constrains an undeclared column is refused as unverifiable', async () => {
+      scope = { and: [{ merchantId: 'm-a' }, { name: 'one' }] };
+
+      const error = await refusal(
+        build(DeclaredItem).create({ data: { merchantId: 'm-a', name: 'one' } }),
+      );
+      expect(error.message).toContain("column 'name'");
+    });
+
+    test('a scope over the declared column passes', async () => {
+      await build(DeclaredItem).create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+  });
+});

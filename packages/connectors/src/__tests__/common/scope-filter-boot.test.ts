@@ -6,6 +6,7 @@
 
 import { AbstractEntity, MetadataRegistry } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
+import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import { assertScopeFilterSupported } from '@/common';
 import { BaseSearchEntity } from '@/search/core/models';
 
@@ -82,5 +83,69 @@ describe('assertScopeFilterSupported', () => {
     expect(() => assertScopeFilterSupported({ asyncContextEnabled: false })).toThrow(
       /search-backed/,
     );
+  });
+});
+
+describe('assertScopeFilterSupported - the write guard settings', () => {
+  const ordersTable = pgTable('boot_guard_orders', {
+    id: serial('id').primaryKey(),
+    merchantId: text('merchant_id'),
+  });
+
+  class GuardedOrder extends AbstractEntity {
+    static schema = ordersTable;
+    getSchema<T = unknown>(): T {
+      return {} as T;
+    }
+  }
+
+  const registerGuarded = (scopeFilter: Record<string, unknown>) => {
+    registry.getAllModels().set('GuardedOrder', {
+      target: GuardedOrder as never,
+      metadata: { settings: { scopeFilter: { resolve: () => null, ...scopeFilter } } } as never,
+      schema: {},
+    });
+  };
+
+  afterEach(() => {
+    registry.getAllModels().clear();
+  });
+
+  test('declared columns that exist on the model pass', () => {
+    registerGuarded({ columns: ['merchantId'] });
+
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).not.toThrow();
+  });
+
+  test('a declared column the model does not have fails at boot, naming the model and the column', () => {
+    registerGuarded({ columns: ['merchantId', 'tenantId'] });
+
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).toThrow(
+      /GuardedOrder.*tenantId/,
+    );
+  });
+
+  test('an empty columns list fails at boot', () => {
+    registerGuarded({ columns: [] });
+
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).toThrow(
+      /non-empty list/,
+    );
+  });
+
+  test('a writeGuard that is neither reject nor assign fails at boot', () => {
+    registerGuarded({ writeGuard: 'ignore' });
+
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).toThrow(
+      /writeGuard 'ignore'/,
+    );
+  });
+
+  test('reject and assign pass', () => {
+    registerGuarded({ writeGuard: 'assign' });
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).not.toThrow();
+
+    registerGuarded({ writeGuard: 'reject' });
+    expect(() => assertScopeFilterSupported({ asyncContextEnabled: true })).not.toThrow();
   });
 });
