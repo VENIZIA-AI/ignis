@@ -31,7 +31,8 @@ const workspace = (changed: string[]): IPlanPackage[] => {
   });
 };
 
-const names = (changed: string[]) => planFullSweep({ packages: workspace(changed) }).map((entry) => entry.name);
+const names = (changed: string[]) =>
+  planFullSweep({ packages: workspace(changed) }).map((entry) => entry.name);
 
 describe('planFullSweep - a synthetic chain', () => {
   const chain: IPlanPackage[] = [
@@ -57,7 +58,9 @@ describe('planFullSweep - a synthetic chain', () => {
   });
 
   test('a package the change does not reach is left out', () => {
-    expect(planFullSweep({ packages: withChanged(['a']) }).map((entry) => entry.name)).not.toContain('d');
+    expect(
+      planFullSweep({ packages: withChanged(['a']) }).map((entry) => entry.name),
+    ).not.toContain('d');
   });
 
   test('a package with its own change is not reported as cascaded', () => {
@@ -79,16 +82,31 @@ describe('planFullSweep - a synthetic chain', () => {
     const packages: IPlanPackage[] = [
       { name: 'a', packageName: '@x/a', dependsOn: [], changedFiles: 1 },
       { name: 'b', packageName: '@x/b', dependsOn: [], changedFiles: 1 },
-      { name: 'c', packageName: '@x/c', dependsOn: ['@x/a', '@x/b', '@y/outside'], changedFiles: 0 },
+      {
+        name: 'c',
+        packageName: '@x/c',
+        dependsOn: ['@x/a', '@x/b', '@y/outside'],
+        changedFiles: 0,
+      },
     ];
 
-    expect(planFullSweep({ packages }).at(-1)).toEqual({ name: 'c', cascadedFrom: ['@x/a', '@x/b'] });
+    expect(planFullSweep({ packages }).at(-1)).toEqual({
+      name: 'c',
+      cascadedFrom: ['@x/a', '@x/b'],
+    });
   });
 });
 
 describe('planFullSweep - the real workspace', () => {
   test('helpers changed: boot, kernel, connectors, the worker and the server follow; inversion, filter and dev-configs do not', () => {
-    expect(names(['helpers'])).toEqual(['helpers', 'boot', 'kernel', 'connectors', 'core-worker', 'core-server']);
+    expect(names(['helpers'])).toEqual([
+      'helpers',
+      'boot',
+      'kernel',
+      'connectors',
+      'core-worker',
+      'core-server',
+    ]);
   });
 
   test('kernel changed: the worker follows (the 0.4.2 case), and boot does not', () => {
@@ -101,7 +119,16 @@ describe('planFullSweep - the real workspace', () => {
   test('inversion changed: every package that ships it follows, dev-configs does not', () => {
     const planned = names(['inversion']);
 
-    expect(planned).toEqual(['inversion', 'filter', 'helpers', 'boot', 'kernel', 'connectors', 'core-worker', 'core-server']);
+    expect(planned).toEqual([
+      'inversion',
+      'filter',
+      'helpers',
+      'boot',
+      'kernel',
+      'connectors',
+      'core-worker',
+      'core-server',
+    ]);
   });
 
   test('dev-configs changed alone releases only itself: nothing ships it', () => {

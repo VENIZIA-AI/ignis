@@ -106,7 +106,7 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
 
   const releaseCommit = stdout
     .split('\n')
-    .find(line => line.includes('release v'))
+    .find((line) => line.includes('release v'))
     ?.split(' ')[0];
 
   if (!releaseCommit) {
@@ -246,7 +246,7 @@ const resolveLatestRunId = async (): Promise<string> => {
   return runs[0] ? String(runs[0].databaseId) : '';
 };
 
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Polls until a run newer than `previousRunId` appears, so we watch OUR dispatch and not an older one. */
 const waitForNewRun = async (opts: { previousRunId: string }): Promise<string> => {
@@ -287,7 +287,9 @@ const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
 const assertPublished = async (opts: { state: IPackageState; runId: string }): Promise<string> => {
   const { stdout } = await run({ command: ['gh', 'run', 'view', opts.runId, '--log'] });
   const marker = `+ ${opts.state.packageName}@`;
-  const line = stdout.split('\n').find(entry => entry.includes(marker) && !entry.includes('echo'));
+  const line = stdout
+    .split('\n')
+    .find((entry) => entry.includes(marker) && !entry.includes('echo'));
   const version = line?.slice(line.indexOf(marker) + marker.length).trim();
 
   if (!version) {
@@ -353,7 +355,7 @@ const main = async (): Promise<void> => {
   // `seeded`: resuming a chain that stopped - the packages an earlier run already published, so the
   // next ones trust their workspace version instead of waiting for npm to show them.
   const { isDryRun, isConfirmed, mode, seeded, issue, named } = parseReleaseArgs(Bun.argv.slice(2));
-  const unknownNames = named.filter(name => !RELEASE_ORDER.includes(name as never));
+  const unknownNames = named.filter((name) => !RELEASE_ORDER.includes(name as never));
   if (unknownNames.length > 0) {
     throw new Error(
       `Unknown package(s): ${unknownNames.join(', ')}. Known: ${RELEASE_ORDER.join(', ')}`,
@@ -362,11 +364,11 @@ const main = async (): Promise<void> => {
   // A name means "from here on": the package and everything after it in the chain, so a consumer
   // never gets a new package beside a stale one that depends on it.
   const start =
-    named.length > 0 ? Math.min(...named.map(name => RELEASE_ORDER.indexOf(name as never))) : -1;
+    named.length > 0 ? Math.min(...named.map((name) => RELEASE_ORDER.indexOf(name as never))) : -1;
   const requested: Array<string> = start >= 0 ? RELEASE_ORDER.slice(start) : [];
   const candidates = requested.length > 0 ? requested : RELEASE_ORDER;
 
-  const unknown = requested.filter(name => !RELEASE_ORDER.includes(name as never));
+  const unknown = requested.filter((name) => !RELEASE_ORDER.includes(name as never));
   if (unknown.length > 0) {
     throw new Error(
       `Unknown package(s): ${unknown.join(', ')}. Known: ${RELEASE_ORDER.join(', ')}`,
@@ -388,7 +390,7 @@ const main = async (): Promise<void> => {
         cascadedFrom.set(entry.name, entry.cascadedFrom);
       }
     }
-    plan = states.filter(state => planned.some(entry => entry.name === state.name));
+    plan = states.filter((state) => planned.some((entry) => entry.name === state.name));
   }
 
   if (plan.length === 0) {
@@ -403,7 +405,9 @@ const main = async (): Promise<void> => {
         ? 'never released'
         : `${state.changedFiles} file(s)`;
     const cascade = cascadedFrom.get(state.name);
-    const why = cascade ? `  (no source change: depends on ${cascade.join(', ')}, pinned exactly)` : '';
+    const why = cascade
+      ? `  (no source change: depends on ${cascade.join(', ')}, pinned exactly)`
+      : '';
     console.log(
       `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}${why}`,
     );
@@ -419,8 +423,10 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  const chainReleased: Array<string> = seeded.map(name =>
-    name.startsWith('@') ? name : (states.find(state => state.name === name)?.packageName ?? name),
+  const chainReleased: Array<string> = seeded.map((name) =>
+    name.startsWith('@')
+      ? name
+      : (states.find((state) => state.name === name)?.packageName ?? name),
   );
   for (const state of plan) {
     await releasePackage({ state, mode, issue, chainReleased });

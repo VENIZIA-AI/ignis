@@ -17,7 +17,7 @@ bun.lockb
 # Build and Compilation Output
 # These files are generated from source code and don't need to be in version control.
 dist/
-release/
+/release/
 build/
 app_data/
 *.tsbuildinfo
