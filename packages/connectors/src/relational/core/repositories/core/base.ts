@@ -1,3 +1,4 @@
+import type { TScopeWriteOperation } from '../common/constants';
 import type {
   IdType,
   IExtraOptions,
@@ -191,7 +192,7 @@ export abstract class RelationalBaseRepository<
    */
   protected guardScopedWrite<Row extends Record<string, unknown>>(opts: {
     rows: Row[];
-    operation: 'create' | 'update';
+    operation: TScopeWriteOperation;
   }): Row[] {
     const settings = this.getAccessSettings();
     if (!settings) {

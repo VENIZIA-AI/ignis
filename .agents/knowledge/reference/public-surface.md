@@ -1672,7 +1672,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (128)
+### `@venizia/ignis-connectors` (130)
 
 - `AbstractRelationalDataSource` class
 - `AbstractSearchDataSource` class
@@ -1753,6 +1753,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SearchBaseRepository` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
@@ -1785,6 +1786,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -1803,9 +1805,10 @@ generated:
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/http` (20)
+### `@venizia/ignis-connectors/http` (22)
 
 - `HttpDataSource` class
+- `HttpReadShapes` class
 - `HttpRepository` class
 - `HttpResourceEntity` class
 - `HttpResponseReader` class
@@ -1824,9 +1827,10 @@ generated:
 - `THttpHeaders` type
 - `THttpHeadersResolver` type
 - `THttpQuery` type
+- `THttpReadShape` type
 - `THttpRepositoryOptions` type
 
-### `@venizia/ignis-connectors/relational` (74)
+### `@venizia/ignis-connectors/relational` (76)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -1874,6 +1878,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1895,6 +1900,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -1903,7 +1909,7 @@ generated:
 - `validateJsonColumnType` const
 - `validateJsonPathComponents` const
 
-### `@venizia/ignis-connectors/postgres` (83)
+### `@venizia/ignis-connectors/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1911,6 +1917,7 @@ generated:
 - `BasePostgresDataSource` class
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
+- `BigIntModes` class
 - `createRelations` const
 - `DefaultCRUDRepository` class
 - `enrichDataTypes` const
@@ -1955,6 +1962,7 @@ generated:
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
+- `TBigIntMode` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -2312,7 +2320,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1055)
+### `@venizia/ignis` (1057)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2416,6 +2424,7 @@ generated:
 - `BasicTokenService` class
 - `bidiStream` const
 - `BigIntIdType` type
+- `BigIntModes` class
 - `Binding` class
 - `BindingKeys` class
 - `BindingNamespaces` class
@@ -3060,6 +3069,7 @@ generated:
 - `TAuthorizeModelFormat` type
 - `TAuthStrategy` type
 - `TBasicTokenServiceOptions` type
+- `TBigIntMode` type
 - `TBindingKey` type
 - `TBindingNamespace` type
 - `TBindingScope` type
@@ -3370,7 +3380,7 @@ generated:
 - `WhereSchema` const
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis/postgres` (83)
+### `@venizia/ignis/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -3378,6 +3388,7 @@ generated:
 - `BasePostgresDataSource` class
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
+- `BigIntModes` class
 - `createRelations` const
 - `DefaultCRUDRepository` class
 - `enrichDataTypes` const
@@ -3422,6 +3433,7 @@ generated:
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
+- `TBigIntMode` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -3456,7 +3468,7 @@ generated:
 - `TUserAuditEnricherResult` type
 - `UpdateBuilder` class
 
-### `@venizia/ignis/relational` (74)
+### `@venizia/ignis/relational` (76)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -3504,6 +3516,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -3525,6 +3538,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
