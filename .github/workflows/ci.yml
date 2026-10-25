@@ -100,7 +100,7 @@ jobs:
 
       # Every example compiles against the built packages: a type a barrel forgot to export breaks one.
       - name: Examples type-check
-        if: ${{ !cancelled() && steps.build.outcome == success }}
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make examples-check
 
       # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
