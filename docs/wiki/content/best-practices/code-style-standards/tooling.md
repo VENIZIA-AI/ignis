@@ -131,7 +131,7 @@ The rule classes and their options are in the [package README](https://github.co
 
 ## ESLint Configuration (what oxlint cannot run)
 
-ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the two house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object) and `venizia/no-new-error` (throw through `getError`, never `new Error`).
+ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object), `venizia/no-new-error` (throw through `getError`, never `new Error`), and two that only warn: `venizia/const-class-values` (a string-literal union in an exported declaration is a const class plus `TConstValue`) and `@typescript-eslint/consistent-type-assertions` (`as X` casts; `as const` and `satisfies` pass).
 
 **`.configs/lints/eslint.config.mjs`:**
 ```typescript
@@ -139,6 +139,8 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default houseConfigs;
 ```
+
+The two warnings never fail `make lint`: oxlint is the one that runs with `--deny-warnings`, and these two rules run in ESLint. `const-class-values` skips key sets (`Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys). Both are off in tests.
 
 `max-params-own` does not count a signature that belongs to someone else: a callback passed inline to a call (`map`, `sort`, a library handler) or to a JSX prop, a function a declared type fixes, or a constructor whose parameters are all `@inject`. A hook callback (`useCallback(...)`) is yours, so it counts. Tests are exempt from `no-new-error`, because a test throws a plain `Error` to stand in for a driver. For a bootstrap that cannot import `getError`, disable the rule on that line and give the reason.
 
