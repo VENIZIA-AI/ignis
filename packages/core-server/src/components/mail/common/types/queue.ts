@@ -1,3 +1,4 @@
+import type { TMailBackoffType } from '../constants';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
 import type { BullMQExecutorModes, MailQueueExecutorTypes } from '../constants';
@@ -7,7 +8,7 @@ export interface IMailQueueOptions {
   delay?: number;
   attempts?: number;
   backoff?: {
-    type: 'fixed' | 'exponential';
+    type: TMailBackoffType;
     delay: number;
   };
 }

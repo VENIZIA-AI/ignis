@@ -10,7 +10,12 @@ import type {
   IMailQueueResult,
   IQueueJobPayload,
 } from '../../common';
-import { BullMQExecutorModes, MailErrorCodes, MailExecutorErrors } from '../../common';
+import {
+  BullMQExecutorModes,
+  MailBackoffTypes,
+  MailErrorCodes,
+  MailExecutorErrors,
+} from '../../common';
 import type { Job } from 'bullmq';
 
 export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
@@ -359,7 +364,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       delay: options?.delay,
       attempts: options?.attempts ?? 3,
       backoff: {
-        type: options?.backoff?.type ?? 'exponential',
+        type: options?.backoff?.type ?? MailBackoffTypes.EXPONENTIAL,
         delay: options?.backoff?.delay ?? 1000,
       },
       removeOnComplete: true,

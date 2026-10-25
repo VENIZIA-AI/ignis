@@ -56,6 +56,7 @@ export { ProjectRootRegistry } from './utilities/project-root.utility';
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even
 // though the concrete classes they describe (crypto algorithms, the ioredis-backed helper) are not
 // themselves part of this pure surface.
-export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.algorithm';
+export { AESAlgorithms } from './modules/crypto/algorithms/aes.constants';
+export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constants';
 export type { IPayloadCipher } from './modules/crypto/common/types';
 export type { IRedisHelper } from './modules/redis/common/interfaces';

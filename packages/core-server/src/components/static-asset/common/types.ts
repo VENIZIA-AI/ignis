@@ -17,13 +17,14 @@ import type {
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { AnyType, TValueOrAsyncResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { TMultipartStorage } from '@venizia/ignis-helpers';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetStorageTypes } from './constants';
 
 export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {
-    storage?: 'memory' | 'disk';
+    storage?: TMultipartStorage;
     uploadDir?: string;
   };
 

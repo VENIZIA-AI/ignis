@@ -5,7 +5,7 @@ import path from 'node:path';
 import pino from 'pino';
 import { LoggerFormats, resolveLoggerColorize } from '../common';
 
-import { type TFrequency } from './common';
+import { PinoFrequencies, type TFrequency } from './common';
 
 /** Pure description of where pino should write, derived from env; `PinoDestination.build()` is the impure half that acts on it. */
 export type TDestinationPlan =
@@ -24,7 +24,7 @@ export type TDestinationPlan =
 
 /** Reads `APP_ENV_LOGGER_*` and turns it into a destination. Warning prefixes name the operation, not the class - the tests and the published API still call these `mapFrequency`/`mapMaxFilesToCount`. */
 export class PinoDestination {
-  private static readonly DEFAULT_FREQUENCY: TFrequency = 'hourly';
+  private static readonly DEFAULT_FREQUENCY: TFrequency = PinoFrequencies.HOURLY;
   private static readonly DEFAULT_MAX_FILES = '5d';
 
   /** `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`; an unrecognized value warns and falls back rather than throwing, so the app still boots. */
@@ -33,11 +33,11 @@ export class PinoDestination {
 
     switch (normalized) {
       case '1h': {
-        return 'hourly';
+        return PinoFrequencies.HOURLY;
       }
       case '1d':
       case '24h': {
-        return 'daily';
+        return PinoFrequencies.DAILY;
       }
       default: {
         console.warn(
