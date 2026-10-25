@@ -26,7 +26,9 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   await application['registerDefaultMiddlewares']();
 
   const server = application.getServer();
-  server.post('/echo', async (context) => context.json({ length: (await context.req.text()).length }));
+  server.post('/echo', async (context) =>
+    context.json({ length: (await context.req.text()).length }),
+  );
   server.get('/boom', () => {
     throw new Error('route failure');
   });
@@ -39,7 +41,10 @@ const WITH_CORS = {
   cors: { enable: true, origin: ORIGIN, exposeHeaders: ['x-request-id'] },
 };
 
-const postOverLimit = (opts: { server: Awaited<ReturnType<typeof buildServer>>; origin?: string }) =>
+const postOverLimit = (opts: {
+  server: Awaited<ReturnType<typeof buildServer>>;
+  origin?: string;
+}) =>
   opts.server.request('/echo', {
     method: 'POST',
     headers: {
@@ -129,38 +134,59 @@ describe('configs.middlewares.cors - installed first in the default stack', () =
       middlewares: { cors: { enable: true, origin: [ORIGIN, OTHER_ORIGIN] } },
     });
     const fn = await buildServer({
-      middlewares: { cors: { enable: true, origin: (origin: string) => (origin === ORIGIN ? origin : null) } },
+      middlewares: {
+        cors: { enable: true, origin: (origin: string) => (origin === ORIGIN ? origin : null) },
+      },
     });
 
-    expect((await list.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get('access-control-allow-origin')).toBe(OTHER_ORIGIN);
-    expect((await fn.request('/boom', { headers: { origin: ORIGIN } })).headers.get('access-control-allow-origin')).toBe(ORIGIN);
-    expect((await fn.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get('access-control-allow-origin')).toBeNull();
+    expect(
+      (await list.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get(
+        'access-control-allow-origin',
+      ),
+    ).toBe(OTHER_ORIGIN);
+    expect(
+      (await fn.request('/boom', { headers: { origin: ORIGIN } })).headers.get(
+        'access-control-allow-origin',
+      ),
+    ).toBe(ORIGIN);
+    expect(
+      (await fn.request('/boom', { headers: { origin: OTHER_ORIGIN } })).headers.get(
+        'access-control-allow-origin',
+      ),
+    ).toBeNull();
   });
 });
 
+/** The message the boot refusal carries, or an empty string when the application booted. */
+const bootFailure = async (middlewares: IApplicationConfigs['middlewares']): Promise<string> => {
+  try {
+    await buildServer({ middlewares });
+  } catch (error) {
+    return String((error as Error).message);
+  }
+
+  return '';
+};
+
 describe('configs.middlewares.cors - validated at boot', () => {
   test("credentials with origin '*' is refused with a message naming both", async () => {
-    await expect(
-      buildServer({ middlewares: { cors: { enable: true, origin: '*', credentials: true } } }),
-    ).rejects.toThrow(/credentials cannot be combined with origin '\*'/);
+    expect(await bootFailure({ cors: { enable: true, origin: '*', credentials: true } })).toMatch(
+      /credentials cannot be combined with origin '\*'/,
+    );
   });
 
   test("credentials with a list that contains '*' is refused too", async () => {
-    await expect(
-      buildServer({ middlewares: { cors: { enable: true, origin: [ORIGIN, '*'], credentials: true } } }),
-    ).rejects.toThrow(/credentials/);
+    expect(
+      await bootFailure({ cors: { enable: true, origin: [ORIGIN, '*'], credentials: true } }),
+    ).toMatch(/credentials/);
   });
 
   test('a missing or empty origin is refused', async () => {
-    await expect(
-      buildServer({ middlewares: { cors: { enable: true, origin: '' } } }),
-    ).rejects.toThrow(/origin is required/);
-    await expect(
-      buildServer({ middlewares: { cors: { enable: true, origin: [] } } }),
-    ).rejects.toThrow(/origin is required/);
+    expect(await bootFailure({ cors: { enable: true, origin: '' } })).toMatch(/origin is required/);
+    expect(await bootFailure({ cors: { enable: true, origin: [] } })).toMatch(/origin is required/);
   });
 
-  test("a wildcard origin without credentials is accepted", async () => {
+  test('a wildcard origin without credentials is accepted', async () => {
     const server = await buildServer({ middlewares: { cors: { enable: true, origin: '*' } } });
     const response = await server.request('/boom', { headers: { origin: ORIGIN } });
 

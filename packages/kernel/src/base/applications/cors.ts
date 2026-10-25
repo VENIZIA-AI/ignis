@@ -9,7 +9,10 @@ import type { ICORSOptions } from './common';
  * on its own - a bodyLimit 413, a body the request spy cannot parse, the error envelope - leaves
  * with the headers a browser needs to read it.
  */
-export const registerCors = (opts: { server: Hono<any, any, any>; options?: ICORSOptions }): void => {
+export const registerCors = (opts: {
+  server: Hono<any, any, any>;
+  options?: ICORSOptions;
+}): void => {
   const { server, options } = opts;
 
   if (!options || options.enable === false) {
@@ -38,9 +41,14 @@ export const registerCors = (opts: { server: Hono<any, any, any>; options?: ICOR
   // Only the keys that are set: hono spreads over its defaults, so an `undefined` would erase one
   // (a missing `allowMethods` would then answer a preflight with no allowed methods).
   const settings = Object.fromEntries(
-    Object.entries({ origin, allowMethods, allowHeaders, maxAge, credentials, exposeHeaders }).filter(
-      ([, value]) => value !== undefined,
-    ),
+    Object.entries({
+      origin,
+      allowMethods,
+      allowHeaders,
+      maxAge,
+      credentials,
+      exposeHeaders,
+    }).filter(([, value]) => value !== undefined),
   );
 
   server.use(path ?? '*', cors(settings as Parameters<typeof cors>[0]));

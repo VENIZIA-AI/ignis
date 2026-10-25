@@ -609,18 +609,26 @@ rather than re-registering anything.
 ### Your Own Middlewares
 
 The application has no `use`, `onError` or `notFound` members. Register on the Hono server you get
-from `this.getServer()`, inside `setupMiddlewares()`:
+from `this.getServer()`, inside `setupMiddlewares()`. CORS is the exception: set it in the
+constructor config, where the framework installs it before its own early exits:
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import { cors } from 'hono/cors';
+import { compress } from 'hono/compress';
+
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    path: { base: '/api', isStrict: true },
+    middlewares: { cors: { enable: true, origin: ['https://app.example.com'] } },
+  },
+});
 
 class MyApplication extends BaseApplication {
   // ...other lifecycle hooks
 
   setupMiddlewares() {
-    const server = this.getServer();
-    server.use(cors({ origin: '*' }));
+    this.getServer().use(compress());
   }
 }
 ```
