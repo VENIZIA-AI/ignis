@@ -105,12 +105,12 @@ Marks a class as a database entity and configures its behavior.
 | Setting | Meaning |
 |---|---|
 | `write.mode` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, or move a row into that shared set. Default `false`. Reading shared rows is a separate matter, see below |
+| `write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Default `false`. Reading shared rows is a separate matter, see below |
 | `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
 
 The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
 
-A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `write.sharedRows: true`. The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `write.sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
+A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `write.sharedRows: true`, and an update, delete, soft delete or restore does not reach a shared row at all (the scope it runs under has the `null` branch removed, so the count is 0). The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `write.sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
 
 An empty list scope, `{ merchantId: { in: [] } }`, refuses every create and every update that names the column.
 
