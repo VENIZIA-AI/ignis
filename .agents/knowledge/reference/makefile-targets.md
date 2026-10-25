@@ -105,7 +105,7 @@ generated:
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |
 | `make surface-check` | - | Gate: the public surface equals the snapshot. |
 | `make surface-gen` | - | Snapshot every exported symbol into .agents/knowledge/reference/public-surface.md. |
-| `make test-all` | `test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
+| `make test-all` | `test-dev-configs test-inversion test-helpers test-boot test-kernel test-connectors test-core-worker test-core-server` | test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel). |
 | `make test-boot` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-connectors` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-core` | `test-core-server` | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
