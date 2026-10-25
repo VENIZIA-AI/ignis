@@ -482,6 +482,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-25-browser-and-web-worker-guide',
                 },
                 {
+                  text: 'Inherited Property Names',
+                  link: '/changelogs/2026-10-25-inherited-property-names',
+                },
+                {
                   text: 'devz clean Removes tsbuildinfo',
                   link: '/changelogs/2026-10-25-devz-clean-tsbuildinfo',
                 },

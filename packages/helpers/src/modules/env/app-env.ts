@@ -22,7 +22,7 @@ export class Environment extends EnvironmentNames {
 
 export class ApplicationEnvironment extends BaseHelper implements IApplicationEnvironment {
   private prefix: string;
-  private arguments: Record<string, any> = {};
+  private arguments: Record<string, any> = Object.create(null);
 
   constructor(opts: { prefix: string; envs: Record<string, string | number | undefined> }) {
     super({ scope: ApplicationEnvironment.name });

@@ -18,6 +18,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | Date | Title | Type |
 |------|-------|------|
 | 2026-10-25 | [A CRUD Write Route No Longer Inherits a Read-Only Authorize](./2026-10-25-crud-write-routes-read-authorize) | Security |
+| 2026-10-25 | [An Inherited Property Name Is No Longer Read as a Value](./2026-10-25-inherited-property-names) | Bug Fix |
 | 2026-10-25 | [A Guide for Using IGNIS in a Browser or Web Worker](./2026-10-25-browser-and-web-worker-guide) | Enhancement |
 | 2026-10-25 | [devz clean Removes tsbuildinfo Files](./2026-10-25-devz-clean-tsbuildinfo) | Bug Fix |
 | 2026-10-24 | [Arrow Functions Always Carry Parentheses](./2026-10-24-arrow-parens-always) | Enhancement |
