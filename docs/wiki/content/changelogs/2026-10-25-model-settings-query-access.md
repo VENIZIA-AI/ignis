@@ -49,11 +49,24 @@ class Product extends BaseRelationalEntity<typeof products> {}
 
 `hiddenProperties` and `authorize` are unchanged. The option `shouldSkipDefaultFilter` keeps its name and skips `query.filter`; it never skips `access`.
 
+## Migrate with one command
+
+`@venizia/dev-configs` ships a codemod that rewrites the `settings` of every `@model({ ... })` for you:
+
+```bash
+bunx devz codemod model-settings --check   # lists the files that would change, exits 1 if any
+bunx devz codemod model-settings           # rewrites them
+bun fmt && bun run typecheck               # tidy the formatting, then check
+```
+
+Pass paths to limit it (`devz codemod model-settings src/models`). It edits the object literal in place, keeps your comments, merges into an existing `query` or `access`, and is safe to run twice. It never guesses: a `settings` value that is a variable, a call or a spread, or a `scopeFilter` that is not an object literal, is printed with its file and line and left untouched. Fix those by hand with the table below.
+
 ## What happens to the old keys
 
 - **They are normalised once, when the `@model` decorator runs.** Everything that reads model settings reads the new shape, so a model behaves the same whichever shape it uses.
 - **Each old key in use prints one warning at boot**, naming the model, the old key, the new key and "removed in 0.4.3".
 - **An old key together with the key that replaces it is an error.** `defaultLimit` with `query.limit.default`, or `scopeFilter` with `access`, throws when the decorator runs, naming the model and the key to keep.
+- **With `write.mode: 'assign'` and `write.sharedRows: true` together, an absent scope column is stamped** with the scope's single value instead of being left `null`. Stamping gives the row an owner, which is the safer reading; `sharedRows` still lets an explicit `null` through.
 - **The old keys are marked `@deprecated` in the types**, and `IScopeFilterSettings` is the deprecated name of `IModelAccessSettings`. 
 - **The old keys are removed in 0.4.3.** After that, a model that still uses one fails the type check and the key is no longer applied; migrate before you upgrade.
 
