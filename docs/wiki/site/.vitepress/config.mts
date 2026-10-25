@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'IGNIS in a Browser or Web Worker',
+                  link: '/changelogs/2026-10-25-browser-and-web-worker-guide',
+                },
+                {
                   text: 'RecursiveTreeSql Schema and Anchor Filter',
                   link: '/changelogs/2026-10-25-recursive-tree-schema-and-anchor-filter',
                 },
@@ -2176,6 +2180,7 @@ const config = defineConfig({
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
             { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
+            { text: 'Browser and Web Worker', link: '/guides/core-concepts/browser-and-web-worker' },
             {
               text: 'Persistent Layer',
               collapsed: true,
