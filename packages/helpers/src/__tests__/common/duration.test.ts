@@ -163,14 +163,20 @@ describe('DurationMultipliers - an inherited property name is not a unit', () =>
 
   test('fromMilliseconds answers null', () => {
     for (const unit of INHERITED) {
-      expect(DurationMultipliers.fromMilliseconds({ milliseconds: 5, unit: unit as never })).toBeNull();
+      expect(
+        DurationMultipliers.fromMilliseconds({ milliseconds: 5, unit: unit as never }),
+      ).toBeNull();
     }
   });
 
   test('convert answers null for an inherited name on either side', () => {
     for (const unit of INHERITED) {
-      expect(DurationMultipliers.convert({ value: 5, from: unit as never, to: 'second' })).toBeNull();
-      expect(DurationMultipliers.convert({ value: 5, from: 'second', to: unit as never })).toBeNull();
+      expect(
+        DurationMultipliers.convert({ value: 5, from: unit as never, to: 'second' }),
+      ).toBeNull();
+      expect(
+        DurationMultipliers.convert({ value: 5, from: 'second', to: unit as never }),
+      ).toBeNull();
     }
   });
 

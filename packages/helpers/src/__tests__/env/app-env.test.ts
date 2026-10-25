@@ -87,3 +87,15 @@ describe('ApplicationEnvironment.get - a present-but-empty value', () => {
     expect(environment.get<string>('APP_ENV_FALSE', { defaultValue: 'true' })).toBe('false');
   });
 });
+
+describe('ApplicationEnvironment.get - an inherited property name is not a variable', () => {
+  test.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
+    '%s reads as unset, so the default applies',
+    (name) => {
+      const environment = makeEnvironment({});
+
+      expect(environment.get<string>(name)).toBeUndefined();
+      expect(environment.get<string>(name, { defaultValue: 'fallback' })).toBe('fallback');
+    },
+  );
+});

@@ -222,3 +222,15 @@ describe('HfLogFlusher lifecycle and sinks', () => {
     expect(warnings.some((entry) => entry.includes('Invalid batchSize'))).toBe(true);
   });
 });
+
+describe('HfLogger - an inherited property name is not a level', () => {
+  test('a level that only exists on Object.prototype is written as info', async () => {
+    const { flusher, lines } = await collectingFlusher();
+
+    HfLogger.get('Inherited').log('constructor' as never, HfLogger.encodeMessage('odd level'));
+    await flusher.flush();
+
+    expect(lines()).toHaveLength(1);
+    expect(lines()[0]).toMatch(/\[info\] Inherited odd level$/);
+  });
+});
