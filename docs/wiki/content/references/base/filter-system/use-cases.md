@@ -9,7 +9,7 @@ difficulty: intermediate
 Runnable `filter` objects, paired with the SQL `FilterBuilder` produces for them. Copy the shape closest to what you need. For the operators themselves, start at the [Filter System Overview](./).
 
 > [!NOTE]
-> Every `find()` emits a `LIMIT`. A filter that omits `limit` gets `settings.defaultLimit ?? 10`, so the examples below that set no `limit` still come back capped at 10 rows. See [Fields, Ordering & Pagination](./fields-order-pagination#default-limit-resolution).
+> Every `find()` emits a `LIMIT`. A filter that omits `limit` gets `settings.query.limit.default ?? 10`, so the examples below that set no `limit` still come back capped at 10 rows. See [Fields, Ordering & Pagination](./fields-order-pagination#default-limit-resolution).
 
 ## Soft delete
 
@@ -31,7 +31,7 @@ const deletedRecords = await repository.find({
 
 Notice: `is`/`isn` against a nullable timestamp is the whole pattern - no separate `deleted: boolean` column needed.
 
-If every query on a model should exclude deleted rows, encode this once as `settings.defaultFilter` instead of repeating it at every call site. See [Default Filter](./default-filter).
+If every query on a model should exclude deleted rows, encode this once as `settings.query.filter` (the old `defaultFilter` key is deprecated and removed in 0.4.3) instead of repeating it at every call site. See [Default Filter](./default-filter).
 
 ## E-commerce product search
 
@@ -100,7 +100,7 @@ Notice: `nin` on `status` silently drops any row where `status` is `NULL`. See [
 
 ## Multi-tenant isolation at the call site
 
-`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. The alternative below is a helper that injects `tenantId` at every call site instead. Use it when tenant isolation is a caller concern, not a per-model constant.
+`settings.query.filter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. The alternative below is a helper that injects `tenantId` at every call site instead. Use it when tenant isolation is a caller concern, not a per-model constant.
 
 ```typescript
 const getTenantProducts = (tenantId: string, filter: TFilter<TProductSchema>) =>

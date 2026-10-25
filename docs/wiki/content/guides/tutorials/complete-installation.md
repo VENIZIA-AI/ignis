@@ -206,17 +206,13 @@ export class Application extends BaseApplication {
     // Example: this.static({ folderPath: './public' })
   }
 
-  // Hook 2: Add global middlewares (CORS, etc.)
+  // Hook 2: Add global middlewares. CORS is not added here: set `middlewares.cors` in the
+  // application config (`appConfigs`), where the framework installs it before its own early exits.
   override async setupMiddlewares(): Promise<void> {
     const server = this.getServer();
-    const { cors } = await import('hono/cors');
+    const { compress } = await import('hono/compress');
 
-    server.use('*', cors({
-      origin: '*',
-      allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      maxAge: 86_400,
-      credentials: true,
-    }));
+    server.use('*', compress());
   }
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
@@ -267,7 +263,7 @@ export class Application extends BaseApplication {
 | 13 | `registerControllers` | Auto - mounts controller routes on the root router |
 | 14 | `postConfigure` | Optional - seed data, background jobs |
 | 15 | `verifyBindings` | Auto - resolves every service and repository when `bootChecks.binding.doVerify` is on |
-| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `scopeFilter` cannot take effect |
+| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `access` setting cannot take effect |
 
 `getAppInfo()` is not a boot step. Components call it when they need your application metadata. `setupMiddlewares()` is not one either: `start()` runs it after `initialize()`, just before the server binds its socket.
 

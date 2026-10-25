@@ -2,7 +2,7 @@ import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { Name, SQL } from 'drizzle-orm';
 import { getTableName, is, sql, Table } from 'drizzle-orm';
-import { PgTable } from 'drizzle-orm/pg-core';
+import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import { SQLiteTable } from 'drizzle-orm/sqlite-core';
 
 /** Walk direction relative to `rootId`: DOWN follows `parentColumn -> idColumn` (descendants), UP follows the reverse (ancestors). */
@@ -57,6 +57,16 @@ export interface IRecursiveTreeOptions {
   /** Extra columns, beyond `idColumn`/`parentColumn`, carried into every row of the walk. */
   columns?: string[];
 
+  /**
+   * ANDed into the anchor term's WHERE clause, next to the `idColumn = rootId` match - build it with
+   * Drizzle's own `sql` tag, columns unqualified. Together with {@link recursiveFilter} it keeps a
+   * row out of the walk at both ends, e.g. `sql\`deleted_at IS NULL\`` on each term.
+   *
+   * `walk` takes a table, not a model, so it never applies a model's soft delete or `access` scope by
+   * itself: both terms are filtered only by what the caller passes here and in `recursiveFilter`.
+   */
+  anchorFilter?: SQL;
+
   /** ANDed into the recursive term's WHERE clause - build it with Drizzle's own `sql` tag. */
   recursiveFilter?: SQL;
 
@@ -98,6 +108,7 @@ export class RecursiveTreeSql {
       idColumn = 'id',
       parentColumn = 'parent_id',
       columns = [],
+      anchorFilter,
       recursiveFilter,
       trackPath = false,
       startDepth = 0,
@@ -133,7 +144,21 @@ export class RecursiveTreeSql {
     const tableName = getTableName(table);
     RecursiveTreeSql.assertValidIdentifier({ field: 'table', value: tableName });
 
-    const tableIdentifier = sql.identifier(tableName);
+    // A Postgres table declared with `pgSchema('commerce').table(...)` lives outside the search path,
+    // so the unqualified name would read the wrong relation or none. SQLite has no schemas.
+    const schemaName =
+      engine === RecursiveTreeEngines.POSTGRES
+        ? getTableConfig(table as PgTable).schema
+        : undefined;
+
+    if (schemaName !== undefined) {
+      RecursiveTreeSql.assertValidIdentifier({ field: 'schema', value: schemaName });
+    }
+
+    const tableIdentifier =
+      schemaName === undefined
+        ? sql.identifier(tableName)
+        : sql`${sql.identifier(schemaName)}.${sql.identifier(tableName)}`;
     const cteIdentifier = sql.identifier(name);
     const idIdentifier = sql.identifier(idColumn);
     const parentIdentifier = sql.identifier(parentColumn);
@@ -152,7 +177,8 @@ export class RecursiveTreeSql {
       ? RecursiveTreeSql.compileCycleGuardFragments({ engine, idIdentifier })
       : { basePathColumns: sql``, recursivePathColumns: sql`` };
 
-    const baseCase = sql`SELECT ${baseColumnList}, ${depthCast} AS depth${basePathColumns} FROM ${tableIdentifier} WHERE ${idIdentifier} = ${rootId}`;
+    const anchorExtraFilter = anchorFilter ? sql` AND (${anchorFilter})` : sql``;
+    const baseCase = sql`SELECT ${baseColumnList}, ${depthCast} AS depth${basePathColumns} FROM ${tableIdentifier} WHERE ${idIdentifier} = ${rootId}${anchorExtraFilter}`;
 
     // DOWN walks parent -> children (t.parentColumn = r.idColumn); UP walks child -> parent (t.idColumn = r.parentColumn).
     const joinCondition =

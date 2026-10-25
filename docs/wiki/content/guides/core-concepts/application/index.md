@@ -236,6 +236,27 @@ this.registerPostStartHook({
 });
 ```
 
+## Graceful Shutdown
+
+Nothing stops the application on `SIGTERM` or `SIGINT` by itself. Call `installShutdownSignals()` after `start()` to stop it, then exit, when the process is asked to end (a container stop, Ctrl-C):
+
+```typescript
+const application = new Application({ scope: 'MyApp', config: appConfigs });
+application.init();
+await application.start();
+
+const uninstall = application.installShutdownSignals({ timeoutMs: 20_000 });
+// later, if you need to take the handlers off again: uninstall();
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `signals` | `['SIGTERM', 'SIGINT']` | The signals that start a shutdown |
+| `timeoutMs` | `15_000` | A shutdown that takes longer is force-exited with code `1` |
+| `exit` | `process.exit` | What ends the process; replace it in a test or a host that exits differently |
+
+It calls `stop()` once: a second signal while it runs is ignored. The process exits `0` when `stop()` finishes, and `1` when it throws or hits the timeout. Calling `installShutdownSignals()` again returns the same uninstall function and adds no listener. It is not installed unless you call it, and it exists on `ServerApplication` only, so a browser Worker host never gets process signal handlers.
+
 ## Static File Serving
 
 Serve static files with runtime-aware implementation:

@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1078 source files across 9 packages.**
+**1086 source files across 9 packages.**
 
 ## boot  (26 source files)
 
@@ -23,12 +23,12 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (228 source files)
+## connectors  (230 source files)
 
 | Subsystem | Files |
 |---|---|
-| `relational/` | 138 |
-| `search/` | 77 |
+| `relational/` | 139 |
+| `search/` | 78 |
 | `http/` | 6 |
 | `common/` | 4 |
 | `testing/` | 2 |
@@ -53,12 +53,12 @@ generated:
 | `applications/` | 4 |
 | `envelope/` | 4 |
 
-## dev-configs  (34 source files)
+## dev-configs  (36 source files)
 
 | Subsystem | Files |
 |---|---|
 | `linters/` | 26 |
-| `cli/` | 3 |
+| `cli/` | 5 |
 | `compilers/` | 2 |
 | `testing/` | 2 |
 
@@ -84,11 +84,11 @@ generated:
 | `modules/` | 27 |
 | `common/` | 5 |
 
-## kernel  (211 source files)
+## kernel  (215 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 174 |
+| `base/` | 178 |
 | `helpers/` | 24 |
 | `common/` | 8 |
 | `utilities/` | 2 |

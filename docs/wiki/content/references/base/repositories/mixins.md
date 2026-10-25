@@ -24,7 +24,7 @@ Before the connectors restructure, `AbstractRepository` composed two mixins onto
 | Mixin | Responsibility |
 |-------|----------------|
 | `FieldsVisibilityMixin` | Hidden-properties exclusion at SQL level (reads `hiddenProperties` from `@model` settings) |
-| `DefaultFilterMixin` | Automatic default-filter merging (reads `defaultFilter` from `@model` settings) |
+| `DefaultFilterMixin` | Automatic default-filter merging (reads `query.filter` from `@model` settings) |
 
 ## Where the Behavior Lives Now
 
@@ -37,8 +37,8 @@ IGNIS didn't drop the functionality - it folded it directly into the repository 
 ```typescript
 protected get modelSettings(): IModelMetadata['settings'];  // full @model settings
 protected get hiddenFields(): string[];                     // settings.hiddenProperties ?? []
-protected get defaultWhere(): TWhere | undefined;           // settings.defaultFilter?.where
-protected get defaultLimit(): number | undefined;           // settings.defaultLimit
+protected get defaultWhere(): TWhere | undefined;           // settings.query.filter?.where
+protected get defaultLimit(): number | undefined;           // settings.query.limit.default
 ```
 
 ### Relational tier: `RelationalBaseRepository`
@@ -50,7 +50,7 @@ getHiddenProperties(): Set<string>;                       // memoized Set of hid
 hasHiddenProperties(): boolean;
 getVisibleProperties(): Record<string, any> | undefined;  // memoized Drizzle column-selection map
 
-getDefaultFilter(): TFilter | undefined;                  // settings.defaultFilter
+getDefaultFilter(): TFilter | undefined;                  // settings.query.filter
 getDefaultLimit(): number | undefined;
 hasDefaultFilter(): boolean;
 applyDefaultFilter(opts: {

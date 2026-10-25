@@ -88,7 +88,9 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
     // getModelEntry is exercised, so this is a fixture-boundary cast.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
       getModelEntryBySchema: () => undefined,
-      getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
+      getModelEntry: () => ({
+        metadata: { type: 'entity', settings: { query: { limit: { default: 7 } } } },
+      }),
     } as any);
 
     const result = builder.toInclude({ include: [{ relation: 'categories' }], relations });
@@ -102,7 +104,9 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
     // Fixture-boundary cast - see comment on the first mock in this describe block.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
       getModelEntryBySchema: () => undefined,
-      getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
+      getModelEntry: () => ({
+        metadata: { type: 'entity', settings: { query: { limit: { default: 7 } } } },
+      }),
     } as any);
 
     const q = buildScope('categories', { limit: 50 }) as TDrizzleQueryOptions;

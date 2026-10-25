@@ -406,18 +406,15 @@ describe('toInclude - each child model registered its own @model settings', () =
     const registry = MetadataRegistry.getInstance();
 
     expect(
-      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.access,
     ).toBeDefined();
     expect(
-      registry.getModelEntry({ name: PRODUCT_OPEN_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: PRODUCT_OPEN_TABLE })?.metadata.settings?.access,
     ).toBeUndefined();
     expect(
-      registry.getModelEntry({ name: PRODUCT_ALLOW_TABLE })?.metadata.settings?.scopeFilter
-        ?.onMissing,
+      registry.getModelEntry({ name: PRODUCT_ALLOW_TABLE })?.metadata.settings?.access?.onMissing,
     ).toBe(ScopeFilterMissingBehaviors.ALLOW);
-    expect(
-      registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.scopeFilter,
-    ).toBeDefined();
+    expect(registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.access).toBeDefined();
 
     expect(typeof ScopeIncludeProductEntity).toBe('function');
     expect(typeof ScopeIncludeProductOpenEntity).toBe('function');

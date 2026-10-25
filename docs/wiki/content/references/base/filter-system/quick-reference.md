@@ -147,7 +147,7 @@ So `{ 'metadata.score': { gt: 80 } }` compares as a number, and `{ 'metadata.cod
 | `fields` (object) | `{ field: true }` | `fields: { id: true, name: true }` | Same - inclusion-only, `false` is ignored |
 | `order` | `'field ASC'` / `'field DESC'` | `order: ['createdAt DESC']` | `ORDER BY`; default direction is `ASC` (`order: ['name']` = `'name ASC'`); more than two tokens or an empty entry is a 400 |
 | `order` (JSON path) | `'a.b DESC'` | `order: ['metadata.priority DESC']` | `ORDER BY` on a JSON path |
-| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.defaultLimit ?? 10`. Above `settings.maxLimit` (default `1000`) it throws |
+| `limit` | number | `limit: 10` | `LIMIT`; omitted -> `query.limit ?? settings.query.limit.default ?? 10`. Above `settings.query.limit.max` (default `1000`) it throws |
 | `skip` | number | `skip: 20` | `OFFSET`; alias of `offset` - `skip` wins if both are given |
 | `offset` | number | `offset: 20` | `OFFSET`; alias of `skip` |
 
@@ -157,7 +157,7 @@ So `{ 'metadata.score': { gt: 80 } }` compares as a number, and `{ 'metadata.cod
 
 ## Default Filter
 
-A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
+A model's `settings.query.filter` merges into every read, update, and delete for that model. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
 
 | Collision shape | Result |
 |---|---|

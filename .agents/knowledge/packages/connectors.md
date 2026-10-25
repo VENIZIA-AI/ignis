@@ -17,7 +17,7 @@ tags: [packages, connectors, drizzle, relational, search, browser]
 - [Two ways to declare a model, both supported](#two-ways-to-declare-a-model-both-supported)
 - [What it owns](#what-it-owns)
 - [Recursive tree SQL](#recursive-tree-sql)
-- [`scopeFilter` - a row scope, relational only](#scopefilter---a-row-scope-relational-only)
+- [`access` - a row scope, relational only](#access---a-row-scope-relational-only)
 - [Every published sub-path is probed, and eight rows are waived](#every-published-sub-path-is-probed-and-eight-rows-are-waived)
 - [Why the PGlite row uses `external`](#why-the-pglite-row-uses-external)
 - [A connectors-only process logs to the console](#a-connectors-only-process-logs-to-the-console)
@@ -396,11 +396,11 @@ the 14 forgot and hung a production process walking an unbounded parent chain.
   `@venizia/ignis-helpers`' `modules/tree` - see [helpers](/packages/helpers.md). They are pure and
   carry no Drizzle dependency, which is why they are not here too.
 
-## `scopeFilter` - a row scope, relational only
+## `access` - a row scope, relational only
 
-`@model` settings.scopeFilter (kernel) ANDs a per-request `where` into every relational read, plus
+`@model` settings.access (kernel; the old `scopeFilter` key is deprecated and removed in 0.4.3) ANDs a per-request `where` into every relational read, plus
 `update` and `delete`, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
-`relational/core/repositories/core/base.ts`. It is a second, separate filter from `defaultFilter`:
+`relational/core/repositories/core/base.ts`. It is a second, separate filter from `query.filter`:
 `shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses
 to reach past `deletedAt: null`, and reusing one filter for both would hand `restore()` the same
 reach into another caller's row scope. `resolve()` returning null/undefined denies by default
@@ -418,19 +418,30 @@ also unscope every ordinary user whose `resolve()` happens to return nothing. `U
 object, so no request body, query string, or header can ever produce it - the bypass can only come
 from code the application wrote and reviewed.
 
-**`scopeFilter` NEVER covers `create`.** Scope is a `where` AND-ed into the query and an `INSERT` has
-no `where` to AND into - `applyDefaultFilter` appears only in `_update` and `_delete`
-(`persistable.ts`), never in `_create`. Structural, not an omission, and it means NOTHING stops a
-caller inserting a row owned by somebody else: validating ownership at insert time is the
-application's job, permanently.
+**The write guard covers `create` and an update payload that names a scope column.** Scope is a
+`where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
+(`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`
+through `guardScopedWrite`). It reads the columns and allowed values from the resolved `where`
+(equality, `eq`, `inq`/`in`, arrays, `and`, and an `or` whose branches all constrain one column - the shared-rows scope - read as the union of its values) and holds every written row to them; a row
+that disagrees, or lacks the column on create, throws a 403 `core.repository.scope_write_denied`
+naming the entity and the column, never a value, and writes nothing (all of `createAll`). Settings
+on `access`: `access.write.mode` `reject` (default) or `assign` (fills an ABSENT column from an
+equality scope; a present, disagreeing value is still refused), `access.write.sharedRows` (the only way a restricted caller may write `null` or omit the scope column; a null branch in an `or` scope grants READING shared rows, never writing them),
+`access.columns` (validated at boot against the model, and a resolved scope that constrains any other
+column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, nested paths) is refused
+with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
+guard too - the deliberate hatch for system scope and admin roles; an unresolved scope refuses a
+create under `deny` and leaves an update to the scoped `where`. NOT covered: an update that does not
+name the scope column (already confined by the scoped `where`), raw drizzle statements, and
+per-row or polymorphic ownership below.
 
 **The mirror trap, on the side that IS scoped:** an administrative method that legitimately targets
 another principal's rows (`deleteAllForUser({ userId })`) silently narrows to the CALLER's rows,
-deletes nothing, and reports success. When adding `scopeFilter` to a model, audit every
+deletes nothing, and reports success. When adding `access` to a model, audit every
 `updateById`/`updateAll`/`deleteBy` taking another principal's id as an argument; the fix is a
 method on the repository passing `dangerouslySkipScopeFilter`, never a flag in the request context.
 
-**Declaring `scopeFilter` where it cannot take effect now REFUSES TO BOOT** -
+**Declaring `access` where it cannot take effect now REFUSES TO BOOT** -
 `assertScopeFilterSupported({ asyncContextEnabled })` in `src/common/scope-filter.ts`, called from
 core-server's `initialize()` after `postConfigure()` so component-contributed models are covered. It
 catches the two silent configurations, which fail in OPPOSITE directions: a search-backed model
@@ -445,40 +456,40 @@ why it is a trap. The redundancy adds no safety and HIDES divergence; a subclass
 but not the other drifts with no compile error. There is no honest "migrate one family while the
 guards stay" path.
 
-**`scopeFilter` narrows, a guard throws, and the profiles are OPPOSITE.** Injecting a `where` means a
+**`access` narrows, a guard throws, and the profiles are OPPOSITE.** Injecting a `where` means a
 handler that forgets is still scoped (the win) but a legitimate cross-principal write silently does
 nothing (the cost), and `create` is out of reach. A guard that loads the row and throws is the mirror:
 it covers `create` and cannot silently succeed, but it is a hole wherever somebody forgot to call it,
 and it costs a read per write. Neither dominates - pick per model, and keep guards on `create` either way.
-**Beyond that, `scopeFilter` covers an update or delete whose scope is expressible as a filter
+**Beyond that, `access` covers an update or delete whose scope is expressible as a filter
 clause - not per-row or polymorphic ownership.** A `where` comparing a column against values the resolver already knows
 (`merchantId`, `tenantId`) is exactly that shape. A row identified only by a `principalType` +
 `principalId` pair, where the owner lives in a different table chosen by `principalType` at runtime,
 is not: that check is per-row, asynchronous, and reads the payload, none of which `resolve(): TWhere`
 can express. An application with that shape still must run its own ownership check before the write -
-`scopeFilter` neither performs it nor detects that it is missing. This is a deliberate gap, tracked
+`access` neither performs it nor detects that it is missing. This is a deliberate gap, tracked
 the same way the search-repository gap below is: no hook exists for the per-row case yet, because its
 shape varies enough between applications that building one before seeing more of them would guess
 wrong.
 
 **Search repositories (`search/core`, `typesense`, `meilisearch`) do not read this setting at all.**
 They compile filters through a different pipeline - `SearchBaseRepository.buildQuery` and
-`compileEffectiveWhere`, string `filterBy` expressions - and `scopeFilter` was deliberately left
+`compileEffectiveWhere`, string `filterBy` expressions - and `access` was deliberately left
 uncovered there rather than half-implemented. A model mirrored from a scoped relational entity into
 a search index carries no row scope in its search queries; the application must add its own.
 
-**`include` reaches `scopeFilter` too, at every relation and every nesting depth.**
+**`include` reaches `access` too, at every relation and every nesting depth.**
 `FilterBuilder.toInclude` in `relational/core/repositories/dialect/filter.ts` resolves each relation's
-`scopeFilter` from that relation's OWN `@model` settings - not the parent's - the same
+`access` from that relation's OWN `@model` settings - not the parent's - the same
 `resolveModelEntry` lookup `resolveDefaultFilter`/`resolveHiddenProperties` already use, keyed by the
 relation's schema object first and its SQL table name second. A parent's scope never cascades to a child, and a child with no
-`scopeFilter` compiles to exactly the same query it always did. The same three-state order applies
+`access` compiles to exactly the same query it always did. The same three-state order applies
 per relation: an `UNRESTRICTED` parent never widens a still-scoped child, and a scoped parent never
 narrows an `UNRESTRICTED` child, because each relation's `applyRelationScopeFilter` reads only that
 relation's own `resolve()`. `toInclude` calls itself through
 `build()` for a relation's own `include`, so a relation of a relation is scoped by the same code path,
 not a special case. The relation-level `shouldSkipDefaultFilter` (on an `include` entry) still gates
-only that relation's `defaultFilter`; it is deliberately excluded from the wire filter schema (see
+only that relation's `query.filter`; it is deliberately excluded from the wire filter schema (see
 `packages/filter/src/schemas/builder.ts`) precisely so it cannot double as a scope bypass. The deny
 predicate (`{ id: { inq: [] } }`) is a static method on `ScopeFilterDenial` in
 `relational/core/repositories/common/scope-filter.ts`, shared by `applyScopeFilter` and `toInclude` so

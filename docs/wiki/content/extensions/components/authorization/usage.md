@@ -204,7 +204,7 @@ authorize: { action: AuthorizationActions.DELETE, resource: 'Article', allowedRo
 
 ## CRUD factory integration
 
-**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`.
+**Apply to every generated route.** Set `authorize` at the controller level in `defineCrudController`. A write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) must not inherit a `read` spec, so give each write route its own, or make the controller `readonly`.
 
 ```typescript
 import { AuthorizationActions } from '@venizia/ignis';
@@ -215,8 +215,18 @@ ControllerFactory.defineCrudController({
   controller: { name: 'ArticleController', basePath: '/articles' },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
+  routes: {
+    create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
+    updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    deleteById: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
+    deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
+  },
 });
 ```
+
+> [!WARNING] A write route cannot inherit a `read` authorize
+> `defineCrudController` throws at boot when an enabled write route would inherit a controller-level spec whose action is `read` (every spec, for an array). The error names the controller and the routes. Declare `routes.<route>.authorize` (a spec, an array or `{ skip: true }`), set `controller.readonly: true`, or leave the route out of `controller.enabledRoutes`.
 
 **Override per endpoint.** `routes.<endpoint>.authorize` takes precedence over the controller-level spec.
 
@@ -225,6 +235,8 @@ routes: {
   find: { authenticate: { skip: true } },                                   // public read - skips BOTH checks
   count: { authorize: { skip: true } },                                     // authenticated, no authorization
   create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
+  updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+  updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
   deleteById: {
     authorize: {
       action: AuthorizationActions.DELETE,
@@ -232,6 +244,7 @@ routes: {
       allowedRoles: [AuthorizationRoles.ADMIN.identifier],
     },
   },
+  deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
 }
 ```
 

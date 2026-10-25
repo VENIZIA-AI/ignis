@@ -14,12 +14,12 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
       });
     }
 
-    this.buses = {};
+    this.buses = Object.create(null);
   }
 
   bindWorkerBus<IC, IP>(opts: { key: string; bus: IWorkerBus<IC, IP> }) {
     if (!this.buses) {
-      this.buses = {};
+      this.buses = Object.create(null);
     }
 
     const { key, bus } = opts;

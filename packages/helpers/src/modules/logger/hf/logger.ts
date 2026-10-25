@@ -138,7 +138,9 @@ export class HfLogger extends AbstractLogger {
     if (level === LogLevels.DEBUG && !SHOULD_LOG_DEBUG) {
       return;
     }
-    const levelCode = HF_LEVEL_CODES[level] ?? HF_LEVEL_CODES.info;
+    const levelCode = Object.hasOwn(HF_LEVEL_CODES, level)
+      ? HF_LEVEL_CODES[level]
+      : HF_LEVEL_CODES.info;
     if (typeof message === 'string') {
       this.writeString(levelCode, message, args);
       return;

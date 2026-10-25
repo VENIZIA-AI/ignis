@@ -111,7 +111,7 @@ await productRepository.find({
 
 Postgres has no hard `IN`-list limit, but a multi-thousand-element array is worth chunking for query-plan and payload-size reasons.
 
-Every chunk needs its own `limit`. `find()` fills in `filter.limit ?? settings.defaultLimit ?? 10`, so a chunk without one returns at most 10 rows and the loop quietly drops the rest:
+Every chunk needs its own `limit`. `find()` fills in `filter.limit ?? settings.query.limit.default ?? 10`, so a chunk without one returns at most 10 rows and the loop quietly drops the rest:
 
 ```typescript
 const allIds = getLargeIdList(); // e.g. 5000 IDs
@@ -129,7 +129,7 @@ for (let i = 0; i < allIds.length; i += chunkSize) {
 ```
 
 > [!WARNING]
-> Keep `chunkSize` at or below the model's `maxLimit`. That ceiling defaults to `1000`, and an explicit `limit` above it throws before the query runs. Raise it with `@model({ settings: { maxLimit } })` when you genuinely need bigger chunks - see [Fields, Ordering & Pagination](./fields-order-pagination#limit-ceiling-maxlimit).
+> Keep `chunkSize` at or below the model's `settings.query.limit.max`. That ceiling defaults to `1000`, and an explicit `limit` above it throws before the query runs. Raise it with `@model({ settings: { query: { limit: { max } } } })` when you genuinely need bigger chunks - see [Fields, Ordering & Pagination](./fields-order-pagination#limit-ceiling-maxlimit).
 
 ## Factor out reusable `where`/pagination fragments
 

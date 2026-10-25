@@ -27,6 +27,8 @@ import type { TMixinOpts } from '../mixins/common';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
+import { registerCors } from './cors';
+import { warnDeprecatedModelSettings } from './deprecations';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
@@ -127,6 +129,10 @@ export abstract class RestApplication<
    */
   protected registerDefaultMiddlewares(): ValueOrPromise<void> {
     const server = this.getServer();
+
+    // First of all, so every response the framework produces on its own - a bodyLimit 413, a body the
+    // request spy cannot parse, the error envelope - leaves with the headers a browser needs to read it.
+    registerCors({ server, options: this.configs.middlewares?.cors });
 
     server.use(requestId({ generator: () => this.generateRequestId() }));
 
@@ -378,6 +384,8 @@ export abstract class RestApplication<
         throw error;
       }
     }
+
+    warnDeprecatedModelSettings({ logger });
 
     logger.info(
       'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',

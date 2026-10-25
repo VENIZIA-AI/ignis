@@ -46,7 +46,7 @@ export class RepositoryTypes {
 /** Valid repository type values. */
 export type TRepositoryType = TConstValue<typeof RepositoryTypes>;
 
-/** What a row-scope filter (`@model` settings.scopeFilter) does when `resolve()` returns null/undefined. */
+/** What a row-scope filter (`@model` settings.access) does when `resolve()` returns null/undefined. */
 export class ScopeFilterMissingBehaviors {
   /** An unresolved scope matches ZERO rows - the safe reading of "caller's scope is unknown". */
   static readonly DENY = 'deny';
@@ -61,6 +61,26 @@ export class ScopeFilterMissingBehaviors {
 
 /** Valid scope-filter missing-behavior values. */
 export type TScopeFilterMissingBehavior = TConstValue<typeof ScopeFilterMissingBehaviors>;
+
+/**
+ * What a scoped write does with a row whose scope column disagrees with the resolved scope
+ * (`@model` settings.access.write.mode). A scope that returns `ScopeFilters.UNRESTRICTED`
+ * passes either way.
+ */
+export class ScopeWriteGuards {
+  /** Default. A row whose scope column disagrees, or is absent on create, is refused and nothing is written. */
+  static readonly REJECT = 'reject';
+  /** An ABSENT scope column is filled from an equality scope; a value that disagrees is still refused. */
+  static readonly ASSIGN = 'assign';
+  static readonly SCHEME_SET = new Set([this.REJECT, this.ASSIGN]);
+
+  static isValid(guard: string): boolean {
+    return this.SCHEME_SET.has(guard);
+  }
+}
+
+/** Valid scope write-guard values. */
+export type TScopeWriteGuard = TConstValue<typeof ScopeWriteGuards>;
 
 /**
  * The third `resolve()` state, beside a `where` and `deny`-by-default null/undefined: unrestricted
@@ -83,6 +103,11 @@ export class RepositoryErrorCodes {
   /** A verb the repository's `operationScope` does not permit (e.g. `create()` on a READ_ONLY one). */
   static readonly OPERATION_NOT_ALLOWED = MessageCode.build({
     parts: ['core', 'repository', 'operation_not_allowed'],
+  });
+
+  /** A write whose scope column disagrees with the resolved scope, or whose scope cannot be verified (`access` write guard). */
+  static readonly SCOPE_WRITE_DENIED = MessageCode.build({
+    parts: ['core', 'repository', 'scope_write_denied'],
   });
 }
 

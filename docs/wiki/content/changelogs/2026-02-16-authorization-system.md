@@ -163,8 +163,13 @@ ControllerFactory.defineCrudController({
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
   routes: {
     find: { authenticate: { skip: true } },           // Public
-    deleteById: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } }, // Override
     count: { authorize: { skip: true } },              // Skip authz only
+    // Every write route declares its own authorize (a read spec is refused on them since 0.4.2)
+    create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
+    updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
+    deleteById: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
+    deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
   },
 });
 ```

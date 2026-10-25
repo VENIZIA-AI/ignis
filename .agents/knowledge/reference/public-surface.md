@@ -1166,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (417)
+### `@venizia/ignis-kernel` (423)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1312,6 +1312,7 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
+- `IDeprecatedModelSetting` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
 - `IdType` type
@@ -1331,8 +1332,11 @@ generated:
 - `IJWTTokenPayload` interface
 - `IJWTVerifyOptions` interface
 - `IMiddlewareConfigs` interface
+- `IModelAccessSettings` interface
+- `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
 - `InclusionSchema` const
@@ -1433,6 +1437,7 @@ generated:
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
 - `serverStream` const
@@ -1566,6 +1571,7 @@ generated:
 - `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
 - `TSelectedRow` type
@@ -2292,7 +2298,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1036)
+### `@venizia/ignis` (1043)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2612,6 +2618,7 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
+- `IDeprecatedModelSetting` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
@@ -2659,8 +2666,11 @@ generated:
 - `ILuxonDateTimeFactory` interface
 - `IManyRelation` interface
 - `IMiddlewareConfigs` interface
+- `IModelAccessSettings` interface
+- `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
 - `InclusionSchema` const
@@ -2767,6 +2777,7 @@ generated:
 - `IServiceAuthOptions` interface
 - `IServiceMixin` interface
 - `isFloat` const
+- `IShutdownSignalsOptions` interface
 - `isInt` const
 - `isNotFoundError` const
 - `ISnowflakeParsedId` interface
@@ -2965,6 +2976,7 @@ generated:
 - `ScopedCasbinAdapter` class
 - `ScopeFilterMissingBehaviors` class
 - `ScopeFilters` class
+- `ScopeWriteGuards` class
 - `SearchErrorCodes` class
 - `SecFetchSiteValues` const
 - `SecretProviders` class
@@ -3242,6 +3254,7 @@ generated:
 - `TS3Audience` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
+- `TScopeWriteGuard` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
 - `TSecretProvider` type

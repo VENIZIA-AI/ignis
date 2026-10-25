@@ -470,6 +470,56 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'A Guide to Model Settings',
+                  link: '/changelogs/2026-10-25-model-settings-guide',
+                },
+                {
+                  text: 'Model Settings: query and access',
+                  link: '/changelogs/2026-10-25-model-settings-query-access',
+                },
+                {
+                  text: 'installShutdownSignals',
+                  link: '/changelogs/2026-10-25-install-shutdown-signals',
+                },
+                {
+                  text: 'Search Controller Scope',
+                  link: '/changelogs/2026-10-25-search-controller-scope',
+                },
+                {
+                  text: 'scopeFilter Write Guard',
+                  link: '/changelogs/2026-10-25-scope-filter-write-guard',
+                },
+                {
+                  text: 'CORS in the Default Stack',
+                  link: '/changelogs/2026-10-25-cors-in-the-default-stack',
+                },
+                {
+                  text: 'CRUD Write Routes and Read-Only Authorize',
+                  link: '/changelogs/2026-10-25-crud-write-routes-read-authorize',
+                },
+                {
+                  text: 'IGNIS in a Browser or Web Worker',
+                  link: '/changelogs/2026-10-25-browser-and-web-worker-guide',
+                },
+                {
+                  text: 'RecursiveTreeSql Schema and Anchor Filter',
+                  link: '/changelogs/2026-10-25-recursive-tree-schema-and-anchor-filter',
+                },
+                {
+                  text: 'Inherited Property Names',
+                  link: '/changelogs/2026-10-25-inherited-property-names',
+                },
+                {
+                  text: 'devz clean Removes tsbuildinfo',
+                  link: '/changelogs/2026-10-25-devz-clean-tsbuildinfo',
+                },
+              ],
+            },
+            {
               text: '2026-10-24',
               collapsed: true,
               items: [
@@ -2166,12 +2216,17 @@ const config = defineConfig({
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
             { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
+            { text: 'Browser and Web Worker', link: '/guides/core-concepts/browser-and-web-worker' },
             {
               text: 'Persistent Layer',
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/persistent/' },
                 { text: 'Models', link: '/guides/core-concepts/persistent/models' },
+                {
+                  text: 'Model Settings',
+                  link: '/guides/core-concepts/persistent/model-settings',
+                },
                 { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },

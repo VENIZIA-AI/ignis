@@ -2,7 +2,7 @@ import type {
   IdType,
   IExtraOptions,
   IPersistableRepository,
-  IScopeFilterSettings,
+  IModelAccessSettings,
   ITransaction,
   TCount,
   TByIdFilter,
@@ -45,6 +45,7 @@ import type {
   TRelationalTransactionOptionsOf,
 } from '../common';
 import { ScopeFilterDenial } from '../common';
+import { ScopeWriteGuard } from '../common/scope-write-guard';
 
 /** Relational implementation of `AbstractRepository`: adds the query dialect + hidden-column exclusion on top of the neutral base, and reaches the database only through `IRelationalQueryExecutor`. Both engine-facing parameters default to the neutral SQL contracts; an engine binds them by subclassing. */
 export abstract class RelationalBaseRepository<
@@ -161,7 +162,7 @@ export abstract class RelationalBaseRepository<
   }
 
   getDefaultFilter(): TFilter | undefined {
-    return this.modelSettings?.defaultFilter;
+    return this.modelSettings?.query?.filter;
   }
 
   getDefaultLimit(): number | undefined {
@@ -173,13 +174,41 @@ export abstract class RelationalBaseRepository<
     return defaultFilter !== undefined && Object.keys(defaultFilter).length > 0;
   }
 
-  /** Same override seam as `getDefaultFilter()` - a repository with no resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid touching `modelSettings`/`entity` at all. */
-  getScopeFilterSettings(): IScopeFilterSettings | undefined {
-    return this.modelSettings?.scopeFilter;
+  /**
+   * The model's `access` settings. Same override seam as `getDefaultFilter()` - a repository with no
+   * resolvable `@model` entity (a synthetic test double, a hand-built stub) overrides this to avoid
+   * touching `modelSettings`/`entity` at all. The name is kept from before `scopeFilter` became
+   * `access`, so an existing override keeps working.
+   */
+  getScopeFilterSettings(): IModelAccessSettings | undefined {
+    return this.modelSettings?.access;
   }
 
   /**
-   * Row scope from `@model` settings.scopeFilter - AND-composed like a default filter, but never
+   * Holds written rows to the resolved row scope (`access.write`): refuses a row outside
+   * it, and for `assign` returns copies with the scope columns filled in. Nothing is written when it
+   * throws. Like the read scope, it is not skippable by `shouldSkipDefaultFilter`; a caller that is
+   * trusted to write across scopes resolves to `ScopeFilters.UNRESTRICTED`.
+   */
+  protected guardScopedWrite<Row extends Record<string, unknown>>(opts: {
+    rows: Row[];
+    operation: 'create' | 'update';
+  }): Row[] {
+    const settings = this.getScopeFilterSettings();
+    if (!settings) {
+      return opts.rows;
+    }
+
+    return ScopeWriteGuard.apply({
+      settings,
+      model: this.entity.name,
+      rows: opts.rows,
+      operation: opts.operation,
+    });
+  }
+
+  /**
+   * Row scope from `@model` settings.access - AND-composed like a default filter, but never
    * skippable via `shouldSkipDefaultFilter`: that flag serves `restore()`'s deliberate reach past
    * soft-delete, which must not also reach past tenant/ownership scoping.
    *

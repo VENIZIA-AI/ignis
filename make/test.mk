@@ -1,7 +1,7 @@
 # Package test suites, the browser-purity gate, the clean-install gate, and the gate scripts' own tests.
 
 # Packages with no suite of their own; their `test-<pkg>` says so and passes.
-NO_TEST := dev-configs filter
+NO_TEST := filter
 # The test environment, in one place: logs land in the gitignored ./app_data, not the package root.
 TEST_ENV := NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
 TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
