@@ -2,8 +2,8 @@ import { describe, test, expect } from 'bun:test';
 import { model } from '@/base/metadata';
 import { type IModelSettings } from '@venizia/ignis-kernel';
 
-/** `@model({ settings: { defaultLimit } })` validates at decoration (boot) time: a provided defaultLimit MUST be a positive integer, failing fast before the query layer. */
-describe('@model - defaultLimit validation', () => {
+/** `@model({ settings: { query: { limit } } })` validates at decoration (boot) time: a provided default or ceiling MUST be a positive integer, failing fast before the query path ever runs. */
+describe('@model - query.limit validation', () => {
   const decorate = (settings: IModelSettings) => () => {
     @model({ type: 'entity', settings })
     class M {}
@@ -11,47 +11,64 @@ describe('@model - defaultLimit validation', () => {
   };
 
   test('accepts a positive integer', () => {
-    expect(decorate({ defaultLimit: 50 })).not.toThrow();
+    expect(decorate({ query: { limit: { default: 50 } } })).not.toThrow();
   });
 
-  test('accepts an omitted defaultLimit', () => {
+  test('accepts an omitted limit', () => {
     expect(decorate({})).not.toThrow();
   });
 
-  test('rejects zero', () => {
-    expect(decorate({ defaultLimit: 0 })).toThrow(/Invalid 'query.limit.default'/);
+  test.each([
+    ['zero', 0],
+    ['a negative value', -5],
+    ['a non-integer', 10.5],
+    ['NaN', Number.NaN],
+  ])('rejects %s for the default', (_name, value) => {
+    expect(decorate({ query: { limit: { default: value } } })).toThrow(
+      /Invalid 'query.limit.default'/,
+    );
   });
 
-  test('rejects a negative value', () => {
-    expect(decorate({ defaultLimit: -5 })).toThrow(/Invalid 'query.limit.default'/);
-  });
-
-  test('rejects a non-integer', () => {
-    expect(decorate({ defaultLimit: 10.5 })).toThrow(/Invalid 'query.limit.default'/);
-  });
-
-  test('rejects NaN', () => {
-    expect(decorate({ defaultLimit: NaN })).toThrow(/Invalid 'query.limit.default'/);
+  test.each([
+    ['zero', 0],
+    ['a negative value', -1],
+    ['a non-integer', 2.5],
+  ])('rejects %s for the ceiling', (_name, value) => {
+    expect(decorate({ query: { limit: { max: value } } })).toThrow(/Invalid 'query.limit.max'/);
   });
 });
 
-describe('@model - query.limit validation under the grouped keys', () => {
-  const decorate = (settings: IModelSettings) => () => {
+describe('@model - the removed 0.4.2 keys', () => {
+  const decorate = (settings: object) => () => {
     @model({ type: 'entity', settings })
     class M {}
     return M;
   };
 
-  test('accepts positive integers for the default and the ceiling', () => {
-    expect(decorate({ query: { limit: { default: 20, max: 200 } } })).not.toThrow();
+  test.each([
+    ['defaultFilter', { defaultFilter: { where: {} } }, 'query.filter'],
+    ['defaultLimit', { defaultLimit: 5 }, 'query.limit.default'],
+    ['maxLimit', { maxLimit: 5 }, 'query.limit.max'],
+    ['scopeFilter', { scopeFilter: { resolve: () => null } }, 'access'],
+  ])('%s throws at decoration and names the key to use', (key, settings, use) => {
+    expect(decorate(settings)).toThrow(
+      new RegExp(`settings\\.${key} \\(use settings\\.${use.replaceAll('.', '\\.')}\\)`),
+    );
   });
 
-  test('rejects a bad default and a bad ceiling, naming the new key', () => {
-    expect(decorate({ query: { limit: { default: 0 } } })).toThrow(/Invalid 'query.limit.default'/);
-    expect(decorate({ query: { limit: { max: -1 } } })).toThrow(/Invalid 'query.limit.max'/);
+  test('the message says it was removed in 0.4.3 and names the codemod', () => {
+    expect(decorate({ defaultLimit: 5 })).toThrow(
+      /removed in 0\.4\.3.*devz codemod model-settings/,
+    );
   });
 
-  test('the old maxLimit is validated under the new name too', () => {
-    expect(decorate({ maxLimit: 2.5 })).toThrow(/Invalid 'query.limit.max'/);
+  test('every removed key in use is listed, so one run shows them all', () => {
+    expect(decorate({ defaultFilter: {}, scopeFilter: {} })).toThrow(
+      /settings\.defaultFilter.*settings\.scopeFilter/,
+    );
+  });
+
+  test('an inherited name is not a removed key', () => {
+    expect(decorate(Object.create({ scopeFilter: 1 }))).not.toThrow();
   });
 });

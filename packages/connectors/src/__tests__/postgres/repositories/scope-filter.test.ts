@@ -41,7 +41,7 @@ let denyTenant: TNullable<string> = 'tenant-a';
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => (denyTenant == null ? denyTenant : { tenantId: denyTenant }),
     },
   },
@@ -56,7 +56,7 @@ let allowTenant: TNullable<string> = null;
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => (allowTenant === null ? allowTenant : { tenantId: allowTenant }),
       onMissing: ScopeFilterMissingBehaviors.ALLOW,
     },
@@ -72,7 +72,7 @@ class ScopeResolutionError extends Error {}
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         throw new ScopeResolutionError('scope resolution blew up');
       },
@@ -87,8 +87,8 @@ class ThrowingScopeEntity extends BaseRelationalEntity<typeof scopeFilterUnitTab
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: { resolve: () => ({ tenantId: 'tenant-a' }) },
-    defaultFilter: { where: { name: { neq: 'archived' } } },
+    access: { resolve: () => ({ tenantId: 'tenant-a' }) },
+    query: { filter: { where: { name: { neq: 'archived' } } } },
   },
 })
 class ScopedWithDefaultFilterEntity extends BaseRelationalEntity<typeof scopeFilterUnitTable> {
@@ -105,7 +105,7 @@ class NoScopeEntity extends BaseRelationalEntity<typeof scopeFilterUnitTable> {
 const DEFAULT_FILTER_ONLY: TFilter<AnyType> = { where: { name: { neq: 'archived' } } };
 
 /** No scopeFilter, only a defaultFilter - proves the new scope step is a true no-op, not merely absent from a single test's model. */
-@model({ type: 'entity', settings: { defaultFilter: DEFAULT_FILTER_ONLY } })
+@model({ type: 'entity', settings: { query: { filter: DEFAULT_FILTER_ONLY } } })
 class DefaultFilterOnlyEntity extends BaseRelationalEntity<typeof scopeFilterUnitTable> {
   static override schema = scopeFilterUnitTable;
   static override TABLE_NAME = 'scope_filter_unit';

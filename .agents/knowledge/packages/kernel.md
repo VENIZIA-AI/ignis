@@ -305,7 +305,7 @@ side effect (patching `.openapi()` onto the shared prototype) and calls
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 
-`IModelSettings.access` (`helpers/inversion/common/types/model.ts`; the old `scopeFilter` key is deprecated and removed in 0.4.3) is the model-settings surface for
+`IModelSettings.access` (`helpers/inversion/common/types/model.ts`) is the model-settings surface for
 a per-request row scope. `resolve()` returns one of three states, and the order they are checked in
 is the whole safety property: a `TWhere` ANDs in; the exact symbol `ScopeFilters.UNRESTRICTED`
 (`base/repositories/common/constants.ts`) applies no scope for THIS call, checked before the

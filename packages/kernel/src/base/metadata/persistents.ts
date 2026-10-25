@@ -21,26 +21,15 @@ import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
 import { injectable, pickRegistrationOptions } from './injectable';
-import { normalizeModelSettings } from './model-settings';
+import { assertNoRemovedModelSettings } from './model-settings';
 
 /** Registers a model class with its static schema and relations. */
-export const model = (input: IModelMetadata): ClassDecorator => {
+export const model = (metadata: IModelMetadata): ClassDecorator => {
   return (target) => {
-    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata: input }) })(
-      target,
-    );
+    injectable({ type: ArtifactTypes.MODEL, ...pickRegistrationOptions({ metadata }) })(target);
 
-    // The one place the deprecated flat keys become the grouped ones; the registry, and so every
-    // reader, only ever sees the grouped shape.
-    const { settings, deprecated } = normalizeModelSettings({
-      model: target.name,
-      settings: input.settings,
-    });
-    const metadata: IModelMetadata = {
-      ...input,
-      settings,
-      ...(deprecated.length > 0 ? { deprecatedSettings: deprecated } : {}),
-    };
+    assertNoRemovedModelSettings({ model: target.name, settings: metadata.settings });
+    const { settings } = metadata;
 
     const defaultLimit = settings?.query?.limit?.default;
     if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {

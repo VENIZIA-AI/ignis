@@ -279,7 +279,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   tableName: 'products',
   settings: {
     hiddenProperties: ['secret'],
-    defaultFilter: { where: { isActive: true } },
+    query: { filter: { where: { isActive: true } } },
   },
 })
 export class ProductDocument extends BaseSearchEntity {
@@ -344,7 +344,7 @@ export class ProductDocumentWithDefaultQueryBy extends BaseSearchEntity {
   type: 'entity',
   tableName: 'products_with_default_limit',
   settings: {
-    defaultLimit: 5,
+    query: { limit: { default: 5 } },
   },
 })
 export class ProductDocumentWithDefaultLimit extends BaseSearchEntity {

@@ -65,7 +65,7 @@ class CapturingRepository extends ReadableRepository<any> {
     return undefined;
   }
 
-  override getScopeFilterSettings() {
+  override getAccessSettings() {
     return undefined;
   }
 

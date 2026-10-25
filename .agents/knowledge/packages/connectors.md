@@ -398,7 +398,7 @@ the 14 forgot and hung a production process walking an unbounded parent chain.
 
 ## `access` - a row scope, relational only
 
-`@model` settings.access (kernel; the old `scopeFilter` key is deprecated and removed in 0.4.3) ANDs a per-request `where` into every relational read, plus
+`@model` settings.access (kernel) ANDs a per-request `where` into every relational read, plus
 `update` and `delete`, including `restore()` - see `RelationalBaseRepository.applyScopeFilter` in
 `relational/core/repositories/core/base.ts`. It is a second, separate filter from `query.filter`:
 `shouldSkipDefaultFilter` never removes it, because that flag is what soft-delete's `restore()` uses

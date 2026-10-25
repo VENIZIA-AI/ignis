@@ -26,25 +26,25 @@ const itemsTable = pgTable('write_guard_items', {
 let scope: AnyType = { merchantId: 'm-a' };
 const resolve = () => scope;
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve } } })
+@model({ type: 'entity', settings: { access: { resolve } } })
 class RejectItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, writeGuard: 'assign' } } })
+@model({ type: 'entity', settings: { access: { resolve, write: { mode: 'assign' } } } })
 class AssignItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, sharedRows: true } } })
+@model({ type: 'entity', settings: { access: { resolve, write: { sharedRows: true } } } })
 class SharedItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, columns: ['merchantId'] } } })
+@model({ type: 'entity', settings: { access: { resolve, columns: ['merchantId'] } } })
 class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
@@ -52,7 +52,7 @@ class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve }, defaultFilter: { where: { deletedAt: null } } },
+  settings: { access: { resolve }, query: { filter: { where: { deletedAt: null } } } },
 })
 class SoftItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;

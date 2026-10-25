@@ -7,7 +7,7 @@ lastUpdated: 2026-07-23
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
+A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';

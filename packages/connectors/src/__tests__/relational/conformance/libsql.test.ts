@@ -39,7 +39,7 @@ class ConformanceEntity extends BaseSqliteEntity {
 
 @model({
   type: 'entity',
-  settings: { hiddenProperties: ['secret'], defaultFilter: { where: { tenant: 'acme' } } },
+  settings: { hiddenProperties: ['secret'], query: { filter: { where: { tenant: 'acme' } } } },
 })
 class ScopedConformanceEntity extends BaseSqliteEntity {
   static override TABLE_NAME = TABLE_NAME;

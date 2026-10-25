@@ -31,7 +31,7 @@ let currentTenant: TNullable<string> | '__throw__' = 'tenant-a';
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentTenant === '__throw__') {
           throw new ScopeResolutionError('scope resolution blew up');
@@ -40,7 +40,7 @@ let currentTenant: TNullable<string> | '__throw__' = 'tenant-a';
         return currentTenant == null ? currentTenant : { tenant: currentTenant };
       },
     },
-    defaultFilter: { where: { deletedAt: null } },
+    query: { filter: { where: { deletedAt: null } } },
   },
 })
 class TenantScopedEntity extends BasePostgresEntity {
@@ -53,7 +53,7 @@ let allowTenant: TNullable<string> = null;
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => (allowTenant === null ? allowTenant : { tenant: allowTenant }),
       onMissing: ScopeFilterMissingBehaviors.ALLOW,
     },

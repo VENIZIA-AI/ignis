@@ -102,7 +102,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `access.write.sharedRows` | `false` | Lets a restricted caller write rows with no owner (`null` scope column) |
 | `authorize.principal` | none | The authorization subject name of the model |
 
-Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) still work in 0.4.2 and are removed in 0.4.3, see [Migrating from the old keys](#migrating-from-the-old-keys).
+Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) were removed in 0.4.3, see [Migrating from the old keys](#migrating-from-the-old-keys).
 
 ## 2. hiddenProperties
 
@@ -512,7 +512,11 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 
 ## Migrating from the old keys
 
-0.4.2 groups the settings. The old keys keep working in 0.4.2, print one deprecation warning each at boot, and are removed in 0.4.3.
+0.4.2 grouped the settings and 0.4.3 removed the old keys. A model that still uses one throws when the `@model` decorator runs, naming the key to use, so it can never lose its row scope without a sound:
+
+```text
+[model][Product] Removed settings key(s): settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings' to rewrite them
+```
 
 | Old | New |
 |---|---|
@@ -523,7 +527,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 | `scopeFilter.writeGuard` | `access.write.mode` |
 | `scopeFilter.sharedRows` | `access.write.sharedRows` |
 
-An old key and the key that replaces it on the same model is an error. To rewrite your models mechanically, run `bunx devz codemod model-settings --check` to see the files it would change, then without `--check` to write them. The codemod leaves anything it cannot read for sure, such as a `settings` that is a variable, and prints its file and line. See the [changelog](/changelogs/2026-10-25-model-settings-query-access).
+To rewrite your models mechanically, run `bunx devz codemod model-settings --check` to see the files it would change, then without `--check` to write them. The codemod leaves anything it cannot read for sure, such as a `settings` that is a variable, and prints its file and line. See the [changelog](/changelogs/2026-10-25-model-settings-query-access).
 
 ## See also
 

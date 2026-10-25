@@ -76,20 +76,6 @@ export interface IModelAccessSettings {
   write?: IModelAccessWriteSettings;
 }
 
-/**
- * The old, flat shape of {@link IModelAccessSettings}.
- *
- * @deprecated Use `settings.access` (`writeGuard` is `access.write.mode`, `sharedRows` is
- * `access.write.sharedRows`). Removed in 0.4.3.
- */
-export interface IScopeFilterSettings {
-  resolve: () => TNullable<TWhere> | typeof ScopeFilters.UNRESTRICTED;
-  onMissing?: TScopeFilterMissingBehavior;
-  writeGuard?: TScopeWriteGuard;
-  sharedRows?: boolean;
-  columns?: string[];
-}
-
 /** What a query runs with when it names nothing (`@model` settings.query). */
 export interface IModelQuerySettings {
   /** Default filter auto-applied to all repository operations. Bypassable via shouldSkipDefaultFilter. */
@@ -131,38 +117,13 @@ export interface IModelSettings {
 
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;
-
-  /** @deprecated Use `query.filter`. Removed in 0.4.3. */
-  defaultFilter?: TFilter;
-
-  /** @deprecated Use `access`. Removed in 0.4.3. */
-  scopeFilter?: IScopeFilterSettings;
-
-  /** @deprecated Use `query.limit.default`. Removed in 0.4.3. */
-  defaultLimit?: number;
-
-  /** @deprecated Use `query.limit.max`. Removed in 0.4.3. */
-  maxLimit?: number;
-}
-
-/** One deprecated settings key a model still uses, and the key that replaces it. */
-export interface IDeprecatedModelSetting {
-  /** The old key, written as the model wrote it: `defaultFilter`, `scopeFilter.writeGuard`. */
-  key: string;
-  /** The key that replaces it: `query.filter`, `access.write.mode`. */
-  use: string;
 }
 
 export interface IModelMetadata extends IArtifactRegistrationOptions {
   type: 'entity' | 'view';
   tableName?: string;
   skipMigrate?: boolean;
-
-  /** As the `@model` decorator stores it: normalised to the new keys; the deprecated keys are gone. */
   settings?: IModelSettings;
-
-  /** Set by the decorator, read by the boot warning; not for application code. */
-  deprecatedSettings?: IDeprecatedModelSetting[];
 }
 
 export interface IEntityStatics {
