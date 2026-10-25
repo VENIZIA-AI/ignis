@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'A Guide to Model Settings',
+                  link: '/changelogs/2026-10-25-model-settings-guide',
+                },
+                {
                   text: 'Model Settings: query and access',
                   link: '/changelogs/2026-10-25-model-settings-query-access',
                 },
@@ -2219,6 +2223,10 @@ const config = defineConfig({
               items: [
                 { text: 'Overview', link: '/guides/core-concepts/persistent/' },
                 { text: 'Models', link: '/guides/core-concepts/persistent/models' },
+                {
+                  text: 'Model Settings',
+                  link: '/guides/core-concepts/persistent/model-settings',
+                },
                 { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },

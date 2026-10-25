@@ -28,6 +28,7 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | Component | Description | Learn More |
 |-----------|-------------|------------|
 | **Models** | Define data structure with Drizzle schemas and relations | [Models Guide](./models.md) |
+| **Model settings** | Hidden columns, default filter, row scope and write guard, limits, authorization name | [Model Settings Guide](./model-settings.md) |
 | **DataSources** | Manage database connections with auto-discovery | [DataSources Guide](./datasources.md) |
 | **Repositories** | Provide type-safe CRUD operations | [Repositories Guide](./repositories.md) |
 | **Transactions** | Handle atomic multi-step operations (both SQL engines) | [Transactions Guide](./transactions.md) |

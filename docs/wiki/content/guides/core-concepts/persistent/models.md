@@ -1,6 +1,6 @@
 # Models
 
-Models define your data structure with Drizzle ORM tables. You declare the table, then build the model class from it with `ModelFactory.defineEntity`.
+Models define your data structure with Drizzle ORM tables. You declare the table, then build the model class from it with `ModelFactory.defineEntity`. The `settings` of `@model` (hidden columns, default filter, row scope, limits) have their own guide: [Model Settings](./model-settings).
 
 ## Creating a Basic Model
 

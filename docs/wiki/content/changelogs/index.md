@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-25 | [A Guide to Model Settings](./2026-10-25-model-settings-guide) | Enhancement |
 | 2026-10-25 | [Model Settings Are Grouped Under query and access](./2026-10-25-model-settings-query-access) | Breaking |
 | 2026-10-25 | [installShutdownSignals Stops the Application on SIGTERM and SIGINT](./2026-10-25-install-shutdown-signals) | New Feature |
 | 2026-10-25 | [A Search Controller Can Be Scoped Per Request](./2026-10-25-search-controller-scope) | New Feature |
