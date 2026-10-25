@@ -206,17 +206,13 @@ export class Application extends BaseApplication {
     // Example: this.static({ folderPath: './public' })
   }
 
-  // Hook 2: Add global middlewares (CORS, etc.)
+  // Hook 2: Add global middlewares. CORS is not added here: set `middlewares.cors` in the
+  // application config (`appConfigs`), where the framework installs it before its own early exits.
   override async setupMiddlewares(): Promise<void> {
     const server = this.getServer();
-    const { cors } = await import('hono/cors');
+    const { compress } = await import('hono/compress');
 
-    server.use('*', cors({
-      origin: '*',
-      allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-      maxAge: 86_400,
-      credentials: true,
-    }));
+    server.use('*', compress());
   }
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)

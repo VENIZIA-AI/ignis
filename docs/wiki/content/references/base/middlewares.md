@@ -43,7 +43,13 @@ Before reading this document, you should understand:
 protected async registerDefaultMiddlewares() {
   const server = this.getServer();
 
-  // The kernel's four, from RestApplication.registerDefaultMiddlewares():
+  // The kernel's five, from RestApplication.registerDefaultMiddlewares():
+  // 0. CORS - first of all, so a 413 or a 400 the framework answers itself still carries the
+  // headers. Only when configs.middlewares.cors is set and enable !== false.
+  if (corsOptions && corsOptions.enable !== false) {
+    server.use(path ?? '*', cors({ origin, allowMethods, allowHeaders, maxAge, credentials, exposeHeaders }));
+  }
+
   // 1. Request id
   server.use(requestId({ generator: () => this.generateRequestId() }));
 
@@ -73,14 +79,51 @@ protected async registerDefaultMiddlewares() {
 }
 ```
 
-Steps 1 to 4 live on the kernel's `RestApplication`, so a browser Worker answers with the same
+Steps 0 to 4 live on the kernel's `RestApplication`, so a browser Worker answers with the same
 envelope. `BaseApplication` calls `super.registerDefaultMiddlewares()` first, then adds steps 5 to
 7.
 
 > [!NOTE]
-> `configs.middlewares.bodyLimit` is the one `IMiddlewareConfigs` key the framework installs by itself - see [Body limit](#body-limit-configs-middlewares-bodylimit) below. Every other key in `IMiddlewareConfigs` is a shape for your own `setupMiddlewares()` to read; the framework does not wire it.
+> `configs.middlewares.cors` and `configs.middlewares.bodyLimit` are the `IMiddlewareConfigs` keys the framework installs by itself - see [CORS](#cors-configs-middlewares-cors) and [Body limit](#body-limit-configs-middlewares-bodylimit) below. Every other key in `IMiddlewareConfigs` is a shape for your own `setupMiddlewares()` to read; the framework does not wire it.
 
 After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
+
+## CORS (`configs.middlewares.cors`)
+
+`RestApplication.registerDefaultMiddlewares()` reads `configs.middlewares.cors` and, when it is set and `enable !== false`, installs Hono's `cors()` as the FIRST middleware, before the request id and the body limit. With no `cors` config nothing is installed.
+
+```typescript
+const application = new MyApplication({
+  scope: 'MyApp',
+  config: {
+    path: { base: '/api', isStrict: true },
+    middlewares: {
+      bodyLimit: { enable: true, maxSize: 1024 * 1024 },
+      cors: {
+        enable: true,
+        origin: ['https://app.example.com'],
+        allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+        exposeHeaders: ['x-request-id'],
+        credentials: true,
+        maxAge: 86_400,
+      },
+    },
+  },
+});
+```
+
+| Option | Meaning |
+|---|---|
+| `origin` | Required. A string, a list of strings or a function `(origin, context) => string \| null` |
+| `path` | Where it applies. Default `'*'` |
+| `allowMethods`, `allowHeaders`, `exposeHeaders`, `maxAge`, `credentials` | Passed to Hono's `cors()`; unset keys keep Hono's defaults |
+
+Why first: a response the framework produces before your own middlewares run - a `413` from the body limit, a `400` for a body that cannot be parsed - would otherwise carry no `Access-Control-Allow-Origin`, and a browser reports it as a network error instead of a readable status. A preflight (`OPTIONS`) is answered by `cors()` itself with `204`, before the body limit sees it.
+
+The application refuses to boot when `origin` is missing or empty, or when `credentials: true` is combined with the origin `'*'` (a browser rejects a wildcard origin on a credentialed request); list the origins instead.
+
+> [!NOTE]
+> A `cors()` you add yourself in `setupMiddlewares()` still works, but it runs after the framework's early exits, so those responses carry no CORS headers. Move the policy into `configs.middlewares.cors`.
 
 ## Body limit (`configs.middlewares.bodyLimit`)
 
@@ -535,11 +578,8 @@ export class MyApplication extends BaseApplication {
   async setupMiddlewares() {
     const server = this.getServer();
 
-    // CORS
-    server.use(cors({ origin: '*' }));
-
-    // Body limit
-    server.use(bodyLimit({ maxSize: 1024 * 1024 })); // 1MB
+    // Compression, CSRF and the like; CORS and the body limit are configured in `configs.middlewares`
+    server.use(compress());
 
     // Route-specific
     server.use('/api/admin/*', adminAuthMiddleware());
