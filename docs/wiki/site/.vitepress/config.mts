@@ -477,6 +477,10 @@ const config = defineConfig({
                   text: 'IGNIS in a Browser or Web Worker',
                   link: '/changelogs/2026-10-25-browser-and-web-worker-guide',
                 },
+                {
+                  text: 'devz clean Removes tsbuildinfo',
+                  link: '/changelogs/2026-10-25-devz-clean-tsbuildinfo',
+                },
               ],
             },
             {
