@@ -34,6 +34,18 @@ export interface IServerRuntimeConfigs {
  * implements none of these: a browser Worker has no host, no port, and nothing to `start()` - it
  * answers `postMessage` instead.
  */
+/** Options of `ServerApplication.installShutdownSignals`. */
+export interface IShutdownSignalsOptions {
+  /** The signals that stop the application. Default `['SIGTERM', 'SIGINT']`. */
+  signals?: NodeJS.Signals[];
+
+  /** How long a shutdown may take before the process is force-exited with code 1. Default `15_000`. */
+  timeoutMs?: number;
+
+  /** What ends the process: `process.exit` by default. A seam for tests and for hosts that exit differently. */
+  exit?: (code: number) => void;
+}
+
 export interface IServerApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = Schema,

@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'installShutdownSignals',
+                  link: '/changelogs/2026-10-25-install-shutdown-signals',
+                },
+                {
                   text: 'scopeFilter Write Guard',
                   link: '/changelogs/2026-10-25-scope-filter-write-guard',
                 },
