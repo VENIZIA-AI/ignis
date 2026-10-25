@@ -26,6 +26,10 @@ tags: [process, release, ci]
   kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
   before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
   unpushed or non-`develop` checkout because the workflow builds `origin/develop`.
+- A sweep without package names releases each package with source changes AND every package that depends on
+  one, transitively (the plan says why): the published manifests pin internal dependencies exactly, so a
+  package left behind keeps the old version and a consumer installs two copies. Naming packages releases
+  the first one and everything after it in the chain. Always read the `--dry-run` plan first.
 - Measure the downstream consumer before dispatching, not after: copy the consumer repository to a
   temp directory without `node_modules`, recreate its `node_modules` as symlinks to the original
   entries with every `@venizia/*` entry pointed at the freshly built `packages/<name>` (dependency
