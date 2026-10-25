@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Shared Rows Need sharedRows to Change',
+                  link: '/changelogs/2026-10-26-shared-rows-writes-need-shared-rows',
+                },
+                {
                   text: 'dev-configs Warns on Unions and Casts',
                   link: '/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts',
                 },

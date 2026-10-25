@@ -98,7 +98,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
 | `access.onMissing` | `'deny'` | What happens when `resolve()` returns `null` or `undefined` |
 | `access.columns` | none | Names the columns the write guard checks; validated at boot |
 | `access.write.mode` | `'reject'` | What a create or update does with a row outside the scope |
-| `access.write.sharedRows` | `false` | Lets a restricted caller write rows with no owner (`null` scope column) |
+| `access.write.sharedRows` | `false` | Lets a restricted caller create, change and delete rows with no owner (`null` scope column) |
 | `authorize.principal` | none | The authorization subject name of the model |
 
 Settings are grouped by what they do. `query` shapes what a query returns. `access` decides who may read and write rows. `hiddenProperties` and `authorize` stand alone. The old flat names (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) were removed in 0.4.3, see [Migrating from the old keys](#migrating-from-the-old-keys).
@@ -319,15 +319,18 @@ import { taxTypeTable } from './tax-type.table';
 export class TaxType extends ModelFactory.defineEntity({ table: taxTypeTable }) {}
 ```
 
-The `null` branch lets the caller read shared rows. Writing one is a different permission, and `sharedRows` grants it:
+The `null` branch lets the caller read shared rows. Changing a shared row is a different permission, and `sharedRows` grants it:
 
 | | A merchant's own rows | Shared rows (`merchantId` is `null`) |
 |---|---|---|
 | Read, scope has the `null` branch | Yes | Yes |
-| Write, `sharedRows: false` (default) | Yes | No: `null` and a missing column are refused |
-| Write, `sharedRows: true` | Yes | Yes |
+| Create, `sharedRows: false` (default) | Yes | No: `null` and a missing column are refused |
+| Update, delete, soft delete, restore, `sharedRows: false` | Yes | No: the row does not match, so the count is 0 and it stays as it was |
+| Any write, `sharedRows: true` | Yes | Yes |
 
-If your resolver lists `null`, restricted callers still cannot write shared rows unless `sharedRows` is `true`. Set it only on a model where a merchant may create or move rows into the shared set; platform staff who manage shared rows can use `ScopeFilters.UNRESTRICTED` instead and leave `sharedRows` off.
+If your resolver lists `null`, restricted callers still cannot create, change or delete shared rows unless `sharedRows` is `true`. That is true for `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy`, soft delete and restore alike: the scope they run under has the `null` branch removed. Set `sharedRows` only on a model where every merchant may write platform-wide rows that all merchants then see. Platform-defined data (a fare policy, a tax type, a promotion) stays `false`; platform staff who manage it use `ScopeFilters.UNRESTRICTED`.
+
+A scope the guard cannot read (an `or` over several columns, a range) cannot be narrowed this way, so an update or a delete under it is refused with a "cannot be verified" message, as a create already was.
 
 ### columns
 

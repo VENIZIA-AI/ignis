@@ -426,7 +426,7 @@ through `guardScopedWrite`). It reads the columns and allowed values from the re
 that disagrees, or lacks the column on create, throws a 403 `core.repository.scope_write_denied`
 naming the entity and the column, never a value, and writes nothing (all of `createAll`). Settings
 on `access`: `access.write.mode` `reject` (default) or `assign` (fills an ABSENT column from an
-equality scope; a present, disagreeing value is still refused), `access.write.sharedRows` (the only way a restricted caller may write `null` or omit the scope column; a null branch in an `or` scope grants READING shared rows, never writing them),
+equality scope; a present, disagreeing value is still refused), `access.write.sharedRows` (the only way a restricted caller may write `null`, omit the scope column, or update or delete a shared row; a null branch in an `or` scope grants READING shared rows, never writing them: `ScopeWriteGuard.mutationWhere` removes the null branch from the scope that `_update` and `_delete` merge in, and refuses a scope shape it cannot read),
 `access.columns` (validated at boot against the model, and a resolved scope that constrains any other
 column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, nested paths) is refused
 with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
