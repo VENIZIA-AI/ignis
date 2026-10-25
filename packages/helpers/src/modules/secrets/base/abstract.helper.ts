@@ -103,7 +103,11 @@ export abstract class AbstractSecretsHelper extends BaseHelper implements ISecre
   async get<TValue>(opts: IGetSecretOptions<TValue>): Promise<TValue>;
   async get<TValue = string>(opts: IGetSecretOptions<TValue>): Promise<TValue> {
     const bundle = await this.getBundle({ path: opts.path });
-    const raw = opts.key ? bundle[opts.key] : (bundle as AnyType);
+    const raw = opts.key
+      ? Object.hasOwn(bundle, opts.key)
+        ? bundle[opts.key]
+        : undefined
+      : (bundle as AnyType);
     return (raw ?? opts.defaultValue) as TValue;
   }
 

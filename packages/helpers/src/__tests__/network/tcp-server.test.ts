@@ -139,6 +139,14 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
     expect(readyServer.listening).toBe(true);
   });
 
+  test('getClient answers undefined for an inherited property name', async () => {
+    const { server } = await startServer();
+
+    for (const id of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      expect(server.getClient({ id })).toBeUndefined();
+    }
+  });
+
   test('a connected client is tracked with an id, a Date connectedAt and an authenticated state', async () => {
     const connected = createDeferred<{ id: string }>();
     const { server, port } = await startServer({
