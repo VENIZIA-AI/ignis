@@ -474,6 +474,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Model Settings: query and access',
+                  link: '/changelogs/2026-10-25-model-settings-query-access',
+                },
+                {
                   text: 'Search Controller Scope',
                   link: '/changelogs/2026-10-25-search-controller-scope',
                 },

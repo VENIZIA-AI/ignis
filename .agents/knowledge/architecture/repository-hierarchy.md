@@ -89,7 +89,7 @@ null/undefined id, and `validateWhereCondition` requires an explicit force flag 
 update or delete can run.
 
 `SoftDeletableRelationalRepository` needs both a `deletedAt` column and
-`defaultFilter: { where: { deletedAt: null } }` in `@model` settings. The column alone does not hide
+`query: { filter: { where: { deletedAt: null } } }` in `@model` settings (the old `defaultFilter` key is deprecated and removed in 0.4.3). The column alone does not hide
 deleted rows; the default filter is what does.
 
 ## The search chain
@@ -160,7 +160,7 @@ database - a security property, not an optimization, since nothing downstream ha
 strip anything.
 
 The default filter works the same way: `applyDefaultFilter({ userFilter, shouldSkipDefaultFilter })`
-AND-merges the model's `defaultFilter` into the user's filter through the query dialect's
+AND-merges the model's `query.filter` into the user's filter through the query dialect's
 `mergeFilter` before the SQL is built.
 ## No mixins
 

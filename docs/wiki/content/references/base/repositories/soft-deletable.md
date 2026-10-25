@@ -33,7 +33,7 @@ import {
   type: 'entity',
   settings: {
     hiddenProperties: ['deletedAt'],
-    defaultFilter: { where: { deletedAt: null } },
+    query: { filter: { where: { deletedAt: null } } },
   },
 })
 export class Category extends BaseEntity<typeof Category.schema> {
@@ -49,7 +49,7 @@ export class Category extends BaseEntity<typeof Category.schema> {
 
 > [!IMPORTANT]
 > - The model **must** have a `deletedAt` column. `SoftDeletableRepository` requires `TSoftDeletableTableSchema`, which enforces `{ deletedAt: AnyColumn<{ data: Date | string | null }> }`. The bound is Drizzle's dialect-free `AnyColumn`, the exact twin of `AnyPgColumn`, so the same column satisfies it on SQLite too.
-> - Set `defaultFilter: { where: { deletedAt: null } }` in `@model` settings so soft-deleted records are excluded by default.
+> - Set `query: { filter: { where: { deletedAt: null } } }` in `@model` settings so soft-deleted records are excluded by default. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
 > - Optionally add `deletedAt` to `hiddenProperties` to hide it from API responses.
 > - Use `generateTzColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
 

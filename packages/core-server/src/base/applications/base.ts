@@ -494,7 +494,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
   }
 
   /**
-   * Refuses to start when a model's `settings.scopeFilter` cannot take effect. Both failures are
+   * Refuses to start when a model's `settings.access` cannot take effect. Both failures are
    * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
    */
   protected validateScopeFilterSupport(): void {

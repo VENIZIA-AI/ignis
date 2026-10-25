@@ -263,7 +263,7 @@ export class Application extends BaseApplication {
 | 13 | `registerControllers` | Auto - mounts controller routes on the root router |
 | 14 | `postConfigure` | Optional - seed data, background jobs |
 | 15 | `verifyBindings` | Auto - resolves every service and repository when `bootChecks.binding.doVerify` is on |
-| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `scopeFilter` cannot take effect |
+| 16 | `validateScopeFilterSupport` | Auto - refuses to boot when a model's `access` setting cannot take effect |
 
 `getAppInfo()` is not a boot step. Components call it when they need your application metadata. `setupMiddlewares()` is not one either: `start()` runs it after `initialize()`, just before the server binds its socket.
 

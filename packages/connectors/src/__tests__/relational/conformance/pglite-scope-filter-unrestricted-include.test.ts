@@ -268,14 +268,12 @@ describe('toInclude - each child model registered its own @model settings', () =
     const registry = MetadataRegistry.getInstance();
 
     expect(
-      registry.getModelEntry({ name: MERCHANT_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: MERCHANT_TABLE })?.metadata.settings?.access,
     ).toBeDefined();
     expect(
-      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.scopeFilter,
+      registry.getModelEntry({ name: PRODUCT_TABLE })?.metadata.settings?.access,
     ).toBeDefined();
-    expect(
-      registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.scopeFilter,
-    ).toBeDefined();
+    expect(registry.getModelEntry({ name: REVIEW_TABLE })?.metadata.settings?.access).toBeDefined();
 
     expect(typeof ScopeUnrestrictedProductEntity).toBe('function');
     expect(typeof ScopeUnrestrictedReviewEntity).toBe('function');

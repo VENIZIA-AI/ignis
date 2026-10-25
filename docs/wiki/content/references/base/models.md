@@ -35,7 +35,7 @@ A `@repository` binds this model to a datasource, and the datasource auto-discov
 
 - **Table first.** The table is a plain Drizzle table (`pgTable`, `pgSchema(...).table` or `sqliteTable`), exported so drizzle-kit sees it. `defineEntity` reads `TABLE_NAME` off it, so the name is written once.
 - **Registration.** The `@model` decorator registers the class in the framework's metadata registry, keyed by table name (resolved as `tableName` > static `TABLE_NAME` > class name).
-- **Validation at decoration time.** It validates `settings.defaultLimit` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
+- **Validation at decoration time.** It validates `settings.query.limit.default` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
 - **Enrichers.** `generateIdColumnDefs` and its siblings return column definitions you spread into the table, so common columns (id, timestamps, audit, principal) stay standardized across models.
 - **Zod on demand.** The entity generates Zod schemas from the table via `getSchema({ type })` - `'select'`, `'create'`, and `'update'` variants for validating query results, inserts, and updates.
   - The generator is a shared lazy singleton, so there is no per-entity cost.
@@ -132,12 +132,12 @@ export class Account extends ModelFactory.defineEntity({ table: accountTable }) 
 
 ### Apply a default filter
 
-`settings.defaultFilter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete.
+`settings.query.filter` is merged into every repository read, count, update, and delete for the model. A common use is soft delete. The old `defaultFilter` key is deprecated and removed in 0.4.3.
 
 ```typescript
 @model({
   type: 'entity',
-  settings: { defaultFilter: { where: { isDeleted: false } } },
+  settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Note extends ModelFactory.defineEntity({ table: noteTable }) {} // noteTable has an isDeleted column
 ```
@@ -146,12 +146,12 @@ Pass `options: { shouldSkipDefaultFilter: true }` on a query to bypass it. See [
 
 ### Set a default limit
 
-`settings.defaultLimit` caps queries that omit `limit`. It must be a positive integer (validated at decoration time) and falls back to the global `DEFAULT_LIMIT` (10).
+`settings.query.limit.default` caps queries that omit `limit`. It must be a positive integer (validated at decoration time) and falls back to the global `DEFAULT_LIMIT` (10).
 
 ```typescript
 @model({
   type: 'entity',
-  settings: { defaultLimit: 50 },
+  settings: { query: { limit: { default: 50 } } },
 })
 export class Event extends ModelFactory.defineEntity({ table: eventTable }) {}
 ```

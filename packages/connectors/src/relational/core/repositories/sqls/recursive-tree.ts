@@ -62,7 +62,7 @@ export interface IRecursiveTreeOptions {
    * Drizzle's own `sql` tag, columns unqualified. Together with {@link recursiveFilter} it keeps a
    * row out of the walk at both ends, e.g. `sql\`deleted_at IS NULL\`` on each term.
    *
-   * `walk` takes a table, not a model, so it never applies a model's soft delete or `scopeFilter` by
+   * `walk` takes a table, not a model, so it never applies a model's soft delete or `access` scope by
    * itself: both terms are filtered only by what the caller passes here and in `recursiveFilter`.
    */
   anchorFilter?: SQL;
