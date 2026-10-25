@@ -481,6 +481,10 @@ const config = defineConfig({
                   text: 'RecursiveTreeSql Schema and Anchor Filter',
                   link: '/changelogs/2026-10-25-recursive-tree-schema-and-anchor-filter',
                 },
+                {
+                  text: 'devz clean Removes tsbuildinfo',
+                  link: '/changelogs/2026-10-25-devz-clean-tsbuildinfo',
+                },
               ],
             },
             {
