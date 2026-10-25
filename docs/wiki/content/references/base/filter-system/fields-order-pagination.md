@@ -20,7 +20,7 @@ await userRepository.find({
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `fields` | `string[] \| Record<string, boolean>` | every column | Inclusion-only column selection. |
+| `fields` | `ReadonlyArray<keyof T> \| Partial<Record<keyof T, boolean>>` | every column | Inclusion-only column selection; types the returned row. |
 | `order` | `string[]` (`'column ASC\|DESC'`) | insertion order | Sort columns; `ASC` if no direction is given. |
 | `limit` | `number` | `settings.defaultLimit ?? 10` | Row cap. An explicit value always wins, up to `settings.maxLimit` (default `1000`). |
 | `skip` / `offset` | `number` | `0` | Rows to skip. Aliases for the same `OFFSET` clause; `skip` wins if both are set. |
@@ -45,6 +45,35 @@ await userRepository.find({
 
 > [!NOTE]
 > The object format is inclusion-only. A key set to `false` is ignored, not excluded - it neither adds nor removes the column. To exclude a column, omit its key or use the array format.
+
+### The result type follows `fields`
+
+A literal `fields` narrows the row `find`, `findOne` and `findById` return to the selected columns:
+
+```typescript
+const rows = await userRepository.find({ filter: { fields: ['id', 'email'] } });
+// rows: Array<Pick<User, 'id' | 'email'>>
+
+rows[0].email; // ok
+rows[0].name; // error: 'name' was not selected
+await userRepository.find({ filter: { fields: ['id', 'emial'] } }); // error: 'emial' is not a column
+```
+
+| Call | Row type |
+|---|---|
+| `fields: ['id', 'email']` or `{ id: true, email: true }` | `Pick<T, 'id' \| 'email'>`, plus the model's optional (relation) keys |
+| no `fields`, an empty selection, or an object with no `true` | the whole row `T` |
+| a `fields` that is not a literal (`Array<keyof T>` held in a variable) | the whole row `T` |
+| `find<MyRow>(...)` | `MyRow`, whatever `fields` says |
+
+A field list kept in a constant needs `as const`, or it widens to `string[]` and is rejected:
+
+```typescript
+const LIST_FIELDS = ['id', 'email'] as const;
+await userRepository.find({ filter: { fields: LIST_FIELDS } });
+```
+
+`TRow<T, R, F>`, `TSelectedRow<T, F>` and `TByIdFilter<T, F>` are exported from `@venizia/ignis-filter` for code that wraps a read; `findById` takes its `fields` through `TByIdFilter`.
 
 ## Ordering
 

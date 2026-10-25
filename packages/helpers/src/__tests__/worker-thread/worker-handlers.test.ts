@@ -156,14 +156,14 @@ describe('BaseWorkerHelper | event binding', () => {
       eventHandlers: { onOnline, onExit },
     });
 
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       helper.worker.on('online', () => {
         resolve();
       });
     });
     expect(onOnline).toHaveBeenCalledTimes(1);
 
-    const exited = new Promise<void>(resolve => {
+    const exited = new Promise<void>((resolve) => {
       helper.worker.on('exit', () => {
         resolve();
       });

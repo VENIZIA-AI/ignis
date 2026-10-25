@@ -56,4 +56,12 @@ export { SchemaTypes } from '@/base/models/common/constants';
 export type { TIdSchemaType, TSchemaType } from '@/base/models/common';
 
 // The query vocabulary both transports share.
-export type { TFilter, TInclusion, TWhere } from '@venizia/ignis-filter';
+export type {
+  TByIdFilter,
+  TFields,
+  TFilter,
+  TInclusion,
+  TRow,
+  TSelectedRow,
+  TWhere,
+} from '@venizia/ignis-filter';

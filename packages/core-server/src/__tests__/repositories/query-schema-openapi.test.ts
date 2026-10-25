@@ -23,7 +23,7 @@ const documentForQuery = (schema: ReturnType<typeof z.object>): Record<string, a
       request: { query: schema },
       responses: { 200: { description: 'ok' } },
     }),
-    context => context.json({}),
+    (context) => context.json({}),
   );
 
   return toDocument(application);
@@ -39,7 +39,7 @@ const documentForBody = (schema: ReturnType<typeof z.object>): Record<string, an
       request: { body: { content: { 'application/json': { schema } } } },
       responses: { 200: { description: 'ok' } },
     }),
-    context => context.json({}),
+    (context) => context.json({}),
   );
 
   return toDocument(application);
@@ -50,7 +50,7 @@ describe('the query schemas reach OpenAPI with their documentation intact', () =
     const document = documentForQuery(z.object({ filter: FilterSchema, limit: LimitSchema }));
     const parameters = document.paths['/probe'].get.parameters as Array<Record<string, any>>;
     const describedBy = (name: string) =>
-      parameters.find(parameter => parameter.name === name)?.schema?.description;
+      parameters.find((parameter) => parameter.name === name)?.schema?.description;
 
     expect(describedBy('limit')).toBe(
       'Maximum number of items to return. Defaults to 10 for top-level list queries.',

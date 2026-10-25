@@ -125,7 +125,7 @@ describe('ArtifactIndexHelper.select', () => {
 
   test('the when conditions run concurrently: a condition that waits for a later one still resolves', async () => {
     let releaseFirst: (decision: boolean) => void = () => {};
-    const firstDecision = new Promise<boolean>(resolve => {
+    const firstDecision = new Promise<boolean>((resolve) => {
       releaseFirst = resolve;
     });
 

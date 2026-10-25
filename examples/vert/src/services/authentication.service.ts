@@ -128,7 +128,7 @@ export class AuthenticationService
 
     return {
       userId: user.id,
-      roles: roles.map(role => role.identifier),
+      roles: roles.map((role) => role.identifier),
       token: { value: token, type: 'Bearer' },
     };
   }

@@ -17,7 +17,7 @@ const isAmbiguousComponent = (opts: { part: string }): boolean => /^\d+$/.test(o
 export const toSqliteJsonPaths = (opts: { path: string[] }): string[] => {
   const { path } = opts;
 
-  const ambiguousCount = path.filter(part => isAmbiguousComponent({ part })).length;
+  const ambiguousCount = path.filter((part) => isAmbiguousComponent({ part })).length;
   if (ambiguousCount > MAX_AMBIGUOUS_COMPONENTS) {
     throw getError({
       message: `[toSqliteJsonPaths] Ambiguous JSON path components over the limit | max: ${MAX_AMBIGUOUS_COMPONENTS} | got: ${ambiguousCount} | each all-digit component doubles the candidate paths`,
@@ -28,8 +28,8 @@ export const toSqliteJsonPaths = (opts: { path: string[] }): string[] => {
 
   for (const part of path) {
     literals = isAmbiguousComponent({ part })
-      ? literals.flatMap(literal => [`${literal}[${part}]`, `${literal}."${part}"`])
-      : literals.map(literal => `${literal}."${part}"`);
+      ? literals.flatMap((literal) => [`${literal}[${part}]`, `${literal}."${part}"`])
+      : literals.map((literal) => `${literal}."${part}"`);
   }
 
   return literals;

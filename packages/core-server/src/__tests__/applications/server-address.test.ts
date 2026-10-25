@@ -111,7 +111,7 @@ describe('ServerApplication - port resolution is validity, not falsiness', () =>
     [-1, 'a negative port'],
     [65536, 'a port above the 16-bit range'],
     [3000.5, 'a non-integer port'],
-  ])('%p is rejected (%s) and falls through to the default', unusable => {
+  ])('%p is rejected (%s) and falls through to the default', (unusable) => {
     expect(buildApplication({ port: unusable as unknown as number }).getServerPort()).toBe(
       DEFAULT_SERVER_PORT,
     );

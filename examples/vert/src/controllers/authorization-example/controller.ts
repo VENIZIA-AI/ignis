@@ -13,7 +13,7 @@ export class AuthorizationExampleController extends BaseRestController {
     // Public - no auth, no authz
     this.defineRoute({
       configs: RouteConfigs['/public'],
-      handler: context => {
+      handler: (context) => {
         return context.json(
           { message: 'This is a public endpoint - no authentication required' },
           HTTP.ResultCodes.RS_2.Ok,
@@ -24,7 +24,7 @@ export class AuthorizationExampleController extends BaseRestController {
     // JWT auth only - no authorization check
     this.defineRoute({
       configs: RouteConfigs['/profile'],
-      handler: context => {
+      handler: (context) => {
         const user = context.get(Authentication.CURRENT_USER);
         return context.json(
           { message: 'Authenticated user profile', userId: String(user?.userId ?? 'unknown') },
@@ -36,7 +36,7 @@ export class AuthorizationExampleController extends BaseRestController {
     // JWT auth + authorization: read:configuration
     this.defineRoute({
       configs: RouteConfigs['/configurations'],
-      handler: context => {
+      handler: (context) => {
         return context.json(
           {
             message: 'Authorized to read configurations',
@@ -50,7 +50,7 @@ export class AuthorizationExampleController extends BaseRestController {
     // JWT auth + authorization: create:user
     this.defineRoute({
       configs: RouteConfigs['/users'],
-      handler: context => {
+      handler: (context) => {
         return context.json({ message: 'Authorized to create users' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -58,7 +58,7 @@ export class AuthorizationExampleController extends BaseRestController {
     // JWT auth + authorization with allowedRoles
     this.defineRoute({
       configs: RouteConfigs['/admin/dashboard'],
-      handler: context => {
+      handler: (context) => {
         return context.json(
           { message: 'Admin dashboard access granted', stats: {} },
           HTTP.ResultCodes.RS_2.Ok,

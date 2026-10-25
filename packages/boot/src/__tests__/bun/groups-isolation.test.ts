@@ -19,6 +19,6 @@ test('the inventory group resolves to the same classes in an isolated file', asy
   const index = await GroupArtifactsResolver.resolve({
     group: { folder: 'inventory', site: GROUPS_FILE },
   });
-  expect((index.services ?? []).map(target => target.name)).toEqual(['StockService']);
-  expect((index.repositories ?? []).map(target => target.name)).toEqual(['StockRepository']);
+  expect((index.services ?? []).map((target) => target.name)).toEqual(['StockService']);
+  expect((index.repositories ?? []).map((target) => target.name)).toEqual(['StockRepository']);
 });

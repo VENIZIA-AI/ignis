@@ -130,7 +130,7 @@ const readConfinedFile = async (opts: {
   }
 
   const filePath = await resolveConfinedPath({ path, attachmentRoot });
-  const handle = await open(filePath, OPEN_FLAGS).catch(error => {
+  const handle = await open(filePath, OPEN_FLAGS).catch((error) => {
     throw buildPathRefusedError({ reason: PATH_OUTSIDE_REASON, cause: error });
   });
 
@@ -263,7 +263,7 @@ export const releaseAttachmentStreams = (opts: { attachments?: IMailAttachment[]
 
     if (content instanceof ReadableStream) {
       if (!content.locked) {
-        content.cancel().catch(error => {
+        content.cancel().catch((error) => {
           logger.warn(
             '[releaseAttachmentStreams] Cancelling a web stream failed | error: %s',
             error,

@@ -184,7 +184,7 @@ describe('RestApplication.registerArtifacts', () => {
     await application.registerArtifacts({ controllers: [Second, First] });
 
     expect(
-      application.findByTag({ tag: BindingNamespaces.CONTROLLER }).map(binding => binding.key),
+      application.findByTag({ tag: BindingNamespaces.CONTROLLER }).map((binding) => binding.key),
     ).toEqual([`${BindingNamespaces.CONTROLLER}.First`, `${BindingNamespaces.CONTROLLER}.Second`]);
   });
 });

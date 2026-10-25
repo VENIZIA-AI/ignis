@@ -7,13 +7,13 @@ const REPOSITORY_ROOT = join(__dirname, '../../..');
 
 const run = async (): Promise<void> => {
   const filter = process.argv[2];
-  const rows = filter ? PURITY_MANIFEST.filter(r => r.package === filter) : PURITY_MANIFEST;
+  const rows = filter ? PURITY_MANIFEST.filter((r) => r.package === filter) : PURITY_MANIFEST;
 
   // Non-zero, not a friendly note: a mistyped `package` or a renamed directory would otherwise turn
   // a release-blocking gate into a silent no-op that still reports success. `make purity-<pkg>` runs
   // inside the release workflow, and "nothing to check" there must never read as "checked, clean".
   if (rows.length === 0) {
-    const known = [...new Set(PURITY_MANIFEST.map(r => r.package))].sort().join(', ');
+    const known = [...new Set(PURITY_MANIFEST.map((r) => r.package))].sort().join(', ');
     console.error(
       `[purity] No manifest entry matches "${filter}" | Known packages: ${known} - a filter that ` +
         `matches nothing is a broken gate, not an empty one.`,
@@ -21,7 +21,7 @@ const run = async (): Promise<void> => {
     process.exit(1);
   }
 
-  const labelWidth = Math.max(...rows.map(r => r.label.length));
+  const labelWidth = Math.max(...rows.map((r) => r.label.length));
   let failed = 0;
   let waived = 0;
 

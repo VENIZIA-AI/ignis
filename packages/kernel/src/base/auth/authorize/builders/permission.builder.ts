@@ -97,7 +97,7 @@ export class AuthorizationPermissionBuilder {
   }) {
     const methods = opts.methods ?? AuthorizationPermissionBuilder.DEFAULT_CRUD_METHODS;
 
-    return methods.map(method => {
+    return methods.map((method) => {
       const action = AuthorizationPermissionBuilder.actionForMethod(method);
       const ctx: { subject: string; method: string; action: TAuthorizationAction } = {
         subject: opts.subject,

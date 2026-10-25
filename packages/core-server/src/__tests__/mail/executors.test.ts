@@ -10,7 +10,7 @@ import { type AnyType } from '@venizia/ignis-helpers/common';
 import { LoggerFactory } from '@venizia/ignis-helpers';
 import { ProcessorCallTracker, successProcessorResult } from './fakes';
 
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 describe('DirectMailExecutorHelper', () => {
   test('enqueue without setProcessor throws PROCESSOR_NOT_SET', async () => {

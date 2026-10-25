@@ -16,6 +16,7 @@
 import { AbstractDataSource, AbstractEntity } from '@/repository';
 import type {
   IReadableRepository,
+  TByIdFilter,
   TCount,
   TDataWithRange,
   TFilter,
@@ -89,7 +90,7 @@ class TicketApi implements IReadableRepository<TTicket, {}> {
 
   async findById<R = TTicket>(_opts: {
     id: string;
-    filter?: TFilter<TTicket>;
+    filter?: TByIdFilter<TTicket, any>;
     options?: {};
   }): Promise<R | null> {
     return null;

@@ -25,7 +25,7 @@ const options = {
   out: values.out,
   ignore: values.ignore
     ?.split(',')
-    .map(pattern => pattern.trim())
+    .map((pattern) => pattern.trim())
     .filter(Boolean),
   exportName: values.export,
   sourceModules: values['source-module'],

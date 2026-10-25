@@ -35,7 +35,7 @@ export const noteTable = ignisExample.table(
     content: text('content'),
     isPrivate: boolean('is_private').notNull().default(true),
   },
-  table => [
+  (table) => [
     index('IDX_note_owner_id').on(table.ownerId),
 
     // `authUid` compiles to `(select auth.uid())`, which reads `request.jwt.claims` - the setting

@@ -168,7 +168,7 @@ export const RepositoryMetadataMixin = <
       const modelClasses = this.getDataSourceModelClasses({ dataSource: opts.dataSource });
 
       const rs = Array.from(modelClasses)
-        .map(modelClass => {
+        .map((modelClass) => {
           // Read straight off the class: a class -> name -> modelRegistry round-trip collapses two
           // same-named models onto one entry, silently swapping schemas. `modelRegistry` stays
           // name-keyed for the by-name APIs that need it.

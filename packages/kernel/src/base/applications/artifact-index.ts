@@ -137,8 +137,8 @@ export class ArtifactIndexHelper extends BaseHelper {
         // A string names a class, the only form that can; a class is matched by identity.
         const prereqClass =
           typeof prereq === 'function'
-            ? classes.find(candidate => candidate === prereq)
-            : classes.find(candidate => candidate.name === String(prereq));
+            ? classes.find((candidate) => candidate === prereq)
+            : classes.find((candidate) => candidate.name === String(prereq));
 
         if (!prereqClass) {
           const prereqName = typeof prereq === 'function' ? prereq.name : String(prereq);
@@ -155,7 +155,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     // Kahn's algorithm. Siblings run in class-name order; a minified build renames classes, so an
     // order that matters belongs in `after`.
     const byName = (a: TClass<any>, b: TClass<any>) => a.name.localeCompare(b.name);
-    const available = classes.filter(target => inDegree.get(target) === 0).sort(byName);
+    const available = classes.filter((target) => inDegree.get(target) === 0).sort(byName);
     const sorted: TClass<any>[] = [];
 
     while (available.length > 0) {
@@ -174,8 +174,8 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     if (sorted.length !== classes.length) {
       const unvisited = classes
-        .filter(target => !sorted.includes(target))
-        .map(target => target.name);
+        .filter((target) => !sorted.includes(target))
+        .map((target) => target.name);
       throw getError({
         message: `[sortConfigurationsTopologically] Dependency cycle detected in configurations: ${unvisited.join(', ')}`,
       });
@@ -189,7 +189,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     field: string;
     classes: ReadonlyArray<unknown> | undefined;
   }): void {
-    const position = (opts.classes ?? []).findIndex(target => typeof target !== 'function');
+    const position = (opts.classes ?? []).findIndex((target) => typeof target !== 'function');
     if (position >= 0) {
       throw getError({
         message: `[ArtifactIndex] '${opts.field}' lists an entry that is not a class (position ${position}) | Usually an import cycle: the index was read before that class's module finished loading. The module that imports the index (or @venizia/ignis-boot/auto) must not define decorated classes or be imported by them`,
@@ -208,7 +208,7 @@ export class ArtifactIndexHelper extends BaseHelper {
     }
     if (Array.isArray(input)) {
       const nested = await Promise.all(
-        input.map(entry => this.flatten({ input: entry, application })),
+        input.map((entry) => this.flatten({ input: entry, application })),
       );
       return nested.flat();
     }
@@ -236,7 +236,7 @@ export class ArtifactIndexHelper extends BaseHelper {
       this.assertClasses({ field, classes });
     }
     const kinds: Array<ReadonlyArray<TClass<unknown>> | undefined> = Object.values(content);
-    const names = kinds.flatMap(classes => (classes ?? []).map(target => target.name));
+    const names = kinds.flatMap((classes) => (classes ?? []).map((target) => target.name));
     if (names.length === 0 && !group.kinds) {
       throw getError({
         message: `[ArtifactGroup] '${group.folder ?? '<application>'}' resolved to no class | Defined in ${group.site ?? 'an unknown module'} - check the folder name and that its classes carry a stereotype decorator`,
@@ -264,10 +264,10 @@ export class ArtifactIndexHelper extends BaseHelper {
 
     // De-duplicated: discovery and a declared index can name the same class, and registering it
     // twice trips `bootChecks.binding.allowOverride: false`. First mention wins its position.
-    const listed = [...new Set(indexes.flatMap(index => [...(index[field] ?? [])]))];
+    const listed = [...new Set(indexes.flatMap((index) => [...(index[field] ?? [])]))];
     this.assertClasses({ field, classes: listed });
     const decisions = await Promise.all(
-      listed.map(target => this.isSelected({ target, application })),
+      listed.map((target) => this.isSelected({ target, application })),
     );
 
     const kept = listed.filter((target, position) => {
@@ -286,7 +286,7 @@ export class ArtifactIndexHelper extends BaseHelper {
         order: registry.getArtifactMetadata({ target })?.order ?? 0,
       }))
       .sort((a, b) => a.order - b.order || a.position - b.position)
-      .map(entry => entry.target);
+      .map((entry) => entry.target);
   }
 
   private async isSelected(opts: {

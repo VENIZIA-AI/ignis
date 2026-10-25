@@ -8,12 +8,12 @@ const ABSENT = 'casbin-not-installed';
 /** Stands in for an application without casbin: every `casbin` specifier in the authorize sources points at a package that does not exist, and every other package stays external. */
 const withoutCasbin: BunPlugin = {
   name: 'without-casbin',
-  setup: build => {
-    build.onLoad({ filter: /[\\/]authorize[\\/].*\.ts$/ }, async args => ({
+  setup: (build) => {
+    build.onLoad({ filter: /[\\/]authorize[\\/].*\.ts$/ }, async (args) => ({
       contents: (await Bun.file(args.path).text()).replaceAll("'casbin'", `'${ABSENT}'`),
       loader: 'ts',
     }));
-    build.onResolve({ filter: /^[^./]/ }, args =>
+    build.onResolve({ filter: /^[^./]/ }, (args) =>
       args.path === ABSENT ? undefined : { path: args.path, external: true },
     );
   },
@@ -30,7 +30,7 @@ describe('casbin is an optional peer', () => {
       plugins: [withoutCasbin],
       throw: false,
     });
-    expect(result.logs.map(log => String(log.message))).toEqual([]);
+    expect(result.logs.map((log) => String(log.message))).toEqual([]);
     expect(result.success).toBe(true);
   });
 });

@@ -71,7 +71,7 @@ const PURITY_CLAIMS: IPurityClaim[] = [
   { package: 'filter' },
   {
     package: 'helpers',
-    subpaths: ['./core', './common', './uuid', './temporal'],
+    subpaths: ['./core', './common', './uuid', './temporal', './socket-io/client'],
   },
   { package: 'kernel' },
   { package: 'core-worker' },
@@ -208,7 +208,7 @@ const buildLabel = (opts: {
  */
 export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
   const exportsMap = readExportsMap({ package: claim.package });
-  const published = Object.keys(exportsMap).filter(subpath => subpath !== NON_CODE_SUBPATH);
+  const published = Object.keys(exportsMap).filter((subpath) => subpath !== NON_CODE_SUBPATH);
 
   const subpathsList = claim.subpaths ?? [];
   for (const subpath of subpathsList) {
@@ -256,13 +256,13 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
 
     const conditions = claim.impure?.[subpath] ?? [];
     for (const condition of conditions) {
-      if (targets.some(target => target.condition === condition)) {
+      if (targets.some((target) => target.condition === condition)) {
         continue;
       }
 
       throw new Error(
         `[purity][manifest] '${claim.package}' waives '${subpath}' under condition '${condition}', ` +
-          `which its \`exports\` map does not publish | Published: ${targets.map(t => t.condition).join(', ')}`,
+          `which its \`exports\` map does not publish | Published: ${targets.map((t) => t.condition).join(', ')}`,
       );
     }
 
@@ -299,7 +299,7 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
 export const assertBrowserImportCondition = (claims: IPurityClaim[]): IPurityClaim[] => {
   for (const claim of claims) {
     const exportsMap = readExportsMap({ package: claim.package });
-    const claimed = claim.subpaths ?? Object.keys(exportsMap).filter(s => s !== NON_CODE_SUBPATH);
+    const claimed = claim.subpaths ?? Object.keys(exportsMap).filter((s) => s !== NON_CODE_SUBPATH);
 
     for (const subpath of claimed) {
       const target = exportsMap[subpath];

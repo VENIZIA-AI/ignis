@@ -252,8 +252,8 @@ describe('installBffFetch - which requests it claims', () => {
     await carrier.fetch('https://app.test/api');
     await carrier.fetch('https://app.test/api/notes?limit=5');
 
-    expect(networkCalls.map(call => new URL(call.url).pathname)).toEqual(['/apix', '/api-docs']);
-    expect(seen.map(call => new URL(call.url).pathname)).toEqual(['/api', '/api/notes']);
+    expect(networkCalls.map((call) => new URL(call.url).pathname)).toEqual(['/apix', '/api-docs']);
+    expect(seen.map((call) => new URL(call.url).pathname)).toEqual(['/api', '/api/notes']);
 
     uninstall();
   });
@@ -303,7 +303,7 @@ describe('installBffFetch - origin is opt-in', () => {
     await carrier.fetch('https://gateway.example.com/v1/api/b');
     await carrier.fetch('https://elsewhere.example.com/v1/api/c');
 
-    expect(seen.map(call => new URL(call.url).pathname)).toEqual(['/v1/api/a', '/v1/api/b']);
+    expect(seen.map((call) => new URL(call.url).pathname)).toEqual(['/v1/api/a', '/v1/api/b']);
     expect(networkCalls).toHaveLength(1);
 
     uninstall();

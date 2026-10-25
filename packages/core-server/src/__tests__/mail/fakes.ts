@@ -49,7 +49,7 @@ export class FakeLogger {
 
   for(_scope: string) {
     const record = (message: AnyType, ...args: AnyType[]) => {
-      this.lines.push([String(message), ...args.map(arg => JSON.stringify(arg))].join(' | '));
+      this.lines.push([String(message), ...args.map((arg) => JSON.stringify(arg))].join(' | '));
     };
 
     return { debug: record, info: record, warn: record, error: record };
@@ -76,7 +76,7 @@ export class ProcessorCallTracker {
         continue;
       }
 
-      this.waiters = this.waiters.filter(candidate => candidate !== waiter);
+      this.waiters = this.waiters.filter((candidate) => candidate !== waiter);
       waiter.resolve();
     }
   }
@@ -86,7 +86,7 @@ export class ProcessorCallTracker {
       return Promise.resolve();
     }
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       this.waiters.push({ expected: opts.expected, resolve });
     });
   }

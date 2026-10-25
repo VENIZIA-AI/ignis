@@ -116,7 +116,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const ascPriorities = ascResult.map(r => (r.jValue as any)?.priority);
+      const ascPriorities = ascResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] ASC priorities: %j', ascPriorities);
 
       // Priorities should be: 1, 2, 3, 4, 5
@@ -141,7 +141,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const descPriorities = descResult.map(r => (r.jValue as any)?.priority);
+      const descPriorities = descResult.map((r) => (r.jValue as any)?.priority);
       this.logger.info('[CASE 2] DESC priorities: %j', descPriorities);
 
       // Priorities should be: 5, 4, 3, 2, 1
@@ -180,7 +180,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const ascScores = ascResult.map(r => (r.jValue as any)?.metadata?.score);
+      const ascScores = ascResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] ASC scores: %j', ascScores);
 
       // Scores should be: 45, 70, 85, 95, 100
@@ -205,7 +205,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const descScores = descResult.map(r => (r.jValue as any)?.metadata?.score);
+      const descScores = descResult.map((r) => (r.jValue as any)?.metadata?.score);
       this.logger.info('[CASE 3] DESC scores: %j', descScores);
 
       const isDescCorrect =
@@ -243,7 +243,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const ascTags = ascResult.map(r => (r.jValue as any)?.tags?.[0]);
+      const ascTags = ascResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] ASC tags[0]: %j', ascTags);
 
       // Check alphabetical order
@@ -264,7 +264,7 @@ export class JsonOrderByTestService extends BaseTestService {
         },
       });
 
-      const descTags = descResult.map(r => (r.jValue as any)?.tags?.[0]);
+      const descTags = descResult.map((r) => (r.jValue as any)?.tags?.[0]);
       this.logger.info('[CASE 4] DESC tags[0]: %j', descTags);
 
       const sortedTagsDesc = [...descTags].sort().reverse();

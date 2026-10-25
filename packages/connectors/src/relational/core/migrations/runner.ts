@@ -83,8 +83,8 @@ export class RelationalMigrationRunner extends BaseHelper {
   static splitStatements(opts: { sql: string }): Array<string> {
     return opts.sql
       .split(STATEMENT_BREAKPOINT)
-      .map(statement => statement.trim())
-      .filter(statement => statement.length > 0);
+      .map((statement) => statement.trim())
+      .filter((statement) => statement.length > 0);
   }
 
   async run(opts: { migrations: ReadonlyArray<IMigration> }): Promise<void> {
@@ -107,7 +107,7 @@ export class RelationalMigrationRunner extends BaseHelper {
       const applied = await connection.query<{ name: string }>({
         statement: `SELECT "name" FROM "${this.ledgerTable}"`,
       });
-      const appliedNames = new Set(applied.map(row => row.name));
+      const appliedNames = new Set(applied.map((row) => row.name));
 
       for (const migration of migrations) {
         if (appliedNames.has(migration.name)) {

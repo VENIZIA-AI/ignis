@@ -171,7 +171,7 @@ Automatic code formatting eliminates style debates. `bun fmt` reads the `[fmt]` 
 [fmt]
 printWidth = 100
 singleQuote = true
-arrowParens = "avoid"
+arrowParens = "always"
 flavor = "oxfmt"
 ```
 
@@ -179,7 +179,7 @@ flavor = "oxfmt"
 |---------|-------|-------------|
 | `printWidth` | `100` | Maximum line length |
 | `singleQuote` | `true` | `'string'` (single quotes) |
-| `arrowParens` | `"avoid"` | `x => x` not `(x) => x` |
+| `arrowParens` | `"always"` | `(x) => x` not `x => x` |
 | `flavor` | `"oxfmt"` | Keeps the output IGNIS was formatted with. Without it Bun formats in its default flavor, which puts the first member of a long union on its own `|` line |
 
 Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `trailingComma` `"all"`, `semi` `true`, `bracketSpacing` `true`. The same table serves a React app; there is no separate frontend style.
@@ -221,8 +221,9 @@ In the IGNIS repository, the Makefile runs each package with its own tools:
 |---------|--------------|
 | `make lint-<pkg>` | Lint one package by directory name, e.g. `make lint-kernel`: oxlint, ESLint, then a `bun fmt --check` |
 | `make lint-fix-<pkg>` | Same tools with `--fix` and write mode |
-| `make lint-packages` / `make lint-fix` | Every package (and, for `lint-fix`, the files no package reaches) |
-| `make lint-all` | Packages and `scripts/` |
+| `make lint-packages` | Every package |
+| `make lint-fix` | Fixes everything `lint-all` checks: every package, the files no package reaches, `scripts/` and `docs/wiki/scripts` (`fmt-files`, `fmt-scripts`, `fmt-wiki`) |
+| `make lint-all` | Packages, `scripts/`, the files no package reaches and the wiki |
 | `make lint-wiki` | Lint and format-check `docs/wiki/scripts` |
 
 Packages carry no lint scripts of their own. Examples keep `lint` and `lint:fix` because they are templates you copy.

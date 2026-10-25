@@ -9,14 +9,17 @@ export default defineRenderer({
     const dirs = context.source.listDirs({ dir: COMPONENTS_DIR });
 
     return context.source
-      .exportedClasses({ dirs: dirs.map(dir => `${COMPONENTS_DIR}/${dir}`), suffix: 'Component' })
-      .map(entry => ({ dir: entry.dir.slice(COMPONENTS_DIR.length + 1), classes: entry.classes }));
+      .exportedClasses({ dirs: dirs.map((dir) => `${COMPONENTS_DIR}/${dir}`), suffix: 'Component' })
+      .map((entry) => ({
+        dir: entry.dir.slice(COMPONENTS_DIR.length + 1),
+        classes: entry.classes,
+      }));
   },
   render: ({ context, facts }) => {
     const total = facts.reduce((sum, entry) => sum + entry.classes.length, 0);
 
-    const rows = facts.map(entry => {
-      const classes = entry.classes.map(name => `\`${name}\``).join(' · ') || '_(see source)_';
+    const rows = facts.map((entry) => {
+      const classes = entry.classes.map((name) => `\`${name}\``).join(' · ') || '_(see source)_';
 
       return `| \`${entry.dir}/\` | ${classes} |`;
     });

@@ -123,7 +123,7 @@ const build = () => {
 
 const createDeferred = () => {
   let resolve: () => void = () => undefined;
-  const promise = new Promise<void>(res => {
+  const promise = new Promise<void>((res) => {
     resolve = res;
   });
   return { promise, resolve };
@@ -156,7 +156,7 @@ describe('AbstractSecretsHelper', () => {
     ];
     ctx.provider.renewResults = [{ ttlSeconds: 10 }];
     const events: string[] = [];
-    ctx.provider.onRotate(e => {
+    ctx.provider.onRotate((e) => {
       events.push(e.lease.leaseId);
     });
     await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });
@@ -171,7 +171,7 @@ describe('AbstractSecretsHelper', () => {
     ];
     ctx.provider.renewResults = [null]; // cannot renew
     const events: string[] = [];
-    ctx.provider.onRotate(e => {
+    ctx.provider.onRotate((e) => {
       events.push(e.lease.leaseId);
     });
     await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });
@@ -222,7 +222,7 @@ describe('AbstractSecretsHelper', () => {
     // fetch call 0 -> lease (ok); call 1 -> rotate throws; call 2 -> rotate succeeds (L2).
     ctx.provider.fetchErrorAtCall.set(1, new Error('vault 503'));
     const events: string[] = [];
-    ctx.provider.onRotate(e => {
+    ctx.provider.onRotate((e) => {
       events.push(e.lease.leaseId);
     });
     await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });

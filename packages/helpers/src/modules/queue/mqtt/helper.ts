@@ -97,7 +97,7 @@ export class MQTTClientHelper extends BaseHelper {
       });
     });
 
-    this.client.on('error', error => {
+    this.client.on('error', (error) => {
       invokeHook({
         logger: this.logger,
         scope: 'onError',
@@ -134,7 +134,7 @@ export class MQTTClientHelper extends BaseHelper {
 
     const isForce = opts?.isForce ?? false;
 
-    return new Promise<void>(resolve => {
+    return new Promise<void>((resolve) => {
       client.end(isForce, undefined, () => {
         this.logger.for(this.close.name).info('[%s] MQTT Client closed!', this.identifier);
         resolve();
@@ -156,7 +156,7 @@ export class MQTTClientHelper extends BaseHelper {
       }
 
       const { topics } = opts;
-      client.subscribe(topics, error => {
+      client.subscribe(topics, (error) => {
         if (error) {
           return reject(error);
         }
@@ -180,7 +180,7 @@ export class MQTTClientHelper extends BaseHelper {
       }
 
       const { topic, message } = opts;
-      client.publish(topic, message, error => {
+      client.publish(topic, message, (error) => {
         if (error) {
           return reject(error);
         }

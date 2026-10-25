@@ -8,7 +8,7 @@ if (!subject) {
 }
 
 mintToken({ subject, role: process.argv[3] })
-  .then(token => console.log(token))
+  .then((token) => console.log(token))
   .catch((error: unknown) => {
     console.error('[token] Failed to mint token | Error:', error);
     process.exit(1);

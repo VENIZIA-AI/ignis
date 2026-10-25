@@ -57,10 +57,10 @@ export class ResponseExtras {
           ? undefined
           : match[3]
               .split(',')
-              .map(key => key.trim())
-              .filter(key => key.length > 0);
+              .map((key) => key.trim())
+              .filter((key) => key.length > 0);
 
-      if (keys?.some(key => !IDENTIFIER.test(key))) {
+      if (keys?.some((key) => !IDENTIFIER.test(key))) {
         throw ResponseExtras.badRequest({ message: `Malformed key in extra '${raw.trim()}'` });
       }
 
@@ -126,7 +126,7 @@ export class ResponseExtras {
         });
       }
 
-      const unknown = entry.keys.filter(key => !definition.keys.includes(key));
+      const unknown = entry.keys.filter((key) => !definition.keys.includes(key));
       if (unknown.length > 0) {
         throw ResponseExtras.badRequest({
           message: `Unknown key for extra '${entry.name}': ${unknown.join(', ')} | It offers: ${definition.keys.join(', ')}`,
@@ -165,7 +165,7 @@ export class ResponseExtras {
     // Async, so an extra that throws synchronously becomes a rejection Promise.all owns, never an
     // unhandled one left behind by a sibling already running.
     const values = await Promise.all(
-      names.map(async name => {
+      names.map(async (name) => {
         const definition = offered[name];
 
         if (typeof definition === 'function') {
@@ -206,7 +206,7 @@ export class ResponseExtras {
     }
 
     parts.push(current);
-    return parts.filter(part => part.trim().length > 0);
+    return parts.filter((part) => part.trim().length > 0);
   }
 
   private static badRequest(opts: { message: string }) {

@@ -1,8 +1,10 @@
 import type {
   IExtraOptions,
+  TByIdFilter,
   TCount,
-  TFilter,
+  TFields,
   TFindOneOptions,
+  TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
 import { RepositoryErrors } from '@venizia/ignis-kernel';
@@ -42,22 +44,31 @@ export class SoftDeletableRelationalRepository<
   }
 
   /** `isStrict` is evaluated AFTER `options.retry` has been exhausted - the retry loop lives inside `super.findById` -> `findOne`, so a strict read waits out replica lag before it 404s. */
-  override async findById<R = DataObject>(opts: {
+  override async findById<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
     id: DataObject['id'];
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: false };
-  }): Promise<TNullable<R>>;
-  override async findById<R = DataObject>(opts: {
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>> & { isStrict?: false };
+  }): Promise<TNullable<TRow<DataObject, R, F>>>;
+  override async findById<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
     id: DataObject['id'];
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: true };
-  }): Promise<R>;
-  override async findById<R = DataObject>(opts: {
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>> & { isStrict?: true };
+  }): Promise<TRow<DataObject, R, F>>;
+  override async findById<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
     id: DataObject['id'];
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R> & { isStrict?: boolean };
-  }): Promise<TNullable<R>> {
-    const result = await super.findById<R>(opts);
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>> & { isStrict?: boolean };
+  }): Promise<TNullable<TRow<DataObject, R, F>>> {
+    const result = await super.findById<R, F>(opts);
 
     if (opts.options?.isStrict && !result) {
       throw getError({

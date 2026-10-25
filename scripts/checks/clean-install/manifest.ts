@@ -126,8 +126,8 @@ export const readPackageManifest = (opts: { package: string }): IPackageManifest
 /** Every directory under `packages/` with a `package.json`, and whether npm would publish it. */
 export const listPublishedPackages = (): IPublishedPackage[] =>
   readdirSync(join(REPOSITORY_ROOT, 'packages'))
-    .filter(directory => existsSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json')))
-    .map(directory => ({
+    .filter((directory) => existsSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json')))
+    .map((directory) => ({
       directory,
       private:
         JSON.parse(
@@ -143,9 +143,9 @@ export const assertEveryPackageClaimed = (opts: {
   packages: IPublishedPackage[];
   claims: IInstallClaim[];
 }): string[] => {
-  const published = opts.packages.filter(entry => !entry.private).map(entry => entry.directory);
+  const published = opts.packages.filter((entry) => !entry.private).map((entry) => entry.directory);
   const unclaimed = published.filter(
-    directory => !opts.claims.some(claim => claim.package === directory),
+    (directory) => !opts.claims.some((claim) => claim.package === directory),
   );
   if (unclaimed.length > 0) {
     throw new Error(
@@ -177,7 +177,7 @@ const isCodeSubpath = (subpath: string): boolean =>
 export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRow[] => {
   const rows: IInstallRow[] = [];
 
-  const runtimeClaims = opts.claims.filter(claim => !claim.configOnly);
+  const runtimeClaims = opts.claims.filter((claim) => !claim.configOnly);
   for (const claim of runtimeClaims) {
     const manifest = readPackageManifest({ package: claim.package });
     const exportsMap = manifest.exports ?? {};

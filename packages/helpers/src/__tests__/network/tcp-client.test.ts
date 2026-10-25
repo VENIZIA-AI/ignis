@@ -11,7 +11,7 @@ interface IDeferred<T> {
 const createDeferred = <T>(): IDeferred<T> => {
   let resolve: (value: T) => void = () => {};
 
-  const promise = new Promise<T>(promiseResolve => {
+  const promise = new Promise<T>((promiseResolve) => {
     resolve = promiseResolve;
   });
 
@@ -26,16 +26,16 @@ let serverCounter = 0;
 const startServer = (opts: {
   onClientData?: (options: { id: string; data: Buffer | string }) => void;
 }): Promise<{ server: NetworkTcpServer; port: number }> => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     const server = NetworkTcpServer.newInstance({
       identifier: `tcp-client-test-server-${serverCounter++}`,
       serverOptions: {},
       listenOptions: { port: 0, host: '127.0.0.1' },
       authenticateOptions: { required: false },
-      onClientData: options => {
+      onClientData: (options) => {
         opts.onClientData?.({ id: options.id, data: options.data });
       },
-      onServerReady: options => {
+      onServerReady: (options) => {
         const address = options.server.address() as AddressInfo;
         resolve({ server, port: address.port });
       },
@@ -66,7 +66,7 @@ describe('NetworkTcpClient - connection round trip', () => {
   test('connect() reaches the server, emit() writes and onData receives the reply', async () => {
     const serverReceived = createDeferred<string>();
     const { server, port } = await startServer({
-      onClientData: options => {
+      onClientData: (options) => {
         server.emit({ clientId: options.id, payload: `echo:${options.data.toString()}` });
         serverReceived.resolve(options.data.toString());
       },
@@ -81,7 +81,7 @@ describe('NetworkTcpClient - connection round trip', () => {
       onConnected: () => {
         connected.resolve();
       },
-      onData: options => {
+      onData: (options) => {
         clientReceived.resolve(options.message.toString());
       },
     });
@@ -101,7 +101,7 @@ describe('NetworkTcpClient - connection round trip', () => {
 
   test('a configured encoding hands onData a STRING instead of a Buffer', async () => {
     const { server, port } = await startServer({
-      onClientData: options => {
+      onClientData: (options) => {
         server.emit({ clientId: options.id, payload: 'reply' });
       },
     });
@@ -111,7 +111,7 @@ describe('NetworkTcpClient - connection round trip', () => {
       identifier: 'tcp-client-encoding',
       options: { port, host: '127.0.0.1' },
       encoding: 'utf-8',
-      onData: options => {
+      onData: (options) => {
         received.resolve(options.message);
       },
     });

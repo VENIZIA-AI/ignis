@@ -63,17 +63,17 @@ class FakeMetaLinkRepository {
   async findOne(opts: { filter?: { where?: Record<string, AnyType> } }) {
     const where = opts.filter?.where ?? {};
     return (
-      this.rows.find(row => Object.entries(where).every(([key, value]) => row[key] === value)) ??
+      this.rows.find((row) => Object.entries(where).every(([key, value]) => row[key] === value)) ??
       null
     );
   }
 
   async findById(opts: { id: string }) {
-    return this.rows.find(row => row['id'] === opts.id) ?? null;
+    return this.rows.find((row) => row['id'] === opts.id) ?? null;
   }
 
   async updateById(opts: { id: string; data: Record<string, AnyType> }) {
-    const row = this.rows.find(item => item['id'] === opts.id);
+    const row = this.rows.find((item) => item['id'] === opts.id);
 
     if (!row) {
       return { count: 0, data: null };
@@ -85,7 +85,7 @@ class FakeMetaLinkRepository {
 
   /** recreate-metalink refreshes every row of a pair through this, not findOne + updateById. */
   async updateAll(opts: { data: Record<string, AnyType>; where: Record<string, AnyType> }) {
-    const matched = this.rows.filter(row =>
+    const matched = this.rows.filter((row) =>
       Object.entries(opts.where).every(([key, value]) => row[key] === value),
     );
     for (const row of matched) {
@@ -97,7 +97,7 @@ class FakeMetaLinkRepository {
   async deleteAll(opts: { where?: Record<string, AnyType> }) {
     const where = opts.where ?? {};
     const kept = this.rows.filter(
-      row => !Object.entries(where).every(([key, value]) => row[key] === value),
+      (row) => !Object.entries(where).every(([key, value]) => row[key] === value),
     );
     const count = this.rows.length - kept.length;
     this.rows.length = 0;
@@ -222,7 +222,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.status).toBeLessThan(500);
 
-      const reachedStorage = helper.calls.filter(call =>
+      const reachedStorage = helper.calls.filter((call) =>
         ['getObject', 'getStat'].includes(call.method),
       );
       expect(reachedStorage).toEqual([]);
@@ -234,14 +234,14 @@ describe('StaticAsset controller — path traversal hardening', () => {
       });
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.status).toBeLessThan(500);
-      expect(helper.calls.filter(call => call.method === 'removeObject')).toEqual([]);
+      expect(helper.calls.filter((call) => call.method === 'removeObject')).toEqual([]);
     });
 
     test(`DOWNLOAD object rejects ${label} without reaching storage`, async () => {
       const response = await router.request(`/assets/buckets/images/download/${objectName}`);
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.status).toBeLessThan(500);
-      expect(helper.calls.filter(call => ['getObject', 'getStat'].includes(call.method))).toEqual(
+      expect(helper.calls.filter((call) => ['getObject', 'getStat'].includes(call.method))).toEqual(
         [],
       );
     });
@@ -256,7 +256,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
     // Not found, because no such object exists - not a 200, and not an escape.
     expect(response.status).toBeGreaterThanOrEqual(400);
 
-    const storageCalls = helper.calls.filter(call =>
+    const storageCalls = helper.calls.filter((call) =>
       ['getObject', 'getStat'].includes(call.method),
     );
 
@@ -280,7 +280,7 @@ describe('StaticAsset controller — path traversal hardening', () => {
     const response = await router.request('/assets/buckets/%2e%2e%2fetc', { method: 'POST' });
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.status).toBeLessThan(500);
-    expect(helper.calls.filter(call => call.method === 'createBucket')).toEqual([]);
+    expect(helper.calls.filter((call) => call.method === 'createBucket')).toEqual([]);
   });
 
   test('valid object name is served', async () => {
@@ -358,7 +358,7 @@ describe('StaticAsset controller - a missing object is a 404, and only a missing
       method: 'DELETE',
     });
     expect(response.status).toBe(200);
-    expect(helper.calls.filter(call => call.method === 'removeObject')).toHaveLength(1);
+    expect(helper.calls.filter((call) => call.method === 'removeObject')).toHaveLength(1);
   });
 });
 
@@ -369,7 +369,7 @@ describe('StaticAsset controller - a stored object never renders on the API orig
    */
   const renderableExtensions = ['payload.html', 'payload.svg', 'payload.xhtml', 'payload.xml'];
 
-  test.each(renderableExtensions)('%s is not served as a renderable type', async fileName => {
+  test.each(renderableExtensions)('%s is not served as a renderable type', async (fileName) => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({ helper });
     const uploadResponse = await uploadFiles({
@@ -426,7 +426,7 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
     expect(response.status).toBe(400);
     const body = await readJson(response);
     expect(String(body.message)).not.toContain('Invalid file size');
-    expect(helper.calls.filter(call => call.method === 'writeObject')).toEqual([]);
+    expect(helper.calls.filter((call) => call.method === 'writeObject')).toEqual([]);
   });
 
   test('missing file field is a clean 4xx, not a silent empty 200', async () => {
@@ -447,7 +447,7 @@ describe('StaticAsset controller — multipart upload edge cases', () => {
 
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.status).toBeLessThan(500);
-    expect(helper.calls.filter(call => call.method === 'writeObject')).toEqual([]);
+    expect(helper.calls.filter((call) => call.method === 'writeObject')).toEqual([]);
   });
 
   test('storage failure mid-upload surfaces an error (no partial success payload)', async () => {
@@ -506,7 +506,7 @@ describe('StaticAsset controller — list objects query handling', () => {
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.status).toBeLessThan(500);
 
-    const listCalls = helper.calls.filter(call => call.method === 'listObjects');
+    const listCalls = helper.calls.filter((call) => call.method === 'listObjects');
     expect(listCalls).toEqual([]);
   });
 
@@ -514,14 +514,14 @@ describe('StaticAsset controller — list objects query handling', () => {
     const response = await router.request('/assets/buckets/images/objects?maxKeys=0');
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(response.status).toBeLessThan(500);
-    expect(helper.calls.filter(call => call.method === 'listObjects')).toEqual([]);
+    expect(helper.calls.filter((call) => call.method === 'listObjects')).toEqual([]);
   });
 
   test('valid maxKeys is forwarded as a number', async () => {
     const response = await router.request('/assets/buckets/images/objects?maxKeys=5');
     expect(response.status).toBe(200);
 
-    const listCall = helper.calls.find(call => call.method === 'listObjects');
+    const listCall = helper.calls.find((call) => call.method === 'listObjects');
     expect(listCall?.args['maxKeys']).toBe(5);
   });
 });
@@ -623,7 +623,7 @@ describe('StaticAsset controller — disk-buffered multipart storage', () => {
       });
       expect(response.status).toBe(200);
 
-      const writeCall = helper.calls.find(call => call.method === 'writeObject');
+      const writeCall = helper.calls.find((call) => call.method === 'writeObject');
       expect(writeCall?.args['bufferLength']).toBe('real-content'.length);
     } finally {
       rmSync(uploadDir, { recursive: true, force: true });
@@ -677,7 +677,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: hookOptions => {
+      resolveObjectName: (hookOptions) => {
         seen.push({ ...hookOptions });
         return hookOptions.file.originalName;
       },
@@ -718,7 +718,7 @@ describe('StaticAsset controller — resolveObjectName hook', () => {
     const router = await mountAssetController({
       helper,
       options: { normalizeNameFn: ({ file }) => `custom-${file.originalName}` },
-      resolveObjectName: hookOptions => {
+      resolveObjectName: (hookOptions) => {
         seen.push(hookOptions.defaultKey);
         return hookOptions.defaultKey;
       },
@@ -748,7 +748,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
             path: '/health',
             responses: jsonResponse({ schema: z.object({ basePath: z.string() }) }),
           },
-          handler: context => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
+          handler: (context) => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
         });
       },
     });
@@ -764,7 +764,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
     const helper = new FakeStorageHelper();
     const router = await mountAssetController({
       helper,
-      resolveObjectName: hookOptions => `scoped/${hookOptions.defaultKey}`,
+      resolveObjectName: (hookOptions) => `scoped/${hookOptions.defaultKey}`,
       defineExtraRoutes: ({ controller, helper: hookHelper }) => {
         controller.defineRoute({
           configs: {
@@ -772,7 +772,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
             path: '/health',
             responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
           },
-          handler: async context => {
+          handler: async (context) => {
             const buckets = await hookHelper.getBuckets();
             return context.json({ buckets: buckets.length }, HTTP.ResultCodes.RS_2.Ok);
           },
@@ -958,7 +958,9 @@ describe('StaticAsset controller — raw nested object paths', () => {
 
     const body = await readJson(response);
     expect(body.normalized?.code).toBe('core.static_asset.object_name_invalid');
-    expect(helper.calls.filter(call => ['getObject', 'getStat'].includes(call.method))).toEqual([]);
+    expect(helper.calls.filter((call) => ['getObject', 'getStat'].includes(call.method))).toEqual(
+      [],
+    );
   });
 });
 
@@ -1054,7 +1056,7 @@ describe('StaticAsset controller - defineRoutesBefore wins a path collision', ()
             path: '/objects/i18n',
             responses: { 200: { description: 'translations' } },
           },
-          handler: context => context.json({ translations: true }),
+          handler: (context) => context.json({ translations: true }),
         });
       },
     });
@@ -1090,7 +1092,7 @@ describe('StaticAsset controller - defineRoutesBefore wins a path collision', ()
             path: '/objects/i18n',
             responses: { 200: { description: 'translations' } },
           },
-          handler: context => context.json({ translations: true }),
+          handler: (context) => context.json({ translations: true }),
         });
       },
     });
@@ -1162,7 +1164,7 @@ describe('StaticAsset controller - byte ranges make a stored object seekable', (
 
   const ignoredRanges = ['bytes=20-30', 'bytes=5-2', 'lines=1-2', 'bytes=abc'];
 
-  test.each(ignoredRanges)('an unusable range %s serves the whole object', async header => {
+  test.each(ignoredRanges)('an unusable range %s serves the whole object', async (header) => {
     const router = await buildRouter();
 
     const response = await router.request('/assets/buckets/images/objects/clip.mp4', {
@@ -1232,7 +1234,7 @@ describe('the upload route refuses a file over maxBytes', () => {
     // The MESSAGE is what pins which check fired - the per-file one would also answer 413 here,
     // so asserting the status alone cannot tell the early exit from the late one.
     expect(JSON.stringify(await response.json())).toContain('Request body of');
-    expect(helper.calls.some(call => call.method === 'upload')).toBe(false);
+    expect(helper.calls.some((call) => call.method === 'upload')).toBe(false);
   });
 
   /** The ceiling is opt-in: an application that sets nothing keeps the behaviour it had. */

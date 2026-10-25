@@ -40,7 +40,7 @@ const deriveSigningKey = (opts: { dateStamp: string }): Buffer => {
 const encodeRfc3986 = (opts: { value: string }): string =>
   encodeURIComponent(opts.value).replace(
     /[!'()*]/g,
-    char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
   );
 
 const toCanonicalQuery = (opts: { params: Array<[string, string]> }): string =>
@@ -62,7 +62,7 @@ const toSignature = (opts: {
   const { method, path, query, headers, signedHeaders, payloadHash, amzDate } = opts;
   const dateStamp = amzDate.slice(0, 8);
   const canonicalHeaders = signedHeaders
-    .map(name => `${name}:${(headers.get(name) ?? '').trim()}\n`)
+    .map((name) => `${name}:${(headers.get(name) ?? '').trim()}\n`)
     .join('');
   const canonicalRequest = [
     method,
@@ -143,7 +143,7 @@ const takeReceived = (): IReceivedRequest | undefined => received.splice(0).at(-
 beforeAll(() => {
   server = Bun.serve({
     port: 0,
-    fetch: async request => {
+    fetch: async (request) => {
       const url = new URL(request.url);
       const isPost = request.method === 'POST';
       const form: Record<string, string> = {};

@@ -68,7 +68,7 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
     spies.push(
       spyOn(helper, 'hasBucket').mockResolvedValue(true),
       spyOn(fsp, 'mkdir').mockImplementation(async () => undefined),
-      spyOn(fsp, 'writeFile').mockImplementation(async objectPath => {
+      spyOn(fsp, 'writeFile').mockImplementation(async (objectPath) => {
         writtenPaths.push(String(objectPath));
       }),
     );
@@ -80,16 +80,19 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
     }
   });
 
-  test.each(ORDINARY_NAMES)('an ordinary name uploads under the generated key: %s', async name => {
-    const results = await helper.upload({
-      bucket: { name: 'assets' },
-      files: [buildFile({ originalName: name })],
-      normalizeNameFn: generateKey,
-    });
+  test.each(ORDINARY_NAMES)(
+    'an ordinary name uploads under the generated key: %s',
+    async (name) => {
+      const results = await helper.upload({
+        bucket: { name: 'assets' },
+        files: [buildFile({ originalName: name })],
+        normalizeNameFn: generateKey,
+      });
 
-    expect(results[0]?.object.key).toBe('inventory/2f9c41d0.xlsx');
-    expect(writtenPaths).toHaveLength(1);
-  });
+      expect(results[0]?.object.key).toBe('inventory/2f9c41d0.xlsx');
+      expect(writtenPaths).toHaveLength(1);
+    },
+  );
 
   test('without a normalizeNameFn the name IS the key, so the segment rules still apply', async () => {
     const task = helper.upload({
@@ -153,7 +156,7 @@ describe('MinioHelper.upload - the original name travels as header-safe metadata
   beforeAll(() => {
     server = Bun.serve({
       port: 0,
-      fetch: request => {
+      fetch: (request) => {
         if (request.method === 'PUT') {
           metadataHeaders.push(request.headers);
         }

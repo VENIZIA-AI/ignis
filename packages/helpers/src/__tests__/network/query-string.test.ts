@@ -34,3 +34,58 @@ describe('toQueryString matches what a server expects', () => {
     expect(toQueryString({ params: { a: true, b: false } })).toBe('a=true&b=false');
   });
 });
+
+describe('toQueryString options - the defaults are unchanged', () => {
+  const params = { a: undefined, b: null, c: [1, 2], d: { x: 1 }, e: 'a b' };
+
+  test('no options is node:querystring', () => {
+    expect(toQueryString({ params })).toBe('a=&b=&c=1&c=2&d=&e=a%20b');
+    expect(toQueryString({ params, nullish: 'empty', nested: 'drop' })).toBe(
+      toQueryString({ params }),
+    );
+  });
+
+  test("nullish 'skip' leaves a null or undefined pair out, in an array too", () => {
+    expect(toQueryString({ params: { a: undefined, b: null, c: 1 }, nullish: 'skip' })).toBe('c=1');
+    expect(toQueryString({ params: { c: [1, null, 2] }, nullish: 'skip' })).toBe('c=1&c=2');
+    expect(toQueryString({ params: { a: '', b: 0, c: false }, nullish: 'skip' })).toBe(
+      'a=&b=0&c=false',
+    );
+  });
+
+  test("nested 'json' sends an object as ONE JSON parameter", () => {
+    const filter = { where: { id: { inq: [1, 2] } }, limit: 5 };
+
+    expect(toQueryString({ params: { filter }, nested: 'json' })).toBe(
+      `filter=${encodeURIComponent(JSON.stringify(filter))}`,
+    );
+  });
+
+  test("nested 'json' sends a top-level array as ONE JSON parameter, not a repeated key", () => {
+    expect(toQueryString({ params: { ids: [1, 2] }, nested: 'json' })).toBe('ids=%5B1%2C2%5D');
+    expect(toQueryString({ params: { ids: [1, [2, 3]] }, nested: 'json' })).toBe(
+      `ids=${encodeURIComponent('[1,[2,3]]')}`,
+    );
+    expect(toQueryString({ params: { ids: [] }, nested: 'json' })).toBe('ids=%5B%5D');
+  });
+
+  test("nested 'json' leaves primitives alone", () => {
+    expect(toQueryString({ params: { a: 1, b: 'x y', c: true }, nested: 'json' })).toBe(
+      'a=1&b=x%20y&c=true',
+    );
+  });
+
+  test('the ARDOR combination: skip nullish, JSON for the rest', () => {
+    expect(
+      toQueryString({
+        params: { page: 2, q: undefined, filter: { limit: 1 }, ids: [3] },
+        nullish: 'skip',
+        nested: 'json',
+      }),
+    ).toBe(`page=2&filter=${encodeURIComponent('{"limit":1}')}&ids=%5B3%5D`);
+  });
+
+  test("a null under nested 'json' with nullish 'empty' stays an empty value, not 'null'", () => {
+    expect(toQueryString({ params: { a: null }, nested: 'json' })).toBe('a=');
+  });
+});

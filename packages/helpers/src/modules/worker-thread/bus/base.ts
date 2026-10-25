@@ -18,19 +18,19 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     this.port = opts.port;
     this.handler = opts.busHandler;
 
-    this.port.on('message', message => {
+    this.port.on('message', (message) => {
       this.invokeHook({ scope: 'onMessage', execution: () => this.handler.onMessage({ message }) });
     });
 
-    this.port.on('error', error => {
+    this.port.on('error', (error) => {
       this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
     });
 
-    this.port.on('messageerror', error => {
+    this.port.on('messageerror', (error) => {
       this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
     });
 
-    this.port.on('exit', exitCode => {
+    this.port.on('exit', (exitCode) => {
       this.invokeHook({ scope: 'onExit', execution: () => this.handler.onExit({ exitCode }) });
     });
 

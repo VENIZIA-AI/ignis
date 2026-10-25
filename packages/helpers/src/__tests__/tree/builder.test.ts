@@ -18,35 +18,35 @@ describe('TreeBuilder.build', () => {
   test('builds nested children from an async getChildren fetcher', async () => {
     const tree = await TreeBuilder.build<ISourceNode>({
       rootValue: { id: 'A' },
-      getChildren: async value => DIAMOND_CHILDREN[value.id] ?? [],
-      getKey: value => value.id,
+      getChildren: async (value) => DIAMOND_CHILDREN[value.id] ?? [],
+      getKey: (value) => value.id,
     });
 
     expect(tree.value.id).toBe('A');
-    expect(tree.children.map(child => child.value.id)).toEqual(['B', 'C']);
+    expect(tree.children.map((child) => child.value.id)).toEqual(['B', 'C']);
   });
 
   test('accepts a synchronous getChildren just as well', async () => {
     const tree = await TreeBuilder.build<ISourceNode>({
       rootValue: { id: 'A' },
-      getChildren: value => DIAMOND_CHILDREN[value.id] ?? [],
-      getKey: value => value.id,
+      getChildren: (value) => DIAMOND_CHILDREN[value.id] ?? [],
+      getKey: (value) => value.id,
     });
 
-    expect(tree.children.map(child => child.value.id)).toEqual(['B', 'C']);
+    expect(tree.children.map((child) => child.value.id)).toEqual(['B', 'C']);
   });
 
   test('a repeated key SKIPS that branch instead of throwing - a diamond is not a cycle', async () => {
     const tree = await TreeBuilder.build<ISourceNode>({
       rootValue: { id: 'A' },
-      getChildren: value => DIAMOND_CHILDREN[value.id] ?? [],
-      getKey: value => value.id,
+      getChildren: (value) => DIAMOND_CHILDREN[value.id] ?? [],
+      getKey: (value) => value.id,
     });
 
     const [nodeB, nodeC] = tree.children;
     // D is attached to whichever of B/C is expanded first; the other's branch is dropped, not errored.
     expect(nodeB.value.id).toBe('B');
-    expect(nodeB.children.map(child => child.value.id)).toEqual(['D']);
+    expect(nodeB.children.map((child) => child.value.id)).toEqual(['D']);
     expect(nodeC.value.id).toBe('C');
     expect(nodeC.children).toEqual([]);
   });
@@ -59,11 +59,11 @@ describe('TreeBuilder.build', () => {
 
     const tree = await TreeBuilder.build<ISourceNode>({
       rootValue: { id: 'A' },
-      getChildren: value => cyclicChildren[value.id] ?? [],
-      getKey: value => value.id,
+      getChildren: (value) => cyclicChildren[value.id] ?? [],
+      getKey: (value) => value.id,
     });
 
-    expect(tree.children.map(child => child.value.id)).toEqual(['B']);
+    expect(tree.children.map((child) => child.value.id)).toEqual(['B']);
     expect(tree.children[0]?.children).toEqual([]);
   });
 });
@@ -79,17 +79,17 @@ describe('TreeBuilder.leaves', () => {
 
   test('without includePath, returns leaf nodes only', () => {
     const leaves = TreeBuilder.leaves({ root: buildSampleTree() });
-    expect(leaves.map(node => node.value)).toEqual(['a1', 'b']);
+    expect(leaves.map((node) => node.value)).toEqual(['a1', 'b']);
   });
 
   test('includePath: true returns the path from the root alongside each leaf', () => {
     const leaves = TreeBuilder.leaves({ root: buildSampleTree(), includePath: true });
 
-    expect(leaves.map(entry => entry.path)).toEqual([
+    expect(leaves.map((entry) => entry.path)).toEqual([
       ['root', 'a', 'a1'],
       ['root', 'b'],
     ]);
-    expect(leaves.map(entry => entry.node.value)).toEqual(['a1', 'b']);
+    expect(leaves.map((entry) => entry.node.value)).toEqual(['a1', 'b']);
   });
 });
 
@@ -104,12 +104,12 @@ describe('TreeBuilder.nonLeaves', () => {
 
   test('returns nodes that have at least one child', () => {
     const nonLeaves = TreeBuilder.nonLeaves({ root: buildSampleTree() });
-    expect(nonLeaves.map(node => node.value)).toEqual(['root', 'a']);
+    expect(nonLeaves.map((node) => node.value)).toEqual(['root', 'a']);
   });
 
   test('includePath: true carries the path alongside each non-leaf', () => {
     const nonLeaves = TreeBuilder.nonLeaves({ root: buildSampleTree(), includePath: true });
-    expect(nonLeaves.map(entry => entry.path)).toEqual([['root'], ['root', 'a']]);
+    expect(nonLeaves.map((entry) => entry.path)).toEqual([['root'], ['root', 'a']]);
   });
 });
 
@@ -134,8 +134,8 @@ describe('TreeBuilder.print', () => {
       children: [{ value: { name: 'child' }, children: [] }],
     };
 
-    expect(TreeBuilder.print({ root: tree, formatValue: value => value.name.toUpperCase() })).toBe(
-      ['ROOT', '└── CHILD'].join('\n'),
-    );
+    expect(
+      TreeBuilder.print({ root: tree, formatValue: (value) => value.name.toUpperCase() }),
+    ).toBe(['ROOT', '└── CHILD'].join('\n'));
   });
 });

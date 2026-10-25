@@ -229,7 +229,7 @@ There is no formatter preset to import: `bun fmt` reads the `[fmt]` table of `bu
 [fmt]
 printWidth = 100
 singleQuote = true
-arrowParens = "avoid"
+arrowParens = "always"
 flavor = "oxfmt"
 ```
 

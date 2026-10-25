@@ -13,7 +13,7 @@ const assertType = <Check extends true>(): Check | undefined => undefined;
 // Emits the DDL the table definition implies, so a real insert exercises the column modifiers.
 const createTableSql = (table: SQLiteTable) => {
   const config = getTableConfig(table);
-  const columns = config.columns.map(column => {
+  const columns = config.columns.map((column) => {
     const notNull = column.notNull ? ' NOT NULL' : '';
     const hasDefault = column.hasDefault ? ` DEFAULT '${String(column.default)}'` : '';
     return `"${column.name}" ${column.getSQLType()}${notNull}${hasDefault}`;

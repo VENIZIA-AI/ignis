@@ -36,7 +36,7 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
       principalType: text('principal_type'),
       principalId: text('principal_id'),
     },
-    def => [
+    (def) => [
       index(`IDX_MetaLink_bucketName`).on(def.bucketName),
       index(`IDX_MetaLink_objectName`).on(def.objectName),
       index(`IDX_MetaLink_storageType`).on(def.storageType),

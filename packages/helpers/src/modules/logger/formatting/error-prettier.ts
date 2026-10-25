@@ -127,7 +127,7 @@ export class ErrorPrettier {
       return message;
     }
 
-    const lines = issues.slice(0, this.MAX_ZOD_ISSUES).map(issue => {
+    const lines = issues.slice(0, this.MAX_ZOD_ISSUES).map((issue) => {
       const entry = issue as { path?: Array<string | number>; message?: string; code?: string };
       const path =
         Array.isArray(entry.path) && entry.path.length > 0 ? entry.path.join('.') : '(root)';
@@ -232,7 +232,7 @@ export class ErrorPrettier {
 
     // A protocol client reports one member per thing that failed; the wrapper carries only a generic sentence.
     if (Array.isArray(source.errors) && source.errors.length > 0 && depthLeft > 0) {
-      const members = source.errors.slice(0, this.MAX_AGGREGATED_ERRORS).map(member =>
+      const members = source.errors.slice(0, this.MAX_AGGREGATED_ERRORS).map((member) =>
         this.summarizeNode({
           value: member,
           depthLeft: depthLeft - 1,
@@ -388,7 +388,7 @@ export class ErrorPrettier {
 
     // An ARRAY, not the newline-joined string `text` prints: a monitor can count and slice frames.
     if (summary.stack !== undefined) {
-      payload.stack = summary.stack.split('\n').map(frame => frame.trim());
+      payload.stack = summary.stack.split('\n').map((frame) => frame.trim());
     }
 
     return this.safeStringify(payload);
@@ -455,7 +455,7 @@ export class ErrorPrettier {
       lines.push(`stack:\n${summary.stack}`);
     }
 
-    return lines.map(line => `- ${line}`).join('\n');
+    return lines.map((line) => `- ${line}`).join('\n');
   }
 
   /** Renders {@link summarize}. `text` returns a block whose newlines survive `%s`; `json` returns one line. */

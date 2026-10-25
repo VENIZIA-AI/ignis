@@ -20,7 +20,7 @@ export class ArrayCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
-        const values = results.map(r => r.nValue).sort((a, b) => (a ?? 0) - (b ?? 0));
+        const values = results.map((r) => r.nValue).sort((a, b) => (a ?? 0) - (b ?? 0));
         if (values.join(',') === '10,20,30') {
           this.context.logger.info('[IN] PASSED | Found 3 records with nValue in [10, 20, 30]');
         } else {
@@ -46,7 +46,7 @@ export class ArrayCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const values = results.map(r => r.nValue).sort((a, b) => (a ?? 0) - (b ?? 0));
+        const values = results.map((r) => r.nValue).sort((a, b) => (a ?? 0) - (b ?? 0));
         if (values.join(',') === '40,50') {
           this.context.logger.info('[INQ] PASSED | inq works as alias for in');
         } else {
@@ -74,8 +74,8 @@ export class ArrayCases extends BaseTestCases {
       // IMPORTANT: SQL NIN does NOT return NULL values!
       // NULL NOT IN (values) = UNKNOWN, which is excluded from results
       // Should find: 0, 100, -100, 2147483647 = 4 records (NULLs excluded)
-      const noneInList = results.every(r => ![10, 20, 30, 40, 50].includes(r.nValue as number));
-      const noNulls = results.every(r => r.nValue !== null);
+      const noneInList = results.every((r) => ![10, 20, 30, 40, 50].includes(r.nValue as number));
+      const noNulls = results.every((r) => r.nValue !== null);
       if (noneInList && noNulls && results.length === 4) {
         this.context.logger.info(
           '[NIN] PASSED | Found %d records NOT in [10,20,30,40,50] (NULLs excluded by SQL)',
@@ -83,7 +83,7 @@ export class ArrayCases extends BaseTestCases {
         );
         this.context.logger.info(
           '[NIN] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       } else if (noneInList && results.length >= 4) {
         this.context.logger.warn(
@@ -92,7 +92,7 @@ export class ArrayCases extends BaseTestCases {
         );
         this.context.logger.warn(
           '[NIN] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       } else {
         this.context.logger.error(
@@ -172,14 +172,16 @@ export class ArrayCases extends BaseTestCases {
       });
 
       // Should find 20, 30, 40
-      const allInRange = results.every(r => r.nValue !== null && r.nValue >= 20 && r.nValue <= 40);
+      const allInRange = results.every(
+        (r) => r.nValue !== null && r.nValue >= 20 && r.nValue <= 40,
+      );
       if (allInRange && results.length === 3) {
         this.context.logger.info(
           '[BETWEEN] PASSED | Found 3 records with nValue between 20 and 40',
         );
         this.context.logger.info(
           '[BETWEEN] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       } else {
         this.context.logger.error(
@@ -206,7 +208,7 @@ export class ArrayCases extends BaseTestCases {
       // Should find: -100, 0, 10, 50, 100, 2147483647 = 6 records (NOT in 20-40 range)
       // Note: NULL values are excluded because NULL NOT BETWEEN returns UNKNOWN
       const allOutsideRange = results.every(
-        r => r.nValue !== null && (r.nValue < 20 || r.nValue > 40),
+        (r) => r.nValue !== null && (r.nValue < 20 || r.nValue > 40),
       );
 
       if (allOutsideRange && results.length === 6) {
@@ -216,7 +218,7 @@ export class ArrayCases extends BaseTestCases {
         );
         this.context.logger.info(
           '[NOT-BETWEEN] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       } else {
         this.context.logger.error(
@@ -225,7 +227,7 @@ export class ArrayCases extends BaseTestCases {
         );
         this.context.logger.error(
           '[NOT-BETWEEN] Values: %j',
-          results.map(r => r.nValue),
+          results.map((r) => r.nValue),
         );
       }
     } catch (error) {

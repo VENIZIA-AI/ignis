@@ -135,7 +135,7 @@ describe('AbstractRepository read-retry engine', () => {
         retry: {
           maxAttempts: 2,
           backoff: FAST_RETRY_BACKOFF,
-          until: row => row?.status === 'PAID',
+          until: (row) => row?.status === 'PAID',
         },
       },
     });
@@ -326,7 +326,7 @@ describe('postgres readable retry wiring', () => {
         retry: {
           maxAttempts: 3,
           backoff: FAST_RETRY_BACKOFF,
-          until: row => row?.status === 'PAID',
+          until: (row) => row?.status === 'PAID',
         },
       },
     });

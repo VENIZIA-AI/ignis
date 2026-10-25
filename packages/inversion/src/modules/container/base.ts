@@ -192,7 +192,7 @@ export abstract class BaseContainer extends AbstractContainer {
       };
     };
   }): { [K in keyof T]: T[K] | undefined } {
-    return opts.bindings.map(opt => this.get({ ...opt, isOptional: true })) as {
+    return opts.bindings.map((opt) => this.get({ ...opt, isOptional: true })) as {
       [K in keyof T]: T[K] | undefined;
     };
   }

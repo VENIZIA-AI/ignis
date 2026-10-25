@@ -17,9 +17,9 @@ describe('clean-install manifest', () => {
       const published = claim.configOnly
         ? []
         : Object.keys(exportsMap).filter(
-            subpath => subpath !== './package.json' && !subpath.endsWith('.json'),
+            (subpath) => subpath !== './package.json' && !subpath.endsWith('.json'),
           );
-      const derived = rows.filter(row => row.package === claim.package).map(row => row.subpath);
+      const derived = rows.filter((row) => row.package === claim.package).map((row) => row.subpath);
 
       expect(derived.sort()).toEqual(published.sort());
     }
@@ -27,7 +27,7 @@ describe('clean-install manifest', () => {
 
   test('a sub-path granted no peer is derived with none', () => {
     const rows = deriveInstallRows({ claims: INSTALL_CLAIMS });
-    const repository = rows.find(row => row.specifier === '@venizia/ignis-kernel/repository');
+    const repository = rows.find((row) => row.specifier === '@venizia/ignis-kernel/repository');
 
     expect(repository?.extras).toEqual([]);
   });
@@ -40,7 +40,7 @@ describe('clean-install manifest', () => {
 
   test('the postgres-js alias is loaded under Bun with postgres imported after it', () => {
     const rows = deriveInstallRows({ claims: INSTALL_CLAIMS });
-    const postgresJs = rows.find(row => row.specifier === '@venizia/ignis/postgres/postgres-js');
+    const postgresJs = rows.find((row) => row.specifier === '@venizia/ignis/postgres/postgres-js');
 
     expect(postgresJs?.importedAfter).toEqual(['postgres']);
     expect(postgresJs?.extras).toContain('postgres');
@@ -48,7 +48,7 @@ describe('clean-install manifest', () => {
 
   test('the root entry is loaded under Bun with jose imported after it', () => {
     const rows = deriveInstallRows({ claims: INSTALL_CLAIMS });
-    const root = rows.find(row => row.specifier === '@venizia/ignis');
+    const root = rows.find((row) => row.specifier === '@venizia/ignis');
 
     expect(root?.importedAfter).toEqual(['jose']);
     expect(root?.extras).toEqual([]);

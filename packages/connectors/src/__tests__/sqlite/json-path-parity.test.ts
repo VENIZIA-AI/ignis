@@ -30,7 +30,7 @@ const toWhere = (where: AnyType) =>
   compile(dialect.toWhere({ tableName: TABLE_NAME, schema: table, where }) as SQL);
 
 const toOrderBy = (order: string[]) =>
-  dialect.toOrderBy({ tableName: TABLE_NAME, schema: table, order }).map(entry => compile(entry));
+  dialect.toOrderBy({ tableName: TABLE_NAME, schema: table, order }).map((entry) => compile(entry));
 
 const transform = (data: Record<string, unknown>) =>
   dialect.transformUpdate({ tableName: TABLE_NAME, schema: table, data });
@@ -55,7 +55,7 @@ const selectMatchingIds = async (where: AnyType): Promise<number[]> => {
     args: query.params as AnyType[],
   });
 
-  return result.rows.map(row => Number(row.id));
+  return result.rows.map((row) => Number(row.id));
 };
 
 const applyUpdate = async (opts: { document: string; data: Record<string, unknown> }) => {

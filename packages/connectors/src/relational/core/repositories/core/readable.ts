@@ -1,12 +1,15 @@
 import { omit } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
+  TByIdFilter,
   TCount,
   TDataWithRange,
+  TFields,
   TFilter,
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
+  TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
 import { buildDataRange, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
@@ -120,27 +123,32 @@ export class ReadableRelationalRepository<
     });
   }
 
-  override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options: TFindRangeOptions<ExtraOptions, R>;
-  }): Promise<TDataWithRange<R>>;
+  override find<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+    filter: TFilter<DataObject, F>;
+    options: TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TDataWithRange<TRow<DataObject, R, F>>>;
 
-  override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOptions<ExtraOptions, R>;
-  }): Promise<Array<R>>;
+  override find<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<Array<TRow<DataObject, R, F>>>;
 
   /** Auto-selects Core API or Query API based on filter complexity. */
-  override async find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOptions<ExtraOptions, R> | TFindRangeOptions<ExtraOptions, R>;
-  }): Promise<Array<R> | TDataWithRange<R>> {
+  override async find<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?:
+      | TFindOptions<ExtraOptions, TRow<DataObject, R, F>>
+      | TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<Array<TRow<DataObject, R, F>> | TDataWithRange<TRow<DataObject, R, F>>> {
     const { filter, options } = opts;
 
     if (options?.retry) {
       return options.shouldQueryRange === true
-        ? this.findRangeUntil<R>({ filter, options })
-        : this.findUntil<R>({ filter, options });
+        ? this.findRangeUntil<TRow<DataObject, R, F>>({ filter, options })
+        : this.findUntil<TRow<DataObject, R, F>>({ filter, options });
     }
 
     const shouldQueryRange = options?.shouldQueryRange === true;
@@ -170,12 +178,15 @@ export class ReadableRelationalRepository<
     });
 
     const dataPromise = useCoreAPI
-      ? this.findWithCoreAPI<R>({
+      ? this.findWithCoreAPI<TRow<DataObject, R, F>>({
           filter: mergedFilter,
           options: effectiveOptions,
           dangerouslySkipScopeFilter: true,
         })
-      : this.findWithQueryAPI<R>({ filter: mergedFilter, options: effectiveOptions });
+      : this.findWithQueryAPI<TRow<DataObject, R, F>>({
+          filter: mergedFilter,
+          options: effectiveOptions,
+        });
 
     if (!shouldQueryRange) {
       return dataPromise;
@@ -188,7 +199,7 @@ export class ReadableRelationalRepository<
     const countPromise = () =>
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
 
-    let data: Array<R>;
+    let data: Array<TRow<DataObject, R, F>>;
     let total: number;
 
     if (effectiveOptions.transaction) {
@@ -210,12 +221,18 @@ export class ReadableRelationalRepository<
   }
 
   /** Auto-selects Core API or Query API based on filter complexity. */
-  override async findOne<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>> {
+  override async findOne<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>> {
     if (opts.options?.retry) {
-      return this.findOneUntil<R>({ filter: opts.filter, options: opts.options });
+      return this.findOneUntil<TRow<DataObject, R, F>>({
+        filter: opts.filter,
+        options: opts.options,
+      });
     }
 
     const filter = opts.filter;
@@ -228,7 +245,7 @@ export class ReadableRelationalRepository<
     });
 
     if (useCoreAPI) {
-      const results = await this.findWithCoreAPI<R>({
+      const results = await this.findWithCoreAPI<TRow<DataObject, R, F>>({
         filter,
         isFindOne: true,
         options: opts?.options,
@@ -246,7 +263,7 @@ export class ReadableRelationalRepository<
       keys: ['limit'],
     });
 
-    return this.queryExecutor.findFirst<R>({
+    return this.queryExecutor.findFirst<TRow<DataObject, R, F>>({
       connector: this.resolveConnector({ transaction: opts?.options?.transaction }),
       entityName: this.entity.name,
       query: queryOptions,
@@ -255,12 +272,12 @@ export class ReadableRelationalRepository<
   }
 
   /** Delegates to findOne with id in the where clause. */
-  override findById<R = DataObject>(opts: {
+  override findById<R = unknown, const F extends TFields<DataObject> = TFields<DataObject>>(opts: {
     id: DataObject['id'];
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>> {
-    return this.findOne<R>({
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>> {
+    return this.findOne<R, F>({
       filter: {
         ...opts.filter,
         where: this.whereById({ id: opts.id }),

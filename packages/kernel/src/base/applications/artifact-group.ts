@@ -65,7 +65,7 @@ export class ArtifactGroup implements IArtifactGroup {
     const { group, kinds } = opts;
     const slice = (index: IArtifactIndex): IArtifactIndex =>
       Object.fromEntries(
-        kinds.filter(kind => index[kind] !== undefined).map(kind => [kind, index[kind]]),
+        kinds.filter((kind) => index[kind] !== undefined).map((kind) => [kind, index[kind]]),
       );
 
     return new ArtifactGroup({

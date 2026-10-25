@@ -137,7 +137,7 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       switch (opts.format) {
         case 'array': {
           return collectAuthorizePrincipals({ modelRegistry: this.modelRegistry }).map(
-            item => item.principal,
+            (item) => item.principal,
           );
         }
         case 'record': {

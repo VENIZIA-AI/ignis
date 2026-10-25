@@ -85,7 +85,7 @@ export abstract class SearchBaseRepository<
       return documents;
     }
 
-    return documents.map(document => this.omitHiddenFields(document));
+    return documents.map((document) => this.omitHiddenFields(document));
   }
 
   /** No search engine here has a transaction primitive (this tier is engine-neutral - Typesense and Meilisearch both inherit it) - a caller-supplied options.transaction is rejected loudly instead of silently running outside the transaction the caller expects. */
@@ -128,7 +128,7 @@ export abstract class SearchBaseRepository<
   protected get collectionFields(): ReadonlySet<string> | undefined {
     if (!this._collectionFields) {
       const fields = this.entity?.schema?.fields;
-      this._collectionFields = new Set((fields ?? []).map(field => field.name));
+      this._collectionFields = new Set((fields ?? []).map((field) => field.name));
     }
 
     return this._collectionFields.size > 0 ? this._collectionFields : undefined;

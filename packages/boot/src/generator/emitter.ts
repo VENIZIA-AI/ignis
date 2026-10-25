@@ -51,10 +51,10 @@ export class ArtifactIndexEmitter {
     command: { root: string; out: string; ignore?: string[]; sourceModules?: string[] };
   }): string {
     const { artifacts, outFile, exportName, command } = opts;
-    const emitted = artifacts.filter(artifact => artifact.type !== ArtifactTypes.MODEL);
+    const emitted = artifacts.filter((artifact) => artifact.type !== ArtifactTypes.MODEL);
 
     const imports = emitted
-      .map(artifact => ({
+      .map((artifact) => ({
         name: artifact.className,
         path: ArtifactIndexEmitter.importPath({
           from: outFile,
@@ -63,12 +63,12 @@ export class ArtifactIndexEmitter {
         }),
       }))
       .sort((a, b) => a.path.localeCompare(b.path) || a.name.localeCompare(b.name))
-      .map(entry => `import { ${entry.name} } from '${entry.path}';`);
+      .map((entry) => `import { ${entry.name} } from '${entry.path}';`);
 
     const fields = ArtifactStereotypes.EMIT_ORDER.flatMap(({ type, field }) => {
       const names = emitted
-        .filter(artifact => artifact.type === type)
-        .map(artifact => artifact.className)
+        .filter((artifact) => artifact.type === type)
+        .map((artifact) => artifact.className)
         .sort((a, b) => a.localeCompare(b));
 
       return ArtifactIndexEmitter.renderField({ field, names });
@@ -94,7 +94,7 @@ export class ArtifactIndexEmitter {
       return [singleLine];
     }
 
-    return [`  ${field}: [`, ...names.map(name => `    ${name},`), '  ],'];
+    return [`  ${field}: [`, ...names.map((name) => `    ${name},`), '  ],'];
   }
 
   private static importPath(opts: { from: string; to: string; isAbsolute: boolean }): string {

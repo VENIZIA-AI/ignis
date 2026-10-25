@@ -23,6 +23,17 @@ tags: [packages, filter, query, isomorphic, browser]
 sort direction constants (`Sorts`). It was extracted from the repository base that now lives in
 `kernel/src/base/repositories/` so the vocabulary can be shared with a browser data layer.
 
+`TFilter<T, F extends TFields<T>>` types `fields`, and the row a read returns follows it
+(`common/types.ts`): `TSelectedRow<T, F>` is `Pick<T, selected keys | the model's optional keys>`, the
+whole row when the selection is empty, has no `true` entry or is not a literal (`any` for a model
+with no keys). `TRow<T, R, F>` is `R` when the caller named it (`find<MyRow>`), else `TSelectedRow`;
+`unknown` is the "not named" marker, which is why every read signature defaults `R = unknown`.
+`TByIdFilter<T, F>` is the by-id filter (`where` omitted, `fields` typed). The kernel contract, the
+abstract repository, the relational, soft-deletable and search repositories and `HttpRepository`
+share the `find<R = unknown, const F extends TFields<T>>` shape, so an override with the old
+`<R = E>` shape stops compiling and a generic caller (`findById<DataObject>`) needs a cast. A field
+list kept in a constant needs `as const`. Pinned by `kernel/src/__tests__/repository-typed-fields.ts`.
+
 `common/order.ts` adds `parseOrderEntry(opts: { entry: string }): TParsedOrderEntry` - the one parser
 every relational and search dialect now shares for a `'field'`/`'field ASC|DESC'` order entry, and the
 `TSortDirection`/`TParsedOrderEntry` types it returns. See

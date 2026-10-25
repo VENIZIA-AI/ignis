@@ -122,7 +122,7 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     expect(result).toBe('execute-result');
     expect(await countNamed({ name: 'execute-committed' })).toBe(1);
     expect(
-      postgresDataSource.recorder.statements.filter(statement =>
+      postgresDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
       ),
     ).toEqual([TransactionEndStatements.COMMIT]);
@@ -151,7 +151,7 @@ describe('runInTransaction runtime - postgres (PGlite)', () => {
     });
     expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
     expect(
-      postgresDataSource.recorder.statements.filter(statement =>
+      postgresDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
       ),
     ).toEqual([TransactionEndStatements.ROLLBACK]);
@@ -267,7 +267,7 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     expect(result).toBe('execute-result');
     expect(await countNamed({ name: 'execute-committed' })).toBe(1);
     expect(
-      sqliteDataSource.recorder.statements.filter(statement =>
+      sqliteDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
       ),
     ).toEqual([TransactionEndStatements.COMMIT]);
@@ -296,7 +296,7 @@ describe('runInTransaction runtime - sqlite (libsql :memory:)', () => {
     });
     expect(await countNamed({ name: 'execute-rolled-back' })).toBe(0);
     expect(
-      sqliteDataSource.recorder.statements.filter(statement =>
+      sqliteDataSource.recorder.statements.filter((statement) =>
         TransactionEndStatements.isValid(statement),
       ),
     ).toEqual([TransactionEndStatements.ROLLBACK]);

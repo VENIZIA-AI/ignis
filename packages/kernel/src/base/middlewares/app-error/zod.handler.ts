@@ -42,7 +42,7 @@ export const formatZodError = (opts: {
 
   if (issues && issues.length > 0) {
     const primaryIssue =
-      issues.find(issue => extractIssueCode({ issue }) !== undefined) ?? issues[0];
+      issues.find((issue) => extractIssueCode({ issue }) !== undefined) ?? issues[0];
     messageCode = extractIssueCode({ issue: primaryIssue }) ?? primaryIssue.code;
     message = primaryIssue.message;
   }
@@ -63,7 +63,7 @@ export const formatZodError = (opts: {
         path,
         stack: !isProduction ? error.stack : undefined,
         cause: issues
-          ? issues.map(el => ({
+          ? issues.map((el) => ({
               path: el.path.join('.') || 'root',
               message: el.message,
               code: el.code,

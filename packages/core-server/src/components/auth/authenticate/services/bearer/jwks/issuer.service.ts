@@ -113,7 +113,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   protected assertPublicJWK(opts: { jwk: JWK }): void {
     const PRIVATE_MEMBERS = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'k'] as const;
 
-    const present = PRIVATE_MEMBERS.filter(member => opts.jwk[member] !== undefined);
+    const present = PRIVATE_MEMBERS.filter((member) => opts.jwk[member] !== undefined);
     if (present.length === 0) {
       return;
     }

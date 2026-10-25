@@ -103,7 +103,7 @@ export class OneRelations {
     const candidates =
       owned.length > 1
         ? owned.filter(
-            link => !writtenFields.some(columns => OneRelations.startsAt({ link, columns })),
+            (link) => !writtenFields.some((columns) => OneRelations.startsAt({ link, columns })),
           )
         : owned;
 
@@ -125,7 +125,7 @@ export class OneRelations {
     if (owned.length > 1) {
       const listed = candidates.length > 0 ? candidates : owned;
       const columns = listed
-        .map(link => OneRelations.columnNames({ columns: link.columns }))
+        .map((link) => OneRelations.columnNames({ columns: link.columns }))
         .join(', ');
       const reason =
         candidates.length > 0
@@ -141,7 +141,7 @@ export class OneRelations {
     if (inverse.length > 1) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[createRelations] relation '${name}': ${inverse.length} foreign keys on ${targetName} reference ${sourceName} (${inverse.map(link => OneRelations.columnNames({ columns: link.columns })).join(', ')}), so drizzle cannot tell which one this side pairs with | Pick one: write fields and references on this side, reversed - e.g. ${OneRelations.reversedConfig({ link: inverse[0], source, target })}`,
+        message: `[createRelations] relation '${name}': ${inverse.length} foreign keys on ${targetName} reference ${sourceName} (${inverse.map((link) => OneRelations.columnNames({ columns: link.columns })).join(', ')}), so drizzle cannot tell which one this side pairs with | Pick one: write fields and references on this side, reversed - e.g. ${OneRelations.reversedConfig({ link: inverse[0], source, target })}`,
       });
     }
     if (inverse.length === 1) {
@@ -175,9 +175,11 @@ export class OneRelations {
       foreignTable: Table;
     }> = [];
     if (is(from, PgTable)) {
-      references = getPgTableConfig(from).foreignKeys.map(foreignKey => foreignKey.reference());
+      references = getPgTableConfig(from).foreignKeys.map((foreignKey) => foreignKey.reference());
     } else if (is(from, SQLiteTable)) {
-      references = getSqliteTableConfig(from).foreignKeys.map(foreignKey => foreignKey.reference());
+      references = getSqliteTableConfig(from).foreignKeys.map((foreignKey) =>
+        foreignKey.reference(),
+      );
     }
 
     const links: Array<IForeignKeyLink> = [];
@@ -195,11 +197,11 @@ export class OneRelations {
   }
 
   private static columnNames(opts: { columns: Array<AnyColumn> }): string {
-    return opts.columns.map(column => column.name).join(', ');
+    return opts.columns.map((column) => column.name).join(', ');
   }
 
   private static qualifiedNames(opts: { table: Table; columns: Array<AnyColumn> }): string {
-    return opts.columns.map(column => `${getTableName(opts.table)}.${column.name}`).join(', ');
+    return opts.columns.map((column) => `${getTableName(opts.table)}.${column.name}`).join(', ');
   }
 
   /** The written form that walks `link` back from the table it references: `fields [users.id] references [profiles.user_id]`. */

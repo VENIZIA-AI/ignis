@@ -2,11 +2,14 @@ import type { TNullable } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
   TCount,
+  TByIdFilter,
   TDataWithRange,
+  TFields,
   TFilter,
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
+  TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
 import { buildDataRange, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
@@ -58,30 +61,32 @@ export class ReadableSearchRepository<
     return count > 0;
   }
 
-  find<R = TDocument>(opts: {
-    filter: TFilter;
-    options: TFindRangeOptions<IExtraOptions, R>;
-  }): Promise<TDataWithRange<R>>;
+  find<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
+    filter: TFilter<any, F>;
+    options: TFindRangeOptions<IExtraOptions, TRow<TDocument, R, F>>;
+  }): Promise<TDataWithRange<TRow<TDocument, R, F>>>;
 
-  find<R = TDocument>(opts: {
-    filter: TFilter;
-    options?: TFindOptions<IExtraOptions, R>;
-  }): Promise<Array<R>>;
+  find<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
+    filter: TFilter<any, F>;
+    options?: TFindOptions<IExtraOptions, TRow<TDocument, R, F>>;
+  }): Promise<Array<TRow<TDocument, R, F>>>;
 
   /**
    * Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense returns
    * `found` in the same call as `hits`, so unlike SQL no second count query is needed.
    */
-  async find<R = TDocument>(opts: {
-    filter: TFilter;
-    options?: TFindOptions<IExtraOptions, R> | TFindRangeOptions<IExtraOptions, R>;
-  }): Promise<Array<R> | TDataWithRange<R>> {
+  async find<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
+    filter: TFilter<any, F>;
+    options?:
+      | TFindOptions<IExtraOptions, TRow<TDocument, R, F>>
+      | TFindRangeOptions<IExtraOptions, TRow<TDocument, R, F>>;
+  }): Promise<Array<TRow<TDocument, R, F>> | TDataWithRange<TRow<TDocument, R, F>>> {
     const { filter, options } = opts;
 
     if (options?.retry) {
       return options.shouldQueryRange === true
-        ? this.findRangeUntil<R>({ filter, options })
-        : this.findUntil<R>({ filter, options });
+        ? this.findRangeUntil<TRow<TDocument, R, F>>({ filter, options })
+        : this.findUntil<TRow<TDocument, R, F>>({ filter, options });
     }
 
     this.assertNoTransaction(options);
@@ -113,7 +118,7 @@ export class ReadableSearchRepository<
     // The cast is the caller's own unchecked assertion when they pass an explicit `find<Other>()`.
     // Hidden fields are stripped in JS too, not only engine-side: Typesense honours
     // `exclude_fields`, Meilisearch has no per-query exclusion at all.
-    const data = this.omitHiddenFieldsAll((hits ?? []).map(hit => hit.document)) as any;
+    const data = this.omitHiddenFieldsAll((hits ?? []).map((hit) => hit.document)) as any;
 
     if (!options?.shouldQueryRange) {
       return data;
@@ -130,22 +135,22 @@ export class ReadableSearchRepository<
     };
   }
 
-  async findOne<R = TDocument>(opts: {
-    filter: TFilter;
-    options?: TFindOneOptions<IExtraOptions, R>;
-  }): Promise<TNullable<R>> {
+  async findOne<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
+    filter: TFilter<any, F>;
+    options?: TFindOneOptions<IExtraOptions, TRow<TDocument, R, F>>;
+  }): Promise<TNullable<TRow<TDocument, R, F>>> {
     const { filter, options } = opts;
 
     if (options?.retry) {
-      return this.findOneUntil<R>({ filter, options });
+      return this.findOneUntil<TRow<TDocument, R, F>>({ filter, options });
     }
 
     // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>)
     // does not unify with find's own (Array<R>), hence the options-only cast.
-    const results: Array<R> = await this.find<R>({
+    const results = (await this.find<R, F>({
       filter: { ...filter, limit: 1 },
-      options: options as TFindOptions<IExtraOptions, R>,
-    });
+      options: options as TFindOptions<IExtraOptions, TRow<TDocument, R, F>>,
+    })) as Array<TRow<TDocument, R, F>>;
 
     return results[0] ?? null;
   }
@@ -155,14 +160,14 @@ export class ReadableSearchRepository<
    * hiddenFields/defaultFilter apply, so a soft-deleted document resolves to null. `where` is spread
    * away last so a projection can never widen the id lookup.
    */
-  findById<R = TDocument>(opts: {
+  findById<R = unknown, const F extends TFields<TDocument> = TFields<TDocument>>(opts: {
     id: IdType;
-    filter?: Omit<TFilter, 'where'>;
-    options?: TFindOneOptions<IExtraOptions, R>;
-  }): Promise<TNullable<R>> {
+    filter?: TByIdFilter<any, F>;
+    options?: TFindOneOptions<IExtraOptions, TRow<TDocument, R, F>>;
+  }): Promise<TNullable<TRow<TDocument, R, F>>> {
     const { id, filter, options } = opts;
 
-    return this.findOne<R>({ filter: { ...filter, where: { id } }, options });
+    return this.findOne<R, F>({ filter: { ...filter, where: { id } }, options });
   }
 
   /**
@@ -205,7 +210,7 @@ export class ReadableSearchRepository<
 
     return {
       ...result,
-      hits: (result.hits ?? []).map(hit => ({
+      hits: (result.hits ?? []).map((hit) => ({
         ...hit,
         document: this.omitHiddenFields(hit.document),
       })),

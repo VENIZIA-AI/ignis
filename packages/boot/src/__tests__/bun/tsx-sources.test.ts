@@ -20,7 +20,7 @@ describe('a decorated class in a .tsx file', () => {
   test('is scanned like one in a .ts file', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: SOURCE })
-      .map(artifact => artifact.className)
+      .map((artifact) => artifact.className)
       .sort();
     expect(names).toEqual(['ListController', 'ViewController']);
   });
@@ -39,7 +39,7 @@ describe('a decorated class in a .tsx file', () => {
         artifacts,
         from: resolve(app, 'dist', 'index.js'),
       });
-      expect(running.map(artifact => artifact.filePath).sort()).toEqual([
+      expect(running.map((artifact) => artifact.filePath).sort()).toEqual([
         resolve(app, 'dist', 'controllers', 'list.controller.js'),
         resolve(app, 'dist', 'controllers', 'view.controller.js'),
       ]);

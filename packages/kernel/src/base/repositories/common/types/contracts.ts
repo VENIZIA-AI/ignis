@@ -1,6 +1,6 @@
 import type { AbstractDataSource } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
-import type { TFilter, TWhere } from '@venizia/ignis-filter';
+import type { TByIdFilter, TFields, TFilter, TRow, TWhere } from '@venizia/ignis-filter';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 import type { IExtraOptions, TFindOneOptions, TFindOptions, TFindRangeOptions } from './options';
 import type { TCount, TDataWithRange } from './results';
@@ -23,26 +23,26 @@ export interface IReadableRepository<
   count(opts: { where: TWhere<TDataObject>; options?: ExtraOptions }): Promise<TCount>;
   existsWith(opts: { where: TWhere<TDataObject>; options?: ExtraOptions }): Promise<boolean>;
 
-  find<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options: TFindRangeOptions<ExtraOptions, R>;
-  }): Promise<TDataWithRange<R>>;
+  find<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options: TFindRangeOptions<ExtraOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TDataWithRange<TRow<TDataObject, R, F>>>;
 
-  find<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options?: TFindOptions<ExtraOptions, R>;
-  }): Promise<Array<R>>;
+  find<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options?: TFindOptions<ExtraOptions, TRow<TDataObject, R, F>>;
+  }): Promise<Array<TRow<TDataObject, R, F>>>;
 
-  findOne<R = TDataObject>(opts: {
-    filter: TFilter<TDataObject>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+  findOne<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
+    filter: TFilter<TDataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TNullable<TRow<TDataObject, R, F>>>;
 
-  findById<R = TDataObject>(opts: {
+  findById<R = unknown, const F extends TFields<TDataObject> = TFields<TDataObject>>(opts: {
     id: IdType;
-    filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+    filter?: TByIdFilter<TDataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<TDataObject, R, F>>;
+  }): Promise<TNullable<TRow<TDataObject, R, F>>>;
 }
 
 /** Interface for create operations. */

@@ -42,7 +42,7 @@ describe('emojiFavicon', () => {
   test('/favicon.ico is served as an SVG carrying the configured icon', async () => {
     const application = new Hono();
     application.use(emojiFavicon({ icon: '🔥' }));
-    application.get('/favicon.ico', context => context.text('should not be reached'));
+    application.get('/favicon.ico', (context) => context.text('should not be reached'));
 
     const response = await application.request('/favicon.ico');
     expect(response.status).toBe(200);
@@ -53,7 +53,7 @@ describe('emojiFavicon', () => {
   test('every other path falls through to the next handler', async () => {
     const application = new Hono();
     application.use(emojiFavicon({ icon: '🔥' }));
-    application.get('/ping', context => context.text('pong'));
+    application.get('/ping', (context) => context.text('pong'));
 
     const response = await application.request('/ping');
     expect(response.status).toBe(200);

@@ -64,7 +64,7 @@ export class CompositionCases extends BaseTestCases {
 
       // Product A: electronics ✓, Product B: electronics ✓, Product D: furniture ✓
       if (results.length === 3) {
-        const names = results.map(r => r.name).sort();
+        const names = results.map((r) => r.name).sort();
         this.context.logger.info(
           '[CASE 11] PASSED | Found 3 products with electronics OR furniture',
         );

@@ -43,7 +43,7 @@ const zodThrower = (schema: z.ZodType, input: unknown) => () => {
 describe('formatZodError — code/message pass-through from Zod', () => {
   test('custom params.code → code + message come from that issue', async () => {
     const schema = z.object({
-      quantity: z.number().refine(n => Number.isInteger(n * 10000), {
+      quantity: z.number().refine((n) => Number.isInteger(n * 10000), {
         message: 'Must not exceed 4 decimal places',
         params: { code: 'numeric.decimal.too_many_places' },
       }),
@@ -59,7 +59,7 @@ describe('formatZodError — code/message pass-through from Zod', () => {
   test('first issue WITH a custom code wins, even if a no-code issue precedes it', async () => {
     const schema = z.object({
       vendorId: z.string(), // issues[0]: invalid_type, no custom code
-      quantity: z.number().refine(n => Number.isInteger(n * 10000), {
+      quantity: z.number().refine((n) => Number.isInteger(n * 10000), {
         message: 'Must not exceed 4 decimal places',
         params: { code: 'numeric.decimal.too_many_places' },
       }), // issues[1]: custom code
@@ -517,7 +517,7 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
         messageCode: 'server.core.stock.low',
         statusCode: 409,
         messageArgs: { available: 2 },
-        transform: snapshot => ({
+        transform: (snapshot) => ({
           code: snapshot.message.code,
           args: snapshot.message.args,
           text: 'Chỉ còn 2 vé.',
@@ -754,7 +754,7 @@ describe('AppErrorMiddleware - the logged error is summarized, not dumped raw', 
     const block = calls[0]?.[calls[0].length - 1] as string;
     const frames = (block.split('stack:\n')[1] ?? '')
       .split('\n')
-      .filter(line => line.includes(' at '));
+      .filter((line) => line.includes(' at '));
 
     expect(frames).toHaveLength(2);
   });

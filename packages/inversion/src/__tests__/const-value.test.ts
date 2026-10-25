@@ -15,13 +15,13 @@ describe('TConstValue - literal union', () => {
       { scope: Scopes.DEPTH },
     ];
 
-    const mapped = rows.map(row => ({ scope: row.scope }));
+    const mapped = rows.map((row) => ({ scope: row.scope }));
     const typed: { scope: 'singleton' | 'transient' | 1 }[] = mapped;
     let current = typed[0].scope;
     const initial = current;
     current = Scopes.TRANSIENT;
 
-    expect([...typed.map(row => row.scope), initial, current]).toEqual([
+    expect([...typed.map((row) => row.scope), initial, current]).toEqual([
       'singleton',
       1,
       'singleton',

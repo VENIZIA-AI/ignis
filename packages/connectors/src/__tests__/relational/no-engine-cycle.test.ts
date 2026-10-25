@@ -23,9 +23,9 @@ const NEUTRAL_TIER = 'core';
  */
 const listFamilyDirectories = (): string[] =>
   readdirSync(DIST, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => join(DIST, entry.name))
-    .filter(directory => {
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => join(DIST, entry.name))
+    .filter((directory) => {
       try {
         return statSync(join(directory, NEUTRAL_TIER)).isDirectory();
       } catch {
@@ -170,7 +170,7 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
       cameFrom.set(next, file);
       queue.push(next);
 
-      if (forbiddenDirectories.some(directory => next.startsWith(`${directory}/`))) {
+      if (forbiddenDirectories.some((directory) => next.startsWith(`${directory}/`))) {
         offenders.push(next);
       }
     }
@@ -197,7 +197,7 @@ const walkFromNeutralTier = (opts: { family: string }): IWalkResult => {
 
 describe('no neutral tier reaches an engine adapter at runtime', () => {
   test('dist is built and every family is discovered - a missing dist would pass vacuously', () => {
-    const families = listFamilyDirectories().map(directory => basename(directory));
+    const families = listFamilyDirectories().map((directory) => basename(directory));
 
     // Families and engines named explicitly ONLY here: a discovery that silently found nothing
     // would make every walk below pass against an empty offender set. This is also the assertion

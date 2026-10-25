@@ -5,10 +5,10 @@ export class AuthenticationFieldCodecs {
   static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']> = {
     key: 'roles',
     serialize(opts) {
-      return JSON.stringify(opts.value.map(el => `${el.id}|${el.identifier}|${el.priority}`));
+      return JSON.stringify(opts.value.map((el) => `${el.id}|${el.identifier}|${el.priority}`));
     },
     deserialize(opts) {
-      return (JSON.parse(opts.raw) as string[]).map(el => {
+      return (JSON.parse(opts.raw) as string[]).map((el) => {
         const [id, identifier, priority] = el.split('|');
         return { id, identifier, priority: int(priority) };
       });

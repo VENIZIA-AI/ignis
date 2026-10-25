@@ -58,14 +58,14 @@ describe('RecursiveTreeSql against a real Postgres', () => {
   test('walks UP to the root', async () => {
     const rows = await walk({ rootId: 'C', direction: RecursiveTreeDirections.UP, maxDepth: 32 });
 
-    expect(rows.map(row => row.id)).toEqual(['C', 'B', 'A']);
-    expect(rows.map(row => row.depth)).toEqual([0, 1, 2]);
+    expect(rows.map((row) => row.id)).toEqual(['C', 'B', 'A']);
+    expect(rows.map((row) => row.depth)).toEqual([0, 1, 2]);
   });
 
   test('walks DOWN to the leaves', async () => {
     const rows = await walk({ rootId: 'A', direction: RecursiveTreeDirections.DOWN, maxDepth: 32 });
 
-    expect(rows.map(row => row.id)).toEqual(['A', 'B', 'C']);
+    expect(rows.map((row) => row.id)).toEqual(['A', 'B', 'C']);
   });
 
   /** The production shape that used to hang: an unbounded upward walk over a schema that permits A -> B -> A. */
@@ -77,17 +77,17 @@ describe('RecursiveTreeSql against a real Postgres', () => {
       trackPath: true,
     });
 
-    expect(rows.map(row => row.id)).toEqual(['X', 'Y', 'X']);
-    expect(rows.map(row => row.is_cycle)).toEqual([false, false, true]);
+    expect(rows.map((row) => row.id)).toEqual(['X', 'Y', 'X']);
+    expect(rows.map((row) => row.is_cycle)).toEqual([false, false, true]);
   });
 
   /** `maxDepth` counts EDGES, not rows: the root sits at depth 0, so `maxDepth: N` yields N+1 rows. */
   test('maxDepth bounds the walk by depth, root included', async () => {
     const shallow = await walk({ rootId: 'C', direction: RecursiveTreeDirections.UP, maxDepth: 1 });
-    expect(shallow.map(row => row.id)).toEqual(['C', 'B']);
+    expect(shallow.map((row) => row.id)).toEqual(['C', 'B']);
 
     const full = await walk({ rootId: 'C', direction: RecursiveTreeDirections.UP, maxDepth: 2 });
-    expect(full.map(row => row.id)).toEqual(['C', 'B', 'A']);
+    expect(full.map((row) => row.id)).toEqual(['C', 'B', 'A']);
   });
 
   /** `maxDepth` alone terminates a cycle; `trackPath` only adds the flag and the early cut. */
@@ -95,7 +95,7 @@ describe('RecursiveTreeSql against a real Postgres', () => {
     const rows = await walk({ rootId: 'X', direction: RecursiveTreeDirections.UP, maxDepth: 4 });
 
     expect(rows.length).toBe(5);
-    expect(rows.map(row => row.id)).toEqual(['X', 'Y', 'X', 'Y', 'X']);
+    expect(rows.map((row) => row.id)).toEqual(['X', 'Y', 'X', 'Y', 'X']);
   });
 
   test('an unknown root returns no rows rather than erroring', async () => {

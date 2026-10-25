@@ -68,7 +68,7 @@ const NoteRows = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {notes.map(note => (
+          {notes.map((note) => (
             <TableRow key={String(note.id)}>
               <TableCell className="font-medium">{note.title}</TableCell>
               <TableCell className="text-muted-foreground max-w-md truncate">

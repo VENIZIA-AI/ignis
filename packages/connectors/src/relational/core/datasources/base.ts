@@ -119,7 +119,9 @@ export abstract class BaseRelationalDataSource<
       dataSource: this.constructor.name,
       schema: discovered,
     });
-    const fatal = unpaired.find(item => RelationPairing.isInverseOne({ relation: item.relation }));
+    const fatal = unpaired.find((item) =>
+      RelationPairing.isInverseOne({ relation: item.relation }),
+    );
     if (fatal) {
       throw getError({ message: fatal.message });
     }

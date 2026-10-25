@@ -30,7 +30,7 @@ class CountingPerUserAdapter implements FilteredAdapter {
 
     const { Helper } = await import('casbin');
     if (this.delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, this.delayMs));
+      await new Promise((resolve) => setTimeout(resolve, this.delayMs));
     }
     Helper.loadPolicyLine(
       `p, ${filter.principal.type}_${filter.principal.id}, SYSTEM_WIDE, ${filter.principal.id}_secret, read, allow`,
@@ -192,9 +192,11 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
       const tasks: Promise<{ kind: 'own' | 'cross'; uid: string; decision: string }>[] = [];
       for (const uid of userIds) {
         const other = `U${(Number(uid.slice(1)) + 1) % userCount}`;
-        tasks.push(decide(e, uid, `${uid}_secret`).then(d => ({ kind: 'own', uid, decision: d })));
         tasks.push(
-          decide(e, uid, `${other}_secret`).then(d => ({ kind: 'cross', uid, decision: d })),
+          decide(e, uid, `${uid}_secret`).then((d) => ({ kind: 'own', uid, decision: d })),
+        );
+        tasks.push(
+          decide(e, uid, `${other}_secret`).then((d) => ({ kind: 'cross', uid, decision: d })),
         );
       }
 
@@ -270,7 +272,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
       ),
     );
     // All N reject (fail-closed: buildRules surfaces the adapter error, never silently returns []).
-    expect(settled.every(s => s.status === 'rejected')).toBe(true);
+    expect(settled.every((s) => s.status === 'rejected')).toBe(true);
     // Single-flight collapsed the concurrent misses to ONE adapter call.
     expect(adapter.calls).toBe(1);
     // Nothing cached on failure.
@@ -342,8 +344,8 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
           context: asTypedContext({}),
         })
         .then(
-          d => ({ ok: true as const, d }),
-          err => ({ ok: false as const, err }),
+          (d) => ({ ok: true as const, d }),
+          (err) => ({ ok: false as const, err }),
         ),
     );
 
@@ -567,7 +569,7 @@ describe('enforcer-pool-stress — load failure discard recovery under concurren
     const first = await Promise.allSettled(
       Array.from({ length: 6 }, () => decide(e, 'A', 'A_secret')),
     );
-    const rejected = first.filter(r => r.status === 'rejected').length;
+    const rejected = first.filter((r) => r.status === 'rejected').length;
     expect(rejected).toBeGreaterThanOrEqual(3); // at least the 3 forced failures fail closed
 
     // Pool must have recovered: subsequent requests resolve to correct decisions.

@@ -40,7 +40,7 @@ export class WhereCases extends BaseTestCases {
         this.context.logger.error(
           '[CASE 1] FAILED | Expected 1 priced product | Got %d | Codes: %s',
           results.length,
-          results.map(r => r.code).join(', '),
+          results.map((r) => r.code).join(', '),
         );
       }
     } catch (error) {
@@ -88,7 +88,7 @@ export class WhereCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[CASE 3] FAILED | Expected Product A | Got: %j',
-          results.map(r => r.name),
+          results.map((r) => r.name),
         );
       }
     } catch (error) {
@@ -197,7 +197,7 @@ export class WhereCases extends BaseTestCases {
       });
 
       // Should return products with price 50 and 150 (not 300)
-      const prices = results.map(r => r.price).sort((a, b) => a - b);
+      const prices = results.map((r) => r.price).sort((a, b) => a - b);
       const hasCorrectPrices = prices.length === 2 && prices[0] === 50 && prices[1] === 150;
 
       if (hasCorrectPrices) {

@@ -34,7 +34,7 @@ export const toCamel = (s: string) => {
 /** Arrays stay arrays - mapping one through the object branch would turn it into an index-keyed object - but their object elements still need their keys camelized. Dates are opaque values. */
 const camelizeValue = (value: unknown): unknown => {
   if (Array.isArray(value)) {
-    return value.map(element => camelizeValue(element));
+    return value.map((element) => camelizeValue(element));
   }
 
   if (!value || typeof value !== 'object' || value instanceof Date) {
@@ -143,7 +143,7 @@ export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K exten
     return resultMap;
   }
 
-  arr.forEach(element => {
+  arr.forEach((element) => {
     if (!(keyMap in element)) {
       throw getError({
         message: 'Invalid keyMap',
@@ -163,8 +163,8 @@ export const toDelimitedArray = (input: unknown, separator = ','): string[] => {
 
   return String(input)
     .split(separator)
-    .map(entry => entry.trim())
-    .filter(entry => entry.length > 0);
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 };
 
 /**

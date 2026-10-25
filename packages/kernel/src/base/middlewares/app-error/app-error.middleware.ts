@@ -140,7 +140,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     includeStack?: boolean;
     maxStackFrames?: number;
   }): string {
-    return (this.formatErrorOverride ?? (o => this.renderErrorForLog(o)))(opts);
+    return (this.formatErrorOverride ?? ((o) => this.renderErrorForLog(o)))(opts);
   }
 
   /**
@@ -178,7 +178,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
     }
 
     if (includeStack && typeof thrown?.stack === 'string') {
-      const frames = thrown.stack.split('\n').filter(line => line.trimStart().startsWith('at '));
+      const frames = thrown.stack.split('\n').filter((line) => line.trimStart().startsWith('at '));
       const capped = maxStackFrames === undefined ? frames : frames.slice(0, maxStackFrames);
 
       if (capped.length > 0) {
@@ -186,7 +186,7 @@ export class BaseAppErrorMiddleware extends BaseHelper implements IProvider<Erro
       }
     }
 
-    return lines.map(line => `- ${line}`).join('\n');
+    return lines.map((line) => `- ${line}`).join('\n');
   }
 
   private withRootKey(payload: object) {

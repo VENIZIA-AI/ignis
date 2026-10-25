@@ -69,7 +69,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         new Client({
           apiKey: opts.apiKey,
           // NodeConfiguration.protocol is required upstream though ITypesenseNode.protocol is optional; default 'http', cloud users pass 'https'.
-          nodes: opts.nodes.map(node => ({ ...node, protocol: node.protocol ?? 'http' })),
+          nodes: opts.nodes.map((node) => ({ ...node, protocol: node.protocol ?? 'http' })),
           connectionTimeoutSeconds: opts.connectionTimeoutSeconds ?? 5,
           numRetries: opts.numRetries,
         });
@@ -101,38 +101,38 @@ export class TypesenseConnector extends BaseSearchConnector {
     TCollectionSchema,
     TCollectionFieldSchema
   > = {
-    create: opts => this.createCollection(opts),
-    ensure: opts => this.ensureCollection(opts),
-    get: opts => this.getCollection(opts),
+    create: (opts) => this.createCollection(opts),
+    ensure: (opts) => this.ensureCollection(opts),
+    get: (opts) => this.getCollection(opts),
     list: () => this.listCollections(),
-    exists: opts => this.collectionExists(opts),
-    patchSchema: opts => this.patchCollectionSchema(opts),
-    delete: opts => this.deleteCollection(opts),
+    exists: (opts) => this.collectionExists(opts),
+    patchSchema: (opts) => this.patchCollectionSchema(opts),
+    delete: (opts) => this.deleteCollection(opts),
   };
 
   readonly alias: ISearchAliasScoped = {
-    upsert: opts => this.upsertAlias(opts),
-    get: opts => this.getAlias(opts),
+    upsert: (opts) => this.upsertAlias(opts),
+    get: (opts) => this.getAlias(opts),
   };
 
   readonly synonymSet: ISearchSynonymSetScoped = {
-    upsert: opts => this.upsertSynonymSet(opts),
-    get: opts => this.getSynonymSet(opts),
+    upsert: (opts) => this.upsertSynonymSet(opts),
+    get: (opts) => this.getSynonymSet(opts),
     list: () => this.listSynonymSets(),
-    delete: opts => this.deleteSynonymSet(opts),
-    link: opts => this.linkSynonymSets(opts),
+    delete: (opts) => this.deleteSynonymSet(opts),
+    link: (opts) => this.linkSynonymSets(opts),
   };
 
   readonly document: ISearchDocumentScoped = {
     create: <T extends object>(opts: { collection: string; document: T }) =>
       this.createDocument(opts),
     get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
-    count: opts => this.countDocuments(opts),
+    count: (opts) => this.countDocuments(opts),
     upsert: <T extends object>(opts: { collection: string; document: T }) =>
       this.upsertDocument(opts),
     update: <T extends object>(opts: { collection: string; id: string; document: Partial<T> }) =>
       this.updateDocument(opts),
-    delete: opts => this.deleteDocument(opts),
+    delete: (opts) => this.deleteDocument(opts),
     import: <T extends object>(opts: { collection: string; documents: T[]; batchSize?: number }) =>
       this.importDocuments(opts),
     updateBy: <T extends object>(opts: {
@@ -140,9 +140,9 @@ export class TypesenseConnector extends BaseSearchConnector {
       document: Partial<T>;
       filterBy: string;
     }) => this.updateByFilter(opts),
-    deleteBy: opts => this.deleteByFilter(opts),
-    deleteAll: opts => this.deleteAllDocuments(opts),
-    export: opts => this.exportDocuments(opts),
+    deleteBy: (opts) => this.deleteByFilter(opts),
+    deleteAll: (opts) => this.deleteAllDocuments(opts),
+    export: (opts) => this.exportDocuments(opts),
   };
 
   async getHealth(): Promise<{ ok: boolean }> {
@@ -171,7 +171,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         return created;
       },
       tolerate: {
-        when: error => TypesenseInternal.isAlreadyExistsError({ error }),
+        when: (error) => TypesenseInternal.isAlreadyExistsError({ error }),
         handle: () => {
           logger.info('Collection already exists, skipping | name: %s', schema.name);
         },
@@ -349,7 +349,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.upsertSynonymSet.name,
       run: async () => {
-        const payload = items.map(item =>
+        const payload = items.map((item) =>
           item.root
             ? { id: item.id, synonyms: item.synonyms, root: item.root }
             : { id: item.id, synonyms: item.synonyms },
@@ -389,7 +389,7 @@ export class TypesenseConnector extends BaseSearchConnector {
         const sets = Array.isArray(result) ? result : [];
         return sets
           .filter(isRecord)
-          .map(set => set.name)
+          .map((set) => set.name)
           .filter((setName): setName is string => typeof setName === 'string');
       },
     });
@@ -461,7 +461,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       },
       // Typesense rejects a duplicate id with 409; surfaced as the neutral already_exists conflict rather than the generic sanitized 503 - same contract Meilisearch's createDocument throws.
       tolerate: {
-        when: error => TypesenseInternal.isAlreadyExistsError({ error }),
+        when: (error) => TypesenseInternal.isAlreadyExistsError({ error }),
         handle: () => {
           throw getError({
             error: SearchErrors.ALREADY_EXISTS,
@@ -887,7 +887,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const entries =
       windows.length === 1
         ? [{ ...params, collection }]
-        : windows.map(window => {
+        : windows.map((window) => {
             // Each window carries its own offset/limit, so the caller's page keys are left out.
             const rest = Object.fromEntries(
               Object.entries(paramsRecord).filter(([key]) => key !== 'page' && key !== 'per_page'),

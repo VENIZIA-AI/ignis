@@ -30,6 +30,6 @@ export const snakeToCamel = <T extends z.ZodRawShape>(shape: T) => {
 
   return z
     .object(shape)
-    .transform(data => keysToCamel(data))
+    .transform((data) => keysToCamel(data))
     .pipe(z.object(camelShape));
 };

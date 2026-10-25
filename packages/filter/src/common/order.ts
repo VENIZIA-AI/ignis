@@ -9,7 +9,7 @@ const RAW_AFTER_JSON = /[\u007f-\u009f\u2028\u2029]/g;
 const quoteEntry = (opts: { entry: string }): string =>
   JSON.stringify(opts.entry).replace(
     RAW_AFTER_JSON,
-    character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
   );
 
 // ASCII whitespace: space, tab, line feed, vertical tab, form feed, carriage return.

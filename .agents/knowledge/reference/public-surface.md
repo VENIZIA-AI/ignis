@@ -194,11 +194,12 @@ generated:
 
 ## filter
 
-### `@venizia/ignis-filter` (21)
+### `@venizia/ignis-filter` (24)
 
 - `parseOrderEntry` const
 - `QueryOperators` class
 - `Sorts` class
+- `TByIdFilter` type
 - `TFields` type
 - `TFilter` type
 - `TInclusion` type
@@ -211,6 +212,8 @@ generated:
 - `TOrderEntry` type
 - `TParsedOrderEntry` type
 - `TQueryOperator` type
+- `TRow` type
+- `TSelectedRow` type
 - `TSkip` type
 - `TSortDirection` type
 - `TSqlFragment` type
@@ -235,7 +238,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (432)
+### `@venizia/ignis-helpers` (438)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -392,6 +395,7 @@ generated:
 - `IPoolWaiter` interface
 - `IPostPolicy` interface
 - `IPrintOptions` interface
+- `IQueryStringOptions` interface
 - `IQueueCallback` interface
 - `IRedisClusterHelperOptions` interface
 - `IRedisClusterHelperProps` interface
@@ -496,6 +500,8 @@ generated:
 - `parseContentDisposition` const
 - `parseMultipartBody` const
 - `PropsWithChildren` type
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `QueueStatuses` class
 - `readFormBody` const
@@ -565,6 +571,7 @@ generated:
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
+- `TFetcherLogger` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
 - `TFileExtension` type
@@ -600,6 +607,8 @@ generated:
 - `toQueryString` const
 - `toTrimmed` const
 - `TPrettify` type
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TQueueElement` type
 - `TQueueStatus` type
 - `TRedisClient` type
@@ -735,7 +744,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (145)
+### `@venizia/ignis-helpers/core` (151)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -791,6 +800,7 @@ generated:
 - `IPoolStats` interface
 - `IPoolWaiter` interface
 - `IPrintOptions` interface
+- `IQueryStringOptions` interface
 - `IRedisHelper` interface
 - `IRequestOptions` interface
 - `IRetryBackoffOptions` interface
@@ -822,6 +832,8 @@ generated:
 - `NodeFetchNetworkRequest` class
 - `OpaqueUidHelper` class
 - `ProjectRootRegistry` class
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `readFormBody` const
 - `RequestBodyErrors` const
@@ -850,6 +862,7 @@ generated:
 - `TErrorNormalized` type
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
+- `TFetcherLogger` type
 - `TLogLevel` type
 - `TNodePredicate` type
 - `toBoolean` const
@@ -857,6 +870,8 @@ generated:
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `toQueryString` const
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TreeBuilder` class
 - `TreeWalker` class
 - `TRegisterErrors` type
@@ -948,6 +963,15 @@ generated:
 - `TSocketIOEventHandler` type
 - `TSocketIOServerOptions` type
 - `TSocketIOValidateRoomFn` type
+
+### `@venizia/ignis-helpers/socket-io/client` (6)
+
+- `IOptions` interface
+- `ISocketIOClientOptions` interface
+- `SocketIOClientHelper` class
+- `SocketIOClientStates` class
+- `SocketIOConstants` class
+- `TSocketIOEventHandler` type
 
 ### `@venizia/ignis-helpers/bullmq` (2)
 
@@ -1142,7 +1166,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (414)
+### `@venizia/ignis-kernel` (417)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1446,6 +1470,7 @@ generated:
 - `TBindingScope` type
 - `TBindingValueType` type
 - `TBootStep` type
+- `TByIdFilter` type
 - `TCasbinDomainMatchingFunction` type
 - `TCasbinEnforcerCachedDriver` type
 - `TCasbinEnforcerModelDriver` type
@@ -1538,10 +1563,12 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
 - `TSearchErrorCode` type
 - `TSecFetchSite` type
+- `TSelectedRow` type
 - `TServiceCallerEntry` type
 - `TSignInRequest` type
 - `TSignUpRequest` type
@@ -1585,7 +1612,7 @@ generated:
 - `TBindingNamespace` type
 - `TBindingScope` type
 
-### `@venizia/ignis-kernel/repository` (33)
+### `@venizia/ignis-kernel/repository` (37)
 
 - `AbstractDataSource` class
 - `AbstractEntity` class
@@ -1608,17 +1635,21 @@ generated:
 - `RepositoryTypes` class
 - `SchemaTypes` class
 - `SearchErrorCodes` class
+- `TByIdFilter` type
 - `TCount` type
 - `TDataRange` type
 - `TDataWithRange` type
 - `TExtraRequest` type
 - `TExtraResult` type
+- `TFields` type
 - `TFilter` type
 - `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
+- `TRow` type
 - `TSchemaType` type
+- `TSelectedRow` type
 - `TWhere` type
 
 ## connectors
@@ -2261,7 +2292,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1027)
+### `@venizia/ignis` (1036)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2665,6 +2696,7 @@ generated:
 - `IProvideMetadata` interface
 - `IProvider` interface
 - `IQueryHandlerOptions` interface
+- `IQueryStringOptions` interface
 - `IQueueCallback` interface
 - `IReadableRepository` interface
 - `IReadRetryOptions` interface
@@ -2862,6 +2894,8 @@ generated:
 - `provide` const
 - `put` const
 - `QueryOperators` class
+- `QueryStringNestedModes` class
+- `QueryStringNullishModes` class
 - `QueryStringSeparators` class
 - `QueueStatuses` class
 - `ReadableCrudController` class
@@ -2999,6 +3033,7 @@ generated:
 - `TBuildInfoRecord` type
 - `TBullQueueRole` type
 - `TBunServerInstance` type
+- `TByIdFilter` type
 - `TCasbinDomainMatchingFunction` type
 - `TCasbinEnforcerCachedDriver` type
 - `TCasbinEnforcerModelDriver` type
@@ -3061,6 +3096,7 @@ generated:
 - `TEventHandlerFunction` type
 - `TEventHandlerReference` type
 - `TEventHandlerType` type
+- `TFetcherLogger` type
 - `TFieldMappingDataType` type
 - `TFieldMappingNames` type
 - `TFields` type
@@ -3155,6 +3191,8 @@ generated:
 - `TPrincipalPolicyRow` type
 - `TQueryOperator` type
 - `TQueryOperatorHandlers` type
+- `TQueryStringNestedMode` type
+- `TQueryStringNullishMode` type
 - `TQueueElement` type
 - `TQueueStatus` type
 - `trackableHeaders` const
@@ -3197,6 +3235,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRow` type
 - `TRpcHandler` type
 - `TRpcMiddleware` type
 - `TRuntimeModule` type
@@ -3207,6 +3246,7 @@ generated:
 - `TSecFetchSite` type
 - `TSecretProvider` type
 - `TSecretRotationHandler` type
+- `TSelectedRow` type
 - `TServerBootStep` type
 - `TServiceCallerEntry` type
 - `TSignInRequest` type

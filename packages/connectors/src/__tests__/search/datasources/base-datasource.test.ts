@@ -193,7 +193,7 @@ describe('BaseSearchDataSource - provisionCollections', () => {
 
     await dataSource['provisionCollections']();
 
-    expect(dataSource.ensureCalls.map(item => item.name).sort()).toEqual(
+    expect(dataSource.ensureCalls.map((item) => item.name).sort()).toEqual(
       ['gadgets', 'widgets'].sort(),
     );
   });

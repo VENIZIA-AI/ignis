@@ -192,7 +192,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     }
 
     return edges.map(
-      edge => `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${edge.child}, ${edge.parent}`,
+      (edge) =>
+        `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${edge.child}, ${edge.parent}`,
     );
   }
 
@@ -246,7 +247,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const metadataNull = metadataColumnName ? sql`, NULL::jsonb AS "metadata"` : sql.empty();
 
     const domainTypeList = sql.join(
-      domainTypes.map(domainType => sql`${domainType}`),
+      domainTypes.map((domainType) => sql`${domainType}`),
       sql`, `,
     );
 
@@ -499,6 +500,6 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     `,
     });
 
-    return rows.map(row => `${row.rel}, ${row.child}, ${row.parent}`);
+    return rows.map((row) => `${row.rel}, ${row.child}, ${row.parent}`);
   }
 }

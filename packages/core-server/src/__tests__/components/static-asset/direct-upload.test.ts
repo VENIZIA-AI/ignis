@@ -113,7 +113,7 @@ describe('the upload-policy route', () => {
 
     await askPolicy(router, [{ fileName: 'a.png' }]);
 
-    expect(helper.calls.filter(call => call.method === 'presignPost')).toEqual([
+    expect(helper.calls.filter((call) => call.method === 'presignPost')).toEqual([
       { method: 'presignPost', args: { bucket: 'uploads', keyPrefix: 'pending/', maxBytes: 1024 } },
     ]);
   });
@@ -158,13 +158,13 @@ describe('the upload-commit route', () => {
     const response = await commit(router, policies[0].commitToken);
 
     expect(response.status).toBe(200);
-    const copy = helper.calls.find(call => call.method === 'copyObject');
+    const copy = helper.calls.find((call) => call.method === 'copyObject');
     expect(copy?.args).toMatchObject({
       bucket: 'uploads',
       source: policies[0].objectName,
       destination: policies[0].objectName.slice('pending/'.length),
     });
-    expect(helper.calls.find(call => call.method === 'removeObject')?.args).toMatchObject({
+    expect(helper.calls.find((call) => call.method === 'removeObject')?.args).toMatchObject({
       name: policies[0].objectName,
     });
   });
@@ -206,8 +206,8 @@ describe('the upload-commit route', () => {
     const response = await commit(router, policies[0].commitToken);
 
     expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(helper.calls.filter(call => call.method === 'copyObject')).toHaveLength(0);
-    expect(helper.calls.filter(call => call.method === 'removeObject')).toHaveLength(0);
+    expect(helper.calls.filter((call) => call.method === 'copyObject')).toHaveLength(0);
+    expect(helper.calls.filter((call) => call.method === 'removeObject')).toHaveLength(0);
   });
 });
 

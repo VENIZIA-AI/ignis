@@ -19,7 +19,7 @@ export const saleChannelProductTable = pgTable(
     productId: text('product_id').notNull(),
     saleChannelId: text('sale_channel_id').notNull(),
   },
-  table => [
+  (table) => [
     unique('UQ_SaleChannelProduct_productId_saleChannelId').on(
       table.productId,
       table.saleChannelId,

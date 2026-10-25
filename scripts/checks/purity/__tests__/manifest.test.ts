@@ -93,16 +93,16 @@ describe('assertNoWorkspaceExternal', () => {
  * not the property that matters; COVERAGE of the published surface is.
  */
 describe('PURITY_MANIFEST derivation', () => {
-  const claimedPackages = [...new Set(PURITY_MANIFEST.map(row => row.package))];
+  const claimedPackages = [...new Set(PURITY_MANIFEST.map((row) => row.package))];
 
   // `helpers` is the deliberate exception and is asserted separately below.
-  const fullSurfacePackages = claimedPackages.filter(name => name !== 'helpers');
+  const fullSurfacePackages = claimedPackages.filter((name) => name !== 'helpers');
 
   test.each(fullSurfacePackages)(
     'every entry point %s publishes has a row',
     (packageName: string) => {
       const probed = new Set(
-        PURITY_MANIFEST.filter(row => row.package === packageName).map(row => row.entry),
+        PURITY_MANIFEST.filter((row) => row.package === packageName).map((row) => row.entry),
       );
 
       const publishedTargets = readPublishedTargets({ package: packageName });
@@ -114,7 +114,7 @@ describe('PURITY_MANIFEST derivation', () => {
 
   test('connectors is covered sub-path by sub-path, not just in total', () => {
     const probed = new Set(
-      PURITY_MANIFEST.filter(row => row.package === 'connectors').map(row => row.entry),
+      PURITY_MANIFEST.filter((row) => row.package === 'connectors').map((row) => row.entry),
     );
 
     // Named explicitly, because these two are what the hand-written manifest missed: the browser
@@ -127,16 +127,20 @@ describe('PURITY_MANIFEST derivation', () => {
     expect(probed).toContain('packages/connectors/dist/esm/relational/sqlite/index.js');
   });
 
-  test('helpers claims its four sub-paths and NOT its root barrel, in both builds', () => {
-    const entries = PURITY_MANIFEST.filter(row => row.package === 'helpers').map(row => row.entry);
+  test('helpers claims its five sub-paths and NOT its root barrel, in both builds', () => {
+    const entries = PURITY_MANIFEST.filter((row) => row.package === 'helpers').map(
+      (row) => row.entry,
+    );
 
     expect(entries.toSorted()).toEqual([
       'packages/helpers/dist/cjs/common/index.js',
       'packages/helpers/dist/cjs/core.js',
+      'packages/helpers/dist/cjs/modules/socket/socket-io/browser.js',
       'packages/helpers/dist/cjs/temporal.js',
       'packages/helpers/dist/cjs/uuid.js',
       'packages/helpers/dist/esm/common/index.js',
       'packages/helpers/dist/esm/core.js',
+      'packages/helpers/dist/esm/modules/socket/socket-io/browser.js',
       'packages/helpers/dist/esm/temporal.js',
       'packages/helpers/dist/esm/uuid.js',
     ]);
@@ -155,7 +159,9 @@ describe('PURITY_MANIFEST derivation', () => {
   });
 
   test('a dual-build package yields one row per distinct build, deduping the default condition', () => {
-    const labels = PURITY_MANIFEST.filter(row => row.package === 'inversion').map(row => row.label);
+    const labels = PURITY_MANIFEST.filter((row) => row.package === 'inversion').map(
+      (row) => row.label,
+    );
 
     // `exports['.']` names import, require AND default; default repeats require's file.
     expect(labels).toEqual(['inversion [import]', 'inversion [require]']);

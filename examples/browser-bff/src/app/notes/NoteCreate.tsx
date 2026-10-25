@@ -50,7 +50,7 @@ export const NoteCreate = () => {
           value={title}
           disabled={isPending}
           placeholder="Something worth keeping"
-          onChange={event => setTitle(event.target.value)}
+          onChange={(event) => setTitle(event.target.value)}
         />
       </Field.Root>
 
@@ -60,7 +60,7 @@ export const NoteCreate = () => {
           value={body}
           disabled={isPending}
           placeholder="Optional"
-          onChange={event => setBody(event.target.value)}
+          onChange={(event) => setBody(event.target.value)}
         />
       </Field.Root>
 

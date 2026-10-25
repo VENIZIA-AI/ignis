@@ -16,7 +16,7 @@ export class UrlPolicy {
 
     if (
       parts.length !== 4 ||
-      parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)
+      parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)
     ) {
       return true;
     }

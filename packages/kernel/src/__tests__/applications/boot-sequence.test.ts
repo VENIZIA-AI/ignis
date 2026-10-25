@@ -33,7 +33,7 @@ describe('BootSequence', () => {
       step: { name: 'x', run: () => {} },
     });
 
-    expect(steps.map(step => step.name)).toEqual(['a', 'b', 'x', 'c']);
+    expect(steps.map((step) => step.name)).toEqual(['a', 'b', 'x', 'c']);
   });
 
   test('insertAfter on the last step still lands at the end', () => {
@@ -43,7 +43,7 @@ describe('BootSequence', () => {
       step: { name: 'x', run: () => {} },
     });
 
-    expect(steps.map(step => step.name)).toEqual(['a', 'b', 'c', 'x']);
+    expect(steps.map((step) => step.name)).toEqual(['a', 'b', 'c', 'x']);
   });
 
   test('an unknown target name throws instead of silently no-oping', () => {
@@ -75,7 +75,7 @@ describe('BootSequence', () => {
     const original = buildSteps();
     BootSequence.insertAfter({ steps: original, target: 'a', step: { name: 'x', run: () => {} } });
 
-    expect(original.map(step => step.name)).toEqual(['a', 'b', 'c']);
+    expect(original.map((step) => step.name)).toEqual(['a', 'b', 'c']);
   });
 });
 
@@ -166,8 +166,8 @@ describe('RestApplication boot sequence', () => {
 
     // executeWithPerformanceMeasure logs `[scope] DONE | description | Took` at debug; args[1] is the description.
     const completed = logger.calls
-      .filter(call => call.level === 'debug' && call.message.includes('DONE'))
-      .map(call => call.args[1]);
+      .filter((call) => call.level === 'debug' && call.message.includes('DONE'))
+      .map((call) => call.args[1]);
     expect(completed).toEqual([
       'Boot step 1/10 staticConfigure',
       'Boot step 2/10 registerArtifacts',
@@ -182,7 +182,7 @@ describe('RestApplication boot sequence', () => {
     ]);
 
     const summary = logger.calls.find(
-      call => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
+      (call) => call.level === 'info' && call.message.startsWith('Boot sequence complete'),
     );
     expect(summary?.args[0]).toBe(10);
     expect(summary?.args[2]).toBe(
@@ -208,7 +208,7 @@ describe('RestApplication boot sequence', () => {
     expect(failure).toBe(boom);
     expect(app.order).toEqual(['staticConfigure', 'registerArtifacts']);
 
-    const failed = logger.calls.find(call => call.level === 'error');
+    const failed = logger.calls.find((call) => call.level === 'error');
     expect(failed?.message).toStartWith('Boot step failed');
     expect(failed?.args.slice(0, 3)).toEqual(['preConfigure', 3, 10]);
   });

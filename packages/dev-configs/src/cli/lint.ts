@@ -47,8 +47,8 @@ export class LintCommand {
 
     return readFileSync(path, 'utf8')
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line !== '' && !line.startsWith('#'));
+      .map((line) => line.trim())
+      .filter((line) => line !== '' && !line.startsWith('#'));
   }
 
   /**
@@ -59,8 +59,8 @@ export class LintCommand {
     const fix = opts.args[0] === FIX_FLAG;
     const paths = fix ? opts.args.slice(1) : opts.args;
     const whole = paths.length === 0;
-    const files = paths.filter(path => LINTED_EXTENSIONS.has(extname(path)));
-    const formatted = paths.filter(path => FORMATTED_EXTENSIONS.has(extname(path)));
+    const files = paths.filter((path) => LINTED_EXTENSIONS.has(extname(path)));
+    const formatted = paths.filter((path) => FORMATTED_EXTENSIONS.has(extname(path)));
 
     if (!whole && formatted.length === 0) {
       return [];
@@ -68,12 +68,12 @@ export class LintCommand {
 
     const targets = whole ? ['.'] : files;
     const lintIgnore = LintCommand.readIgnore({ root: opts.root, file: LINT_IGNORE_FILE }).flatMap(
-      pattern => ['--ignore-pattern', pattern],
+      (pattern) => ['--ignore-pattern', pattern],
     );
     const formatIgnore = LintCommand.readIgnore({
       root: opts.root,
       file: FORMAT_IGNORE_FILE,
-    }).flatMap(pattern => ['--ignore-pattern', pattern]);
+    }).flatMap((pattern) => ['--ignore-pattern', pattern]);
     const unmatched = whole ? [] : ['--no-error-on-unmatched-pattern'];
     const eslintQuiet = whole ? [] : ['--no-warn-ignored'];
 

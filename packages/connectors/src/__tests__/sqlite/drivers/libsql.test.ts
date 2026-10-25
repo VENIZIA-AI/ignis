@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { expectRejection } from '@venizia/dev-configs/testing';
 
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * SQLite's write-transaction verb: it takes the write lock
@@ -70,7 +70,7 @@ describe('LibSqlDriver - against a real in-memory libsql database', () => {
       insert: 3,
       commit: 0,
     });
-    expect(rows.map(row => row['id'])).toEqual([1, 2, 3]);
+    expect(rows.map((row) => row['id'])).toEqual([1, 2, 3]);
   });
 
   test('a rolled-back transaction really rolls back', async () => {
@@ -98,7 +98,7 @@ describe('LibSqlDriver - against a real in-memory libsql database', () => {
     const first = await driver.acquire({ schema: {} });
     order.push('first acquired');
 
-    const secondPromise = driver.acquire({ schema: {} }).then(connection => {
+    const secondPromise = driver.acquire({ schema: {} }).then((connection) => {
       order.push('second acquired');
       return connection;
     });

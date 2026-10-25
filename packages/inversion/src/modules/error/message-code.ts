@@ -10,7 +10,7 @@ export class MessageCode {
   static readonly DEFAULT = 'core.system_error';
 
   // The one permitted raw `new Error`, used only until `src/index.ts` registers `getError`.
-  private static errorFactory: TErrorFactory = opts =>
+  private static errorFactory: TErrorFactory = (opts) =>
     // eslint-disable-next-line venizia/no-new-error -- the bootstrap factory, replaced by getError at init
     new Error(typeof opts.message === 'string' ? opts.message : JSON.stringify(opts.message));
 
@@ -56,7 +56,7 @@ export class MessageCode {
 
     return (
       segments.length >= this.MIN_SEGMENTS &&
-      segments.every(segment => this.SEGMENT_PATTERN.test(segment))
+      segments.every((segment) => this.SEGMENT_PATTERN.test(segment))
     );
   }
 

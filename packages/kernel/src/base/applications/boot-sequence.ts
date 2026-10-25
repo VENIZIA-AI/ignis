@@ -46,7 +46,7 @@ export class BootSequence {
   private static indexOf(opts: { steps: IBootSequenceStep[]; target: string }): number {
     const { steps, target } = opts;
     const matches = steps.flatMap((step, index) => (step.name === target ? [index] : []));
-    const known = steps.map(step => step.name).join(', ');
+    const known = steps.map((step) => step.name).join(', ');
 
     switch (matches.length) {
       case 0: {

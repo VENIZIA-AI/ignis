@@ -266,6 +266,24 @@ Creates the `socket.io-client` connection (`io(host, options)`) and registers th
 
 `socket.io-client` is loaded here, through `ModuleUtility.loadSync`, not when the subpath is imported. A server that only uses `SocketIOServerHelper` never needs the client package installed. A `bun build --compile` binary has no `node_modules` for that lookup: pass the module as the `module` option.
 
+#### Browser entry: `@venizia/ignis-helpers/socket-io/client`
+
+The same helper with nothing node in its graph (the browser-purity gate claims it), for an app that bundles for a browser. It never looks for `socket.io-client` on disk: you pass it in as `module`, and omitting it throws a 500 naming the option.
+
+```typescript
+import { io } from 'socket.io-client';
+import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io/client';
+
+const client = new SocketIOClientHelper({
+  identifier: 'app-socket',
+  host: 'https://api.example.com',
+  options: { path: '/io', extraHeaders: {} },
+  module: { io } as typeof import('socket.io-client'),
+});
+```
+
+The entry also exports `SocketIOConstants`, `SocketIOClientStates` and the option types. The `@venizia/ignis-helpers/socket-io` entry keeps the same class name and API: it extends this one and finds `socket.io-client` itself when `module` is omitted. The server helper is only on that main entry.
+
 | Event | Behavior |
 |-------|----------|
 | `'connect'` | Invokes `onConnected` |

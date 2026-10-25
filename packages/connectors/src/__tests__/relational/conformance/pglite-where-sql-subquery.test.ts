@@ -75,7 +75,7 @@ let orderRepository: TOrderRepository;
 const taggedWith = (label: string) =>
   sql`SELECT ${tagTable.orderId} FROM ${tagTable} WHERE ${tagTable.label} = ${label}`;
 
-const ids = (rows: Array<{ id: number }>) => rows.map(row => row.id).sort((a, b) => a - b);
+const ids = (rows: Array<{ id: number }>) => rows.map((row) => row.id).sort((a, b) => a - b);
 
 beforeAll(async () => {
   client = new PGlite();

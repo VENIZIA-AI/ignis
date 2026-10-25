@@ -53,7 +53,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const found = results.find(r => r.name === 'Large Array Product');
+      const found = results.find((r) => r.name === 'Large Array Product');
       if (found && found.tags?.length === 101) {
         this.context.logger.info('[CASE 13] PASSED | Found product with 101 tags');
       } else {
@@ -106,7 +106,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const found = results.find(r => r.name === 'Special Chars Product');
+      const found = results.find((r) => r.name === 'Special Chars Product');
       if (found) {
         this.context.logger.info('[CASE 14] PASSED | Found product with unicode tag');
       } else {
@@ -123,7 +123,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const foundSpaces = spacesResults.find(r => r.name === 'Special Chars Product');
+      const foundSpaces = spacesResults.find((r) => r.name === 'Special Chars Product');
       if (foundSpaces) {
         this.context.logger.info('[CASE 14] PASSED | Found product with spaces in tag');
       } else {
@@ -155,7 +155,7 @@ export class EdgeCases extends BaseTestCases {
 
       // Verify the array stores duplicates
       const found = await repo.findById({ id: product.data.id });
-      const dupCount = found?.tags?.filter(t => t === 'dup_tag').length ?? 0;
+      const dupCount = found?.tags?.filter((t) => t === 'dup_tag').length ?? 0;
 
       if (dupCount === 3) {
         this.context.logger.info(
@@ -181,7 +181,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const containsResult = results.find(r => r.name === 'Duplicate Tags Product');
+      const containsResult = results.find((r) => r.name === 'Duplicate Tags Product');
       if (containsResult) {
         this.context.logger.info('[CASE 15] PASSED | Contains works with duplicate elements');
       }
@@ -228,11 +228,11 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      if (exactMatch.find(r => r.name === 'Case Test Product')) {
+      if (exactMatch.find((r) => r.name === 'Case Test Product')) {
         this.context.logger.info('[CASE 16] PASSED | Exact case match works');
       }
 
-      if (!wrongCase.find(r => r.name === 'Case Test Product')) {
+      if (!wrongCase.find((r) => r.name === 'Case Test Product')) {
         this.context.logger.info('[CASE 16] PASSED | Array contains is case-sensitive');
       } else {
         this.context.logger.info('[CASE 16] INFO | Array contains is case-insensitive');
@@ -270,7 +270,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const found = results.find(r => r.name === 'Empty String Product');
+      const found = results.find((r) => r.name === 'Empty String Product');
       if (found) {
         this.context.logger.info('[CASE 17] PASSED | Can search for empty string in array');
       } else {
@@ -318,7 +318,7 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const found = results.find(r => r.name === 'Numeric Strings Product');
+      const found = results.find((r) => r.name === 'Numeric Strings Product');
       if (found) {
         this.context.logger.info('[CASE 19] PASSED | Numeric-like strings work in array');
       } else {
@@ -375,8 +375,10 @@ export class EdgeCases extends BaseTestCases {
         },
       });
 
-      const nullProductInResults = resultsWithExistingTag.find(r => r.name === 'Null Tags Product');
-      const productsWithElectronics = resultsWithExistingTag.filter(r =>
+      const nullProductInResults = resultsWithExistingTag.find(
+        (r) => r.name === 'Null Tags Product',
+      );
+      const productsWithElectronics = resultsWithExistingTag.filter((r) =>
         r.tags?.includes('electronics'),
       );
 

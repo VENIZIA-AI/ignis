@@ -59,11 +59,11 @@ const run = async (opts: {
 
 /** The line a reader needs: the first one naming what could not be found or loaded. */
 const firstErrorLine = (opts: { output: string }): string => {
-  const lines = opts.output.split('\n').map(line => line.trim());
-  const found = lines.find(line =>
+  const lines = opts.output.split('\n').map((line) => line.trim());
+  const found = lines.find((line) =>
     /Cannot find|Could not resolve|not found|Error|error:/.test(line),
   );
-  return (found ?? lines.find(line => line.length > 0) ?? '').slice(0, 200);
+  return (found ?? lines.find((line) => line.length > 0) ?? '').slice(0, 200);
 };
 
 /**
@@ -94,12 +94,12 @@ export const findStrayModuleRoots = (opts: {
 
   const home = opts.home;
   if (home) {
-    const globalFolders = ['.node_modules', '.node_libraries'].map(name => join(home, name));
-    found.push(...globalFolders.filter(folder => existsSync(folder)));
+    const globalFolders = ['.node_modules', '.node_libraries'].map((name) => join(home, name));
+    found.push(...globalFolders.filter((folder) => existsSync(folder)));
   }
 
-  const nodePaths = (opts.nodePath ?? '').split(':').filter(path => path.length > 0);
-  found.push(...nodePaths.map(path => `NODE_PATH=${path}`));
+  const nodePaths = (opts.nodePath ?? '').split(':').filter((path) => path.length > 0);
+  found.push(...nodePaths.map((path) => `NODE_PATH=${path}`));
 
   return found;
 };
@@ -151,7 +151,7 @@ export const findUnpinnedWorkspaceEntries = (opts: {
 export const findUnmatchedBrowserEntries = (opts: {
   browserEntries: string[];
   rowEntries: string[];
-}): string[] => opts.browserEntries.filter(entry => !opts.rowEntries.includes(entry));
+}): string[] => opts.browserEntries.filter((entry) => !opts.rowEntries.includes(entry));
 
 /**
  * True when the build is older than its source. The stamp is the newest file under `dist/`, not one
@@ -265,7 +265,7 @@ const pack = async (opts: {
       );
     }
 
-    const produced = readdirSync(destination).filter(file => file.endsWith('.tgz'));
+    const produced = readdirSync(destination).filter((file) => file.endsWith('.tgz'));
     if (produced.length !== 1) {
       throw new Error(
         `[clean-install] expected one tarball for ${directory}, found ${produced.length}`,
@@ -316,7 +316,7 @@ export const checkImportOrder = async (opts: {
 /** Entry file (repo-relative) -> the externals the purity gate grants it, for browser-claimed entries. */
 const browserClaims = (): Map<string, string[]> =>
   new Map(
-    PURITY_MANIFEST.filter(entry => !entry.expectImpure).map(entry => [
+    PURITY_MANIFEST.filter((entry) => !entry.expectImpure).map((entry) => [
       entry.entry,
       entry.external ?? [],
     ]),
@@ -324,12 +324,12 @@ const browserClaims = (): Map<string, string[]> =>
 
 /** Browser-claimed entries a browser bundler picks: the `import` target of some sub-path. */
 const browserEsmEntries = (opts: { packages: string[] }): string[] =>
-  PURITY_MANIFEST.filter(entry => !entry.expectImpure && opts.packages.includes(entry.package))
-    .map(entry => entry.entry)
-    .filter(entry =>
-      opts.packages.some(directory =>
+  PURITY_MANIFEST.filter((entry) => !entry.expectImpure && opts.packages.includes(entry.package))
+    .map((entry) => entry.entry)
+    .filter((entry) =>
+      opts.packages.some((directory) =>
         Object.values(readPackageManifest({ package: directory }).exports ?? {}).some(
-          target =>
+          (target) =>
             typeof target === 'object' &&
             target.import !== undefined &&
             join('packages', directory, target.import) === entry,
@@ -395,7 +395,7 @@ const checkRow = async (opts: {
       entryFile,
       `import * as loaded from '${row.specifier}';\nconsole.log(Object.keys(loaded).length);\n`,
     );
-    const externalFlags = externals.flatMap(name => ['--external', name]);
+    const externalFlags = externals.flatMap((name) => ['--external', name]);
     checks.push(
       attempt('browser', [
         'bun',
@@ -415,7 +415,7 @@ const checkRow = async (opts: {
 const main = async (): Promise<number> => {
   const args = process.argv.slice(2);
   const keep = args.includes('--keep');
-  const tokens = args.filter(arg => !arg.startsWith('--'));
+  const tokens = args.filter((arg) => !arg.startsWith('--'));
 
   const nodeVersion = await run({ command: ['node', '--version'], cwd: REPOSITORY_ROOT });
   if (!nodeVersion.ok) {
@@ -426,14 +426,14 @@ const main = async (): Promise<number> => {
 
   const claims =
     tokens.length > 0
-      ? INSTALL_CLAIMS.filter(claim => tokens.includes(claim.package))
+      ? INSTALL_CLAIMS.filter((claim) => tokens.includes(claim.package))
       : INSTALL_CLAIMS;
   if (claims.length === 0) {
     throw new Error(`[clean-install] no claim matches ${tokens.join(', ')}`);
   }
 
   const rows = deriveInstallRows({ claims });
-  const rowPackages = [...new Set(rows.map(row => row.package))];
+  const rowPackages = [...new Set(rows.map((row) => row.package))];
   if (rowPackages.length === 0) {
     console.log('[clean-install] no runtime sub-path to load for this package - nothing to check.');
     return 0;
@@ -441,7 +441,7 @@ const main = async (): Promise<number> => {
 
   const unmatched = findUnmatchedBrowserEntries({
     browserEntries: browserEsmEntries({ packages: rowPackages }),
-    rowEntries: rows.flatMap(row => rowEntry({ row }) ?? []),
+    rowEntries: rows.flatMap((row) => rowEntry({ row }) ?? []),
   });
   if (unmatched.length > 0) {
     throw new Error(
@@ -494,7 +494,7 @@ const main = async (): Promise<number> => {
       const dependencies = {
         [manifest.name]: `file:${tarballs.get(manifest.name)}`,
         ...getRequiredPeers({ manifest }),
-        ...Object.fromEntries(extras.map(name => [name, peerRanges[name]])),
+        ...Object.fromEntries(extras.map((name) => [name, peerRanges[name]])),
       };
       writeFileSync(
         join(sandbox, 'package.json'),
@@ -531,7 +531,7 @@ const main = async (): Promise<number> => {
       // Node prints the typeless-package warning only OUTSIDE node_modules, so a consumer never sees it
       // while paying the second parse - the marker file is checked directly instead.
       const exportsImportIntoEsm = Object.values(manifest.exports ?? {}).some(
-        target => typeof target === 'object' && target.import?.startsWith('./dist/esm/'),
+        (target) => typeof target === 'object' && target.import?.startsWith('./dist/esm/'),
       );
       if (exportsImportIntoEsm) {
         const markerPath = join(
@@ -556,9 +556,9 @@ const main = async (): Promise<number> => {
       for (const row of groupRows) {
         const results = await checkRow({ row, sandbox, browser });
         checkCount += results.length;
-        const failed = results.filter(result => !result.ok);
+        const failed = results.filter((result) => !result.ok);
         const marks = results
-          .map(result => `${result.name} ${result.ok ? 'ok' : 'FAIL'}`)
+          .map((result) => `${result.name} ${result.ok ? 'ok' : 'FAIL'}`)
           .join('  ');
         console.log(
           `  ${failed.length ? '✗' : '✓'} ${row.specifier.padEnd(48)} ${linker.padEnd(8)} ${marks}`,

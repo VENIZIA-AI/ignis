@@ -213,7 +213,7 @@
     </ol>
 
     <script>
-      const $ = id => document.getElementById(id);
+      const $ = (id) => document.getElementById(id);
       const setState = (n, state) => $('s' + n).setAttribute('data-state', state);
       const write = (n, value) => {
         $('o' + n).textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
@@ -232,7 +232,7 @@
       };
 
       /** Luot 1: xin giay phep. Kich thuoc gui kem de IGNIS tu choi som, truoc khi ky bat cu gi. */
-      const requestPolicy = async opts => {
+      const requestPolicy = async (opts) => {
         const response = await fetch(`${opts.base}/upload-policy`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...authHeaders() },
@@ -252,7 +252,7 @@
       };
 
       /** Luot 2: thang toi S3. Moi field trong formData deu la mot dieu kien trong policy da ky. */
-      const postToStorage = async opts => {
+      const postToStorage = async (opts) => {
         const form = new FormData();
         for (const [key, value] of Object.entries(opts.policy.formData)) {
           form.append(key, value);
@@ -269,7 +269,7 @@
       };
 
       /** Luot 3: chot bang token, khong bang ten tep. */
-      const commit = async opts => {
+      const commit = async (opts) => {
         const response = await fetch(`${opts.base}/upload-commit`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...authHeaders() },

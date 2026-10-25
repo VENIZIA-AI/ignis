@@ -101,8 +101,8 @@ export class IgnisArtifactsPlugin {
       const fields: string[] = [];
       for (const { type, field } of ArtifactStereotypes.EMIT_ORDER) {
         const locals = artifacts
-          .filter(artifact => artifact.type === type)
-          .map(artifact => {
+          .filter((artifact) => artifact.type === type)
+          .map((artifact) => {
             if (isCompiled) {
               return `require(${JSON.stringify(artifact.filePath)}).${artifact.className}`;
             }
@@ -161,7 +161,7 @@ export class IgnisArtifactsPlugin {
       const literal = argument as ts.ObjectLiteralExpression;
       const named = (name: string): ts.ObjectLiteralElementLike | undefined =>
         literal.properties.find(
-          entry =>
+          (entry) =>
             entry.name !== undefined && ts.isIdentifier(entry.name) && entry.name.text === name,
         );
       if (named('content')) {
@@ -187,8 +187,8 @@ export class IgnisArtifactsPlugin {
         ignoreProperty &&
         ts.isPropertyAssignment(ignoreProperty) &&
         ts.isArrayLiteralExpression(ignoreProperty.initializer) &&
-        ignoreProperty.initializer.elements.every(element => ts.isStringLiteral(element))
-          ? ignoreProperty.initializer.elements.map(element => (element as ts.StringLiteral).text)
+        ignoreProperty.initializer.elements.every((element) => ts.isStringLiteral(element))
+          ? ignoreProperty.initializer.elements.map((element) => (element as ts.StringLiteral).text)
           : undefined;
       if (ignoreProperty && ignoreList === undefined) {
         refuse(call, 'ignore is not an array of string literals');
@@ -228,7 +228,7 @@ export class IgnisArtifactsPlugin {
     const found: string[] = [];
     const visit = (node: ts.Node): void => {
       if (ts.isClassDeclaration(node) && node.name) {
-        const isDecorated = (ts.getDecorators(node) ?? []).some(decorator => {
+        const isDecorated = (ts.getDecorators(node) ?? []).some((decorator) => {
           const expression = ts.isCallExpression(decorator.expression)
             ? decorator.expression.expression
             : decorator.expression;
@@ -297,7 +297,7 @@ export class IgnisArtifactsPlugin {
         continue;
       }
       add(
-        IgnisArtifactsPlugin.decoratedClasses({ filePath: file, source }).map(className => ({
+        IgnisArtifactsPlugin.decoratedClasses({ filePath: file, source }).map((className) => ({
           filePath: file,
           className,
         })),
@@ -320,7 +320,7 @@ export class IgnisArtifactsPlugin {
 
   /** The source files that define groups: the application's own `src` and the `src` of each workspace dependency (a dependency whose real path is outside every `node_modules`), found by walking up the `node_modules` chain as Node resolution does. */
   static groupDefinitionFiles(opts: { root: string }): string[] {
-    return IgnisArtifactsPlugin.workspaceSourceFiles(opts).filter(file =>
+    return IgnisArtifactsPlugin.workspaceSourceFiles(opts).filter((file) =>
       IgnisArtifactsPlugin.DEFINE_CALL.test(readFileSync(file, 'utf8')),
     );
   }
@@ -421,8 +421,8 @@ export class IgnisArtifactsPlugin {
         const pinned = IgnisArtifactsPlugin.pinnedClasses({ root, groupFiles, entry });
         const loaded = [...new Set([...groupFiles, ...pinned.keys()])];
         if (loaded.length > 0) {
-          const escaped = loaded.map(file => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
-          build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, args => {
+          const escaped = loaded.map((file) => file.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&'));
+          build.onLoad({ filter: new RegExp(`^(?:${escaped.join('|')})$`) }, (args) => {
             const source = readFileSync(args.path, 'utf8');
             const grouped = groupFileSet.has(args.path)
               ? IgnisArtifactsPlugin.rewriteGroups({ filePath: args.path, source })

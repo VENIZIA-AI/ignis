@@ -257,7 +257,7 @@ describe('a deep resolution that throws leaves nothing behind', () => {
     for (let level = 0; level < 80; level++) {
       container
         .bind({ key: `chain.${level}` })
-        .toProvider(inner => inner.get({ key: `chain.${level + 1}` }));
+        .toProvider((inner) => inner.get({ key: `chain.${level + 1}` }));
     }
 
     container.bind({ key: 'chain.80' }).toProvider(() => {

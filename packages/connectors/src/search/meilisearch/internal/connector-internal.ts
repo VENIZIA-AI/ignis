@@ -120,7 +120,7 @@ export const mapSearchResult = <TDocument extends object>(
   }
 
   if (Array.isArray(raw['hits'])) {
-    result.hits = raw['hits'].filter(isRecord).map(hit => {
+    result.hits = raw['hits'].filter(isRecord).map((hit) => {
       const entry: {
         document: TDocument;
         highlight?: unknown;

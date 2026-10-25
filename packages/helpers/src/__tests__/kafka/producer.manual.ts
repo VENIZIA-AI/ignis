@@ -66,7 +66,7 @@ async function main() {
   });
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('Producer error:', err);
   process.exit(1);
 });

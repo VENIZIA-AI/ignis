@@ -37,7 +37,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
   /** Credentials and domain are checked here, not on the first send; the error never echoes a credential value back. */
   private validateConfig(config: TMailgunConfig): void {
-    const missingKeys = (['username', 'key', 'domain'] as const).filter(key => {
+    const missingKeys = (['username', 'key', 'domain'] as const).filter((key) => {
       return !config?.[key];
     });
 

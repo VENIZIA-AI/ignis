@@ -3,7 +3,7 @@ import { DurationAliases, DurationMultipliers, DurationUnits } from '@/common/co
 
 describe('DurationUnits - the unit vocabulary', () => {
   test('every declared unit is in SCHEME_SET, so isValid cannot drift from the constants', () => {
-    const declared = Object.values(DurationUnits).filter(value => typeof value === 'string');
+    const declared = Object.values(DurationUnits).filter((value) => typeof value === 'string');
 
     expect(declared.length).toBe(8);
     for (const unit of declared) {

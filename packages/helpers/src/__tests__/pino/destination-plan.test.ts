@@ -31,7 +31,7 @@ const withConsoleWarn = (): { warnings: Array<string>; restore: () => void } => 
   const warnings: Array<string> = [];
   const original = console.warn;
   console.warn = (...parts: Array<unknown>) => {
-    warnings.push(parts.map(part => String(part)).join(' '));
+    warnings.push(parts.map((part) => String(part)).join(' '));
   };
   return {
     warnings,
@@ -108,7 +108,7 @@ describe('resolveDestinationPlan', () => {
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
     }
-    expect(warnings.some(entry => entry.includes('[mapFrequency]'))).toBe(true);
+    expect(warnings.some((entry) => entry.includes('[mapFrequency]'))).toBe(true);
   });
 
   test('no FOLDER_PATH + FORMAT=text -> kind "pretty"', () => {
@@ -161,7 +161,7 @@ describe('mapFrequency', () => {
     restore();
 
     expect(result).toBe('hourly');
-    expect(warnings.some(entry => entry.includes('[mapFrequency]'))).toBe(true);
+    expect(warnings.some((entry) => entry.includes('[mapFrequency]'))).toBe(true);
   });
 });
 
@@ -185,7 +185,7 @@ describe('mapMaxFilesToCount', () => {
     restore();
 
     expect(result).toBe(120); // '5d' at hourly
-    expect(warnings.some(entry => entry.includes('[mapMaxFilesToCount]'))).toBe(true);
+    expect(warnings.some((entry) => entry.includes('[mapMaxFilesToCount]'))).toBe(true);
   });
 
   test('undefined -> falls back to the default "5d" mapping SILENTLY (unset is normal config)', () => {

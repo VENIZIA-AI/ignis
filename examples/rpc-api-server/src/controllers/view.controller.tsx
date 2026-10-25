@@ -17,7 +17,7 @@ export class ViewController extends BaseRestController {
         method: HTTP.Methods.GET,
         responses: htmlResponse({ description: 'Home page' }),
       },
-      handler: context => context.html(<HomePage />),
+      handler: (context) => context.html(<HomePage />),
     });
 
     this.defineJSXRoute({
@@ -26,7 +26,7 @@ export class ViewController extends BaseRestController {
         method: HTTP.Methods.GET,
         responses: htmlResponse({ description: 'About page' }),
       },
-      handler: context => context.html(<AboutPage />),
+      handler: (context) => context.html(<AboutPage />),
     });
   }
 }

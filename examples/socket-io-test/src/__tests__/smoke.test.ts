@@ -54,8 +54,8 @@ const connectAuthenticated = (opts: { baseUrl: string; token?: string }) =>
       },
       onConnected: () => client.authenticate(),
       onAuthenticated: () => resolve(client),
-      onUnauthenticated: message => reject(new Error(message)),
-      onError: error => reject(error),
+      onUnauthenticated: (message) => reject(new Error(message)),
+      onError: (error) => reject(error),
     });
   });
 
@@ -70,11 +70,11 @@ const connectRejected = (opts: { baseUrl: string }) =>
         options: { path: '/io', extraHeaders: {} },
         onConnected: () => client.authenticate(),
         onAuthenticated: () => reject(new Error('expected authentication to fail')),
-        onUnauthenticated: message => {
+        onUnauthenticated: (message) => {
           notices.push(message);
         },
-        onDisconnected: reason => resolve({ client, notices, reason }),
-        onError: error => reject(error),
+        onDisconnected: (reason) => resolve({ client, notices, reason }),
+        onError: (error) => reject(error),
       });
     },
   );
@@ -123,7 +123,7 @@ describe('socket-io-test', () => {
       const client = await connectAuthenticated({ baseUrl, token: AUTH_TOKEN });
 
       try {
-        const received = new Promise<{ message: string }>(resolve => {
+        const received = new Promise<{ message: string }>((resolve) => {
           client.subscribe({ event: 'chat:message', handler: resolve });
         });
 

@@ -14,7 +14,7 @@ export class TestController extends BaseRestController {
     // Example 1: Using 'defineRoute' to define a controller endpoint
     this.defineRoute({
       configs: RouteConfigs['/1'],
-      handler: context => {
+      handler: (context) => {
         return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -22,7 +22,7 @@ export class TestController extends BaseRestController {
     // Example 2: Using 'defineRoute' to define a authenticated controller endpoint
     this.defineRoute({
       configs: RouteConfigs['/2'],
-      handler: context => {
+      handler: (context) => {
         return context.json({ message: 'Hello 2' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -31,7 +31,7 @@ export class TestController extends BaseRestController {
     this.bindRoute({
       configs: RouteConfigs['/3'],
     }).to({
-      handler: context => {
+      handler: (context) => {
         this.logger.for('/3').info('Current user | %j', context.get(Authentication.CURRENT_USER));
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },

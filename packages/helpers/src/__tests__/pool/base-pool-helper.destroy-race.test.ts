@@ -19,7 +19,7 @@ const buildPool = (): IProbePool => {
     scope: 'destroy-race',
     size: 2,
     create: async () => {
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve) => {
         release = resolve;
       });
 

@@ -19,7 +19,7 @@ afterEach(async () => {
 });
 
 const startServer = async (): Promise<{ server: NetworkTcpServer; port: number }> => {
-  const server = await new Promise<NetworkTcpServer>(resolve => {
+  const server = await new Promise<NetworkTcpServer>((resolve) => {
     const instance = new NetworkTcpServer({
       identifier: 'shutdown-test',
       serverOptions: {},
@@ -40,7 +40,7 @@ const startServer = async (): Promise<{ server: NetworkTcpServer; port: number }
 };
 
 const connectClient = async (port: number): Promise<Socket> => {
-  const socket = await new Promise<Socket>(resolve => {
+  const socket = await new Promise<Socket>((resolve) => {
     const client = connect({ port, host: '127.0.0.1' }, () => {
       resolve(client);
     });
@@ -83,7 +83,7 @@ describe('NetworkTcpServer.shutdown', () => {
 
     await server.shutdown();
 
-    const refusal = await new Promise<string>(resolve => {
+    const refusal = await new Promise<string>((resolve) => {
       const late = connect({ port, host: '127.0.0.1' }, () => {
         resolve('CONNECTED');
       });
@@ -137,7 +137,7 @@ describe('NetworkTcpServer.shutdown', () => {
   });
 
   test('a pending authenticate timer does not outlive shutdown', async () => {
-    const server = await new Promise<NetworkTcpServer>(resolve => {
+    const server = await new Promise<NetworkTcpServer>((resolve) => {
       const instance = new NetworkTcpServer({
         identifier: 'shutdown-auth',
         serverOptions: {},
@@ -172,7 +172,7 @@ describe('NetworkTcpServer.shutdown', () => {
 describe('NetworkTcpServer - a failed listen must not crash the process', () => {
   test('a port already in use is logged and routed to onServerError, never thrown', async () => {
     const blocker = createServer();
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       blocker.listen({ port: 0, host: '127.0.0.1' }, resolve);
     });
     const address = blocker.address();
@@ -190,7 +190,7 @@ describe('NetworkTcpServer - a failed listen must not crash the process', () => 
       serverOptions: {},
       listenOptions: { port, host: '127.0.0.1' },
       authenticateOptions: { required: false },
-      onServerError: opts => {
+      onServerError: (opts) => {
         reported = opts.error;
       },
     });

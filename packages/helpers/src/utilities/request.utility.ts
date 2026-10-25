@@ -113,7 +113,7 @@ export const sanitizeFilename = (filename: string): string => {
 
 export const encodeRFC5987 = (filename: string): string => {
   return encodeURIComponent(filename)
-    .replace(/['()]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())
+    .replace(/['()]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase())
     .replace(/\*/g, '%2A');
 };
 

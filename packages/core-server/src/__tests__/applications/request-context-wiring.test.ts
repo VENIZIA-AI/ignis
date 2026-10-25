@@ -52,12 +52,12 @@ class AuditContextApplication extends BaseApplication {
   postConfigure(): void {
     const server = this.getServer();
 
-    server.get('/audit-with-user', context => {
+    server.get('/audit-with-user', (context) => {
       context.set(Authentication.AUDIT_USER_ID, AUDIT_USER_ID);
       return context.json({ stamped: stampCreatedBy() });
     });
 
-    server.get('/audit-without-user', context => {
+    server.get('/audit-without-user', (context) => {
       return context.json({ stamped: stampCreatedBy() });
     });
   }

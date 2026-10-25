@@ -40,7 +40,7 @@ describe('TreeWalker.walk', () => {
 
     TreeWalker.walk({
       root: buildSampleTree(),
-      onVisit: node => visited.push(node.value),
+      onVisit: (node) => visited.push(node.value),
       shouldPrune: (node, depth) => depth === 1 && node.value === 'a',
     });
 
@@ -53,7 +53,7 @@ describe('TreeWalker.walk', () => {
 
     TreeWalker.walk({
       root: { value: 'solo', children: [] },
-      onVisit: node => visited.push(node.value),
+      onVisit: (node) => visited.push(node.value),
     });
 
     expect(visited).toEqual(['solo']);
@@ -66,7 +66,7 @@ describe('TreeWalker.walkAsync', () => {
 
     await TreeWalker.walkAsync({
       root: buildSampleTree(),
-      onVisit: async node => {
+      onVisit: async (node) => {
         await Promise.resolve();
         visited.push(node.value);
       },
@@ -80,7 +80,7 @@ describe('TreeWalker.walkAsync', () => {
 
     await TreeWalker.walkAsync({
       root: buildSampleTree(),
-      onVisit: async node => {
+      onVisit: async (node) => {
         visited.push(node.value);
       },
       shouldPrune: (node, depth) => depth === 1 && node.value === 'a',
@@ -104,7 +104,7 @@ describe('TreeWalker.heightWhere', () => {
   test('only nodes matching the predicate count toward the maximum', () => {
     const height = TreeWalker.heightWhere({
       root: buildSampleTree(),
-      predicate: node => node.value === 'root' || node.value === 'a',
+      predicate: (node) => node.value === 'root' || node.value === 'a',
     });
 
     expect(height).toBe(1);
@@ -125,6 +125,6 @@ describe('TreeWalker.count', () => {
 describe('TreeBuilder.leaves', () => {
   test('returns only nodes with no children', () => {
     const leaves = TreeBuilder.leaves({ root: buildSampleTree() });
-    expect(leaves.map(node => node.value)).toEqual(['a1', 'a2', 'b1']);
+    expect(leaves.map((node) => node.value)).toEqual(['a1', 'a2', 'b1']);
   });
 });

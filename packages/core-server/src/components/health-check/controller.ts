@@ -108,7 +108,7 @@ export class HealthCheckController extends BaseRestController {
   override binding(): ValueOrPromise<void> {
     // Public liveness probe: status and clock only. Nothing here names a runtime or a version.
     this.bindRoute({ configs: RouteConfigs.ROOT }).to({
-      handler: context => {
+      handler: (context) => {
         return context.json(HealthCheckReporter.buildSummary(), HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -121,7 +121,7 @@ export class HealthCheckController extends BaseRestController {
     }
 
     this.bindRoute({ configs: RouteConfigs.STATS }).to({
-      handler: context => {
+      handler: (context) => {
         // `context.notFound()`, not a thrown 404: it runs the application's own notFound handler,
         // so the refusal is byte-identical to the answer for a route that was never mounted. A
         // thrown `ApplicationError` serializes a different body and would confirm the route exists.

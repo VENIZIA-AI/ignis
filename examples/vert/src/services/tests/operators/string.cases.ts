@@ -25,7 +25,7 @@ export class StringCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[LIKE] FAILED | Expected "beta" | Got: %j',
-          results.map(r => r.tValue),
+          results.map((r) => r.tValue),
         );
       }
     } catch (error) {
@@ -47,7 +47,7 @@ export class StringCases extends BaseTestCases {
         },
       });
 
-      const noneAlpha = results.every(r => !r.tValue?.includes('alpha'));
+      const noneAlpha = results.every((r) => !r.tValue?.includes('alpha'));
       if (noneAlpha && results.length >= 5) {
         this.context.logger.info(
           '[NLIKE] PASSED | Found %d records NOT containing "alpha"',
@@ -80,7 +80,7 @@ export class StringCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[ILIKE] FAILED | Expected "alpha" | Got: %j',
-          results.map(r => r.tValue),
+          results.map((r) => r.tValue),
         );
       }
     } catch (error) {
@@ -104,7 +104,7 @@ export class StringCases extends BaseTestCases {
         },
       });
 
-      const noneBeta = results.every(r => !r.tValue?.toLowerCase().includes('beta'));
+      const noneBeta = results.every((r) => !r.tValue?.toLowerCase().includes('beta'));
       if (noneBeta && results.length >= 5) {
         this.context.logger.info(
           '[NILIKE] PASSED | Found %d records NOT containing "beta" (case-insensitive)',
@@ -137,7 +137,7 @@ export class StringCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[REGEXP] FAILED | Expected "alpha" | Got: %j',
-          results.map(r => r.tValue),
+          results.map((r) => r.tValue),
         );
       }
     } catch (error) {
@@ -164,7 +164,7 @@ export class StringCases extends BaseTestCases {
       } else {
         this.context.logger.error(
           '[IREGEXP] FAILED | Expected "gamma" | Got: %j',
-          results.map(r => r.tValue),
+          results.map((r) => r.tValue),
         );
       }
     } catch (error) {
@@ -214,7 +214,7 @@ export class StringCases extends BaseTestCases {
       });
 
       // Should find "test'value"
-      if (results.length >= 1 && results.some(r => r.tValue?.includes("'"))) {
+      if (results.length >= 1 && results.some((r) => r.tValue?.includes("'"))) {
         this.context.logger.info('[SPECIAL-LIKE] PASSED | Found record with single quote in value');
       } else {
         this.context.logger.error(

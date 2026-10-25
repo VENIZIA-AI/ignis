@@ -10,6 +10,7 @@ import {
   repository,
 } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import type { ISearchCollectionDefinition, TSearchDocument } from '@/search/core/models/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
 import { FakeSearchDataSource } from '../repositories/fake-search-connector';
@@ -33,7 +34,9 @@ class VariantDocument extends BaseSearchEntity {
 }
 
 @repository({ model: VariantDocument, dataSource: VariantSearchDataSource })
-class VariantSearchRepository extends DefaultSearchRepository {}
+class VariantSearchRepository extends DefaultSearchRepository<
+  TSearchDocument<ISearchCollectionDefinition>
+> {}
 
 const VariantCrudController = ControllerFactory.defineCrudController({
   entity: VariantDocument,

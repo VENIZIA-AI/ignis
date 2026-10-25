@@ -197,7 +197,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
     const { method, subject } = opts;
 
     return {
-      when: error => this.isNotFoundError({ error }),
+      when: (error) => this.isNotFoundError({ error }),
       handle: () => {
         this.logger.for(method).debug('%s not found', subject);
         SearchConnectorInternal.throwNotFoundError({ method, subject });
@@ -215,7 +215,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
     const { method, message, args, fallback } = opts;
 
     return {
-      when: error => this.isNotFoundError({ error }),
+      when: (error) => this.isNotFoundError({ error }),
       handle: () => {
         this.logger.for(method).debug(message, ...(args ?? []));
         return fallback;

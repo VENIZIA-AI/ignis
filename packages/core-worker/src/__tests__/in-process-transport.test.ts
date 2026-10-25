@@ -39,7 +39,7 @@ class HelloController extends BaseRestController {
           schema: z.object({ message: z.string() }),
         }),
       },
-      handler: context => context.json({ message: 'hello worker' }, 200),
+      handler: (context) => context.json({ message: 'hello worker' }, 200),
     });
   }
 }
@@ -87,7 +87,7 @@ describe('InProcessBffTransport drives a real app.fetch()', () => {
   test('a controller mounted through the application mechanism answers a real request', async () => {
     const app = await buildApp();
     const transport = new InProcessBffTransport({
-      handler: async request => app.getServer().fetch(request),
+      handler: async (request) => app.getServer().fetch(request),
     });
 
     const response = await transport.fetch({
@@ -101,7 +101,7 @@ describe('InProcessBffTransport drives a real app.fetch()', () => {
   test('an unregistered path still resolves through app.fetch(), as a 404', async () => {
     const app = await buildApp();
     const transport = new InProcessBffTransport({
-      handler: async request => app.getServer().fetch(request),
+      handler: async (request) => app.getServer().fetch(request),
     });
 
     const response = await transport.fetch({
@@ -122,7 +122,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
   test('the handler sees the synthetic origin, whatever origin the caller built against', async () => {
     const seenUrls: string[] = [];
     const transport = new InProcessBffTransport({
-      handler: async request => {
+      handler: async (request) => {
         seenUrls.push(request.url);
         return new Response('ok', { status: 200 });
       },
@@ -137,7 +137,7 @@ describe('InProcessBffTransport mirrors what the envelope does', () => {
     const transport = new InProcessBffTransport({
       handler: async () => {
         const stream = new ReadableStream({
-          start: streamController => {
+          start: (streamController) => {
             streamController.enqueue(new TextEncoder().encode('partial'));
             streamController.error(new Error('the stream broke'));
           },

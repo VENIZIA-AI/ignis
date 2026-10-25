@@ -44,11 +44,11 @@ const captureMessage = (task: () => unknown): string => {
 };
 
 describe('UrlPolicy.isNonPublicAddress', () => {
-  test.each(NON_PUBLIC)('rejects %s', address => {
+  test.each(NON_PUBLIC)('rejects %s', (address) => {
     expect(UrlPolicy.isNonPublicAddress({ address })).toBe(true);
   });
 
-  test.each(PUBLIC)('accepts %s', address => {
+  test.each(PUBLIC)('accepts %s', (address) => {
     expect(UrlPolicy.isNonPublicAddress({ address })).toBe(false);
   });
 });

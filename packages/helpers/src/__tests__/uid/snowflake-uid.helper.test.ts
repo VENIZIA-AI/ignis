@@ -139,10 +139,10 @@ describe('SnowflakeUidHelper', () => {
 
       expect(new Set(ids).size).toBe(total);
 
-      const sequences = ids.map(id => helper.extractSequence(id));
+      const sequences = ids.map((id) => helper.extractSequence(id));
       expect(Math.max(...sequences)).toBe(Number(SnowflakeConfig.MAX_SEQUENCE));
 
-      const timestamps = new Set(ids.map(id => helper.extractTimestamp(id).getTime()));
+      const timestamps = new Set(ids.map((id) => helper.extractTimestamp(id).getTime()));
       expect(timestamps.size).toBeGreaterThanOrEqual(3);
 
       const perTimestamp = new Map<number, number>();

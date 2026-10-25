@@ -84,7 +84,7 @@ export class NestedCases extends BaseTestCases {
       });
 
       await junctionRepo.createAll({
-        data: products.data!.map(p => ({ productId: p.id, saleChannelId: channel.data.id })),
+        data: products.data!.map((p) => ({ productId: p.id, saleChannelId: channel.data.id })),
       });
 
       // Find channel with products filtered by price (only expensive)

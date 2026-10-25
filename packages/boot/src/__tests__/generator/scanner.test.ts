@@ -20,7 +20,7 @@ describe('ArtifactScanner', () => {
     expect(
       ArtifactScanner.getInstance()
         .scan({ root: ROOT })
-        .map(a => `${a.type}:${a.className}`),
+        .map((a) => `${a.type}:${a.className}`),
     ).toEqual([
       'component:ProbeComponent',
       'configuration:LateConfiguration',
@@ -39,7 +39,7 @@ describe('ArtifactScanner', () => {
   test('undecorated, abstract, unexported, foreign-decorated, __tests__ and generated/ classes are excluded', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: ROOT })
-      .map(a => a.className);
+      .map((a) => a.className);
 
     const excludeds = [
       'PlainService',
@@ -56,7 +56,7 @@ describe('ArtifactScanner', () => {
   test('a source module the caller names adds to the defaults: its stereotypes count, IGNIS ones still do', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: ROOT, sourceModules: ['some-other-lib'] })
-      .map(a => a.className);
+      .map((a) => a.className);
 
     expect(names).toContain('ForeignService');
     expect(names).toContain('GreeterService');
@@ -65,7 +65,7 @@ describe('ArtifactScanner', () => {
   test('a source module matches its specifier exactly, never a prefix', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: ROOT, sourceModules: ['some-other'] })
-      .map(a => a.className);
+      .map((a) => a.className);
 
     expect(names).not.toContain('ForeignService');
   });
@@ -73,7 +73,7 @@ describe('ArtifactScanner', () => {
   test('a caller-supplied ignore list adds to the defaults, never replaces them', () => {
     const names = ArtifactScanner.getInstance()
       .scan({ root: ROOT, ignore: ['**/legacy/**'] })
-      .map(a => a.className);
+      .map((a) => a.className);
 
     expect(names).not.toContain('IgnoredService');
   });
@@ -82,7 +82,7 @@ describe('ArtifactScanner', () => {
     const first = ArtifactScanner.getInstance().scan({ root: ROOT });
 
     expect(ArtifactScanner.getInstance().scan({ root: ROOT })).toEqual(first);
-    expect(first.find(a => a.className === 'GreeterService')?.filePath).toBe(
+    expect(first.find((a) => a.className === 'GreeterService')?.filePath).toBe(
       join(ROOT, 'services', 'greeter.service.ts'),
     );
   });
@@ -94,12 +94,12 @@ describe('ArtifactScanner - followReexports', () => {
       root: REEXPORT_APP,
       followReexports: true,
     });
-    expect(artifacts.map(a => `${a.type}:${a.className}`)).toContain('service:KitService');
+    expect(artifacts.map((a) => `${a.type}:${a.className}`)).toContain('service:KitService');
   });
 
   test('without followReexports the re-exported stereotype is not recognised (positive control)', () => {
     const { artifacts } = ArtifactScanner.getInstance().scanWithReport({ root: REEXPORT_APP });
-    expect(artifacts.map(a => a.className)).not.toContain('KitService');
+    expect(artifacts.map((a) => a.className)).not.toContain('KitService');
   });
 
   test('a decorator from a module that does not lead to the kernel still does not count', () => {
@@ -107,7 +107,7 @@ describe('ArtifactScanner - followReexports', () => {
       root: REEXPORT_APP,
       followReexports: true,
     });
-    expect(artifacts.map(a => a.className)).not.toContain('StillForeignService');
+    expect(artifacts.map((a) => a.className)).not.toContain('StillForeignService');
   });
 
   test('a class re-exported by a barrel is never registered from the barrel', () => {
@@ -115,7 +115,7 @@ describe('ArtifactScanner - followReexports', () => {
       root: REEXPORT_APP,
       followReexports: true,
     });
-    expect(artifacts.map(a => a.className)).not.toContain('GreeterService');
+    expect(artifacts.map((a) => a.className)).not.toContain('GreeterService');
   });
 });
 
@@ -149,7 +149,7 @@ describe('ArtifactScanner - followReexports cost', () => {
       followReexports: true,
     });
 
-    expect(artifacts.map(a => a.className)).toContain('MixedService');
+    expect(artifacts.map((a) => a.className)).toContain('MixedService');
     expect(originOf.mock.calls.map(([opts]) => opts.name)).not.toContain('helper');
     originOf.mockRestore();
   });
@@ -161,7 +161,7 @@ describe('ArtifactScanner - kernel sub-paths', () => {
       root: REEXPORT_APP,
       followReexports: true,
     });
-    expect(artifacts.map(a => a.className)).toContain('SubpathService');
+    expect(artifacts.map((a) => a.className)).toContain('SubpathService');
   });
 
   test('a sibling package sharing the prefix (@venizia/ignis-boot) is not a source module', () => {

@@ -7,7 +7,7 @@ import { KafkaBundlerPluginNames, PlatformaticWasmSpecifiers } from './common';
 export const platformaticWasmPlugin = (): BunPlugin => ({
   name: KafkaBundlerPluginNames.PLATFORMATIC_WASM,
   setup(build) {
-    build.onResolve({ filter: PlatformaticWasmSpecifiers.ENTRYPOINT_FILTER }, args => {
+    build.onResolve({ filter: PlatformaticWasmSpecifiers.ENTRYPOINT_FILTER }, (args) => {
       try {
         return {
           path: Bun.resolveSync(

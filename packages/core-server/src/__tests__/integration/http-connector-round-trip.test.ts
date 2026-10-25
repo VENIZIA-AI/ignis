@@ -180,7 +180,7 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
     }
 
     const issues = caught.cause as Array<{ path: string }> | undefined;
-    expect(issues?.map(entry => entry.path)).toContain('title');
+    expect(issues?.map((entry) => entry.path)).toContain('title');
   });
 
   test("an envelope under the server's rootKey keeps the server's code and text", async () => {
@@ -199,15 +199,15 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
 describe('HttpRepository reads through a real IGNIS CRUD controller', () => {
   test('a ranged find, findOne and existsWith read what the server holds', async () => {
     const created = await Promise.all(
-      ['r1', 'r2', 'r3'].map(title => notes.create({ data: { title } })),
+      ['r1', 'r2', 'r3'].map((title) => notes.create({ data: { title } })),
     );
-    const ids = created.map(entry => entry.data.id);
+    const ids = created.map((entry) => entry.data.id);
 
     const page = await notes.find({
       filter: { where: { id: { inq: ids } }, order: ['id ASC'], limit: 2, skip: 1 },
       options: { shouldQueryRange: true },
     });
-    expect(page.data.map(row => row.title)).toEqual(['r2', 'r3']);
+    expect(page.data.map((row) => row.title)).toEqual(['r2', 'r3']);
     expect(page.range).toMatchObject({ start: 1, end: 2, total: 3 });
 
     expect(await notes.findOne({ filter: { where: { title: 'r2' } } })).toMatchObject({

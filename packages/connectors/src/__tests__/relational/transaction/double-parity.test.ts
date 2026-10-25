@@ -10,7 +10,7 @@ import { TransactionEndStatements, runTransactionParity } from './parity-suite';
 const buildDoubleProbe = (opts: {
   create: (doubleOpts: { commitError?: Error; rollbackError?: Error }) => TransactionDouble;
 }): ITransactionParityProbe => ({
-  begin: async beginOpts => {
+  begin: async (beginOpts) => {
     const failure = beginOpts?.failure;
 
     const double = opts.create({
@@ -29,16 +29,17 @@ const buildDoubleProbe = (opts: {
 
 runTransactionParity({
   subject: 'TransactionDouble',
-  probe: () => buildDoubleProbe({ create: doubleOpts => new TransactionDouble(doubleOpts) }),
+  probe: () => buildDoubleProbe({ create: (doubleOpts) => new TransactionDouble(doubleOpts) }),
 });
 
 runTransactionParity({
   subject: 'PostgresTransactionDouble',
   probe: () =>
-    buildDoubleProbe({ create: doubleOpts => new PostgresTransactionDouble(doubleOpts) }),
+    buildDoubleProbe({ create: (doubleOpts) => new PostgresTransactionDouble(doubleOpts) }),
 });
 
 runTransactionParity({
   subject: 'SqliteTransactionDouble',
-  probe: () => buildDoubleProbe({ create: doubleOpts => new SqliteTransactionDouble(doubleOpts) }),
+  probe: () =>
+    buildDoubleProbe({ create: (doubleOpts) => new SqliteTransactionDouble(doubleOpts) }),
 });

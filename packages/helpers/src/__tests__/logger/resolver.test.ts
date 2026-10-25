@@ -30,7 +30,7 @@ describe('logger resolver', () => {
     const stub = { info: () => undefined } as unknown as ILogger;
 
     LoggerResolver.use({
-      resolver: opts => {
+      resolver: (opts) => {
         seen.push(opts.scopes);
         return stub;
       },
@@ -76,7 +76,7 @@ describe('logger resolver', () => {
     const seenMessages: Array<string> = [];
 
     LoggerResolver.use({
-      resolver: opts => {
+      resolver: (opts) => {
         seenScopes.push(opts.scopes);
         return { info: (message: string) => seenMessages.push(message) } as unknown as ILogger;
       },

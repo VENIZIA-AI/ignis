@@ -145,7 +145,7 @@ describe('scoped model - enforce performance guard', () => {
   it('enforces a 992-line payload in under 50ms', async () => {
     const lines = [
       ...SUBJECTS.map((subject, index) => `g4, ${subject}, ${MODULES[index % MODULES.length]}`),
-      ...SUBJECTS.flatMap(subject =>
+      ...SUBJECTS.flatMap((subject) =>
         Object.entries(METHOD_ACTIONS).map(
           ([method, action]) => `p, Role_1, ANY_MEMBER, ${subject}.${method}, ${action}, allow`,
         ),

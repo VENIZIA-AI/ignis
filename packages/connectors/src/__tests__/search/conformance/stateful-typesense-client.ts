@@ -80,7 +80,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
   private select(opts: { name: string; filter?: string }): Array<Record<string, unknown>> {
     const rows = [...this.requireCollection(opts.name).documents.values()];
     return opts.filter
-      ? rows.filter(document => matchesFilter({ document, filter: opts.filter! }))
+      ? rows.filter((document) => matchesFilter({ document, filter: opts.filter! }))
       : rows;
   }
 
@@ -98,7 +98,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
       const searches = (requests?.searches ?? []) as Array<Record<string, unknown>>;
 
       return {
-        results: searches.map(entry => {
+        results: searches.map((entry) => {
           const name = String(entry['collection'] ?? '');
           // An unknown collection throws from `select`, failing the whole call - which is what the
           // GET path did too. Whether the real engine reports it per-entry instead is the open
@@ -116,7 +116,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
           return {
             found: rows.length,
             ['out_of']: rows.length,
-            hits: window.map(document => ({ document })),
+            hits: window.map((document) => ({ document })),
           };
         }),
       };
@@ -161,7 +161,7 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
           this.store.set(name, { name, documents: new Map() });
           return schema;
         },
-        retrieve: async () => [...this.store.values()].map(item => ({ name: item.name })),
+        retrieve: async () => [...this.store.values()].map((item) => ({ name: item.name })),
       };
     }
 
@@ -245,14 +245,14 @@ export class StatefulFakeTypesenseClient implements ITypesenseClientLike {
         return {
           found: rows.length,
           ['out_of']: rows.length,
-          hits: perPage === 0 ? [] : rows.map(document => ({ document })),
+          hits: perPage === 0 ? [] : rows.map((document) => ({ document })),
         };
       },
 
       async export() {
         return self
           .select({ name })
-          .map(row => JSON.stringify(row))
+          .map((row) => JSON.stringify(row))
           .join('\n');
       },
     };

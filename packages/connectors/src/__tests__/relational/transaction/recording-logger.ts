@@ -48,6 +48,6 @@ export class RecordingLogger implements ILogger {
   }
 
   countAt(opts: { level: TLogLevel }): number {
-    return this.calls.filter(call => call.level === opts.level).length;
+    return this.calls.filter((call) => call.level === opts.level).length;
   }
 }

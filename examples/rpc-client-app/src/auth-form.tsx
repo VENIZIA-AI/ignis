@@ -23,18 +23,18 @@ export const AuthForm = (props: { onSignedIn: (token: string) => void }) => {
     signUp.mutate({ body: { username, credential: password } }, { onSuccess: doSignIn });
 
   return (
-    <form onSubmit={event => event.preventDefault()}>
+    <form onSubmit={(event) => event.preventDefault()}>
       <p>Username and password: at least 8 characters each.</p>
       <input
         placeholder="username"
         value={username}
-        onChange={event => setUsername(event.target.value)}
+        onChange={(event) => setUsername(event.target.value)}
       />
       <input
         type="password"
         placeholder="password"
         value={password}
-        onChange={event => setPassword(event.target.value)}
+        onChange={(event) => setPassword(event.target.value)}
       />
       <button onClick={doSignIn}>Sign in</button>
       <button onClick={doSignUp}>Sign up</button>

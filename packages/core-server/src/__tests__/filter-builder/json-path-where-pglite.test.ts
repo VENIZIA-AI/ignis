@@ -98,7 +98,7 @@ describe('a typed JSON-path where runs on PGlite', () => {
 
     const rows = await repository.find({ filter: { where } });
 
-    expect(rows.map(row => row.name)).toEqual(['gamma']);
+    expect(rows.map((row) => row.name)).toEqual(['gamma']);
   });
 
   test('an inline JSON path on a typed jsonb column inside or, beside a regular column', async () => {
@@ -112,6 +112,6 @@ describe('a typed JSON-path where runs on PGlite', () => {
       },
     });
 
-    expect(rows.map(row => row.name)).toEqual(['alpha', 'beta']);
+    expect(rows.map((row) => row.name)).toEqual(['alpha', 'beta']);
   });
 });

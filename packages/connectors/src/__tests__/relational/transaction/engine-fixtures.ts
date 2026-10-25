@@ -42,7 +42,8 @@ export class RecordingDriver<TConnector> implements IRelationalDriver<TConnector
   }
 
   countEndStatements(): number {
-    return this.statements.filter(statement => TransactionEndStatements.isValid(statement)).length;
+    return this.statements.filter((statement) => TransactionEndStatements.isValid(statement))
+      .length;
   }
 
   createConnector(opts: { schema: TAnyDataSourceSchema }): TConnector {
@@ -206,7 +207,7 @@ export const buildRealHandleProbe = (opts: {
   const { dataSource } = opts;
 
   return {
-    begin: async beginOpts => {
+    begin: async (beginOpts) => {
       dataSource.recorder.reset({ failure: beginOpts?.failure });
 
       const transaction = await dataSource.beginTransaction();

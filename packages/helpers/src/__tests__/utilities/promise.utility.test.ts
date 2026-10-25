@@ -8,7 +8,7 @@ import {
   toError,
 } from '@/utilities/promise.utility';
 
-const defer = () => new Promise(resolve => setTimeout(resolve, 0));
+const defer = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const captureRejection = async (execution: Promise<unknown>): Promise<Error> => {
   try {
@@ -28,7 +28,7 @@ const buildInstrumentedTasks = (opts: { count: number; delayMs?: number }) => {
     return async () => {
       state.inFlight += 1;
       state.peak = Math.max(state.peak, state.inFlight);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
       state.inFlight -= 1;
       return index;
     };
@@ -58,15 +58,15 @@ describe('executePromiseWithLimit', () => {
   test('returns results in task order, never completion order', async () => {
     const tasks = [
       async () => {
-        await new Promise(resolve => setTimeout(resolve, 30));
+        await new Promise((resolve) => setTimeout(resolve, 30));
         return 'slow-first';
       },
       async () => {
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
         return 'fast-second';
       },
       async () => {
-        await new Promise(resolve => setTimeout(resolve, 15));
+        await new Promise((resolve) => setTimeout(resolve, 15));
         return 'medium-third';
       },
     ];
@@ -140,11 +140,11 @@ describe('executePromiseWithLimit', () => {
   test('a second, later rejection does not escape as an unhandled rejection', async () => {
     const tasks = [
       async () => {
-        await new Promise(resolve => setTimeout(resolve, 5));
+        await new Promise((resolve) => setTimeout(resolve, 5));
         throw getError({ message: 'first-failure' });
       },
       async () => {
-        await new Promise(resolve => setTimeout(resolve, 40));
+        await new Promise((resolve) => setTimeout(resolve, 40));
         throw getError({ message: 'later-failure' });
       },
     ];
@@ -158,7 +158,7 @@ describe('executePromiseWithLimit', () => {
 
     expect((caught as Error).message).toBe('first-failure');
 
-    await new Promise(resolve => setTimeout(resolve, 80));
+    await new Promise((resolve) => setTimeout(resolve, 80));
     await defer();
 
     expect(unhandled).toEqual([]);

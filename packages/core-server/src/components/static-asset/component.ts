@@ -63,7 +63,7 @@ export class StaticAssetComponent<
             normalizeLinkFn:
               extra?.normalizeLinkFn ??
               // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
-              (linkOptions =>
+              ((linkOptions) =>
                 buildObjectLink({
                   basePath: controller.basePath,
                   bucket: linkOptions.bucket,

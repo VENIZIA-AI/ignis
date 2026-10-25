@@ -10,7 +10,7 @@ describe('TypesenseConnector synonym sets', () => {
       items: [{ id: 'shoe', synonyms: ['shoe', 'sneaker', 'footwear'] }],
     });
 
-    const call = fake.calls.find(c => c.op === 'synonymSets.upsert');
+    const call = fake.calls.find((c) => c.op === 'synonymSets.upsert');
     expect(call?.args).toEqual([
       'products_synonyms',
       { items: [{ id: 'shoe', synonyms: ['shoe', 'sneaker', 'footwear'] }] },
@@ -25,7 +25,7 @@ describe('TypesenseConnector synonym sets', () => {
       items: [{ id: 'shoe-oneway', synonyms: ['sneaker'], root: 'shoe' }],
     });
 
-    const call = fake.calls.find(c => c.op === 'synonymSets.upsert');
+    const call = fake.calls.find((c) => c.op === 'synonymSets.upsert');
     expect(call?.args).toEqual([
       'products_synonyms',
       { items: [{ id: 'shoe-oneway', synonyms: ['sneaker'], root: 'shoe' }] },
@@ -60,7 +60,7 @@ describe('TypesenseConnector synonym sets', () => {
 
     const result = await helper.listSynonymSets();
 
-    expect(fake.calls.some(c => c.op === 'synonymSets.retrieve')).toBe(true);
+    expect(fake.calls.some((c) => c.op === 'synonymSets.retrieve')).toBe(true);
     expect(result).toEqual(['products_synonyms', 'brands_synonyms']);
   });
 
@@ -82,7 +82,7 @@ describe('TypesenseConnector synonym sets', () => {
 
     await helper.linkSynonymSets({ collection: 'products', synonymSets: ['products_synonyms'] });
 
-    const call = fake.calls.find(c => c.op === 'collections.update');
+    const call = fake.calls.find((c) => c.op === 'collections.update');
     expect(call?.args).toEqual(['products', { ['synonym_sets']: ['products_synonyms'] }]);
   });
 });

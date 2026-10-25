@@ -20,7 +20,7 @@ const buildServer = (opts: { environment: string }) => {
 
   server.use('*', new RequestSpyMiddleware().value());
   // Answers without reading, so the status says whether the spy read the body first.
-  server.post('/echo', context => context.json({ bodyUsed: context.req.raw.bodyUsed }));
+  server.post('/echo', (context) => context.json({ bodyUsed: context.req.raw.bodyUsed }));
   server.onError(new AppErrorMiddleware({ logger: LoggerFactory.getLogger(['spy-form']) }).value());
 
   return server;
@@ -102,7 +102,9 @@ describe('RequestSpyMiddleware - form bodies are parsed only where they are logg
     process.env.NODE_ENV = 'production';
     const spy = new RequestSpyMiddleware();
     const server = new OpenAPIHono();
-    server.post('/parse', async context => context.json(await spy.parseBody({ req: context.req })));
+    server.post('/parse', async (context) =>
+      context.json(await spy.parseBody({ req: context.req })),
+    );
 
     const response = await server.request('/parse', {
       method: 'POST',

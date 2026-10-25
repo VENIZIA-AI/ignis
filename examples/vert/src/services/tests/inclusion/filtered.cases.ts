@@ -133,7 +133,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       await junctionRepo.createAll({
-        data: channels.data!.map(ch => ({ productId: product.data.id, saleChannelId: ch.id })),
+        data: channels.data!.map((ch) => ({ productId: product.data.id, saleChannelId: ch.id })),
       });
 
       // Find with ordered relations (DESC by name)
@@ -218,7 +218,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       await junctionRepo.createAll({
-        data: channels.data!.map(ch => ({ productId: product.data.id, saleChannelId: ch.id })),
+        data: channels.data!.map((ch) => ({ productId: product.data.id, saleChannelId: ch.id })),
       });
 
       // Find with limited relations (only 2)
@@ -365,7 +365,7 @@ export class FilteredCases extends BaseTestCases {
       });
 
       await junctionRepo.createAll({
-        data: products.data!.map(p => ({ productId: p.id, saleChannelId: channel.data.id })),
+        data: products.data!.map((p) => ({ productId: p.id, saleChannelId: channel.data.id })),
       });
 
       // Find only expensive product with relations

@@ -12,8 +12,8 @@ const build = (failOn?: string) => {
 
   return {
     driver,
-    statements: () => pool.clients.flatMap(client => client.statements),
-    releases: () => pool.clients.flatMap(client => client.releases),
+    statements: () => pool.clients.flatMap((client) => client.statements),
+    releases: () => pool.clients.flatMap((client) => client.releases),
     ended: () => pool.ended,
   };
 };

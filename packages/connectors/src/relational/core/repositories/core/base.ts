@@ -5,14 +5,17 @@ import type {
   IScopeFilterSettings,
   ITransaction,
   TCount,
+  TByIdFilter,
   TDataRange,
   TDrizzleQueryOptions,
+  TFields,
   TFilter,
   TFindOneOptions,
   TFindOptions,
   TFindRangeOptions,
   TLockOptions,
   TRepositoryOperationScope,
+  TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
 import {
@@ -347,7 +350,8 @@ export abstract class RelationalBaseRepository<
     const result = this.queryDialect.build({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      filter: opts.filter,
+      // The dialect reads the filter against the table object; `DataObject` is the same row.
+      filter: opts.filter as TFilter,
     });
 
     if (!this.hasHiddenProperties()) {
@@ -450,26 +454,38 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions;
   }): Promise<boolean>;
 
-  abstract override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options: TFindRangeOptions<ExtraOptions, R>;
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+  abstract override find<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options: TFindRangeOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<{ data: Array<TRow<DataObject, R, F>>; range: TDataRange }>;
 
-  abstract override find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOptions<ExtraOptions, R>;
-  }): Promise<R[]>;
+  abstract override find<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<Array<TRow<DataObject, R, F>>>;
 
-  abstract override findOne<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+  abstract override findOne<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
+    filter: TFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>>;
 
-  abstract override findById<R = DataObject>(opts: {
+  abstract override findById<
+    R = unknown,
+    const F extends TFields<DataObject> = TFields<DataObject>,
+  >(opts: {
     id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: TFindOneOptions<ExtraOptions, R>;
-  }): Promise<TNullable<R>>;
+    filter?: TByIdFilter<DataObject, F>;
+    options?: TFindOneOptions<ExtraOptions, TRow<DataObject, R, F>>;
+  }): Promise<TNullable<TRow<DataObject, R, F>>>;
 
   abstract override create(opts: {
     data: PersistObject;

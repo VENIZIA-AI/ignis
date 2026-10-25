@@ -39,7 +39,7 @@ const selectIds = async (where: TWhere): Promise<number[]> => {
     .from(orderTable)
     .where(condition)
     .orderBy(orderTable.id);
-  return rows.map(row => row.id);
+  return rows.map((row) => row.id);
 };
 
 beforeAll(async () => {

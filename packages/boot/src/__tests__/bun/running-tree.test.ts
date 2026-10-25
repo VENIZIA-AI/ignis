@@ -15,7 +15,7 @@ const buildPackage = (opts: { fixture: string; into: string }): string => {
   const root = join(opts.into, opts.fixture.split('/').pop() ?? 'package');
   cpSync(join(FIXTURES, opts.fixture), root, {
     recursive: true,
-    filter: path => !path.includes('dist') && !path.includes('app_data'),
+    filter: (path) => !path.includes('dist') && !path.includes('app_data'),
   });
   for (const relativePath of new Bun.Glob('**/*.ts').scanSync({ cwd: join(root, 'src') })) {
     const output = ts.transpileModule(
@@ -57,7 +57,7 @@ describe('a group defined in a compiled tree', () => {
       folder: 'inventory',
       site: join(core, 'dist', 'groups.js'),
     });
-    expect(artifacts.map(artifact => artifact.filePath).sort()).toEqual([
+    expect(artifacts.map((artifact) => artifact.filePath).sort()).toEqual([
       join(core, 'dist', 'repositories', 'inventory', 'stock.repository.js'),
       join(core, 'dist', 'services', 'inventory', 'stock.service.js'),
     ]);

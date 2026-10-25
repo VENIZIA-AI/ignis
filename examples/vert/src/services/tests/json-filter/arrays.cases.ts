@@ -50,9 +50,9 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
         // The actual JSON values are numbers, but the query matched via TEXT comparison
-        const allInRange = priorities.every(p => [1, 2, 3].includes(p));
+        const allInRange = priorities.every((p) => [1, 2, 3].includes(p));
         if (allInRange) {
           this.context.logger.info('[CASE 9] PASSED | Found 3 records with priority in [1, 2, 3]');
           this.context.logger.info(
@@ -89,9 +89,9 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
         // The actual JSON values are numbers, but the query matched via TEXT comparison
-        const noneInRange = priorities.every(p => ![1, 2].includes(p));
+        const noneInRange = priorities.every((p) => ![1, 2].includes(p));
         if (noneInRange) {
           this.context.logger.info(
             '[CASE 10] PASSED | Found 3 records with priority not in [1, 2]',
@@ -131,8 +131,8 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 3) {
-        const scores = results.map(r => (r.jValue as any)?.metadata?.score);
-        const allInRange = scores.every(s => s >= 70 && s <= 95);
+        const scores = results.map((r) => (r.jValue as any)?.metadata?.score);
+        const allInRange = scores.every((s) => s >= 70 && s <= 95);
         if (allInRange) {
           this.context.logger.info('[CASE 11] PASSED | Found 3 records with score between 70-95');
           this.context.logger.info('[CASE 11] Scores: %j', scores);
@@ -170,7 +170,7 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const isCorrect = results.every(r => {
+        const isCorrect = results.every((r) => {
           const priority = (r.jValue as any)?.priority;
           const level = (r.jValue as any)?.metadata?.level;
           return priority > 2 && level === 'high';
@@ -180,7 +180,7 @@ export class ArraysCases extends BaseTestCases {
           this.context.logger.info('[CASE 13] PASSED | AND filter returned 2 records');
           this.context.logger.info(
             '[CASE 13] Records: %j',
-            results.map(r => ({
+            results.map((r) => ({
               priority: (r.jValue as any)?.priority,
               level: (r.jValue as any)?.metadata?.level,
             })),
@@ -219,8 +219,8 @@ export class ArraysCases extends BaseTestCases {
       });
 
       if (results.length === 2) {
-        const priorities = results.map(r => (r.jValue as any)?.priority);
-        const isCorrect = priorities.every(p => p === 1 || p === 5);
+        const priorities = results.map((r) => (r.jValue as any)?.priority);
+        const isCorrect = priorities.every((p) => p === 1 || p === 5);
         if (isCorrect) {
           this.context.logger.info('[CASE 14] PASSED | OR filter returned 2 records');
           this.context.logger.info('[CASE 14] Priorities: %j', priorities);

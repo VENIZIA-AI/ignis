@@ -11,7 +11,7 @@ export const normalizeKeyPrefix = (opts: {
   const trimmed = keyPrefix.replace(/^\/+|\/+$/g, '');
   const segments = trimmed ? trimmed.split('/') : [];
 
-  if (segments.length === 0 || segments.some(segment => !helper.isValidSegment({ segment }))) {
+  if (segments.length === 0 || segments.some((segment) => !helper.isValidSegment({ segment }))) {
     throw getError({
       message: `[${scope}] controller.keyPrefix must be one or more valid key segments | value: ${keyPrefix}`,
     });

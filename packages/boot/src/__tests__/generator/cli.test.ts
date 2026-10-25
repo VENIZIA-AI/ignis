@@ -28,7 +28,7 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
     const generated = generateArtifactIndex({ root: FIXTURES, out });
     expect(generated.written).toBe(true);
     expect(readFileSync(out, 'utf8')).toBe(generated.content);
-    expect(generated.artifacts.map(a => a.className)).toContain('GreeterService');
+    expect(generated.artifacts.map((a) => a.className)).toContain('GreeterService');
     expect(generated.content).not.toContain('ProbeModel');
 
     expect(generateArtifactIndex({ root: FIXTURES, out }).written).toBe(false);
@@ -65,7 +65,7 @@ describe('checkArtifactIndex - the header is not drift', () => {
 
     writeFileSync(
       out,
-      [header, ...body.filter(line => !line.includes('GreeterService'))].join('\n'),
+      [header, ...body.filter((line) => !line.includes('GreeterService'))].join('\n'),
     );
     expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
 
@@ -97,13 +97,13 @@ describe('generate / check report the decorated classes a user --ignore hides', 
     const out = join(root, 'artifacts.ts');
 
     const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
-    expect(generated.artifacts.map(a => a.className)).toEqual(['KeptService']);
-    expect(generated.ignored.map(a => a.className)).toEqual(['OldService']);
+    expect(generated.artifacts.map((a) => a.className)).toEqual(['KeptService']);
+    expect(generated.ignored.map((a) => a.className)).toEqual(['OldService']);
     expect(generated.ignored[0].filePath).toBe(join(root, 'legacy', 'old.service.ts'));
 
     const checked = checkArtifactIndex({ root, out, ignore: ['legacy/**'] });
     expect(checked.isFresh).toBe(true);
-    expect(checked.ignored.map(a => a.className)).toEqual(['OldService']);
+    expect(checked.ignored.map((a) => a.className)).toEqual(['OldService']);
 
     rmSync(root, { recursive: true, force: true });
   });
@@ -113,7 +113,10 @@ describe('generate / check report the decorated classes a user --ignore hides', 
     const out = join(root, 'artifacts.ts');
 
     const generated = generateArtifactIndex({ root, out });
-    expect(generated.artifacts.map(a => a.className).sort()).toEqual(['KeptService', 'OldService']);
+    expect(generated.artifacts.map((a) => a.className).sort()).toEqual([
+      'KeptService',
+      'OldService',
+    ]);
     expect(generated.ignored).toEqual([]);
 
     rmSync(root, { recursive: true, force: true });
@@ -140,7 +143,7 @@ describe('a broken file under a user --ignore never fails the run', () => {
 
     const out = join(root, 'artifacts.ts');
     const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
-    expect(generated.artifacts.map(a => a.className)).toEqual(['KeptService']);
+    expect(generated.artifacts.map((a) => a.className)).toEqual(['KeptService']);
     expect(generated.ignored).toEqual([]);
 
     expect(() => generateArtifactIndex({ root, out })).toThrow('carries 2 stereotypes');

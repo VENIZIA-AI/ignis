@@ -293,7 +293,7 @@ export class OpaqueUidHelper extends BaseHelper {
           : alphabet;
 
     const removed = new Set(exclude);
-    const resolved = [...new Set(folded)].filter(character => !removed.has(character)).join('');
+    const resolved = [...new Set(folded)].filter((character) => !removed.has(character)).join('');
 
     if (resolved.length < MIN_UID_ALPHABET_SIZE) {
       throw getError({
@@ -369,7 +369,7 @@ export class OpaqueUidHelper extends BaseHelper {
       });
     }
 
-    const shared = [...new Set(value)].filter(character => alphabet.includes(character));
+    const shared = [...new Set(value)].filter((character) => alphabet.includes(character));
     if (shared.length > 0) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

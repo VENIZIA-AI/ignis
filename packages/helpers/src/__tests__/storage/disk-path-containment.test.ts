@@ -40,7 +40,7 @@ afterEach(() => {
 describe('DiskHelper - an object name cannot leave its bucket', () => {
   const escapes = ['../outside.txt', '../../outside.txt', 'nested/../../outside.txt'];
 
-  test.each(escapes)('getObject rejects %s', async name => {
+  test.each(escapes)('getObject rejects %s', async (name) => {
     const { helper } = buildStorage();
 
     const message = await captureError({
@@ -50,7 +50,7 @@ describe('DiskHelper - an object name cannot leave its bucket', () => {
     expect(message).toContain('Invalid object name');
   });
 
-  test.each(escapes)('getStat rejects %s', async name => {
+  test.each(escapes)('getStat rejects %s', async (name) => {
     const { helper } = buildStorage();
 
     const message = await captureError({

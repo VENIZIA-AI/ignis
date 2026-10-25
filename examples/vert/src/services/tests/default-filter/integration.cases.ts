@@ -117,14 +117,14 @@ export class IntegrationCases extends BaseTestCases {
       );
 
       const allResults = await Promise.all(queries);
-      const allCorrect = allResults.every(r => r.length === 2);
+      const allCorrect = allResults.every((r) => r.length === 2);
 
       if (allCorrect) {
         this.context.logger.info(
           '[CASE 25] PASSED | All 10 concurrent queries applied default filter correctly',
         );
       } else {
-        const counts = allResults.map(r => r.length);
+        const counts = allResults.map((r) => r.length);
         this.context.logger.error('[CASE 25] FAILED | Inconsistent results | counts: %j', counts);
       }
     } catch (error) {

@@ -128,7 +128,7 @@ export const refreshMetaLinkRows = async (opts: {
   // One UPDATE per row: each merge starts from that row's own keys, which the statement above
   // returned untouched and which no single engine-neutral statement over the pair can express.
   const merged = await Promise.all(
-    rows.map(row =>
+    rows.map((row) =>
       repository.updateById({
         id: row.id,
         data: { metadata: { ...row.metadata, ...fileStat.metadata } },
@@ -136,5 +136,5 @@ export const refreshMetaLinkRows = async (opts: {
     ),
   );
 
-  return { count: updated.count, data: merged.map(result => result.data) };
+  return { count: updated.count, data: merged.map((result) => result.data) };
 };

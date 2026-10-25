@@ -229,7 +229,7 @@ export const runConnectorConformance = (opts: {
       await connector.document.import<IConformanceDocument>({ collection, documents });
 
       const exported = await connector.document.export({ collection });
-      const lines = exported.split('\n').filter(line => line.length > 0);
+      const lines = exported.split('\n').filter((line) => line.length > 0);
 
       expect(lines).toHaveLength(1200);
     });

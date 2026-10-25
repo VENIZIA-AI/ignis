@@ -43,7 +43,7 @@ const buildEmbedder = (opts: {
   }
 
   const providerConfig = omit({ source: embed.model, keys: ['name'] });
-  const documentTemplate = embed.from.map(item => `{{doc.${item}}}`).join(' ');
+  const documentTemplate = embed.from.map((item) => `{{doc.${item}}}`).join(' ');
 
   return { source, model: modelParts.join('/'), ...providerConfig, documentTemplate };
 };
@@ -59,7 +59,7 @@ const buildSynonymDictionary = (opts: { synonyms: ISynonym[] }): Record<string, 
     }
 
     for (const term of entry.synonyms) {
-      dictionary[term] = entry.synonyms.filter(other => other !== term);
+      dictionary[term] = entry.synonyms.filter((other) => other !== term);
     }
   }
 
@@ -68,7 +68,7 @@ const buildSynonymDictionary = (opts: { synonyms: ISynonym[] }): Record<string, 
 
 const assertGeopoint = (opts: { definition: ISearchCollectionDefinition }): void => {
   const { definition } = opts;
-  const geoFields = definition.fields.filter(item => item.type === SearchFieldTypes.GEOPOINT);
+  const geoFields = definition.fields.filter((item) => item.type === SearchFieldTypes.GEOPOINT);
 
   if (geoFields.length === 0) {
     return;
@@ -76,7 +76,7 @@ const assertGeopoint = (opts: { definition: ISearchCollectionDefinition }): void
 
   if (geoFields.length > 1) {
     throw getError({
-      message: `[compileMeilisearchCollection] Meilisearch supports exactly one geo field | collection: ${definition.name} | found: ${geoFields.map(item => item.name).join(', ')}`,
+      message: `[compileMeilisearchCollection] Meilisearch supports exactly one geo field | collection: ${definition.name} | found: ${geoFields.map((item) => item.name).join(', ')}`,
     });
   }
 

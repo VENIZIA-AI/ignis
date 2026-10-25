@@ -51,7 +51,7 @@ export class Application extends BaseApplication {
     // Every client must send this token as `Bearer <token>` before it can join a room or exchange
     // messages - the handshake IGNIS requires regardless of transport.
     const expectedToken = process.env.APP_ENV_AUTH_TOKEN ?? 'demo-token';
-    const authenticateFn: TSocketIOAuthenticateFn = handshake =>
+    const authenticateFn: TSocketIOAuthenticateFn = (handshake) =>
       handshake.headers.authorization === `Bearer ${expectedToken}`;
     this.bind<TSocketIOAuthenticateFn>({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(
       authenticateFn,

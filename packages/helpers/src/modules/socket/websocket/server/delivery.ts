@@ -57,7 +57,7 @@ export class WebSocketDeliveryHelper<
     if (outboundTransformer && client.encrypted) {
       Promise.resolve()
         .then(() => outboundTransformer({ client, event, data }))
-        .then(transformed => {
+        .then((transformed) => {
           const outboundMessage = transformed ?? { event, data };
           this.deliverToSocket({
             client,
@@ -67,7 +67,7 @@ export class WebSocketDeliveryHelper<
             data,
           });
         })
-        .catch(error => {
+        .catch((error) => {
           logger.error('Outbound transformer error | id: %s | error: %s', clientId, error);
         });
       return;

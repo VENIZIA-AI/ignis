@@ -79,7 +79,7 @@ describe('IRelationalQueryExecutor', () => {
     ]);
 
     const implementedVerbs = Object.keys(createFakeExecutor())
-      .filter(key => key !== 'calls')
+      .filter((key) => key !== 'calls')
       .sort();
     expect(implementedVerbs).toEqual(declaredVerbs);
   });

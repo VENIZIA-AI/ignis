@@ -34,7 +34,7 @@ export class GroupArtifactsResolver {
     const index: Record<string, Array<TClass<AnyType>>> = {};
     for (const artifact of ArtifactSources.folderArtifacts({ folder, site, ignore })) {
       const field = ArtifactStereotypes.EMIT_ORDER.find(
-        entry => entry.type === artifact.type,
+        (entry) => entry.type === artifact.type,
       )?.field;
       if (!field) {
         continue;

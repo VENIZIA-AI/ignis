@@ -19,9 +19,9 @@ const probe = async (): Promise<void> => {
   try {
     const registry = new ConfluentSchemaRegistry({ url: `http://127.0.0.1:${server.port}` });
 
-    const fetched = await new Promise<string>(resolve => {
+    const fetched = await new Promise<string>((resolve) => {
       registry
-        .fetchSchema(SCHEMA_ID, error => {
+        .fetchSchema(SCHEMA_ID, (error) => {
           resolve(error ? `fetch-failed: ${error.message}` : 'ok');
         })
         .catch((error: unknown) => {
@@ -40,6 +40,6 @@ const probe = async (): Promise<void> => {
   }
 };
 
-probe().catch(error => {
+probe().catch((error) => {
   console.log(`bad | ${error instanceof Error ? error.message : String(error)}`);
 });

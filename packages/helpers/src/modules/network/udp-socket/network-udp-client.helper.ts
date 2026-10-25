@@ -171,7 +171,7 @@ export class NetworkUdpClient extends BaseHelper {
       });
     });
 
-    this.client.on('error', error => {
+    this.client.on('error', (error) => {
       this.invokeHook({
         scope: this.handleError.name,
         execution: () => {

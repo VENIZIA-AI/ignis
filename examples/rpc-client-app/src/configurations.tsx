@@ -19,18 +19,22 @@ export const Configurations = () => {
     <section>
       <p>Signed in as {me.data?.userId}</p>
       <form
-        onSubmit={event => {
+        onSubmit={(event) => {
           event.preventDefault();
           create.mutate({ body: { code, group } });
         }}
       >
-        <input placeholder="code" value={code} onChange={event => setCode(event.target.value)} />
-        <input placeholder="group" value={group} onChange={event => setGroup(event.target.value)} />
+        <input placeholder="code" value={code} onChange={(event) => setCode(event.target.value)} />
+        <input
+          placeholder="group"
+          value={group}
+          onChange={(event) => setGroup(event.target.value)}
+        />
         <button type="submit">Add</button>
       </form>
       {isError && <p role="alert">Request failed - see the network tab.</p>}
       <ul>
-        {rows.map(row => (
+        {rows.map((row) => (
           <li key={row.id}>
             {row.code} ({row.group}){' '}
             <button onClick={() => remove.mutate({ params: { path: { id: row.id } } })}>

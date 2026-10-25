@@ -12,7 +12,7 @@ const readSource = async (opts: { relative: string }): Promise<string> => {
 
 const listTypeScriptFiles = async (opts: { relative: string }): Promise<string[]> => {
   const entries = await readdir(join(AUTH_ROOT, opts.relative));
-  return entries.filter(entry => entry.endsWith('.ts') && entry !== 'index.ts').sort();
+  return entries.filter((entry) => entry.endsWith('.ts') && entry !== 'index.ts').sort();
 };
 
 describe('auth providers import registry leaves, not barrels', () => {
@@ -58,14 +58,16 @@ describe('auth providers import registry leaves, not barrels', () => {
   test('authorize common types does not import IAuthUser from the authenticate barrel', async () => {
     const files = await listTypeScriptFiles({ relative: 'authorize/common/types' });
     const sources = await Promise.all(
-      files.map(file => readSource({ relative: `authorize/common/types/${file}` })),
+      files.map((file) => readSource({ relative: `authorize/common/types/${file}` })),
     );
 
     for (const source of sources) {
       expect(source).not.toMatch(/from '\.\.\/\.\.\/\.\.\/authenticate';/);
     }
     expect(
-      sources.some(source => /from '\.\.\/\.\.\/\.\.\/authenticate\/common\/types';/.test(source)),
+      sources.some((source) =>
+        /from '\.\.\/\.\.\/\.\.\/authenticate\/common\/types';/.test(source),
+      ),
     ).toBe(true);
   });
 });

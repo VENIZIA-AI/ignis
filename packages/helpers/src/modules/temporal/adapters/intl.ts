@@ -49,7 +49,9 @@ export class IntlTemporalAdapter implements ITemporalAdapter {
       });
     }
 
-    const commonEra = formatter.formatToParts(new Date(0)).find(part => part.type === 'era')?.value;
+    const commonEra = formatter
+      .formatToParts(new Date(0))
+      .find((part) => part.type === 'era')?.value;
 
     // Full: the oldest zone makes room, so zone 257 is not rebuilt on every call.
     if (IntlTemporalAdapter.formatters.size >= MAX_CACHED_FORMATTERS) {

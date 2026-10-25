@@ -103,7 +103,7 @@ describe('ScopedCasbinAdapter - resolveDomainEdges absent', () => {
     const adapter = buildAdapter({ rows: ROWS_WITH_CLOSURE });
     const lines = await capturedLinesFor(adapter);
 
-    const g3Lines = lines.filter(line => line.startsWith('g3,'));
+    const g3Lines = lines.filter((line) => line.startsWith('g3,'));
     expect(g3Lines).toEqual(['g3, Merchant_9, Organizer_B']);
   });
 });
@@ -125,7 +125,7 @@ describe('ScopedCasbinAdapter - resolveDomainEdges supplied', () => {
 
     const adapter = buildAdapter({
       rows: ROWS_WITH_CLOSURE,
-      resolveDomainEdges: async hookOpts => {
+      resolveDomainEdges: async (hookOpts) => {
         receivedPrincipal = hookOpts.principal;
         receivedDomains = hookOpts.domains;
         return [];
@@ -174,7 +174,7 @@ describe('ScopedCasbinAdapter - resolveDomainEdges supplied', () => {
     expect(lines).toContain('g3, Merchant_9, Organizer_B');
 
     expect(messages.length).toBeGreaterThan(0);
-    expect(messages.some(message => message.includes('resolveDomainEdges'))).toBe(true);
+    expect(messages.some((message) => message.includes('resolveDomainEdges'))).toBe(true);
   });
 
   it('a hook edge duplicating a real domain_inherits row is harmless at the line level - both are emitted, neither corrupts the other', async () => {
@@ -184,7 +184,7 @@ describe('ScopedCasbinAdapter - resolveDomainEdges supplied', () => {
     });
     const lines = await capturedLinesFor(adapter);
 
-    const g3Lines = lines.filter(line => line === 'g3, Merchant_9, Organizer_B');
+    const g3Lines = lines.filter((line) => line === 'g3, Merchant_9, Organizer_B');
     expect(g3Lines.length).toBeGreaterThanOrEqual(1);
   });
 });

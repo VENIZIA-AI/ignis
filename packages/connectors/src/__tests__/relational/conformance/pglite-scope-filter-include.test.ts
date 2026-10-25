@@ -434,7 +434,7 @@ describe('toInclude - the leak, proven closed', () => {
 
     // Proves the seed data can leak at all - if this assertion ever stops holding, the "fixed"
     // assertion below would be meaningless (nothing to catch).
-    expect(merchant.openProducts?.map(row => row.name).sort()).toEqual([
+    expect(merchant.openProducts?.map((row) => row.name).sort()).toEqual([
       'open-a-product',
       'open-leaked-b-product-under-a',
     ]);
@@ -445,7 +445,7 @@ describe('toInclude - the leak, proven closed', () => {
       filter: { where: { id: 1 }, include: [{ relation: 'products' }] },
     });
 
-    expect(merchant.products?.map(row => row.name)).toEqual(['a-product']);
+    expect(merchant.products?.map((row) => row.name)).toEqual(['a-product']);
   });
 });
 
@@ -458,7 +458,7 @@ describe('toInclude - relation-level shouldSkipDefaultFilter removes defaultFilt
       },
     });
 
-    expect(merchant.products?.map(row => row.name).sort()).toEqual([
+    expect(merchant.products?.map((row) => row.name).sort()).toEqual([
       'a-product',
       'hidden-by-default',
     ]);
@@ -483,7 +483,7 @@ describe("toInclude - onMissing: 'deny' (the default) vs 'allow'", () => {
       filter: { where: { id: 1 }, include: [{ relation: 'allowProducts' }] },
     });
 
-    expect(merchant.allowProducts?.map(row => row.name).sort()).toEqual([
+    expect(merchant.allowProducts?.map((row) => row.name).sort()).toEqual([
       'allow-a-product',
       'allow-b-product-under-a',
     ]);
@@ -496,7 +496,7 @@ describe('toInclude - a child with no scopeFilter is unaffected', () => {
       filter: { where: { id: 1 }, include: [{ relation: 'openProducts' }] },
     });
 
-    expect(merchant.openProducts?.map(row => row.name).sort()).toEqual([
+    expect(merchant.openProducts?.map((row) => row.name).sort()).toEqual([
       'open-a-product',
       'open-leaked-b-product-under-a',
     ]);
@@ -535,7 +535,7 @@ describe('toInclude - a relation of a relation is scoped at every level', () => 
 
     const [product] = merchant.products ?? [];
     expect(product?.name).toBe('a-product');
-    expect(product?.reviews?.map(review => review.body)).toEqual(['good a review']);
+    expect(product?.reviews?.map((review) => review.body)).toEqual(['good a review']);
   });
 
   test('nested include denies when the nested scope cannot be resolved', async () => {

@@ -78,13 +78,13 @@ describe('parseOrderEntry - whitespace', () => {
     ['name\fDESC', 'a form feed between tokens'],
     ['name\rDESC', 'a carriage return between tokens'],
     ['name\r\nDESC', 'CRLF between tokens'],
-  ])('%p (%s) parses to name/desc', entry => {
+  ])('%p (%s) parses to name/desc', (entry) => {
     expect(parse(entry)).toEqual({ field: 'name', direction: Sorts.DESC });
   });
 
   test.each([['  name'], ['name  '], ['\tname\t']])(
     'a bare field with surrounding whitespace %p defaults to ascending',
-    entry => {
+    (entry) => {
       expect(parse(entry)).toEqual({ field: 'name', direction: Sorts.ASC });
     },
   );
@@ -95,7 +95,7 @@ describe('parseOrderEntry - only ASCII whitespace separates tokens', () => {
     ['name\u00a0DESC', 'a non-breaking space'],
     ['name\u2003DESC', 'an em space'],
     ['name\u3000DESC', 'an ideographic space'],
-  ])('%p (%s) is one field named as written, defaulting to ascending', entry => {
+  ])('%p (%s) is one field named as written, defaulting to ascending', (entry) => {
     expect(parse(entry)).toEqual({ field: entry, direction: Sorts.ASC });
   });
 
@@ -105,7 +105,7 @@ describe('parseOrderEntry - only ASCII whitespace separates tokens', () => {
 });
 
 describe('parseOrderEntry - rejected entries are 400s', () => {
-  test.each([[''], ['   '], ['\t']])('an entry with no field %p is a 400', entry => {
+  test.each([[''], ['   '], ['\t']])('an entry with no field %p is a 400', (entry) => {
     const error = captureError(() => parse(entry));
 
     expect(error.statusCode).toBe(400);
@@ -113,7 +113,7 @@ describe('parseOrderEntry - rejected entries are 400s', () => {
 
   test.each([['name sideways'], ['name ascending'], ['name DESCX'], ['name 1']])(
     'an invalid direction %p is a 400 naming the whole entry',
-    entry => {
+    (entry) => {
       const error = captureError(() => parse(entry));
 
       expect(error.statusCode).toBe(400);
@@ -123,7 +123,7 @@ describe('parseOrderEntry - rejected entries are 400s', () => {
 
   test.each([['name DESC NULLS LAST'], ['name ASC extra'], ['a b c']])(
     'more than two tokens %p is a 400 naming the whole entry, not a silent truncation',
-    entry => {
+    (entry) => {
       const error = captureError(() => parse(entry));
 
       expect(error.statusCode).toBe(400);
@@ -156,7 +156,7 @@ describe('parseOrderEntry - the entry is quoted with JSON.stringify in every mes
     ['a\nFAKE LOG LINE b', 'too many tokens, one a forged log line'],
     ['name \u001b[31mdesc', 'invalid direction carrying an ESC sequence'],
     ['name ASC\u0000', 'invalid direction carrying a NUL'],
-  ])('%p (%s) is a single-line 400 with the entry escaped', entry => {
+  ])('%p (%s) is a single-line 400 with the entry escaped', (entry) => {
     const error = captureError(() => parse(entry));
 
     expect(error.statusCode).toBe(400);
@@ -172,7 +172,7 @@ describe('parseOrderEntry - the entry is quoted with JSON.stringify in every mes
 
   test.each([['name sideways'], ['name DESC NULLS LAST']])(
     'a plain entry %p is quoted as a JSON string',
-    entry => {
+    (entry) => {
       expect(captureError(() => parse(entry)).message).toContain(`"${entry}"`);
     },
   );

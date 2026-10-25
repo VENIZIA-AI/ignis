@@ -10,7 +10,7 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
 
-const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * The neutral `PgDatabase` types `execute()` through the
@@ -147,7 +147,7 @@ describe('PGliteDriver - against a real PGlite instance', () => {
     const first = await driver.acquire({ schema: {} });
     order.push('first acquired');
 
-    const secondPromise = driver.acquire({ schema: {} }).then(connection => {
+    const secondPromise = driver.acquire({ schema: {} }).then((connection) => {
       order.push('second acquired');
       return connection;
     });

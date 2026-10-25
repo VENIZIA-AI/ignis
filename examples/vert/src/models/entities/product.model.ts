@@ -20,7 +20,7 @@ export const productTable = pgTable(
     price: integer('price').notNull().default(0),
     tags: varchar('tags', { length: 100 }).array(),
   },
-  table => [unique('UQ_Product_code').on(table.code), index('IDX_Product_name').on(table.name)],
+  (table) => [unique('UQ_Product_code').on(table.code), index('IDX_Product_name').on(table.name)],
 );
 
 /**

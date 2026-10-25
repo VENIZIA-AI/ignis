@@ -160,7 +160,7 @@ describe('BaseKafkaHelper — broker events, health tracking, close paths', () =
     });
 
     client.emit('client:broker:connect', brokerPayload({ host: 'a', port: 9092 }));
-    await new Promise<void>(resolve => {
+    await new Promise<void>((resolve) => {
       setImmediate(resolve);
     });
 

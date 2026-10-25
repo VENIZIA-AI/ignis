@@ -81,7 +81,7 @@ beforeEach(async () => {
   shouldAuthenticate = true;
 
   httpServer = createServer();
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     httpServer.listen(0, '127.0.0.1', () => {
       resolve();
     });
@@ -118,7 +118,7 @@ afterEach(async () => {
   }
 
   await ioServer.close();
-  await new Promise<void>(resolve => {
+  await new Promise<void>((resolve) => {
     httpServer.close(() => {
       resolve();
     });
@@ -219,7 +219,7 @@ describe('SocketIOClientHelper | authentication', () => {
     await waitFor(() => client.getState() === SocketIOClientStates.AUTHENTICATED);
 
     const authenticateRequests = received.filter(
-      entry => entry.topic === SocketIOConstants.EVENT_AUTHENTICATE,
+      (entry) => entry.topic === SocketIOConstants.EVENT_AUTHENTICATE,
     );
     expect(authenticateRequests).toHaveLength(1);
   });
@@ -233,8 +233,8 @@ describe('SocketIOClientHelper | emit', () => {
 
     client.emit({ topic: 'a-topic', data: { value: 1 }, callback: callback });
 
-    await waitFor(() => received.some(entry => entry.topic === 'a-topic'));
-    expect(received.find(entry => entry.topic === 'a-topic')?.payload).toEqual({ value: 1 });
+    await waitFor(() => received.some((entry) => entry.topic === 'a-topic'));
+    expect(received.find((entry) => entry.topic === 'a-topic')?.payload).toEqual({ value: 1 });
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
@@ -260,11 +260,15 @@ describe('SocketIOClientHelper | emit', () => {
     client.joinRooms({ rooms: ['room-a'] });
     client.leaveRooms({ rooms: ['room-a'] });
 
-    await waitFor(() => received.some(entry => entry.topic === SocketIOConstants.EVENT_LEAVE));
-    expect(received.find(entry => entry.topic === SocketIOConstants.EVENT_JOIN)?.payload).toEqual({
-      rooms: ['room-a'],
-    });
-    expect(received.find(entry => entry.topic === SocketIOConstants.EVENT_LEAVE)?.payload).toEqual({
+    await waitFor(() => received.some((entry) => entry.topic === SocketIOConstants.EVENT_LEAVE));
+    expect(received.find((entry) => entry.topic === SocketIOConstants.EVENT_JOIN)?.payload).toEqual(
+      {
+        rooms: ['room-a'],
+      },
+    );
+    expect(
+      received.find((entry) => entry.topic === SocketIOConstants.EVENT_LEAVE)?.payload,
+    ).toEqual({
       rooms: ['room-a'],
     });
   });
@@ -355,7 +359,7 @@ describe('SocketIOClientHelper | subscriptions', () => {
     expect(client.getSocketClient().hasListeners('a-topic')).toBe(false);
 
     serverSockets[0].emit('a-topic', { value: 1 });
-    await new Promise<void>(resolve => setTimeout(resolve, 50));
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
     expect(handler).not.toHaveBeenCalled();
   });
 

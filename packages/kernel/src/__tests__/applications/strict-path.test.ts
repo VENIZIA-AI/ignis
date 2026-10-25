@@ -21,8 +21,8 @@ const requestStatus = async (opts: { config: IApplicationConfigs; path: string }
   });
 
   const rootRouter = application.getRootRouter();
-  rootRouter.get('/', context => context.text('root'));
-  rootRouter.get('/users', context => context.text('users'));
+  rootRouter.get('/', (context) => context.text('root'));
+  rootRouter.get('/users', (context) => context.text('users'));
   application.getServer().route(opts.config.path.base, rootRouter);
 
   const response = await application.getServer().request(opts.path);

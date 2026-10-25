@@ -120,7 +120,7 @@ export class CasbinAuthorizationEnforcer<
   }
 
   destroy(): void {
-    this.pool?.destroy().catch(error => {
+    this.pool?.destroy().catch((error) => {
       this.logger.for(this.destroy.name).warn('Pool destroy failed: %s', error);
     });
   }
@@ -178,7 +178,7 @@ export class CasbinAuthorizationEnforcer<
     const { user, lines } = rules;
 
     return this.pool.use({
-      execution: async enforcer => {
+      execution: async (enforcer) => {
         await this.loadPolicyLinesIntoModel({ enforcer, lines });
 
         const normalizePayloadFn = this.resolvedPayloadFn;
@@ -283,7 +283,7 @@ export class CasbinAuthorizationEnforcer<
 
     return (this.userPolicyLineCache ??= new UserPolicyLineCache({
       cached,
-      loadLines: opts => this.extractUserLines(opts),
+      loadLines: (opts) => this.extractUserLines(opts),
     }));
   }
 

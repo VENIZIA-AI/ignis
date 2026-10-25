@@ -104,7 +104,7 @@ describe('CronHelper | onTick', () => {
       onTick: () => {
         throw new Error('sync onTick boom');
       },
-      errorHandler: error => {
+      errorHandler: (error) => {
         errors.push(error);
       },
     });
@@ -119,7 +119,7 @@ describe('CronHelper | onTick', () => {
     const errors: unknown[] = [];
     const helper = createHelper({
       onTick: () => Promise.reject(new Error('async onTick boom')),
-      errorHandler: error => {
+      errorHandler: (error) => {
         errors.push(error);
       },
     });
@@ -133,7 +133,7 @@ describe('CronHelper | onTick', () => {
 
   test('fires on schedule for a per-second cron expression', async () => {
     let ticks = 0;
-    const fired = new Promise<void>(resolve => {
+    const fired = new Promise<void>((resolve) => {
       const helper = createHelper({
         cronTime: EVERY_SECOND,
         autoStart: true,

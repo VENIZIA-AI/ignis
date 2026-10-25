@@ -62,7 +62,7 @@ const browserPurity = {
     'no-restricted-imports': [
       'error',
       {
-        paths: NODE_BUILTIN_MODULES.map(name => ({
+        paths: NODE_BUILTIN_MODULES.map((name) => ({
           name,
           message: `'${name}' is a Node builtin and a browser Worker cannot load it.`,
         })),

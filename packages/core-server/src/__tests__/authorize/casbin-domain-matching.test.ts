@@ -42,7 +42,7 @@ const enforceWithDomain = async (opts: {
     loadPolicy: async () => {},
     loadFilteredPolicy: async (model: Model) => {
       const { Helper } = await import('casbin');
-      opts.lines.forEach(line => Helper.loadPolicyLine(line, model));
+      opts.lines.forEach((line) => Helper.loadPolicyLine(line, model));
     },
     savePolicy: async () => true,
     addPolicy: async () => {},
@@ -214,7 +214,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     loadPolicy: async () => {},
     loadFilteredPolicy: async (model: Model) => {
       const { Helper } = await import('casbin');
-      lines.forEach(line => Helper.loadPolicyLine(line, model));
+      lines.forEach((line) => Helper.loadPolicyLine(line, model));
     },
     savePolicy: async () => true,
     addPolicy: async () => {},
@@ -310,7 +310,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     loadPolicy: async () => {},
     loadFilteredPolicy: async (model: Model, filter: { principal: { id: string | number } }) => {
       const { Helper } = await import('casbin');
-      (linesByUser[String(filter.principal.id)] ?? []).forEach(line =>
+      (linesByUser[String(filter.principal.id)] ?? []).forEach((line) =>
         Helper.loadPolicyLine(line, model),
       );
     },

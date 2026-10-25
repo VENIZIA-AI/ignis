@@ -38,7 +38,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
 
     let didAdvance = false;
     let markAdvanced!: () => void;
-    const advancedPromise = new Promise<void>(resolve => {
+    const advancedPromise = new Promise<void>((resolve) => {
       markAdvanced = resolve;
     });
     helper['attemptReconnect'] = async () => {
@@ -117,7 +117,7 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
 
     let didAdvance = false;
     let markAdvanced!: () => void;
-    const advancedPromise = new Promise<void>(resolve => {
+    const advancedPromise = new Promise<void>((resolve) => {
       markAdvanced = resolve;
     });
     helper['attemptReconnect'] = async () => {
@@ -480,10 +480,10 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       clientId: 'ignis-test-reconnect-error',
       bootstrapBrokers: ['127.0.0.1:9092'],
       groupId: 'ignis-test-reconnect-error-group',
-      onReconnectError: opts => {
+      onReconnectError: (opts) => {
         reconnectErrors.push(opts);
       },
-      onMessageError: opts => {
+      onMessageError: (opts) => {
         messageErrors.push(opts);
       },
     });
@@ -498,7 +498,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       attempt: 2,
       maxAttempts: 5,
       delayMs: 1,
-      errorHandler: opts => {
+      errorHandler: (opts) => {
         messageErrors.push(opts);
       },
     });
@@ -526,7 +526,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       attempt: 1,
       maxAttempts: 5,
       delayMs: 1,
-      errorHandler: opts => {
+      errorHandler: (opts) => {
         messageErrors.push(opts);
       },
     });
@@ -606,10 +606,10 @@ describe('KafkaConsumerHelper - reconnect error routing, the other two sites', (
       clientId: 'ignis-test-rebuild-error',
       bootstrapBrokers: ['127.0.0.1:9092'],
       groupId: 'ignis-test-rebuild-error-group',
-      onReconnectError: opts => {
+      onReconnectError: (opts) => {
         reconnectErrors.push(opts);
       },
-      onMessageError: opts => {
+      onMessageError: (opts) => {
         messageErrors.push(opts);
       },
     });
@@ -624,7 +624,7 @@ describe('KafkaConsumerHelper - reconnect error routing, the other two sites', (
       attempt: 3,
       maxAttempts: 5,
       delayMs: 1,
-      errorHandler: opts => {
+      errorHandler: (opts) => {
         messageErrors.push(opts);
       },
     });
@@ -671,10 +671,10 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
       bootstrapBrokers: ['127.0.0.1:9092'],
       groupId: 'ignis-test-once-group',
       onMessage: async () => {},
-      onStreamError: opts => {
+      onStreamError: (opts) => {
         streamErrors.push(opts.error);
       },
-      onMessageError: opts => {
+      onMessageError: (opts) => {
         messageErrors.push(opts.error);
       },
     });
@@ -685,7 +685,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
     stream.destroy(new Error('broker dropped'));
     await sleep(50);
 
-    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+    expect(streamErrors.map((error) => error.message)).toEqual(['broker dropped']);
     expect(messageErrors).toEqual([]);
   });
 
@@ -697,7 +697,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
       clientId: 'ignis-test-once-pull',
       bootstrapBrokers: ['127.0.0.1:9092'],
       groupId: 'ignis-test-once-pull-group',
-      onStreamError: opts => {
+      onStreamError: (opts) => {
         streamErrors.push(opts.error);
       },
     });
@@ -708,7 +708,7 @@ describe('KafkaConsumerHelper - one delivery per stream error on a real Readable
     stream.destroy(new Error('broker dropped'));
     await sleep(20);
 
-    expect(streamErrors.map(error => error.message)).toEqual(['broker dropped']);
+    expect(streamErrors.map((error) => error.message)).toEqual(['broker dropped']);
   });
 });
 
@@ -723,10 +723,10 @@ describe('KafkaConsumerHelper - errors after the loop gave up are still reported
       bootstrapBrokers: ['127.0.0.1:9092'],
       groupId: 'ignis-test-after-exhaustion-group',
       onMessage: async () => {},
-      onStreamError: opts => {
+      onStreamError: (opts) => {
         streamErrors.push(opts.error);
       },
-      onMessageError: opts => {
+      onMessageError: (opts) => {
         messageErrors.push(opts.error);
       },
     });
@@ -741,7 +741,7 @@ describe('KafkaConsumerHelper - errors after the loop gave up are still reported
     stream.emit('error', new Error('late error'));
     await sleep(20);
 
-    expect(streamErrors.map(error => error.message)).toEqual(['first drop', 'late error']);
+    expect(streamErrors.map((error) => error.message)).toEqual(['first drop', 'late error']);
     expect(messageErrors).toEqual([]);
   });
 });

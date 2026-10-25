@@ -30,7 +30,7 @@ const AUTH_TOKEN_SENTINEL = 'PLACEHOLDER_AUTH_TOKEN';
 const SENTINELS = [PASSWORD_SENTINEL, URL_CREDENTIAL_SENTINEL, AUTH_TOKEN_SENTINEL];
 
 const findSentinels = (opts: { rendered: string }): string[] =>
-  SENTINELS.filter(sentinel => opts.rendered.includes(sentinel));
+  SENTINELS.filter((sentinel) => opts.rendered.includes(sentinel));
 
 /**
  * JSON the way safe-stringify loggers and error reporters print it: a repeated object becomes a
@@ -226,7 +226,7 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
           const keys = Object.keys(transaction);
 
           expect(keys).toContain('connector');
-          expect(keys.filter(key => !allowedKeys.includes(key))).toEqual([]);
+          expect(keys.filter((key) => !allowedKeys.includes(key))).toEqual([]);
         },
       });
     });
@@ -301,7 +301,7 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
             formatLogMessage({ message: '%j %s', args: [copy, copy] }),
           ].join('\n');
 
-          expect(Object.keys(copy).filter(key => !allowedKeys.includes(key))).toEqual([]);
+          expect(Object.keys(copy).filter((key) => !allowedKeys.includes(key))).toEqual([]);
           expect(findSentinels({ rendered })).toEqual([]);
         },
       });

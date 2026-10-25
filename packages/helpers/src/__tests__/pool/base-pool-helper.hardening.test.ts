@@ -3,7 +3,7 @@ import { BasePoolHelper } from '@/modules/pool';
 
 // --- Fixtures / helpers ---
 
-const tick = (ms = 0): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+const tick = (ms = 0): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 interface ITrackedPool<T> {
   pool: BasePoolHelper<T>;
@@ -32,7 +32,7 @@ function objectPool(
       created.push(r);
       return r;
     },
-    destroy: r => {
+    destroy: (r) => {
       destroyed.push(r);
     },
     ...extra,
@@ -98,7 +98,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     const waiterCount = 20;
     const resolvedOrder: number[] = [];
     const waiters = Array.from({ length: waiterCount }, (_, i) =>
-      pool.acquire().then(r => {
+      pool.acquire().then((r) => {
         resolvedOrder.push(i);
         return r;
       }),
@@ -112,7 +112,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     }
     // As waiters resolve they must release too, to feed the rest.
     const got = await Promise.all(
-      waiters.map(async w => {
+      waiters.map(async (w) => {
         const r = await w;
         await tick(0);
         pool.release({ resource: r });
@@ -147,7 +147,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
       pool.release({ resource: r });
     }
     const results = await Promise.all(
-      waiters.map(async w => {
+      waiters.map(async (w) => {
         const r = await w;
         await tick(0);
         pool.release({ resource: r });
@@ -167,7 +167,7 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     const order: number[] = [];
     const count = 8;
     const waiters = Array.from({ length: count }, (_, i) =>
-      pool.acquire().then(r => {
+      pool.acquire().then((r) => {
         order.push(i);
         return r;
       }),
@@ -190,13 +190,13 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
       size: 1,
       create: () => ++n,
       reset: () =>
-        new Promise<void>(resolve => {
+        new Promise<void>((resolve) => {
           resetGate = resolve;
         }),
     });
     const a = await pool.acquire();
     let got: number | undefined;
-    const waiter = pool.acquire().then(r => {
+    const waiter = pool.acquire().then((r) => {
       got = r;
     });
     await tick(2);
@@ -227,7 +227,7 @@ describe('BasePoolHelper — fault injection: create()', () => {
       },
     });
     const settled = await Promise.allSettled([pool.acquire(), pool.acquire(), pool.acquire()]);
-    expect(settled.every(s => s.status === 'rejected')).toBe(true);
+    expect(settled.every((s) => s.status === 'rejected')).toBe(true);
     expect(pool.getStats()).toEqual({ size: 2, available: 0, borrowed: 0, pending: 0 });
 
     mode = 'ok';
@@ -249,8 +249,8 @@ describe('BasePoolHelper — fault injection: create()', () => {
       },
     });
     const settled = await Promise.allSettled([pool.acquire(), pool.acquire()]);
-    const rejected = settled.filter(s => s.status === 'rejected');
-    const fulfilled = settled.filter(s => s.status === 'fulfilled');
+    const rejected = settled.filter((s) => s.status === 'rejected');
+    const fulfilled = settled.filter((s) => s.status === 'fulfilled');
     // First create failed → 1 rejection; second create succeeded → 1 fulfilled.
     expect(rejected).toHaveLength(1);
     expect(fulfilled).toHaveLength(1);
@@ -268,7 +268,7 @@ describe('BasePoolHelper — fault injection: validate() THROWS', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
       validate: () => {
@@ -308,10 +308,10 @@ describe('BasePoolHelper — fault injection: reset() throws', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
-      reset: r => {
+      reset: (r) => {
         if (failReset.has(r)) {
           throw new Error('reset boom');
         }
@@ -383,7 +383,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     expect((err as Error).message).toBe('callback boom');
     expect(pool.getStats()).toEqual({ size: 1, available: 0, borrowed: 0, pending: 0 });
     // Pool recovers with a fresh resource.
-    const r = await pool.use({ execution: async x => x });
+    const r = await pool.use({ execution: async (x) => x });
     expect(r).toBe(2);
   });
 });
@@ -423,7 +423,7 @@ describe('BasePoolHelper — degenerate size: 0', () => {
     });
     let err: unknown;
     try {
-      await pool.use({ execution: async r => r });
+      await pool.use({ execution: async (r) => r });
     } catch (e) {
       err = e;
     }
@@ -438,13 +438,13 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
     const seen: number[] = [];
     for (let i = 0; i < 25; i++) {
       await pool.use({
-        execution: async r => {
+        execution: async (r) => {
           seen.push(r);
         },
       });
     }
     expect(n).toBe(1); // created once
-    expect(seen.every(x => x === 1)).toBe(true);
+    expect(seen.every((x) => x === 1)).toBe(true);
   });
 
   test('size:1 under concurrent acquirers never double-borrows', async () => {
@@ -538,7 +538,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 2, create: () => ++n });
     const result = await pool.use({
-      execution: async outer => {
+      execution: async (outer) => {
         const inner = await pool.acquire();
         expect(inner).not.toBe(outer);
         pool.release({ resource: inner });
@@ -597,7 +597,7 @@ describe('BasePoolHelper — operations after destroy()', () => {
     await pool.destroy();
     let err: unknown;
     try {
-      await pool.use({ execution: async r => r });
+      await pool.use({ execution: async (r) => r });
     } catch (e) {
       err = e;
     }
@@ -610,7 +610,7 @@ describe('BasePoolHelper — operations after destroy()', () => {
     const pool = new BasePoolHelper<number>({
       size: 1,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
     });
@@ -628,7 +628,7 @@ describe('BasePoolHelper — operations after destroy()', () => {
     const pool = new BasePoolHelper<number>({
       size: 2,
       create: () => ++n,
-      destroy: r => {
+      destroy: (r) => {
         destroyed.push(r);
       },
     });
@@ -686,7 +686,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
           })(),
         );
       } else if (mode === 1) {
-        tasks.push(pool.use({ execution: async r => r }).catch(() => undefined));
+        tasks.push(pool.use({ execution: async (r) => r }).catch(() => undefined));
       } else {
         tasks.push(
           (async () => {
@@ -721,7 +721,7 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     const count = 300; // > WAITERS_COMPACT_THRESHOLD (256) → the consumed prefix compacts mid-drain
     const order: number[] = [];
     const waiters = Array.from({ length: count }, (_, i) =>
-      pool.acquire().then(r => {
+      pool.acquire().then((r) => {
         order.push(i);
         return r;
       }),
@@ -754,7 +754,7 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
 
     await tick(40);
     let w2Resource: number | undefined;
-    const w2 = pool.acquire().then(r => {
+    const w2 = pool.acquire().then((r) => {
       w2Resource = r;
       return r;
     }); // enqueued at t≈40 → times out at ≈120ms

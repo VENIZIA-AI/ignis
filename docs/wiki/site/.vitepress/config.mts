@@ -470,6 +470,24 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-24',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Arrow Functions Always Carry Parentheses',
+                  link: '/changelogs/2026-10-24-arrow-parens-always',
+                },
+                {
+                  text: 'Fetcher and Socket.IO Client in a Browser',
+                  link: '/changelogs/2026-10-24-browser-reusable-helpers',
+                },
+                {
+                  text: "A Read's Result Type Follows fields",
+                  link: '/changelogs/2026-10-24-typed-fields-result',
+                },
+              ],
+            },
+            {
               text: '2026-10-23',
               collapsed: true,
               items: [

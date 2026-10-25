@@ -638,7 +638,7 @@ describe('schema discovery pairs every relation once', () => {
 
     expect(Object.keys(dataSource.getSchema())).toContain('EntityStrayOwner');
     expect(warnings).toEqual([]);
-    expect(debugs.filter(line => line.includes('outside this datasource'))).toEqual([
+    expect(debugs.filter((line) => line.includes('outside this datasource'))).toEqual([
       expect.stringMatching(
         /1 relation points to a table outside this datasource: EntityStrayOwner\.items -> EntityStrayItem/,
       ),
@@ -726,7 +726,7 @@ describe('defineEntity end to end on PGlite', () => {
 
     expect(policy.title).toBe('Pro');
     expect('secret' in policy).toBe(false);
-    expect(policy.features?.map(feature => feature.code).sort()).toEqual(['LEAF', 'ROOT']);
+    expect(policy.features?.map((feature) => feature.code).sort()).toEqual(['LEAF', 'ROOT']);
     expect(policy.detail?.note).toBe('the one detail');
   });
 
@@ -744,7 +744,7 @@ describe('defineEntity end to end on PGlite', () => {
     expect(leaf.policy?.id).toBe(policyId);
     expect('secret' in (leaf.policy ?? {})).toBe(false);
     expect(leaf.parent?.code).toBe('ROOT');
-    expect(root.children?.map(child => child.code)).toEqual(['LEAF']);
+    expect(root.children?.map((child) => child.code)).toEqual(['LEAF']);
   });
 
   test('a self one() written reversed walks the list the other way', async () => {

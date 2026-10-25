@@ -47,7 +47,7 @@ describe('compileTypesenseCollection', () => {
 
     const schema = compileTypesenseCollection({ definition });
 
-    expect(schema.fields.find(item => item.name === 'id')).toBeUndefined();
+    expect(schema.fields.find((item) => item.name === 'id')).toBeUndefined();
     expect(schema.fields).toEqual([{ name: 'title', type: 'string' }]);
   });
 
@@ -67,7 +67,7 @@ describe('compileTypesenseCollection', () => {
 
     const schema = compileTypesenseCollection({ definition });
 
-    expect(schema.fields.map(item => item.type)).toEqual([
+    expect(schema.fields.map((item) => item.type)).toEqual([
       'string',
       'float',
       'bool',
@@ -308,7 +308,7 @@ describe('compileTypesenseCollection', () => {
 
     const schema = compileTypesenseCollection({ definition });
 
-    const vec = schema.fields.find(f => f.name === 'vec') as Record<string, unknown>;
+    const vec = schema.fields.find((f) => f.name === 'vec') as Record<string, unknown>;
     expect(vec['embed']).toEqual({
       from: ['title'],
       ['model_config']: { ['model_name']: 'google/embedding-gecko-001', ['api_key']: 'SECRET' },
@@ -334,7 +334,7 @@ describe('compileTypesenseCollection', () => {
 
     const schema = compileTypesenseCollection({ definition });
 
-    const vec = schema.fields.find(f => f.name === 'vec') as Record<string, unknown>;
+    const vec = schema.fields.find((f) => f.name === 'vec') as Record<string, unknown>;
     expect(vec['embed']).toEqual({
       from: ['title'],
       ['model_config']: {
