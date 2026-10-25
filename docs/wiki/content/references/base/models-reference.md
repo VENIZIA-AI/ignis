@@ -104,10 +104,12 @@ Marks a class as a database entity and configures its behavior.
 | Setting | Meaning |
 |---|---|
 | `writeGuard` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `sharedRows` | `true` allows `null` on the scope columns (a row with no owner is shared). Default `false` |
+| `sharedRows` | `true` allows `null` on the scope columns (a row with no owner is shared) even when the resolved scope does not list `null`. Default `false`. Not needed when the scope itself allows `null`, see below |
 | `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
 
-The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, and `and` of those. Any other shape (`or`, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
+The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
+
+A shared-rows scope works without `sharedRows`: `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` allows the ids and `null` (an absent column counts as `null`), and refuses any other id. The reads of such a scope are unchanged.
 
 To write across scopes on purpose (a system job, an admin role), return `ScopeFilters.UNRESTRICTED` from `resolve()`: it bypasses the guard and nothing is stamped. Not checked: an update that does not name the scope column (the scoped `where` already confines it) and raw statements that bypass the repository.
 

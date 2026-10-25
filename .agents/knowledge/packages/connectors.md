@@ -422,13 +422,13 @@ from code the application wrote and reviewed.
 `where` AND-ed into the query and an `INSERT` has no `where`, so the guard is a separate check
 (`relational/core/repositories/common/scope-write-guard.ts`, called from `_create` and `_update`
 through `guardScopedWrite`). It reads the columns and allowed values from the resolved `where`
-(equality, `eq`, `inq`/`in`, arrays, joined by `and`) and holds every written row to them; a row
+(equality, `eq`, `inq`/`in`, arrays, `and`, and an `or` whose branches all constrain one column - the shared-rows scope - read as the union of its values) and holds every written row to them; a row
 that disagrees, or lacks the column on create, throws a 403 `core.repository.scope_write_denied`
 naming the entity and the column, never a value, and writes nothing (all of `createAll`). Settings
 on `scopeFilter`: `writeGuard` `reject` (default) or `assign` (fills an ABSENT column from an
-equality scope; a present, disagreeing value is still refused), `sharedRows` (allows `null`),
+equality scope; a present, disagreeing value is still refused), `sharedRows` (allows `null` even when the scope does not list it; not needed when the scope itself has a null branch),
 `columns` (validated at boot against the model, and a resolved scope that constrains any other
-column is refused). A scope shape it cannot check (`or`, ranges, `like`, nested paths) is refused
+column is refused). A scope shape it cannot check (an `or` over several columns, ranges, `like`, nested paths) is refused
 with its own "cannot be verified" message, never skipped. `ScopeFilters.UNRESTRICTED` bypasses the
 guard too - the deliberate hatch for system scope and admin roles; an unresolved scope refuses a
 create under `deny` and leaves an update to the scoped `where`. NOT covered: an update that does not

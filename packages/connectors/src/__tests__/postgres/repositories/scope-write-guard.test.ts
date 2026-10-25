@@ -1,11 +1,12 @@
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import { model, RepositoryErrorCodes, ScopeFilters } from '@venizia/ignis-kernel';
 import { BaseRelationalEntity } from '@/relational/core/models';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
+import { SoftDeletableRelationalRepository } from '@/relational/core/repositories/core/soft-deletable';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { PostgresQueryExecutor } from '@/relational/postgres/repositories/executor';
@@ -18,6 +19,7 @@ const itemsTable = pgTable('write_guard_items', {
   id: serial('id').primaryKey(),
   merchantId: text('merchant_id'),
   name: text('name'),
+  deletedAt: timestamp('deleted_at'),
 });
 
 /** What `resolve()` returns right now: the test sets it per case. */
@@ -48,6 +50,21 @@ class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
   static override TABLE_NAME = 'write_guard_items';
 }
 
+@model({
+  type: 'entity',
+  settings: { scopeFilter: { resolve }, defaultFilter: { where: { deletedAt: null } } },
+})
+class SoftItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+@model({ type: 'entity', settings: { scopeFilter: { resolve, sharedRows: true } } })
+class SharedOrItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
 const refusal = async (task: Promise<unknown>) => {
   try {
     await task;
@@ -66,28 +83,34 @@ describe('scopeFilter write guard', () => {
   const client = new PGlite();
   let driver: PGliteDriver<AnyType>;
 
-  const build = (entityClass: AnyType) => {
+  const build = (entityClass: AnyType, repositoryClass: AnyType = DefaultCRUDRepository) => {
     const dataSource = {
       getQueryDialect: () => new PostgresQueryDialect(),
       getQueryExecutor: () => new PostgresQueryExecutor(),
       getConnector: () => driver.createConnector({ schema: { itemsTable } }),
     } as AnyType;
 
-    return new DefaultCRUDRepository<AnyType>(dataSource, { entityClass });
+    return new repositoryClass(dataSource, { entityClass }) as DefaultCRUDRepository<AnyType>;
   };
 
-  const rows = async () => {
-    const result = await client.query<{ merchantId: string | null; name: string }>(
-      'SELECT merchant_id AS "merchantId", name FROM write_guard_items ORDER BY id',
+  const allRows = async () => {
+    const result = await client.query<{
+      merchantId: string | null;
+      name: string;
+      deletedAt: Date | null;
+    }>(
+      'SELECT merchant_id AS "merchantId", name, deleted_at AS "deletedAt" FROM write_guard_items ORDER BY id',
     );
     return result.rows;
   };
+
+  const rows = async () => (await allRows()).map(({ merchantId, name }) => ({ merchantId, name }));
 
   beforeAll(async () => {
     await client.waitReady;
     driver = new PGliteDriver<AnyType>({ client });
     await client.exec(
-      'CREATE TABLE write_guard_items (id serial primary key, merchant_id text, name text)',
+      'CREATE TABLE write_guard_items (id serial primary key, merchant_id text, name text, deleted_at timestamp)',
     );
   });
 
@@ -320,7 +343,21 @@ describe('scopeFilter write guard', () => {
 
   describe('a scope that cannot be verified', () => {
     test.each([
-      ['or', { or: [{ merchantId: 'm-a' }, { merchantId: 'm-b' }] }, /'or'/],
+      [
+        'an or over different columns',
+        { or: [{ merchantId: 'm-a' }, { name: 'one' }] },
+        /different columns/,
+      ],
+      [
+        'an or with a range',
+        { or: [{ merchantId: 'm-a' }, { merchantId: { gt: 'm' } }] },
+        /operator 'gt'/,
+      ],
+      [
+        'an or branch with two conditions',
+        { or: [{ merchantId: 'm-a', name: 'one' }] },
+        /several conditions/,
+      ],
       ['a range', { merchantId: { gt: 'm' } }, /operator 'gt'/],
       ['two operators', { merchantId: { eq: 'm-a', neq: 'm-b' } }, /2 operators/],
       ['a nested path', { 'meta.merchant': 'm-a' }, /nested path/],
@@ -353,6 +390,139 @@ describe('scopeFilter write guard', () => {
       await build(DeclaredItem).create({ data: { merchantId: 'm-a', name: 'one' } });
 
       expect(await rows()).toEqual([{ merchantId: 'm-a', name: 'one' }]);
+    });
+  });
+
+  describe('a shared-rows scope: an or of the ids and null', () => {
+    const sharedScope = (ids: string[]) => ({
+      or: [{ merchantId: { in: ids } }, { merchantId: null }],
+    });
+
+    test('an id in the list, null and an id outside the list', async () => {
+      scope = sharedScope(['m-a', 'm-b']);
+      const repository = build(RejectItem);
+
+      await repository.create({ data: { merchantId: 'm-a', name: 'in-list' } });
+      await repository.create({ data: { merchantId: 'm-b', name: 'also-in-list' } });
+      await repository.create({ data: { merchantId: null, name: 'shared' } });
+      await refusal(repository.create({ data: { merchantId: 'm-c', name: 'outside' } }));
+
+      expect((await rows()).map((row) => row.name)).toEqual(['in-list', 'also-in-list', 'shared']);
+    });
+
+    test('null is allowed without sharedRows because the scope itself lists it', async () => {
+      scope = sharedScope(['m-a']);
+
+      await build(RejectItem).create({ data: { merchantId: null, name: 'shared' } });
+      expect(await rows()).toEqual([{ merchantId: null, name: 'shared' }]);
+    });
+
+    test('an absent scope column is allowed too, since the scope allows null', async () => {
+      scope = sharedScope(['m-a']);
+
+      await build(RejectItem).create({ data: { name: 'no-owner' } });
+      expect((await rows()).map((row) => row.name)).toEqual(['no-owner']);
+    });
+
+    test('createAll with one id outside the list writes nothing', async () => {
+      scope = sharedScope(['m-a']);
+
+      await refusal(
+        build(RejectItem).createAll({
+          data: [
+            { merchantId: 'm-a', name: 'ok' },
+            { merchantId: null, name: 'shared' },
+            { merchantId: 'm-z', name: 'bad' },
+          ],
+        }),
+      );
+      expect(await rows()).toEqual([]);
+    });
+
+    test('an update may move a row to null or to another listed id, not outside the list', async () => {
+      scope = sharedScope(['m-a', 'm-b']);
+      const repository = build(RejectItem);
+      const created = await repository.create({ data: { merchantId: 'm-a', name: 'one' } });
+
+      await repository.updateById({ id: created.data.id, data: { merchantId: null } });
+      await repository.updateById({ id: created.data.id, data: { merchantId: 'm-b' } });
+      await refusal(repository.updateById({ id: created.data.id, data: { merchantId: 'm-c' } }));
+
+      expect((await rows()).map((row) => row.merchantId)).toEqual(['m-b']);
+    });
+
+    test('sharedRows still matters when the scope does not list null', async () => {
+      scope = { merchantId: 'm-a' };
+
+      await refusal(build(RejectItem).create({ data: { merchantId: null, name: 'shared' } }));
+      await build(SharedOrItem).create({ data: { merchantId: null, name: 'shared' } });
+      expect((await rows()).map((row) => row.name)).toEqual(['shared']);
+    });
+  });
+
+  describe('every write entry point passes through the guard', () => {
+    const seed = async () => {
+      const repository = build(RejectItem);
+      const mine = await repository.create({ data: { merchantId: 'm-a', name: 'mine' } });
+      scope = ScopeFilters.UNRESTRICTED;
+      const theirs = await repository.create({ data: { merchantId: 'm-b', name: 'theirs' } });
+      scope = { merchantId: 'm-a' };
+
+      return { repository, mine: mine.data.id, theirs: theirs.data.id };
+    };
+
+    test('create and createAll', async () => {
+      await refusal(build(RejectItem).create({ data: { merchantId: 'm-b', name: 'x' } }));
+      await refusal(build(RejectItem).createAll({ data: [{ merchantId: 'm-b', name: 'x' }] }));
+      expect(await rows()).toEqual([]);
+    });
+
+    test('updateById, updateAll and updateBy: a payload naming another scope is refused', async () => {
+      const { repository, mine } = await seed();
+
+      await refusal(repository.updateById({ id: mine, data: { merchantId: 'm-b' } }));
+      await refusal(repository.updateAll({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
+      await refusal(repository.updateBy({ where: { name: 'mine' }, data: { merchantId: 'm-b' } }));
+
+      expect((await rows()).map((row) => row.merchantId)).toEqual(['m-a', 'm-b']);
+    });
+
+    test('updateAll and updateBy with a payload that stays in scope touch only the scoped rows', async () => {
+      const { repository } = await seed();
+
+      await repository.updateAll({
+        where: {},
+        data: { name: 'renamed' },
+        options: { force: true },
+      });
+      await repository.updateBy({
+        where: {},
+        data: { name: 'renamed-by' },
+        options: { force: true },
+      });
+
+      expect((await rows()).map((row) => row.name)).toEqual(['renamed-by', 'theirs']);
+    });
+
+    test('deleteById, deleteAll and deleteBy only reach rows inside the scope', async () => {
+      const { repository, mine, theirs } = await seed();
+
+      expect((await repository.deleteById({ id: theirs })).count).toBe(0);
+      expect((await repository.deleteBy({ where: { name: 'theirs' } })).count).toBe(0);
+      expect((await repository.deleteAll({ where: {}, options: { force: true } })).count).toBe(1);
+      expect(mine).toBeDefined();
+      expect((await rows()).map((row) => row.name)).toEqual(['theirs']);
+    });
+
+    test('soft delete and restore go through the guarded update', async () => {
+      const soft = build(SoftItem, SoftDeletableRelationalRepository);
+      const created = await soft.create({ data: { merchantId: 'm-a', name: 'soft' } });
+
+      await soft.deleteById({ id: created.data.id });
+      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true]);
+
+      await soft.restoreById({ id: created.data.id });
+      expect((await allRows()).map((row) => row.deletedAt)).toEqual([null]);
     });
   });
 });

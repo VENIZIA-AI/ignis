@@ -45,7 +45,8 @@ const intersect = (opts: { left: Set<string | null>; right: Set<string | null> }
  * from it the columns it constrains and the values it allows, and holds every written row to them.
  *
  * Only shapes that can be checked are read: a column equal to a scalar or `null`, `{ eq }`, `{ inq }`
- * (or `in`), an array, and `and` of those. Anything else - `or`, ranges, `like`, a nested path - makes
+ * (or `in`), an array, `and` of those, and an `or` whose branches all constrain the same column. Anything
+ * else - an `or` over several columns, ranges, `like`, a nested path - makes
  * the scope unverifiable, and the write is refused with its own message instead of being skipped.
  */
 export class ScopeWriteGuard {
@@ -88,7 +89,17 @@ export class ScopeWriteGuard {
       }
 
       if (key === 'or') {
-        return "'or' cannot be checked on a write";
+        const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+        if (typeof union === 'string') {
+          return union;
+        }
+
+        const existing = constraints.get(union.column);
+        constraints.set(
+          union.column,
+          existing ? intersect({ left: existing, right: union.allowed }) : union.allowed,
+        );
+        continue;
       }
 
       if (key.includes('.')) {
@@ -105,6 +116,51 @@ export class ScopeWriteGuard {
     }
 
     return undefined;
+  }
+
+  /**
+   * An `or` is checkable only when every branch constrains the same single column with a scalar,
+   * `null`, `eq`, `in` or `inq`: the allowed values are then the union of the branches. This is the
+   * shared-rows scope, `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }`. Any other `or`
+   * (several columns, ranges, nested `and` or `or`) cannot be checked.
+   */
+  private static unionOfBranches(opts: {
+    branches: unknown;
+  }): { column: string; allowed: Set<string | null> } | string {
+    const { branches } = opts;
+
+    if (!Array.isArray(branches) || branches.length === 0) {
+      return "'or' is not a list";
+    }
+
+    let column: string | undefined;
+    const allowed = new Set<string | null>();
+
+    for (const branch of branches) {
+      const entries = Object.entries((branch ?? {}) as Record<string, unknown>);
+      if (entries.length !== 1) {
+        return "an 'or' branch with several conditions cannot be checked on a write";
+      }
+
+      const [key, value] = entries[0];
+      if (key === 'and' || key === 'or' || key.includes('.')) {
+        return `an 'or' branch over '${key}' cannot be checked on a write`;
+      }
+
+      if (column !== undefined && column !== key) {
+        return "an 'or' over different columns cannot be checked on a write";
+      }
+
+      column = key;
+      const values = ScopeWriteGuard.allowedValues({ value });
+      if (typeof values === 'string') {
+        return `column '${key}': ${values}`;
+      }
+
+      values.forEach((entry) => allowed.add(entry));
+    }
+
+    return { column: column as string, allowed };
   }
 
   /** The values one column's condition allows, or a string naming why it cannot be checked. */
@@ -214,7 +270,9 @@ export class ScopeWriteGuard {
         const value = (row as Record<string, unknown>)[column];
 
         if (value === undefined) {
-          if (operation === 'update' || sharedRows) {
+          // Absent means the database default, usually `null`: allowed when the scope itself allows
+          // `null` (shared rows are visible to this caller) or the model opted in with `sharedRows`.
+          if (operation === 'update' || sharedRows || allowed.has(null)) {
             continue;
           }
 
@@ -233,6 +291,8 @@ export class ScopeWriteGuard {
         }
 
         const normalised = isScalar(value) ? normalise(value) : undefined;
+        // `null` is allowed when the scope itself allows it (an `or` with a null branch) or the model
+        // opted in with `sharedRows`.
         const isShared = normalised === null && sharedRows;
 
         if (normalised === undefined || (!isShared && !allowed.has(normalised))) {
