@@ -373,7 +373,7 @@ const config = defineConfig({
       'meta',
       {
         property: 'og:title',
-        content: "IGNIS - Architecture without apology. On Hono's engine.",
+        content: 'IGNIS - Structure for TypeScript servers on Hono.',
       },
     ],
     [
@@ -381,7 +381,7 @@ const config = defineConfig({
       {
         property: 'og:description',
         content:
-          'Dependency injection, repositories, auth and real-time on Hono - batteries included.',
+          'A TypeScript server framework on Hono: controllers, services, repositories, dependency injection and generated OpenAPI docs.',
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
@@ -392,7 +392,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: "IGNIS - Architecture without apology. On Hono's engine.",
+        content: 'IGNIS - Structure for TypeScript servers on Hono.',
       },
     ],
     [
@@ -400,7 +400,7 @@ const config = defineConfig({
       {
         name: 'twitter:description',
         content:
-          'Dependency injection, repositories, auth and real-time on Hono - batteries included.',
+          'A TypeScript server framework on Hono: controllers, services, repositories, dependency injection and generated OpenAPI docs.',
       },
     ],
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],

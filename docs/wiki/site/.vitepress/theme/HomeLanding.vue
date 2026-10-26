@@ -9,13 +9,11 @@
           <div class="ig-eyebrow">
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun and Node
           </div>
-          <h1>
-            Architecture without apology.<br /><span class="ig-gtext">On Hono's engine.</span>
-          </h1>
+          <h1>Structure for TypeScript servers <span class="ig-gtext">on Hono.</span></h1>
           <p class="ig-lede">
-            Structure for a growing API, on Hono.
-            <b>Dependency injection, repositories, auth and real-time</b>
-            - batteries included.
+            <b>Controllers, services and repositories</b> wired by dependency injection, request
+            validation and OpenAPI docs from one schema, and components for authentication and
+            real-time.
           </p>
           <div class="ig-cta">
             <a href="/guides/get-started/5-minute-quickstart" class="ig-btn ig-btn--primary"
@@ -54,8 +52,10 @@
   controller,
   <span class="ig-c">ControllerFactory</span>,
 } <span class="ig-k">from</span> <span class="ig-s">'@venizia/ignis'</span>;
-<span class="ig-k">import</span> { User } <span class="ig-k">from</span> <span class="ig-s">'@/models'</span>;
-<span class="ig-k">import</span> { UserRepository } <span class="ig-k">from</span> <span class="ig-s">'@/repositories'</span>;
+<span class="ig-k">import</span> { User } <span class="ig-k">from</span> <span class="ig-s">'#src/models/user.model'</span>;
+<span class="ig-k">import</span> {
+  UserRepository,
+} <span class="ig-k">from</span> <span class="ig-s">'#src/repositories/user.repository'</span>;
 
 <span class="ig-k">const</span> <span class="ig-c">UserCrud</span> = <span class="ig-c">ControllerFactory</span>.<span class="ig-d">defineCrudController</span>({
   <span class="ig-p">entity</span>: <span class="ig-c">User</span>,
@@ -66,9 +66,11 @@
   },
 });
 
-<span class="ig-p">// Find, count, create, update and delete routes on /users:</span>
-<span class="ig-p">// validated, typed, in the OpenAPI docs.</span>
-<span class="ig-p">// Add authenticate and authorize before you ship: routes are open until you do.</span>
+<span class="ig-p">// Nine CRUD routes on /users: find, findOne,</span>
+<span class="ig-p">// findById, count, create, updateById, updateBy,</span>
+<span class="ig-p">// deleteById, deleteBy. Validated, in the OpenAPI docs.</span>
+<span class="ig-p">// Add authenticate and authorize before you ship:</span>
+<span class="ig-p">// the routes are open until you do.</span>
 <span class="ig-d">@controller</span>({ <span class="ig-p">path</span>: <span class="ig-s">'/users'</span> })
 <span class="ig-k">export class</span> <span class="ig-c">UserController</span> <span class="ig-k">extends</span> <span class="ig-c">UserCrud</span> {}</pre>
         </div>
@@ -175,10 +177,11 @@
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
-            <h3>Auth, built in</h3>
+            <h3>Authentication, and what is not finished</h3>
             <p>
-              JWT / JWKS / Basic strategies and Casbin scoped-RBAC authorization - as composable
-              components.
+              One component for JWT (JWS or JWKS), Basic and service-assertion authentication.
+              Casbin authorization is experimental. OAuth2 is not implemented: its hook is an empty
+              stub.
             </p>
           </div>
           <div class="ig-fcard">
