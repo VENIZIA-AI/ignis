@@ -19,6 +19,7 @@ bun.lockb
 dist/
 /release/
 build/
+!/scripts/build/
 app_data/
 *.tsbuildinfo
 .lock-wscript

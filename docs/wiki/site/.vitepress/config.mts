@@ -479,6 +479,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-batch-overview',
                 },
                 {
+                  text: 'Logging Works Under Node ESM Without Registering a Provider',
+                  link: '/changelogs/2026-10-26-logger-default-provider-node-esm',
+                },
+                {
                   text: 'A Failed Secret Rotation Left the Rotated Credentials in the Settings',
                   link: '/changelogs/2026-10-26-secret-rotation-failure-leaks-credentials',
                 },

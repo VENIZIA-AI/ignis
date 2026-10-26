@@ -18,6 +18,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | Date | Title | Type |
 |------|-------|------|
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
+| 2026-10-26 | [Logging Works Under Node ESM Without Registering a Provider](./2026-10-26-logger-default-provider-node-esm) | Bug Fix |
 | 2026-10-26 | [A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings](./2026-10-26-secret-rotation-failure-leaks-credentials) | Security |
 | 2026-10-26 | [A Datasource Family for Engines That Only Run SQL](./2026-10-26-raw-sql-datasource) | New Feature |
 | 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
