@@ -1,6 +1,6 @@
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
-import { VENIZIA_LOGO_SVG } from './venizia-logo';
+import { VENIZIA_LOGO_SVG } from './theme/shared/venizia-logo.ts';
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -341,10 +341,8 @@ const config = defineConfig({
   base: '/',
   appearance: 'dark',
   markdown: {
-    theme: {
-      light: 'github-light',
-      dark: 'one-dark-pro',
-    },
+    // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both.
+    theme: 'one-dark-pro',
   },
   srcDir: '../content',
   outDir: './.vitepress/dist',
@@ -356,17 +354,6 @@ const config = defineConfig({
     ['link', { rel: 'icon', href: '/logo.svg' }],
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
     ['link', { rel: 'manifest', href: '/site.webmanifest' }],
-    // Fonts - preconnect
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    // Fonts - stylesheet
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap',
-      },
-    ],
     // Open Graph
     ['meta', { property: 'og:type', content: 'website' }],
     [
@@ -2390,13 +2377,6 @@ const config = defineConfig({
       { icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' },
       { icon: { svg: VENIZIA_LOGO_SVG }, link: 'https://venizia.ai', ariaLabel: 'Venizia' },
     ],
-
-    footer: {
-      message:
-        'Released under the MIT License. IGNIS is part of <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">VENIZIA</a>.',
-      copyright:
-        'Copyright © 2025 <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">Venizia Co., Ltd.</a>',
-    },
   },
 });
 

@@ -5,6 +5,11 @@ grounded in an established standard, not chosen by feel. Tokens live in
 [`site/.vitepress/theme/design-tokens.css`](./site/.vitepress/theme/design-tokens.css)
 and are applied live in the VitePress theme (`site/.vitepress/theme/style.css`).
 
+> The neutrals, fonts, header, doc pages and footer of the site are the shared Venizia theme in
+> `site/.vitepress/theme/shared/`, a copy of VULCAN's folder that is never edited here. IGNIS sets its
+> accent in `site/.vitepress/theme/product.css`. The `--ig-*` tokens below are what the home page and
+> the content pages use; their neutrals, link colour and fonts point at the shared tokens.
+
 ## Principles
 
 | Axis | Standard | Value |
@@ -64,8 +69,11 @@ against the dark background `#0B0A0C`.
 
 ```ts
 // site/.vitepress/theme/index.ts
-import './design-tokens.css'   // FIRST - defines tokens + VitePress var mapping
-import './style.css'           // component + brand theming, consuming var(--ig-*)
+import './shared/tokens.css'    // the shared neutrals and fonts
+import './product.css'          // IGNIS's accent
+import './design-tokens.css'    // the --ig-* tokens (home page, content pages)
+import './style.css'            // home page and content pages, consuming var(--ig-*)
+import './shared/vp-map.css'    // the shared mapping onto the VitePress variables
 ```
 
 ```css
