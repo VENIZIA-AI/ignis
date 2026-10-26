@@ -373,7 +373,7 @@ const config = defineConfig({
       'meta',
       {
         property: 'og:title',
-        content: 'IGNIS - Write the business logic. IGNIS wires the rest.',
+        content: 'IGNIS - Focus on business value. IGNIS holds the discipline.',
       },
     ],
     [
@@ -392,7 +392,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: 'IGNIS - Write the business logic. IGNIS wires the rest.',
+        content: 'IGNIS - Focus on business value. IGNIS holds the discipline.',
       },
     ],
     [

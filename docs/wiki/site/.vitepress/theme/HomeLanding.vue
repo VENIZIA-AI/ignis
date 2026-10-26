@@ -10,7 +10,9 @@
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun and Node
           </div>
           <h1>
-            Write the business logic.<br /><span class="ig-gtext">IGNIS wires the&nbsp;rest.</span>
+            Focus on business value.<br /><span class="ig-gtext"
+              >IGNIS holds the&nbsp;discipline.</span
+            >
           </h1>
           <p class="ig-lede">
             <b>Controllers, services and repositories</b>, connected by dependency injection.
