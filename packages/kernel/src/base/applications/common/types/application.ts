@@ -51,7 +51,7 @@ export interface IApplicationConfigs {
   asyncContext?: { enable: boolean };
   debug?: { shouldShowRoutes?: boolean };
 
-  /** Only `bodyLimit` is installed by the framework: right after the request id, ahead of every other middleware, so none of them reads a body over it. Every other key is the application's to wire in `setupMiddlewares()`. */
+  /** The framework installs `cors` (first) and `bodyLimit` (right after the request id). Every other key is typed only: wire it in `setupMiddlewares()`. */
   middlewares?: IMiddlewareConfigs;
 
   /** How long `stop()` waits for one datasource's `close()` before it logs and moves on. Default `10_000`; `0` waits without limit. */
