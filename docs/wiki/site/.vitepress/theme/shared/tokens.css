@@ -64,6 +64,8 @@
   --win-com: #ffffff66;
   --win-fn: #8ec5ff;
   --win-type: #ffd08a;
+  /* The Venizia wordmark, exactly as the official logo files: #12141A on light, white on dark (venizia-logo.ts). */
+  --venizia-wordmark: #12141a;
 }
 
 /* ---- dark: the Venizia dark panel and text tokens ----------------------------------------- */
@@ -79,6 +81,11 @@
   --dot: #ffffff1f;
   --win-bg: #0e0e10;
   --win-bar: #1e1e24;
+  --venizia-wordmark: #ffffff;
+}
+
+.venizia-wordmark {
+  fill: var(--venizia-wordmark);
 }
 
 /*
