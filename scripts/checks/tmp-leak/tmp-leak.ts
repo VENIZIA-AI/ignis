@@ -73,6 +73,16 @@ export class TmpLeak {
     }
   }
 
+  /** A leaked folder's first entries, so the message points at the program that wrote it. */
+  static contents(opts: { path: string }): string {
+    try {
+      const names = readdirSync(opts.path).slice(0, 5);
+      return names.length > 0 ? ` containing ${names.join(', ')}` : '';
+    } catch {
+      return '';
+    }
+  }
+
   static snapshotFile(opts: { repoTmp: string }): string {
     return join(opts.repoTmp, '.tmp-leak-snapshot.json');
   }
@@ -137,9 +147,13 @@ export class TmpLeak {
       leaks: [
         ...system
           .filter((name) => !isAllowed(name))
-          .map((name) => `${join(opts.systemTmp, name)} (system temp: use os.tmpdir(), not /tmp)`),
+          .map(
+            (name) =>
+              `${join(opts.systemTmp, name)}${TmpLeak.contents({ path: join(opts.systemTmp, name) })} (system temp: use os.tmpdir(), not /tmp)`,
+          ),
         ...repo.map(
-          (name) => `${join(opts.repoTmp, name)} (left behind: remove it when the test ends)`,
+          (name) =>
+            `${join(opts.repoTmp, name)}${TmpLeak.contents({ path: join(opts.repoTmp, name) })} (left behind: remove it when the test ends)`,
         ),
       ],
       allowed: system.filter(isAllowed).map((name) => join(opts.systemTmp, name)),

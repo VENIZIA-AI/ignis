@@ -2,8 +2,10 @@
 
 # Packages with no suite of their own; their `test-<pkg>` says so and passes.
 NO_TEST := filter
-# The test environment, in one place: logs land in the gitignored ./app_data, not the package root.
-TEST_ENV := NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
+# The test environment, in one place: logs land in the gitignored app_data of the package, not its root.
+# The logger path is absolute: a test that spawns a process in another folder (a temp folder) must not
+# make an app_data there.
+TEST_ENV := NODE_ENV=test APP_ENV_LOGGER_FOLDER_PATH=$$PWD/app_data/logs
 TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 
 # Packages with an entry claimed browser-pure (scripts/checks/purity/manifest.ts); the rest skip.
