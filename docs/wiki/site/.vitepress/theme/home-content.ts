@@ -50,7 +50,7 @@ export const HOME: THomeContent = {
   id: 'ignis',
   name: 'IGNIS',
   version: VERSION,
-  eyebrow: `IGNIS ${VERSION} · MIT · Hono · Drizzle · Bun and Node`,
+  eyebrow: `IGNIS ${VERSION} · MIT · Hono · Drizzle · Bun 1.4+`,
   title: [['Focus on business value.'], 'IGNIS holds the\u00A0discipline.'],
   lede: 'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
   install: {
@@ -168,7 +168,7 @@ export const HOME: THomeContent = {
   fitUse: [
     'Growing APIs (10+ endpoints) that need real structure',
     'Teams who want DI, repositories and testability',
-    'Services on Bun or Node with clear layers',
+    'Services on Bun with clear layers',
     'PostgreSQL or SQLite with Drizzle, typed from model to route',
   ],
   fitNot: [
@@ -180,7 +180,7 @@ export const HOME: THomeContent = {
   ],
   maturityHtml:
     '<b>On the 0.4 line.</b> The APIs still change between releases, and every release is a patch release, breaking ones included. Each <a href="/changelogs/">changelog</a> entry says who is affected and what to do.',
-  builtOn: ['Hono', 'Drizzle', 'Zod', 'TypeScript', 'Bun and Node'],
+  builtOn: ['Hono', 'Drizzle', 'Zod', 'TypeScript', 'Bun'],
   closing: {
     title: 'Start with one endpoint. Keep the order as it\u00A0grows.',
     text: 'The quickstart creates a project with a first endpoint in two commands.',
