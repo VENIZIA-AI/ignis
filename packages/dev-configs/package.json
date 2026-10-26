@@ -83,6 +83,10 @@
       "types": "./dist/linters/oxlint-presets.d.ts",
       "default": "./dist/linters/oxlint-presets.js"
     },
+    "./checks": {
+      "types": "./dist/checks/index.d.ts",
+      "default": "./dist/checks/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"

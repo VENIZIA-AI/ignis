@@ -12,6 +12,9 @@ TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 PURE := inversion filter helpers kernel connectors core-worker
 
 TEST_TARGETS := $(addprefix test-,$(PACKAGES))
+# The browser-purity engine is `devz check purity` (packages/dev-configs); this repository only owns the claims.
+PURITY := bun packages/dev-configs/dist/cli/index.js check purity --claims scripts/checks/purity/manifest.ts
+
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
@@ -58,7 +61,7 @@ test-scripts:
 # ----------------------------------------------------------------------------
 purity:
 	@echo "🔍 Checking browser purity for all claimed entries..."
-	@bun scripts/checks/purity/cli.ts
+	@$(PURITY)
 
 # Checks that read the built dist, so they run after a build, never in test-scripts.
 build-checks:
@@ -82,11 +85,11 @@ examples-check:
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
-	@bun test scripts/checks/purity/__tests__
+	@bun test scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks
 
 $(addprefix purity-,$(PURE)): purity-%:
 	@echo "🔍 Checking browser purity for $(call PKG_NAME,$*)..."
-	@bun scripts/checks/purity/cli.ts $*
+	@$(PURITY) $*
 
 $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."

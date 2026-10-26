@@ -17,6 +17,7 @@ tags: [packages, dev-configs, tooling]
 - [Per-project `.configs/` folder](#per-project-configs-folder)
 - [TypeScript - the critical setting](#typescript---the-critical-setting)
 - [Gotcha: changes here are monorepo-wide](#gotcha-changes-here-are-monorepo-wide)
+- [Shared checks (`devz check`, `./checks`)](#shared-checks-devz-check-checks)
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
@@ -27,6 +28,7 @@ tags: [packages, dev-configs, tooling]
 ```typescript
 import { oxlintConfigs } from '@venizia/dev-configs/linters/oxlint'; // oxlint config object, without ESLint loaded
 import { houseConfigs } from '@venizia/dev-configs/linters'; // ESLint: naming + house rules
+import { buildManifest, checkPurity } from '@venizia/dev-configs/checks'; // the engine behind `devz check` (Bun-only tooling)
 ```
 
 The source is split by job: `compilers/` (`BunCompiler`; `compile({ entrypoint, workers, outfile, target, plugins, define })` - `workers` are extra entrypoints, the Bun Worker files the app starts, compiled into the same binary; `define` is passed to `Bun.build`, how a compile script bakes the build stamp, see [boot](/packages/boot.md)), `linters/` (`oxlint.ts`, `browser.ts`, `react-oxlint.ts`, `oxlint-presets.ts`, `eslint.ts`, `react-eslint.ts`, `rules/`) and `tsconfig/`. The subpaths `@venizia/dev-configs/compilers`, `/formatters` and `/linters` expose each folder. `@venizia/dev-configs/linters/oxlint` is `linters/oxlint-presets.ts`, and every oxlint config in the repo imports it. It exports what an oxlint config needs: the presets (`oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`), `LintIgnore`, and every rule class and rule type of `rules/` (`EqeqeqRule`, `NamingConventionRule`, `NoRestrictedImportsRule`, `NoRestrictedPropertiesRule`, `NoUnusedVarsRule`, `PreferNullishCoalescingRule`, `SwitchCaseBracesRule`, `TRuleSeverity`, `TOxlintRuleEntry`, ...). It loads no ESLint: the rule classes and `LintIgnore` import ESLint types only, which the build erases, so a rule class is safe in an oxlint config. It leaves out `eslint.ts`, `react-eslint.ts` and `house/`, which import ESLint and typescript-eslint. The `/linters` barrel re-exports the subpath and adds those three, and an oxlint run through it loads them for nothing (about 1.2 s; measured on `filter`, median 1.5 s before and 0.33 s after). `make build-checks` loads the built subpath in a fresh process and fails if any ESLint module appears, and checks that the barrel exports the same values. The files are named by tool: `react-oxlint.ts` holds `ReactOxlintConfigs` and `react-eslint.ts` holds `ReactEslintConfigs` and `reactNamingConventionConfigs`; the `/linters` barrel exports both. The root export `@venizia/dev-configs` still re-exports everything, including `eslintConfigs`, `prettierConfigs`, `ReactEslintConfigs` and `BunCompiler`.
@@ -133,6 +135,10 @@ Bun ignores an `extends` that names a package (`@venizia/dev-configs/...`), even
 ## Gotcha: changes here are monorepo-wide
 
 Because every package extends these configs directly, a change to `tsconfig.base.json`, `oxlintConfigs` or `namingConventionConfigs` affects every package's build and lint output simultaneously. There is no per-package override mechanism beyond what each package's own `tsconfig.json` and `.configs/*.config.mts` layer on top.
+
+## Shared checks (`devz check`, `./checks`)
+
+`devz check purity --claims <file> [package] [--json]` is the browser-purity gate, run from the IGNIS repo by `make purity`. The engine lives in `src/checks/purity/` (`probe.ts` bundles an entry with `bun build --target=browser` and reads the metafile; `manifest.ts` derives one row per runtime condition of each claimed package's `exports` map and guards stale claims, stale waivers and workspace `external`s; `run.ts` prints the report and the `--json` verdict). A repository supplies only a module that exports `PURITY_CLAIMS` and optionally `PURITY_OPTIONS` (`esmEntryPrefix`). The scratch file goes to `<cwd>/.agents/local/tmp`, and an entry whose bundle reaches `@venizia/dev-configs` fails. `./checks` exports the engine functions; it is Bun-only and must never be reached from a browser entry (`probe.ts` enforces that). Its test fixtures are deliberately impure and are excluded from the package's lint and typecheck.
 
 ## Related
 

@@ -115,7 +115,7 @@ imports the helpers root barrel, only the two audited isomorphic surfaces
 Two consequences worth knowing before editing kernel. It does not depend on `@venizia/ignis-boot`:
 importing it would invert the `kernel -> core` layering - kernel sits beside boot, not after
 it, so kernel never imports a boot type, not even for a structural mirror. And the boundary is
-machine-checked, not conventional: `make purity` (`scripts/checks/purity`) bundles each claimed entry and
+machine-checked, not conventional: `make purity` (`devz check purity --claims scripts/checks/purity/manifest.ts`) bundles each claimed entry and
 fails on any node reference. `@venizia/ignis` re-exports the kernel barrel in full, so nothing moved
 for consumers.
 

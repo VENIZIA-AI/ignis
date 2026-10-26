@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { assertNoWorkspaceExternal, deriveEntries, PURITY_MANIFEST } from '../manifest';
-import type { IPurityEntry } from '../manifest';
+import { assertNoWorkspaceExternal } from '@venizia/dev-configs/checks';
+import { PURITY_MANIFEST } from '../manifest';
 
 const REPOSITORY_ROOT = join(__dirname, '../../../..');
 
@@ -41,57 +41,8 @@ describe('assertNoWorkspaceExternal', () => {
   test('the real manifest passes - nothing externalises a workspace package', () => {
     expect(() => assertNoWorkspaceExternal(PURITY_MANIFEST)).not.toThrow();
   });
-
-  // The motivating case: this is exactly the escape hatch that would silently hide a real
-  // root-barrel leak (like the one this task fixed) by removing it from the module graph.
-  test('rejects an entry that externalises an IGNIS workspace package', () => {
-    const poisoned: IPurityEntry[] = [
-      {
-        label: 'poisoned',
-        package: 'connectors',
-        entry: 'irrelevant.js',
-        external: ['@venizia/ignis-helpers'],
-      },
-    ];
-
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/workspace package/);
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/poisoned/);
-    expect(() => assertNoWorkspaceExternal(poisoned)).toThrow(/@venizia\/ignis-helpers/);
-  });
-
-  test('does not reject a third-party external', () => {
-    const clean: IPurityEntry[] = [
-      {
-        label: 'clean',
-        package: 'connectors',
-        entry: 'irrelevant.js',
-        external: ['@electric-sql/pglite'],
-      },
-    ];
-
-    expect(() => assertNoWorkspaceExternal(clean)).not.toThrow();
-  });
-
-  test('rejects a workspace package buried behind an earlier third-party entry', () => {
-    const mixed: IPurityEntry[] = [
-      {
-        label: 'mixed',
-        package: 'connectors',
-        entry: 'irrelevant.js',
-        external: ['@electric-sql/pglite', '@venizia/ignis-kernel'],
-      },
-    ];
-
-    expect(() => assertNoWorkspaceExternal(mixed)).toThrow(/@venizia\/ignis-kernel/);
-  });
 });
 
-/**
- * The defect these cover: the manifest used to be hand-written, so `make purity` reported 11/11
- * while eleven of the thirteen sub-paths `@venizia/ignis-connectors` publishes were never probed -
- * including the two the browser example imports, one of which kills a Worker at import. A count is
- * not the property that matters; COVERAGE of the published surface is.
- */
 describe('PURITY_MANIFEST derivation', () => {
   const claimedPackages = [...new Set(PURITY_MANIFEST.map((row) => row.package))];
 
@@ -135,18 +86,6 @@ describe('PURITY_MANIFEST derivation', () => {
       'packages/helpers/dist/esm/temporal.js',
       'packages/helpers/dist/esm/uuid.js',
     ]);
-  });
-
-  test('a claimed sub-path that the exports map no longer publishes fails the derivation', () => {
-    expect(() =>
-      deriveEntries({ package: 'helpers', subpaths: ['./core', './renamed-away'] }),
-    ).toThrow(/no longer\s+publishes/);
-  });
-
-  test('an external declared for a sub-path that is gone fails the derivation', () => {
-    expect(() =>
-      deriveEntries({ package: 'connectors', external: { './renamed-away': ['pg'] } }),
-    ).toThrow(/no longer\s+publishes/);
   });
 
   test('a package yields one row per runtime condition', () => {

@@ -1,11 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
-import { GLOBAL_PATTERNS, probeEntry, stripBundlerPathComments } from '../probe';
+import {
+  GLOBAL_PATTERNS,
+  probeEntry,
+  stripBundlerPathComments,
+} from '../../../checks/purity/probe';
 
 const PROCESS_PATTERN = GLOBAL_PATTERNS.find((g) => g.name === 'process')!;
 
 const FIXTURES = join(__dirname, 'fixtures');
-const REPOSITORY_ROOT = join(__dirname, '../../../..');
+const REPOSITORY_ROOT = join(__dirname, '../../../../../..');
 
 describe('probeEntry', () => {
   test('passes an entry with no node builtin and no node global', async () => {
