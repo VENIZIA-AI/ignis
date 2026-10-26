@@ -740,18 +740,24 @@ export class ConstClassesCommand {
     let overrides: TConstClassMap = {};
     const mapPath = values.get(ConstClassFlags.MAP);
     if (mapPath) {
+      let parsed: unknown;
       try {
-        const parsed: unknown = JSON.parse(readFileSync(resolve(root, mapPath), 'utf8'));
-        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-          throw new Error('the file must hold one JSON object');
-        }
-        overrides = Object.fromEntries(Object.entries(parsed));
+        parsed = JSON.parse(readFileSync(resolve(root, mapPath), 'utf8'));
       } catch (error) {
         console.error(
           `devz codemod: cannot read the mapping file ${mapPath}: ${error instanceof Error ? error.message : String(error)}`,
         );
         return USAGE_ERROR_CODE;
       }
+
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        console.error(
+          `devz codemod: cannot read the mapping file ${mapPath}: the file must hold one JSON object`,
+        );
+        return USAGE_ERROR_CODE;
+      }
+
+      overrides = Object.fromEntries(Object.entries(parsed));
     }
 
     let typescript: TTypeScript;
