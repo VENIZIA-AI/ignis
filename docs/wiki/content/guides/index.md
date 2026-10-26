@@ -1,6 +1,6 @@
 # Getting Started with IGNIS
 
-Welcome to IGNIS - a TypeScript framework that combines enterprise architecture patterns on Hono. Whether you're building a SaaS backend, REST API, gRPC service, or microservice, these guides will take you from installation to production-ready code with type-safe database operations, auto-generated OpenAPI docs, and clean dependency injection.
+IGNIS is a TypeScript framework that puts enterprise architecture patterns - dependency injection, repositories, layered controllers - on Hono. These guides take you from installation to a working, tested API with type-safe database operations, generated OpenAPI docs and clean dependency injection. They cover REST and gRPC services, from a single microservice to a multi-tenant SaaS backend.
 
 <div class="guide-cards">
 
@@ -16,7 +16,7 @@ Welcome to IGNIS - a TypeScript framework that combines enterprise architecture 
 
 <a href="./tutorials/complete-installation" class="guide-card">
 <h3>Full Installation</h3>
-<p>Production-ready project setup</p>
+<p>A project and a full development environment</p>
 </a>
 
 <a href="./tutorials/building-a-crud-api" class="guide-card">
@@ -63,8 +63,8 @@ Welcome to IGNIS - a TypeScript framework that combines enterprise architecture 
 <span class="stage-num">3</span>
 <h4>Understand the Framework</h4>
 </div>
-<p><a href="./core-concepts/application">Application</a> → <a href="./core-concepts/rest-controllers">Controllers</a> → <a href="./core-concepts/services">Services</a> → <a href="./core-concepts/dependency-injection">DI</a></p>
-<span class="stage-desc">Deep dive into core concepts and architecture patterns</span>
+<p><a href="./core-concepts/application/">Application</a> → <a href="./core-concepts/rest-controllers">Controllers</a> → <a href="./core-concepts/services">Services</a> → <a href="./core-concepts/dependency-injection">DI</a> → <a href="./core-concepts/persistent/">Persistence</a> → <a href="./core-concepts/components">Components</a></p>
+<span class="stage-desc">Deep dive into core concepts and architecture patterns. Also: <a href="./core-concepts/grpc-controllers">gRPC</a>, <a href="./core-concepts/secrets-vault">secrets</a> and <a href="./core-concepts/browser-and-web-worker">running in a browser or Worker</a></span>
 </div>
 
 <div class="roadmap-stage">

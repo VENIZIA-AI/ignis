@@ -373,7 +373,7 @@ const config = defineConfig({
       'meta',
       {
         property: 'og:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: 'IGNIS - Architecture without apology. On Hono's engine.',
       },
     ],
     [
@@ -392,7 +392,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: 'IGNIS - Architecture without apology. On Hono's engine.',
       },
     ],
     [
