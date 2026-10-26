@@ -90,3 +90,14 @@ export class FakeDataSource extends FakeEngineDataSource {
 }
 
 export type TAnyDriver = AnyType;
+
+/** bun's `expect().rejects` is not typed as a Thenable, so a rejection is captured explicitly. */
+export const captureRejection = async (task: () => Promise<unknown>): Promise<unknown> => {
+  try {
+    await task();
+  } catch (error) {
+    return error;
+  }
+
+  return undefined;
+};

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { FakeClient, FakeConnector, FakeDataSource, FakeDriver } from './fake-engine';
+import {
+  captureRejection,
+  FakeClient,
+  FakeConnector,
+  FakeDataSource,
+  FakeDriver,
+} from './fake-engine';
 
 const configured = () => {
   const dataSource = new FakeDataSource();
@@ -45,7 +51,9 @@ describe('BaseRawSqlDataSource - wiring', () => {
 
     expect(dataSource.getSchema()).toEqual({});
     expect(dataSource.getCapabilities()).toEqual({ transactions: false });
-    await expect(dataSource.beginTransaction()).rejects.toThrow(/not supported/i);
+    expect(String(await captureRejection(() => dataSource.beginTransaction()))).toMatch(
+      /not supported/i,
+    );
   });
 
   test('a custom driver wired by hand replaces the metadata driver', () => {
@@ -79,7 +87,9 @@ describe('BaseRawSqlDataSource - close', () => {
   });
 
   test('a datasource that was never configured closes without touching anything', async () => {
-    await expect(new FakeDataSource().close()).resolves.toBeUndefined();
+    const dataSource = new FakeDataSource();
+
+    expect(await captureRejection(() => dataSource.close())).toBeUndefined();
   });
 });
 
@@ -107,9 +117,11 @@ describe('BaseRawSqlDataSource - secret rotation', () => {
     const oldClient = dataSource.builds[0];
     dataSource.failNextConfigure = true;
 
-    await expect(
+    const error = await captureRejection(() =>
       dataSource.onSecretRotated({ key: 'warehouse', secret: { password: 'bad' } }),
-    ).rejects.toThrow('bad rotated token');
+    );
+
+    expect(String(error)).toContain('bad rotated token');
 
     expect(dataSource.getClient()).toBe(oldClient);
     expect(oldClient?.ended).toBe(false);

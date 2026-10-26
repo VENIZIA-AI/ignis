@@ -479,6 +479,14 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-batch-overview',
                 },
                 {
+                  text: 'A Failed Secret Rotation Left the Rotated Credentials in the Settings',
+                  link: '/changelogs/2026-10-26-secret-rotation-failure-leaks-credentials',
+                },
+                {
+                  text: 'A Datasource Family for Engines That Only Run SQL',
+                  link: '/changelogs/2026-10-26-raw-sql-datasource',
+                },
+                {
                   text: 'Repository Tooling',
                   link: '/changelogs/2026-10-26-repository-tooling',
                 },
@@ -2311,6 +2319,7 @@ const config = defineConfig({
                 },
                 { text: 'PGlite', link: '/guides/core-concepts/persistent/pglite' },
                 { text: 'SQLite', link: '/guides/core-concepts/persistent/sqlite' },
+                { text: 'Raw SQL Engines', link: '/guides/core-concepts/persistent/raw-sql' },
                 {
                   text: 'Search & Typesense',
                   link: '/guides/core-concepts/persistent/search-typesense',

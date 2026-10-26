@@ -183,7 +183,9 @@ by `make clean-install-connectors` - see [release and publish](/process/release-
 |---|---|---|---|
 | `.` | `relational/core` + `search/core` | none | yes |
 | `/relational` | `relational/core` | none | yes |
-| `/postgres` | `relational/postgres` | `drizzle-orm/pg-core` only | yes |
+| `/postgres` | `common` | `AbstractDriverDataSource` (driver wiring, close once, secret rotation, drain), `IConnectorDriver`, the scope filter |
+| `raw-sql` | `BaseRawSqlDataSource`, `BaseRawSqlRepository`, `IRawSqlConnector` (`execute(query)` returns `{ rows }`), `TRawSqlDriver` - for an engine that only runs SQL; published as `./raw-sql`; no engine connector ships |
+| `relational/postgres` | `drizzle-orm/pg-core` only | yes |
 | `/postgres/node-postgres` | `NodePostgresDriver` | `pg` | no - `pg` requires `util/types` |
 | `/postgres/postgres-js` | `PostgresJsDriver` | `postgres` | no - `postgres` requires `tls` |
 | `/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` | yes, with the vendor externalised |
