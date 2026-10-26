@@ -16,6 +16,16 @@ bun init -y
 
 `bun init` writes `"type": "module"` into `package.json`. Delete that line - the examples stay CommonJS (see [Module settings](#module-settings) below).
 
+`bun init` also leaves out `version` and `description`, and `getAppInfo()` reads both. Add them to `package.json`:
+
+```json
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "description": "My IGNIS application"
+}
+```
+
 ## 2. Install Dependencies
 
 ### Production Dependencies
@@ -26,13 +36,13 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 ```
 
 **What each package does:**
-- `hono` - High-performance web framework
+- `hono` - The web framework IGNIS builds on
 - `@hono/zod-openapi` - OpenAPI schema generation with Zod validation
 - `@scalar/hono-api-reference` - Interactive API documentation UI
 - `@venizia/ignis` - Core IGNIS framework (application, controllers, repositories, DI)
 - `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
 - `@venizia/ignis-boot` - `AutoArtifacts`, which finds your decorated classes so you never register them by hand (Bun only)
-- `winston` and its two companions - the default logger; the application refuses to start without a logger provider
+- `winston` and its two companions - the default logger. `LoggerFactory` loads it on its own under `bun run`; a compiled binary must register it, as the entry point below does
 
 ### Development Dependencies
 
@@ -47,7 +57,7 @@ bun add -d typescript @types/bun @venizia/dev-configs oxlint oxlint-tsgolint esl
 - Shared TypeScript base configs
 - Consistent code style across all IGNIS projects
 
-> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
+> **Note:** `drizzle-orm` arrives as a peer of `@venizia/ignis`. The database driver (`pg`) and `drizzle-kit` are added in the [CRUD Tutorial](./building-a-crud-api.md).
 
 ## 3. Configure Development Tools
 
@@ -84,7 +94,7 @@ Create `tsconfig.json` in your project root:
 
 ### Tool configs
 
-Each tool reads its settings from a `.configs/` folder. Create the folder and three files.
+Each tool reads its settings from a `.configs/` folder. Create `.configs/lints/` with two files; the third file, `bunfig.toml`, goes in the project root.
 
 `.configs/lints/oxlint.config.mts` sets the lint rules:
 
@@ -120,8 +130,8 @@ oxlint and `bun fmt` skip `dist` and `node_modules` through your `.gitignore`, s
 
 > **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards/) for detailed configuration options.
 
-:::tip Coming from Express/Hono/Fastify?
-This setup might seem verbose compared to minimal frameworks. The trade-off: ~50 lines of config upfront gives you scalable architecture for 10-1000+ endpoints without spaghetti code. For quick prototypes (< 5 endpoints), use plain Hono instead.
+:::tip Coming from plain Hono?
+This setup might seem verbose next to a bare Hono app. The trade-off: some config upfront gives you structure that holds as the endpoint count grows. For quick prototypes of a few endpoints, use plain Hono instead.
 :::
 
 ## 4. Build Your First Application
@@ -355,6 +365,10 @@ Create `src/index.ts` - this starts your application:
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { Application, appConfigs } from './application';
 import { LoggerFactory } from '@venizia/ignis-helpers';
+import { WinstonLogger } from '@venizia/ignis-helpers/winston';
+
+// A compiled binary cannot load the default logger at run time: register it before anything logs.
+LoggerFactory.use({ provider: WinstonLogger });
 
 const logger = LoggerFactory.getLogger(['main']);
 
@@ -401,7 +415,7 @@ Add the standard application scripts to your `package.json`:
 }
 ```
 
-> **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
+> **Note:** Database scripts (`db:push`, `db:generate`, `db:migrate`) are added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
 `devz lint` comes with `@venizia/dev-configs`: it runs oxlint, ESLint and `bun fmt` with the configs in `.configs/lints/` and `.configs/formatters/`. Pass file paths to lint only those - see [Running the tools](/best-practices/code-style-standards/tooling#running-the-tools).
 

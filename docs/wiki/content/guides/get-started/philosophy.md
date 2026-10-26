@@ -1,46 +1,18 @@
 # Philosophy
 
-Building a REST API on Node or Bun means picking a side. Minimal frameworks give you speed and a
-blank page. Enterprise frameworks give you structure, and ask you to pay for it in ceremony.
-IGNIS is the third option: LoopBack 4's architecture, running on Hono.
+A REST API that grows past a handful of endpoints needs somewhere for its code to live: how
+classes find each other, where data access sits, how a route is validated and documented. IGNIS
+answers that on top of Hono. Structure - dependency injection, a layered shape, generated OpenAPI
+docs - is part of the framework, so each team doesn't invent its own.
 
-## The three-way landscape
-
-| Category | Frameworks | What you trade |
-|---|---|---|
-| Minimal | Express, Hono, Fastify, Koa | Freedom and a small surface for do-it-yourself architecture |
-| Balanced | IGNIS, Ts.ED | Built-in structure on a small engine, for a younger ecosystem |
-| Enterprise | NestJS, LoopBack 4, AdonisJS | Proven structure for more ceremony and a steeper learning curve |
-
-IGNIS sits in the balanced row on purpose.
-
-## Why IGNIS exists
-
-Three frameworks shaped the decision, and each fell short in a specific way.
-
-**LoopBack 4** had the right architectural ideas: decorators, the `@repository` pattern, a
-DataSource abstraction, a Component system, a Booter system. It is still maintained - its
-[README](https://github.com/loopbackio/loopback-next#long-term-support) lists LoopBack 4 as
-"Current" with a minimum support date of April 2028, and says no LTS release exists for it yet
-(the [LTS page](https://loopback.io/doc/en/contrib/Long-term-support.html) points to that table).
-It runs on Express, and IGNIS wanted Hono instead.
-
-**NestJS** is popular and full-featured. But it puts an adapter layer over Express or Fastify,
-and it asks for a lot of ceremony along the way.
-
-**Hono** is small, fast and deliberately unopinionated: a router and middleware, and nothing else.
-No dependency injection, no repository pattern, no convention for where code lives. That's fine
-for one microservice, and painful once an API grows past a handful of endpoints.
-
-IGNIS keeps LoopBack 4's architecture and swaps its engine for Hono. Concretely, that means:
+## What IGNIS gives you
 
 - A standalone dependency injection container (`@venizia/ignis-inversion`), with `@inject`,
   singleton and transient scopes, and constructor injection. It is a small package with one
   dependency, `reflect-metadata`, and it imports nothing else from IGNIS.
-- The same layered shape LoopBack 4 popularized: Controller -> Service (optional) -> Repository ->
-  DataSource -> a database. The database is PostgreSQL (three drivers, PGlite included) or SQLite.
-  Search engines (Typesense, Meilisearch) and a browser-side HTTP connector plug in behind the same
-  repository contract.
+- A layered shape: Controller -> Service (optional) -> Repository -> DataSource -> a database. The
+  database is PostgreSQL (three drivers, PGlite included) or SQLite. Search engines (Typesense,
+  Meilisearch) and a browser-side HTTP connector plug in behind the same repository contract.
 - Request validation and OpenAPI docs generated from the same Zod schema, so they can't drift
   apart.
 - A decorator-driven artifact system. `@controller`, `@service`, `@repository` and `@datasource`
@@ -56,6 +28,8 @@ IGNIS keeps LoopBack 4's architecture and swaps its engine for Hono. Concretely,
 - Access control in the repository, not in each route: a row scope with a write guard, query
   defaults, and a CRUD controller that refuses to boot when a write route would inherit a read-only
   authorize. See [What IGNIS offers today](#what-ignis-offers-today).
+
+IGNIS aims for guided flexibility: sensible conventions, with an override for every one of them.
 
 ## Performance
 
@@ -74,23 +48,6 @@ what your endpoints do.
 
 A browser entry bundles with plain `vite build`, no Node polyfill. The CI purity gate fails when an
 entry reaches a Node builtin. See [Using IGNIS in a Browser or Web Worker](../core-concepts/browser-and-web-worker).
-
-## What you get, compared
-
-| Aspect | Minimal (Hono, Express) | Enterprise (NestJS, LoopBack 4) | IGNIS |
-|---|---|---|---|
-| Learning curve | Low | High | Medium |
-| Boilerplate | Minimal | Heavy | Moderate |
-| Type safety | Manual | Excellent | Excellent |
-| Dependency injection | Manual | Built-in, full-featured | Built-in, small container |
-| Layered architecture | DIY | Enforced | Guided |
-| Repository pattern | DIY | Built-in | Built-in |
-| Validation | Third-party | Built-in | Built-in (Zod) |
-| OpenAPI / Swagger | Third-party | Built-in | Built-in |
-| Authentication | DIY | Built-in | Component |
-
-Minimal frameworks give you total freedom. Enterprise frameworks are opinionated. IGNIS aims for a
-third mode - guided flexibility: sensible conventions, with an override for every one of them.
 
 ## What IGNIS offers today
 
@@ -118,7 +75,7 @@ The 0.4 line added the pieces a multi-tenant API needs. Each links to its guide 
 | Community packages | Few |
 | LTS | None yet |
 
-The architecture is proven, because it is LoopBack 4's. The framework carrying it is new.
+The framework is young. Expect the API to keep moving until 1.0.
 
 ## When to use IGNIS, and when not to
 
@@ -126,8 +83,7 @@ The architecture is proven, because it is LoopBack 4's. The framework carrying i
 |---|---|---|
 | Medium API, 10-100 endpoints | Yes | Structure prevents spaghetti code |
 | Any team size, solo to large | Yes | The same patterns scale either way |
-| Want DI without NestJS or LoopBack 4's weight | Yes | A small container |
-| Coming from NestJS or LoopBack 4 | Yes | Familiar patterns on Hono |
+| Want dependency injection with a small container | Yes | `@venizia/ignis-inversion` stands alone |
 | Need a database, auth, and OpenAPI docs | Yes | All built in, ready to use |
 | Bun-first development | Yes | Native Bun support, single-binary builds |
 | Growing out of a plain Hono project | Yes | Same foundation, incremental migration |
@@ -135,17 +91,12 @@ The architecture is proven, because it is LoopBack 4's. The framework carrying i
 | Quick prototype or MVP | No | Plain Hono gets you to a first endpoint faster |
 | Simple proxy or webhook handler | No | The structure is overhead you don't need |
 
-Two situations push you toward an alternative even outside this table:
-
-- Reach for **NestJS or LoopBack 4** if you need a large team (10+ developers) held to strict
-  enterprise standards, complex microservice patterns like CQRS, or a hiring pool that already
-  knows the framework.
-- Reach for **plain Hono, Fastify, or Express** if you're learning web development from scratch or
-  deploying to the edge, where every millisecond of cold start counts.
+Plain Hono is also the better fit when you're learning web development from scratch or deploying to
+the edge, where every millisecond of cold start counts.
 
 ## What's still forming
 
-Choosing IGNIS today trades a mature ecosystem for early access to a leaner enterprise framework.
+Choosing IGNIS today trades a mature ecosystem for early access to a structured server framework.
 You get the dependency injection container, the repository pattern, Zod validation, and OpenAPI
 docs generated from the same schemas. IGNIS apps also compile to a single executable with Bun.
 

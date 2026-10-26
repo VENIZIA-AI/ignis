@@ -32,8 +32,7 @@ compiles silently and fails at runtime. An options object survives additions.
 
 ## Decorator-based dependency injection
 
-`@inject({ key })`, `@controller({ path })`, `@repository({ model, dataSource })` - the LB4 model:
-metadata attached at the class declaration, resolved by the container at instantiation, instead of
+`@inject({ key })`, `@controller({ path })`, `@repository({ model, dataSource })` - metadata attached at the class declaration, resolved by the container at instantiation, instead of
 a separate registration file that drifts from the code. Consequence: every constructor parameter
 of a container-instantiated class must carry `@inject`. The container has no channel to supply an
 undecorated one, so mixing decorated and undecorated parameters is refused at boot, by class name
@@ -64,8 +63,7 @@ what's actually used - one source of truth instead of a list to keep in sync.
 ## Namespace-based binding keys
 
 `controllers.UserController`, `services.AuthService`, `repositories.UserRepository`,
-`datasources.PostgresDataSource` - a flat string namespace borrowed from LB4's binding key
-convention. The prefix alone tells you what kind of thing is bound, without opening the class.
+`datasources.PostgresDataSource` - a flat string namespace. The prefix alone tells you what kind of thing is bound, without opening the class.
 
 ## Mixin composition over inheritance - for assembly, not for repositories
 
@@ -78,8 +76,7 @@ protocol adds its metadata handling without widening one class. On the applicati
 `IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, `IServiceMixin`, `IConfigurationMixin`
 and `IArtifactRegistrationMixin` among them; read the file for the current set, it grows as
 surfaces are added. `IRestApplication` extends only the ones it actually needs rather than
-inheriting one base class that accretes all of them - the trap LB4's own inheritance-heavy juggler
-eventually fell into.
+inheriting one base class that accretes all of them.
 
 Repository cross-cutting behavior is deliberately *not* mixed in. Hidden-field exclusion and
 default-filter application are folded into the base classes: `RelationalBaseRepository`
@@ -124,7 +121,7 @@ for consumers.
 
 ## Hono as the HTTP engine, Drizzle as the ORM
 
-Hono is why IGNIS can carry LB4's architecture on a small engine - controllers wrap
+Hono is why IGNIS can keep a small engine under its architecture - controllers wrap
 `OpenAPIHono` instances directly, with no adapter layer between framework and router. The repo
 holds no benchmark, so no throughput figure is claimed. Drizzle is the only ORM: type-safe SQL, `pgTable` schemas, Zod
 generation straight from those schemas. Both are load-bearing, not swappable - the repository

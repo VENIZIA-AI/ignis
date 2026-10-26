@@ -373,7 +373,7 @@ const config = defineConfig({
       'meta',
       {
         property: 'og:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: "IGNIS - Architecture without apology. On Hono's engine.",
       },
     ],
     [
@@ -381,7 +381,7 @@ const config = defineConfig({
       {
         property: 'og:description',
         content:
-          'LoopBack 4 architecture on Hono. Dependency injection, repositories, auth and real-time - batteries included.',
+          'Dependency injection, repositories, auth and real-time on Hono - batteries included.',
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
@@ -392,7 +392,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: "IGNIS - Architecture without apology. On Hono's engine.",
       },
     ],
     [
@@ -400,7 +400,7 @@ const config = defineConfig({
       {
         name: 'twitter:description',
         content:
-          'LoopBack 4 architecture on Hono. Dependency injection, repositories, auth and real-time - batteries included.',
+          'Dependency injection, repositories, auth and real-time on Hono - batteries included.',
       },
     ],
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],

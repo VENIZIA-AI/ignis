@@ -4,8 +4,8 @@ The IGNIS server framework for Bun and Node.js. Install this package to build a 
 the application class, controllers, repositories, the built-in components, and the Bun or Node server
 that runs them.
 
-IGNIS takes its application model from LoopBack 4 - an IoC container with binding keys, components,
-and the controller, service, repository, datasource layering - and runs it on Hono. Drizzle ORM builds
+IGNIS gives a Hono server an application model: an IoC container with binding keys, components,
+and the controller, service, repository, datasource layering. Drizzle ORM builds
 the SQL. Zod schemas, through `@hono/zod-openapi`, validate each request and generate the OpenAPI
 document.
 

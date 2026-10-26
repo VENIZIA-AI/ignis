@@ -229,7 +229,7 @@ Decrypts a committed `.env.vault` file with a per-environment `DOTENV_KEY` (via 
 
 ## Rotation and the Soft-Evict Contract
 
-When a dynamic credential rotates, a live connection pool holding the old credentials must rebuild. IGNIS uses an event plus an opt-in rebuild callback, mirroring the Spring Cloud Vault + HikariCP pattern.
+When a dynamic credential rotates, a live connection pool holding the old credentials must rebuild. IGNIS uses an event plus an opt-in rebuild callback.
 
 The PostgreSQL datasource implements `onSecretRotated()` on `AbstractRelationalDataSource`:
 

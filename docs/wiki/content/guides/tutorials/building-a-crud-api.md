@@ -61,7 +61,7 @@ HTTP Request (GET /api/todos/{id})
 | Layer | Responsibility |
 |-------|----------------|
 | **Controller** | Entry point for HTTP requests |
-| **Repository** | Abstracts database operations (swap PostgreSQL for MySQL without changing controller) |
+| **Repository** | Abstracts database operations (swap one engine for another, such as PostgreSQL, PGlite or SQLite, by changing the datasource, not the controller) |
 | **DataSource** | Manages connection to database |
 | **Model** | Defines what the data looks like |
 
@@ -121,7 +121,7 @@ export type TTodo = TEntityObject<typeof Todo>;
 - `TEntityObject<typeof Todo>` is the row type
 
 **Schema Enrichers:**
-- `generateIdColumnDefs()` - Adds `id` column (text with UUID default, or auto-incrementing number)
+- `generateIdColumnDefs()` - Adds the `id` column: text filled by a UUID v7 the application generates, an identity integer, or a big-number identity
 - `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
 
 > **Deep Dive:** See [Models & Enrichers Reference](/references/base/models-reference#schema-enrichers) for all available enrichers and options.
@@ -159,7 +159,7 @@ APP_ENV_POSTGRES_DATABASE=todo_db
 
 **Replace these values:**
 - `your_password_here` - Your PostgreSQL password (or leave blank if no password)
-- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#step-2-install-postgresql)
+- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#step-2-install-postgresql-for-the-crud-tutorial)
 
 **Important:** Add `.env` to your `.gitignore`:
 ```bash
@@ -391,8 +391,8 @@ CREATE TABLE "Todo" (
   "title" TEXT NOT NULL,
   "description" TEXT,
   "is_completed" BOOLEAN DEFAULT false,
-  "created_at" TIMESTAMP DEFAULT NOW(),
-  "modified_at" TIMESTAMP DEFAULT NOW()
+  "created_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  "modified_at" TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 ```
 
@@ -498,7 +498,7 @@ Open `http://localhost:3000/api/doc/explorer` to see an interactive Scalar API r
 
 ## What Could Go Wrong? Common Errors
 
-### Error: "Binding 'datasources.PostgresDataSource' not found"
+### Error: "Binding key: datasources.PostgresDataSource is not bounded in context!"
 
 **Cause:** The class is not registered. Either `@datasource` is missing, the file is outside `src`, or `artifacts: AutoArtifacts` is missing from `appConfigs`.
 

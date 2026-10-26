@@ -1,8 +1,8 @@
 # @venizia/ignis-inversion
 
 The dependency injection container under IGNIS, and the error type every IGNIS package throws. It
-depends on no other IGNIS package, so you can install it alone to get LoopBack 4-style bindings
-without the framework.
+depends on no other IGNIS package, so you can install it alone to get bindings by key, tags and
+scopes without the framework.
 
 ## Install
 

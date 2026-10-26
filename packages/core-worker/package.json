@@ -8,8 +8,6 @@
     "envelope",
     "hono",
     "ignis",
-    "loopback",
-    "loopback4",
     "rest",
     "transport",
     "typescript",
