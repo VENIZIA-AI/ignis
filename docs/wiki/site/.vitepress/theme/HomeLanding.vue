@@ -13,7 +13,7 @@
             Architecture without apology.<br /><span class="ig-gtext">On Hono's engine.</span>
           </h1>
           <p class="ig-lede">
-            LoopBack&nbsp;4's architecture on Hono.
+            Structure for a growing API, on Hono.
             <b>Dependency injection, repositories, auth and real-time</b>
             - batteries included.
           </p>
@@ -386,9 +386,7 @@
           <div class="ig-chip"><b>TypeScript</b></div>
           <div class="ig-chip"><b>Bun</b> + Node</div>
         </div>
-        <p class="ig-powered__footnote">
-          Inspired by Spring Boot and LoopBack 4 - reimagined for the modern TypeScript runtime.
-        </p>
+        <p class="ig-powered__footnote">Built on Hono, Drizzle and Zod, on Bun and Node.</p>
       </section>
 
       <section class="ig-footer-cta">

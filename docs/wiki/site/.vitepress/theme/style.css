@@ -573,18 +573,6 @@ html.dark .perf-row.highlight {
 .perf-bar.ignis {
   background: linear-gradient(90deg, var(--vp-c-brand-1) 0%, #d59572 100%);
 }
-.perf-bar.fastify {
-  background: linear-gradient(90deg, #333 0%, #555 100%);
-}
-.perf-bar.nestjs {
-  background: linear-gradient(90deg, #e0234e 0%, #ff5577 100%);
-}
-.perf-bar.loopback {
-  background: linear-gradient(90deg, #3f5dff 0%, #6b84ff 100%);
-}
-.perf-bar.express {
-  background: linear-gradient(90deg, #555 0%, #777 100%);
-}
 
 .perf-value {
   font-size: 0.75rem;

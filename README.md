@@ -4,7 +4,7 @@
 
 # :fire: IGNIS
 
-**LoopBack 4's architecture, on Hono, with Drizzle for SQL.**
+**A structured TypeScript server on Hono, with Drizzle for SQL.**
 
 [![Docs](https://img.shields.io/badge/Docs-ignis.venizia.ai-2563EB.svg?style=flat-square)](https://ignis.venizia.ai)
 [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837&label=@venizia/ignis)](https://www.npmjs.com/package/@venizia/ignis)
@@ -192,26 +192,13 @@ structure to hold as the team grows.
 | OpenAPI | wire `@hono/zod-openapi` yourself | generated from each route's schemas, UI included |
 | Auth | middleware you write | authentication and Casbin authorization components |
 
-The longer comparison, with NestJS and LoopBack 4: [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy).
+More on the design: [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy).
 
 > [!NOTE]
 > IGNIS is 0.x: minor versions can break. Pin exact versions and read the
 > [changelog](https://ignis.venizia.ai/changelogs/) before upgrading.
 
-## What IGNIS borrows, and from where
-
-IGNIS is LoopBack 4's architecture rebuilt on a different engine. These are the design ideas it
-takes, and the projects it runs on.
-
-**Design ideas**
-
-| Platform | What IGNIS takes from it | Where it lives in IGNIS |
-| :--- | :--- | :--- |
-| [LoopBack 4](https://loopback.io/) | Injection by binding key (`@inject`, `Binding.toClass` / `toValue` / `toProvider`, tags, `controllers.*` / `services.*` / `repositories.*` / `datasources.*` namespaces); the Controller -> Repository -> DataSource layering and `@repository`; `@model` with `hiddenProperties`; components that own bindings; the filter object (`where`, `fields`, `include`, `order`, `limit`, `skip`, `offset`) and its operators (`neq`, `inq`, `nin`, `between`, ...). LoopBack's run-time booter became a build-time generator | `inversion`; `kernel` (metadata, repositories, components, binding namespaces); `filter`; `boot` |
-| [Spring](https://spring.io/projects/spring-boot) | Stereotype decorators (`@component`, `@service`, `@repository`, `@controller`); `@configuration` classes whose `@provide` methods supply bindings, ordered with `after`; conditional registration with `when`; rebuilding a connection pool when a Vault credential rotates (the Spring Cloud Vault + HikariCP pattern) | `kernel` (`@injectable` and the stereotypes, configurations, the artifact index); `helpers` secrets; `connectors` PostgreSQL datasource |
-| [InversifyJS](https://inversify.io/) | Named beside LoopBack 4 as the model for a small, standalone container | `inversion` |
-
-**Built on**
+## What IGNIS is built on
 
 | Project | What IGNIS uses it for | Where it lives in IGNIS |
 | :--- | :--- | :--- |
@@ -221,9 +208,6 @@ takes, and the projects it runs on.
 | [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) | `ignis` authorize component |
 | [jose](https://github.com/panva/jose) | JWT signing and verification, JWKS | `kernel` and `ignis` authentication |
 | [Scalar](https://scalar.com/) and [Swagger UI](https://swagger.io/tools/swagger-ui/) | The API reference page (optional peers) | `ignis` API reference component |
-
-NestJS appears in the [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy) page as
-a point of comparison, not as a source.
 
 ## Examples
 

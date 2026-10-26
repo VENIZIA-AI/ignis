@@ -14,8 +14,6 @@
     "ioc",
     "isomorphic",
     "kernel",
-    "loopback",
-    "loopback4",
     "repository-pattern",
     "rest",
     "typescript",

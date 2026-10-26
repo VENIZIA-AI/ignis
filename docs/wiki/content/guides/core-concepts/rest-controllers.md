@@ -153,7 +153,7 @@ Manual route definition is useful for:
 -   **Dynamically generating routes** based on configuration (e.g., loading routes from a database)
 -   **Organizing all routes** for a controller within a single method if you prefer centralized route declarations
 -   **Conditional route registration** (e.g., enabling/disabling routes based on feature flags)
--   **Developers who prefer non-decorator syntax** (coming from Express/Fastify)
+-   **Developers who prefer non-decorator syntax**
 
 When using this method, you will override the `binding()` method in your controller and use `this.defineRoute` or `this.bindRoute` to register your endpoints.
 

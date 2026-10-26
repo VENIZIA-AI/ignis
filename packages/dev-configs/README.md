@@ -179,7 +179,7 @@ limit (V-C-02) is `venizia/max-params-own`, an error.
 ### namingConventionConfigs
 
 `namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
-the 15 LoopBack 4 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
+its 15 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
 `coverage`, `*.d.ts` and plain JavaScript. ESLint does not report unused disable comments in this
 config, because oxlint owns the other rules.
 
