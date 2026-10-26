@@ -79,6 +79,24 @@ describe('bootChecks.binding.doVerify', () => {
     expect(String(failure)).not.toContain('services.HealthyService');
   });
 
+  test('true: the error carries what is missing and who needs it, in the shape the shared core gives', async () => {
+    const application = buildApplication({
+      ApplicationClass: CheckedApplication,
+      configs: buildConfigs({
+        artifacts: { services: [HealthyService, BrokenService] },
+        bootChecks: { binding: buildBindingChecks({ doVerify: true }) },
+      }),
+    });
+
+    const failure = await application.initialize().catch((error: unknown) => error);
+
+    expect(String(failure)).toContain('[verifyBindings] 1 binding(s) cannot be resolved | ');
+    expect(Reflect.get(Object(failure), 'extra')).toMatchObject({
+      missing: { 'services.Missing': ['services.BrokenService'] },
+      unmatchedSkips: [],
+    });
+  });
+
   test('true: a boot where every service and repository resolves passes', async () => {
     const application = buildApplication({
       ApplicationClass: CheckedApplication,
