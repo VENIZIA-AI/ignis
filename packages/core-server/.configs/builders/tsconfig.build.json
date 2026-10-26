@@ -8,5 +8,13 @@
     "../../**/__tests__",
     "../../**/*.test.ts",
     "../../**/*.spec.ts"
-  ]
+  ],
+  "compilerOptions": {
+    "outDir": "../../dist/esm",
+    "declaration": true,
+    "declarationDir": "../../dist/esm"
+  },
+  "tsc-alias": {
+    "resolveFullPaths": true
+  }
 }

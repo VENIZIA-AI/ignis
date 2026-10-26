@@ -122,8 +122,8 @@ try {
 becomes `text`. A missing code becomes `MessageCode.DEFAULT` (`core.system_error`). Unknown
 top-level keys go into `extra`.
 
-Test with `isApplicationError(error)`, not `instanceof ApplicationError`. A CommonJS copy and an
-ES module copy of the package can both be loaded, and `instanceof` fails across them.
+Test with `isApplicationError(error)`, not `instanceof ApplicationError`. Two installed copies of the
+package (two versions nested by a package manager) each hold their own class, and `instanceof` fails across them.
 
 ## Entry points
 
@@ -131,8 +131,7 @@ ES module copy of the package can both be loaded, and `instanceof` fails across 
 | :--- | :--- | :--- |
 | `@venizia/ignis-inversion` | Everything: container, bindings, `@inject`, `MetadataRegistry`, errors | none |
 
-The package ships both CommonJS (`dist/cjs`) and ES modules (`dist/esm`). `import` resolves the ES
-build, `require` the CommonJS one. The ES build is what a browser bundle takes.
+The package ships ES modules only (`dist/esm`). That build is what a browser bundle takes.
 
 ## Where it sits
 

@@ -12,9 +12,9 @@ export class IgnisArtifactsPlugin {
   static readonly VIRTUAL = 'ignis:artifacts';
   static readonly EXPORT_NAME = 'GeneratedArtifacts';
 
-  /** `@venizia/ignis-boot/auto`, from source or from either dist format - replaced at build time by a static re-export of the virtual module. */
+  /** `@venizia/ignis-boot/auto`, from source or from `dist/esm` - replaced at build time by a static re-export of the virtual module. */
   static readonly AUTO_MODULE =
-    /[\\/](?:@venizia[\\/]ignis-boot|packages[\\/]boot)[\\/](?:dist[\\/](?:esm|cjs)|src)[\\/]bun[\\/]auto\.(?:ts|js)$/;
+    /[\\/](?:@venizia[\\/]ignis-boot|packages[\\/]boot)[\\/](?:dist[\\/]esm|src)[\\/]bun[\\/]auto\.(?:ts|js)$/;
 
   /** A text test for a file worth parsing: `ArtifactGroup.define(`, with any spacing or line break around the dot. */
   static readonly DEFINE_CALL = /ArtifactGroup\s*\.\s*(?:define|application)\s*\(/;

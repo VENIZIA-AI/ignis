@@ -3,15 +3,19 @@
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "noUncheckedIndexedAccess": true,
-    "outDir": "dist/cjs",
+    "outDir": "dist/esm",
     "rootDir": "src",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "lib": ["ES2025", "WebWorker"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "moduleResolution": "bundler"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]
