@@ -21,6 +21,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [A Shared Row Can No Longer Be Changed or Deleted Without sharedRows](./2026-10-26-shared-rows-writes-need-shared-rows) | Security |
 | 2026-10-26 | [Helpers, Inversion and Server String Options Are Const Classes](./2026-10-26-helpers-string-domains-const-classes) | Enhancement |
+| 2026-10-26 | [devz codemod Is a Dry Run Unless You Pass --write](./2026-10-26-devz-codemod-dry-run-by-default) | Behavior Change |
 | 2026-10-26 | [dev-configs Rule Options Are Const Classes](./2026-10-26-dev-configs-rule-options-const-classes) | Enhancement |
 | 2026-10-26 | [dev-configs Warns on String-Literal Unions and Explicit Casts](./2026-10-26-dev-configs-warn-const-class-and-casts) | Enhancement |
 | 2026-10-26 | [@model: type Is Optional, skipMigrate Becomes migration.use](./2026-10-26-model-type-and-migration-settings) | Enhancement |

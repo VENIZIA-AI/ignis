@@ -18,7 +18,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 - **The decorator throws on an old key.** A plain-JavaScript or `any`-typed model gets no type error, and a model that dropped `scopeFilter` would run unscoped. So the decorator refuses it, listing every removed key it finds:
 
 ```text
-[model][Product] Removed settings key(s): settings.defaultFilter (use settings.query.filter), settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings' to rewrite them
+[model][Product] Removed settings key(s): settings.defaultFilter (use settings.query.filter), settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them
 ```
 
 - **The boot deprecation warning is gone**, with the code that normalised the old keys.
@@ -29,8 +29,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 One command rewrites the `settings` of every `@model({ ... })`:
 
 ```bash
-bunx devz codemod model-settings --check   # lists the files that would change, exits 1 if any
-bunx devz codemod model-settings           # rewrites them
+bunx devz codemod model-settings           # dry run: lists the files that would change, writes nothing
+bunx devz codemod model-settings --write   # rewrites them
+bunx devz codemod model-settings --check   # dry run that exits 1 if anything would change (CI)
 bun fmt && bun run typecheck               # tidy the formatting, then check
 ```
 

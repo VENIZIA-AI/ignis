@@ -11,7 +11,7 @@ const REMOVED_MODEL_SETTINGS: Record<string, string> = {
 /**
  * Refuses a removed `@model` settings key. A model that still says `scopeFilter` would otherwise
  * lose its row scope without a sound (a plain-JavaScript or `any`-typed model gets no type error),
- * so the decorator throws instead, naming the key to use. `devz codemod model-settings` rewrites
+ * so the decorator throws instead, naming the key to use. `devz codemod model-settings --write` rewrites
  * the keys.
  */
 export const assertNoRemovedModelSettings = (opts: {
@@ -32,6 +32,6 @@ export const assertNoRemovedModelSettings = (opts: {
   throw getError({
     message: `[model][${model}] Removed settings key(s): ${removed
       .map((key) => `settings.${key} (use settings.${REMOVED_MODEL_SETTINGS[key]})`)
-      .join(', ')} | removed in 0.4.3 | run 'devz codemod model-settings' to rewrite them`,
+      .join(', ')} | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them`,
   });
 };

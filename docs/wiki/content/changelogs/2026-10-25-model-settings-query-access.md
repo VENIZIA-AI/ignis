@@ -54,8 +54,9 @@ class Product extends BaseRelationalEntity<typeof products> {}
 `@venizia/dev-configs` ships a codemod that rewrites the `settings` of every `@model({ ... })` for you:
 
 ```bash
-bunx devz codemod model-settings --check   # lists the files that would change, exits 1 if any
-bunx devz codemod model-settings           # rewrites them
+bunx devz codemod model-settings           # dry run: lists the files that would change, writes nothing
+bunx devz codemod model-settings --write   # rewrites them
+bunx devz codemod model-settings --check   # dry run that exits 1 if anything would change (CI)
 bun fmt && bun run typecheck               # tidy the formatting, then check
 ```
 

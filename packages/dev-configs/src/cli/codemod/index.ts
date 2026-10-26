@@ -1,54 +1,83 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { relative, resolve } from 'node:path';
+import { CodemodFiles } from './files';
 import { migrateModelSettings } from './model-settings';
 
-const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'build', '.git']);
-const SOURCE_PATTERN = /\.(?:ts|tsx|mts|cts)$/;
+const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
 
-const USAGE = 'Usage: devz codemod model-settings [paths...] [--check]';
+Moves @model settings to the grouped shape and skipMigrate to migration.use.
 
-/** Every source file under `target`: the file itself, or the `.ts` files below a directory. */
-const collectFiles = (target: string): string[] => {
-  const stats = statSync(target);
+  --write    write the changed files (without it, nothing is written)
+  --check    dry run that exits 1 when anything would change (for CI)
+  --help     print this text and exit
 
-  if (stats.isFile()) {
-    return [target];
+With no flag it lists what would change and writes nothing. Inside a git repository it reads the
+files git knows (tracked, or untracked and not ignored), so ignored folders are never touched.`;
+
+/** A usage error: nothing was read or written. */
+const USAGE_ERROR_CODE = 2;
+
+class CodemodFlags {
+  static readonly WRITE = '--write';
+  static readonly CHECK = '--check';
+  static readonly HELP = '--help';
+  static readonly HELP_SHORT = '-h';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.WRITE,
+    this.CHECK,
+    this.HELP,
+    this.HELP_SHORT,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
   }
-
-  const files: string[] = [];
-  for (const entry of readdirSync(target, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      if (!SKIPPED_DIRECTORIES.has(entry.name)) {
-        files.push(...collectFiles(join(target, entry.name)));
-      }
-      continue;
-    }
-
-    if (SOURCE_PATTERN.test(entry.name) && !entry.name.endsWith('.d.ts')) {
-      files.push(join(target, entry.name));
-    }
-  }
-
-  return files;
-};
+}
 
 /**
- * `devz codemod model-settings [paths...] [--check]`: moves `@model` settings from the flat keys
- * (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) to `query` and `access`. Without
- * `--check` it writes the files; with it, it only lists what would change and exits 1 when
- * anything would.
+ * `devz codemod model-settings [paths...] [--write | --check]`: moves `@model` settings from the
+ * flat keys (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) to `query` and `access`,
+ * and `skipMigrate` to `migration.use`. It is a dry run unless `--write` is given: it lists what
+ * would change. `--check` is the same dry run, and exits 1 when anything would change.
  */
 export class CodemodCommand {
   static async run(opts: { root: string; args: string[] }): Promise<number> {
-    const [name, ...rest] = opts.args;
+    const { args } = opts;
+
+    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
+      console.log(USAGE);
+      return 0;
+    }
+
+    const [name, ...rest] = args;
 
     if (name !== 'model-settings') {
       console.error(`devz codemod: unknown codemod "${name ?? ''}"\n${USAGE}`);
-      return 1;
+      return USAGE_ERROR_CODE;
     }
 
-    const isCheck = rest.includes('--check');
-    const paths = rest.filter((argument) => !argument.startsWith('--'));
+    const unknown = rest.filter(
+      (argument) => argument.startsWith('-') && !CodemodFlags.isValid(argument),
+    );
+    if (unknown.length > 0) {
+      console.error(
+        `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
+      );
+      return USAGE_ERROR_CODE;
+    }
+
+    const isWrite = rest.includes(CodemodFlags.WRITE);
+    const isCheck = rest.includes(CodemodFlags.CHECK);
+
+    if (isWrite && isCheck) {
+      console.error(
+        `devz codemod: ${CodemodFlags.WRITE} and ${CodemodFlags.CHECK} contradict each other\n${USAGE}`,
+      );
+      return USAGE_ERROR_CODE;
+    }
+
+    const paths = rest.filter((argument) => !argument.startsWith('-'));
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(opts.root, path));
 
     let typescript: typeof import('typescript');
@@ -63,7 +92,7 @@ export class CodemodCommand {
     let reportCount = 0;
 
     for (const target of targets) {
-      for (const file of collectFiles(target)) {
+      for (const file of CodemodFiles.collect({ target })) {
         const source = readFileSync(file, 'utf8');
 
         if (!source.includes('@model')) {
@@ -84,18 +113,22 @@ export class CodemodCommand {
 
         changedCount += 1;
         console.log(
-          `${isCheck ? 'would change' : 'changed'}  ${shown}  (${result.rewritten} model(s))`,
+          `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} model(s))`,
         );
 
-        if (!isCheck) {
+        if (isWrite) {
           writeFileSync(file, result.output);
         }
       }
     }
 
     console.log(
-      `devz codemod model-settings: ${changedCount} file(s) ${isCheck ? 'would change' : 'changed'}, ${reportCount} left untouched`,
+      `devz codemod model-settings: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${reportCount} left untouched`,
     );
+
+    if (!isWrite && changedCount > 0) {
+      console.log(`Nothing was written. Run again with ${CodemodFlags.WRITE} to apply.`);
+    }
 
     return isCheck && changedCount > 0 ? 1 : 0;
   }

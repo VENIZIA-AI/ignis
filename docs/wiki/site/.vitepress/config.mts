@@ -490,6 +490,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
                 },
                 {
+                  text: 'devz codemod Dry Run by Default',
+                  link: '/changelogs/2026-10-26-devz-codemod-dry-run-by-default',
+                },
+                {
                   text: 'dev-configs Rule Options Are Const Classes',
                   link: '/changelogs/2026-10-26-dev-configs-rule-options-const-classes',
                 },
