@@ -499,6 +499,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
                 },
                 {
+                  text: 'devz codemod drop-redundant-casts',
+                  link: '/changelogs/2026-10-26-devz-codemod-drop-redundant-casts',
+                },
+                {
                   text: 'skipMigrate Warning and Optional enable',
                   link: '/changelogs/2026-10-26-skip-migrate-warning-and-middleware-enable',
                 },
