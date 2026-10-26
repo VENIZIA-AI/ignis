@@ -13,6 +13,7 @@
  *
  * It runs after a publish that must not be undone, so a failure is a loud warning and exit 0.
  */
+import { NpmDistTags, type TNpmDistTag } from './release-constants';
 
 /** `move` is true when `next` is missing or semver-lower than `latest`; with no `latest` there is nothing to compare. */
 export const decideNextTag = (opts: { latest?: string; next?: string }): { move: boolean } => {
@@ -30,7 +31,7 @@ export const decideNextTag = (opts: { latest?: string; next?: string }): { move:
 export interface IPublished {
   name: string;
   version: string;
-  tag: 'latest' | 'next';
+  tag: TNpmDistTag;
 }
 
 /** Reads `--published <name>@<version> --tag <latest|next>`. Throws on a malformed value or an unknown tag. */
@@ -48,7 +49,7 @@ export const parsePublished = (args: ReadonlyArray<string>): IPublished | undefi
 
   const tagIndex = args.indexOf('--tag');
   const tag = tagIndex >= 0 ? args[tagIndex + 1] : undefined;
-  if (tag !== 'latest' && tag !== 'next') {
+  if (tag === undefined || !NpmDistTags.isValid(tag)) {
     throw new Error(`--tag must be latest or next, got: ${tag ?? 'nothing'}`);
   }
 

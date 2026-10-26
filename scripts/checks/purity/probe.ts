@@ -21,6 +21,23 @@ export interface IPurityResult {
   buildError?: string;
 }
 
+/** What a matched global means: ERROR is fatal, GUARDED is reported and never fatal. */
+export class ProbeSeverities {
+  static readonly ERROR = 'error';
+  static readonly GUARDED = 'guarded';
+
+  static readonly SCHEME_SET = new Set<string>([this.ERROR, this.GUARDED]);
+
+  static isValid(value: string): value is TProbeSeverity {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TProbeSeverity = Extract<
+  (typeof ProbeSeverities)[keyof typeof ProbeSeverities],
+  string
+>;
+
 /**
  * Node globals survive verbatim into a `target: 'browser'` bundle, so a gate reading only module
  * specifiers reports clean on `process.env.NODE_ENV`. Each pattern must be anchored: a bundle
@@ -43,7 +60,7 @@ export interface IPurityResult {
 export const GLOBAL_PATTERNS: Array<{
   name: string;
   pattern: RegExp;
-  severity: 'error' | 'guarded';
+  severity: TProbeSeverity;
 }> = [
   { name: 'process', pattern: /(?<![A-Za-z0-9_$.])process\s*\./, severity: 'error' },
   { name: 'process?.', pattern: /(?<![A-Za-z0-9_$.])process\s*\?\./, severity: 'guarded' },
@@ -302,8 +319,10 @@ export const probeEntry = async (opts: {
   });
   const scannableText = stripBundlerPathComments(stdout);
   const matched = GLOBAL_PATTERNS.filter((g) => g.pattern.test(scannableText));
-  const globals = matched.filter((g) => g.severity === 'error').map((g) => g.name);
-  const guardedGlobals = matched.filter((g) => g.severity === 'guarded').map((g) => g.name);
+  const globals = matched.filter((g) => g.severity === ProbeSeverities.ERROR).map((g) => g.name);
+  const guardedGlobals = matched
+    .filter((g) => g.severity === ProbeSeverities.GUARDED)
+    .map((g) => g.name);
 
   if (builtins.length > 0 || unresolvedExternals.length > 0) {
     const reasons: string[] = [];
