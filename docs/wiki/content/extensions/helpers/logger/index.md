@@ -142,7 +142,7 @@ A subclass cannot redeclare `logger` as a field. It is an accessor on `BaseHelpe
 
 ### Log from a script that never builds an application
 
-A process that imports only connectors or `@venizia/ignis-helpers/core` never loads a logger provider. A helper there still logs: it writes to the console, and under Node or Bun prints one warning per process (a browser gets none - it has no provider to import):
+A process that imports only connectors or `@venizia/ignis-helpers/core` never loads a logger provider. A helper there still logs: it writes to the console, and under Bun prints one warning per process (a browser gets none - it has no provider to import):
 
 ```
 [BaseHelper] Logging to the console - no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` at startup.

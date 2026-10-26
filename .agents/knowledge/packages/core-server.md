@@ -69,8 +69,7 @@ full contract.
 `getProjectRoot()` calls `ModuleUtility.setProjectRoot()`, so optional-peer lookups and the gRPC
 adapter's `@connectrpc/connect` resolution happen under `<projectRoot>/node_modules`.
 `configs.server` (`idleTimeout` in seconds, `maxRequestBodySize` in bytes) is spread into
-`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults, and the node runtime logs a
-warning and ignores the group. Override `getServerRuntimeOptions()` for anything beyond those two
+`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults. Override `getServerRuntimeOptions()` for anything beyond those two
 keys instead of re-implementing `startBunModule`.
 
 `EnvironmentKeys` (`src/common/environments.ts`) is the env vocabulary, split into what the

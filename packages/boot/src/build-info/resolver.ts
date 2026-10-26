@@ -74,9 +74,8 @@ export class BuildInfoResolver extends BaseHelper {
   }
 
   /**
-   * `execFile` runs `git` without a shell and works under Bun and Node alike - `Bun.$` threw a
-   * `ReferenceError` under Node, which left commit and branch "unspecified" for every Node build.
-   * A nonzero exit and `git` being absent are both a miss, logged and degraded to one field.
+   * `execFile` runs `git` without a shell, so no argument is ever parsed by one. A nonzero exit and
+   * `git` being absent are both a miss, logged and degraded to one field.
    */
   private async resolveGitValue(opts: {
     args: string[];

@@ -253,5 +253,5 @@ The helper picks a delivery path per call, based on encryption and `exclude`:
 - [Full Reference](./api) - lifecycle diagram, binding keys, `WebSocketEmitter` API, internals
 - [Error Reference](./errors) - error conditions and troubleshooting
 - [WebSocketServerHelper](/extensions/helpers/websocket/) - helper API documentation
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Socket.IO Component](../socket-io/) - the Socket.IO alternative
 - [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference

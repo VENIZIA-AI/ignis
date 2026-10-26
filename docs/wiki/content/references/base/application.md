@@ -79,7 +79,7 @@ It builds the two `OpenAPIHono` instances - the main server and the `rootRouter`
 
 ## `ServerApplication`
 
-Adds `start()`, `stop()` and the runtime detection that picks `Bun.serve` or `@hono/node-server`.
+Adds `start()`, `stop()` and the Bun runtime guard. The server is `Bun.serve`.
 
 ```typescript
 abstract class ServerApplication<
@@ -99,7 +99,7 @@ Port `0` survives that scan on purpose - it asks the operating system for an eph
 | Feature | Description |
 | :--- | :--- |
 | **Hono Instance** | Creates and holds two `OpenAPIHono` instances - a main server and a root router |
-| **Runtime Detection** | Auto-detects Bun or Node.js via `RuntimeModules.detect()` and uses the appropriate server implementation |
+| **Runtime Guard** | `start()` throws `IGNIS requires Bun >= 1.4 (running on <runtime>)` on any other runtime, before it touches a hook, a datasource or a socket |
 | **Core Bindings** | Registers `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`, and `CoreBindings.APPLICATION_ROOT_ROUTER` |
 | **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize`, `getAppInfo`) |
 | **Environment Validation** | Off by default. Set `ALLOW_EMPTY_ENV_VALUE=false` (or `0`) to require every registered `applicationEnvironment` key to be non-empty |
@@ -129,11 +129,11 @@ These must be implemented by subclasses:
 | `getServerPort()` | `number` | Returns the configured port |
 | `getServerAddress()` | `string` | Returns `host:port` string |
 | `getServer()` | `OpenAPIHono` | Returns the main Hono server instance |
-| `getServerInstance()` | `TBunServerInstance \| TNodeServerInstance \| undefined` | Returns the underlying runtime server instance |
+| `getServerInstance()` | `TBunServerInstance \| undefined` | Returns the underlying Bun server instance |
 | `registerPostStartHook(opts)` | `void` | Register a hook to run after server start |
 | `init()` | `void` | Calls `registerCoreBindings()` |
 | `start()` | `Promise<void>` | Runs `initialize()`, `setupMiddlewares()`, mounts root router, starts the server, then runs post-start hooks |
-| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server (`.stop()` on Bun, `.close()` on Node.js), then calls `close()` on every datasource the boot configured - even when the server fails to close. Each `close()` gets at most `dataSourceCloseTimeoutMs` (default `10_000`, `0` waits without limit); past it, the datasource is logged as timed out and skipped - a client that was never released used to hold it forever. A failed `close()` is logged and does not stop the others. Safe to call twice |
+| `stop()` | `Promise<void>` | Runs the post-stop hooks, stops the server (`.stop()`), then calls `close()` on every datasource the boot configured - even when the server fails to close. Each `close()` gets at most `dataSourceCloseTimeoutMs` (default `10_000`, `0` waits without limit); past it, the datasource is logged as timed out and skipped - a client that was never released used to hold it forever. A failed `close()` is logged and does not stop the others. Safe to call twice |
 
 ### `start()` Method Flow
 
@@ -142,11 +142,8 @@ graph TD
     A(start) --> B(initialize);
     B --> C(setupMiddlewares);
     C --> D(Mount rootRouter on base path);
-    D --> E{Runtime?};
-    E -->|Bun| F(Bun.serve);
-    E -->|Node.js| G(@hono/node-server serve);
+    D --> F(Bun.serve);
     F --> H(executePostStartHooks);
-    G --> H;
 ```
 
 ### Server Types
@@ -154,9 +151,6 @@ graph TD
 ```typescript
 // Bun server instance
 type TBunServerInstance = ReturnType<typeof Bun.serve>;
-
-// Node.js server instance (from @hono/node-server)
-type TNodeServerInstance = any;
 ```
 
 The router and the socket are held apart. `RestApplication` carries the router alone:
@@ -169,10 +163,10 @@ protected server: { hono: OpenAPIHono<AppEnv, AppSchema, BasePath> };
 
 ```typescript
 protected runtime = RuntimeModules.detect();
-protected serverInstance?: TBunServerInstance | TNodeServerInstance;
+protected serverInstance?: TBunServerInstance;
 ```
 
-There is no discriminated union any more, so `this.server.runtime` does not typecheck. Read `this.runtime` and `this.serverInstance` instead. A browser Worker extends `RestApplication` and inherits neither field, which is the point: `RuntimeModules.detect()` answers `'node'` inside a Worker.
+There is no discriminated union any more, so `this.server.runtime` does not typecheck. Read `this.runtime` and `this.serverInstance` instead. A browser Worker extends `RestApplication` and inherits neither field, which is the point.
 
 ## `BaseApplication`
 
@@ -284,7 +278,7 @@ What the artifact does with them is its own business:
 static(opts: { restPath?: string; folderPath: string }): this
 ```
 
-Serves static files using the appropriate runtime handler (`hono/bun` for Bun, `@hono/node-server/serve-static` for Node.js). The `restPath` defaults to `'*'`.
+Serves static files with `hono/bun` `serveStatic`. The `restPath` defaults to `'*'`.
 
 ```typescript
 this.static({ restPath: '/public/*', folderPath: './public' });

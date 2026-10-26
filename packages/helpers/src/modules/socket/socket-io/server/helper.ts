@@ -13,7 +13,6 @@ import { voidExecution } from '@/utilities/promise.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import { type EventEmitter } from 'node:events';
-import { type Server as HTTPServer } from 'node:http';
 import { Server as IOServer, type Socket as IOSocket, type ServerOptions } from 'socket.io';
 import {
   type IHandshake,
@@ -31,7 +30,6 @@ const CLIENT_PING_INTERVAL = 30_000;
 
 export class SocketIOServerHelper extends BaseHelper {
   private runtime: TRuntimeModule;
-  private server?: HTTPServer;
   private bunEngine?: any;
   private serverOptions: Partial<ServerOptions> = {};
 
@@ -75,16 +73,6 @@ export class SocketIOServerHelper extends BaseHelper {
 
   private setRuntime(opts: TSocketIOServerOptions) {
     switch (opts.runtime) {
-      case RuntimeModules.NODE: {
-        if (!opts.server) {
-          throw getError({
-            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-            message: '[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!',
-          });
-        }
-        this.server = opts.server;
-        break;
-      }
       case RuntimeModules.BUN: {
         if (!opts.engine) {
           throw getError({
@@ -134,13 +122,6 @@ export class SocketIOServerHelper extends BaseHelper {
   }
 
   getEngine() {
-    if (this.runtime !== RuntimeModules.BUN) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[getEngine] Engine is only available for Bun runtime!',
-      });
-    }
-
     return this.bunEngine;
   }
 
@@ -222,16 +203,6 @@ export class SocketIOServerHelper extends BaseHelper {
 
   private initIOServer() {
     switch (this.runtime) {
-      case RuntimeModules.NODE: {
-        if (!this.server) {
-          throw getError({
-            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-            message: '[DANGER] Invalid HTTP server instance to init Socket.io server!',
-          });
-        }
-        this.io = new IOServer(this.server, this.serverOptions);
-        break;
-      }
       case RuntimeModules.BUN: {
         if (!this.bunEngine) {
           throw getError({

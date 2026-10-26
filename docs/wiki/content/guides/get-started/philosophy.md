@@ -18,11 +18,11 @@ docs - is part of the framework, so each team doesn't invent its own.
 - A decorator-driven artifact system. `@controller`, `@service`, `@repository` and `@datasource`
   mark your classes, and the application registers them at boot, before `preConfigure()`. You pick
   how the list is built:
-  - `ignis-artifacts generate` writes an index file at build time. It works on Node and Bun, and
+  - `ignis-artifacts generate` writes an index file at build time. It needs no plugin, and
     `ignis-artifacts check` fails CI when the file is stale.
   - `@venizia/ignis-boot/auto` needs no file. A Bun plugin scans `src` when the application starts
     (the first start parses the sources; the result is cached, so later starts skip the scan) and
-    inlines the list when you build a binary. On Node there is no plugin API, so use the generator.
+    inlines the list when you build a binary.
 
   Neither mode enforces a file-naming convention. See [Bootstrapping](../core-concepts/application/bootstrapping).
 - Access control in the repository, not in each route: a row scope with a write guard, query
@@ -42,7 +42,7 @@ what your endpoints do.
 
 | Project | What IGNIS uses it for |
 |---|---|
-| [Hono](https://hono.dev/) | The HTTP engine: routing, middleware, `Context`, request IDs; served by `Bun.serve` or `@hono/node-server` |
+| [Hono](https://hono.dev/) | The HTTP engine: routing, middleware, `Context`, request IDs; served by `Bun.serve` |
 | [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) and [Zod](https://zod.dev/) | Route definitions, request validation, the OpenAPI document |
 | [Drizzle ORM](https://orm.drizzle.team/) | Table schemas, SQL, relations, and Zod schemas from tables (`drizzle-zod`) |
 | [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) |
@@ -53,7 +53,7 @@ what your endpoints do.
 
 | Where | Runtime |
 |---|---|
-| Server (`@venizia/ignis`) | Bun and Node |
+| Server (`@venizia/ignis`) | Bun >= 1.4 |
 | `inversion`, `filter`, `kernel`, `worker`, and `connectors` without a database driver | Also a browser or Web Worker |
 | `helpers` | The root is server-only; `/core`, `/common`, `/uuid`, `/temporal` and `/socket-io/client` run in a browser |
 

@@ -72,15 +72,14 @@ if (!instance) {
 
 ## switch + default over if-else chains
 
-`ServerApplication.start`/`.stop` (`packages/core-server/src/base/applications/server.ts`) dispatch on
-`this.runtime` with a `switch`, whose `default` throws via
+`SocketIOServerHelper.setRuntime` (`packages/helpers/src/modules/socket/socket-io/server/helper.ts`)
+dispatches on `opts.runtime` with a `switch`, whose `default` throws via
 [`getError`](/conventions/error-handling.md) rather than falling through silently:
 
 ```typescript
-switch (this.runtime) {
-  case RuntimeModules.BUN: { await this.startBunModule(); break; }
-  case RuntimeModules.NODE: { await this.startNodeModule(); break; }
-  default: { throw getError({ message: '[start] Invalid runtimeModule to start server instance!' }); }
+switch (opts.runtime) {
+  case RuntimeModules.BUN: { this.bunEngine = opts.engine; break; }
+  default: { throw getError({ message: '[SocketIOServerHelper] Unsupported runtime!' }); }
 }
 ```
 

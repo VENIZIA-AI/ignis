@@ -1,12 +1,12 @@
 ---
 title: Worker Thread
-description: Manage Node.js worker_threads with a pooled registry, lifecycle-event helpers, and two-way MessagePort communication
+description: Manage worker threads (Bun's `node:worker_threads`) with a pooled registry, lifecycle-event helpers, and two-way MessagePort communication
 difficulty: intermediate
 ---
 
 # Worker Thread
 
-The worker-thread helper wraps Node's `worker_threads`. It adds a pooled registry, lifecycle-event helpers, and a `MessagePort` bus for two-way communication between the main thread and a worker.
+The worker-thread helper wraps Bun's `node:worker_threads`. It adds a pooled registry, lifecycle-event helpers, and a `MessagePort` bus for two-way communication between the main thread and a worker.
 
 ## In one example
 
@@ -134,7 +134,7 @@ Every constructor option, event-handler default, pre/post message hook, and erro
 - [Queue Helper](/extensions/helpers/queue/) - message-queue processing as an alternative to worker threads
 - [Services](/guides/core-concepts/services) - running background workers within services
 - [Application](/guides/core-concepts/application/) - spawning workers during application lifecycle
-- [Node.js Worker Threads](https://nodejs.org/api/worker_threads.html) - underlying Node.js API
+- [Worker Threads](https://nodejs.org/api/worker_threads.html) - the `node:worker_threads` API that Bun implements
 
 **Files:**
 

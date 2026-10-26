@@ -43,7 +43,7 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 
 ### Runtime
 
-- [**Module**](./module.md) - Utility for validating that required Node.js modules are installed at runtime
+- [**Module**](./module.md) - Utility for loading an optional peer dependency with a clear install error
 
 ## Usage Pattern
 
@@ -86,7 +86,7 @@ Two small functions with no page of their own. Both ship from the root of `@veni
 | Function | Signature | What it does |
 |---|---|---|
 | `sleep` | `sleep(ms: number): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
-| `hrTime` | `hrTime(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Node and Bun only |
+| `hrTime` | `hrTime(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
 
 ```typescript
 import { hrTime, sleep } from '@venizia/ignis-helpers';

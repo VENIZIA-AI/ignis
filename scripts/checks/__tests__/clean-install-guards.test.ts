@@ -20,7 +20,6 @@ const ORDER_ROW: IInstallRow = {
   subpath: '.',
   specifier: './counted.mjs',
   extras: [],
-  bunOnly: true,
   hasRequire: false,
   importedAfter: ['./peer.mjs'],
 };

@@ -11,10 +11,7 @@ covers macOS, Linux, and Windows through WSL2.
 | **PostgreSQL** | Any supported version | For the CRUD tutorial | A server database. PGlite and SQLite run in-process and need no install |
 | **VS Code** | Latest | Optional | Best editor support, through the Oxc and ESLint extensions |
 
-> IGNIS apps can also run on Node.js 20 or later, through `@hono/node-server` (install it
-> yourself). On Node, generate the artifact index with `ignis-artifacts generate`, because
-> `AutoArtifacts` needs Bun. That is a deployment choice, not a setup choice - Bun still installs
-> packages and runs every command in this guide.
+> IGNIS runs on Bun >= 1.4 only. `ServerApplication.start()` throws on any other runtime.
 
 ## Preconditions
 

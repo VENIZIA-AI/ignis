@@ -4,7 +4,7 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@venizia/ignis-kernel';
 import { Binding } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, RuntimeModules, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
   type AbstractRedisHelper,
   isRedisHelper,
@@ -216,15 +216,6 @@ export class WebSocketComponent extends BaseComponent {
     }
 
     logger.info('Binding WebSocket for application...');
-
-    const runtime = RuntimeModules.detect();
-    if (runtime === RuntimeModules.NODE) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message:
-          '[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime.',
-      });
-    }
 
     const resolved = this.resolveBindings();
     logger.debug('WebSocket Server Options: %j', this.serverOptions);

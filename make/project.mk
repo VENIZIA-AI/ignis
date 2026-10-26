@@ -67,7 +67,6 @@ ifneq ($(filter esm,$(FORMATS)),)
 	@$(TSC) -p $(ESM_TSCONFIG) --extendedDiagnostics
 	@$(TSC_ALIAS) -p tsconfig.json --outDir dist/esm --resolve-full-paths
 	@bun $(ROOT)/scripts/build/esm-marker.ts
-	@bun $(ROOT)/scripts/build/esm-shims.ts
 endif
 	$(if $(POST_BUILD),@$(POST_BUILD))
 	@echo "DONE | Build completed successfully!"

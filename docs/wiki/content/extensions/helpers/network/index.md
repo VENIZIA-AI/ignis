@@ -45,7 +45,7 @@ class GitHubApi extends NodeFetchNetworkRequest {
 - **`axios` is optional.** It is an optional peer dependency. `AxiosNetworkRequest` is exported only from the `/axios` sub-path, never from the root barrel.
 - **TCP and TLS share one hierarchy.** `BaseNetworkTcpServer`/`BaseNetworkTcpClient` are abstract classes. Each takes a create-function matching its transport, and each concrete pair only pre-wires that function:
 
-  | Transport | Server class | Client class | Node module |
+  | Transport | Server class | Client class | Builtin module |
   |---|---|---|---|
   | Plain TCP | `NetworkTcpServer` | `NetworkTcpClient` | `net` |
   | TLS | `NetworkTlsTcpServer` | `NetworkTlsTcpClient` | `tls` |
@@ -62,7 +62,7 @@ class GitHubApi extends NodeFetchNetworkRequest {
 | Layer | Case | Why |
 |-------|------|-----|
 | `HTTP.Methods.GET`/`.POST`/`.QUERY`/... tokens | always lowercase | Required by `@hono/zod-openapi` route definitions |
-| Wire dispatch | uppercased right before send | Node's undici only auto-normalizes `DELETE`/`GET`/`HEAD`/`OPTIONS`/`POST`/`PUT`. A lowercase `patch` or `query` would go out unchanged |
+| Wire dispatch | uppercased right before send | A lowercase `patch` or `query` would go out unchanged on a transport that does not normalize it |
 
 ## Common tasks
 

@@ -35,7 +35,7 @@ Every binding key, configuration variant, interface, and internal mechanism of `
 | Package | `@venizia/ignis` |
 | Subpath | `@venizia/ignis/mail` |
 | Component class | `MailComponent` |
-| Runtimes | Both (Bun, Node.js) |
+| Runtime | Bun |
 
 | Component | Purpose |
 |-----------|---------|

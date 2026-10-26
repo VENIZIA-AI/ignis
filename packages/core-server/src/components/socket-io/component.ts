@@ -20,7 +20,6 @@ import {
   type IServerOptions,
 } from './common';
 import { createBunEngine, createBunFetchHandler } from './handlers';
-import { createNodeSocketIOHelper } from './handlers';
 
 export class SocketIOComponent extends BaseComponent {
   protected serverOptions: Partial<IServerOptions>;
@@ -136,35 +135,6 @@ export class SocketIOComponent extends BaseComponent {
     });
   }
 
-  private registerNodeHook(opts: IResolvedBindings) {
-    const serverOptions = this.serverOptions;
-    const logger = this.logger.for(this.registerNodeHook.name);
-
-    this.application.registerPostStartHook({
-      identifier: 'socket-io-initialize',
-      hook: async () => {
-        const httpServer = this.application.getServerInstance();
-        if (!httpServer) {
-          throw getError({
-            message: '[SocketIOComponent] HTTP server not available for Node.js runtime!',
-          });
-        }
-
-        const socketIOHelper = await createNodeSocketIOHelper({
-          serverOptions,
-          httpServer,
-          resolvedBindings: opts,
-        });
-
-        this.application
-          .bind({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE })
-          .toValue(socketIOHelper);
-
-        logger.info('SocketIO initialized for Node.js runtime');
-      },
-    });
-  }
-
   override binding(): ValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 
@@ -180,20 +150,6 @@ export class SocketIOComponent extends BaseComponent {
     const resolved = this.resolveBindings();
     logger.debug('Socket.IO Server Options: %j', this.serverOptions);
 
-    const runtime = RuntimeModules.detect();
-
-    switch (runtime) {
-      case RuntimeModules.BUN: {
-        this.registerBunHook(resolved);
-        break;
-      }
-      case RuntimeModules.NODE: {
-        this.registerNodeHook(resolved);
-        break;
-      }
-      default: {
-        throw getError({ message: `[SocketIOComponent] Unsupported runtime: ${runtime}` });
-      }
-    }
+    this.registerBunHook(resolved);
   }
 }

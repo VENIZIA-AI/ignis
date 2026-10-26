@@ -79,12 +79,6 @@ jobs:
           # The release table is generated from release commits; a shallow clone has none.
           fetch-depth: 0
 
-      # The clean-install gate loads every sub-path under Node as well as Bun.
-      - name: Setup Node.js
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version: '24'
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:

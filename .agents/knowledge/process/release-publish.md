@@ -98,14 +98,13 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
    [build system](/process/build-system.md)) - releasing `core-server` also rebuilds everything
    upstream of it. Then `make clean-install-$PACKAGE` (`scripts/checks/clean-install/{cli,manifest}.ts`)
    packs the package, installs it ALONE into an empty project with only its required peers plus the
-   peers the manifest grants each sub-path, and loads every published sub-path under Bun `import`,
-   Node ESM `import` and Node `require` - plus a browser build for every entry the purity gate
+   peers the manifest grants each sub-path, and loads every published sub-path under Bun `import` - plus a browser build for every entry the purity gate
    claims - with both the hoisted and the isolated linker. A sub-path the manifest lists under
    `importedAfter` also loads under Bun from one ESM entry followed by those peers: the
    `@venizia/ignis/postgres/postgres-js` alias, whose CommonJS build crashed when an app imported
    `postgres` after it. Only the hoisted linker reproduces that crash. The workspace hoists every
    optional peer, so a sub-path that leaks one looks fine everywhere else. CI runs `make clean-install` for every
-   package, with Node 24 installed for the Node checks.
+   package. The release workflow still sets up Node 24, only to write the npm auth and run `npm version`.
 6. Build artifacts are validated against the package's own `exports` map: every file any condition
    names must exist. The list is never hand-written. The hand-written one it replaced named three
    dual-build packages and went stale the day four more were dual-built.

@@ -1,8 +1,7 @@
 import { BuildInfoEnvironmentKeys, BuildInfoResolver } from '@/build-info';
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
 
 /** Every key the resolver reads, so a key added later is cleaned up here without a second list. */
@@ -178,69 +177,6 @@ describe('BuildInfoResolver.resolve', () => {
 
     expect(info.commit).toBe('unspecified');
     expect(info.branch).toBe('unspecified');
-  });
-
-  /**
-   * The resolver runs in the build CLI, which is a Node process for most users. It once read git
-   * through `Bun.$`, so under Node commit and branch were always "unspecified". The current source is
-   * bundled for Node here and run by a real `node`, which the Bun test process cannot stand in for.
-   */
-  describe('under Node', () => {
-    const cacheRoot = resolve(__dirname, '../../../node_modules/.cache/build-info-node');
-
-    const resolveUnderNode = async (opts: { root: string }): Promise<Record<string, string>> => {
-      mkdirSync(cacheRoot, { recursive: true });
-      const entry = join(cacheRoot, 'runner.ts');
-      writeFileSync(
-        entry,
-        `import { BuildInfoResolver } from '${resolve(__dirname, '../../build-info/index.ts')}';
-BuildInfoResolver.getInstance()
-  .resolve({ root: process.argv[2] })
-  .then((info) => console.log(JSON.stringify(info)));
-`,
-      );
-
-      const built = await Bun.build({
-        entrypoints: [entry],
-        outdir: cacheRoot,
-        target: 'node',
-        format: 'cjs',
-        external: ['@venizia/*'],
-      });
-      expect(built.success).toBe(true);
-
-      // No `Bun` global in this process: that is the point of running it.
-      const output = execFileSync('node', [join(cacheRoot, 'runner.js'), opts.root], {
-        encoding: 'utf8',
-        env: { ...process.env, ...Object.fromEntries(ENV_KEYS.map((key) => [key, ''])) },
-      });
-      return JSON.parse(output);
-    };
-
-    afterAll(() => rmSync(cacheRoot, { recursive: true, force: true }));
-
-    test('the commit and branch of a repository at root are read, not "unspecified"', async () => {
-      const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
-      await initRepository({ root });
-      await Bun.$`git -c user.email=a@b -c user.name=t -c commit.gpgsign=false commit -q --allow-empty -m seed`
-        .cwd(root)
-        .quiet();
-
-      const info = await resolveUnderNode({ root });
-
-      expect(info.commit).toMatch(/^[0-9a-f]{12}$/);
-      expect(info.branch).toBe('stamped');
-    });
-
-    test('a repository with no commit still leaves both fields unspecified', async () => {
-      const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
-      await initRepository({ root });
-
-      const info = await resolveUnderNode({ root });
-
-      expect(info.commit).toBe('unspecified');
-      expect(info.branch).toBe('unspecified');
-    });
   });
 
   test('APP_BUILD_DATE pins builtAt, so a reproducible build stays reproducible', async () => {

@@ -5,9 +5,8 @@ import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications'
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components';
 import { BindingKeys, BindingScopes } from '@venizia/ignis-kernel';
-import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
+import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { RuntimeModules } from '@venizia/ignis-helpers/common';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 
 /** Records the invocation order of the seven traced lifecycle steps so their relative order is asserted as a whole rather than step by step. Does not cover the full 14-step `getBootSequence()` contract - see `BaseApplication - getBootSequence()` below for that. */
@@ -245,43 +244,40 @@ describe('BaseApplication - post-start hooks', () => {
 });
 
 describe('BaseApplication - stop()', () => {
-  test('node runtime: stop() awaits the callback-based close() instead of resolving early', async () => {
+  test("stop() awaits the server's stop() instead of resolving early", async () => {
     const application = new TraceApplication({
       scope: 'StopApplication',
       config: buildConfigs(),
     });
 
-    let isClosed = false;
-    const nodeInstance = {
-      close: (callback: (error?: Error) => void) => {
-        setTimeout(() => {
-          isClosed = true;
-          callback();
-        }, 10);
-      },
+    let isStopped = false;
+    const instance = {
+      stop: () =>
+        new Promise<void>((resolve) => {
+          setTimeout(() => {
+            isStopped = true;
+            resolve();
+          }, 10);
+        }),
     };
 
-    application['runtime'] = RuntimeModules.NODE;
-    application['serverInstance'] = nodeInstance;
+    application['serverInstance'] = instance as AnyType;
 
     await application.stop();
 
-    expect(isClosed).toBe(true);
+    expect(isStopped).toBe(true);
     expect(application.getServerInstance()).toBeUndefined();
   });
 
-  test('node runtime: a close() failure rejects stop() instead of being swallowed', async () => {
+  test('a stop() failure rejects stop() instead of being swallowed', async () => {
     const application = new TraceApplication({
       scope: 'StopApplication',
       config: buildConfigs(),
     });
 
-    application['runtime'] = RuntimeModules.NODE;
     application['serverInstance'] = {
-      close: (callback: (error?: Error) => void) => {
-        callback(getError({ message: 'server was not running' }));
-      },
-    };
+      stop: () => Promise.reject(getError({ message: 'server was not running' })),
+    } as AnyType;
 
     const stopResult = await application.stop().catch((error: unknown) => error);
     expect(String(stopResult)).toContain('server was not running');

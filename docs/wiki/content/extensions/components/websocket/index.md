@@ -9,7 +9,7 @@ difficulty: intermediate
 `WebSocketComponent` registers a Bun-native WebSocket server on your application by creating and binding a [`WebSocketServerHelper`](/extensions/helpers/websocket/) once the HTTP server is listening.
 
 > [!IMPORTANT]
-> **Bun only.** `binding()` throws if the runtime is Node.js. For Node.js support, use the [Socket.IO Component](../socket-io/) instead.
+> IGNIS runs on Bun >= 1.4 only. `start()` throws on any other runtime.
 
 ## In one example
 
@@ -44,7 +44,7 @@ export class Application extends BaseApplication {
 
 - **Two-phase startup solves a timing problem.** `binding()` runs during `initialize()`, before any Bun server exists. It validates bindings and registers a post-start hook. The actual `WebSocketServerHelper` is only constructed once `executePostStartHooks()` runs, after `Bun.serve()` has produced a live server instance.
 - **Two bindings gate startup.** `REDIS_CONNECTION` and `AUTHENTICATE_HANDLER` are both required. `REDIS_CONNECTION` must be an `AbstractRedisHelper` instance. `binding()` throws synchronously if either is missing or the wrong type - before the post-start hook is even registered.
-- **Runtime is checked first, fast.** `RuntimeModules.detect()` runs at the top of `binding()`. On Node.js it throws immediately, so a misconfigured app fails at startup, not on first connection.
+- **The runtime is checked first.** `start()` throws `IGNIS requires Bun >= 1.4` on any other runtime, so a misconfigured app fails at startup, not on first connection.
 - **The instance appears only after start.** The post-start hook binds the configured helper to `WebSocketBindingKeys.WEBSOCKET_INSTANCE`. It does not exist during DI construction. Inject it lazily from a service or controller, never via `@inject` in a constructor.
 - **A custom `fetch` handler splits traffic.** After the post-start hook runs, `server.reload()` swaps in a new handler. It routes WebSocket upgrade requests - `GET <path>` with an `Upgrade: websocket` header - to Bun's native handler.
   - Everything else goes to the existing Hono server, unchanged.
@@ -116,7 +116,7 @@ this.bind({ key: WebSocketBindingKeys.HANDSHAKE_HANDLER }).toValue(handshakeFn);
 - [Full Reference](./api) - lifecycle diagram, binding keys, configuration options, `WebSocketEmitter` API, internals
 - [Error Reference](./errors) - error conditions and troubleshooting
 - [WebSocketServerHelper](/extensions/helpers/websocket/) - the helper this component wires in
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Socket.IO Component](../socket-io/) - the Socket.IO alternative
 - [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference
 
 **Files:**

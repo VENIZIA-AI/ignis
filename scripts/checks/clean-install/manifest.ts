@@ -17,8 +17,6 @@ export interface IInstallClaim {
   package: string;
   /** Optional peers a sub-path needs, keyed as spelled in `exports`. Each must be a declared peer. */
   requires?: Record<string, string[]>;
-  /** Sub-paths that exist for one runtime only, keyed as spelled in `exports`. */
-  bunOnly?: string[];
   /**
    * Granted or required peers an application imports itself right AFTER a sub-path, keyed as
    * spelled in `exports`. Bun loads both from one ESM entry, in that order: a CommonJS sub-path that
@@ -47,7 +45,6 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
       './winston': ['winston', 'winston-daily-rotate-file', 'winston-transport'],
       './pino': ['pino'],
     },
-    bunOnly: ['./bun-s3'],
   },
   { package: 'boot' },
   {
@@ -90,8 +87,8 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
   },
   // No grant: ESLint arrives as a required peer of the bundled plugins. The tsconfig exports are
   // JSON and get no row.
-  // `./testing` imports `bun:test`: it loads under Bun only, as the test helpers it is.
-  { package: 'dev-configs', bunOnly: ['./testing'] },
+  // `./testing` imports `bun:test`, as the test helpers it is.
+  { package: 'dev-configs' },
 ];
 
 export interface IPackageManifest {
@@ -113,7 +110,6 @@ export interface IInstallRow {
   subpath: string;
   specifier: string;
   extras: string[];
-  bunOnly: boolean;
   hasRequire: boolean;
   importedAfter: string[];
 }
@@ -185,7 +181,6 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
 
     const claimedSubpaths = [
       ...Object.keys(claim.requires ?? {}),
-      ...(claim.bunOnly ?? []),
       ...Object.keys(claim.importedAfter ?? {}),
     ];
     for (const subpath of claimedSubpaths) {
@@ -230,7 +225,6 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
         subpath,
         specifier: subpath === '.' ? manifest.name : `${manifest.name}${subpath.slice(1)}`,
         extras: [...(claim.requires?.[subpath] ?? [])].sort(),
-        bunOnly: (claim.bunOnly ?? []).includes(subpath),
         hasRequire: typeof target === 'string' || 'require' in target || 'default' in target,
         importedAfter: [...(claim.importedAfter?.[subpath] ?? [])],
       });

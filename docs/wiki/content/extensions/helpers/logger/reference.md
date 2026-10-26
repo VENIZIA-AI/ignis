@@ -613,7 +613,7 @@ interface IDgramTransportOptions extends Transport.TransportStreamOptions {
   host: string;                       // UDP host
   port: number;                       // UDP port
   levels: Array<string>;              // Levels to forward over UDP
-  socketOptions: dgram.SocketOptions; // Node.js dgram socket options
+  socketOptions: dgram.SocketOptions; // node:dgram socket options
 }
 ```
 

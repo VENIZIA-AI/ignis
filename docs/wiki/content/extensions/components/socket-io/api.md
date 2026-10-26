@@ -14,7 +14,6 @@ Every binding key, configuration option, event payload, and internal mechanism o
 - [`packages/core-server/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/keys.ts)
 - [`packages/core-server/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/common/types.ts)
 - [`packages/core-server/src/components/socket-io/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/handlers/bun.handler.ts)
-- [`packages/core-server/src/components/socket-io/handlers/node.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/socket-io/handlers/node.handler.ts)
 - [`packages/helpers/src/modules/socket/socket-io/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/server/helper.ts)
 - [`packages/helpers/src/modules/socket/socket-io/client/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/client/helper.ts)
 - [`packages/helpers/src/modules/socket/socket-io/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/constants.ts)
@@ -27,7 +26,7 @@ Every binding key, configuration option, event payload, and internal mechanism o
 | Find a binding key, its type, or whether it's required | [Binding keys](#binding-keys) |
 | Look up an event name or default room | [System events and rooms](#system-events-and-rooms) |
 | Understand the client authentication states | [Client states](#client-states) |
-| Compare Node.js vs Bun behavior | [Runtime-specific behavior](#runtime-specific-behavior) |
+| See how Socket.IO runs on Bun | [Runtime-specific behavior](#runtime-specific-behavior) |
 | Call a method on the server helper | [Server helper: public methods](#server-helper-public-methods) |
 | Send a message that reaches another server instance | [Messaging via `send()`](#messaging-via-send) |
 | Call a method on the client helper | [Client helper: public methods](#client-helper-public-methods) |
@@ -44,7 +43,7 @@ Every binding key, configuration option, event payload, and internal mechanism o
 | Component class | `SocketIOComponent` |
 | Server helper | [`SocketIOServerHelper`](/extensions/helpers/socket-io/) |
 | Client helper | [`SocketIOClientHelper`](/extensions/helpers/socket-io/) |
-| Runtimes | Node.js (`@hono/node-server`) and Bun (native) |
+| Runtime | Bun (native) |
 | Scaling | `@socket.io/redis-adapter` + `@socket.io/redis-emitter` (`ioredis`) |
 
 ## Import paths
@@ -204,7 +203,7 @@ registerComponents()     <- component.configure(opts?) -> binding():
       |
 setupMiddlewares()
       |
-startBunModule() / startNodeModule()   <- server starts, instance created
+startBunModule()   <- server starts, instance created
       |
 executePostStartHooks()  <- 'socket-io-initialize' hook runs:
       |                      new SocketIOServerHelper(...)
@@ -215,7 +214,7 @@ executePostStartHooks()  <- 'socket-io-initialize' hook runs:
 
 - Hooks run **sequentially**, in registration order, each timed with `performance.now()` for diagnostics.
 - If a hook throws, the error propagates to `start()` and the server fails to start.
-- The hook identifier is `'socket-io-initialize'` for both runtimes - only one runtime path executes per application.
+- The hook identifier is `'socket-io-initialize'`.
 
 ```typescript
 // Register a hook, during the binding phase
@@ -230,16 +229,16 @@ application.getServerInstance<T>(): T | undefined;
 
 ### Runtime-specific behavior
 
-| Aspect | Node.js | Bun |
-|---|---|---|
-| Server type | `node:http.Server` | `Bun.Server` |
-| IO server init | `new IOServer(httpServer, opts)` | `new IOServer()` then `io.bind(engine)` |
-| Engine | Built in (`socket.io`) | `@socket.io/bun-engine` (optional peer dependency) |
-| Request routing | Socket.IO attaches to the HTTP server automatically | `server.reload({ fetch, websocket })` wires the engine into Bun's request loop |
-| WebSocket upgrade | Handled by `node:http.Server`'s upgrade event | Handled by Bun's `websocket` handler |
-| Dynamic import | None needed | `await import('@socket.io/bun-engine')` at runtime |
-| Fetch handler | Not needed - the HTTP server handles upgrades | A custom fetch wraps Hono's fetch and routes WS upgrades to the engine |
-| CORS | Handled by Socket.IO's own CORS options | Handled by Bun engine options, via explicit field bridging |
+| Aspect | Bun |
+|---|---|
+| Server type | `Bun.Server` |
+| IO server init | `new IOServer()` then `io.bind(engine)` |
+| Engine | `@socket.io/bun-engine` (optional peer dependency) |
+| Request routing | `server.reload({ fetch, websocket })` wires the engine into Bun's request loop |
+| WebSocket upgrade | Handled by Bun's `websocket` handler |
+| Dynamic import | `await import('@socket.io/bun-engine')` at runtime |
+| Fetch handler | A custom fetch wraps Hono's fetch and routes WS upgrades to the engine |
+| CORS | Handled by Bun engine options, via explicit field bridging |
 
 ### Bun runtime details
 
@@ -251,21 +250,17 @@ A custom fetch function intercepts WebSocket upgrade requests before they reach 
 
 Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`createBunEngine()`](#post-start-hooks) in Internals for the full CORS bridging code.
 
-### Node.js runtime details
-
-Node mode is simpler - Socket.IO attaches to `node:http.Server` natively. The handler builds `SocketIOServerHelper` with `runtime: RuntimeModules.NODE` and passes the HTTP server instance directly. See [`createNodeSocketIOHelper()`](#post-start-hooks) in Internals.
-
 ## Server helper API reference
 
 ### Constructor
 
-`new SocketIOServerHelper(opts: TSocketIOServerOptions)` - see [server types](#server-types) for the full discriminated union.
+`new SocketIOServerHelper(opts: TSocketIOServerOptions)` - see [server types](#server-types) for the full type.
 
 | Step | What happens |
 |---|---|
 | 1 | Sets `identifier`, `runtime`, `serverOptions`, and the callback functions |
 | 2 | Applies defaults: `authenticateTimeout` = 10s, `pingInterval` = 30s, `defaultRooms` = `['io-default', 'io-notification']` |
-| 3 | `setRuntime()` validates and stores the server or engine - see [runtime validation](#setruntime-runtime-validation) |
+| 3 | `setRuntime()` validates and stores the engine - see [runtime validation](#setruntime-runtime-validation) |
 | 4 | `initRedisClients()` creates 3 duplicated Redis clients - see [Redis 3-client architecture](#redis-3-client-architecture) |
 
 > [!IMPORTANT]
@@ -278,7 +273,7 @@ The only async method on the helper. It waits for all 3 Redis clients to reach `
 1. Registers an `error` handler on each of the 3 Redis clients.
 2. Connects any client still in `wait` status (lazy-connect mode).
 3. Awaits all 3 clients reaching `ready`.
-4. Builds the IO server - `new IOServer(httpServer, serverOptions)` on Node.js, or `new IOServer()` + `io.bind(bunEngine)` on Bun.
+4. Builds the IO server - `new IOServer()` + `io.bind(bunEngine)`.
 5. Wires the Redis adapter: `io.adapter(createAdapter(redisPub, redisSub))`.
 6. Creates the Redis emitter: `emitter = new Emitter(redisEmitter)`.
 7. Registers the `connection` handler, which calls `onClientConnect()` for every new socket.
@@ -291,7 +286,7 @@ The only async method on the helper. It waits for all 3 Redis clients to reach `
 | Method | Signature | Behavior |
 |---|---|---|
 | `getIOServer()` | `(): IOServer` | Returns the underlying `socket.io` `Server` - for APIs the helper doesn't expose, like `io.of()` or `io.fetchSockets()` |
-| `getEngine()` | `(): any` | Returns the `@socket.io/bun-engine` instance. Throws on Node.js runtime |
+| `getEngine()` | `(): any` | Returns the `@socket.io/bun-engine` instance |
 | `getClients()` | `(opts?: { id? }): ISocketIOClient \| Map<string, ISocketIOClient> \| undefined` | Without `id`, returns the full client map. With `id`, returns that client or `undefined` |
 | `on()` | `(opts: { topic; handler }): void` | Registers a server-level event handler. Throws if `topic` is empty, `handler` is falsy, or the IO server isn't initialized |
 | `ping()` | `(opts: { socket; doIgnoreAuth }): void` | Sends `{ time }` to one client. No-op if `socket` or the client entry is missing. Disconnects the client if `doIgnoreAuth` is `false` and it isn't authenticated |
@@ -437,9 +432,7 @@ Reads every binding key from the DI container and validates the required ones.
 
 ### Post-start hooks
 
-Both runtimes register the same hook identifier, `'socket-io-initialize'`, but wire the helper differently.
-
-**Bun** (`registerBunHook()`):
+The component registers one hook, `'socket-io-initialize'`, in `registerBunHook()`:
 
 1. Calls `createBunEngine({ serverOptions })`, which dynamically imports `@socket.io/bun-engine` and builds a `BunEngine` instance with CORS bridging.
 2. Constructs `SocketIOServerHelper` with `runtime: RuntimeModules.BUN`.
@@ -473,12 +466,6 @@ async function createBunEngine(opts: {
 }
 ```
 
-**Node.js** (`registerNodeHook()`):
-
-1. Gets the HTTP server via `getServerInstance()`. Throws `"[SocketIOComponent] HTTP server not available for Node.js runtime!"` if it's missing.
-2. Calls `createNodeSocketIOHelper()`, which constructs `SocketIOServerHelper` with `runtime: RuntimeModules.NODE` and the HTTP server, then awaits `configure()`.
-3. Binds the helper to `SOCKET_IO_INSTANCE`.
-
 ### Redis 3-client architecture
 
 ```
@@ -508,7 +495,6 @@ This alias covers both single-instance and `Cluster` connections from `ioredis`,
 
 | Runtime | Required field | Error on missing |
 |---|---|---|
-| `RuntimeModules.NODE` | `opts.server` (`HTTPServer`) | `"[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!"` |
 | `RuntimeModules.BUN` | `opts.engine` (`BunEngine`) | `"[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!"` |
 | Other | - | `"[SocketIOServerHelper] Unsupported runtime!"` |
 
@@ -522,15 +508,13 @@ Called during `configure()`, after the Redis connections are ready.
 
 | Runtime | Initialization |
 |---|---|
-| `RuntimeModules.NODE` | `this.io = new IOServer(this.server, this.serverOptions)` |
 | `RuntimeModules.BUN` | `this.io = new IOServer()` then `this.io.bind(this.bunEngine)` |
 | Other | Throws `"Unsupported runtime: <runtime>"` |
 
-Two more guards run inside each branch:
+One more guard runs inside the Bun branch:
 
 | Runtime | Missing field | Error |
 |---|---|---|
-| Node.js | `this.server` | `"[DANGER] Invalid HTTP server instance to init Socket.io server!"` |
 | Bun | `this.bunEngine` | `"[DANGER] Invalid @socket.io/bun-engine instance to init Socket.io server!"` |
 
 ### Connection lifecycle
@@ -616,8 +600,8 @@ override async stop(): Promise<void> {
 ### Server types
 
 ```typescript
-// Server constructor options - discriminated union on 'runtime'
-type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServerBunOptions;
+// Server constructor options
+type TSocketIOServerOptions = ISocketIOServerBunOptions;
 
 interface ISocketIOServerBaseOptions {
   identifier: string;
@@ -630,11 +614,6 @@ interface ISocketIOServerBaseOptions {
   authenticateFn: TSocketIOAuthenticateFn;
   validateRoomFn?: TSocketIOValidateRoomFn;
   clientConnectedFn?: TSocketIOClientConnectedFn;
-}
-
-interface ISocketIOServerNodeOptions extends ISocketIOServerBaseOptions {
-  runtime: typeof RuntimeModules.NODE;
-  server: HTTPServer;                     // node:http.Server instance
 }
 
 interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
