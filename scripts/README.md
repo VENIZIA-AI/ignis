@@ -14,6 +14,7 @@ Root tooling of the IGNIS monorepo, grouped by purpose. Each group keeps its tes
 | `checks/` | `module-cycles.ts` | Lists import cycles in a built ESM directory | `split-report.ts`, by hand |
 | `checks/` | `split-report.ts` | Reports hub files, stray types files and oversized files; never a gate | `make split-report` |
 | `checks/` | `purity/` | Bundles every entry claimed browser-pure and fails on a node builtin or global | `make purity`, `make purity-<pkg>`, `bun run purity` (CI, release workflow) |
+| `test-setup/` | `tmpdir.ts` | Bun test preload: sets `TMPDIR` and `NODE_COMPILE_CACHE` inside the repository for a bare `bun test` | `[test] preload` in the root and package `bunfig.toml` |
 | `checks/` | `tmp-leak/` | Fails when a test run leaves anything new in the system temp or in `.agents/local/tmp`; lists the sanctioned system-temp paths | `make tmp-leak-check` (CI, around the test steps) |
 | `checks/` | `clean-install/` | Loads each package's published sub-paths from packed tarballs in an empty project | `make clean-install`, `make clean-install-<pkg>` (CI, release workflow) |
 | `build/` | `esm-marker.ts` | Writes `dist/esm/package.json` after an ESM build | `make/project.mk`, the build of each package |

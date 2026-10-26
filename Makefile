@@ -17,6 +17,8 @@ PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-wor
 # the system temp: os.tmpdir() reads TMPDIR. `make tmp-leak-check` fails when a test run breaks this.
 # (The clean-install gate is the exception: it needs a folder outside the repository, see make/test.mk.)
 export TMPDIR := $(CURDIR)/.agents/local/tmp
+# Node writes its compile cache to the system temp unless told otherwise.
+export NODE_COMPILE_CACHE := $(CURDIR)/.agents/local/cache/node-compile
 $(shell mkdir -p $(TMPDIR))
 SYSTEM_TMPDIR := $(or $(IGNIS_SYSTEM_TMPDIR),/tmp)
 

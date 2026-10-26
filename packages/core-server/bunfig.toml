@@ -1,0 +1,3 @@
+# Keeps this package's test run out of the system temp: see scripts/test-setup/tmpdir.ts.
+[test]
+preload = ["../../scripts/test-setup/tmpdir.ts"]

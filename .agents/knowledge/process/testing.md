@@ -41,7 +41,10 @@ tags: [process, test, bun]
 7. A test never writes outside the repository. The root `Makefile` exports `TMPDIR` as the gitignored
    `.agents/local/tmp`, so `os.tmpdir()` and `mkdtemp` land there under every `make` target; remove
    what the test makes in `afterEach`/`afterAll`. Never write a literal `/tmp/...` path. A bare
-   `bun test` outside `make` uses your own `TMPDIR`, so export it first. `make tmp-leak-check` runs
+   `bun test` outside `make` is covered too: a `[test] preload` in the root and every package
+   `bunfig.toml` loads `scripts/test-setup/tmpdir.ts`, which sets `TMPDIR` (and `NODE_COMPILE_CACHE`,
+   which Node would otherwise write to the system temp; `make` exports it as `.agents/local/cache/node-compile`).
+   `make tmp-leak-check` runs
    `test-all` and `test-scripts` between a snapshot and a verify (`scripts/checks/tmp-leak/`) and fails
    when the run added anything to the system temp or left anything in `.agents/local/tmp`; only names
    the current user created after the snapshot count. The one sanctioned system-temp path is the
