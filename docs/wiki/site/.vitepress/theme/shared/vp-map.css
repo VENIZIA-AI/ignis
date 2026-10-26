@@ -1,0 +1,120 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * Maps the tokens of tokens.css and the accent of the wiki's product.css onto the variables of the
+ * VitePress default theme, so every default piece takes the Venizia look without being rewritten.
+ * It is imported after the wiki's own tokens, so it wins over any older mapping.
+ *
+ * No side stripes. A one-sided coloured border reads as generated, so nothing marks a state with a bar
+ * on one side: the pieces at the end are the default theme's own, each given a frame or a square
+ * instead. vitepress-selectors.json lists them with the VitePress version they were written for; a
+ * test checks that each still exists, so a VitePress upgrade that renames one says so.
+ */
+
+:root {
+  --vp-font-family-base: var(--font-sans);
+  --vp-font-family-mono: var(--font-mono);
+
+  --vp-c-bg: var(--bg);
+  --vp-c-bg-alt: var(--bg-soft);
+  --vp-c-bg-soft: var(--bg-soft);
+  --vp-c-bg-elv: var(--surface);
+  --vp-c-divider: var(--stroke);
+  --vp-c-gutter: var(--stroke);
+  --vp-c-text-1: var(--text-title);
+  --vp-c-text-2: var(--text-body);
+  --vp-c-text-3: var(--text-muted);
+
+  --vp-c-brand-1: var(--accent-text);
+  --vp-c-brand-2: var(--accent-text);
+  --vp-c-brand-3: var(--accent);
+  --vp-c-brand-soft: color-mix(in srgb, var(--accent) 12%, transparent);
+
+  --vp-button-brand-bg: var(--accent);
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: var(--accent-ink);
+  --vp-button-brand-hover-bg: var(--accent);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: var(--accent-ink);
+  --vp-button-brand-active-bg: var(--accent);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: var(--accent-ink);
+
+  --vp-nav-bg-color: var(--bg);
+  --vp-sidebar-bg-color: var(--bg);
+  --vp-layout-max-width: 1440px;
+
+  /* The code windows are dark in both themes (see tokens.css), so the code colours are the window's. */
+  --vp-code-block-bg: var(--win-bg);
+  --vp-code-block-divider-color: var(--win-stroke);
+  --vp-code-block-color: var(--win-text);
+  --vp-code-color: var(--text-title);
+  --vp-code-bg: var(--bg-soft);
+  --vp-code-tab-bg: var(--win-bar);
+  --vp-code-tab-divider: var(--win-stroke);
+  --vp-code-tab-text-color: var(--win-muted);
+  --vp-code-tab-hover-text-color: var(--win-text);
+  --vp-code-tab-active-text-color: #fff;
+  --vp-code-tab-active-bar-color: var(--accent-on-dark);
+  --vp-code-lang-color: var(--win-muted);
+  --vp-code-copy-code-bg: var(--win-bar);
+  --vp-code-copy-code-border-color: var(--win-stroke);
+  --vp-code-copy-code-hover-bg: var(--win-bar);
+  --vp-code-copy-code-hover-border-color: var(--win-stroke);
+  --vp-code-copy-code-active-text: var(--win-text);
+  --vp-code-line-highlight-color: #ffffff12;
+  --vp-code-line-number-color: var(--win-muted);
+}
+
+body {
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline-color: var(--accent-text);
+}
+
+/* a blockquote is a full hairline box with a soft background */
+.vp-doc blockquote {
+  margin: 16px 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: var(--radius);
+  padding: 4px 16px;
+  background: var(--vp-c-bg-soft);
+}
+
+/* the active sidebar item is marked by its tint, not by a bar at its left */
+.VPSidebarItem .indicator {
+  display: none;
+}
+
+/* the moving outline marker is a 6px square on the outline's rule, not a bar */
+.VPDocAsideOutline .outline-marker {
+  left: -3.5px;
+  width: 6px;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 0;
+}
+
+/* the active tab of a code group: a 6px square before the label, not a bar under it */
+.vp-code-group .tabs label::after {
+  display: none;
+}
+
+.vp-code-group .tabs label::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background-color: transparent;
+  vertical-align: middle;
+  transition: background-color 0.25s;
+}
+
+.vp-code-group input:checked + label::before {
+  background-color: var(--vp-code-tab-active-bar-color);
+}

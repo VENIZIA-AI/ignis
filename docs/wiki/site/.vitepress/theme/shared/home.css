@@ -1,0 +1,841 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The home page: hero with the animated terminal, proof strip, feature grid, status table, steps, fit, maturity.
+ * Everything is scoped under `.vh`, the root class of the home layout and of the footer, so none of
+ * it reaches the doc pages. Reads tokens.css and the product's accent.
+ */
+
+.vh {
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+  text-wrap: pretty;
+}
+
+.vh a {
+  color: inherit;
+}
+
+.vh img,
+.vh svg {
+  display: block;
+  max-width: 100%;
+}
+
+.vh code,
+.vh pre,
+.vh .mono {
+  font-family: var(--font-mono);
+}
+
+.vh .wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4vw, 40px);
+}
+
+/* the page has no padding of its own: the sections run edge to edge */
+.VPPage:has(.vh) {
+  padding: 0 !important;
+}
+
+/* ---- buttons: 4px radius, uppercase 14px, an arrow in the corner ------------------------ */
+.vh .btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 28px 0 22px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-title);
+  font: 500 14px/1 var(--font-sans);
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.18s,
+    border-color 0.18s,
+    color 0.18s;
+}
+.vh .btn::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-top: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+  opacity: 0.8;
+  transition: transform 0.25s var(--ease-link);
+}
+.vh .btn:hover::after {
+  transform: translate(2px, -2px);
+}
+.vh .btn:active {
+  transform: scale(0.98);
+}
+.vh .btn--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.vh .btn--primary:hover {
+  filter: brightness(1.08);
+}
+.vh .btn--ghost:hover {
+  background: var(--text-title);
+  border-color: var(--text-title);
+  color: var(--bg);
+}
+
+.vh .link {
+  color: var(--text-title);
+  font-weight: 500;
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 0.6s var(--ease-link);
+}
+.vh .link:hover {
+  background-size: 100% 1px;
+}
+
+/* ---- hero ----------------------------------------------------------------------------------- */
+.vh .hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(48px, 8vw, 104px) clamp(48px, 7vw, 88px);
+}
+.vh .hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
+  background-size: 18px 18px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 78%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 78%);
+  pointer-events: none;
+}
+.vh .hero::after {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 70%;
+  height: 90%;
+  background: radial-gradient(50% 50%, var(--glow) 0%, transparent 100%);
+  pointer-events: none;
+}
+.vh .hero .wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: clamp(32px, 3.4vw, 48px);
+  align-items: center;
+}
+
+.vh .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-5);
+  color: var(--accent-text);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vh .eyebrow i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent);
+}
+
+.vh h1 {
+  margin: 0;
+  color: var(--text-title);
+  /* two beats: one line each at 1440, at most three lines at 375 */
+  font-size: clamp(27px, 2.16vw + 18.9px, 48px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+.vh h1 .ln {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+.vh h1 .ln > span {
+  display: block;
+  transform: translateY(105%);
+  animation: ln-in 0.9s var(--ease-out) forwards;
+  animation-delay: calc(var(--i) * 90ms + 80ms);
+}
+.vh h1 em {
+  font-style: normal;
+  color: var(--accent-text);
+}
+@keyframes ln-in {
+  to {
+    transform: none;
+  }
+}
+
+.vh .lede {
+  max-width: 34em;
+  margin: var(--space-5) 0 var(--space-6);
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.45;
+}
+
+.vh .lede-note {
+  max-width: 52ch;
+  margin: calc(var(--space-5) * -1) 0 var(--space-6);
+  color: var(--text-muted);
+  font: 500 12px/1.5 var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.vh .install {
+  max-width: 560px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: var(--win-bg);
+  color: var(--win-text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.vh .install-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--win-stroke);
+  color: var(--win-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.vh .copy {
+  padding: 6px 10px;
+  border: 1px solid var(--win-stroke);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--win-text);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.18s;
+}
+.vh .copy:hover {
+  background: #ffffff14;
+}
+.vh .install pre {
+  margin: 0;
+  padding: 14px 16px 16px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.vh .prompt {
+  margin-right: 10px;
+  color: var(--accent);
+  user-select: none;
+}
+
+.vh .cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* ---- the code window with tabs --------------------------------------------------------------- */
+.vh .hero .wrap > * {
+  min-width: 0;
+}
+.vh .win,
+.vh .win-panel,
+.vh .step .win-panel {
+  scrollbar-width: thin;
+  scrollbar-color: #ffffff33 transparent;
+}
+.vh .win {
+  min-width: 0;
+  border: 1px solid var(--win-stroke);
+  border-radius: var(--radius);
+  background: var(--win-bg);
+  color: var(--win-text);
+  box-shadow: none;
+}
+.vh .win-bar {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--win-stroke);
+  background: var(--win-bar);
+}
+.vh .win-bar::-webkit-scrollbar {
+  display: none;
+}
+.vh .win-tab {
+  flex: none;
+  padding: 12px 16px;
+  border: 0;
+  border-right: 1px solid var(--win-stroke);
+  background: transparent;
+  color: var(--win-muted);
+  font: 500 12px var(--font-mono);
+  cursor: pointer;
+  transition: color 0.18s;
+}
+.vh .win-tab:hover {
+  color: var(--win-text);
+}
+.vh .win-tab[aria-selected='true'] {
+  background: var(--win-bg);
+  color: #fff;
+}
+.vh .win-tab[aria-selected='true']::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  background: var(--accent-on-dark);
+  vertical-align: middle;
+}
+/* the panels (and the notes) share one grid cell, so the window is as tall as its tallest tab and the page
+   below does not jump when a tab is chosen; only the chosen one is visible */
+.vh .win-body,
+.vh .win-notes {
+  display: grid;
+}
+.vh .win-body > .win-panel,
+.vh .win-notes > .win-note {
+  grid-area: 1 / 1;
+  visibility: hidden;
+}
+.vh .win-body > .win-panel.is-on,
+.vh .win-notes > .win-note.is-on {
+  visibility: visible;
+}
+/* a terminal plays in a hidden tab too, and its prompt and caret set `visibility: visible` of their own */
+.vh .win-body > .win-panel:not(.is-on) * {
+  visibility: hidden !important;
+}
+.vh .win-panel {
+  margin: 0;
+  font-family: var(--font-mono);
+  padding: 18px 20px 22px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.75;
+  tab-size: 2;
+}
+.vh .win-body > .win-panel {
+  max-height: 460px;
+  overflow-y: auto;
+}
+.vh .win-note {
+  margin: 0;
+  padding: 10px 20px;
+  border-top: 1px solid var(--win-stroke);
+  color: var(--win-muted);
+  font: 400 12px/1.5 var(--font-sans);
+}
+.vh .win-note a {
+  color: var(--win-text);
+}
+
+.vh .k {
+  color: var(--win-key);
+}
+.vh .s {
+  color: var(--win-str);
+}
+.vh .c {
+  color: var(--win-com);
+  font-style: italic;
+}
+.vh .f {
+  color: var(--win-fn);
+}
+.vh .t {
+  color: var(--win-type);
+}
+.vh .o {
+  color: var(--win-muted);
+}
+.vh .ok {
+  color: var(--win-str);
+}
+.vh .warn {
+  color: var(--win-type);
+}
+.vh .bad {
+  color: #ff9a9a;
+}
+
+/*
+ * The terminal: the window is full size from the first paint. The command is typed behind a block
+ * caret, a short pause follows, then each group of output fades in and rises 3px. Without JavaScript
+ * the finished terminal shows. The runner is in home.js.
+ */
+.vh .term {
+  font-family: var(--font-mono);
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+.vh .term-cmd {
+  display: block;
+  min-height: 1.75em;
+  overflow-wrap: anywhere;
+}
+.vh .term-group {
+  display: block;
+}
+.vh .tl {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.vh .tl.verdict {
+  color: var(--accent-on-dark);
+  font-weight: 600;
+}
+.vh .caret {
+  display: none;
+  width: 0.55em;
+  height: 1.15em;
+  margin-left: 2px;
+  background: var(--win-text);
+  vertical-align: text-bottom;
+}
+.js .vh .term-cmd .prompt,
+.js .vh .term-cmd .typed-rest {
+  visibility: hidden;
+}
+.js .vh .term-cmd.is-on .prompt {
+  visibility: visible;
+}
+.js .vh .term-cmd .caret {
+  display: inline-block;
+  visibility: hidden;
+}
+.js .vh .term-cmd.is-active .caret {
+  visibility: visible;
+}
+/* steady while a command is typed; it blinks only at an idle prompt */
+.js .vh .term-cmd.is-idle .caret {
+  animation: caret 1.1s step-end infinite;
+}
+.js .vh .term-group {
+  opacity: 0;
+  transform: translateY(3px);
+}
+.js .vh .term-group.is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.18s var(--ease-out),
+    transform 0.18s var(--ease-out);
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ---- sections --------------------------------------------------------------------------------- */
+.vh .section {
+  padding-block: clamp(56px, 8vw, 104px);
+  border-top: 1px solid var(--stroke);
+}
+.vh .section--soft {
+  background: var(--bg-soft);
+}
+.vh .sec-head {
+  max-width: 46em;
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+.vh h2 {
+  margin: 0;
+  color: var(--text-title);
+  font-size: clamp(28px, 3.6vw, 48px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.028em;
+}
+.vh h2 .dim {
+  color: var(--text-muted);
+}
+.vh .sec-head p {
+  margin: var(--space-4) 0 0;
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* proof: counts taken from the source */
+.vh .proof {
+  padding-block: var(--space-7);
+  border-top: 1px solid var(--stroke);
+}
+.vh .stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+}
+.vh .stat {
+  padding: var(--space-5);
+  border-right: 1px solid var(--stroke);
+}
+.vh .stat:last-child {
+  border-right: 0;
+}
+.vh .stat b {
+  display: block;
+  color: var(--text-title);
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.vh .stat span {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  font: 500 12px/1.3 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vh .footnote {
+  margin: var(--space-4) 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* the reference grid: hairline cells, a mono name, a gloss, a link */
+.vh .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  border-top: 1px solid var(--stroke);
+  border-left: 1px solid var(--stroke);
+}
+.vh .cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-right: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+  background: var(--bg);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.18s;
+}
+.vh a.cell:hover {
+  background: var(--bg-soft);
+}
+.vh .section--soft .cell {
+  background: var(--surface);
+}
+.vh .cell .name {
+  color: var(--accent-text);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vh .cell h3 {
+  margin: var(--space-2) 0 0;
+  color: var(--text-title);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+.vh .cell p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.vh .cell .more {
+  margin-top: auto;
+  padding-top: var(--space-3);
+  color: var(--text-title);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vh .cell .more::after {
+  content: ' \2192';
+  display: inline-block;
+  transition: transform 0.25s var(--ease-link);
+}
+.vh a.cell:hover .more::after {
+  transform: translateX(4px);
+}
+.vh .chip {
+  align-self: flex-start;
+  padding: 3px 7px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  color: var(--text-title);
+  font: 500 10px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vh .chip--ok {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+.vh .chip--no {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+/* table of honest status */
+.vh .table-scroll {
+  overflow-x: auto;
+}
+.vh .status {
+  width: 100%;
+  min-width: 560px;
+  border: 1px solid var(--stroke);
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.vh .status th,
+.vh .status td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--stroke);
+  text-align: left;
+  vertical-align: top;
+}
+.vh .status th {
+  color: var(--text-muted);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vh .status td:first-child {
+  color: var(--text-title);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.vh .status tr:last-child td {
+  border-bottom: 0;
+}
+
+/* steps */
+.vh .steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-6);
+  counter-reset: step;
+}
+.vh .step {
+  min-width: 0;
+  border-top: 1px solid var(--stroke-strong);
+  padding-top: var(--space-4);
+}
+.vh .step::before {
+  counter-increment: step;
+  content: '0' counter(step);
+  display: block;
+  margin-bottom: var(--space-3);
+  color: var(--accent-text);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+}
+.vh .step h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-title);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.vh .step p {
+  margin: 0 0 var(--space-4);
+  font-size: 15px;
+}
+.vh .step .win-panel {
+  display: block;
+  max-height: none;
+  border: 1px solid var(--win-stroke);
+  border-radius: var(--radius);
+  background: var(--win-bg);
+  color: var(--win-text);
+  font-size: 12.5px;
+  padding: 14px 16px;
+}
+
+/* fit */
+.vh .fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: var(--space-5);
+}
+.vh .fit > div {
+  padding: var(--space-5);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.vh .fit h3 {
+  margin: 0 0 var(--space-3);
+  color: var(--text-title);
+  font-size: 18px;
+  font-weight: 500;
+}
+.vh .fit ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.vh .fit li {
+  position: relative;
+  padding: 7px 0 7px 22px;
+  border-top: 1px solid var(--stroke);
+  font-size: 15px;
+}
+.vh .fit li:first-child {
+  border-top: 0;
+}
+.vh .fit li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 15px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+}
+.vh .fit .no li::before {
+  background: transparent;
+  border: 1.5px solid var(--text-muted);
+}
+
+.vh .maturity {
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 15px;
+}
+.vh .maturity::before {
+  content: 'Maturity';
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+  color: var(--accent-text);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vh .maturity b {
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.vh .built-on {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  color: var(--text-muted);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vh .built-on span.pill {
+  padding: 8px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  color: var(--text-title);
+}
+
+/* ---- reveal on scroll: a 10px rise over 0.6s, 70ms apart ------------------------------------ */
+.js .vh .reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+.js .vh .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- narrow screens ------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .vh .hero .wrap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* the headline keeps three lines at most down to 320 wide: 27px from 370, 23px at 320 */
+@media (max-width: 400px) {
+  .vh h1 {
+    font-size: clamp(23px, 7.3vw - 0.4px, 27px);
+  }
+}
+
+@media (max-width: 560px) {
+  .vh .stat {
+    border-right: 0;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .vh .stat:last-child {
+    border-bottom: 0;
+  }
+  .vh .btn {
+    flex: 1 1 100%;
+  }
+  .vh .status td:first-child {
+    white-space: normal;
+  }
+}
+
+/* ---- reduced motion: everything is shown at once ---------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .vh *,
+  .vh *::before,
+  .vh *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  .vh h1 .ln > span {
+    transform: none;
+  }
+  .js .vh .term-group {
+    opacity: 1;
+    transform: none;
+  }
+  .js .vh .term-cmd .caret {
+    animation: none !important;
+  }
+  .js .vh .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}

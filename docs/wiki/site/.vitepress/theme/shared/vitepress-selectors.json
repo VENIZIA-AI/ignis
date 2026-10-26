@@ -1,0 +1,152 @@
+{
+  "vitepress": "1.6.4",
+  "selectors": [
+    {
+      "selector": ".vp-doc blockquote",
+      "file": "styles/components/vp-doc.css",
+      "needle": ".vp-doc blockquote {"
+    },
+    {
+      "selector": ".VPSidebar",
+      "file": "components/VPSidebar.vue",
+      "needle": ".VPSidebar {"
+    },
+    {
+      "selector": ".VPSidebarItem .indicator",
+      "file": "components/VPSidebarItem.vue",
+      "needle": ".indicator {"
+    },
+    {
+      "selector": ".VPSidebarItem.is-active",
+      "file": "components/VPSidebarItem.vue",
+      "needle": "is-active"
+    },
+    {
+      "selector": ".VPDocAsideOutline .outline-marker",
+      "file": "components/VPDocAsideOutline.vue",
+      "needle": ".outline-marker {"
+    },
+    {
+      "selector": ".VPDocAsideOutline .outline-title",
+      "file": "components/VPDocAsideOutline.vue",
+      "needle": ".outline-title {"
+    },
+    {
+      "selector": ".VPDocAsideOutline .outline-link",
+      "file": "components/VPDocOutlineItem.vue",
+      "needle": ".outline-link {"
+    },
+    {
+      "selector": ".vp-doc table",
+      "file": "styles/components/vp-doc.css",
+      "needle": ".vp-doc table {"
+    },
+    {
+      "selector": ".vp-doc .custom-block",
+      "file": "styles/components/custom-block.css",
+      "needle": ".custom-block {"
+    },
+    {
+      "selector": ".vp-code-group .tabs",
+      "file": "styles/components/vp-code-group.css",
+      "needle": ".vp-code-group .tabs {"
+    },
+    {
+      "selector": ".vp-code-group .tabs label::after",
+      "file": "styles/components/vp-code-group.css",
+      "needle": ".vp-code-group .tabs label::after {"
+    },
+    {
+      "selector": ".vp-code-group input:checked + label",
+      "file": "styles/components/vp-code-group.css",
+      "needle": ".vp-code-group input:checked + label {"
+    },
+    {
+      "selector": ".VPDocFooter .pager-link",
+      "file": "components/VPDocFooter.vue",
+      "needle": ".pager-link {"
+    },
+    {
+      "selector": ".VPDocFooter .edit-link-button",
+      "file": "components/VPDocFooter.vue",
+      "needle": ".edit-link-button {"
+    },
+    {
+      "selector": ".VPLocalNav",
+      "file": "components/VPLocalNav.vue",
+      "needle": ".VPLocalNav {"
+    },
+    {
+      "selector": ".VPNavBar",
+      "file": "components/VPNavBar.vue",
+      "needle": ".VPNavBar {"
+    },
+    {
+      "selector": ".VPNavBarTitle .title",
+      "file": "components/VPNavBarTitle.vue",
+      "needle": ".title {"
+    },
+    {
+      "selector": ".VPNavBarMenuLink",
+      "file": "components/VPNavBarMenuLink.vue",
+      "needle": ".VPNavBarMenuLink {"
+    },
+    {
+      "selector": ".DocSearch-Button",
+      "file": "components/VPNavBarSearchButton.vue",
+      "needle": ".DocSearch-Button {"
+    },
+    {
+      "selector": ".VPSocialLink",
+      "file": "components/VPSocialLink.vue",
+      "needle": ".VPSocialLink {"
+    },
+    {
+      "selector": ".VPNavScreen .VPNavScreenMenuLink",
+      "file": "components/VPNavScreenMenuLink.vue",
+      "needle": ".VPNavScreenMenuLink {"
+    },
+    {
+      "selector": ".VPSwitchAppearance .check",
+      "file": "components/VPSwitch.vue",
+      "needle": ".check {"
+    },
+    {
+      "selector": ".VPSwitchAppearance .icon .sun",
+      "file": "components/VPSwitchAppearance.vue",
+      "needle": ".sun {"
+    },
+    {
+      "selector": ".VPPage",
+      "file": "components/VPPage.vue",
+      "needle": "VPPage"
+    },
+    {
+      "selector": ".VPDoc .aside-curtain",
+      "file": "components/VPDoc.vue",
+      "needle": ".aside-curtain {"
+    }
+  ],
+  "slots": [
+    {
+      "slot": "nav-bar-title-after",
+      "file": "components/VPNavBar.vue",
+      "needle": "nav-bar-title-after"
+    },
+    {
+      "slot": "nav-bar-content-after",
+      "file": "components/VPNavBar.vue",
+      "needle": "nav-bar-content-after"
+    },
+    {
+      "slot": "nav-screen-content-after",
+      "file": "components/VPNav.vue",
+      "needle": "nav-screen-content-after"
+    },
+    {
+      "slot": "layout-bottom",
+      "file": "Layout.vue",
+      "needle": "layout-bottom"
+    }
+  ]
+}

@@ -1483,7 +1483,6 @@ html.dark .honest-box {
 .VPDocAside .outline-link.active,
 .outline-link.active {
   color: var(--ig-link) !important;
-  border-left-color: var(--ig-rose) !important;
 }
 
 /* Prose: token-grounded type scale and line-height */
