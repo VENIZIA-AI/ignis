@@ -412,3 +412,16 @@ The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion ->
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/dev-configs is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

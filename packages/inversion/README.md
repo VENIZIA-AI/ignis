@@ -148,3 +148,16 @@ Depends on nothing in IGNIS. Used by filter, helpers and kernel: dev-configs -> 
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/ignis-inversion is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>
