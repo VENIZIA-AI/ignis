@@ -28,6 +28,44 @@ Before starting, ensure you have:
 - A working IGNIS application (see [Building a CRUD API](./building-a-crud-api.md))
 - Basic understanding of [Controllers](../core-concepts/rest-controllers.md) and [Repositories](../core-concepts/persistent/)
 
+## Prove the Application Boots
+
+A controller that injects a service nobody registered passes every unit test of its own and then stops the server at boot. `assertApplicationBoots` runs the application's own boot in a test and fails with the error boot raises. Apps created from the `ignis` preset ship it as `src/boot.test.ts`. An existing app adds the same file:
+
+```typescript
+// src/boot.test.ts
+import { describe, expect, test } from 'bun:test';
+import { assertApplicationBoots } from '@venizia/ignis/testing';
+import { application } from '#src/application';
+
+describe('boot', () => {
+  test('boots and mounts its routes', async () => {
+    const booted = await assertApplicationBoots(application);
+
+    // The root router has no base path yet: `start()` mounts it under `/api`.
+    const response = await booted.getRootRouter().request('/hello');
+
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+The helper runs `init()` and `initialize()`, never `start()`: no socket opens and no post-start hook runs. Datasources are bound and resolved but not configured, so no connection is made. Every other step and every component runs as in a real boot.
+
+| Option | Default | Meaning |
+|--------|---------|---------|
+| `keepDataSources` | `[]` | Datasources whose real `configure()` runs. A class, a class name or a binding key (`datasources.Main`) selects one. Close a kept one with `await application.stop()` |
+| `skipComponents` | `[]` | Components whose `configure()` (and so `binding()`) is skipped, for one that needs infrastructure. What it would have registered is not registered |
+| `skipSteps` | `['hydrateSecrets', 'wireSecretRotatables']` | Boot steps that do not run. A value replaces the default; an unknown name rejects before anything boots |
+| `verifyBindings` | `true` | After boot, resolves every service and repository with [`assertBindingsResolve`](/extensions/helpers/inversion/reference#verifying-a-container), so an injection nobody references at boot still fails. A value you pass wins over the app's own `bootChecks`, whose boot step is off for the run |
+| `skipBindings` | `[]` | Services or repositories the verification leaves out, for one whose constructor needs infrastructure. A class, a class name or a binding key. A name that matches nothing rejects |
+| `allowNoControllers` | `false` | An application that registered no controller is rejected, because an empty artifact index would otherwise pass |
+| `routes` | `true` | The helper's own check that no method and path is mounted twice. IGNIS boot does not detect that |
+
+The first argument is a built application or a function that returns one. Pass a function when a test boots the same application more than once: a second call on the same instance is rejected, also after a failed first call.
+
+Verification runs after the last boot step, so if `validateScopeFilterSupport` also fails, that error comes first. What it catches: an unregistered injection, a missing binding, a bad component wiring, a duplicate route, an application with no controller. What it does not catch: a wrong database URL or password, a migration, anything `start()` does, or code of your own that opens a connection while it boots. `printStartUpInfo`, `validateEnvs` and `registerDefaultMiddlewares` still run, so a test supplies the environment variables its application needs.
+
 ## Quick Examples with Popular Frameworks
 
 ### Shared Test App Helper
@@ -261,6 +299,7 @@ Cover the boundaries alongside the happy path: empty input, duplicate ids, missi
 
 | What to Test | How |
 |--------------|-----|
+| **Boot** | `assertApplicationBoots(application)` from `@venizia/ignis/testing`: every binding and injection resolves, with no database or port |
 | **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls, with no `path.base` prefix |
 | **Services** | Instantiate and call methods directly |
 | **Repositories** | Use DI container, test with real/mock DB |
