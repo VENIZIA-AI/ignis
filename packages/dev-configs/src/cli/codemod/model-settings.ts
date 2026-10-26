@@ -2,6 +2,9 @@ import type ts from 'typescript';
 
 type TTypeScript = typeof ts;
 
+/** The packages that export the `@model` decorator, so an aliased import of it is recognised. */
+const MODEL_MODULES = new Set<string>(['@venizia/ignis', '@venizia/ignis-kernel']);
+
 /** One thing the codemod could not decide and left alone. */
 export interface IModelSettingsReport {
   line: number;
@@ -76,6 +79,49 @@ export const migrateModelSettings = (opts: {
   };
 
   const text = (node: ts.Node) => source.slice(node.getStart(sourceFile), node.end);
+
+  // Names that mean `@model`: the identifier itself, an alias of a named import from IGNIS, and the
+  // namespace of `import * as ignis` (`@ignis.model(...)`).
+  const modelNames = new Set<string>(['model']);
+  const namespaces = new Set<string>();
+  for (const statement of sourceFile.statements) {
+    if (
+      !typescript.isImportDeclaration(statement) ||
+      !typescript.isStringLiteral(statement.moduleSpecifier) ||
+      !MODEL_MODULES.has(statement.moduleSpecifier.text)
+    ) {
+      continue;
+    }
+
+    const bindings = statement.importClause?.namedBindings;
+    if (!bindings) {
+      continue;
+    }
+
+    if (typescript.isNamespaceImport(bindings)) {
+      namespaces.add(bindings.name.text);
+      continue;
+    }
+
+    for (const element of bindings.elements) {
+      if ((element.propertyName ?? element.name).text === 'model') {
+        modelNames.add(element.name.text);
+      }
+    }
+  }
+
+  const isModelCallee = (callee: ts.Expression): boolean => {
+    if (typescript.isIdentifier(callee)) {
+      return modelNames.has(callee.text);
+    }
+
+    return (
+      typescript.isPropertyAccessExpression(callee) &&
+      typescript.isIdentifier(callee.expression) &&
+      namespaces.has(callee.expression.text) &&
+      callee.name.text === 'model'
+    );
+  };
 
   /**
    * The leading trivia of `first` (its own comments and indentation) followed by the comments that
@@ -364,8 +410,7 @@ export const migrateModelSettings = (opts: {
     if (
       typescript.isDecorator(node) &&
       typescript.isCallExpression(node.expression) &&
-      typescript.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === 'model'
+      isModelCallee(node.expression.expression)
     ) {
       const argument = node.expression.arguments[0];
 
@@ -389,6 +434,11 @@ export const migrateModelSettings = (opts: {
         }
 
         migrateSkipMigrate(argument);
+      } else if (argument) {
+        report(
+          argument,
+          '@model argument is not an object literal (a variable or a call); left untouched',
+        );
       }
     }
 

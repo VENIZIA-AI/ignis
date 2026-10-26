@@ -249,6 +249,42 @@ describe('migrateModelSettings - never guesses', () => {
     expect(result.reports[0]?.line).toBeGreaterThan(0);
   });
 
+  test('@model(options) with a variable argument is reported, not skipped', () => {
+    const source = '@model(options)\nclass A {}\n';
+    const result = run(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.reports).toHaveLength(1);
+    expect(result.reports[0]?.reason).toMatch(/@model argument is not an object literal/);
+  });
+
+  test('an aliased import of model from IGNIS is migrated like model', () => {
+    const source =
+      "import { model as m } from '@venizia/ignis';\n@m({ settings: { defaultLimit: 5 } })\nclass A {}\n";
+    const result = run(source);
+
+    expect(result.rewritten).toBe(1);
+    expect(result.output).toContain('query: { limit: { default: 5 } }');
+  });
+
+  test('model reached through a namespace import of IGNIS is migrated', () => {
+    const source =
+      "import * as ignis from '@venizia/ignis-kernel';\n@ignis.model({ settings: { maxLimit: 9 } })\nclass A {}\n";
+    const result = run(source);
+
+    expect(result.rewritten).toBe(1);
+    expect(result.output).toContain('query: { limit: { max: 9 } }');
+  });
+
+  test('an alias that does not come from IGNIS is not a model decorator', () => {
+    const source =
+      "import { model as m } from './mine';\n@m({ settings: { defaultLimit: 5 } })\nclass A {}\n";
+    const result = run(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.reports).toHaveLength(0);
+  });
+
   test('an untouched model does not stop the next model in the file', () => {
     const result = run(`@model({ settings: s })\nclass A {}\n${model('{ defaultLimit: 4 }')}`);
 
@@ -335,6 +371,37 @@ describe('devz codemod model-settings - the command', () => {
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
     expect(logs.join('\n')).toContain('would change');
     expect(logs.join('\n')).toContain('src/a.model.ts');
+  });
+
+  test('--check exits 1 when the only findings are left-untouched models', async () => {
+    write('src/a.model.ts', '@model({ settings: shared })\nclass A {}\n');
+
+    const code = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+
+    expect(code).toBe(1);
+    expect(warnings.join('\n')).toContain('left untouched');
+    expect(logs.join('\n')).toContain('fix them by hand');
+  });
+
+  test('--check reports @model(options) and an aliased decorator', async () => {
+    write('src/a.model.ts', '@model(options)\nclass A {}\n');
+    write(
+      'src/b.model.ts',
+      "import { model as m } from '@venizia/ignis';\n@m({ settings: { defaultLimit: 5 } })\nclass B {}\n",
+    );
+
+    const code = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+
+    expect(code).toBe(1);
+    expect(warnings.join('\n')).toContain('@model argument is not an object literal');
+    expect(logs.join('\n')).toContain('src/b.model.ts');
+  });
+
+  test('without --check, left-untouched models do not change the exit code', async () => {
+    write('src/a.model.ts', '@model({ settings: shared })\nclass A {}\n');
+
+    expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
+    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
   });
 
   test('--check exits 0 when nothing would change', async () => {
