@@ -2,7 +2,7 @@ import { rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { platformaticKafkaPlugins, platformaticWasmPlugin } from '../../../modules/queue/kafka';
-import { spawnSyncBounded } from '../../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 const ENTRYPOINT = 'src/__tests__/kafka/fixtures/registry-entrypoint.ts';
 

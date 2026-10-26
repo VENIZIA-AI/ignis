@@ -9,7 +9,7 @@ import type { ILogger } from '@/modules/logger/common/types';
 import { loggerSlot } from '@/modules/logger/slot';
 import type { TLoggerResolver } from '@/modules/logger/slot';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 class ProbeHelper extends BaseHelper {
   constructor() {

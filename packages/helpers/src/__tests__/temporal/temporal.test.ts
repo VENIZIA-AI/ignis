@@ -14,7 +14,7 @@ import {
 } from '@/modules/temporal';
 import type { ITemporalAdapter, TTemporalUnit } from '@/modules/temporal';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);

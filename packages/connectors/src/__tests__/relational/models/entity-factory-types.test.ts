@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { spawnSyncBounded } from '../../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 /**
  * What `defineEntity` promises is that a WRONG shape stops compiling, which a runtime test cannot

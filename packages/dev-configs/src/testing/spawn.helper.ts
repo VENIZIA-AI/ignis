@@ -16,10 +16,13 @@ export const spawnSyncBounded = <
 ) => {
   const timeout = opts.timeout ?? SPAWN_TIMEOUT_MS;
   const result = Bun.spawnSync<In, Out, Err>({ ...opts, timeout, killSignal: 'SIGKILL' as const });
+
   if (result.exitedDueToTimeout) {
+    // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
     throw new Error(
       `[spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
     );
   }
+
   return result;
 };

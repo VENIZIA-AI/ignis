@@ -164,10 +164,18 @@ generated:
 - `TProbeSeverity` type
 - `TPurityVerdict` type
 
-### `@venizia/dev-configs/testing` (2)
+### `@venizia/dev-configs/testing` (7)
 
 - `expectRejection` const
+- `findRepositoryRoot` const
 - `rejectionOf` const
+- `REPO_TMP_DIRECTORY` const
+- `SPAWN_TIMEOUT_MS` const
+- `spawnSyncBounded` const
+- `useRepoTmp` const
+
+### `@venizia/dev-configs/testing/tmpdir-preload` (0)
+
 
 ## inversion
 

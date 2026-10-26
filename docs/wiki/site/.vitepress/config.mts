@@ -464,6 +464,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'dev-configs Testing Adds spawnSyncBounded',
+                  link: '/changelogs/2026-10-27-dev-configs-testing-spawn-tmpdir',
+                },
+                {
                   text: 'devz check purity Ships in dev-configs',
                   link: '/changelogs/2026-10-27-dev-configs-check-purity',
                 },
