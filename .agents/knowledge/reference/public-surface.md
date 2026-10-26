@@ -12,12 +12,13 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (35)
+### `@venizia/dev-configs` (45)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
 - `ConstClassValuesRule` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -45,20 +46,30 @@ generated:
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
 - `readField` const
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
 ### `@venizia/dev-configs/compilers` (1)
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (34)
+### `@venizia/dev-configs/linters` (44)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -86,14 +97,24 @@ generated:
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
 - `readField` const
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
-### `@venizia/dev-configs/linters/oxlint` (18)
+### `@venizia/dev-configs/linters/oxlint` (28)
 
 - `BrowserOxlintConfigs` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `IOxlintPresetOptions` interface
 - `IRestrictedImportPath` interface
@@ -107,10 +128,19 @@ generated:
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
 - `ReactOxlintConfigs` class
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
 ### `@venizia/dev-configs/testing` (2)
 
