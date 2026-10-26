@@ -1,0 +1,20 @@
+/*
+ * IGNIS's accent, the one thing this wiki sets on top of the shared theme (theme/shared). The values
+ * are the brand ramp of design-tokens.css: --ig-rose and --ig-coral, with --ig-rose-lt on dark. See
+ * shared/tokens.css for what each variable is for.
+ */
+:root {
+  --accent: #af5f5f; /* --ig-rose; white on it is 4.54:1 */
+  --accent-ink: #ffffff;
+  --accent-text: #af5f5f; /* 4.54:1 on white */
+  --accent-2: #d98e6a; /* --ig-coral */
+  --accent-on-dark: #c98a8a; /* --ig-rose-lt, 7.04:1 on the dark slab */
+  --glow: color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.dark {
+  --accent: #af5f5f;
+  --accent-ink: #ffffff;
+  --accent-text: #c98a8a; /* --ig-rose-lt */
+  --glow: color-mix(in srgb, var(--accent) 16%, transparent);
+}
