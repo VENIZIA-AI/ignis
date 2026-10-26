@@ -149,11 +149,12 @@ generated:
 
 ## inversion
 
-### `@venizia/ignis-inversion` (71)
+### `@venizia/ignis-inversion` (77)
 
 - `AbstractContainer` class
 - `AnyType` type
 - `ApplicationError` class
+- `assertBindingsResolve` const
 - `BaseContainer` class
 - `BaseHelper` class
 - `Binding` class
@@ -166,8 +167,10 @@ generated:
 - `fromError` const
 - `getError` const
 - `IBinding` interface
+- `IBindingFailure` interface
 - `IBindingKeyRecord` interface
 - `IBindingTag` interface
+- `IBindingVerification` interface
 - `IContainer` interface
 - `IErrorKeyRegistry` interface
 - `IInjectMetadata` interface
@@ -178,6 +181,7 @@ generated:
 - `isClass` const
 - `isClassProvider` const
 - `isEmpty` const
+- `IVerifyBindingsOptions` interface
 - `Logger` class
 - `MessageCode` class
 - `MessageTemplate` class
@@ -195,6 +199,7 @@ generated:
 - `TBindingProvider` type
 - `TBindingResolverValue` type
 - `TBindingScope` type
+- `TBindingSkip` type
 - `TBindingValueType` type
 - `TClass` type
 - `TConstructor` type
@@ -222,6 +227,7 @@ generated:
 - `TValueOrResolver` type
 - `ValueOf` type
 - `ValueOrPromise` type
+- `verifyBindings` const
 
 ## filter
 

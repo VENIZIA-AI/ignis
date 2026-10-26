@@ -50,6 +50,7 @@ export class Container extends BaseContainer {
     if (recorded === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names '${target.name}', which is not registered as an artifact | Decorate it (@service, @repository, ...) or register it on the application before it is injected`,
+        extra: { unregisteredClass: target.name },
       });
     }
 
