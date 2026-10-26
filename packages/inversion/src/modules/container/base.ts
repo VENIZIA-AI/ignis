@@ -176,8 +176,11 @@ export abstract class BaseContainer extends AbstractContainer {
     }
 
     if (!isOptional) {
+      const printed = typeof key === 'object' ? BindingKeys.build(key) : String(key);
+
       throw getError({
-        message: `Binding key: ${typeof key === 'object' ? BindingKeys.build(key) : String(key)} is not bounded in context!`,
+        message: `Binding key: ${printed} is not bounded in context!`,
+        extra: { unboundKey: printed },
       });
     }
 
