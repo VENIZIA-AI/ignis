@@ -244,7 +244,7 @@ named `getError` rather than emit an empty `with` clause that would surface much
 
 ## Rotation drains by capability, not by class
 
-`AbstractRelationalDataSource.onSecretRotated()` soft-evicts three clients - a half-built one when
+`AbstractDriverDataSource.onSecretRotated()` (the neutral root the relational root extends) soft-evicts three clients - a half-built one when
 `configure()` throws, the rebuilt one when the driver fails to wire, and the old one after a
 successful swap. All three go through `drainClient()`, which **probes for `end()` and falls back to
 `close()`**. The verb is not portable: `pg.Pool` and postgres.js end, PGlite and libsql close.
