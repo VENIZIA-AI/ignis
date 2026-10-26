@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CleanCommand } from '../cli/clean';
@@ -42,6 +42,36 @@ describe('devz clean', () => {
 
     expect(existsSync(join(root, 'tsconfig.tsbuildinfo'))).toBe(false);
     expect(existsSync(join(root, 'tsconfig.build.tsbuildinfo'))).toBe(false);
+  });
+
+  test('--help and -h print the usage, exit 0 and delete nothing', () => {
+    touch({ root, path: 'dist/index.js' });
+    touch({ root, path: 'tsconfig.tsbuildinfo' });
+    const logs: string[] = [];
+    spyOn(console, 'log').mockImplementation((...args) => {
+      logs.push(args.join(' '));
+    });
+
+    for (const flag of ['--help', '-h']) {
+      expect(CleanCommand.run({ root, args: [flag] })).toBe(0);
+    }
+
+    expect(logs.join('\n')).toContain('Usage: devz clean');
+    expect(existsSync(join(root, 'dist/index.js'))).toBe(true);
+    expect(existsSync(join(root, 'tsconfig.tsbuildinfo'))).toBe(true);
+  });
+
+  test('an unknown flag or argument exits 2 and deletes nothing', () => {
+    touch({ root, path: 'dist/index.js' });
+    touch({ root, path: 'tsconfig.tsbuildinfo' });
+    spyOn(console, 'error').mockImplementation(() => {});
+
+    for (const args of [['--halp'], ['dist'], ['--force', '--help-me']]) {
+      expect(CleanCommand.run({ root, args })).toBe(2);
+    }
+
+    expect(existsSync(join(root, 'dist/index.js'))).toBe(true);
+    expect(existsSync(join(root, 'tsconfig.tsbuildinfo'))).toBe(true);
   });
 
   test('leaves source, config and a nested tsbuildinfo alone', () => {

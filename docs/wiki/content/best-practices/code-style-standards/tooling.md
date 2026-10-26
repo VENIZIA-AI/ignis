@@ -214,8 +214,8 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz lint --fix` | Fixes the whole project |
 | `devz lint src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
 | `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
-| `devz clean` | Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
-| `devz codemod model-settings [paths...] [--check]` | Moves `@model` settings from the flat keys to `query` and `access`. `--check` only lists what would change and exits 1 when anything would. A `settings` value that is not an object literal is reported with its file and line and left untouched |
+| `devz clean` | Takes no argument (`--help` prints the usage; any other argument exits 2 and deletes nothing). Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
+| `devz codemod model-settings [paths...] [--write \| --check]` | Moves `@model` settings from the flat keys to `query` and `access`, and `skipMigrate` to `migration.use`. A dry run unless you pass `--write`; `--check` is the dry run that exits 1 when anything would change. Inside git it reads only the files git knows, so ignored folders are never touched; `--help` prints the usage. A `settings` value that is not an object literal is reported with its file and line and left untouched |
 
 With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
 
