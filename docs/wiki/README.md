@@ -1,8 +1,6 @@
 <div align="center">
 
-<a href="https://ignis.venizia.ai"><img src="https://ignis.venizia.ai/logo.svg" alt="IGNIS" height="96"></a>
-
-# IGNIS - @venizia/ignis-docs
+# <img src="https://ignis.venizia.ai/logo.svg" alt="" height="32" align="top"> IGNIS - @venizia/ignis-docs
 
 **Documentation site for the IGNIS Framework**
 
