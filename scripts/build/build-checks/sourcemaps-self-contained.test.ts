@@ -23,26 +23,26 @@ type TPackageManifest = { files?: string[] };
 const MAP_SUFFIXES = ['.js.map'];
 
 const walkMaps = (dir: string): string[] =>
-  readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+  readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) {
       return walkMaps(full);
     }
-    return MAP_SUFFIXES.some(suffix => entry.name.endsWith(suffix)) ? [full] : [];
+    return MAP_SUFFIXES.some((suffix) => entry.name.endsWith(suffix)) ? [full] : [];
   });
 
 /** Whether `files` publishes `relPath`: under a listed entry, and not matched by a `!` pattern. */
 const isPublished = (opts: { files: string[]; relPath: string }): boolean => {
   const { files, relPath } = opts;
   const included = files
-    .filter(entry => !entry.startsWith('!'))
-    .some(entry => relPath === entry || relPath.startsWith(`${entry}/`));
+    .filter((entry) => !entry.startsWith('!'))
+    .some((entry) => relPath === entry || relPath.startsWith(`${entry}/`));
   if (!included) {
     return false;
   }
   return !files
-    .filter(entry => entry.startsWith('!'))
-    .some(entry => new Bun.Glob(entry.slice(1).replace(/^\//, '')).match(relPath));
+    .filter((entry) => entry.startsWith('!'))
+    .some((entry) => new Bun.Glob(entry.slice(1).replace(/^\//, '')).match(relPath));
 };
 
 /** The sources of `mapFile` that a consumer cannot resolve: not embedded and not published. */
@@ -61,8 +61,8 @@ const findUnresolvable = (opts: { packageDir: string; files: string[]; mapFile: 
 };
 
 const packageDirs = readdirSync(PACKAGES_DIR)
-  .map(name => join(PACKAGES_DIR, name))
-  .filter(dir => existsSync(join(dir, 'dist')) && existsSync(join(dir, 'package.json')));
+  .map((name) => join(PACKAGES_DIR, name))
+  .filter((dir) => existsSync(join(dir, 'dist')) && existsSync(join(dir, 'package.json')));
 
 describe('published sourcemaps are self-contained', () => {
   test('at least one built package is present', () => {
@@ -77,10 +77,10 @@ describe('published sourcemaps are self-contained', () => {
       const files = manifest.files ?? [];
 
       const broken = walkMaps(join(packageDir, 'dist')).filter(
-        mapFile => findUnresolvable({ packageDir, files, mapFile }).length > 0,
+        (mapFile) => findUnresolvable({ packageDir, files, mapFile }).length > 0,
       );
 
-      const sample = broken.slice(0, 3).map(mapFile => relative(packageDir, mapFile));
+      const sample = broken.slice(0, 3).map((mapFile) => relative(packageDir, mapFile));
       expect(
         broken.length,
         `${broken.length} maps point at sources the package does not publish, e.g. ${sample.join(', ')}`,

@@ -63,7 +63,7 @@ const runLint = (opts: { args: string[]; ignore?: TIgnoreFiles; failing?: string
   });
   const calls = readFileSync(project.log, 'utf8')
     .split('\n')
-    .filter(line => line !== '');
+    .filter((line) => line !== '');
 
   return { exitCode: result.exitCode, calls, stderr: result.stderr.toString() };
 };

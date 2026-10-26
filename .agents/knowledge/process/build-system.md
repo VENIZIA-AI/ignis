@@ -59,7 +59,7 @@ tags: [process, build]
    `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
    then `bun ../../scripts/build/esm-marker.ts`, which writes `dist/esm/package.json` with
    `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
-   as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
+   as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms), and `bun ../../scripts/build/esm-shims.ts`, which declares `__filename` and `__dirname` from `import.meta.url` at the top of each emitted ESM file that reads one (the CJS and ESM builds compile the same source and `import.meta` does not compile as CJS; Node ESM has no `__filename`). Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
    `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`lint-fix`

@@ -39,10 +39,10 @@ describe('@venizia/dev-configs/linters/oxlint', () => {
 
   test('loads no ESLint module', () => {
     const modules = loadedModules({ entry: SUBPATH_ENTRY });
-    expect(modules.some(path => path.includes('oxlint-presets'))).toBe(true);
+    expect(modules.some((path) => path.includes('oxlint-presets'))).toBe(true);
 
-    const eslintModules = modules.filter(path =>
-      ESLINT_PATH_MARKERS.some(marker => path.includes(marker)),
+    const eslintModules = modules.filter((path) =>
+      ESLINT_PATH_MARKERS.some((marker) => path.includes(marker)),
     );
     const sample = eslintModules.slice(0, 3).join(', ');
     expect(
@@ -59,7 +59,7 @@ describe('@venizia/dev-configs/linters/oxlint', () => {
     const names = Object.keys(subpath);
     expect(names.length).toBeGreaterThan(0);
 
-    const differing = names.filter(name => !(name in barrel) || barrel[name] !== subpath[name]);
+    const differing = names.filter((name) => !(name in barrel) || barrel[name] !== subpath[name]);
     expect(differing, `not the barrel's value: ${differing.join(', ')}`).toEqual([]);
   });
 });
