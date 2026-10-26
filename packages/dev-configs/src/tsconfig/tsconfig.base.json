@@ -11,8 +11,11 @@
     "useDefineForClassFields": false,
 
     /* Modules */
-    "module": "Node16",
-    "moduleResolution": "node16",
+    /* IGNIS runs on Bun and ships ES modules only. Bundler resolution reads every import through the "import" condition, so a package whose type is unset resolves the same types as one that says "module". Node16 would read a CommonJS file through "require" and see a second copy of every dual package (drizzle-orm). */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    /* TypeScript 6 checks "import 'x'"; a side-effect import such as 'dotenv-flow/config' has no types to find. */
+    "noUncheckedSideEffectImports": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,

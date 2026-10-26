@@ -460,6 +460,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-27',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Consumers Resolve IGNIS Through Bundler Resolution',
+                  link: '/changelogs/2026-10-27-consumer-tsconfig-bundler-resolution',
+                },
+              ],
+            },
+            {
               text: '2026-10-26',
               collapsed: true,
               items: [
