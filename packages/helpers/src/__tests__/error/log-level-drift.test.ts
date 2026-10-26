@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { TErrorLogLevel } from '@/modules/error';
+import { ErrorLogLevels, type TErrorLogLevel } from '@/modules/error';
 import { LogLevels } from '@/modules/logger/common';
 import type { TLogLevel } from '@/modules/logger/common';
 
@@ -14,6 +14,10 @@ describe('error log level', () => {
 
     expect(errorMatchesLog).toBe(true);
     expect(logMatchesError).toBe(true);
+  });
+
+  test('ErrorLogLevels and LogLevels hold the same values', () => {
+    expect([...ErrorLogLevels.SCHEME_SET].sort()).toEqual([...LogLevels.SCHEME_SET].sort());
   });
 
   test('every TErrorLogLevel value is a valid LogLevels member', () => {

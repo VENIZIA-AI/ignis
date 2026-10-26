@@ -8,7 +8,7 @@ import type {
   IMailQueueResult,
   IQueueJobPayload,
 } from '../../common';
-import { MailErrorCodes, MailExecutorErrors } from '../../common';
+import { MailBackoffTypes, MailErrorCodes, MailExecutorErrors } from '../../common';
 
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queue: SequentialQueueHelper<IQueueJobPayload>;
@@ -187,7 +187,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       return 1000;
     }
 
-    if (backoff.type === 'exponential') {
+    if (backoff.type === MailBackoffTypes.EXPONENTIAL) {
       return backoff.delay * Math.pow(2, job.attempts - 1);
     }
 

@@ -1,4 +1,7 @@
-export type THfLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'emerg';
+import type { TLogLevel } from '../../common';
+
+/** The levels the high-frequency logger writes: the shared log levels. */
+export type THfLogLevel = TLogLevel;
 
 export type THfSinkBatch = { lines: Array<string>; dropped: number };
 

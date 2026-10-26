@@ -1,7 +1,5 @@
 import type { TErrorScope } from '../definition';
-
-/** Declared here, not imported from helpers' `TLogLevel` (browser-safe); a helpers guard pins them equal. */
-export type TErrorLogLevel = 'error' | 'emerg' | 'warn' | 'info' | 'debug';
+import type { TErrorLogLevel } from './constants';
 
 /** Resolved message a client renders. All fields always present - no null-checks downstream. */
 export type TErrorNormalized = {

@@ -119,7 +119,7 @@ generated:
 
 ## inversion
 
-### `@venizia/ignis-inversion` (70)
+### `@venizia/ignis-inversion` (71)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -131,6 +131,7 @@ generated:
 - `BindingScopes` class
 - `BindingValueTypes` class
 - `Container` class
+- `ErrorLogLevels` class
 - `ErrorScopes` class
 - `fromError` const
 - `getError` const
@@ -238,7 +239,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (438)
+### `@venizia/ignis-helpers` (453)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -252,6 +253,7 @@ generated:
 - `AbstractWorkerMessageBusHandlerHelper` class
 - `AbstractWorkerThreadHelper` class
 - `AES` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `AnyObject` type
 - `AnyType` type
@@ -275,10 +277,12 @@ generated:
 - `BaseWorkerThreadHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
+- `BullQueueRoles` class
 - `Child` type
 - `COMBINING_MARKS_PATTERN` const
 - `ConsoleLogger` class
 - `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
 - `createContentDispositionHeader` const
@@ -314,11 +318,13 @@ generated:
 - `Environment` class
 - `EnvironmentNames` class
 - `Envs` const
+- `ErrorLogLevels` class
 - `ErrorPrettier` class
 - `ErrorScopes` class
 - `executePromiseWithLimit` const
 - `executeWithPerformanceMeasure` const
 - `FC` type
+- `FieldMappingDataTypes` class
 - `FileExtensions` class
 - `float` const
 - `formatLogMessage` const
@@ -485,6 +491,7 @@ generated:
 - `MINIMUM_KDF_SALT_BYTES` const
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `ModuleUtility` class
+- `MultipartStorages` class
 - `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
@@ -551,13 +558,17 @@ generated:
 - `TClass` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentDispositionType` type
 - `TContentType` type
+- `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -591,6 +602,7 @@ generated:
 - `TLogLevel` type
 - `TMimeTypes` type
 - `TMixinTarget` type
+- `TMultipartStorage` type
 - `TNodePredicate` type
 - `TNullable` type
 - `TNumberConstValue` type
@@ -628,11 +640,15 @@ generated:
 - `TSecretRotationHandler` type
 - `TStringConstValue` type
 - `TTask` type
+- `TTcpClientState` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TTimerHandle` type
 - `TUidCaseForm` type
 - `TUploadNaming` type
@@ -679,7 +695,7 @@ generated:
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (62)
+### `@venizia/ignis-helpers/common` (63)
 
 - `AnyObject` type
 - `AnyType` type
@@ -691,6 +707,7 @@ generated:
 - `DurationAliases` class
 - `DurationMultipliers` class
 - `DurationUnits` class
+- `FieldMappingDataTypes` class
 - `FileExtensions` class
 - `GRPC` class
 - `HTTP` class
@@ -744,11 +761,12 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (151)
+### `@venizia/ignis-helpers/core` (158)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
 - `AbstractTemporalHelper` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `ApplicationError` class
 - `BaseHelper` class
@@ -767,6 +785,7 @@ generated:
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
 - `EnvironmentNames` class
+- `ErrorLogLevels` class
 - `ErrorScopes` class
 - `executeWithPerformanceMeasure` const
 - `fromError` const
@@ -848,7 +867,9 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -883,7 +904,10 @@ generated:
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TUidCaseForm` type
 - `TUrlScheme` type
 - `UidAlphabets` class
@@ -911,7 +935,7 @@ generated:
 - `uuidV5` const
 - `uuidV7` const
 
-### `@venizia/ignis-helpers/temporal` (30)
+### `@venizia/ignis-helpers/temporal` (35)
 
 - `AbstractTemporalHelper` class
 - `DayjsTemporalAdapter` class
@@ -936,13 +960,18 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TRelativeUnit` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1005,7 +1034,7 @@ generated:
 - `CronHelper` class
 - `ICronHelperOptions` interface
 
-### `@venizia/ignis-helpers/kafka` (40)
+### `@venizia/ignis-helpers/kafka` (42)
 
 - `BaseKafkaHelper` class
 - `IKafkaAdminOptions` interface
@@ -1018,6 +1047,7 @@ generated:
 - `IKafkaTransactionContext` interface
 - `KafkaAcks` class
 - `KafkaAdminHelper` class
+- `KafkaBrokersDownReasons` class
 - `KafkaBundlerPluginNames` class
 - `KafkaClientEvents` class
 - `KafkaConsumerHelper` class
@@ -1033,6 +1063,7 @@ generated:
 - `PlatformaticWasmSpecifiers` class
 - `TKafkaAcks` type
 - `TKafkaBrokerEventCallback` type
+- `TKafkaBrokersDownReason` type
 - `TKafkaGroupJoinCallback` type
 - `TKafkaGroupLeaveCallback` type
 - `TKafkaGroupProtocol` type
@@ -1076,7 +1107,7 @@ generated:
 - `resolveDefaultTransportOptions` const
 - `WinstonLogger` class
 
-### `@venizia/ignis-helpers/pino` (16)
+### `@venizia/ignis-helpers/pino` (17)
 
 - `buildDestination` const
 - `buildPinoOptions` const
@@ -1087,6 +1118,7 @@ generated:
 - `PINO_CUSTOM_LEVELS` const
 - `PinoBackingLogger` class
 - `PinoDestination` class
+- `PinoFrequencies` class
 - `PinoLogger` class
 - `resolveDestinationPlan` const
 - `setPinoBackingLogger` const
@@ -2320,7 +2352,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1057)
+### `@venizia/ignis` (1072)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2345,6 +2377,7 @@ generated:
 - `AbstractWorkerMessageBusHandlerHelper` class
 - `AbstractWorkerThreadHelper` class
 - `AES` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `AnyObject` type
 - `AnyObjectSchema` const
@@ -2435,6 +2468,7 @@ generated:
 - `BootSteps` class
 - `buildDataRange` const
 - `BuildInfoRegistry` class
+- `BullQueueRoles` class
 - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` const
 - `CasbinAuthorizationEnforcer` class
 - `CasbinDomainMatchingFunctions` class
@@ -2454,6 +2488,7 @@ generated:
 - `ConsoleLogger` class
 - `Container` class
 - `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
 - `controller` const
@@ -2517,6 +2552,7 @@ generated:
 - `EnvironmentKeys` class
 - `EnvironmentNames` class
 - `Envs` const
+- `ErrorLogLevels` class
 - `ErrorPrettier` class
 - `errorResponses` const
 - `ErrorSchema` const
@@ -2531,6 +2567,7 @@ generated:
 - `extraRoleColumns` const
 - `extraUserColumns` const
 - `FC` type
+- `FieldMappingDataTypes` class
 - `FieldsSchema` const
 - `FileExtensions` class
 - `FilterQuerySchema` const
@@ -2896,6 +2933,7 @@ generated:
 - `ModelFactory` class
 - `ModelTypes` class
 - `ModuleUtility` class
+- `MultipartStorages` class
 - `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
@@ -3091,6 +3129,7 @@ generated:
 - `TCompressEncoding` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentDispositionType` type
 - `TContentType` type
 - `TContext` type
 - `TControllerMetadata` type
@@ -3098,6 +3137,7 @@ generated:
 - `TCoreErrorCode` type
 - `TCount` type
 - `TCountResponse` type
+- `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
 - `TCustomGrantMetadata` type
 - `TCustomGrantRow` type
@@ -3119,7 +3159,9 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TEntityDataObject` type
 - `TEntityId` type
 - `TEntityObject` type
@@ -3201,6 +3243,7 @@ generated:
 - `TMixinTarget` type
 - `TModelClass` type
 - `TModelType` type
+- `TMultipartStorage` type
 - `TNodePredicate` type
 - `TNodeServerInstance` type
 - `TNullable` type
@@ -3311,11 +3354,15 @@ generated:
 - `TTableObject` type
 - `TTableSchemaWithId` type
 - `TTask` type
+- `TTcpClientState` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TTimerHandle` type
 - `TTzEnricherOptions` type
 - `TTzEnricherResult` type
@@ -3751,7 +3798,7 @@ generated:
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (66)
+### `@venizia/ignis/mail` (68)
 
 - `AmazonSesTransportHelper` class
 - `buildRawMimeMessage` function
@@ -3791,6 +3838,7 @@ generated:
 - `IVerificationDataGenerator` interface
 - `IVerificationGenerationOptions` interface
 - `IVerificationTokenGenerator` interface
+- `MailBackoffTypes` class
 - `MailComponent` class
 - `MailDefaults` class
 - `MailErrorCodes` class
@@ -3813,6 +3861,7 @@ generated:
 - `TemplateEngineService` class
 - `TGetMailQueueExecutorFn` type
 - `TGetMailTransportFn` type
+- `TMailBackoffType` type
 - `TMailgunConfig` type
 - `TMailgunModule` type
 - `TMailOptions` type

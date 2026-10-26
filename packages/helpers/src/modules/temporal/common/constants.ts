@@ -76,3 +76,37 @@ export class TemporalInclusivities {
 }
 
 export type TTemporalInclusivity = TConstValue<typeof TemporalInclusivities>;
+
+/** How long a month or weekday name is written: NARROW (`M`), SHORT (`Mon`) or LONG (`Monday`). */
+export class TemporalNameWidths {
+  static readonly NARROW = 'narrow';
+  static readonly SHORT = 'short';
+  static readonly LONG = 'long';
+
+  static readonly SCHEME_SET = new Set<string>([this.NARROW, this.SHORT, this.LONG]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid name width values. */
+export type TTemporalNameWidth = TConstValue<typeof TemporalNameWidths>;
+
+/** A month name has no narrow form here: SHORT or LONG. */
+export type TTemporalMonthNameWidth = Exclude<TTemporalNameWidth, typeof TemporalNameWidths.NARROW>;
+
+/** How `writtenDate` writes a date: NUMERIC is `10/14/2026`, LONG is `October 14, 2026`. */
+export class TemporalWrittenDateStyles {
+  static readonly NUMERIC = 'numeric';
+  static readonly LONG = 'long';
+
+  static readonly SCHEME_SET = new Set<string>([this.NUMERIC, this.LONG]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid written date style values. */
+export type TTemporalWrittenDateStyle = TConstValue<typeof TemporalWrittenDateStyles>;

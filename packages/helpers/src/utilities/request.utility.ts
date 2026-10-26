@@ -1,3 +1,4 @@
+import type { TConstValue } from '@/common/types';
 import { getError } from '@/modules/error';
 import { readFormBody } from './form-body.utility';
 import fs from 'node:fs';
@@ -10,8 +11,23 @@ export interface IRequestedRemark {
   [extra: string | symbol]: any;
 }
 
+/** Where `parseMultipartBody` keeps an uploaded file: MEMORY (a buffer) or DISK (spooled to `uploadDir`). */
+export class MultipartStorages {
+  static readonly MEMORY = 'memory';
+  static readonly DISK = 'disk';
+
+  static readonly SCHEME_SET = new Set<string>([this.MEMORY, this.DISK]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid multipart storage values. */
+export type TMultipartStorage = TConstValue<typeof MultipartStorages>;
+
 interface IParseMultipartOptions<C extends { req: any } = { req: any }> {
-  storage?: 'memory' | 'disk';
+  storage?: TMultipartStorage;
   uploadDir?: string;
   context: C;
 }
@@ -36,9 +52,9 @@ export interface IParsedMultipartBody {
 export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
   opts: IParseMultipartOptions<C>,
 ): Promise<IParsedMultipartBody> => {
-  const { storage = 'memory', uploadDir = './uploads', context } = opts;
+  const { storage = MultipartStorages.MEMORY, uploadDir = './uploads', context } = opts;
 
-  if (storage === 'disk' && !fs.existsSync(uploadDir)) {
+  if (storage === MultipartStorages.DISK && !fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
@@ -67,11 +83,11 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
     };
 
     switch (storage) {
-      case 'memory': {
+      case MultipartStorages.MEMORY: {
         parsedFile.buffer = buffer;
         break;
       }
-      case 'disk': {
+      case MultipartStorages.DISK: {
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(7);
         // Sanitize filename to prevent path traversal
@@ -121,9 +137,24 @@ export const encodeRFC5987 = (filename: string): string => {
 const UNENCODABLE_FILENAME_CHARACTERS = /(?![\u200C\u200D])[\p{Cc}\p{Cf}\p{Cs}]/gu;
 const LEADING_DOTS = /^\.+/;
 
+/** How a client treats a download: ATTACHMENT saves it, INLINE shows it. */
+export class ContentDispositionTypes {
+  static readonly ATTACHMENT = 'attachment';
+  static readonly INLINE = 'inline';
+
+  static readonly SCHEME_SET = new Set<string>([this.ATTACHMENT, this.INLINE]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid Content-Disposition type values. */
+export type TContentDispositionType = TConstValue<typeof ContentDispositionTypes>;
+
 export const createContentDispositionHeader = (opts: {
   filename: string;
-  type: 'attachment' | 'inline';
+  type: TContentDispositionType;
 }): string => {
   const { filename, type } = opts;
   const sanitized = sanitizeFilename(filename);

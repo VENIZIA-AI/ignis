@@ -12,7 +12,13 @@ import type {
 import { Consumer } from '@platformatic/kafka';
 import { invokeHook } from '../common';
 import { BaseKafkaHelper } from './base';
-import { KafkaClientEvents, KafkaDefaults, KafkaHealthStatuses } from './common/constants';
+import {
+  KafkaBrokersDownReasons,
+  KafkaClientEvents,
+  KafkaDefaults,
+  KafkaHealthStatuses,
+  type TKafkaBrokersDownReason,
+} from './common/constants';
 import type {
   IKafkaConsumeStartOptions,
   IKafkaConsumerOptions,
@@ -576,7 +582,7 @@ export class KafkaConsumerHelper<
     }
   }
 
-  protected handleAllBrokersDown(reason: 'disconnected' | 'failed'): void {
+  protected handleAllBrokersDown(reason: TKafkaBrokersDownReason): void {
     if (this.getConnectedBrokerCount() !== 0) {
       return;
     }
@@ -624,10 +630,10 @@ export class KafkaConsumerHelper<
     super.configureBrokerEvents();
 
     this.client.on(KafkaClientEvents.BROKER_DISCONNECT, () => {
-      this.handleAllBrokersDown('disconnected');
+      this.handleAllBrokersDown(KafkaBrokersDownReasons.DISCONNECTED);
     });
     this.client.on(KafkaClientEvents.BROKER_FAILED, () => {
-      this.handleAllBrokersDown('failed');
+      this.handleAllBrokersDown(KafkaBrokersDownReasons.FAILED);
     });
 
     this.client.on(KafkaClientEvents.CONSUMER_GROUP_JOIN, (payload: ConsumerGroupJoinPayload) => {

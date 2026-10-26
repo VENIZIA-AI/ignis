@@ -1,30 +1,13 @@
 import type { ITemporalParts } from '../common/types';
-import type {
-  ITokenWriterInput,
-  TNumericToken,
-  TPatternToken,
-  TWriteOnlyToken,
-} from './common/types';
+import { PatternTokens, type TPatternToken, type TWriteOnlyToken } from './common/constants';
+import type { ITokenWriterInput, TNumericToken } from './common/types';
 
 /** The pattern dialect's tokens: what each one writes, and how a parse reads digits and offsets. */
 export class TemporalTokens {
   static readonly SUPPORTED =
     'YYYY YY MM M DD D HH H mm m ss s SSS Z ZZ, and for writing only MMMM MMM dddd ddd dd A a hh h LL L Q';
 
-  static readonly WRITE_ONLY_TOKENS: ReadonlySet<TPatternToken> = new Set<TWriteOnlyToken>([
-    'MMMM',
-    'MMM',
-    'dddd',
-    'ddd',
-    'dd',
-    'A',
-    'a',
-    'hh',
-    'h',
-    'LL',
-    'L',
-    'Q',
-  ]);
+  static readonly WRITE_ONLY_TOKENS: ReadonlySet<TPatternToken> = PatternTokens.WRITE_ONLY_SET;
 
   static isWriteOnlyToken(token: TPatternToken): token is TWriteOnlyToken {
     return TemporalTokens.WRITE_ONLY_TOKENS.has(token);

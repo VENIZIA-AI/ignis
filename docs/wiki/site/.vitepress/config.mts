@@ -486,6 +486,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-shared-rows-writes-need-shared-rows',
                 },
                 {
+                  text: 'Helpers and Server String Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
+                },
+                {
                   text: 'dev-configs Warns on Unions and Casts',
                   link: '/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts',
                 },
