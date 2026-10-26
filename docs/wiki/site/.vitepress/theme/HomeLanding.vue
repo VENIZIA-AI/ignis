@@ -399,7 +399,8 @@
           <a href="/guides/" class="ig-btn ig-btn--secondary">Read the Docs</a>
         </div>
         <p class="ig-powered__footnote">
-          IGNIS is part of <a href="https://venizia.ai">Venizia</a>.
+          IGNIS is part of
+          <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">VENIZIA</a>.
         </p>
       </section>
     </div>
