@@ -31,7 +31,8 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-10-26 | [Helpers, Inversion and Server String Options Are Const Classes](./2026-10-26-helpers-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [devz codemod const-classes Turns a String-Literal Union Into a Const Class](./2026-10-26-devz-codemod-const-classes) | Feature |
 | 2026-10-26 | [devz codemod drop-redundant-casts Removes the as Casts the Compiler No Longer Needs](./2026-10-26-devz-codemod-drop-redundant-casts) | Feature |
-| 2026-10-26 | [The skipMigrate Warning Names the Right Replacement, and enable Is Optional on Middleware Options](./2026-10-26-skip-migrate-warning-and-middleware-enable) | Bug Fix |
+| 2026-10-26 | [skipMigrate Is Removed From @model](./2026-10-26-skipmigrate-removed) | Breaking |
+| 2026-10-26 | [enable Is Optional on Middleware Options, and devz codemod Names a Path It Cannot Read](./2026-10-26-middleware-enable-optional-and-codemod-empty-path) | Bug Fix |
 | 2026-10-26 | [devz codemod --check Fails While a Model Is Left Untouched](./2026-10-26-devz-codemod-check-fails-on-untouched) | Behavior Change |
 | 2026-10-26 | [devz codemod Is a Dry Run Unless You Pass --write](./2026-10-26-devz-codemod-dry-run-by-default) | Behavior Change |
 | 2026-10-26 | [dev-configs Rule Options Are Const Classes](./2026-10-26-dev-configs-rule-options-const-classes) | Enhancement |

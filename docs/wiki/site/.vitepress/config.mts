@@ -520,8 +520,12 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-devz-codemod-drop-redundant-casts',
                 },
                 {
-                  text: 'skipMigrate Warning and Optional enable',
-                  link: '/changelogs/2026-10-26-skip-migrate-warning-and-middleware-enable',
+                  text: 'skipMigrate Is Removed From @model',
+                  link: '/changelogs/2026-10-26-skipmigrate-removed',
+                },
+                {
+                  text: 'enable Is Optional on Middleware Options',
+                  link: '/changelogs/2026-10-26-middleware-enable-optional-and-codemod-empty-path',
                 },
                 {
                   text: 'devz codemod --check Fails on Untouched Models',

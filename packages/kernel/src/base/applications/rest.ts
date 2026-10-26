@@ -28,7 +28,6 @@ import type { IRepository } from '../repositories';
 import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
 import { registerCors } from './cors';
-import { warnDeprecatedModelMetadata } from './deprecations';
 import { ArtifactIndexHelper } from './artifact-index';
 import type { IBootSequenceStep } from './boot-sequence';
 import { BootSteps } from './boot-sequence';
@@ -384,8 +383,6 @@ export abstract class RestApplication<
         throw error;
       }
     }
-
-    warnDeprecatedModelMetadata({ logger });
 
     logger.info(
       'Boot sequence complete | %d step(s) | Took: %s (ms) | %s',

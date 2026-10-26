@@ -89,7 +89,7 @@ Marks a class as a database entity and configures its behavior.
 |--------|------|-------------|
 | `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default; any other value throws when the decorator runs |
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
-| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). The old `skipMigrate: true` is `migration: { use: false }`; it still works in this release and is removed in 0.4.5 |
+| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). The old `skipMigrate: true` was removed in 0.4.4: write `migration: { use: false }`, or run `devz codemod model-settings --write` |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
 | `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
 | `settings.access` | `IModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |

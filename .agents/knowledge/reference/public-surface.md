@@ -1227,7 +1227,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (435)
+### `@venizia/ignis-kernel` (434)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1376,7 +1376,6 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelMetadata` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
 - `IdSchemaTypes` class
@@ -2394,7 +2393,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1074)
+### `@venizia/ignis` (1073)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2724,7 +2723,6 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelMetadata` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
