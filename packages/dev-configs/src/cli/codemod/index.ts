@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
 import { migrateModelSettings } from './model-settings';
@@ -56,8 +57,12 @@ export class CodemodCommand {
       return DropRedundantCastsCommand.run({ root: opts.root, args: rest });
     }
 
+    if (name === 'const-classes') {
+      return ConstClassesCommand.run({ root: opts.root, args: rest });
+    }
+
     if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}`);
+      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}`);
       return 0;
     }
 
