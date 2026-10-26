@@ -494,6 +494,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-devz-codemod-dry-run-by-default',
                 },
                 {
+                  text: 'dev-configs Rule Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-dev-configs-rule-options-const-classes',
+                },
+                {
                   text: 'dev-configs Warns on Unions and Casts',
                   link: '/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts',
                 },
