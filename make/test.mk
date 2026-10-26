@@ -13,7 +13,7 @@ TEST_TARGETS := $(addprefix test-,$(PACKAGES))
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
-.PHONY: test-all test-scripts build-checks examples-check purity purity-test clean-install \
+.PHONY: test-all test-scripts build-checks examples-check purity purity-test clean-install tmp-leak-check \
         $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
@@ -32,6 +32,16 @@ $(addprefix test-,$(TEST_PACKAGES)): test-%:
 
 $(addprefix test-,$(NO_TEST)):
 	@echo "ℹ️  No test suite in this package - skipping."
+
+# A test run must leave nothing in the system temp (a test used /tmp, not os.tmpdir()) and nothing in
+# .agents/local/tmp (a test made a folder and kept it). CI runs the same snapshot and verify around its
+# test steps; here the whole suite runs between them. Needs a build first. IGNIS_TMP_LEAK_IGNORE (a
+# regular expression on the entry name) skips what another program writes to /tmp meanwhile.
+tmp-leak-check:
+	@bun scripts/checks/tmp-leak/cli.ts snapshot
+	@status=0; $(MAKE) test-all test-scripts || status=$$?; \
+	bun scripts/checks/tmp-leak/cli.ts verify || status=1; \
+	exit $$status
 
 # The repository gate scripts' own regression tests (module-cycles, split-report, wiki-source-links,
 # wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
@@ -86,10 +96,12 @@ $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 # Bun, Node ESM, Node CJS and a browser build - hoisted and isolated. The workspace hoists every
 # optional peer, so a leak is invisible anywhere else. Needs a build first, and `node` on PATH.
 # ----------------------------------------------------------------------------
+# A sandbox below the repository would resolve the repository's own node_modules, so this gate (and
+# only this one) keeps its sandboxes in the system temp and removes them when it ends.
 clean-install:
 	@echo "🔍 Loading every published sub-path from a clean install..."
-	@bun scripts/checks/clean-install/cli.ts
+	@TMPDIR=$(SYSTEM_TMPDIR) bun scripts/checks/clean-install/cli.ts
 
 $(CLEAN_INSTALL_TARGETS): clean-install-%:
 	@echo "🔍 Loading every published sub-path of $* from a clean install..."
-	@bun scripts/checks/clean-install/cli.ts $*
+	@TMPDIR=$(SYSTEM_TMPDIR) bun scripts/checks/clean-install/cli.ts $*

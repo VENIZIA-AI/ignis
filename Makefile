@@ -13,6 +13,13 @@ all: build
 # from this list - add a package here and every target exists for it.
 PACKAGES := dev-configs inversion filter helpers boot kernel connectors core-worker core-server
 
+# Every temp folder a test, script or build makes lands in the gitignored .agents/local/tmp, never in
+# the system temp: os.tmpdir() reads TMPDIR. `make tmp-leak-check` fails when a test run breaks this.
+# (The clean-install gate is the exception: it needs a folder outside the repository, see make/test.mk.)
+export TMPDIR := $(CURDIR)/.agents/local/tmp
+$(shell mkdir -p $(TMPDIR))
+SYSTEM_TMPDIR := $(or $(IGNIS_SYSTEM_TMPDIR),/tmp)
+
 # The npm name of a package directory, read from its package.json: $(call PKG_NAME,kernel).
 PKG_NAME = $(shell sed -n 's/^  "name": "\(.*\)",$$/\1/p' packages/$(1)/package.json)
 
