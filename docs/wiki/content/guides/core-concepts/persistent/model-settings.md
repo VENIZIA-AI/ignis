@@ -509,7 +509,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 0.4.2 grouped the settings and 0.4.3 removed the old keys. A model that still uses one throws when the `@model` decorator runs, naming the key to use, so it can never lose its row scope without a sound:
 
 ```text
-[model][Product] Removed settings key(s): settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings' to rewrite them
+[model][Product] Removed settings key(s): settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them
 ```
 
 | Old | New |
@@ -521,7 +521,7 @@ export class Product extends ModelFactory.defineEntity({ table: productTable }) 
 | `scopeFilter.writeGuard` | `access.write.mode` |
 | `scopeFilter.sharedRows` | `access.write.sharedRows` |
 
-To rewrite your models mechanically, run `bunx devz codemod model-settings --check` to see the files it would change, then without `--check` to write them. The codemod leaves anything it cannot read for sure, such as a `settings` that is a variable, and prints its file and line. See the [changelog](/changelogs/2026-10-25-model-settings-query-access).
+To rewrite your models mechanically, run `bunx devz codemod model-settings` to see the files it would change (it writes nothing), then add `--write` to write them. The codemod leaves anything it cannot read for sure, such as a `settings` that is a variable, and prints its file and line. See the [changelog](/changelogs/2026-10-25-model-settings-query-access).
 
 ## See also
 
