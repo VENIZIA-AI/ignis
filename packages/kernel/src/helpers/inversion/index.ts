@@ -1,5 +1,6 @@
 // DI-specific symbols only available in inversion (not in helpers)
 export {
+  assertBindingsResolve,
   Binding,
   BindingKeys,
   BindingScopes,

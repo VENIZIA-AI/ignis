@@ -104,6 +104,8 @@ server application is:
     resolves every service and repository binding once, collects every failure and throws one error
     listing all of them, so a made-up `@inject` key - or a dependency some `when` excluded - fails the
     boot rather than the first request that needs it.
+    The work is `assertBindingsResolve` from `@venizia/ignis-inversion` (namespaces `services` and
+    `repositories`); the error carries `extra.missing`, a record of missing key to the bindings that need it.
 16. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.access`
     somewhere it cannot take effect. Runs last, so a model registered by a component is covered too.
 

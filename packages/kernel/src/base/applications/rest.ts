@@ -1,7 +1,7 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
-import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { assertBindingsResolve, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -330,31 +330,13 @@ export abstract class RestApplication<
     }
 
     const logger = this.logger.for(this.verifyBindings.name);
-    const tags = [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY];
-    const failures: string[] = [];
-    let verified = 0;
+    const { verified } = assertBindingsResolve({
+      container: this,
+      namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
+      scope: this.verifyBindings.name,
+    });
 
-    for (const tag of tags) {
-      const bindings = this.findByTag({ tag });
-      for (const binding of bindings) {
-        try {
-          this.get({ key: binding.key });
-          verified += 1;
-        } catch (error) {
-          failures.push(
-            `${binding.key}: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
-      }
-    }
-
-    if (failures.length > 0) {
-      throw getError({
-        message: `[${this.verifyBindings.name}] ${failures.length} binding(s) cannot be resolved | ${failures.join(' | ')}`,
-      });
-    }
-
-    logger.info('Every service and repository binding resolves | verified: %d', verified);
+    logger.info('Every service and repository binding resolves | verified: %d', verified.length);
   }
 
   /** One measured log line per step, and a failure names its step before rethrowing, so a hung or failed boot is attributable without reading the sequence. */
