@@ -4054,13 +4054,16 @@ generated:
 - `SearchControllerFactory` class
 - `TSearchScopeResolver` type
 
-### `@venizia/ignis/testing` (8)
+### `@venizia/ignis/testing` (11)
 
+- `assertApplicationBoots` const
+- `IAssertApplicationBootsOptions` interface
 - `IPostgresTransactionDoubleOptions` interface
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
 - `SqliteTransactionDouble` class
+- `TBootProbeTarget` type
 - `TransactionDouble` class
 - `TransactionStates` class
 - `TTransactionState` type
