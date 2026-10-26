@@ -8,9 +8,12 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
  * The built package, not `src`: `tsc-alias` rewrites the `@/` aliases into relative paths, so a copy
  * of `dist` is self-contained, whereas a copy of `src` would resolve every alias back to the
  * original tree - one module graph wearing two hats.
+ *
+ * `__dirname`, not `import.meta`: this package emits CommonJS.
  */
-const PACKAGE_ROOT = dirname(dirname(dirname(import.meta.dir)));
-const DIST_ROOT = join(PACKAGE_ROOT, 'dist', 'esm');
+const PACKAGE_ROOT = dirname(dirname(dirname(__dirname)));
+/** `dist/cjs`, not `dist`: this package dual-builds, and the probe below copies the CommonJS half - `__dirname` and `require` are what it drives. */
+const DIST_ROOT = join(PACKAGE_ROOT, 'dist', 'cjs');
 
 /** Under `node_modules` so that `@venizia/ignis-helpers` and friends still resolve by walking up, and so nothing here is ever linted, type-checked or committed. */
 const PROBE_ROOT = join(PACKAGE_ROOT, 'node_modules', '.singleton-realm-probe');

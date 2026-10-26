@@ -22,7 +22,7 @@ export class TransactionStates {
 
 export type TTransactionState = TConstValue<typeof TransactionStates>;
 
-/** Registry symbol, not a module-private one: two installed copies of this package (two versions in one tree) each load their own copy of this class, and a handle from one must still be read by the other. */
+/** Registry symbol, not a module-private one: the CommonJS and ESM builds each load their own copy of this class, and a handle from one must still be read by the other. */
 export const TRANSACTION_STATE_KEY: unique symbol = Symbol.for(
   '@venizia/ignis-connectors/transaction-state',
 );

@@ -32,9 +32,9 @@ Position in the chain: `helpers -> boot`, a leaf beside `kernel`. Nothing in the
 on it - `@venizia/ignis` dropped its `ignis-boot` dependency once the runtime boot API was gone -
 so an application that runs `ignis-artifacts` declares `@venizia/ignis-boot` as its own
 devDependency. Runtime dependency: `@venizia/ignis-helpers` only (the logger). `typescript` 5 or 6 (peer `^5.0.0 || ^6.0.0`; TypeScript 7 drops the JS API the scanner calls) is
-a peer dependency because the scanner is an AST walk. ES modules only (`dist/esm`), sub-path exports
+a peer dependency because the scanner is an AST walk. Dual CJS + ESM build, sub-path exports
 `./generator` and `./build-info`, and one bin with a `bun` shebang (the scanner uses `Bun.Glob`):
-`ignis-artifacts -> dist/esm/clis/artifacts.js`. The build stamp has no bin: `ignis-build-info` and its
+`ignis-artifacts -> dist/cjs/clis/artifacts.js`. The build stamp has no bin: `ignis-build-info` and its
 file emitter were removed, see [Build stamp](#build-stamp).
 
 ## Layout
@@ -146,9 +146,9 @@ exit 2.
 - **Tests** in `src/__tests__/generator/` run against fixtures under
   `src/__tests__/fixtures/artifacts/**`. The fixtures import `@venizia/ignis`, so they are excluded
   from `tsconfig.json` and the linters - the boot build stays independent of core. Tests locate fixtures
-  with `resolve(process.cwd(), ...)`.
+  with `resolve(process.cwd(), ...)`; `import.meta` is unavailable in the CJS type-check.
 - **Build:** `make build` (`packages/boot/Makefile`) type-checks `tsconfig.json` (tests included) with `bun check`, then
-  emits from `.configs/builders/tsconfig.build.json`, then `chmod +x` on `dist/esm/clis/*.js`; `dist/esm` carries `build-info`, `clis`, `common` and `generator`.
+  emits from `.configs/builders/tsconfig.build.json`, then `chmod +x` on `dist/cjs/clis/*.js`; `dist` carries `build-info`, `clis`, `common` and `generator`.
 
 ## Removed
 

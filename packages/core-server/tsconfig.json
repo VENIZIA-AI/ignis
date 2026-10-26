@@ -6,14 +6,12 @@
     "emitDecoratorMetadata": true,
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "dist/esm",
+    "outDir": "dist",
     "rootDir": "src",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "useDefineForClassFields": false,
-    "module": "ESNext",
-    "moduleResolution": "bundler"
+    "useDefineForClassFields": false
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "app_data"]

@@ -97,84 +97,85 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/esm/index.d.ts",
-      "default": "./dist/esm/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./postgres": {
-      "types": "./dist/esm/connectors/postgres/index.d.ts",
-      "default": "./dist/esm/connectors/postgres/index.js"
+      "types": "./dist/connectors/postgres/index.d.ts",
+      "default": "./dist/connectors/postgres/index.js"
     },
     "./relational": {
-      "types": "./dist/esm/connectors/relational/index.d.ts",
-      "default": "./dist/esm/connectors/relational/index.js"
+      "types": "./dist/connectors/relational/index.d.ts",
+      "default": "./dist/connectors/relational/index.js"
     },
     "./postgres/node-postgres": {
-      "types": "./dist/esm/connectors/postgres/drivers/node-postgres.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/node-postgres.js"
+      "types": "./dist/connectors/postgres/drivers/node-postgres.d.ts",
+      "default": "./dist/connectors/postgres/drivers/node-postgres.js"
     },
     "./postgres/postgres-js": {
-      "types": "./dist/esm/connectors/postgres/drivers/postgres-js.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/postgres-js.js"
+      "types": "./dist/connectors/postgres/drivers/postgres-js.d.ts",
+      "import": "./dist/connectors/postgres/drivers/postgres-js.mjs",
+      "default": "./dist/connectors/postgres/drivers/postgres-js.js"
     },
     "./postgres/pglite": {
-      "types": "./dist/esm/connectors/postgres/drivers/pglite.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/pglite.js"
+      "types": "./dist/connectors/postgres/drivers/pglite.d.ts",
+      "default": "./dist/connectors/postgres/drivers/pglite.js"
     },
     "./postgres/supabase": {
-      "types": "./dist/esm/connectors/postgres/supabase/index.d.ts",
-      "default": "./dist/esm/connectors/postgres/supabase/index.js"
+      "types": "./dist/connectors/postgres/supabase/index.d.ts",
+      "default": "./dist/connectors/postgres/supabase/index.js"
     },
     "./sqlite": {
-      "types": "./dist/esm/connectors/sqlite/index.d.ts",
-      "default": "./dist/esm/connectors/sqlite/index.js"
+      "types": "./dist/connectors/sqlite/index.d.ts",
+      "default": "./dist/connectors/sqlite/index.js"
     },
     "./sqlite/libsql": {
-      "types": "./dist/esm/connectors/sqlite/drivers/libsql.d.ts",
-      "default": "./dist/esm/connectors/sqlite/drivers/libsql.js"
+      "types": "./dist/connectors/sqlite/drivers/libsql.d.ts",
+      "default": "./dist/connectors/sqlite/drivers/libsql.js"
     },
     "./search": {
-      "types": "./dist/esm/connectors/search/index.d.ts",
-      "default": "./dist/esm/connectors/search/index.js"
+      "types": "./dist/connectors/search/index.d.ts",
+      "default": "./dist/connectors/search/index.js"
     },
     "./search/controllers": {
-      "types": "./dist/esm/connectors/search/controllers/index.d.ts",
-      "default": "./dist/esm/connectors/search/controllers/index.js"
+      "types": "./dist/connectors/search/controllers/index.d.ts",
+      "default": "./dist/connectors/search/controllers/index.js"
     },
     "./meilisearch": {
-      "types": "./dist/esm/connectors/meilisearch/index.d.ts",
-      "default": "./dist/esm/connectors/meilisearch/index.js"
+      "types": "./dist/connectors/meilisearch/index.d.ts",
+      "default": "./dist/connectors/meilisearch/index.js"
     },
     "./socket-io": {
-      "types": "./dist/esm/components/socket-io/index.d.ts",
-      "default": "./dist/esm/components/socket-io/index.js"
+      "types": "./dist/components/socket-io/index.d.ts",
+      "default": "./dist/components/socket-io/index.js"
     },
     "./mail": {
-      "types": "./dist/esm/components/mail/index.d.ts",
-      "default": "./dist/esm/components/mail/index.js"
+      "types": "./dist/components/mail/index.d.ts",
+      "default": "./dist/components/mail/index.js"
     },
     "./grpc": {
-      "types": "./dist/esm/components/controller/grpc/index.d.ts",
-      "default": "./dist/esm/components/controller/grpc/index.js"
+      "types": "./dist/components/controller/grpc/index.d.ts",
+      "default": "./dist/components/controller/grpc/index.js"
     },
     "./static-asset": {
-      "types": "./dist/esm/components/static-asset/index.d.ts",
-      "default": "./dist/esm/components/static-asset/index.js"
+      "types": "./dist/components/static-asset/index.d.ts",
+      "default": "./dist/components/static-asset/index.js"
     },
     "./websocket": {
-      "types": "./dist/esm/components/websocket/index.d.ts",
-      "default": "./dist/esm/components/websocket/index.js"
+      "types": "./dist/components/websocket/index.d.ts",
+      "default": "./dist/components/websocket/index.js"
     },
     "./typesense": {
-      "types": "./dist/esm/connectors/typesense/index.d.ts",
-      "default": "./dist/esm/connectors/typesense/index.js"
+      "types": "./dist/connectors/typesense/index.d.ts",
+      "default": "./dist/connectors/typesense/index.js"
     },
     "./typesense/controllers": {
-      "types": "./dist/esm/connectors/typesense/controllers/index.d.ts",
-      "default": "./dist/esm/connectors/typesense/controllers/index.js"
+      "types": "./dist/connectors/typesense/controllers/index.d.ts",
+      "default": "./dist/connectors/typesense/controllers/index.js"
     },
     "./testing": {
-      "types": "./dist/esm/testing/index.d.ts",
-      "default": "./dist/esm/testing/index.js"
+      "types": "./dist/testing/index.d.ts",
+      "default": "./dist/testing/index.js"
     },
     "./package.json": "./package.json"
   },

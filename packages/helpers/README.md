@@ -78,7 +78,7 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 | `./hashicorp-vault` | `HashiCorpVaultHelper` | `node-vault` |
 | `./dotenv-vault` | `DotenvVaultHelper` | `@dotenvx/dotenvx` |
 
-Every entry ships as ES modules.
+Every entry ships as both CommonJS and ESM.
 
 ### Compiled binaries
 

@@ -5,7 +5,9 @@
  * grants that sub-path - under both the hoisted and the isolated linker.
  *
  * Two checks per sub-path: `import()` under Bun, and a `bun build --target=browser` for every entry
- * the purity gate claims. Inside the workspace every optional peer resolves, so a leak there is
+ * the purity gate claims. A sub-path the manifest
+ * lists under `importedAfter` also loads under Bun from one ESM entry, followed by those peers,
+ * `ORDER_RUNS` times. Inside the workspace every optional peer resolves, so a leak there is
  * invisible; here it fails on the line that pulls it.
  *
  * Usage: bun scripts/checks/clean-install/cli.ts [package ...] [--keep]
@@ -27,6 +29,13 @@ import type { IInstallRow } from './manifest';
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 const WORKSPACE_SCOPE = '@venizia/';
 const LINKERS = ['hoisted', 'isolated'];
+
+/**
+ * Runs of the `bun-order` entry per sandbox: the load race it guards crashes only some runs. At the
+ * lowest rate measured on the old core-server (19 in 30), one run per linker let it through about
+ * one gate run in 7; five let it through about one in 20,000.
+ */
+const ORDER_RUNS = 5;
 
 interface ICheckResult {
   name: string;
@@ -268,6 +277,41 @@ const pack = async (opts: {
   return tarballs;
 };
 
+/**
+ * Loads the sub-path, then the peers an application imports after it, from one static ESM entry
+ * under Bun - `runs` times, stopping at the first failure, since a load race fails only some runs.
+ */
+export const checkImportOrder = async (opts: {
+  row: IInstallRow;
+  sandbox: string;
+  runs: number;
+}): Promise<ICheckResult> => {
+  const { row, sandbox, runs } = opts;
+  const specifiers = [row.specifier, ...row.importedAfter];
+  const orderFile = join(sandbox, `order-${row.subpath.replace(/[^a-z0-9]/gi, '_')}.mjs`);
+  writeFileSync(
+    orderFile,
+    [
+      ...specifiers.map((specifier, index) => `import * as loaded${index} from '${specifier}';`),
+      `console.log(${specifiers.map((_, index) => `Object.keys(loaded${index}).length`).join(', ')});`,
+      '',
+    ].join('\n'),
+  );
+
+  for (let runNumber = 1; runNumber <= runs; runNumber += 1) {
+    const result = await run({ command: ['bun', relative(sandbox, orderFile)], cwd: sandbox });
+    if (!result.ok) {
+      return {
+        name: 'bun-order',
+        ok: false,
+        detail: `run ${runNumber}/${runs}: ${firstErrorLine(result)}`,
+      };
+    }
+  }
+
+  return { name: 'bun-order', ok: true, detail: '' };
+};
+
 /** Entry file (repo-relative) -> the externals the purity gate grants it, for browser-claimed entries. */
 const browserClaims = (): Map<string, string[]> =>
   new Map(
@@ -286,8 +330,8 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
         Object.values(readPackageManifest({ package: directory }).exports ?? {}).some(
           (target) =>
             typeof target === 'object' &&
-            target.default !== undefined &&
-            join('packages', directory, target.default) === entry,
+            target.import !== undefined &&
+            join('packages', directory, target.import) === entry,
         ),
       ),
     );
@@ -295,7 +339,7 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
 /** Repository-relative file a row's `import()` loads. */
 const rowEntry = (opts: { row: IInstallRow }): string | undefined => {
   const target = readPackageManifest({ package: opts.row.package }).exports?.[opts.row.subpath];
-  const file = typeof target === 'string' ? target : target?.default;
+  const file = typeof target === 'string' ? target : (target?.import ?? target?.default);
   return file ? join('packages', opts.row.package, file) : undefined;
 };
 
@@ -313,6 +357,11 @@ const checkRow = async (opts: {
   };
 
   checks.push(attempt('bun', ['bun', '-e', `await import('${row.specifier}')`]));
+
+  // One static ESM graph, the sub-path first, as an application that uses both writes it.
+  if (row.importedAfter.length > 0) {
+    checks.push(checkImportOrder({ row, sandbox, runs: ORDER_RUNS }));
+  }
 
   const entryPath = rowEntry({ row });
   const externals = entryPath ? browser.get(entryPath) : undefined;
@@ -453,7 +502,7 @@ const main = async (): Promise<number> => {
       // A consumer reads `type` and `sideEffects` from the nearest package.json, so the marker file is
       // checked directly.
       const exportsImportIntoEsm = Object.values(manifest.exports ?? {}).some(
-        (target) => typeof target === 'object' && target.default?.startsWith('./dist/esm/'),
+        (target) => typeof target === 'object' && target.import?.startsWith('./dist/esm/'),
       );
       if (exportsImportIntoEsm) {
         const markerPath = join(

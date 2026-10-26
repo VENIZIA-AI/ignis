@@ -3,8 +3,10 @@ type TJoseModule = typeof import('jose');
 /**
  * Loads `jose` for the auth services, once per process.
  *
- * `import()` loads `jose` on first use, so an application that never signs or verifies a token does
- * not pay for it at startup. A string literal, so a bundler still packs `jose` into a compiled binary.
+ * `jose` is ESM-only and this package is CommonJS. A top-level `require('jose')` runs while the
+ * application is still loading, and under Bun it fails with `require() async module ... is
+ * unsupported` whenever the application imports `jose` itself. `import()` waits for that load
+ * instead of racing it. A string literal, so a bundler still packs `jose` into a compiled binary.
  */
 export class JoseLoader {
   private static importer: () => Promise<TJoseModule> = () => import('jose');

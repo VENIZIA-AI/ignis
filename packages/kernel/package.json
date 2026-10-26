@@ -42,22 +42,30 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [
+    "./dist/cjs/index.js",
     "./dist/esm/index.js"
   ],
-  "main": "./dist/esm/index.js",
-  "types": "./dist/esm/index.d.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/esm/index.d.ts",
-      "default": "./dist/esm/index.js"
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
     },
     "./metadata": {
-      "types": "./dist/esm/metadata.d.ts",
-      "default": "./dist/esm/metadata.js"
+      "types": "./dist/cjs/metadata.d.ts",
+      "import": "./dist/esm/metadata.js",
+      "require": "./dist/cjs/metadata.js",
+      "default": "./dist/cjs/metadata.js"
     },
     "./repository": {
-      "types": "./dist/esm/repository.d.ts",
-      "default": "./dist/esm/repository.js"
+      "types": "./dist/cjs/repository.d.ts",
+      "import": "./dist/esm/repository.js",
+      "require": "./dist/cjs/repository.js",
+      "default": "./dist/cjs/repository.js"
     },
     "./package.json": "./package.json"
   },

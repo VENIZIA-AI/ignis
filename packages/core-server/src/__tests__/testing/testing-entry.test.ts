@@ -29,7 +29,8 @@ const TESTING_EXPORTS = [
 /** What the entry adds beside the connectors' doubles. */
 const BOOT_EXPORTS = ['assertApplicationBoots'];
 
-const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
+// `__dirname`, not `import.meta`: this package emits CommonJS.
+const PACKAGE_ROOT = path.resolve(__dirname, '../../..');
 
 const importEntry = async (opts: { specifier: string }): Promise<Record<string, unknown>> => {
   const entry: Record<string, unknown> = await import(opts.specifier);
@@ -38,9 +39,9 @@ const importEntry = async (opts: { specifier: string }): Promise<Record<string, 
 
 describe('@venizia/ignis/testing', () => {
   test('resolves to the built entry', () => {
-    const resolved = Bun.resolveSync(TESTING_ENTRY, import.meta.dir);
+    const resolved = Bun.resolveSync(TESTING_ENTRY, __dirname);
 
-    expect(resolved).toBe(path.join(PACKAGE_ROOT, 'dist/esm/testing/index.js'));
+    expect(resolved).toBe(path.join(PACKAGE_ROOT, 'dist/testing/index.js'));
   });
 
   /**

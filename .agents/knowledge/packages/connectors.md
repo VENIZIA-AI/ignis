@@ -32,11 +32,12 @@ reaches a backing engine. Wave 3 of the kernel refactor carved it out of
 It depends on `kernel`, `filter`, `helpers`, and `inversion`, and sits between `kernel` and `core`:
 `dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> core` (`boot` is a leaf off
 `helpers` that only applications consume). `make connectors` needs `kernel`; `make core` needs
-`connectors`. It ships **ES modules only** (`dist/esm`), with every one of its
-`exports` entries carrying `types` and `default` - as `kernel`, `inversion`, `filter`,
-`helpers`, and `boot` do. The ES module output is what the browser-purity claim below rests on: its
-gate refuses any claimed sub-path that publishes no runtime entry in `dist/esm`, so a bundler never
-meets a bare `require()`.
+`connectors`. It ships a **dual CJS + ESM build** - `dist/cjs` plus `dist/esm`, with every one of its
+`exports` entries carrying both `import` and `require` - as `kernel`, `inversion`, `filter`,
+`helpers`, and `boot` do. The ESM pass in `make build` is not cosmetic: it exists for the
+browser-purity claim below, whose gate refuses any claimed sub-path that publishes no `import`
+condition, because a bundler would otherwise fall back to the CommonJS entry and meet a bare
+`require()`.
 
 `core-worker` does NOT depend on it. A browser application that wants a database installs this
 package directly - see [browser-bff](/examples/browser-bff.md).

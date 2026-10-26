@@ -54,7 +54,7 @@ never type it.
 application's `getAppInfo()`, so each application in a process keeps its own name and version.
 
 The registry is a `globalThis` slot keyed by `Symbol.for`, so two copies of the package in one
-process (say, two versions nested by a package manager) still see one stamp.
+process - an ESM import beside a CommonJS require - still see one stamp.
 
 ## 1. Bake it at compile
 

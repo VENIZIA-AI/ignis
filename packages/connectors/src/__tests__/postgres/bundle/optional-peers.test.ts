@@ -2,21 +2,19 @@ import { describe, expect, test } from 'bun:test';
 import { getError } from '@venizia/ignis-helpers/core';
 import { join } from 'node:path';
 
-const CONNECTORS_ROOT = join(import.meta.dir, '../../../..');
+// `__dirname`, not `import.meta`: this package emits CommonJS.
+const CONNECTORS_ROOT = join(__dirname, '../../../..');
 
 /** The runtime guard proves a driver is never LOADED; this gate proves none is PACKAGED - the gap a dynamic import falls through, since it defers execution, never packaging. A driver reaches the bundle only when the application names its class. */
 const bundle = async (opts: { entry: string }): Promise<string> => {
   const { entry } = opts;
 
   // The CLI, not `Bun.build()`: the in-process bundler resolves this workspace's symlinked dependencies to directories and dies on them.
-  const proc = Bun.spawn(
-    ['bun', 'build', join(import.meta.dir, entry), '--target=bun', '--format=esm'],
-    {
-      cwd: CONNECTORS_ROOT,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-  );
+  const proc = Bun.spawn(['bun', 'build', join(__dirname, entry), '--target=bun', '--format=esm'], {
+    cwd: CONNECTORS_ROOT,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
 
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),

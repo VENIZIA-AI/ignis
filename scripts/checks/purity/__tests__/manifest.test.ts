@@ -119,16 +119,25 @@ describe('PURITY_MANIFEST derivation', () => {
 
     // Named explicitly, because these two are what the hand-written manifest missed: the browser
     // example imports both, and both reach `node:async_hooks` through `hono/context-storage`.
+    // BOTH builds, since the package is dual - and the two genuinely differ, which is the point:
+    // `@libsql/client` reaches `child_process` only on its CommonJS path.
+    expect(probed).toContain('packages/connectors/dist/cjs/relational/postgres/index.js');
     expect(probed).toContain('packages/connectors/dist/esm/relational/postgres/index.js');
+    expect(probed).toContain('packages/connectors/dist/cjs/relational/sqlite/index.js');
     expect(probed).toContain('packages/connectors/dist/esm/relational/sqlite/index.js');
   });
 
-  test('helpers claims its five sub-paths and NOT its root barrel', () => {
+  test('helpers claims its five sub-paths and NOT its root barrel, in both builds', () => {
     const entries = PURITY_MANIFEST.filter((row) => row.package === 'helpers').map(
       (row) => row.entry,
     );
 
     expect(entries.toSorted()).toEqual([
+      'packages/helpers/dist/cjs/common/index.js',
+      'packages/helpers/dist/cjs/core.js',
+      'packages/helpers/dist/cjs/modules/socket/socket-io/browser.js',
+      'packages/helpers/dist/cjs/temporal.js',
+      'packages/helpers/dist/cjs/uuid.js',
       'packages/helpers/dist/esm/common/index.js',
       'packages/helpers/dist/esm/core.js',
       'packages/helpers/dist/esm/modules/socket/socket-io/browser.js',
@@ -149,12 +158,12 @@ describe('PURITY_MANIFEST derivation', () => {
     ).toThrow(/no longer\s+publishes/);
   });
 
-  test('a package yields one row per runtime condition', () => {
+  test('a dual-build package yields one row per distinct build, deduping the default condition', () => {
     const labels = PURITY_MANIFEST.filter((row) => row.package === 'inversion').map(
       (row) => row.label,
     );
 
-    // `exports['.']` names `types` (not a runtime target) and `default`: one row, so no condition in its label.
-    expect(labels).toEqual(['inversion']);
+    // `exports['.']` names import, require AND default; default repeats require's file.
+    expect(labels).toEqual(['inversion [import]', 'inversion [require]']);
   });
 });

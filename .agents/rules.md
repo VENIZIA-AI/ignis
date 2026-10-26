@@ -151,7 +151,7 @@ means the same rule.
 |---|---|
 | **C-03** | **Every constructor parameter of a container-instantiated class carries `@inject`.** Mixing decorated and undecorated parameters is refused at boot - the container has no channel to supply an undecorated one. Options a controller needs go in `super({ scope: X.name })`, never as an undecorated parameter. |
 | **C-04** | **Extends V-C-04 with one exception, set by the PO: `tz` for a time zone** - `TemporalHelper`'s option and its derivatives `getTz`, `sourceTz`, `targetTz`. |
-| **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - two installed copies of a package give the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
+| **C-05** | **Errors are `getError` / `ApplicationError`. Never `new Error`.** Never `instanceof ApplicationError` across a package boundary - the dual CJS+ESM build gives the class several identities; use `isApplicationError()`. Enforced by `venizia/no-new-error` in `houseConfigs` (`@venizia/dev-configs/linters`); a justified exception carries an `eslint-disable-next-line` with its reason. |
 | **C-18** | **The hard stack.** Drizzle only (never TypeORM, Prisma, Sequelize); Hono only (never Express, Fastify, Koa); Zod only (never Joi, Yup, class-validator); PostgreSQL primary with SQLite alongside, the repository tier engine-neutral (`pgTable` and `sqliteTable` both). REST is default framework behavior, not a component. |
 
 ---

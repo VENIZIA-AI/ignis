@@ -25,7 +25,8 @@ const OTHER_BARRELS: string[] = [
   '@venizia/ignis-connectors/sqlite',
 ];
 
-const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
+// `__dirname`, not `import.meta`: this package emits CommonJS.
+const PACKAGE_ROOT = path.resolve(__dirname, '../../..');
 
 const importEntry = async (opts: { specifier: string }): Promise<Record<string, unknown>> => {
   const entry: Record<string, unknown> = await import(opts.specifier);
@@ -34,7 +35,7 @@ const importEntry = async (opts: { specifier: string }): Promise<Record<string, 
 
 describe('@venizia/ignis-connectors/testing', () => {
   test('resolves to the built ESM entry', () => {
-    const resolved = Bun.resolveSync(TESTING_ENTRY, import.meta.dir);
+    const resolved = Bun.resolveSync(TESTING_ENTRY, __dirname);
 
     expect(resolved).toBe(path.join(PACKAGE_ROOT, 'dist/esm/testing/index.js'));
   });

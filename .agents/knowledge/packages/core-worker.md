@@ -226,8 +226,8 @@ is for.
 
 ## Gotchas
 
-- **This package ships ES modules only** (`dist/esm`), and the purity gate fails if a claimed
-  sub-path loses its runtime entry. It shipped CommonJS only once, and a Vite consumer then needed an
+- **This package dual-builds**, CommonJS and ESM, and the purity gate fails if the `import`
+  condition disappears. It shipped CommonJS only once, and a Vite consumer then needed an
   `optimizeDeps.include` line per sub-path - see [browser-bff](/examples/browser-bff.md).
 - **`IWorkerMessageScope` is a structural type, not `DedicatedWorkerGlobalScope`.** Not because this
   package lacks `lib.webworker` - `tsconfig.json` sets `lib: ["ES2025", "WebWorker"]` and

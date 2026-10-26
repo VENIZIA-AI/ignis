@@ -17,6 +17,12 @@ export interface IInstallClaim {
   package: string;
   /** Optional peers a sub-path needs, keyed as spelled in `exports`. Each must be a declared peer. */
   requires?: Record<string, string[]>;
+  /**
+   * Granted or required peers an application imports itself right AFTER a sub-path, keyed as
+   * spelled in `exports`. Bun loads both from one ESM entry, in that order: a CommonJS sub-path that
+   * `require`s a peer Bun is still loading as ESM crashes only then, never when loaded alone.
+   */
+  importedAfter?: Record<string, string[]>;
   /** Published for config files a tool reads, never imported at runtime - so it gets no row. */
   configOnly?: boolean;
 }
@@ -77,6 +83,7 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
       './typesense': ['typesense'],
       './socket-io': ['socket.io', '@socket.io/redis-adapter', '@socket.io/redis-emitter'],
     },
+    importedAfter: { '.': ['jose'], './postgres/postgres-js': ['postgres'] },
   },
   // No grant: ESLint arrives as a required peer of the bundled plugins. The tsconfig exports are
   // JSON and get no row.
@@ -103,6 +110,8 @@ export interface IInstallRow {
   subpath: string;
   specifier: string;
   extras: string[];
+  hasRequire: boolean;
+  importedAfter: string[];
 }
 
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
@@ -170,7 +179,10 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
     const exportsMap = manifest.exports ?? {};
     const peers = manifest.peerDependencies ?? {};
 
-    const claimedSubpaths = [...Object.keys(claim.requires ?? {})];
+    const claimedSubpaths = [
+      ...Object.keys(claim.requires ?? {}),
+      ...Object.keys(claim.importedAfter ?? {}),
+    ];
     for (const subpath of claimedSubpaths) {
       if (!(subpath in exportsMap)) {
         throw new Error(
@@ -190,14 +202,31 @@ export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRo
       }
     }
 
+    // Only a granted or a required peer is installed beside the sub-path; any other would fail as missing.
+    const requiredPeers = getRequiredPeers({ manifest });
+    const importOrderEntries = Object.entries(claim.importedAfter ?? {});
+    for (const [subpath, importedPeers] of importOrderEntries) {
+      for (const peer of importedPeers) {
+        const isGranted = (claim.requires?.[subpath] ?? []).includes(peer);
+        if (!isGranted && !(peer in requiredPeers)) {
+          throw new Error(
+            `[clean-install][manifest] '${claim.package}${subpath.slice(1)}' is imported before '${peer}', which the claim does not grant that sub-path`,
+          );
+        }
+      }
+    }
+
     const subpaths = Object.keys(exportsMap).filter(isCodeSubpath);
     for (const subpath of subpaths) {
+      const target = exportsMap[subpath];
       rows.push({
         package: claim.package,
         name: manifest.name,
         subpath,
         specifier: subpath === '.' ? manifest.name : `${manifest.name}${subpath.slice(1)}`,
         extras: [...(claim.requires?.[subpath] ?? [])].sort(),
+        hasRequire: typeof target === 'string' || 'require' in target || 'default' in target,
+        importedAfter: [...(claim.importedAfter?.[subpath] ?? [])],
       });
     }
   }

@@ -190,9 +190,10 @@ two unions ever diverge.
 ## instanceof across packages is unreliable
 
 There is only ONE `ApplicationError` now, and `instanceof` STILL does not work across a package
-boundary. Two installed copies of `inversion` (see
-[error identity](/architecture/error-handling-flow.md)) yield two constructor functions: each copy
-holds a different class for the same class. Consolidating the source did not merge the identities.
+boundary. `inversion` ships a dual CJS+ESM build (see
+[dual-build & error identity](/architecture/error-handling-flow.md)), so one source file yields two
+constructor functions: a CJS consumer and an ESM consumer hold different classes for the same class.
+Consolidating the source did not merge the identities.
 
 Use `isApplicationError()` instead, which recognizes the error by shape, not by class identity:
 

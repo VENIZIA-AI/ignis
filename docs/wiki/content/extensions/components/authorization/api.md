@@ -684,7 +684,7 @@ class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationE
 }
 ```
 
-The singleton is held by `SingletonRealm` under `SINGLETON_REAL_KEY`, not in a private static field. That is what keeps one registry across two installed copies of the package.
+The singleton is held by `SingletonRealm` under `SINGLETON_REAL_KEY`, not in a private static field. That is what keeps one registry across the CJS and ESM copies of the package.
 
 | Method | Returns | Description |
 |--------|---------|-------------|

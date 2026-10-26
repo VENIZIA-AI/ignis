@@ -58,9 +58,9 @@ tell context from typo.
 ## Identity: use `isApplicationError`, not `instanceof`
 
 **`instanceof ApplicationError` is unreliable across package boundaries.** An error raised by the DI
-container carries `inversion`'s copy of the class, and two installed copies of inversion (two
-versions nested by a package manager) give that one class two runtime identities - the two copies hold
-different constructors for the same source. `isApplicationError` therefore tests by **shape**:
+container carries `inversion`'s copy of the class, and inversion ships a dual CJS + ESM build, so even
+that one class has two runtime identities - a CJS consumer and an ESM consumer hold different
+constructors for the same source. `isApplicationError` therefore tests by **shape**:
 
 ```typescript
 export const isApplicationError = (error: unknown): error is ApplicationError => {

@@ -82,14 +82,15 @@ const PURITY_CLAIMS: IPurityClaim[] = [
     // process, so they reach for sockets, TLS or child processes and can never run in a browser
     // tab. They stay published because a Node consumer needs them.
     //
-    // `./postgres/supabase` is measured, and needs Bun >= 1.4.1: under 1.4.0 the
+    // `./postgres/supabase` under `import` is measured, and needs Bun >= 1.4.1: under 1.4.0 the
     // `--target=browser` bundle listed the `drizzle-orm/supabase` re-exports (`anonRole`, ...) in
     // its export block without binding them, and this row fails with `drizzle-orm/supabase` as an
     // unresolved external import.
     impure: {
-      './postgres/node-postgres': ['default'],
-      './postgres/postgres-js': ['default'],
-      './typesense': ['default'],
+      './postgres/node-postgres': ['import', 'require'],
+      './postgres/postgres-js': ['import', 'require'],
+      './sqlite/libsql': ['require'],
+      './typesense': ['import', 'require'],
     },
     external: {
       // PGlite ships ONE universal Emscripten build and relies on its package.json `browser` field
@@ -285,17 +286,17 @@ export const deriveEntries = (claim: IPurityClaim): IPurityEntry[] => {
 };
 
 /**
- * A browser claim is only honest if a browser bundler can actually consume the entry. A CommonJS
- * entry forces every consumer into a workaround - `examples/browser-bff` needed an
+ * A browser claim is only honest if a browser bundler can actually consume the entry. A CJS-only
+ * package forces every consumer into a workaround - `examples/browser-bff` needed an
  * `optimizeDeps.include` line per sub-path plus a `define: { __filename }` shim, because Vite serves
  * a linked workspace dependency as-is and the browser then meets a bare `require()`.
  *
- * So the claim carries the obligation: every claimed sub-path must publish a runtime entry in
- * `dist/esm`. Checked here rather than trusted to a comment, for the same reason as
+ * So the claim carries the obligation: every claimed sub-path must publish an `import` condition.
+ * Checked here rather than trusted to a comment, for the same reason as
  * {@link assertNoWorkspaceExternal} - the failure is otherwise invisible until someone tries to
  * bundle the package downstream.
  */
-export const assertBrowserEsmEntry = (claims: IPurityClaim[]): IPurityClaim[] => {
+export const assertBrowserImportCondition = (claims: IPurityClaim[]): IPurityClaim[] => {
   for (const claim of claims) {
     const exportsMap = readExportsMap({ package: claim.package });
     const claimed = claim.subpaths ?? Object.keys(exportsMap).filter((s) => s !== NON_CODE_SUBPATH);
@@ -303,24 +304,14 @@ export const assertBrowserEsmEntry = (claims: IPurityClaim[]): IPurityClaim[] =>
     for (const subpath of claimed) {
       const target = exportsMap[subpath];
 
-      const runtimeTargets =
-        typeof target === 'object' && target !== null
-          ? Object.entries(target)
-              .filter(([condition]) => condition !== NON_RUNTIME_CONDITION)
-              .map(([, file]) => file)
-          : [];
-
-      if (
-        runtimeTargets.length > 0 &&
-        runtimeTargets.every((file) => file.startsWith('./dist/esm/'))
-      ) {
+      if (typeof target === 'object' && target !== null && 'import' in target) {
         continue;
       }
 
       throw new Error(
-        `[purity][manifest] '${claim.package}' claims browser purity for '${subpath}' but its runtime ` +
-          `entry is not in dist/esm | A browser bundler needs an ES module, so the claim cannot be ` +
-          `consumed - build the package with \`FORMATS := esm\` (see make/project.mk)`,
+        `[purity][manifest] '${claim.package}' claims browser purity for '${subpath}' but publishes no ` +
+          `\`import\` condition | A browser bundler would fall back to the CommonJS entry, so the claim ` +
+          `cannot be consumed - add an ESM build (see any dual-built package's tsconfig.esm.json)`,
       );
     }
   }
@@ -329,5 +320,5 @@ export const assertBrowserEsmEntry = (claims: IPurityClaim[]): IPurityClaim[] =>
 };
 
 export const PURITY_MANIFEST: IPurityEntry[] = assertNoWorkspaceExternal(
-  assertBrowserEsmEntry(PURITY_CLAIMS).flatMap(deriveEntries),
+  assertBrowserImportCondition(PURITY_CLAIMS).flatMap(deriveEntries),
 );

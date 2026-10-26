@@ -41,15 +41,19 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": false,
-  "main": "./dist/esm/index.js",
+  "main": "./dist/cjs/index.js",
   "exports": {
     ".": {
-      "types": "./dist/esm/index.d.ts",
-      "default": "./dist/esm/index.js"
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
     },
     "./schemas": {
-      "types": "./dist/esm/schemas/index.d.ts",
-      "default": "./dist/esm/schemas/index.js"
+      "types": "./dist/cjs/schemas/index.d.ts",
+      "import": "./dist/esm/schemas/index.js",
+      "require": "./dist/cjs/schemas/index.js",
+      "default": "./dist/cjs/schemas/index.js"
     },
     "./package.json": "./package.json"
   },

@@ -82,7 +82,7 @@ nested filter.
 | `@venizia/ignis-filter` | Types, `QueryOperators`, `Sorts`. Does not load zod | none |
 | `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, `FieldsSchema`, `InclusionSchema`, `LimitSchema`, `OffsetSchema`, `SkipSchema`, `OrderBySchema`, `buildQuerySchemas` | none (`zod` is a dependency) |
 
-Both ship as ES modules, with no node builtin, so they load in a browser.
+Both ship CommonJS and ES module builds, with no node builtin, so they load in a browser.
 
 The schemas here carry no OpenAPI descriptions. On a server, import them from `@venizia/ignis`
 instead: the same schemas, built through `buildQuerySchemas({ decorate })` with an OpenAPI

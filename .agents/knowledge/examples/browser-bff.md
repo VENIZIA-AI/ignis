@@ -56,8 +56,8 @@ met a bare `require()` - hence one `include` line per sub-path, added by hand, a
 a new sub-path was imported. Rolldown's CommonJS interop shim then read `__filename` on the branch it
 takes inside a Worker, hence the second.
 
-Every package in `PURITY_CLAIMS` now ships ES modules only, and
-`assertBrowserEsmEntry` in `scripts/checks/purity/manifest.ts` fails the gate if a claimed sub-path stops publishing a runtime entry in `dist/esm`. Measured
+Every package in `PURITY_CLAIMS` now dual-builds and publishes an `import` condition, and
+`assertBrowserImportCondition` in `scripts/checks/purity/manifest.ts` fails the gate if one stops. Measured
 on the production build: the page chunk fell from **682 KB to 54 KB**, because the ESM entry is
 tree-shakeable where the CommonJS one was not.
 

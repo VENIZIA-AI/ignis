@@ -127,11 +127,11 @@ it a second time:
 | Resolves, but `execute` rolled back the transaction or left it failed | Throws a dedicated error naming that `execute` ended the transaction before it could be committed. No rollback is attempted |
 | Rejects, after `execute` already ended the transaction | Rethrows the ORIGINAL rejection, with no further rollback attempt |
 
-> [!WARNING] Reliable for any IGNIS handle - even across two installed copies
+> [!WARNING] Reliable for any IGNIS handle - even across a CommonJS/ESM mix
 > Telling the three outcomes apart means reading the transaction's own internal state, through a
 > registry symbol rather than a class check - so it recognises the real handle or `TransactionDouble`
-> even when the repository and the transaction come from different module copies (say, a
-> `@venizia/ignis/testing` double from one installed copy used with a `@venizia/ignis-connectors` repository from another). Only a
+> even when the repository and the transaction come from different module copies (say, a CommonJS
+> `@venizia/ignis/testing` double used with an ESM `@venizia/ignis-connectors` repository). Only a
 > transaction from an entirely different `ITransaction` implementation is unreadable, and reports the
 > "ended before it could be committed" error even when `execute` committed it successfully.
 >

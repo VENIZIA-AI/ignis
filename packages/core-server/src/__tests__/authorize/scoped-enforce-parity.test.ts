@@ -174,9 +174,9 @@ describe('scoped model - enforce performance guard', () => {
 
 describe('scoped enforcer - matching function must not come back', () => {
   it('registerMatchers never calls addNamedMatchingFunc', async () => {
-    // import.meta.dir, not a relative path: the file must be found from whichever directory `bun test` runs in.
+    // __dirname, not import.meta: this package emits CommonJS, and the path must not depend on the CWD `bun test` runs from.
     const source = await Bun.file(
-      `${import.meta.dir}/../../components/auth/authorize/enforcers/casbin.enforcer.ts`,
+      `${__dirname}/../../components/auth/authorize/enforcers/casbin.enforcer.ts`,
     ).text();
 
     // Matches the identifier in call position (direct, spaced or bracket-call) so a reintroduction cannot dodge a literal string check; registerMatchers' comment names it followed by `:`, never `(`, so it stays clear.

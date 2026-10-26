@@ -8,7 +8,8 @@ import { basename, dirname, join, relative, resolve } from 'node:path';
  * `dist` would make the walk vacuous, so the emptiness guards below fail loudly - run `make connectors`
  * first. `dist` resolves from the cwd; `bun test` runs from `packages/connectors`.
  */
-const DIST = resolve('dist', 'esm');
+/** `dist/cjs`, not `dist`: this package dual-builds, and the two halves emit the same tree - walking one is enough. */
+const DIST = resolve('dist', 'cjs');
 
 /** Every paradigm family names its engine-neutral tier this. */
 const NEUTRAL_TIER = 'core';
@@ -105,7 +106,10 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
   return null;
 };
 
-/** The build is ESM, but `require(...)` of a relative path is still an edge. */
+/**
+ * `require()` covers the CJS emit; the `from '...'` form
+ * keeps the walk honest if the emit ever turns ESM.
+ */
 const REQUIRE_PATTERN = /require\(\s*["']([^"']+)["']\s*\)/g;
 const FROM_PATTERN = /(?:^|[\s;}])(?:import|export)\s[^;]*?from\s*["']([^"']+)["']/gm;
 

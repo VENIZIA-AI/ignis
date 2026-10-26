@@ -146,9 +146,9 @@ The resolver reads each field from the environment first (first non-blank key wi
 
 | Binary | File |
 |---|---|
-| `ignis-artifacts` | `dist/esm/clis/artifacts.js` |
+| `ignis-artifacts` | `dist/cjs/clis/artifacts.js` |
 
-The package ships ES modules. The programmatic API mirrors the CLI:
+The package ships CommonJS and ESM builds. The programmatic API mirrors the CLI:
 
 ```typescript
 import { checkArtifactIndex } from '@venizia/ignis-boot/generator';

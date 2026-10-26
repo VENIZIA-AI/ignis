@@ -34,7 +34,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 | Classes | `Container`, `BaseContainer`, `AbstractContainer`, `Binding`, `MetadataRegistry` |
 | Decorators | `@inject` |
 | Runtimes | Bun, and a browser or Web Worker |
-| Build | ES modules only |
+| Build | Dual CJS + ESM |
 
 ### Import paths
 
