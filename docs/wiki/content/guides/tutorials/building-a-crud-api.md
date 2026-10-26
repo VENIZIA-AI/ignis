@@ -159,7 +159,7 @@ APP_ENV_POSTGRES_DATABASE=todo_db
 
 **Replace these values:**
 - `your_password_here` - Your PostgreSQL password (or leave blank if no password)
-- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#step-2-install-postgresql)
+- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#step-2-install-postgresql-for-the-crud-tutorial)
 
 **Important:** Add `.env` to your `.gitignore`:
 ```bash
