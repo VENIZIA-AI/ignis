@@ -2362,7 +2362,7 @@ const config = defineConfig({
     footer: {
       message:
         'Released under the MIT License. IGNIS is part of <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">VENIZIA</a>.',
-      copyright: 'Copyright © 2025 <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">VENIZIA Ltd. Co.</a>',
+      copyright: 'Copyright © 2025 <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">Venizia Co., Ltd.</a>',
     },
   },
 });
