@@ -1,7 +1,8 @@
 import type { TBindingNamespace } from '@/common/bindings';
 import { ArtifactNamespaces, BindingNamespaces, CoreBindings } from '@/common/bindings';
 import type { Binding, TBindingScope } from '@/helpers/inversion';
-import { assertBindingsResolve, BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { BindingScopes, MetadataRegistry } from '@/helpers/inversion';
+import { assertBindingsResolve } from '@venizia/ignis-inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, IConfigurable, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
