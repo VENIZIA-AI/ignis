@@ -42,7 +42,12 @@ export const normalizeModelMetadata = (opts: {
 
   if (skipMigrate !== undefined) {
     use = !skipMigrate;
-    deprecatedMetadata.push({ key: 'skipMigrate', use: 'migration: { use: false }' });
+    deprecatedMetadata.push({
+      key: 'skipMigrate',
+      use: skipMigrate
+        ? 'migration: { use: false }'
+        : 'migration: { use: true } (or no key, true is the default)',
+    });
   } else {
     use = migration?.use !== false;
   }

@@ -474,6 +474,29 @@ describe('devz codemod model-settings - the command', () => {
     expect(read('src/c.model.ts')).toContain('query:');
   });
 
+  test('a path that git ignores is named in a warning, not read in silence', async () => {
+    mkdirSync(join(root, 'generated'));
+    write('.gitignore', 'generated/\n');
+    write('generated/b.model.ts', model('{ defaultLimit: 6 }'));
+
+    const code = await CodemodCommand.run({
+      root,
+      args: ['model-settings', 'generated', '--check'],
+    });
+
+    expect(code).toBe(0);
+    expect(warnings.join('\n')).toContain('no source files under "generated"');
+    expect(read('generated/b.model.ts')).toBe(model('{ defaultLimit: 6 }'));
+  });
+
+  test('a path with files does not warn', async () => {
+    write('src/a.model.ts', model('{ query: { limit: { default: 5 } } }'));
+
+    await CodemodCommand.run({ root, args: ['model-settings', 'src'] });
+
+    expect(warnings.join('\n')).not.toContain('no source files');
+  });
+
   test('a nested repository that is not ignored is not entered either', async () => {
     mkdirSync(join(root, 'vendor/src'), { recursive: true });
     execFileSync('git', ['init', '-q'], { cwd: join(root, 'vendor') });

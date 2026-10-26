@@ -38,6 +38,17 @@ this page states no throughput, startup or memory figures. Measure your own work
 decide; the layers above Hono (injection, validation, repositories) cost something that depends on
 what your endpoints do.
 
+## What IGNIS is built on
+
+| Project | What IGNIS uses it for |
+|---|---|
+| [Hono](https://hono.dev/) | The HTTP engine: routing, middleware, `Context`, request IDs; served by `Bun.serve` or `@hono/node-server` |
+| [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) and [Zod](https://zod.dev/) | Route definitions, request validation, the OpenAPI document |
+| [Drizzle ORM](https://orm.drizzle.team/) | Table schemas, SQL, relations, and Zod schemas from tables (`drizzle-zod`) |
+| [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) |
+| [jose](https://github.com/panva/jose) | JWT signing and verification, JWKS |
+| [Scalar](https://scalar.com/) and [Swagger UI](https://swagger.io/tools/swagger-ui/) | The API reference page (optional peers) |
+
 ## Runtimes
 
 | Where | Runtime |

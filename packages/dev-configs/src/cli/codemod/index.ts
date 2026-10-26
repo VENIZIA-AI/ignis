@@ -101,7 +101,15 @@ export class CodemodCommand {
     let reportCount = 0;
 
     for (const target of targets) {
-      for (const file of CodemodFiles.collect({ target })) {
+      const files = CodemodFiles.collect({ target });
+
+      if (files.length === 0 && paths.length > 0) {
+        console.warn(
+          `devz codemod: no source files under "${relative(opts.root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
+        );
+      }
+
+      for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
         if (!MODEL_TEXT.test(source)) {
