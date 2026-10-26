@@ -14,12 +14,14 @@ Sub-path **names** stay flat (`@venizia/ignis/postgres`, `/sqlite`, `/typesense`
 
 ```
 AbstractDataSource                    kernel/base/datasources/abstract.ts        (engine-neutral, NO SQL members)
-├── AbstractRelationalDataSource      connectors/relational/core/datasources/abstract.ts   (SQL-neutral: connector/pool/driver wiring; dialect + executor abstract)
-│   └── BaseRelationalDataSource      connectors/relational/core/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
-│       ├── AbstractPostgresDataSource   connectors/relational/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
-│       │   └── BasePostgresDataSource   connectors/relational/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
-│       └── AbstractSqliteDataSource     connectors/relational/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
-│           └── BaseSqliteDataSource     connectors/relational/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
+├── AbstractDriverDataSource          connectors/common/driver-data-source.ts    (one client + driver wiring, close once, secret rotation, drain; NO SQL members)
+│   ├── AbstractRelationalDataSource  connectors/relational/core/datasources/abstract.ts   (SQL-neutral: connection string, transactions, dialect + executor abstract)
+│   │   └── BaseRelationalDataSource  connectors/relational/core/datasources/base.ts       (schema discovery, transaction skeleton; BEGIN text abstract)
+│   │       ├── AbstractPostgresDataSource   connectors/relational/postgres/datasources/abstract.ts   (supplies PostgresQueryDialect + PostgresQueryExecutor)
+│   │       │   └── BasePostgresDataSource   connectors/relational/postgres/datasources/base.ts       (supplies "BEGIN TRANSACTION ISOLATION LEVEL ...")
+│   │       └── AbstractSqliteDataSource     connectors/relational/sqlite/datasources/abstract.ts     (supplies SqliteQueryDialect + SqliteQueryExecutor)
+│   │           └── BaseSqliteDataSource     connectors/relational/sqlite/datasources/base.ts         (supplies "BEGIN IMMEDIATE")
+│   └── BaseRawSqlDataSource          connectors/raw-sql/datasource.ts           (a raw-SQL engine: execute(query) returns rows; no dialect, no executor, no transactions)
 └── AbstractSearchDataSource          connectors/search/core/datasources/abstract.ts
     └── BaseSearchDataSource          connectors/search/core/datasources/base.ts
         ├── TypesenseDataSource       connectors/search/typesense/datasources/datasource.ts
@@ -33,6 +35,10 @@ The relational family splits again, into an engine-neutral root and a Postgres b
 The engines that actually exist in source are **Postgres** (with `node-postgres`, `postgres-js` and `pglite` drivers, plus a `postgres/supabase` sub-path for RLS and pooler concerns), **SQLite** (the `libsql` driver, at the `@venizia/ignis/sqlite` sub-path - see [SQLite connector](/architecture/sqlite-connector.md)) and **search** (`typesense` and `meilisearch`). `DataSourceDrivers` in `packages/kernel/src/base/datasources/common/types.ts` names exactly those six - the neutral relational root adds no driver of its own, only the seam a third SQL engine (MySQL) would register against.
 
 PGlite is a **driver**, not an engine: it is Postgres compiled to WASM, so `drizzle-orm/pglite` yields a `PgDatabase` and the whole Postgres dialect, every enricher and every `pgTable` model apply unchanged. It has exactly one session, though, and a second `BEGIN` on it silently joins the open transaction rather than nesting or erroring - so `PGliteDriver.acquire()` borrows from a 1-slot `BasePoolHelper` and a concurrent transaction waits instead of corrupting the first. `release({ destroy: true })` cannot throw the single session away, so it discards the slot and scrubs the session with a `ROLLBACK` before the next borrower is served. The wait for that slot is bounded: the constructor forwards the pool's control knobs (`acquireTimeoutMs`, `maxWaitingClients`, `scope`) and pins `size` at 1, with `acquireTimeoutMs` defaulting to `PGliteDriver.DEFAULT_ACQUIRE_TIMEOUT_MS` = 30s - a transaction leaked between `BEGIN` and commit then surfaces as a named error on the next `acquire()` instead of stalling every later transaction in the process forever. One session also means a write issued through `createConnector()` - the path every repository takes - runs inside whatever transaction happens to be open, and that transaction's `ROLLBACK` silently discards it, so concurrent writes belong on `acquire()`.
+
+## A raw-SQL engine sits beside the relational branch, not under it
+
+An analytics engine beside the main database (ClickHouse, DuckDB, BigQuery) runs SQL text and returns rows: no Drizzle dialect, no query executor, no connection string, no transactions. Putting it under `AbstractRelationalDataSource` would force it to stub four abstract members that throw "not supported". So the lifecycle the relational root used to carry alone (driver wiring from `@datasource({ driver })`, close once, soft-eviction after a secret rotation, drain by capability) lives in `AbstractDriverDataSource`, and both the relational root and `BaseRawSqlDataSource` extend it. `IRelationalDriver` extends the neutral `IConnectorDriver` (`createConnector`, `getClient`, `end`) with `acquire`; a raw-SQL driver is the neutral one, so it has no way to open a transaction. `BaseRawSqlRepository<TConnector>` is bound with `@repository({ type: RepositoryTypes.REMOTE, dataSource })` (a datasource and no model) and reads `this.connector`, typed by its generic. No engine connector ships in IGNIS.
 
 ## Datasources are singletons
 

@@ -35,6 +35,7 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | **Search & Typesense** | Full-text/faceted search over documents | [Search & Typesense Guide](./search-typesense.md) |
 | **PGlite** | Postgres compiled to WebAssembly, running in-process | [PGlite Guide](./pglite.md) |
 | **SQLite** | The second SQL engine, via libsql | [SQLite Guide](./sqlite.md) |
+| **Raw SQL engines** | An analytics engine that only runs SQL and returns rows | [Raw SQL Engines](./raw-sql.md) |
 
 ## Quick Example
 
@@ -110,6 +111,7 @@ export const configs: IApplicationConfigs = {
   - [Transactions](./transactions) - Atomic operations
   - [PGlite](./pglite) - Postgres in-process, for tests and embedded deployment
   - [SQLite](./sqlite) - The second SQL engine, and what it refuses
+  - [Raw SQL Engines](./raw-sql) - An engine that only runs SQL and returns rows
   - [Search & Typesense](./search-typesense) - The typesense connector
 
 - **Related Concepts:**

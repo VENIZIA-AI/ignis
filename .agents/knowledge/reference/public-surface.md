@@ -1734,8 +1734,9 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (130)
+### `@venizia/ignis-connectors` (132)
 
+- `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
 - `AbstractSearchDataSource` class
 - `assertScopeFilterSupported` const
@@ -1754,6 +1755,7 @@ generated:
 - `getCachedColumns` const
 - `getIdType` const
 - `IAliasInfo` interface
+- `IConnectorDriver` interface
 - `ICountOptions` interface
 - `IDefinedEntity` interface
 - `IEntity` interface
@@ -1891,6 +1893,17 @@ generated:
 - `THttpQuery` type
 - `THttpReadShape` type
 - `THttpRepositoryOptions` type
+
+### `@venizia/ignis-connectors/raw-sql` (8)
+
+- `BaseRawSqlDataSource` class
+- `BaseRawSqlRepository` class
+- `IRawSqlConnector` interface
+- `IRawSqlResult` interface
+- `RawSqlEntity` class
+- `TRawSqlDriver` type
+- `TRawSqlQuery` type
+- `TRawSqlSchema` type
 
 ### `@venizia/ignis-connectors/relational` (76)
 
