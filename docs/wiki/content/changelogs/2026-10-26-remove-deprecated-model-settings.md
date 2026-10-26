@@ -10,7 +10,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** 0.4.2 grouped `@model` settings under `query` and `access` and kept the flat keys with a warning. X.Y.Z removes the flat keys. A model that still uses one throws when the `@model` decorator runs, so no model can silently lose its row scope.
+**In one line.** 0.4.2 grouped `@model` settings under `query` and `access` and kept the flat keys with a warning. 0.4.3 removes the flat keys. A model that still uses one throws when the `@model` decorator runs, so no model can silently lose its row scope.
 
 ## What changed
 
@@ -18,7 +18,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 - **The decorator throws on an old key.** A plain-JavaScript or `any`-typed model gets no type error, and a model that dropped `scopeFilter` would run unscoped. So the decorator refuses it, listing every removed key it finds:
 
 ```text
-[model][Product] Removed settings key(s): settings.defaultFilter (use settings.query.filter), settings.scopeFilter (use settings.access) | removed in X.Y.Z | run 'devz codemod model-settings --write' to rewrite them
+[model][Product] Removed settings key(s): settings.defaultFilter (use settings.query.filter), settings.scopeFilter (use settings.access) | removed in 0.4.3 | run 'devz codemod model-settings --write' to rewrite them
 ```
 
 - **The boot deprecation warning is gone**, with the code that normalised the old keys.

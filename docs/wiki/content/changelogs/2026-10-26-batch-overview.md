@@ -18,7 +18,7 @@ packages:
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="warning" text="Behavior Change" />
 
-**In one line.** X.Y.Z closes a security gap in how shared rows are written, removes the flat `@model` settings keys that 0.4.2 deprecated, and makes `devz codemod` a dry run. Run the codemod, review your shared rows, and the rest needs no action.
+**In one line.** 0.4.3 closes a security gap in how shared rows are written, removes the flat `@model` settings keys that 0.4.2 deprecated, and makes `devz codemod` a dry run. Run the codemod, review your shared rows, and the rest needs no action.
 
 ## What changed
 
@@ -44,7 +44,7 @@ Each row links the entry with the details.
 
 Do these in order.
 
-1. **Update every `@venizia/*` package together** to X.Y.Z. IGNIS packages pin each other exactly, so a partial update leaves two copies of a package.
+1. **Update every `@venizia/*` package together** to 0.4.3. IGNIS packages pin each other exactly, so a partial update leaves two copies of a package.
 2. **Run the codemod.** It rewrites the removed `@model` settings keys and `skipMigrate`:
 
 ```bash

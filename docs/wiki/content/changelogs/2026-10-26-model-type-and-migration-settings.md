@@ -22,7 +22,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 - **`skipMigrate` is deprecated.** The decorator maps it to `migration: { use: !skipMigrate }` and the application logs one warning per model at boot:
 
 ```text
-[deprecated] model Product uses skipMigrate | use migration.use instead | removed in X.Y.Z+1
+[deprecated] model Product uses skipMigrate | use migration.use instead | removed in 0.4.4
 ```
 
 - **Both keys together throw.** A model that sets `skipMigrate` and `migration` is ambiguous, so the decorator refuses it.
