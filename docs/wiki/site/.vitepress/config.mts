@@ -373,7 +373,7 @@ const config = defineConfig({
       'meta',
       {
         property: 'og:title',
-        content: 'IGNIS - Structure for TypeScript servers on Hono.',
+        content: 'IGNIS - Write the business logic. IGNIS wires the rest.',
       },
     ],
     [
@@ -381,7 +381,7 @@ const config = defineConfig({
       {
         property: 'og:description',
         content:
-          'A TypeScript server framework on Hono: controllers, services, repositories, dependency injection and generated OpenAPI docs.',
+          'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
@@ -392,7 +392,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: 'IGNIS - Structure for TypeScript servers on Hono.',
+        content: 'IGNIS - Write the business logic. IGNIS wires the rest.',
       },
     ],
     [
@@ -400,7 +400,7 @@ const config = defineConfig({
       {
         name: 'twitter:description',
         content:
-          'A TypeScript server framework on Hono: controllers, services, repositories, dependency injection and generated OpenAPI docs.',
+          'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
       },
     ],
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],

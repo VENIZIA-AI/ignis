@@ -9,11 +9,12 @@
           <div class="ig-eyebrow">
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun and Node
           </div>
-          <h1>Structure for TypeScript servers <span class="ig-gtext">on Hono.</span></h1>
+          <h1>
+            Write the business logic.<br /><span class="ig-gtext">IGNIS wires the&nbsp;rest.</span>
+          </h1>
           <p class="ig-lede">
-            <b>Controllers, services and repositories</b> wired by dependency injection, request
-            validation and OpenAPI docs from one schema, and components for authentication and
-            real-time.
+            <b>Controllers, services and repositories</b>, connected by dependency injection.
+            Validation and API docs come from the same code.
           </p>
           <div class="ig-cta">
             <a href="/guides/get-started/5-minute-quickstart" class="ig-btn ig-btn--primary"
