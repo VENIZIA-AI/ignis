@@ -1,0 +1,51 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The fonts are self-hosted: no font CDN, nothing fetched from another site. Inter Display is the face
+ * venizia.ai serves from its own /fonts (Inter, SIL Open Font License 1.1); JetBrains Mono is the latin
+ * subset of the @fontsource/jetbrains-mono package (SIL Open Font License 1.1). fonts/README.md has
+ * the sources. The urls are relative, so Vite bundles the files with their hashes.
+ */
+@font-face {
+  font-family: 'Inter Display';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/inter-display-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/inter-display-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/inter-display-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter Display';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/inter-display-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('./fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+}

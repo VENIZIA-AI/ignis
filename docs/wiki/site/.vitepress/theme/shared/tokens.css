@@ -1,0 +1,97 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The neutral palette, the type, the 4px radius, the 1px rules and the uppercase labels come from the
+ * Venizia home page (https://venizia.ai), read 2026-10-26: Inter Display, sharp corners, no shadows,
+ * a near-black dark panel (#1b1b1b, #1e1e24). That page has no dark theme; the dark values below are
+ * its dark panel and text tokens used as a full theme.
+ *
+ * A wiki sets only its accent, in its own product.css, and never a Venizia colour: Venizia stays in the
+ * logo, the header link, the switcher entry and the footer credit.
+ *
+ *   --accent          fills (primary button, markers, active tab)
+ *   --accent-ink      text on a fill
+ *   --accent-text     the accent as text or a thin line on the page background (4.5:1 or better)
+ *   --accent-2        the second colour of the product gradient
+ *   --accent-on-dark  the accent on the always-dark slab (the code windows, the footer)
+ *   --glow            the soft tint behind the hero, mixed from the accent
+ *
+ * VitePress puts `dark` on <html>, so the dark values hang on `.dark`.
+ */
+:root {
+  --font-sans: 'Inter Display', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* The space scale of venizia.ai, in px: 4 8 12 16 20 24 32 40 48 64 80 120. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  --radius: 4px;
+  --wrap: 1200px;
+  --header-h: 64px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-link: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ---- light (the Venizia look) ------------------------------------------------------------ */
+:root {
+  --bg: #ffffff;
+  --bg-soft: #f5f5f5;
+  --surface: #ffffff;
+  --stroke: #0000001a;
+  --stroke-strong: #101010;
+  --text-title: #000000;
+  --text-body: #4b4b4b;
+  --text-muted: #6b6b6b; /* venizia.ai uses #9a9a9a, 2.8:1; this is 5.3:1 */
+  --dot: #00000026;
+  /* The code and terminal windows are dark in both themes, as the Venizia footer is. */
+  --win-bg: #1b1b1b;
+  --win-bar: #1e1e24;
+  --win-stroke: #ffffff1a;
+  --win-text: #ffffffd9;
+  --win-muted: #ffffff80;
+  --win-key: #c4a7ff;
+  --win-str: #a5e3a0;
+  --win-com: #ffffff66;
+  --win-fn: #8ec5ff;
+  --win-type: #ffd08a;
+}
+
+/* ---- dark: the Venizia dark panel and text tokens ----------------------------------------- */
+.dark {
+  --bg: #121214;
+  --bg-soft: #18181b;
+  --surface: #1b1b1b;
+  --stroke: #ffffff1a;
+  --stroke-strong: #ffffff4d;
+  --text-title: #ffffff;
+  --text-body: #ffffffb3;
+  --text-muted: #ffffff8c;
+  --dot: #ffffff1f;
+  --win-bg: #0e0e10;
+  --win-bar: #1e1e24;
+}
+
+/*
+ * The dither dots and the glow are gradients, which cannot be transitioned; they are made of these two
+ * colours, so registering them as colours lets the fallback cross-fade of theme-switch.css animate them.
+ */
+@property --dot {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+@property --glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}

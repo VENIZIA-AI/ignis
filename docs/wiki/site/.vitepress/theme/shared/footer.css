@@ -1,0 +1,155 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The footer: one dark slab with the product glow and the dither, the closing pitch of the home page,
+ * the link columns and the legal row. The footer root also carries the `vh` class, so the buttons and
+ * the install box of home.css apply inside it. Reads tokens.css and the product's accent.
+ */
+
+/* ---- the footer: one dark slab with the product glow and the dither, as venizia.ai --------------- */
+.site-footer {
+  position: relative;
+  overflow: hidden;
+  background: #1b1b1b;
+  color: #ffffffa3;
+  border-top: 1px solid #ffffff1a;
+}
+.site-footer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      800px 420px at 70% 18%,
+      color-mix(in srgb, var(--accent-on-dark) 18%, transparent) 30%,
+      transparent 100%
+    ),
+    radial-gradient(circle at 1px 1px, #ffffff1f 1px, transparent 0) 0 0 / 18px 18px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  pointer-events: none;
+}
+.site-footer > * {
+  position: relative;
+}
+.closing {
+  padding-block: clamp(64px, 9vw, 120px) clamp(48px, 6vw, 72px);
+}
+.closing .wrap {
+  text-align: center;
+}
+.closing h2 {
+  color: #fff;
+  font-size: clamp(32px, 4.6vw, 60px);
+}
+.closing p {
+  max-width: 34em;
+  margin: var(--space-4) auto var(--space-6);
+  font-size: 17px;
+}
+.closing .install {
+  margin: 0 auto;
+  text-align: left;
+  border-color: #ffffff33;
+}
+.closing .cta {
+  justify-content: center;
+}
+.closing .btn--ghost {
+  border-color: #ffffff4d;
+  color: #fff;
+}
+.closing .btn--ghost:hover {
+  background: #fff;
+  border-color: #fff;
+  color: #101010;
+}
+.foot-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-7);
+  padding-block: var(--space-7) var(--space-6);
+  border-top: 1px solid #ffffff1a;
+}
+.foot-logo {
+  color: #fff;
+}
+.foot-logo svg {
+  width: 148px;
+  height: auto;
+}
+.foot-motto {
+  margin: var(--space-3) 0 0;
+  color: #fff;
+  font-size: 20px;
+  letter-spacing: -0.015em;
+}
+.foot-cols {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: var(--space-7);
+}
+.foot-cols h4 {
+  margin: 0 0 var(--space-3);
+  color: #ffffff66;
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.foot-cols a {
+  display: block;
+  padding: 4px 0;
+  color: #ffffffa3;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.25s;
+}
+.foot-cols a:hover {
+  color: #fff;
+}
+.foot-legal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
+  padding-block: var(--space-5) var(--space-6);
+  border-top: 1px solid #ffffff1a;
+  color: #ffffff80;
+  font-size: 13px;
+}
+.foot-legal a {
+  color: #fff;
+}
+
+/* On a page with a sidebar the footer starts where the content does, as the default theme's content does. */
+@media (min-width: 960px) {
+  .site-footer.has-sidebar {
+    padding-left: var(--vp-sidebar-width);
+  }
+}
+
+@media (min-width: 1440px) {
+  .site-footer.has-sidebar {
+    padding-left: calc((100vw - var(--vp-layout-max-width)) / 2 + var(--vp-sidebar-width));
+  }
+}
+
+@media (max-width: 960px) {
+  .site-footer .foot-cols {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    width: 100%;
+  }
+}
+
+/* The legal row: the licence on the left, the copyright on the right; they stack, left-aligned, when narrow. */
+@media (max-width: 560px) {
+  .site-footer .foot-legal {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+}

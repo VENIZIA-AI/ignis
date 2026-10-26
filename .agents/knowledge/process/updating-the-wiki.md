@@ -64,6 +64,17 @@ tags: [process, docs, wiki]
    `LICENSE.md` directly. Confirm the current publish path before assuming this playbook covers
    `docs/wiki`.
 
+9. The theme folder `docs/wiki/site/.vitepress/theme/shared/` is **not edited here**. It is a
+   byte-identical copy of VULCAN's wiki folder, shared by the IGNIS, ARDOR and VULCAN wikis; its
+   `SHARED.json` holds the hash of every file. Change it in VULCAN (the canonical copy), then run
+   from this repository's root, with VULCAN checked out next to it:
+   `bun ../vulcan/scripts/wiki-shared/copy.ts . --dry-run`, then without `--dry-run`, then
+   `bun ../vulcan/scripts/wiki-shared/check.ts .`. `scripts/checks/__tests__/wiki-shared.test.ts`
+   (copied by hand, identical in the three repos) fails on a hand edit or an unlisted file and when a
+   VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
+   converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
+   `product.css`, `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`.
+
 ## Related
 
 - [Release and publish](/process/release-publish.md)

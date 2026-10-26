@@ -1,0 +1,103 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The light and dark switch. With View Transitions the old and the new page are two images and the new
+ * one is revealed by a circle from the toggle (toggle-appearance.ts), so nothing flickers piece by piece.
+ * Without the API a temporary `theme-fade` class cross-fades the colours; with reduced motion the
+ * switch is instant. The toggle is an icon button: the sun and the moon stay in it and cross-fade with
+ * a quarter turn.
+ */
+
+/* ---- the toggle: the default switch restyled as an icon button ---------------------------------- */
+html .VPSwitch.VPSwitchAppearance {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-body);
+  transition: color 0.25s !important;
+}
+
+html .VPSwitch.VPSwitchAppearance:hover {
+  color: var(--text-title);
+}
+
+html .VPSwitchAppearance .check,
+html.dark .VPSwitchAppearance .check {
+  position: static;
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: none !important;
+}
+
+html .VPSwitchAppearance .icon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  overflow: visible;
+  color: inherit;
+}
+
+html .VPSwitchAppearance .icon .sun,
+html .VPSwitchAppearance .icon .moon {
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  transition:
+    transform 0.4s var(--ease-out),
+    opacity 0.25s ease;
+}
+
+html .VPSwitchAppearance .icon .moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+html.dark .VPSwitchAppearance .icon .sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+
+html.dark .VPSwitchAppearance .icon .moon {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- View Transitions: the new page, on top, revealed by a circle ------------------------------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2147483646;
+}
+
+/* ---- the fallback: fade colours only while the class is on, never a permanent transition -------- */
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition:
+    background-color var(--fade, 0.2s) ease,
+    color var(--fade, 0.2s) ease,
+    border-color var(--fade, 0.2s) ease,
+    fill var(--fade, 0.2s) ease,
+    stroke var(--fade, 0.2s) ease,
+    --dot var(--fade, 0.2s) ease,
+    --glow var(--fade, 0.2s) ease !important;
+}
