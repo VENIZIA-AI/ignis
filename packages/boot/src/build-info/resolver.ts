@@ -1,8 +1,12 @@
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { BuildInfoRegistry, type TBuildInfoRecord } from '@venizia/ignis-helpers/core';
+import { execFile } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { promisify } from 'node:util';
 import { BuildInfoEnvironmentKeys } from './common';
+
+const execFileAsync = promisify(execFile);
 
 /** Length of a short SHA; an env value already shorter is left alone. */
 const COMMIT_LENGTH = 12;
@@ -70,8 +74,9 @@ export class BuildInfoResolver extends BaseHelper {
   }
 
   /**
-   * `nothrow()` covers a nonzero exit; the `catch` covers `git` being absent and also `Bun` being
-   * absent - under plain Node the `ReferenceError` degrades the field instead of killing the build.
+   * `execFile` runs `git` without a shell and works under Bun and Node alike - `Bun.$` threw a
+   * `ReferenceError` under Node, which left commit and branch "unspecified" for every Node build.
+   * A nonzero exit and `git` being absent are both a miss, logged and degraded to one field.
    */
   private async resolveGitValue(opts: {
     args: string[];
@@ -80,23 +85,21 @@ export class BuildInfoResolver extends BaseHelper {
     const { args, root } = opts;
 
     try {
-      const result = await Bun.$`git ${args}`.cwd(root).quiet().nothrow();
-      // `rev-parse --abbrev-ref HEAD` in a repository with no commit prints the literal `HEAD` on
-      // stdout while exiting 128, so the exit code decides and stdout alone never does.
-      if (result.exitCode !== 0) {
-        this.logger.debug(
-          'git %s | exit: %d | %s',
-          args.join(' '),
-          result.exitCode,
-          result.stderr.toString().trim(),
-        );
-        return undefined;
-      }
-
-      const value = result.stdout.toString().trim();
+      const { stdout } = await execFileAsync('git', args, { cwd: root, windowsHide: true });
+      const value = stdout.trim();
       return value.length > 0 ? value : undefined;
     } catch (error) {
-      this.logger.debug('git %s | unavailable: %s', args.join(' '), error);
+      // `rev-parse --abbrev-ref HEAD` in a repository with no commit prints the literal `HEAD` on
+      // stdout while exiting 128, so the exit code decides and stdout alone never does: a nonzero
+      // exit rejects here whatever it printed.
+      const { code, stderr } = error as { code?: number | string; stderr?: string };
+
+      if (typeof code === 'number') {
+        this.logger.debug('git %s | exit: %d | %s', args.join(' '), code, (stderr ?? '').trim());
+      } else {
+        this.logger.debug('git %s | unavailable: %s', args.join(' '), error);
+      }
+
       return undefined;
     }
   }

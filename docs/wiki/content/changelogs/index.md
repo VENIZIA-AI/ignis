@@ -18,6 +18,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | Date | Title | Type |
 |------|-------|------|
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
+| 2026-10-26 | [The Build Stamp Reads Its Commit and Branch Under Node](./2026-10-26-build-info-git-under-node) | Bug Fix |
 | 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
 | 2026-10-26 | [Connectors String Options Are Const Classes](./2026-10-26-connectors-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |

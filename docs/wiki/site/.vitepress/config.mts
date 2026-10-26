@@ -479,6 +479,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-batch-overview',
                 },
                 {
+                  text: 'The Build Stamp Reads Its Commit and Branch Under Node',
+                  link: '/changelogs/2026-10-26-build-info-git-under-node',
+                },
+                {
                   text: 'Repository Tooling',
                   link: '/changelogs/2026-10-26-repository-tooling',
                 },

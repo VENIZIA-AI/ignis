@@ -37,7 +37,7 @@ imported from a file that might not exist.
 
 - `@venizia/ignis-boot` and `@venizia/dev-configs` in the application. `@venizia/ignis-boot/build-info`
   imports no TypeScript, so importing it at run time does not pull the scanner into the bundle.
-- The resolver runs under **bun**. It asks `git` through Bun Shell.
+- The resolver runs under **bun** and **Node**. It asks `git` with `execFile`, no shell.
 
 ## How it works
 
@@ -127,9 +127,11 @@ looks for any of them. The git fallback is for a run from source, where `.git` i
 
 ## Running under Node
 
-The resolver asks `git` through `Bun.$`. Under plain **Node** that is undefined, so the
-`git`-derived fields read `unspecified` and the start still succeeds rather than throwing. Export the
-CI variables above when a Node run has to be exact.
+The resolver asks `git` with `execFile` from `node:child_process`, so a Node run reads the commit and
+branch the same way a Bun run does. When `git` is missing or the folder is not a repository, those
+fields read `unspecified` and the start still succeeds. Export the CI variables above when a run has
+to be exact. Releases `0.2.0` to `0.4.3` read git through `Bun.$`, so under Node both fields were
+always `unspecified`.
 
 ## A frontend or a shell build
 
