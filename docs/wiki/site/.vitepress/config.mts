@@ -464,20 +464,24 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'After 0.4.3 - What Changed and How to Upgrade',
+                  link: '/changelogs/2026-10-26-batch-overview-0-4-4',
+                },
+                {
                   text: 'After 0.4.2 - What Changed and How to Upgrade',
                   link: '/changelogs/2026-10-26-batch-overview',
                 },
                 {
+                  text: 'READMEs, Licences and the Company Name',
+                  link: '/changelogs/2026-10-26-readmes-license-and-company-name',
+                },
+                {
+                  text: "The Wiki's Claims Were Checked Against the Code",
+                  link: '/changelogs/2026-10-26-wiki-claims-checked-against-the-code',
+                },
+                {
                   text: 'The Wiki Has a New Look',
                   link: '/changelogs/2026-10-26-wiki-new-look',
-                },
-                {
-                  text: 'Logging Works Under Node ESM Without Registering a Provider',
-                  link: '/changelogs/2026-10-26-logger-default-provider-node-esm',
-                },
-                {
-                  text: 'The Build Stamp Reads Its Commit and Branch Under Node',
-                  link: '/changelogs/2026-10-26-build-info-git-under-node',
                 },
                 {
                   text: 'A Failed Secret Rotation Left the Rotated Credentials in the Settings',

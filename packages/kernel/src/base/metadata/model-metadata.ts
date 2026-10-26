@@ -3,7 +3,7 @@ import type { IDeprecatedModelMetadata, IModelMetadata } from '@/helpers/inversi
 import { ModelTypes } from '../models/common/constants';
 
 /** The release that drops the deprecated `skipMigrate` key. */
-export const DEPRECATED_MODEL_METADATA_REMOVED_IN = '0.4.4';
+export const DEPRECATED_MODEL_METADATA_REMOVED_IN = '0.4.5';
 
 /**
  * The one place the `@model` metadata outside `settings` is checked and normalised.

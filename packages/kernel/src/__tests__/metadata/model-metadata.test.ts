@@ -171,7 +171,7 @@ describe('warnDeprecatedModelMetadata', () => {
     return { lines, logger };
   };
 
-  test('prints one warning for a skipMigrate model, naming the model, the key, the new key and 0.4.4', () => {
+  test('prints one warning for a skipMigrate model, naming the model, the key, the new key and 0.4.5', () => {
     class WarnedProduct extends AbstractEntity {
       getSchema<T>(): T {
         return {} as T;
@@ -182,7 +182,7 @@ describe('warnDeprecatedModelMetadata', () => {
 
     expect(warnDeprecatedModelMetadata({ logger: logger as never })).toBe(1);
     expect(lines).toEqual([
-      '[deprecated] model WarnedProduct uses skipMigrate | use migration: { use: false } instead | removed in 0.4.4',
+      '[deprecated] model WarnedProduct uses skipMigrate | use migration: { use: false } instead | removed in 0.4.5',
     ]);
   });
 

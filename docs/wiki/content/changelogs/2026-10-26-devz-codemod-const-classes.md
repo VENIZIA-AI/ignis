@@ -10,7 +10,7 @@ packages: ['@venizia/dev-configs']
 
 <Badge type="tip" text="Feature" />
 
-**In one line.** The `venizia/const-class-values` lint rule asks for a const class instead of a union of string literals in an exported declaration. `devz codemod const-classes` writes that class for you.
+**In one line.** The `venizia/const-class-values` lint rule asks for a const class instead of a union of string literals in an exported declaration. `devz codemod const-classes` writes that class for you. Ships in 0.4.4.
 
 ```bash
 bunx devz codemod const-classes src                     # dry run: prints each proposed class and member names

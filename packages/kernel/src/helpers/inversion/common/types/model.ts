@@ -140,7 +140,7 @@ export interface IModelMetadata extends IArtifactRegistrationOptions {
   migration?: IModelMigrationSettings;
 
   /**
-   * @deprecated Use `migration: { use: false }`. Removed in 0.4.4. On a registry entry it is
+   * @deprecated Use `migration: { use: false }`. Removed in 0.4.5. On a registry entry it is
    * derived (`!migration.use`) so tooling that reads it keeps working this release.
    */
   skipMigrate?: boolean;

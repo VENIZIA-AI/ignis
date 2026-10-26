@@ -10,7 +10,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/dev-configs']
 
 <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Three small corrections found while writing the upgrade list for a downstream app.
+**In one line.** Three small corrections found while writing the upgrade list for a downstream app. Ships in 0.4.4.
 
 ## What changed
 

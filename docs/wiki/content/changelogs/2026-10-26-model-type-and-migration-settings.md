@@ -25,6 +25,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 [deprecated] model Product uses skipMigrate | use migration: { use: false } instead | removed in 0.4.4
 ```
 
+> [!NOTE]
+> **Correction in 0.4.4.** The removal did not happen in 0.4.4. `skipMigrate` is still accepted there, and its warning now ends with `removed in 0.4.5`.
+
 - **Both keys together throw.** A model that sets `skipMigrate` and `migration` is ambiguous, so the decorator refuses it.
 - **`BaseMetaLinkModel` uses `migration: { use: false }`.** The MetaLink docs now say what is true: IGNIS creates no table, so export its schema to your `drizzle-kit` file or create it by hand.
 
