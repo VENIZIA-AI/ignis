@@ -333,7 +333,7 @@ interface Message<Key, Value, HeaderKey, HeaderValue> {
 
 ### MessagesStream
 
-`MessagesStream` extends Node.js `Readable`. Three consumption patterns:
+`MessagesStream` extends `Readable` from `node:stream`. Three consumption patterns:
 
 **Async Iterator** (sequential, backpressure):
 ```typescript

@@ -14,7 +14,6 @@ This guide shows you how to write tests for your IGNIS application.
 | **Vitest** | Fast, Vite-native testing framework |
 | **Bun Test** | Built-in test runner for Bun |
 | **Playwright** | End-to-end testing for web applications |
-| **node:test** | Node.js native test module |
 | **Mocha** | Flexible testing framework |
 | **Any other** | All test frameworks work with IGNIS |
 

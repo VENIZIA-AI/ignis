@@ -33,7 +33,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 | Package | `@venizia/ignis-inversion` |
 | Classes | `Container`, `BaseContainer`, `AbstractContainer`, `Binding`, `MetadataRegistry` |
 | Decorators | `@inject` |
-| Runtimes | Both Bun and Node.js |
+| Runtimes | Bun, and a browser or Web Worker |
 | Build | Dual CJS + ESM |
 
 ### Import paths

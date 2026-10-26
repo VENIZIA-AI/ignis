@@ -34,7 +34,7 @@ An **adapter** answers one question: which UTC offset a zone observes at an inst
 | `DayjsTemporalAdapter` | `new DayjsTemporalAdapter({ dayjs })` | Your `dayjs`, with the `utc` and `timezone` plugins extended | Your app already ships dayjs |
 | `LuxonTemporalAdapter` | `new LuxonTemporalAdapter({ DateTime })` | Your Luxon `DateTime` class | Your app already ships Luxon |
 
-Node 24 has no global `Temporal` (only behind the experimental `--harmony-temporal` flag). There, `new TemporalHelper()` without an adapter throws `[NativeTemporalAdapter] Temporal is not available on this runtime`. Pass another adapter:
+To use another adapter, pass it:
 
 ```typescript
 import dayjs from 'dayjs';

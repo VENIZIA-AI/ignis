@@ -1,6 +1,6 @@
 # PGlite - Postgres In Your Process
 
-PGlite is PostgreSQL compiled to WebAssembly. It runs inside your Node or Bun process, with no server, no port and no container. IGNIS reaches it through `PGliteDriver`, a third driver on the unchanged Postgres connector.
+PGlite is PostgreSQL compiled to WebAssembly. It runs inside your Bun process, with no server, no port and no container. IGNIS reaches it through `PGliteDriver`, a third driver on the unchanged Postgres connector.
 
 ```typescript
 import { PGlite } from '@electric-sql/pglite';

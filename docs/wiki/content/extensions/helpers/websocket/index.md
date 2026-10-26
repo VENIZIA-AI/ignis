@@ -11,7 +11,7 @@ A Bun-native WebSocket server with post-connection authentication, rooms, heartb
 This helper is the raw class: construct it and wire it into your own server yourself. Need it inside an IGNIS app instead? [`WebSocketComponent`](/extensions/components/websocket/) does that wiring for you. It creates and binds the helper through DI once your app's Bun server is listening.
 
 > [!IMPORTANT]
-> **Bun only.** `WebSocketServerHelper` uses Bun's native WebSocket API and will not run on Node.js. For Node.js, use the [Socket.IO Helper](../socket-io/) instead.
+> IGNIS runs on Bun >= 1.4 only. `WebSocketServerHelper` uses Bun's native WebSocket API.
 
 ## In one example
 
@@ -126,7 +126,7 @@ const helper = new WebSocketServerHelper({
 ## See also
 
 - [Full reference](./api) - every option, method signature, type, and constant
-- [Socket.IO Helper](../socket-io/) - Socket.IO-based alternative with Node.js support
+- [Socket.IO Helper](../socket-io/) - the Socket.IO-based alternative
 - [Redis Helper](../redis/) - `RedisSingleHelper` / `RedisClusterHelper` used for cross-instance messaging
 - [Crypto Helper](../crypto/) - ECDH key exchange for WebSocket encryption
 - [WebSocket Component](/extensions/components/websocket/) - component-level lifecycle integration

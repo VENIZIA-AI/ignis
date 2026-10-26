@@ -209,14 +209,7 @@ type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.
 > [!IMPORTANT]
 > - **Every `HTTP.Methods` token is lowercase.** `@hono/zod-openapi` route definitions accept no other case.
 > - **Both fetchers accept either case on input**, `'post'` or `'POST'`. Each calls `method.toUpperCase()` immediately before dispatching to its transport.
-> - **This is not cosmetic.** Node's undici is the `fetch` implementation on Node - not Bun - and it auto-normalizes only some methods:
->
->   | Auto-normalized by undici | Sent through verbatim |
->   |---|---|
->   | `DELETE`, `GET`, `HEAD`, `OPTIONS`, `POST`, `PUT` | `PATCH`, `QUERY` |
->
->   A lowercase `patch` or `query` reaches the server unchanged, and most servers reject it.
-> - **Bun and Axios hide the bug.** Bun's `fetch` and Axios both uppercase every method themselves - Axios via `node:http`. The bug surfaces only once the app runs on Node with undici.
+> - **This is not cosmetic.** A lowercase `patch` or `query` that reaches a server unchanged is rejected by most servers.
 
 ---
 

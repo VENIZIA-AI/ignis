@@ -1003,7 +1003,7 @@ generated:
 - `TTemporalUnit` type
 - `TTemporalWrittenDateStyle` type
 
-### `@venizia/ignis-helpers/socket-io` (17)
+### `@venizia/ignis-helpers/socket-io` (16)
 
 - `IHandshake` interface
 - `IOptions` interface
@@ -1011,7 +1011,6 @@ generated:
 - `ISocketIOClientOptions` interface
 - `ISocketIOServerBaseOptions` interface
 - `ISocketIOServerBunOptions` interface
-- `ISocketIOServerNodeOptions` interface
 - `SocketIOClientHelper` class
 - `SocketIOClientStates` class
 - `SocketIOConstants` class
@@ -2395,7 +2394,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1072)
+### `@venizia/ignis` (1074)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2438,6 +2437,7 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
+- `assertBunRuntime` const
 - `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
@@ -2857,6 +2857,7 @@ generated:
 - `IRetryContext` interface
 - `IRpcMetadata` interface
 - `IRpcRegistration` interface
+- `IRuntimeSnapshot` interface
 - `isApplicationError` const
 - `isClass` const
 - `isClassProvider` const
@@ -3025,6 +3026,7 @@ generated:
 - `readDeclarative` const
 - `readFormBody` const
 - `readResultRows` const
+- `readRuntimeSnapshot` const
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `REDACTED` const
@@ -3288,7 +3290,6 @@ generated:
 - `TModelType` type
 - `TMultipartStorage` type
 - `TNodePredicate` type
-- `TNodeServerInstance` type
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type

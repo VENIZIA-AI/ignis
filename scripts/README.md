@@ -19,9 +19,8 @@ Root tooling of the IGNIS monorepo, grouped by purpose. Each group keeps its tes
 | `checks/` | `__tests__/wiki-shared.test.ts` | Fails when the shared wiki theme folder differs from its `SHARED.json`, or a VitePress piece its CSS overrides is gone; identical in the IGNIS, ARDOR and VULCAN repositories | `make test-scripts` |
 | `checks/` | `clean-install/` | Loads each package's published sub-paths from packed tarballs in an empty project | `make clean-install`, `make clean-install-<pkg>` (CI, release workflow) |
 | `build/` | `esm-marker.ts` | Writes `dist/esm/package.json` after an ESM build | `make/project.mk`, the build of each package |
-| `build/` | `esm-shims.ts` | Declares `__filename` and `__dirname` from `import.meta.url` in the `dist/esm` files that read them | `make/project.mk`, the build of each package |
 | `build/` | `force-update.sh` | Raises a package's `@venizia/*` dependencies to the registry's latest | the `force-update` script of each package and of the wiki, `package-release.yml` |
-| `build/` | `build-checks/` | Tests of the built output: self-contained sourcemaps, the oxlint subpath loads no ESLint, the ESM logger loads under Node | `make build-checks` (CI, release workflow) |
+| `build/` | `build-checks/` | Tests of the built output: self-contained sourcemaps, the oxlint subpath loads no ESLint | `make build-checks` (CI, release workflow) |
 | `wiki/` | `wiki-anchors.ts` | Every `#fragment` the wiki links to exists on its page | `make wiki-anchors-check`, part of `make build-all` |
 | `wiki/` | `wiki-source-links.ts` | Every source path the wiki and the knowledge bundle name is tracked by git | `make wiki-links-check`, part of `make build-all` |
 

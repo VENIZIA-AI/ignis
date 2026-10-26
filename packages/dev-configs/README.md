@@ -61,7 +61,7 @@ The two options in `compilerOptions` repeat the base on purpose - see
 
 ### Browser and React projects
 
-The presets above target a Bun or Node backend. Code that runs in a browser swaps each one for its
+The presets above target a Bun backend. Code that runs in a browser swaps each one for its
 browser version. A React project swaps it for the React version, which builds on the browser one.
 
 | Tool | Backend | Browser | React |

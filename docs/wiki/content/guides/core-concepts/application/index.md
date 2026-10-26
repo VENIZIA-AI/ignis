@@ -1,6 +1,6 @@
 # The Application Class
 
-The Application class is the root of an IGNIS server. It owns the IoC container, runs the boot sequence that registers your classes, serves HTTP on Bun or Node, and stops cleanly. You extend `BaseApplication`, implement five hooks, and describe the rest in one config object.
+The Application class is the root of an IGNIS server. It owns the IoC container, runs the boot sequence that registers your classes, serves HTTP on Bun, and stops cleanly. You extend `BaseApplication`, implement five hooks, and describe the rest in one config object.
 
 > **Deep Dive:** See [Application Reference](../../../references/base/application.md) for technical details.
 
@@ -64,10 +64,10 @@ The `IGNIS` application has a well-defined lifecycle, managed primarily by the `
 
 | Method | Description |
 | :--- | :--- |
-| **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and detects the runtime (Bun/Node). The `Application` extends `Container` (IoC container). |
+| **`constructor(opts)`** | Initializes the application, sets up the Hono server (`OpenAPIHono`), and reads the runtime (Bun). The `Application` extends `Container` (IoC container). |
 | **`init()`** | Registers the core bindings, including `CoreBindings.APPLICATION_INSTANCE`. Call it before `start()`. |
 | **`start()`** | The main entry point. It calls `initialize()`, sets up middlewares, mounts the root router, and starts the HTTP server. |
-| **`stop()`** | Runs the post-stop hooks, stops the server (`Bun.serve().stop()` or node `server.close()`), then closes every datasource the boot configured, so no pool, socket or PGlite instance outlives the application. Each datasource gets `dataSourceCloseTimeoutMs` (default 10 s) to close. |
+| **`stop()`** | Runs the post-stop hooks, stops the server (`Bun.serve().stop()`), then closes every datasource the boot configured, so no pool, socket or PGlite instance outlives the application. Each datasource gets `dataSourceCloseTimeoutMs` (default 10 s) to close. |
 | **`initialize()`** | Orchestrates the entire setup process, calling the various configuration and registration methods in the correct order. |
 
 > [!WARNING]
@@ -127,7 +127,7 @@ setupMiddlewares()                       ← Override hook
 Mount Root Router (server.route(basePath, rootRouter))
   │
   ▼
-Start HTTP Server (Bun.serve or @hono/node-server)
+Start HTTP Server (Bun.serve)
   │
   ▼
 executePostStartHooks()
@@ -157,7 +157,7 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `error.environment` | `string` | `process.env.NODE_ENV` | The ambient environment name. Set it where there is no `process.env`, such as a browser Worker. |
 | `middlewares.cors` | `object` | `undefined` | CORS options. Installed first, so early framework responses such as the body-limit 413 carry the headers. |
 | `middlewares.bodyLimit` | `object` | `undefined` | Request body limit. Installed right after the request id, ahead of every other middleware. |
-| `server.idleTimeout`, `server.maxRequestBodySize` | `number` | Bun's defaults | Bun-only socket options passed to `Bun.serve`. Node logs a warning and ignores them. |
+| `server.idleTimeout`, `server.maxRequestBodySize` | `number` | Bun's defaults | Socket options passed to `Bun.serve`. |
 | `discoverArtifacts` | `boolean` | `false` | Registers every decorated class the application imports, with no index. With `artifacts` too, the union registers. |
 | `bootChecks` | `object` | `undefined` | Boot-time checks: `binding.{ doVerify, allowManual, allowOverride }` and `allowDerivedKeyCollision`. Without `binding`, nothing is verified. See [Registering artifacts](./bootstrapping). |
 | `dataSourceCloseTimeoutMs` | `number` | `10_000` | How long `stop()` waits for one datasource to close. `0` waits without limit. |
@@ -222,18 +222,13 @@ this.controller(UserController, {
 
 ## Runtime Support
 
-The application detects the runtime automatically via `RuntimeModules.detect()`:
+IGNIS runs on Bun >= 1.4 only. `start()` checks the runtime first and throws `IGNIS requires Bun >= 1.4 (running on <runtime>)` on any other one, before it touches a hook, a datasource or a socket. The server is `Bun.serve`:
 
 ```typescript
-// Bun - uses Bun.serve (chosen when `Bun` is defined)
 Bun.serve({ port, hostname, fetch: server.fetch })
-
-// Node.js - requires @hono/node-server
-import { serve } from '@hono/node-server'
-serve({ fetch: server.fetch, port, hostname })
 ```
 
-`AutoArtifacts` (`@venizia/ignis-boot/auto`) needs Bun, and throws on Node. On Node, generate the index with `ignis-artifacts generate` and pass it as `configs.artifacts`. See [Registering artifacts](./bootstrapping).
+To commit the artifact index instead of using the Bun plugin of `AutoArtifacts` (`@venizia/ignis-boot/auto`), run `ignis-artifacts generate` and pass the result as `configs.artifacts`. See [Registering artifacts](./bootstrapping).
 
 ## Post-Start Hooks
 
@@ -273,7 +268,7 @@ A post-stop hook runs before the server stops. Register one with `registerPostSt
 
 ## Static File Serving
 
-Serve static files with runtime-aware implementation:
+Serve static files:
 
 ```typescript
 staticConfigure(): void {
@@ -281,7 +276,7 @@ staticConfigure(): void {
 }
 ```
 
-Uses `hono/bun` `serveStatic` for Bun runtime, `@hono/node-server/serve-static` for Node.js.
+Uses `hono/bun` `serveStatic`.
 
 ## See Also
 

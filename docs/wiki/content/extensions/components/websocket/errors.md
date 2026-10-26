@@ -31,7 +31,6 @@ Every error condition the WebSocket component and helper can raise, plus fixes f
 | Method | Condition | Error Message |
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind WebSocketComponent"` |
-| `binding()` | Node.js runtime detected | `"[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime."` |
 | `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!"` |
 | `registerBunHook()` | Bun server instance not available | `"[WebSocketComponent] Bun server instance not available!"` |
@@ -74,11 +73,6 @@ this.bind<TWebSocketAuthenticateFn>({ key: WebSocketBindingKeys.AUTHENTICATE_HAN
   },
 );
 ```
-
-### "Node.js runtime is not supported yet"
-
-- **Cause:** Running on Node.js. The WebSocket component only supports Bun.
-- **Fix:** Switch to Bun, or use the [Socket.IO Component](../socket-io/) instead - it supports both runtimes.
 
 ### "Bun server instance not available!"
 
@@ -124,5 +118,5 @@ setInterval(() => {
 - [Usage & Examples](./usage) - injecting the helper, `WebSocketEmitter`, wire protocol, client tracking, delivery strategy
 - [Full Reference](./api) - binding keys, configuration options, `WebSocketEmitter` API, internals
 - [WebSocketServerHelper](/extensions/helpers/websocket/) - helper API documentation
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Socket.IO Component](../socket-io/) - the Socket.IO alternative
 - [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference

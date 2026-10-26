@@ -43,7 +43,7 @@ file emitter were removed, see [Build stamp](#build-stamp).
   returns the exit code so the process exits in exactly one place: `artifacts.ts` (`ignis-artifacts`).
 - `src/build-info/` - `resolver.ts` (`BuildInfoResolver.getInstance().resolve({ root })`, a `BaseHelper`
   singleton that logs every miss), `stamp.ts` (`BuildInfoStamp`), `common/` (`BuildInfoEnvironmentKeys`).
-  The resolver reads env first (`APP_ENV_*` > `APP_BUILD_*` > provider), then `git` through `execFile` (`node:child_process`, no shell, runs under Bun and Node) with
+  The resolver reads env first (`APP_ENV_*` > `APP_BUILD_*` > provider), then `git` through `execFile` (`node:child_process`, no shell, runs under Bun) with
   `cwd: root`, then `package.json`; never throws. The record type and the `unspecified` sentinel come
   from `@venizia/ignis-helpers/core` (`TBuildInfoRecord`, `BuildInfoRegistry.UNSPECIFIED`).
 - `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).

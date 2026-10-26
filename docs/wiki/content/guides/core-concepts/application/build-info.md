@@ -37,7 +37,7 @@ imported from a file that might not exist.
 
 - `@venizia/ignis-boot` and `@venizia/dev-configs` in the application. `@venizia/ignis-boot/build-info`
   imports no TypeScript, so importing it at run time does not pull the scanner into the bundle.
-- The resolver runs under **bun** and **Node**. It asks `git` with `execFile`, no shell.
+- The resolver runs under **bun**. It asks `git` with `execFile`, no shell.
 
 ## How it works
 
@@ -124,14 +124,6 @@ pipeline forgot shows up as a word you can grep for, never as an absent key.
 A `bun build --compile` binary ships no `node_modules`, no `.git` and no readable `package.json`, and
 a Distroless image has no `git` to spawn. That is why the compile bakes the stamp: the binary never
 looks for any of them. The git fallback is for a run from source, where `.git` is there.
-
-## Running under Node
-
-The resolver asks `git` with `execFile` from `node:child_process`, so a Node run reads the commit and
-branch the same way a Bun run does. When `git` is missing or the folder is not a repository, those
-fields read `unspecified` and the start still succeeds. Export the CI variables above when a run has
-to be exact. Releases `0.2.0` to `0.4.3` read git through `Bun.$`, so under Node both fields were
-always `unspecified`.
 
 ## A frontend or a shell build
 

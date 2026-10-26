@@ -182,7 +182,7 @@ await Bun.build({
 });
 ```
 
-A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"` - it never ships a binary with missing classes. The entry must also register its logger - see [rule 3 below](#compiling-with-bun-build-compile). On Node there is no plugin API: keep `ignis-artifacts generate`.
+A build that forgets the plugin fails with `Could not resolve: "ignis:artifacts"` - it never ships a binary with missing classes. The entry must also register its logger - see [rule 3 below](#compiling-with-bun-build-compile).
 
 The scan follows re-exports, so a decorator imported from a framework that re-exports the kernel's (a frontend built on the kernel, a kit of your own) counts with no flag.
 
@@ -200,7 +200,7 @@ export default defineConfig({
 });
 ```
 
-The plugin scans the `src` beside the `package.json` of Vite's root (pass `root` to choose another), builds the class list into the bundle and inlines every `ArtifactGroup` call, as `IgnisArtifactsPlugin` does for `Bun.build`. It runs under Node or Bun. It pins the name of each scanned class (a static block setting `name`), because binding keys are built from `Class.name` and a minifier renames classes - the rest of the bundle minifies as usual - and it keeps `@venizia/ignis-boot` out of dependency pre-bundling. The plugin scans once, when the dev server starts (a later start reuses the scan cache). Editing a class keeps hot reload as usual; **adding or removing a decorated class or a group needs a dev server restart** - the same as a backend under `bun --watch`. Classes an application borrows through a group are pinned too, so a shared kit needs nothing extra; a kit built for the browser imports `ArtifactGroup` from `@venizia/ignis-kernel/metadata`, which carries no server code.
+The plugin scans the `src` beside the `package.json` of Vite's root (pass `root` to choose another), builds the class list into the bundle and inlines every `ArtifactGroup` call, as `IgnisArtifactsPlugin` does for `Bun.build`. It pins the name of each scanned class (a static block setting `name`), because binding keys are built from `Class.name` and a minifier renames classes - the rest of the bundle minifies as usual - and it keeps `@venizia/ignis-boot` out of dependency pre-bundling. The plugin scans once, when the dev server starts (a later start reuses the scan cache). Editing a class keeps hot reload as usual; **adding or removing a decorated class or a group needs a dev server restart** - the same as a backend under `bun --watch`. Classes an application borrows through a group are pinned too, so a shared kit needs nothing extra; a kit built for the browser imports `ArtifactGroup` from `@venizia/ignis-kernel/metadata`, which carries no server code.
 
 Keep the module that imports `@venizia/ignis-boot/auto` free of decorated classes - one class per file under `src`, and `application.ts` holding only the application. The built list imports every class back, so a class defined in that module, or a module it is imported by, is read before it exists; registration then stops with `lists an entry that is not a class ... import cycle`.
 

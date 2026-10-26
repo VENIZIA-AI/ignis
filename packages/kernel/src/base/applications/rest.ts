@@ -41,7 +41,7 @@ interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurabl
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
 
-/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve` / `@hono/node-server`. */
+/** Adds the `OpenAPIHono` router surface on top of `AbstractApplication` - no listening server, so this is the layer a browser Worker or gRPC-only host can extend without pulling in `Bun.serve`. */
 export abstract class RestApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},

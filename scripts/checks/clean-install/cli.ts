@@ -4,8 +4,8 @@
  * an empty project, each package ALONE with its required peers plus the optional peers the manifest
  * grants that sub-path - under both the hoisted and the isolated linker.
  *
- * Four checks per sub-path: `import()` under Bun, `import()` and `require()` under Node, and a
- * `bun build --target=browser` for every entry the purity gate claims. A sub-path the manifest
+ * Two checks per sub-path: `import()` under Bun, and a `bun build --target=browser` for every entry
+ * the purity gate claims. A sub-path the manifest
  * lists under `importedAfter` also loads under Bun from one ESM entry, followed by those peers,
  * `ORDER_RUNS` times. Inside the workspace every optional peer resolves, so a leak there is
  * invisible; here it fails on the line that pulls it.
@@ -29,7 +29,6 @@ import type { IInstallRow } from './manifest';
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 const WORKSPACE_SCOPE = '@venizia/';
 const LINKERS = ['hoisted', 'isolated'];
-const TYPELESS_PACKAGE_WARNING = 'MODULE_TYPELESS_PACKAGE_JSON';
 
 /**
  * Runs of the `bun-order` entry per sandbox: the load race it guards crashes only some runs. At the
@@ -354,15 +353,6 @@ const checkRow = async (opts: {
 
   const attempt = async (name: string, command: string[]): Promise<ICheckResult> => {
     const result = await run({ command, cwd: sandbox });
-    // Node loads an unmarked `.js` as CommonJS, fails, then parses it again as ESM: it works, costs a
-    // second parse per file, and prints this warning into every consumer's log.
-    if (result.ok && result.output.includes(TYPELESS_PACKAGE_WARNING)) {
-      return {
-        name,
-        ok: false,
-        detail: `${TYPELESS_PACKAGE_WARNING}: dist/esm carries no "type": "module"`,
-      };
-    }
     return { name, ok: result.ok, detail: result.ok ? '' : firstErrorLine(result) };
   };
 
@@ -371,20 +361,6 @@ const checkRow = async (opts: {
   // One static ESM graph, the sub-path first, as an application that uses both writes it.
   if (row.importedAfter.length > 0) {
     checks.push(checkImportOrder({ row, sandbox, runs: ORDER_RUNS }));
-  }
-
-  if (!row.bunOnly) {
-    checks.push(
-      attempt('node-esm', [
-        'node',
-        '--input-type=module',
-        '-e',
-        `await import('${row.specifier}')`,
-      ]),
-    );
-    if (row.hasRequire) {
-      checks.push(attempt('node-cjs', ['node', '-e', `require('${row.specifier}')`]));
-    }
   }
 
   const entryPath = rowEntry({ row });
@@ -416,13 +392,6 @@ const main = async (): Promise<number> => {
   const args = process.argv.slice(2);
   const keep = args.includes('--keep');
   const tokens = args.filter((arg) => !arg.startsWith('--'));
-
-  const nodeVersion = await run({ command: ['node', '--version'], cwd: REPOSITORY_ROOT });
-  if (!nodeVersion.ok) {
-    throw new Error(
-      '[clean-install] `node` is not on PATH - the Node checks cannot run, and skipping them would pass for the wrong reason',
-    );
-  }
 
   const claims =
     tokens.length > 0
@@ -530,8 +499,8 @@ const main = async (): Promise<number> => {
         failures.push(`${manifest.name} [${linker}] lock-pin: ${problem}`);
       }
 
-      // Node prints the typeless-package warning only OUTSIDE node_modules, so a consumer never sees it
-      // while paying the second parse - the marker file is checked directly instead.
+      // A consumer reads `type` and `sideEffects` from the nearest package.json, so the marker file is
+      // checked directly.
       const exportsImportIntoEsm = Object.values(manifest.exports ?? {}).some(
         (target) => typeof target === 'object' && target.import?.startsWith('./dist/esm/'),
       );

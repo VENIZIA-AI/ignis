@@ -1072,7 +1072,7 @@ export class ChatApp extends BaseApplication {
 
     // 5. Register the component - that's it!
     //    SocketIOComponent handles:
-    //    - Runtime detection (Node.js / Bun)
+    //    - Wiring the Bun engine
     //    - Post-start hook to create SocketIOServerHelper after server starts
     //    - Redis adapter + emitter setup (automatic)
     //    - Binding SocketIOServerHelper to SOCKET_IO_INSTANCE
@@ -1120,11 +1120,10 @@ preConfigure()
 initialize()
   └── SocketIOComponent.binding()
         ├── resolveBindings() - reads all bound values
-        ├── RuntimeModules.detect() - auto-detect Node.js or Bun
         └── registerPostStartHook('socket-io-initialize')
 
 start()
-  ├── startBunModule() / startNodeModule() - server starts
+  ├── startBunModule() - server starts
   └── executePostStartHooks()
         └── 'socket-io-initialize'
               ├── Create SocketIOServerHelper (with Redis adapter + emitter)
@@ -1549,7 +1548,7 @@ this.bind<RedisSingleHelper>({
 | History | REST API with cursor-based pagination |
 | Authentication | `SocketIOServerHelper` built-in flow (connect → authenticate → authenticated) |
 | Scaling | Redis adapter/emitter - automatic via `RedisSingleHelper` binding |
-| Runtime | Auto-detected (Node.js or Bun) by `SocketIOComponent` |
+| Runtime | Bun, through `@socket.io/bun-engine` |
 
 ## Next Steps
 

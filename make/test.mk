@@ -95,8 +95,8 @@ $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 # CLEAN-INSTALL TARGETS
 # Packs each package, installs it ALONE into an empty project with only its required peers plus the
 # ones scripts/checks/clean-install/manifest.ts grants a sub-path, and loads every published sub-path under
-# Bun, Node ESM, Node CJS and a browser build - hoisted and isolated. The workspace hoists every
-# optional peer, so a leak is invisible anywhere else. Needs a build first, and `node` on PATH.
+# Bun and a browser build - hoisted and isolated. The workspace hoists every optional peer, so a
+# leak is invisible anywhere else. Needs a build first.
 # ----------------------------------------------------------------------------
 # A sandbox below the repository would resolve the repository's own node_modules, so this gate (and
 # only this one) keeps its sandboxes in the system temp and removes them when it ends.

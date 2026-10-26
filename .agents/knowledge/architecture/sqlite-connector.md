@@ -77,8 +77,7 @@ BaseRelationalDataSource            relational/core/datasources/base.ts        (
 driver blocks the event loop on every query. libsql's result kind is **async**, and Drizzle types
 `bun:sqlite`'s run result as `void`, which puts affected-row counts out of reach entirely.
 
-One driver covers `:memory:`, a local file, a remote Turso database and an embedded replica. It also
-runs on Node and Bun, which `bun:sqlite` cannot.
+One driver covers `:memory:`, a local file, a remote Turso database and an embedded replica.
 
 **`acquire()` borrows from a 1-slot pool over the single client** - it does not open a second
 connection. `drizzle()` binds to a `Client`, never to libsql's interactive `Transaction`, so a real

@@ -84,13 +84,13 @@ Next: the [5-minute quickstart](https://ignis.venizia.ai/guides/get-started/5-mi
 - **Data access** - PostgreSQL, SQLite, Typesense, Meilisearch and an HTTP connector behind one repository contract and one filter language: [persistence](https://ignis.venizia.ai/guides/core-concepts/persistent/).
 - **Row-level access** - a scope with a write guard on each model, so a caller stays inside its own rows: [model settings](https://ignis.venizia.ai/guides/core-concepts/persistent/model-settings).
 - **Components and helpers** - authentication, Casbin authorization, health check, mail, Socket.IO, WebSocket, Redis, queues, storage: [extensions](https://ignis.venizia.ai/extensions/).
-- **Bun, Node and the browser** - `Bun.serve`, Node 20+ through `@hono/node-server`, and a browser Worker: [browser and Web Worker](https://ignis.venizia.ai/guides/core-concepts/browser-and-web-worker).
+- **Bun and the browser** - `Bun.serve` (Bun >= 1.4) on the server, and a browser Worker: [browser and Web Worker](https://ignis.venizia.ai/guides/core-concepts/browser-and-web-worker).
 
 ## Packages
 
 | Package | Role |
 | :--- | :--- |
-| [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun or Node, the components |
+| [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun, the components |
 | [`@venizia/ignis-kernel`](packages/kernel/) | The browser-pure core: DI, lifecycle, REST controllers, repository and datasource abstractions |
 | [`@venizia/ignis-connectors`](packages/connectors/) | PostgreSQL, SQLite, Typesense, Meilisearch and HTTP datasources and repositories |
 | [`@venizia/ignis-inversion`](packages/inversion/) | The standalone IoC container and the shared error type |

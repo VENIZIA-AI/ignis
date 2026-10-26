@@ -1,6 +1,6 @@
 ---
 title: Socket.IO
-description: Runtime-agnostic Socket.IO server and client helpers with a built-in authentication handshake and Redis-backed horizontal scaling
+description: Socket.IO server and client helpers with a built-in authentication handshake and Redis-backed horizontal scaling
 difficulty: intermediate
 ---
 
@@ -8,18 +8,18 @@ difficulty: intermediate
 
 `SocketIOServerHelper` and `SocketIOClientHelper` wrap `socket.io` with a mandatory post-connection authentication handshake and room management. A Redis adapter makes sure events reach a client no matter which server instance it's connected to.
 
-These are the raw classes: construct and `configure()` them yourself. Need the server helper inside an IGNIS app instead? [`SocketIOComponent`](/extensions/components/socket-io/) wires it into DI for you, on both Node.js and Bun.
+These are the raw classes: construct and `configure()` them yourself. Need the server helper inside an IGNIS app instead? [`SocketIOComponent`](/extensions/components/socket-io/) wires it into DI for you, on Bun.
 
 ## In one example
 
 The smallest working server: construct with a Redis connection and an `authenticateFn`, then `configure()`.
 
 ```typescript
-import { createServer } from 'node:http';
+import { Server as BunEngine } from '@socket.io/bun-engine';
 import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 
-const httpServer = createServer();
+const engine = new BunEngine({ path: '/socket.io/' });
 
 const redisHelper = new RedisSingleHelper({
   name: 'socket-redis',
@@ -30,15 +30,20 @@ const redisHelper = new RedisSingleHelper({
 
 const socketServer = new SocketIOServerHelper({
   identifier: 'my-socket-server',
-  runtime: 'node',
-  server: httpServer,
+  runtime: 'bun',
+  engine,
   redisConnection: redisHelper,
   serverOptions: { cors: { origin: '*' } },
   authenticateFn: async handshake => !!handshake.auth?.token,
 });
 
 await socketServer.configure();
-httpServer.listen(3000);
+
+Bun.serve({
+  port: 3000,
+  fetch: (req, server) => engine.handleRequest(req, server) ?? new Response(null, { status: 404 }),
+  websocket: engine.handler().websocket,
+});
 ```
 
 A client connects at the transport level, then must explicitly authenticate before it can join rooms or exchange events:
@@ -68,7 +73,7 @@ const client = new SocketIOClientHelper({
 | `SocketIOClientHelper` | a `socket.io-client` `Socket` |
 
 - **The client isn't locked to this server.** It can talk to any `socket.io` server, not only this one.
-- **Runtime-agnostic server.** Pass a Node.js `http.Server` for `runtime: 'node'`, or an `@socket.io/bun-engine` instance for `runtime: 'bun'`.
+- **Bun server.** Pass an `@socket.io/bun-engine` instance as `engine`, with `runtime: 'bun'`.
 - **Redis is mandatory server-side.** The **constructor** duplicates the parent `redisConnection` into three dedicated clients:
 
 | Client | Powers |

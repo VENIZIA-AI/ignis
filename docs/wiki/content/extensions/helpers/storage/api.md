@@ -455,7 +455,7 @@ await storage.presignGet({
 S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorageHelper`.
 
 > [!IMPORTANT]
-> Requires the **Bun runtime** - `bun:S3Client` is not available under Node.js.
+> Requires the **Bun runtime** - `bun:S3Client` exists only on Bun.
 
 - **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
 - **Object operations use the native SDK.** `upload`'s `writeObject`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.

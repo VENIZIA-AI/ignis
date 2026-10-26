@@ -1,7 +1,7 @@
 # @venizia/ignis
 
-The IGNIS server framework for Bun and Node.js. Install this package to build a REST API: it brings
-the application class, controllers, repositories, the built-in components, and the Bun or Node server
+The IGNIS server framework for Bun (>= 1.4). Install this package to build a REST API: it brings
+the application class, controllers, repositories, the built-in components, and the Bun server
 that runs them.
 
 IGNIS gives a Hono server an application model: an IoC container with binding keys, components,
@@ -17,8 +17,7 @@ bun add @scalar/hono-api-reference   # the API explorer UI in the example
 ```
 
 The first line is the package and its required peers. Every other peer is optional - install the
-one a component or a database driver needs (see [Entry points](#entry-points)). On Node.js, add
-`@hono/node-server`.
+one a component or a database driver needs (see [Entry points](#entry-points)).
 
 In your `tsconfig.json`, set these two flags directly in `compilerOptions`:
 

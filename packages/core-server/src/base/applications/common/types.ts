@@ -4,9 +4,6 @@ import type {
 } from '@venizia/ignis-kernel';
 import type { Env, Schema } from 'hono';
 
-/** `any`, resolved at runtime from `@hono/node-server` - naming its real type would make that package a hard dependency. */
-export type TNodeServerInstance = any;
-
 /**
  * What a host with a real socket configures on top of the kernel's shape. `host` and `port` are
  * meaningless to a browser Worker, which is why they are not on the kernel's own interface - see
@@ -17,7 +14,7 @@ export interface IServerApplicationConfigs extends IKernelApplicationConfigs {
   port?: number;
   /** Bound as `CoreBindings.APPLICATION_PROJECT_ROOT` at construction and handed to `ModuleUtility`; default `process.cwd()`. Must be the directory holding `node_modules` at run time - never `__dirname` inside a compiled binary. */
   projectRoot?: string;
-  /** Bun-only socket options passed straight to `Bun.serve`; the node runtime logs a warning and ignores them. Unset keys keep Bun's own defaults. */
+  /** Bun-only socket options passed straight to `Bun.serve`. Unset keys keep Bun's own defaults. */
   server?: IServerRuntimeConfigs;
 }
 

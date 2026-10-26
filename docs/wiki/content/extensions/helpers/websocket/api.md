@@ -896,6 +896,6 @@ Thrown during `configure()` when a duplicated Redis client fails to reach `'read
 ## See also
 
 - [WebSocket overview](/extensions/helpers/websocket/) - getting started and the most common tasks
-- [Socket.IO Helper](/extensions/helpers/socket-io/) - Socket.IO-based alternative with Node.js support
+- [Socket.IO Helper](/extensions/helpers/socket-io/) - the Socket.IO-based alternative
 - [Redis Helper](/extensions/helpers/redis/) - `RedisSingleHelper` / `RedisClusterHelper` used for cross-instance messaging
 - [WebSocket Component](/extensions/components/websocket/) - component-level lifecycle integration
