@@ -10,9 +10,14 @@
  */
 
 /* ---- the sidebar ----------------------------------------------------------------------------- */
+/* the vertical rule is the sidebar's right edge drawn from just below the header rule (65px: the 64px bar and
+   its 1px rule), so it meets the rule at a corner instead of crossing the header */
 @media (min-width: 960px) {
   .VPSidebar {
-    border-right: 1px solid var(--stroke);
+    background-image: linear-gradient(var(--stroke), var(--stroke));
+    background-repeat: no-repeat;
+    background-position: right 65px;
+    background-size: 1px 100%;
   }
 }
 

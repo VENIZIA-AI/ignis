@@ -7,13 +7,30 @@
  * ecosystem switcher. It restyles the default theme's .VPNavBar; the structure is the default theme's.
  */
 
+/*
+ * One rule under the header, at one height, across the full width. The default theme draws it in two
+ * pieces one pixel apart (the title's own border above the sidebar column, the divider row below the
+ * bar beside it) and starts the second one a few pixels off the sidebar edge when a scrollbar narrows
+ * the sidebar. Here only the divider row draws it, from the left edge to the right, and the sidebar's
+ * vertical rule starts below it (doc.css), so the two meet at a corner without a gap or an overlap.
+ */
 .VPNavBar {
-  border-bottom: 1px solid var(--stroke);
   backdrop-filter: none;
 }
 
 .VPNavBar .divider-line {
   background-color: var(--stroke);
+}
+
+@media (min-width: 960px) {
+  /* the class is doubled to outweigh the default theme's scoped selectors */
+  html .VPNavBar.has-sidebar .divider.divider {
+    padding-left: 0;
+  }
+
+  html .VPNavBarTitle.has-sidebar .title.title {
+    border-bottom-color: transparent;
+  }
 }
 
 .VPNavBarTitle .title {
