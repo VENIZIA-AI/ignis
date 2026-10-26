@@ -10,9 +10,7 @@
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun
           </div>
           <h1>
-            Architecture without apology.<br /><span class="ig-gtext"
-              >On Hono's engine.</span
-            >
+            Architecture without apology.<br /><span class="ig-gtext">On Hono's engine.</span>
           </h1>
           <p class="ig-lede">
             LoopBack&nbsp;4's architecture on Hono.
@@ -105,8 +103,8 @@
             </div>
             <h3>Built on Hono</h3>
             <p>
-              Direct Hono integration, no adapter layer. Singleton datasources, SQL-level
-              field hiding, lazy metadata.
+              Direct Hono integration, no adapter layer. Singleton datasources, SQL-level field
+              hiding, lazy metadata.
             </p>
           </div>
           <div class="ig-fcard">
