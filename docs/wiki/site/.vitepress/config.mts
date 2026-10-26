@@ -350,6 +350,8 @@ const config = defineConfig({
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [
+    // The home page and its terminal hide their reveal states only under this class, set before first paint.
+    ['script', {}, "document.documentElement.classList.add('js');"],
     // Favicon + PWA
     ['link', { rel: 'icon', href: '/logo.svg' }],
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
@@ -464,6 +466,10 @@ const config = defineConfig({
                 {
                   text: 'After 0.4.2 - What Changed and How to Upgrade',
                   link: '/changelogs/2026-10-26-batch-overview',
+                },
+                {
+                  text: 'The Wiki Has a New Look',
+                  link: '/changelogs/2026-10-26-wiki-new-look',
                 },
                 {
                   text: 'Logging Works Under Node ESM Without Registering a Provider',
