@@ -2,8 +2,8 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { assertBindingsResolve } from '@venizia/ignis-inversion';
 import {
-  assertBindingsResolve,
   type AbstractRestController,
   type Binding,
   BindingNamespaces,
