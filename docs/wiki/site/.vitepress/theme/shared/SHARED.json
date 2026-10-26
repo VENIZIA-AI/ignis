@@ -1,5 +1,5 @@
 {
-  "fingerprint": "5983f297a7bc19c3673c4414b477c9e93b979e69e00050cbf237ec5b1b0161ca",
+  "fingerprint": "e919672890ea38ce67dc7f9ffe08b918053caa3cc19959a63e1cc00fb17aa932",
   "files": {
     "EcosystemSwitcher.vue": "8f88184713bb819da6010634bc05f00fbfc2035d3a05614edb3df67a56e71ba3",
     "HomeLayout.vue": "8785c016644a6b9eb36c4c0a51b75ecb1b979ef0f2fdbd75ecfc84e745f73d17",
@@ -21,7 +21,7 @@
     "fonts/inter-display-700.woff2": "5c5eb7d4586016bb72839db2a5287da161d11ddd5395c2faa46d455605b6a1f4",
     "fonts/jetbrains-mono-latin-400-normal.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
     "fonts/jetbrains-mono-latin-500-normal.woff2": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a",
-    "footer.css": "b1bfd64d004ef23fa79fa7568aa3b4ba1c36a0da80924012af4bfe8a40c2b1e0",
+    "footer.css": "d402b870c7bc6a3202d0b844c704837f392447ed54801964547b76a80295d4ae",
     "header.css": "a348a7fd83213ee71227671bc88c939dda2df930a3902dd11d759b008cc63d3c",
     "highlight.ts": "10405f487837df4fd9276301653b8f568ab91592170aab7d47abeb5162164eaa",
     "home-types.ts": "3e9efd210599c296b7e6537a9373e6a18a8a287767972354531ad63ff27789ec",
