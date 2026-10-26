@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**119 targets.**
+**120 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -118,6 +118,7 @@ generated:
 | `make test-inversion` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
+| `make tmp-leak-check` | - | test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp. |
 | `make update` | `install` | Force update all packages from NPM registry. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
