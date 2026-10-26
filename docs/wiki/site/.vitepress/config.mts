@@ -380,7 +380,7 @@ const config = defineConfig({
       {
         property: 'og:description',
         content:
-          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+          'LoopBack 4 architecture on Hono. Dependency injection, repositories, auth and real-time - batteries included.',
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
@@ -399,7 +399,7 @@ const config = defineConfig({
       {
         name: 'twitter:description',
         content:
-          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+          'LoopBack 4 architecture on Hono. Dependency injection, repositories, auth and real-time - batteries included.',
       },
     ],
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],
@@ -454,6 +454,7 @@ const config = defineConfig({
       { text: 'Extensions', link: '/extensions/' },
       { text: 'Best Practices', link: '/best-practices/' },
       { text: 'Changelog', link: '/changelogs/' },
+      { text: 'Venizia', link: 'https://venizia.ai' },
     ],
 
     sidebar: {
@@ -2350,6 +2351,10 @@ const config = defineConfig({
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
+
+    footer: {
+      message: 'IGNIS is part of <a href="https://venizia.ai">Venizia</a>.',
+    },
   },
 });
 

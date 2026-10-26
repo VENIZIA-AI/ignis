@@ -124,9 +124,9 @@ for consumers.
 
 ## Hono as the HTTP engine, Drizzle as the ORM
 
-Hono is why IGNIS can claim LB4's architecture at ~140k req/s instead of ~15-20k - controllers
-wrap `OpenAPIHono` instances directly, no adapter layer between framework and router, which is
-where NestJS's overhead comes from. Drizzle is the only ORM: type-safe SQL, `pgTable` schemas, Zod
+Hono is why IGNIS can carry LB4's architecture on a small engine - controllers wrap
+`OpenAPIHono` instances directly, with no adapter layer between framework and router. The repo
+holds no benchmark, so no throughput figure is claimed. Drizzle is the only ORM: type-safe SQL, `pgTable` schemas, Zod
 generation straight from those schemas. Both are load-bearing, not swappable - the repository
 hierarchy, filter builders, and query generation all assume Drizzle + PostgreSQL semantics.
 
