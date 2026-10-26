@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1103 source files across 9 packages.**
+**1104 source files across 9 packages.**
 
 ## boot  (26 source files)
 
@@ -34,7 +34,7 @@ generated:
 | `raw-sql/` | 5 |
 | `testing/` | 2 |
 
-## core-server  (207 source files)
+## core-server  (208 source files)
 
 | Subsystem | Files |
 |---|---|
@@ -44,7 +44,7 @@ generated:
 | `common/` | 3 |
 | `utilities/` | 3 |
 | `helpers/` | 2 |
-| `testing/` | 1 |
+| `testing/` | 2 |
 
 ## core-worker  (20 source files)
 

@@ -26,6 +26,9 @@ const TESTING_EXPORTS = [
   'TransactionStates',
 ];
 
+/** What the entry adds beside the connectors' doubles. */
+const BOOT_EXPORTS = ['assertApplicationBoots'];
+
 const PACKAGE_ROOT = path.resolve(import.meta.dir, '../../..');
 
 const importEntry = async (opts: { specifier: string }): Promise<Record<string, unknown>> => {
@@ -45,7 +48,7 @@ describe('@venizia/ignis/testing', () => {
    * loads its ESM build, so the two class objects differ as they do for every re-exported sub-path.
    * A CommonJS module also surfaces a synthetic `default`, which is not an export.
    */
-  test('re-exports exactly the connectors testing entry', async () => {
+  test('re-exports the connectors testing entry and adds the application boot helper', async () => {
     const entry = await importEntry({ specifier: TESTING_ENTRY });
     const connectorsEntry = await importEntry({ specifier: CONNECTORS_TESTING_ENTRY });
 
@@ -58,7 +61,11 @@ describe('@venizia/ignis/testing', () => {
         .filter((key) => key !== 'default')
         .sort();
 
-    expect(namesOf(entry)).toEqual(namesOf(connectorsEntry));
+    for (const name of BOOT_EXPORTS) {
+      expect(typeof entry[name]).toBe('function');
+    }
+
+    expect(namesOf(entry)).toEqual([...namesOf(connectorsEntry), ...BOOT_EXPORTS].sort());
   });
 
   test('the root barrel does not export any of them', async () => {
@@ -68,7 +75,7 @@ describe('@venizia/ignis/testing', () => {
     // Positive control: the root really loaded, so an empty intersection means something.
     expect(exported).toContain('BaseApplication');
 
-    for (const name of TESTING_EXPORTS) {
+    for (const name of [...TESTING_EXPORTS, ...BOOT_EXPORTS]) {
       expect({ name, isExported: exported.includes(name) }).toEqual({ name, isExported: false });
     }
   });
