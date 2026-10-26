@@ -499,6 +499,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
                 },
                 {
+                  text: 'skipMigrate Warning and Optional enable',
+                  link: '/changelogs/2026-10-26-skip-migrate-warning-and-middleware-enable',
+                },
+                {
                   text: 'devz codemod --check Fails on Untouched Models',
                   link: '/changelogs/2026-10-26-devz-codemod-check-fails-on-untouched',
                 },

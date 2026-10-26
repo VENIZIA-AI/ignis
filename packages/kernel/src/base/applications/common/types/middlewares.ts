@@ -3,7 +3,8 @@ import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restrict
 import { type SecFetchSiteValues, type TCompressEncoding } from '../constants';
 
 export interface IBaseMiddlewareOptions {
-  enable: boolean;
+  /** Default `true`: only `false` switches the middleware off. */
+  enable?: boolean;
   path?: string;
   [extra: string | symbol]: any;
 }
@@ -50,10 +51,15 @@ export interface IRequestIdOptions extends IBaseMiddlewareOptions {}
 
 export interface IMiddlewareConfigs {
   requestId?: IRequestIdOptions;
+  /** Typed only: the framework installs no compress middleware. Wire it in `setupMiddlewares()`. */
   compress?: ICompressOptions;
+  /** Installed first, before the request id and the body limit, so early framework responses carry its headers. */
   cors?: ICORSOptions;
+  /** Typed only: the framework installs no csrf middleware. Wire it in `setupMiddlewares()`. */
   csrf?: ICSRFOptions;
+  /** Installed right after the request id, ahead of every other middleware, so none of them reads a body over it. */
   bodyLimit?: IBodyLimitOptions;
+  /** Typed only: the framework installs no ip restriction. Wire it in `setupMiddlewares()`. */
   ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
   [extra: string | symbol]: any;
 }

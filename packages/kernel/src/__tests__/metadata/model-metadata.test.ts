@@ -186,6 +186,21 @@ describe('warnDeprecatedModelMetadata', () => {
     ]);
   });
 
+  test('skipMigrate: false names migration: { use: true }, not use: false', () => {
+    class KeptProduct extends AbstractEntity {
+      getSchema<T>(): T {
+        return {} as T;
+      }
+    }
+    model({ skipMigrate: false })(KeptProduct);
+    const { lines, logger } = collect();
+
+    expect(warnDeprecatedModelMetadata({ logger: logger as never })).toBe(1);
+    expect(lines).toEqual([
+      '[deprecated] model KeptProduct uses skipMigrate | use migration: { use: true } (or no key, true is the default) instead | removed in 0.4.4',
+    ]);
+  });
+
   test('prints nothing for models on the new key or with none', () => {
     declare({ migration: { use: false } });
     declare({});

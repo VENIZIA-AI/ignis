@@ -66,6 +66,22 @@ describe('configs.middlewares.cors - installed first in the default stack', () =
     expect(response.headers.get('access-control-expose-headers')).toContain('x-request-id');
   });
 
+  test('enable may be left out: cors is on, and only enable: false switches it off', async () => {
+    const on = await buildServer({
+      middlewares: { bodyLimit: { maxSize: 10 }, cors: { origin: ORIGIN } },
+    });
+    const off = await buildServer({
+      middlewares: { bodyLimit: { maxSize: 10 }, cors: { enable: false, origin: ORIGIN } },
+    });
+
+    const withDefault = await postOverLimit({ server: on, origin: ORIGIN });
+    const switchedOff = await postOverLimit({ server: off, origin: ORIGIN });
+
+    expect(withDefault.status).toBe(413);
+    expect(withDefault.headers.get('access-control-allow-origin')).toBe(ORIGIN);
+    expect(switchedOff.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
   test('a route error and an unknown path carry the headers too', async () => {
     const server = await buildServer({ middlewares: WITH_CORS });
 
