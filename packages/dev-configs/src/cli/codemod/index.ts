@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
 import { migrateModelSettings } from './model-settings';
 
@@ -49,12 +50,16 @@ export class CodemodCommand {
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { args } = opts;
 
-    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(USAGE);
-      return 0;
+    const [name, ...rest] = args;
+
+    if (name === 'drop-redundant-casts') {
+      return DropRedundantCastsCommand.run({ root: opts.root, args: rest });
     }
 
-    const [name, ...rest] = args;
+    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
+      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}`);
+      return 0;
+    }
 
     if (name !== 'model-settings') {
       console.error(`devz codemod: unknown codemod "${name ?? ''}"\n${USAGE}`);
