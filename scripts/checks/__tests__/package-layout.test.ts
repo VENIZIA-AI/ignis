@@ -11,6 +11,7 @@ const REQUIRED = [
   'LICENSE.md',
   'Makefile',
   'README.md',
+  'bunfig.toml',
   'package.json',
   'src',
   'tsconfig.json',

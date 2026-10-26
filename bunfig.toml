@@ -8,3 +8,7 @@ printWidth = 100
 singleQuote = true
 arrowParens = "always"
 flavor = "oxfmt"
+
+# Keeps a bare `bun test scripts/...` out of the system temp: see scripts/test-setup/tmpdir.ts.
+[test]
+preload = ["./scripts/test-setup/tmpdir.ts"]

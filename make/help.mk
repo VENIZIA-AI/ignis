@@ -37,6 +37,7 @@ help:
 	@$(HELP_ROW) "lint / lint-packages" "lint-<pkg> for every package."
 	@$(HELP_ROW) "lint-all" "lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki."
 	@$(HELP_ROW) "lint-fix" "Fix what lint-all checks: lint-fix-<pkg> for every package, fmt-files, fmt-scripts and fmt-wiki."
+	@$(HELP_ROW) "tmp-leak-check" "test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp."
 	@$(HELP_ROW) "test-all" "test-<pkg> for every package with a suite (BUN_TEST_FLAGS, default --parallel)."
 	@$(HELP_ROW) "purity" "Gate: every entry claimed browser-pure has no node builtin or global."
 	@$(HELP_ROW) "clean-install" "Load every published sub-path from packed tarballs in an empty project."
