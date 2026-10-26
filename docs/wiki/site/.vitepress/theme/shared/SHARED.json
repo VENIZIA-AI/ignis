@@ -1,5 +1,5 @@
 {
-  "fingerprint": "e919672890ea38ce67dc7f9ffe08b918053caa3cc19959a63e1cc00fb17aa932",
+  "fingerprint": "65b8508fab432738c7a663fde36e4db588c57813757bbdaeb093c9f2b3636d8e",
   "files": {
     "EcosystemSwitcher.vue": "8f88184713bb819da6010634bc05f00fbfc2035d3a05614edb3df67a56e71ba3",
     "HomeLayout.vue": "8785c016644a6b9eb36c4c0a51b75ecb1b979ef0f2fdbd75ecfc84e745f73d17",
@@ -21,17 +21,17 @@
     "fonts/inter-display-700.woff2": "5c5eb7d4586016bb72839db2a5287da161d11ddd5395c2faa46d455605b6a1f4",
     "fonts/jetbrains-mono-latin-400-normal.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
     "fonts/jetbrains-mono-latin-500-normal.woff2": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a",
-    "footer.css": "d402b870c7bc6a3202d0b844c704837f392447ed54801964547b76a80295d4ae",
+    "footer.css": "6e08cb3b73be461bd562a11b2a595b2cf63a09f8e65dce0643edf9c5ba230073",
     "header.css": "a348a7fd83213ee71227671bc88c939dda2df930a3902dd11d759b008cc63d3c",
     "highlight.ts": "10405f487837df4fd9276301653b8f568ab91592170aab7d47abeb5162164eaa",
     "home-types.ts": "3e9efd210599c296b7e6537a9373e6a18a8a287767972354531ad63ff27789ec",
     "home.css": "f8a73aba37a499071ca689ad10f954cf063dc2627c3c61ae5480918eee9f7072",
     "theme-switch.css": "2e1e80211023e8429af2b7561f1abf141a9a3d5439062f028e3631f14bdad888",
     "toggle-appearance.ts": "77ea0c377f0d7ba8cecd26580a6e79a5b173c1bc140c80516ddf67f94395c04c",
-    "tokens.css": "a9d10dd2c39a03d9c2e34ff886eba27c5ac0ffbe0ef144344a232d348b838d67",
+    "tokens.css": "9c5049188bf05b8480699bc38e0749b72d32b1df018f234ef44bf66f4df37391",
     "useReveal.ts": "85ae4377440194d728f18545aeb2e51790e5c4eb674a511092a35ec974b0157b",
     "useTerminal.ts": "8ab1e37b701c93b73f237a4791128b76d19e90dac4adc626fc249f47283f3ab0",
-    "venizia-logo.ts": "bf2ffe5bcc2cd04c24f4b1e443b646c2e9b21d74305e9ddf78d557d364aeaf6c",
+    "venizia-logo.ts": "743b2255878053ec1e1c94359da71d7dc819b693507d8bd3c270c372dc4289ff",
     "vitepress-selectors.json": "9d82447a4d46f5247a8e37b1e3b7b748368a45e474b92d348b9de6b6c37c2391",
     "vp-map.css": "81eccfc381490c28c1d2ef2bb1458919afedd2e7e24b16c02f5f130ede89fed2"
   }

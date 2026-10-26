@@ -2,8 +2,8 @@
  * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
  * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
  *
- * The footer: one dark slab with the product glow and the dither, the closing pitch of the home page,
- * the link columns and the legal row. The footer root also carries the `vh` class, so the buttons and
+ * The footer: one slab with the product glow and the dither (light in light mode, dark in dark mode), the
+ * closing pitch of the home page, the link columns and the legal row. The footer root also carries the `vh` class, so the buttons and
  * the install box of home.css apply inside it. Reads tokens.css and the product's accent.
  */
 
@@ -12,13 +12,15 @@
  * the wiki only: in light mode the slab is the soft surface a step off the page, with the dither and the
  * glow of the product at light strength and dark text. The colours are the --foot-* variables below; the
  * dither and the glow are registered colour properties (tokens.css), so they fade with the page.
- * Contrast of the headings and links against the slab, measured: 4.9:1 and 8:1 in light, 6:1 and 7.7:1 in dark.
+ * Contrast of the column headings and the legal row (the muted tone, the lowest of the footer's texts) is at
+ * least 4.8:1 in both themes on the strongest glow of any of the three products, measured on a doc page and on
+ * the home; the links are well above it.
  */
 .site-footer {
   --foot-bg: var(--bg-soft);
   --foot-title: var(--text-title);
   --foot-text: var(--text-body);
-  --foot-muted: var(--text-muted);
+  --foot-muted: #626262;
   --foot-stroke: var(--stroke);
   --foot-stroke-strong: var(--stroke-strong);
   --foot-glow: color-mix(in srgb, var(--glow) 55%, transparent);
@@ -33,7 +35,7 @@
   --foot-bg: #1b1b1b;
   --foot-title: #ffffff;
   --foot-text: #ffffffa3;
-  --foot-muted: #ffffff8c;
+  --foot-muted: #ffffff99;
   --foot-stroke: #ffffff1a;
   --foot-stroke-strong: #ffffff4d;
   --foot-glow: var(--glow);
