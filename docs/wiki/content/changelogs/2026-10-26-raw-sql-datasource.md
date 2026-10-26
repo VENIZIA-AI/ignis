@@ -10,7 +10,7 @@ packages: ['@venizia/ignis-connectors']
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** An engine that runs SQL text and returns rows now has its own datasource and repository base, without the dialect, executor and transaction members a relational datasource needs.
+**In one line.** An engine that runs SQL text and returns rows now has its own datasource and repository base, without the dialect, executor and transaction members a relational datasource needs. Ships in 0.4.4.
 
 ## What changed
 

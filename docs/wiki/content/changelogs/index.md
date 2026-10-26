@@ -17,10 +17,11 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-26 | [After 0.4.3 - What Changed and How to Upgrade](./2026-10-26-batch-overview-0-4-4) | Security |
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
+| 2026-10-26 | [READMEs, Licences and the Company Name](./2026-10-26-readmes-license-and-company-name) | Enhancement |
+| 2026-10-26 | [The Wiki's Claims Were Checked Against the Code](./2026-10-26-wiki-claims-checked-against-the-code) | Bug Fix |
 | 2026-10-26 | [The Wiki Has a New Look](./2026-10-26-wiki-new-look) | Enhancement |
-| 2026-10-26 | [Logging Works Under Node ESM Without Registering a Provider](./2026-10-26-logger-default-provider-node-esm) | Bug Fix |
-| 2026-10-26 | [The Build Stamp Reads Its Commit and Branch Under Node](./2026-10-26-build-info-git-under-node) | Bug Fix |
 | 2026-10-26 | [A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings](./2026-10-26-secret-rotation-failure-leaks-credentials) | Security |
 | 2026-10-26 | [A Datasource Family for Engines That Only Run SQL](./2026-10-26-raw-sql-datasource) | New Feature |
 | 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
@@ -30,7 +31,8 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-10-26 | [Helpers, Inversion and Server String Options Are Const Classes](./2026-10-26-helpers-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [devz codemod const-classes Turns a String-Literal Union Into a Const Class](./2026-10-26-devz-codemod-const-classes) | Feature |
 | 2026-10-26 | [devz codemod drop-redundant-casts Removes the as Casts the Compiler No Longer Needs](./2026-10-26-devz-codemod-drop-redundant-casts) | Feature |
-| 2026-10-26 | [The skipMigrate Warning Names the Right Replacement, and enable Is Optional on Middleware Options](./2026-10-26-skip-migrate-warning-and-middleware-enable) | Bug Fix |
+| 2026-10-26 | [skipMigrate Is Removed From @model](./2026-10-26-skipmigrate-removed) | Breaking |
+| 2026-10-26 | [enable Is Optional on Middleware Options, and devz codemod Names a Path It Cannot Read](./2026-10-26-middleware-enable-optional-and-codemod-empty-path) | Bug Fix |
 | 2026-10-26 | [devz codemod --check Fails While a Model Is Left Untouched](./2026-10-26-devz-codemod-check-fails-on-untouched) | Behavior Change |
 | 2026-10-26 | [devz codemod Is a Dry Run Unless You Pass --write](./2026-10-26-devz-codemod-dry-run-by-default) | Behavior Change |
 | 2026-10-26 | [dev-configs Rule Options Are Const Classes](./2026-10-26-dev-configs-rule-options-const-classes) | Enhancement |

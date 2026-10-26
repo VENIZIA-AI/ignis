@@ -125,12 +125,6 @@ export interface IModelMigrationSettings {
   use?: boolean;
 }
 
-/** One deprecated metadata key a model still uses, and the key that replaces it. */
-export interface IDeprecatedModelMetadata {
-  key: string;
-  use: string;
-}
-
 export interface IModelMetadata extends IArtifactRegistrationOptions {
   /** Optional: `ModelTypes.ENTITY` is the only value and the default. */
   type?: TModelType;
@@ -139,15 +133,7 @@ export interface IModelMetadata extends IArtifactRegistrationOptions {
   /** Migration marker for consumer tooling that reads the public registry. */
   migration?: IModelMigrationSettings;
 
-  /**
-   * @deprecated Use `migration: { use: false }`. Removed in 0.4.4. On a registry entry it is
-   * derived (`!migration.use`) so tooling that reads it keeps working this release.
-   */
-  skipMigrate?: boolean;
   settings?: IModelSettings;
-
-  /** Set by the decorator, read by the boot warning; not for application code. */
-  deprecatedMetadata?: IDeprecatedModelMetadata[];
 }
 
 export interface IEntityStatics {

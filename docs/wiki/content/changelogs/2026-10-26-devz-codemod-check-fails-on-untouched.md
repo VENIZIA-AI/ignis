@@ -10,7 +10,7 @@ packages: ['@venizia/dev-configs']
 
 <Badge type="warning" text="Behavior Change" /> <Badge type="info" text="Bug Fix" />
 
-**In one line.** A green `--check` used to mean "nothing to rewrite", even when models were left for you to fix by hand. Those models still throw when the decorator runs, so `--check` now fails on them too.
+**In one line.** A green `--check` used to mean "nothing to rewrite", even when models were left for you to fix by hand. Those models still throw when the decorator runs, so `--check` now fails on them too. Ships in 0.4.4.
 
 ```bash
 bunx devz codemod model-settings --check   # exits 1 if a file would change OR a model is left untouched

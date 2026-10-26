@@ -10,7 +10,7 @@ packages: ['@venizia/dev-configs']
 
 <Badge type="tip" text="Feature" />
 
-**In one line.** Many `as X` casts were written when a type was loose and stayed after the type improved. `devz codemod drop-redundant-casts` removes the ones the compiler no longer needs, and keeps the rest.
+**In one line.** Many `as X` casts were written when a type was loose and stayed after the type improved. `devz codemod drop-redundant-casts` removes the ones the compiler no longer needs, and keeps the rest. Ships in 0.4.4.
 
 ```bash
 bunx devz codemod drop-redundant-casts src            # dry run: lists what it would remove, writes nothing

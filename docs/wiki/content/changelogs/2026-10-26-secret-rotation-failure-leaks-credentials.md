@@ -1,6 +1,6 @@
 ---
 title: A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings
-description: "When onSecretRotated() failed, the datasource restored the settings keys it had before but kept the rotated user and password if the settings had not held those keys. Fixed for every relational and raw-SQL datasource; affects @venizia/ignis and @venizia/ignis-connectors 0.2.0 to 0.4.3."
+description: "When onSecretRotated() failed, the datasource restored the settings keys it had before but kept the rotated user and password if the settings had not held those keys. Fixed for every relational and raw-SQL datasource; affects @venizia/ignis and @venizia/ignis-connectors 0.2.0 to 0.4.3; fixed in 0.4.4."
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -10,13 +10,13 @@ packages: ['@venizia/ignis-connectors']
 
 <Badge type="danger" text="Security" /> <Badge type="info" text="Bug Fix" />
 
-**In one line.** After a failed `onSecretRotated()`, a datasource kept the rotated `user` and `password` in its settings when those keys had not been there before. It now removes them.
+**In one line.** After a failed `onSecretRotated()`, a datasource kept the rotated `user` and `password` in its settings when those keys had not been there before. It now removes them. Ships in 0.4.4.
 
 ## What changed
 
 - **Before.** The rotation copied the new `user` and `password` onto the datasource settings, then tried to rebuild. On failure the old client kept serving, and the settings were restored with `Object.assign(settings, saved)`. That puts back keys that existed before, but leaves a key the rotation added.
 - **After.** The restore also removes any key the rotation added, so the settings are exactly what they were.
-- **Where.** The code is in the shared driver base of every relational datasource (Postgres, SQLite) and the new raw-SQL family. Releases `0.2.0` to `0.4.3` of `@venizia/ignis` and `@venizia/ignis-connectors` have the leak; the first release after this entry has the fix.
+- **Where.** The code is in the shared driver base of every relational datasource (Postgres, SQLite) and the new raw-SQL family. Releases `0.2.0` to `0.4.3` of `@venizia/ignis` and `@venizia/ignis-connectors` have the leak; 0.4.4 has the fix.
 
 ## Who is affected
 
