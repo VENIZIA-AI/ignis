@@ -26,6 +26,7 @@ IGNIS 0.4.4 packages are ES modules. Under `nodenext` (the old preset) a consume
 
 Every app and library that extends `@venizia/dev-configs/tsconfig.common.json` or `tsconfig.base.json`: nothing to do, the presets carry the change.
 
+- **A package that emits CommonJS with `tsc` from these presets** must set `"module": "nodenext"` and `"moduleResolution": "nodenext"` in its own tsconfig. The presets now use `module: esnext` and `moduleResolution: bundler`, so without that line the output switches from `require` to `import` syntax (a package that only typechecks, or that Bun runs as source, is not affected). `@venizia/dev-configs` itself pins `nodenext`, because Node loads its lint presets.
 - **A tsconfig that does not extend the presets** sets `"module": "esnext"` (or `"preserve"`) and `"moduleResolution": "bundler"`, and `"noUncheckedSideEffectImports": false` if it has side-effect imports of untyped packages.
 - **Code that relied on Node16 resolution** gains: relative imports may drop the file extension, and package `exports` are matched with the `import` condition for every file.
 - **`hono/context-storage` in your own code** must be a plain import, `import { contextStorage } from 'hono/context-storage'`. A `createRequire` or `hono/dist/cjs/...` path loads hono's CommonJS build, whose request store is a second one that IGNIS never reads.
