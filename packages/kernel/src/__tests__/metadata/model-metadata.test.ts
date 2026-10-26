@@ -197,7 +197,7 @@ describe('warnDeprecatedModelMetadata', () => {
 
     expect(warnDeprecatedModelMetadata({ logger: logger as never })).toBe(1);
     expect(lines).toEqual([
-      '[deprecated] model KeptProduct uses skipMigrate | use migration: { use: true } (or no key, true is the default) instead | removed in 0.4.4',
+      '[deprecated] model KeptProduct uses skipMigrate | use migration: { use: true } (or no key, true is the default) instead | removed in 0.4.5',
     ]);
   });
 
