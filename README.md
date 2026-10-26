@@ -2,7 +2,9 @@
 
 <br />
 
-# :fire: IGNIS
+<a href="https://ignis.venizia.ai"><img src="https://ignis.venizia.ai/logo.svg" alt="IGNIS" height="96"></a>
+
+# IGNIS
 
 **A structured TypeScript server on Hono, with Drizzle for SQL.**
 
