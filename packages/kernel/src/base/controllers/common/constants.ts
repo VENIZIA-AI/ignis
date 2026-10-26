@@ -59,3 +59,19 @@ export const findResponseHeaders: TResponseHeaders = {
     schema: { type: 'string', examples: ['records 0-24/100', 'records 25-49/100'] },
   },
 };
+
+/** Which decorator-defined routes `registerRoutesFromRegistry` registers: STATIC (no path parameter), PARAM (a path parameter) or ALL. */
+export class RoutePathScopes {
+  static readonly STATIC = 'static';
+  static readonly PARAM = 'param';
+  static readonly ALL = 'all';
+
+  static readonly SCHEME_SET = new Set<string>([this.STATIC, this.PARAM, this.ALL]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid route path scope values. */
+export type TRoutePathScope = TConstValue<typeof RoutePathScopes>;

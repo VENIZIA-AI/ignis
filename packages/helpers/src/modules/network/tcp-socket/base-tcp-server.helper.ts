@@ -1,3 +1,4 @@
+import type { TConstValue } from '@/common/types';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
@@ -10,10 +11,30 @@ import {
   type Server as SocketServer,
 } from 'node:net';
 
+/** Where a TCP client is in the authentication handshake. */
+export class TcpClientStates {
+  static readonly UNAUTHORIZED = 'unauthorized';
+  static readonly AUTHENTICATING = 'authenticating';
+  static readonly AUTHENTICATED = 'authenticated';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.UNAUTHORIZED,
+    this.AUTHENTICATING,
+    this.AUTHENTICATED,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid TCP client state values. */
+export type TTcpClientState = TConstValue<typeof TcpClientStates>;
+
 export interface ITcpSocketClient<SocketClientType> {
   id: string;
   socket: SocketClientType;
-  state: 'unauthorized' | 'authenticating' | 'authenticated';
+  state: TTcpClientState;
   subscriptions: Set<string>;
   storage: {
     connectedAt: Date;
@@ -232,7 +253,9 @@ export class BaseNetworkTcpServer<
     this.clients[id] = {
       id,
       socket,
-      state: this.authenticateOptions.required ? 'unauthorized' : 'authenticated',
+      state: this.authenticateOptions.required
+        ? TcpClientStates.UNAUTHORIZED
+        : TcpClientStates.AUTHENTICATED,
       subscriptions: new Set([]),
       storage: {
         connectedAt: new Date(),
@@ -269,7 +292,7 @@ export class BaseNetworkTcpServer<
 
         client.storage.authenticateTimeout = null;
 
-        if (client.state === 'authenticated') {
+        if (client.state === TcpClientStates.AUTHENTICATED) {
           return;
         }
 
@@ -334,7 +357,7 @@ export class BaseNetworkTcpServer<
     this.logger.for(this.shutdown.name).info('Server closed | Identifier: %s', this.identifier);
   }
 
-  doAuthenticate(opts: { id: string; state: 'unauthorized' | 'authenticating' | 'authenticated' }) {
+  doAuthenticate(opts: { id: string; state: TTcpClientState }) {
     const { id, state } = opts;
 
     const client = this.getClient({ id });
@@ -346,12 +369,12 @@ export class BaseNetworkTcpServer<
     client.state = state;
 
     switch (state) {
-      case 'unauthorized':
-      case 'authenticating': {
+      case TcpClientStates.UNAUTHORIZED:
+      case TcpClientStates.AUTHENTICATING: {
         client.storage.authenticatedAt = null;
         break;
       }
-      case 'authenticated': {
+      case TcpClientStates.AUTHENTICATED: {
         client.storage.authenticatedAt = new Date();
 
         if (client.storage.authenticateTimeout) {

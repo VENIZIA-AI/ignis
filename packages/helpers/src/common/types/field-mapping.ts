@@ -1,4 +1,29 @@
-export type TFieldMappingDataType = 'string' | 'number' | 'strings' | 'numbers' | 'boolean';
+import type { TConstValue } from './const-value';
+
+/** The value kinds a field mapping reads. */
+export class FieldMappingDataTypes {
+  static readonly STRING = 'string';
+  static readonly NUMBER = 'number';
+  static readonly STRINGS = 'strings';
+  static readonly NUMBERS = 'numbers';
+  static readonly BOOLEAN = 'boolean';
+
+  static readonly SCHEME_SET = new Set<string>([
+    this.STRING,
+    this.NUMBER,
+    this.STRINGS,
+    this.NUMBERS,
+    this.BOOLEAN,
+  ]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid field mapping data type values. */
+export type TFieldMappingDataType = TConstValue<typeof FieldMappingDataTypes>;
+
 export interface IFieldMapping {
   name: string;
   type: TFieldMappingDataType;

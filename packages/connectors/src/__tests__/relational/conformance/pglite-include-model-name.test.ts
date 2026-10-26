@@ -59,7 +59,7 @@ class ModelNameOwner extends BasePostgresEntity<typeof ownerTable> {
   type: 'entity',
   settings: {
     hiddenProperties: ['secret'],
-    scopeFilter: { resolve: () => ({ tenant: 'tenant-a' }) },
+    access: { resolve: () => ({ tenant: 'tenant-a' }) },
   },
 })
 class ModelNameChild extends BasePostgresEntity<typeof childTable> {

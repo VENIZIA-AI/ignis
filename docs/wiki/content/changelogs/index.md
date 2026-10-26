@@ -17,6 +17,19 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
+| 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
+| 2026-10-26 | [Connectors String Options Are Const Classes](./2026-10-26-connectors-string-domains-const-classes) | Enhancement |
+| 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |
+| 2026-10-26 | [A Shared Row Can No Longer Be Changed or Deleted Without sharedRows](./2026-10-26-shared-rows-writes-need-shared-rows) | Security |
+| 2026-10-26 | [Helpers, Inversion and Server String Options Are Const Classes](./2026-10-26-helpers-string-domains-const-classes) | Enhancement |
+| 2026-10-26 | [devz codemod Is a Dry Run Unless You Pass --write](./2026-10-26-devz-codemod-dry-run-by-default) | Behavior Change |
+| 2026-10-26 | [dev-configs Rule Options Are Const Classes](./2026-10-26-dev-configs-rule-options-const-classes) | Enhancement |
+| 2026-10-26 | [dev-configs Warns on String-Literal Unions and Explicit Casts](./2026-10-26-dev-configs-warn-const-class-and-casts) | Enhancement |
+| 2026-10-26 | [@model: type Is Optional, skipMigrate Becomes migration.use](./2026-10-26-model-type-and-migration-settings) | Enhancement |
+| 2026-10-26 | [TSearchScopeResolver Is Exported](./2026-10-26-search-scope-type-export) | Bug Fix |
+| 2026-10-26 | [The Release Sweep Includes Every Dependent](./2026-10-26-release-sweep-cascade) | Bug Fix |
+| 2026-10-26 | [The Deprecated Model Settings Keys Are Removed](./2026-10-26-remove-deprecated-model-settings) | Breaking |
 | 2026-10-25 | [A Guide to Model Settings](./2026-10-25-model-settings-guide) | Enhancement |
 | 2026-10-25 | [Model Settings Are Grouped Under query and access](./2026-10-25-model-settings-query-access) | Breaking |
 | 2026-10-25 | [installShutdownSignals Stops the Application on SIGTERM and SIGINT](./2026-10-25-install-shutdown-signals) | New Feature |

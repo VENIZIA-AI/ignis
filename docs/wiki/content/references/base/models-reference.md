@@ -65,9 +65,9 @@ Marks a class as a database entity and configures its behavior.
 
 ```typescript
 @model({
-  type: 'entity' | 'view',
+  type?: 'entity',
   tableName?: string,
-  skipMigrate?: boolean,
+  migration?: { use?: boolean },
   settings?: {
     hiddenProperties?: string[],
     query?: {
@@ -87,11 +87,11 @@ Marks a class as a database entity and configures its behavior.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `type` | `'entity' \| 'view'` | Entity type - `'entity'` for tables, `'view'` for database views |
+| `type` | `ModelTypes` (`'entity'`) | Optional. `ModelTypes.ENTITY` is the only value and the default; any other value throws when the decorator runs |
 | `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
-| `skipMigrate` | `boolean` | Skip this model during schema migrations |
+| `migration.use` | `boolean` | Default `true`. `false` marks the model as one your migration tooling leaves alone. IGNIS generates no migrations: this is a marker in the public registry, see [Migrations](/guides/core-concepts/persistent/models#migrations). The old `skipMigrate: true` is `migration: { use: false }`; it still works in this release and is removed in 0.4.4 |
 | `settings.hiddenProperties` | `string[]` | Property names excluded from all repository query results (at SQL level) |
-| `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). The old `defaultFilter` key is deprecated and removed in 0.4.3 |
+| `settings.query.filter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)). |
 | `settings.access` | `IModelAccessSettings` | Row scope resolved per query, ANDed into every read and write. `resolve()` returns the scope `where`, `ScopeFilters.UNRESTRICTED` for no scope this call, or null to fall to `onMissing` (default `deny`, matching zero rows). Relational repositories only |
 | `settings.query.limit.default` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit-resolution) |
 | `settings.query.limit.max` | `number` | Largest `limit` a caller may ask for. Must be a positive integer (validated at decoration time). Falls back to `DEFAULT_MAX_LIMIT` (1000). An explicit `limit` above it throws before the query runs. See [Limit ceiling](/references/base/filter-system/fields-order-pagination#limit-ceiling-maxlimit) |
@@ -105,12 +105,12 @@ Marks a class as a database entity and configures its behavior.
 | Setting | Meaning |
 |---|---|
 | `write.mode` | `'reject'` (default) or `'assign'`. `assign` fills a scope column that is absent from a created row when the scope is a single equality; a value that is present and disagrees is still refused |
-| `write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, or move a row into that shared set. Default `false`. Reading shared rows is a separate matter, see below |
+| `write.sharedRows` | `true` lets a restricted caller create rows with `null` (or no value) in the scope columns, move a row into that shared set, and update or delete rows that are already in it. Default `false`. Reading shared rows is a separate matter, see below |
 | `columns` | Optional list of property names. Checked at boot against the model; a resolved scope that constrains another column is refused |
 
 The columns and allowed values come from the resolved `where`: equality, `eq`, `inq` or `in`, an array, `and` of those, and an `or` whose branches all constrain the same column. Any other shape (an `or` over several columns, ranges, `like`, a nested path) cannot be checked, and the write is refused with a "cannot be verified" message instead of being skipped.
 
-A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `write.sharedRows: true`. The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `write.sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
+A shared-rows scope such as `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` lets the caller READ shared rows. Writing one is a different permission: a restricted caller who writes `null` (or leaves the column out on create) is refused unless the model sets `write.sharedRows: true`, and an update, delete, soft delete or restore does not reach a shared row at all (the scope it runs under has the `null` branch removed, so the count is 0). The ids in the list are accepted either way, and any other id is refused. If your resolver lists `null`, restricted callers still cannot write shared rows unless `write.sharedRows` is true; `ScopeFilters.UNRESTRICTED` bypasses the guard.
 
 An empty list scope, `{ merchantId: { in: [] } }`, refuses every create and every update that names the column.
 
@@ -268,7 +268,7 @@ export const userTable = pgTable('User', {
   name: text('name').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 ```
 
@@ -288,7 +288,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
   static override TABLE_NAME = 'User';
@@ -314,7 +314,7 @@ export class User extends BaseEntity<typeof User.schema> {
 Pass schema in the constructor.
 
 ```typescript
-@model({ type: 'entity' })
+@model()
 export class User extends BaseEntity<typeof userTable> {
   constructor() {
     super({ name: 'User', schema: userTable });
@@ -411,13 +411,13 @@ export const profileTable = pgTable('Profile', {
   userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({
   table: userTable,
   relations: () => ({ profile: one(profileTable) }), // the inverse side
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class Profile extends ModelFactory.defineEntity({
   table: profileTable,
   relations: () => ({ user: one(userTable) }), // owns the key - `profile` pairs with it
@@ -460,7 +460,6 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
 
 @model({
-  type: 'entity',
   settings: { hiddenProperties: ['password', 'secret'] },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -513,7 +512,6 @@ import { model, BaseEntity } from '@venizia/ignis';
 import { postTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: {
     query: {
       filter: {
@@ -897,7 +895,7 @@ All columns are nullable by default (no `NOT NULL`), since typically only one va
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
 
-@model({ type: 'entity' })
+@model()
 export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
   static override schema = pgTable('AppConfig', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),

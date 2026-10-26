@@ -17,7 +17,7 @@ The recommended pattern is to define the schema and relations as **static proper
 import { BaseRelationalEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
-@model({ type: 'entity' })
+@model()
 export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
@@ -192,7 +192,7 @@ Relations are defined using the `TRelationConfig` structure within the static `r
 import { BaseRelationalEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
 import { User } from './user.model';
 
-@model({ type: 'entity' })
+@model()
 export class Configuration extends BaseRelationalEntity<typeof Configuration.schema> {
   static override schema = pgTable('Configuration', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -221,7 +221,7 @@ The foreign key lives on the **`ONE` side only**. A `MANY` relation carries no `
 
 ```typescript
 // Owning side: Post declares the FK
-@model({ type: 'entity' })
+@model()
 export class Post extends BaseRelationalEntity<typeof Post.schema> {
   static override schema = pgTable('Post', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -242,7 +242,7 @@ export class Post extends BaseRelationalEntity<typeof Post.schema> {
 }
 
 // Inverse side: User just names the relation back
-@model({ type: 'entity' })
+@model()
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -388,7 +388,6 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'secret'],
   },
@@ -418,7 +417,6 @@ Declare your model's authorization principal in `@model` settings to make the mo
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     authorize: { principal: 'user' },
     hiddenProperties: ['password'],

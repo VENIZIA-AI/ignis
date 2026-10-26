@@ -117,7 +117,6 @@ Configure model properties that should **never be returned** through repository 
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'apiSecret', 'internalToken'],
   },

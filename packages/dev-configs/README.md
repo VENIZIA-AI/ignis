@@ -169,10 +169,12 @@ booleans. `BrowserOxlintConfigs.create()` and `ReactOxlintConfigs.create()` take
 | `MaxParamsOwnRule` | `venizia/max-params-own` | `build({ max: 5 })` | A function we write takes at most `max` positional parameters. Not counted: an inline callback passed to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts. |
 | `NoNewErrorRule` | `venizia/no-new-error` | `error` | Throw through `getError` (or an `ApplicationError`), never `new Error(...)` / `Error(...)`. Off in tests. |
 | `NoLeakedRenderRule` | `venizia/no-leaked-render` | `error`, in `reactHouseConfigs` only | A JSX child is drawn with `cond ? <X /> : null`, never `cond && <X />`, which draws `0` when `cond` is `0`. `--fix` rewrites it. `disabled={a && b}` is a value, not a child, and passes. |
-| `ConstClassValuesRule` | `venizia/const-class-values` | off; `build({ namePattern })` | An exported type named like a logic value (`State`, `Status`, `Stage`, `Mode`, `Kind`, `Type` by default) is a const class plus `TConstValue<typeof X>`, not a union of string literals. |
+| `ConstClassValuesRule` | `venizia/const-class-values` | `warn` in both presets; `build({ severity, namePattern })` | V-C-08. A union of string literals in an exported declaration (a type alias, an interface member, a generic constraint, a parameter or return type) is a const class plus `TConstValue<typeof X>`. Not counted: `Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys, and a union with a non-string member. `namePattern` narrows it to exported type aliases whose name matches. Off in tests. |
+| `@typescript-eslint/consistent-type-assertions` | `assertionStyle: never` | `warn` in both presets | V-C-10. `as X`, `as any` and `as unknown as X` warn; `as const` and `satisfies` do not. Off in tests. |
 
-`const-class-values` is registered in the plugin but no preset turns it on: a few IGNIS types still
-break it. Enable it with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build()`.
+`const-class-values` and the cast rule only warn, so adopting them never fails a lint. Raise one to an error
+with `[ConstClassValuesRule.NAME]: ConstClassValuesRule.build({ severity: 'error' })`. The 5-parameter
+limit (V-C-02) is `venizia/max-params-own`, an error.
 
 ### namingConventionConfigs
 

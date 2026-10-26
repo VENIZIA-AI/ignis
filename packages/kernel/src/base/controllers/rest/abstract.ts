@@ -6,6 +6,7 @@ import { formBodyReader, hasFormBody } from '@/base/middlewares/form-body/form-b
 import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strategies/strategy-registry';
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
+import { RoutePathScopes, type TRoutePathScope } from '@/base/controllers/common/constants';
 import { htmlResponse } from '@/base/controllers/common/html-response';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
@@ -75,8 +76,8 @@ export abstract class AbstractRestController<
   }
 
   /** Registers decorator-defined routes from the metadata registry; `paths` selects them by shape - see the two-phase call in {@link configure}. */
-  registerRoutesFromRegistry(opts?: { paths?: 'static' | 'param' | 'all' }): void {
-    const { paths = 'all' } = opts ?? {};
+  registerRoutesFromRegistry(opts?: { paths?: TRoutePathScope }): void {
+    const { paths = RoutePathScopes.ALL } = opts ?? {};
 
     const logger = this.logger.for(this.registerRoutesFromRegistry.name);
     DroppedRouteDecorators.report({ logger });
@@ -91,7 +92,10 @@ export abstract class AbstractRestController<
 
     const routeDefs = routes.entries();
     for (const [methodName, routeConfigs] of routeDefs) {
-      if (paths !== 'all' && hasPathParam({ path: routeConfigs.path }) !== (paths === 'param')) {
+      if (
+        paths !== RoutePathScopes.ALL &&
+        hasPathParam({ path: routeConfigs.path }) !== (paths === RoutePathScopes.PARAM)
+      ) {
         continue;
       }
 
@@ -123,9 +127,9 @@ export abstract class AbstractRestController<
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
     // Hono matches in registration order, so registration runs by SHAPE not source: every static path first, then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
-    this.registerRoutesFromRegistry({ paths: 'static' });
+    this.registerRoutesFromRegistry({ paths: RoutePathScopes.STATIC });
     await this.binding();
-    this.registerRoutesFromRegistry({ paths: 'param' });
+    this.registerRoutesFromRegistry({ paths: RoutePathScopes.PARAM });
 
     this.isConfigured = true;
     logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);

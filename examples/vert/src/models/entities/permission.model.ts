@@ -13,7 +13,7 @@ export const permissionTable = pgTable('Permission', {
   ...extraPermissionColumns({ idType: 'string' }),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Permission extends ModelFactory.defineEntity({ table: permissionTable }) {}
 
 export type TPermission = TEntityObject<typeof Permission>;

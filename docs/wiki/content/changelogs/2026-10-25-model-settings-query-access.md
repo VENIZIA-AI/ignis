@@ -54,8 +54,9 @@ class Product extends BaseRelationalEntity<typeof products> {}
 `@venizia/dev-configs` ships a codemod that rewrites the `settings` of every `@model({ ... })` for you:
 
 ```bash
-bunx devz codemod model-settings --check   # lists the files that would change, exits 1 if any
-bunx devz codemod model-settings           # rewrites them
+bunx devz codemod model-settings           # dry run: lists the files that would change, writes nothing
+bunx devz codemod model-settings --write   # rewrites them
+bunx devz codemod model-settings --check   # dry run that exits 1 if anything would change (CI)
 bun fmt && bun run typecheck               # tidy the formatting, then check
 ```
 
@@ -68,7 +69,7 @@ Pass paths to limit it (`devz codemod model-settings src/models`). It edits the 
 - **An old key together with the key that replaces it is an error.** `defaultLimit` with `query.limit.default`, or `scopeFilter` with `access`, throws when the decorator runs, naming the model and the key to keep.
 - **With `write.mode: 'assign'` and `write.sharedRows: true` together, an absent scope column is stamped** with the scope's single value instead of being left `null`. Stamping gives the row an owner, which is the safer reading; `sharedRows` still lets an explicit `null` through.
 - **The old keys are marked `@deprecated` in the types**, and `IScopeFilterSettings` is the deprecated name of `IModelAccessSettings`. 
-- **The old keys are removed in 0.4.3.** After that, a model that still uses one fails the type check and the key is no longer applied; migrate before you upgrade.
+- **The old keys are removed in 0.4.3.** In 0.4.3 a model that still uses one fails the type check and throws when the decorator runs; migrate before you upgrade.
 
 ## Who is affected
 

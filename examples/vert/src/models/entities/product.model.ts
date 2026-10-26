@@ -28,7 +28,6 @@ export const productTable = pgTable(
  * no price; a query passes `skipDefaultFilter: true` to see them.
  */
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { price: { gt: 0 } }, limit: 100 } } },
 })
 export class Product extends ModelFactory.defineEntity({

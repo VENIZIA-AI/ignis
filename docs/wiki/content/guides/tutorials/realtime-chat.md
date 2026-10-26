@@ -64,7 +64,7 @@ export const userTable = pgTable('User', {
   lastSeenAt: timestamp('last_seen_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;
@@ -104,7 +104,7 @@ export const roomMemberTable = pgTable('RoomMember', {
   lastReadAt: timestamp('last_read_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Room extends ModelFactory.defineEntity({
   table: roomTable,
   relations: () => ({
@@ -117,7 +117,7 @@ export class Room extends ModelFactory.defineEntity({
   }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class RoomMember extends ModelFactory.defineEntity({
   table: roomMemberTable,
   relations: () => ({
@@ -176,7 +176,7 @@ export const directMessageTable = pgTable('DirectMessage', {
   deletedAt: timestamp('deleted_at'),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Message extends ModelFactory.defineEntity({
   table: messageTable,
   relations: () => ({
@@ -191,7 +191,7 @@ export class Message extends ModelFactory.defineEntity({
   }),
 }) {}
 
-@model({ type: 'entity' })
+@model()
 export class DirectMessage extends ModelFactory.defineEntity({
   table: directMessageTable,
   relations: () => ({

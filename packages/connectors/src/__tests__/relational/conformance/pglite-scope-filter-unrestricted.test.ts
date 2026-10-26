@@ -38,7 +38,7 @@ let currentTenant: TTenantState = 'tenant-a';
 @model({
   type: 'entity',
   settings: {
-    scopeFilter: {
+    access: {
       resolve: () => {
         if (currentTenant === ScopeFilters.UNRESTRICTED) {
           return ScopeFilters.UNRESTRICTED;
@@ -47,7 +47,7 @@ let currentTenant: TTenantState = 'tenant-a';
         return currentTenant == null ? currentTenant : { tenant: currentTenant };
       },
     },
-    defaultFilter: { where: { deletedAt: null } },
+    query: { filter: { where: { deletedAt: null } } },
   },
 })
 class UnrestrictedScopedEntity extends BasePostgresEntity {

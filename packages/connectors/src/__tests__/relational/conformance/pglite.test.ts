@@ -35,7 +35,7 @@ class ConformanceEntity extends BasePostgresEntity {
 
 @model({
   type: 'entity',
-  settings: { hiddenProperties: ['secret'], defaultFilter: { where: { tenant: 'acme' } } },
+  settings: { hiddenProperties: ['secret'], query: { filter: { where: { tenant: 'acme' } } } },
 })
 class ScopedConformanceEntity extends BasePostgresEntity {
   static override TABLE_NAME = TABLE_NAME;

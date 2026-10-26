@@ -1,3 +1,4 @@
+import { HttpReadShapes } from './common/constants';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -154,7 +155,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
           query: opts.query,
           params: { where: opts.where },
         }),
-        shape: 'one',
+        shape: HttpReadShapes.ONE,
         isEveryDefaultOff: true,
         ...this.toCallOptions({ options: opts.options }),
       });
@@ -310,7 +311,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
           query: opts.query,
           params: { filter: opts.filter ?? {} },
         }),
-        shape: 'one',
+        shape: HttpReadShapes.ONE,
         isEveryDefaultOff: true,
         ...this.toCallOptions({ options: opts.options }),
       });
@@ -344,7 +345,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
         query: opts.query,
         params: { filter: opts.filter ?? {} },
       }),
-      shape: 'one',
+      shape: HttpReadShapes.ONE,
       ...this.toCallOptions({ options: opts.options }),
     });
 
@@ -366,7 +367,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
       method: HTTP.Methods.POST,
       body: opts.input,
       query: this.buildQuery({ method: 'search', query: opts.query, params: {} }),
-      shape: 'one',
+      shape: HttpReadShapes.ONE,
       ...this.toCallOptions({ options: opts.options }),
     });
 

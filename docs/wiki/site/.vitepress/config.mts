@@ -470,6 +470,64 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-26',
+              collapsed: true,
+              items: [
+                {
+                  text: 'After 0.4.2 - What Changed and How to Upgrade',
+                  link: '/changelogs/2026-10-26-batch-overview',
+                },
+                {
+                  text: 'Repository Tooling',
+                  link: '/changelogs/2026-10-26-repository-tooling',
+                },
+                {
+                  text: 'Connectors String Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-connectors-string-domains-const-classes',
+                },
+                {
+                  text: 'Kernel String Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-kernel-string-domains-const-classes',
+                },
+                {
+                  text: 'Shared Rows Need sharedRows to Change',
+                  link: '/changelogs/2026-10-26-shared-rows-writes-need-shared-rows',
+                },
+                {
+                  text: 'Helpers and Server String Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
+                },
+                {
+                  text: 'devz codemod Dry Run by Default',
+                  link: '/changelogs/2026-10-26-devz-codemod-dry-run-by-default',
+                },
+                {
+                  text: 'dev-configs Rule Options Are Const Classes',
+                  link: '/changelogs/2026-10-26-dev-configs-rule-options-const-classes',
+                },
+                {
+                  text: 'dev-configs Warns on Unions and Casts',
+                  link: '/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts',
+                },
+                {
+                  text: 'Model type and migration',
+                  link: '/changelogs/2026-10-26-model-type-and-migration-settings',
+                },
+                {
+                  text: 'TSearchScopeResolver Exported',
+                  link: '/changelogs/2026-10-26-search-scope-type-export',
+                },
+                {
+                  text: 'Release Sweep Includes Dependents',
+                  link: '/changelogs/2026-10-26-release-sweep-cascade',
+                },
+                {
+                  text: 'Deprecated Model Settings Removed',
+                  link: '/changelogs/2026-10-26-remove-deprecated-model-settings',
+                },
+              ],
+            },
+            {
               text: '2026-10-25',
               collapsed: true,
               items: [

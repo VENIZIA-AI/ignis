@@ -72,3 +72,18 @@ export class MailProviders {
 }
 
 export type TMailProvider = TConstValue<typeof MailProviders>;
+
+/** How the delay between two attempts to send a queued mail grows: FIXED stays the same, EXPONENTIAL doubles. */
+export class MailBackoffTypes {
+  static readonly FIXED = 'fixed';
+  static readonly EXPONENTIAL = 'exponential';
+
+  static readonly SCHEME_SET = new Set<string>([this.FIXED, this.EXPONENTIAL]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid mail backoff type values. */
+export type TMailBackoffType = TConstValue<typeof MailBackoffTypes>;

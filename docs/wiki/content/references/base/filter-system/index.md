@@ -53,7 +53,7 @@ LIMIT 20
 - **`TFilter` maps straight to SQL.** Every property corresponds to one clause of the generated query - see the table below.
 - **`where` takes a bare value or an operator object.** A bare value is implicit equality (`null` becomes `IS NULL`, an array becomes `IN`). An operator object keys into one of the operator families.
 - **Multiple `where` keys are an implicit AND.** A dot-notation key (`'metadata.path'`) targets a JSON/JSONB column instead of a top-level column, and accepts the same operators. IGNIS casts the operand automatically when it's a number.
-- **A model's `settings.query.filter` merges into every query for that model** - see [Default filter](#default-filter) below. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
+- **A model's `settings.query.filter` merges into every query for that model** - see [Default filter](#default-filter) below.
 
 | Filter property | SQL equivalent | Purpose |
 |---|---|---|
@@ -98,7 +98,6 @@ import { model, BaseEntity } from '@venizia/ignis';
 import { postTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {

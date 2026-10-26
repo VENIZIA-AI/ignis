@@ -1,10 +1,11 @@
 import { getError } from '@venizia/ignis-helpers/core';
+import type { TIdSchemaType } from '@venizia/ignis-kernel';
 import type { NotNull } from 'drizzle-orm';
 import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 export type TPermissionOptions = {
-  idType?: 'string' | 'number';
+  idType?: TIdSchemaType;
 };
 
 export type TPermissionCommonColumns = {

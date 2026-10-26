@@ -1,3 +1,4 @@
+import { ScopeWriteOperations, type TScopeWriteOperation } from './constants';
 import { getError } from '@venizia/ignis-helpers/core';
 import {
   QueryOperators,
@@ -8,6 +9,7 @@ import {
 } from '@venizia/ignis-kernel';
 import type { IModelAccessSettings, TWhere } from '@venizia/ignis-kernel';
 import { HTTP } from '@venizia/ignis-helpers/common';
+import { ScopeFilterDenial } from './scope-filter';
 
 type TScalar = string | number | bigint | boolean | Date | null;
 
@@ -18,6 +20,12 @@ type TExtraction =
   | { isVerifiable: true; constraints: TConstraints }
   | { isVerifiable: false; reason: string };
 
+/** What the scope becomes for a write: a `where`, no row at all, or a shape that cannot be narrowed. */
+type TNarrowed =
+  | { kind: 'where'; where: TWhere }
+  | { kind: 'none' }
+  | { kind: 'unverifiable'; reason: string };
+
 const WRITE_DENIED_STATUS = HTTP.ResultCodes.RS_4.Forbidden;
 
 const isScalar = (value: unknown): value is TScalar => {
@@ -26,6 +34,10 @@ const isScalar = (value: unknown): value is TScalar => {
     value instanceof Date ||
     ['string', 'number', 'bigint', 'boolean'].includes(typeof value)
   );
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 const normalise = (value: TScalar): string | null => {
@@ -206,6 +218,170 @@ export class ScopeWriteGuard {
   }
 
   /**
+   * The scope as a MUTATION `where` (update, delete, soft delete, restore). A scope with a `null`
+   * branch - `{ or: [{ merchantId: { in: ids } }, { merchantId: null }] }` - lets the caller READ the
+   * shared rows. Changing or deleting one is the same permission as creating one, `write.sharedRows`,
+   * so without it the `null` branch is removed and only the caller's own rows match. With
+   * `sharedRows` the scope is returned as it is.
+   *
+   * Only the shapes the write guard can read are narrowed. Any other shape cannot be shown to exclude
+   * the shared rows, so the mutation is refused, as an update with a payload already is.
+   */
+  static mutationWhere(opts: {
+    settings: IModelAccessSettings;
+    model: string;
+    operation: string;
+    scopeWhere: TWhere;
+  }): TWhere {
+    const { settings, model, operation, scopeWhere } = opts;
+
+    if (settings.write?.sharedRows === true) {
+      return scopeWhere;
+    }
+
+    const narrowed = ScopeWriteGuard.withoutShared({ where: scopeWhere });
+
+    if (narrowed.kind === 'unverifiable') {
+      throw ScopeWriteGuard.denied({
+        model,
+        operation,
+        detail: `the resolved scope cannot be verified on a write | ${narrowed.reason}`,
+      });
+    }
+
+    return narrowed.kind === 'none' ? ScopeFilterDenial.where() : narrowed.where;
+  }
+
+  /** `where` with every `null` the scope allows removed; `none` when nothing but `null` was allowed. */
+  private static withoutShared(opts: { where: TWhere }): TNarrowed {
+    const result: TWhere = {};
+
+    for (const [key, value] of Object.entries(opts.where)) {
+      if (key === 'and' || key === 'or') {
+        if (!Array.isArray(value) || (key === 'or' && value.length === 0)) {
+          return { kind: 'unverifiable', reason: `'${key}' is not a list` };
+        }
+
+        // An 'or' is read only when every branch constrains the same column, as the guard reads it: a branch over another column
+        // could match a shared row without a null in sight.
+        if (key === 'or') {
+          const union = ScopeWriteGuard.unionOfBranches({ branches: value });
+          if (typeof union === 'string') {
+            return { kind: 'unverifiable', reason: union };
+          }
+        }
+
+        const kept: TWhere[] = [];
+        for (const part of value) {
+          const narrowed = ScopeWriteGuard.withoutShared({ where: isRecord(part) ? part : {} });
+
+          if (narrowed.kind === 'unverifiable') {
+            return narrowed;
+          }
+
+          if (narrowed.kind === 'none') {
+            // One impossible 'and' part makes the whole 'and' impossible; an impossible 'or' branch just drops out.
+            if (key === 'and') {
+              return narrowed;
+            }
+            continue;
+          }
+
+          kept.push(narrowed.where);
+        }
+
+        if (key === 'or' && kept.length === 0) {
+          return { kind: 'none' };
+        }
+
+        result[key] = kept;
+        continue;
+      }
+
+      if (key.includes('.')) {
+        return {
+          kind: 'unverifiable',
+          reason: `the nested path '${key}' cannot be checked on a write`,
+        };
+      }
+
+      const narrowed = ScopeWriteGuard.conditionWithoutNull({ value });
+      if (narrowed.kind !== 'condition') {
+        return narrowed.kind === 'none'
+          ? { kind: 'none' }
+          : { kind: 'unverifiable', reason: `column '${key}': ${narrowed.reason}` };
+      }
+
+      result[key] = narrowed.value;
+    }
+
+    return { kind: 'where', where: result };
+  }
+
+  /** One column's condition without its `null` values, reading the same shapes `allowedValues` reads. */
+  private static conditionWithoutNull(opts: {
+    value: unknown;
+  }):
+    | { kind: 'condition'; value: unknown }
+    | { kind: 'none' }
+    | { kind: 'unverifiable'; reason: string } {
+    const { value } = opts;
+
+    const list = (entries: unknown[]) => {
+      if (!entries.every(isScalar)) {
+        return { kind: 'unverifiable' as const, reason: 'a list with a non-scalar entry' };
+      }
+
+      const kept = entries.filter((entry) => entry !== null);
+      return kept.length === 0
+        ? { kind: 'none' as const }
+        : { kind: 'condition' as const, value: kept };
+    };
+
+    if (isScalar(value)) {
+      return value === null ? { kind: 'none' } : { kind: 'condition', value };
+    }
+
+    if (Array.isArray(value)) {
+      return list(value);
+    }
+
+    if (!isRecord(value)) {
+      return { kind: 'unverifiable', reason: 'an unsupported condition' };
+    }
+
+    const operators = Object.keys(value);
+    if (operators.length !== 1) {
+      return {
+        kind: 'unverifiable',
+        reason: `a condition with ${operators.length} operators cannot be checked on a write`,
+      };
+    }
+
+    const [operator] = operators;
+    const operand = value[operator];
+
+    if (operator === QueryOperators.EQ && isScalar(operand)) {
+      return operand === null ? { kind: 'none' } : { kind: 'condition', value };
+    }
+
+    if (
+      (operator === QueryOperators.INQ || operator === QueryOperators.IN) &&
+      Array.isArray(operand)
+    ) {
+      const narrowed = list(operand);
+      return narrowed.kind === 'condition'
+        ? { kind: 'condition', value: { [operator]: narrowed.value } }
+        : narrowed;
+    }
+
+    return {
+      kind: 'unverifiable',
+      reason: `the operator '${operator}' cannot be checked on a write`,
+    };
+  }
+
+  /**
    * Holds `rows` to the scope `settings.resolve()` returns now. Returns the rows to write: the same
    * objects when nothing changes, copies with the scope columns filled in for `assign`. Throws, and
    * so writes nothing, when any row is outside the scope.
@@ -214,7 +390,7 @@ export class ScopeWriteGuard {
     settings: IModelAccessSettings;
     model: string;
     rows: Row[];
-    operation: 'create' | 'update';
+    operation: TScopeWriteOperation;
   }): Row[] {
     const { settings, model, rows, operation } = opts;
     const scope = settings.resolve();
@@ -226,7 +402,10 @@ export class ScopeWriteGuard {
     if (scope === null || scope === undefined) {
       // An update is already confined by the scoped `where`, which under `deny` matches no row; the
       // guard adds nothing there. A create has no such `where`, so an unresolved scope refuses it.
-      if (settings.onMissing === ScopeFilterMissingBehaviors.ALLOW || operation === 'update') {
+      if (
+        settings.onMissing === ScopeFilterMissingBehaviors.ALLOW ||
+        operation === ScopeWriteOperations.UPDATE
+      ) {
         return rows;
       }
 

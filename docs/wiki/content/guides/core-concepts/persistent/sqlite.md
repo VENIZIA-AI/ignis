@@ -97,7 +97,7 @@ export const productTable = sqliteTable('Product', {
   metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class Product extends ModelFactory.defineEntity({ table: productTable }) {}
 
 export type TProduct = TEntityObject<typeof Product>;

@@ -26,25 +26,25 @@ const itemsTable = pgTable('write_guard_items', {
 let scope: AnyType = { merchantId: 'm-a' };
 const resolve = () => scope;
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve } } })
+@model({ type: 'entity', settings: { access: { resolve } } })
 class RejectItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, writeGuard: 'assign' } } })
+@model({ type: 'entity', settings: { access: { resolve, write: { mode: 'assign' } } } })
 class AssignItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, sharedRows: true } } })
+@model({ type: 'entity', settings: { access: { resolve, write: { sharedRows: true } } } })
 class SharedItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
 
-@model({ type: 'entity', settings: { scopeFilter: { resolve, columns: ['merchantId'] } } })
+@model({ type: 'entity', settings: { access: { resolve, columns: ['merchantId'] } } })
 class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
@@ -52,9 +52,21 @@ class DeclaredItem extends BaseRelationalEntity<typeof itemsTable> {
 
 @model({
   type: 'entity',
-  settings: { scopeFilter: { resolve }, defaultFilter: { where: { deletedAt: null } } },
+  settings: { access: { resolve }, query: { filter: { where: { deletedAt: null } } } },
 })
 class SoftItem extends BaseRelationalEntity<typeof itemsTable> {
+  static override schema = itemsTable;
+  static override TABLE_NAME = 'write_guard_items';
+}
+
+@model({
+  type: 'entity',
+  settings: {
+    access: { resolve, write: { sharedRows: true } },
+    query: { filter: { where: { deletedAt: null } } },
+  },
+})
+class SoftSharedItem extends BaseRelationalEntity<typeof itemsTable> {
   static override schema = itemsTable;
   static override TABLE_NAME = 'write_guard_items';
 }
@@ -583,6 +595,153 @@ describe('scopeFilter write guard', () => {
 
       await soft.restoreById({ id: created.data.id });
       expect((await allRows()).map((row) => row.deletedAt)).toEqual([null]);
+    });
+  });
+
+  describe('a shared row cannot be changed or deleted without sharedRows', () => {
+    const sharedScope = { or: [{ merchantId: { in: ['m-a'] } }, { merchantId: null }] };
+
+    /** Three rows, written without a scope: mine (m-a), shared (null) and theirs (m-b). */
+    const seed = async (entity: AnyType = RejectItem, repositoryClass?: AnyType) => {
+      const repository = build(entity, repositoryClass);
+      scope = ScopeFilters.UNRESTRICTED;
+      const mine = await repository.create({ data: { merchantId: 'm-a', name: 'mine' } });
+      const shared = await repository.create({ data: { merchantId: null, name: 'shared' } });
+      const theirs = await repository.create({ data: { merchantId: 'm-b', name: 'theirs' } });
+      scope = sharedScope;
+
+      return { repository, mine: mine.data.id, shared: shared.data.id, theirs: theirs.data.id };
+    };
+
+    const names = async () => (await rows()).map((row) => row.name);
+
+    test('reads still return my rows and the shared rows, never the other merchant', async () => {
+      const { repository } = await seed();
+
+      const found = await repository.find({ filter: {} });
+
+      expect(found.map((row: AnyType) => row.name).sort()).toEqual(['mine', 'shared']);
+    });
+
+    test('updateById changes my row, and a shared row stays untouched (count 0)', async () => {
+      const { repository, mine, shared, theirs } = await seed();
+
+      expect((await repository.updateById({ id: mine, data: { name: 'mine-2' } })).count).toBe(1);
+      expect((await repository.updateById({ id: shared, data: { name: 'shared-2' } })).count).toBe(
+        0,
+      );
+      expect((await repository.updateById({ id: theirs, data: { name: 'theirs-2' } })).count).toBe(
+        0,
+      );
+
+      expect(await names()).toEqual(['mine-2', 'shared', 'theirs']);
+    });
+
+    test('deleteById removes my row, and a shared row stays (count 0)', async () => {
+      const { repository, mine, shared } = await seed();
+
+      expect((await repository.deleteById({ id: shared })).count).toBe(0);
+      expect((await repository.deleteById({ id: mine })).count).toBe(1);
+
+      expect(await names()).toEqual(['shared', 'theirs']);
+    });
+
+    test('updateAll and updateBy touch only my rows', async () => {
+      const { repository } = await seed();
+
+      await repository.updateAll({ where: {}, data: { name: 'all' }, options: { force: true } });
+      expect(await names()).toEqual(['all', 'shared', 'theirs']);
+
+      await repository.updateBy({ where: {}, data: { name: 'by' }, options: { force: true } });
+      expect(await names()).toEqual(['by', 'shared', 'theirs']);
+    });
+
+    test('deleteAll and deleteBy touch only my rows', async () => {
+      const { repository } = await seed();
+
+      expect((await repository.deleteAll({ where: {}, options: { force: true } })).count).toBe(1);
+      expect(await names()).toEqual(['shared', 'theirs']);
+
+      expect((await repository.deleteBy({ where: {}, options: { force: true } })).count).toBe(0);
+      expect(await names()).toEqual(['shared', 'theirs']);
+    });
+
+    test('a payload that does not name the scope column cannot reach a shared row through a name filter either', async () => {
+      const { repository } = await seed();
+
+      const result = await repository.updateAll({ where: { name: 'shared' }, data: { name: 'x' } });
+
+      expect(result.count).toBe(0);
+      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
+    });
+
+    test('soft delete and restore reach my row only, not a shared one', async () => {
+      const { repository, mine, shared } = await seed(SoftItem, SoftDeletableRelationalRepository);
+
+      expect((await repository.deleteById({ id: shared })).count).toBe(0);
+      expect((await repository.deleteById({ id: mine })).count).toBe(1);
+      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true, false, false]);
+
+      scope = ScopeFilters.UNRESTRICTED;
+      await repository.deleteById({ id: shared });
+      scope = sharedScope;
+      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([true, true, false]);
+
+      expect((await repository.restoreById({ id: shared })).count).toBe(0);
+      expect((await repository.restoreById({ id: mine })).count).toBe(1);
+      expect((await allRows()).map((row) => row.deletedAt !== null)).toEqual([false, true, false]);
+    });
+
+    test('with sharedRows true the shared row can be changed, deleted, soft deleted and restored', async () => {
+      const { repository, shared, theirs } = await seed(SharedItem);
+
+      expect((await repository.updateById({ id: shared, data: { name: 'shared-2' } })).count).toBe(
+        1,
+      );
+      expect((await repository.updateById({ id: theirs, data: { name: 'theirs-2' } })).count).toBe(
+        0,
+      );
+      expect((await repository.deleteById({ id: shared })).count).toBe(1);
+      expect(await names()).toEqual(['mine', 'theirs']);
+
+      const soft = await seed(SoftSharedItem, SoftDeletableRelationalRepository);
+      expect((await soft.repository.deleteById({ id: soft.shared })).count).toBe(1);
+      expect((await soft.repository.restoreById({ id: soft.shared })).count).toBe(1);
+    });
+
+    test('UNRESTRICTED still reaches every row', async () => {
+      const { repository, shared, theirs } = await seed();
+
+      scope = ScopeFilters.UNRESTRICTED;
+      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(1);
+      expect((await repository.deleteById({ id: theirs })).count).toBe(1);
+    });
+
+    test('a scope that only allows null matches no row for a write', async () => {
+      const { repository, shared } = await seed();
+      scope = { merchantId: null };
+
+      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(0);
+      expect((await repository.deleteById({ id: shared })).count).toBe(0);
+      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
+    });
+
+    test('a null inside a list is dropped for a write and the other values stay', async () => {
+      const { repository, mine, shared } = await seed();
+      scope = { merchantId: { inq: ['m-a', null] } };
+
+      expect((await repository.updateById({ id: shared, data: { name: 'a' } })).count).toBe(0);
+      expect((await repository.updateById({ id: mine, data: { name: 'b' } })).count).toBe(1);
+    });
+
+    test('a scope the guard cannot read refuses a delete instead of leaving shared rows reachable', async () => {
+      const { repository, shared } = await seed();
+      scope = { or: [{ merchantId: 'm-a' }, { name: 'shared' }] };
+
+      const error = await refusal(repository.deleteById({ id: shared }));
+
+      expect(error.message).toMatch(/cannot be verified/);
+      expect(await names()).toEqual(['mine', 'shared', 'theirs']);
     });
   });
 });

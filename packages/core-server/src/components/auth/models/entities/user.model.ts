@@ -1,9 +1,10 @@
 import { UserStatuses, UserTypes } from '@venizia/ignis-kernel';
+import type { TIdSchemaType } from '@venizia/ignis-kernel';
 import { isoTimestamp } from '@venizia/ignis-connectors/postgres';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { integer, text } from 'drizzle-orm/pg-core';
 
-export const extraUserColumns = (opts?: { idType: 'string' | 'number' }) => {
+export const extraUserColumns = (opts?: { idType: TIdSchemaType }) => {
   return {
     realm: text('realm').default(''),
     status: text('status')

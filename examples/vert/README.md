@@ -59,7 +59,7 @@ To stop the services and drop their data, run `docker compose down -v`.
 |---|---|
 | Models | `src/models/entities/*.model.ts` - a table first, then `ModelFactory.defineEntity({ table, relations })` |
 | Relations | `sale-channel-product.model.ts`: `one(productTable)` reads its columns off the foreign key. `configuration.model.ts`: `modifier` names its columns, because `modified_by` has no foreign key |
-| Hidden columns, default filter | `user.model.ts` (`hiddenProperties`), `product.model.ts` (`query.filter`; the old `defaultFilter` key is deprecated and removed in 0.4.3) |
+| Hidden columns, default filter | `user.model.ts` (`hiddenProperties`), `product.model.ts` (`query.filter`) |
 | Repositories | `src/repositories/*.repository.ts` - `@repository({ model, dataSource })` over an empty class, plus custom queries |
 | CRUD routes | `src/controllers/configuration.controller.ts` - `ControllerFactory.defineCrudController` with per-route authentication, a custom create body, and two overridden handlers |
 | Hand-written routes | `src/controllers/test/` (`defineRoute`, `bindRoute`, `@get`, `@post`) and `src/controllers/authorization-example/` |

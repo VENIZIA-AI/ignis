@@ -7,14 +7,13 @@ lastUpdated: 2026-07-23
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site. (The old `defaultFilter` key is deprecated and removed in 0.4.3.)
+A model's `settings.query.filter` merges into every `find`/`findOne`/`findById`/`count`/`updateById`/`updateAll`/`deleteById`/`deleteAll` call for that model. It's the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
 import { userTable } from '@/schemas';
 
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { isDeleted: false }, limit: 100 } } },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -163,7 +162,6 @@ Any `TFilter` property is valid inside `settings.query.filter` - `where`, `limit
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { filter: { where: { deletedAt: null } } } },
 })
 export class Post extends BaseEntity<typeof Post.schema> {}
@@ -182,7 +180,6 @@ await postRepository.updateById({
 
 ```typescript
 @model({
-  type: 'entity',
   settings: { query: { limit: { default: 1000 } } },
 })
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}

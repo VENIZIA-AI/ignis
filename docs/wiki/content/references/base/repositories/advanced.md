@@ -259,7 +259,6 @@ Fields like `password` must never leave the database by accident. Declare them o
 
 ```typescript
 @model({
-  type: 'entity',
   settings: {
     hiddenProperties: ['password', 'secret', 'apiKey'],
   },
@@ -521,7 +520,7 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 
 ## Default Filter Bypass
 
-A model's default filter, set with `settings.query.filter` (e.g. soft-delete's `isDeleted = false`), applies to every query unless you opt out for an admin or maintenance path. The old `defaultFilter` key is deprecated and removed in 0.4.3.
+A model's default filter, set with `settings.query.filter` (e.g. soft-delete's `isDeleted = false`), applies to every query unless you opt out for an admin or maintenance path.
 
 ```typescript
 // Normal query - default filter applies

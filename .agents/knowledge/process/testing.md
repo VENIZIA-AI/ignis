@@ -38,6 +38,19 @@ tags: [process, test, bun]
    it right after the lint step - but CI itself is `workflow_dispatch` only now, so nothing runs it
    on a push or a pull request, and no hook does either. Running the purity gate and the test suite before
    committing is on you.
+7. A test never writes outside the repository. The root `Makefile` exports `TMPDIR` as the gitignored
+   `.agents/local/tmp`, so `os.tmpdir()` and `mkdtemp` land there under every `make` target; remove
+   what the test makes in `afterEach`/`afterAll`. Never write a literal `/tmp/...` path. A bare
+   `bun test` outside `make` is covered too: a `[test] preload` in the root and every package
+   `bunfig.toml` loads `scripts/test-setup/tmpdir.ts`, which sets `TMPDIR` (and `NODE_COMPILE_CACHE`,
+   which Node would otherwise write to the system temp; `make` exports it as `.agents/local/cache/node-compile`).
+   `make tmp-leak-check` runs
+   `test-all` and `test-scripts` between a snapshot and a verify (`scripts/checks/tmp-leak/`) and fails
+   when the run added anything to the system temp or left anything in `.agents/local/tmp`; only names
+   the current user created after the snapshot count. The one sanctioned system-temp path is the
+   clean-install gate's `ignis-clean-install-*` sandbox (a sandbox below the repository would resolve
+   the repository `node_modules`): it is removed in a `finally`, and the gate lists it as allowed
+   rather than ignoring it (`TmpLeak.ALLOWED_SYSTEM_PATHS`).
 
 ## Related
 

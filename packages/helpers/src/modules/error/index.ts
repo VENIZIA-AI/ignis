@@ -2,6 +2,7 @@
 /** Augment `IErrorKeyRegistry` via whichever module the file imports - see `registry-augmentation.test.ts`. */
 export {
   ApplicationError,
+  ErrorLogLevels,
   ErrorScopes,
   fromError,
   getError,

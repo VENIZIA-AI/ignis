@@ -1,3 +1,4 @@
+import { HttpReadShapes, type THttpReadShape } from './common/constants';
 import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { NodeFetchNetworkRequest } from '@venizia/ignis-helpers/core';
@@ -272,7 +273,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     opts: {
       paths: Array<string>;
       query?: Record<string, unknown>;
-      shape?: 'list' | 'one';
+      shape?: THttpReadShape;
       method?: string;
       body?: THttpBody;
       /** Extras the route offers beside its rows, asked for by name (`x-request-extra`). */
@@ -301,7 +302,7 @@ export class HttpDataSource extends AbstractDataSource<IHttpDataSourceSettings> 
     });
     const contentRange = response.headers.get(HTTP.Headers.CONTENT_RANGE) ?? undefined;
     const range = HttpResponseReader.parseContentRange({ header: contentRange });
-    const data = HttpWire.unwrapRows<R>({ body, shape: opts.shape ?? 'list', url });
+    const data = HttpWire.unwrapRows<R>({ body, shape: opts.shape ?? HttpReadShapes.LIST, url });
 
     return {
       data,

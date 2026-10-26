@@ -10,7 +10,7 @@ export const userTable = pgTable('users', {
   password: text('password').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 export type TUser = TEntityObject<typeof User>;

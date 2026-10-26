@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
+import { CodemodFiles } from '../cli/codemod/files';
 import { migrateModelSettings } from '../cli/codemod/model-settings';
 
 const run = (source: string) => {
@@ -303,6 +305,8 @@ describe('devz codemod model-settings - the command', () => {
     const scratch = join(process.cwd(), 'app_data');
     mkdirSync(scratch, { recursive: true });
     root = mkdtempSync(join(scratch, 'codemod-'));
+    // The fixture is its own repository, so git lists the files the command may touch.
+    execFileSync('git', ['init', '-q'], { cwd: root });
     mkdirSync(join(root, 'src'));
     mkdirSync(join(root, 'node_modules/pkg'), { recursive: true });
     logs = [];
@@ -339,10 +343,20 @@ describe('devz codemod model-settings - the command', () => {
     expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
   });
 
-  test('without --check it writes the files and exits 0; a second run changes nothing', async () => {
+  test('without --write it is a dry run: lists the change, writes nothing, exits 0', async () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
     expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
+
+    expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+    expect(logs.join('\n')).toContain('would change');
+    expect(logs.join('\n')).toContain('--write');
+  });
+
+  test('--write writes the files and exits 0; a second run changes nothing', async () => {
+    write('src/a.model.ts', model('{ defaultLimit: 5 }'));
+
+    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
     expect(read('src/a.model.ts')).toBe(model('{ query: { limit: { default: 5 } } }'));
 
     expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
@@ -353,7 +367,7 @@ describe('devz codemod model-settings - the command', () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
     write('other/b.model.ts', model('{ defaultLimit: 6 }'));
 
-    await CodemodCommand.run({ root, args: ['model-settings', 'src'] });
+    await CodemodCommand.run({ root, args: ['model-settings', 'src', '--write'] });
 
     expect(read('src/a.model.ts')).toContain('query:');
     expect(read('other/b.model.ts')).toBe(model('{ defaultLimit: 6 }'));
@@ -378,13 +392,151 @@ describe('devz codemod model-settings - the command', () => {
     expect(logs.join('\n')).toContain('1 left untouched');
   });
 
+  test('a git-ignored folder is never entered, even with --write', async () => {
+    mkdirSync(join(root, '.agents/local/worktrees/other/src'), { recursive: true });
+    mkdirSync(join(root, 'generated'));
+    write('.gitignore', '.agents/local/\ngenerated/\n');
+    write('.agents/local/worktrees/other/src/a.model.ts', model('{ defaultLimit: 5 }'));
+    write('generated/b.model.ts', model('{ defaultLimit: 6 }'));
+    write('src/c.model.ts', model('{ defaultLimit: 7 }'));
+
+    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+
+    expect(read('.agents/local/worktrees/other/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+    expect(read('generated/b.model.ts')).toBe(model('{ defaultLimit: 6 }'));
+    expect(read('src/c.model.ts')).toContain('query:');
+  });
+
+  test('a nested repository that is not ignored is not entered either', async () => {
+    mkdirSync(join(root, 'vendor/src'), { recursive: true });
+    execFileSync('git', ['init', '-q'], { cwd: join(root, 'vendor') });
+    write('vendor/src/a.model.ts', model('{ defaultLimit: 5 }'));
+
+    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+
+    expect(read('vendor/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+  });
+
+  test('--help prints the usage, exits 0 and writes nothing', async () => {
+    write('src/a.model.ts', model('{ defaultLimit: 5 }'));
+
+    for (const args of [
+      ['model-settings', '--help'],
+      ['--help'],
+      ['model-settings', '-h', '--write'],
+    ]) {
+      logs.length = 0;
+      expect(await CodemodCommand.run({ root, args })).toBe(0);
+      expect(logs.join('\n')).toContain('Usage: devz codemod model-settings');
+    }
+
+    expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+  });
+
+  test('an unknown flag is an error (exit 2) and nothing is written', async () => {
+    const errors: string[] = [];
+    spyOn(console, 'error').mockImplementation((...args) => {
+      errors.push(args.join(' '));
+    });
+    write('src/a.model.ts', model('{ defaultLimit: 5 }'));
+
+    for (const flag of ['--halp', '--dry-run', '-w']) {
+      expect(await CodemodCommand.run({ root, args: ['model-settings', flag, '--write'] })).toBe(2);
+    }
+
+    expect(errors.join('\n')).toContain('unknown option "--halp"');
+    expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+  });
+
+  test('--write and --check together are refused and nothing is written', async () => {
+    spyOn(console, 'error').mockImplementation(() => {});
+    write('src/a.model.ts', model('{ defaultLimit: 5 }'));
+
+    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write', '--check'] })).toBe(
+      2,
+    );
+    expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
+  });
+
+  test('outside git the walk skips dot-directories, node_modules, dist and build', () => {
+    for (const directory of ['.agents/x', 'node_modules/x', 'dist', 'build', 'lib']) {
+      mkdirSync(join(root, directory), { recursive: true });
+      write(join(directory, 'a.model.ts'), model('{ defaultLimit: 5 }'));
+    }
+
+    const files = CodemodFiles.fromWalk({ target: root }).map((file) =>
+      file.slice(root.length + 1),
+    );
+
+    expect(files).toEqual(['lib/a.model.ts']);
+  });
+
   test('an unknown codemod is refused', async () => {
     const errors: string[] = [];
     spyOn(console, 'error').mockImplementation((...args) => {
       errors.push(args.join(' '));
     });
 
-    expect(await CodemodCommand.run({ root, args: ['nope'] })).toBe(1);
+    expect(await CodemodCommand.run({ root, args: ['nope'] })).toBe(2);
     expect(errors.join('\n')).toContain('Usage: devz codemod model-settings');
+  });
+});
+
+describe('migrateModelSettings - skipMigrate', () => {
+  const skip = (metadata: string) => `@model({ ${metadata} })\nclass Product {}\n`;
+
+  test('skipMigrate: true becomes migration: { use: false }', () => {
+    expect(run(skip('skipMigrate: true')).output).toBe(skip('migration: { use: false }'));
+  });
+
+  test('skipMigrate: false is the default and is removed', () => {
+    expect(run(skip("type: 'entity', skipMigrate: false")).output).toBe(skip("type: 'entity'"));
+    expect(run(skip('skipMigrate: false')).output).toBe('@model({ })\nclass Product {}\n');
+  });
+
+  test('it works beside the settings in the same decorator, and keeps the other keys', () => {
+    const result = run(skip("type: 'entity', skipMigrate: true, settings: { defaultLimit: 5 }"));
+
+    expect(result.rewritten).toBe(2);
+    expect(result.output).toBe(
+      skip(
+        "type: 'entity', migration: { use: false }, settings: { query: { limit: { default: 5 } } }",
+      ),
+    );
+  });
+
+  test('the comment above it stays', () => {
+    const result = run(`@model({
+  // created by hand
+  skipMigrate: true,
+})
+class Product {}
+`);
+
+    expect(result.output).toContain('// created by hand');
+    expect(result.output).toContain('migration: { use: false }');
+  });
+
+  test.each([
+    ['a variable', 'skipMigrate: shouldSkip', /not a boolean literal/],
+    ['a shorthand', 'skipMigrate', /shorthand/],
+    ['an existing migration', 'skipMigrate: true, migration: { use: false }', /both set/],
+  ])('%s is reported and left untouched', (_name, metadata, pattern) => {
+    const source = skip(metadata);
+    const result = run(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.output).toBe(source);
+    expect(result.reports[0]?.reason).toMatch(pattern);
+  });
+
+  test('running it twice changes nothing the second time', () => {
+    const first = run(skip('skipMigrate: true'));
+
+    expect(run(first.output).changed).toBe(false);
+  });
+
+  test('a model that never set it is left alone', () => {
+    expect(run(skip("type: 'entity'")).changed).toBe(false);
   });
 });

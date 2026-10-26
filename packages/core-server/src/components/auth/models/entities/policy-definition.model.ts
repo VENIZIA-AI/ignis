@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers/core';
 import type {
   TAuthorizationDecision,
+  TIdSchemaType,
   TAuthorizationPolicyVariant,
   TSubsetGrantMetadata,
 } from '@venizia/ignis-kernel';
@@ -8,7 +9,7 @@ import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';
 import { integer, jsonb, text } from 'drizzle-orm/pg-core';
 
 export type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
-  idType?: 'string' | 'number';
+  idType?: TIdSchemaType;
   /**
    * App-only edge kinds stored in this same table alongside IGNIS's seven (e.g. `merchant_role`).
    * `ScopedCasbinAdapter` never selects an undeclared variant - it is purely the consumer's data.

@@ -51,6 +51,11 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make vulcan-sync vulcan-doctor
 
+      # The two test steps below must leave nothing in the system temp or in .agents/local/tmp.
+      - name: Temp folders - snapshot
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts snapshot
+
       - name: Browser purity probe
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make purity-test
@@ -58,6 +63,10 @@ jobs:
       - name: Gate scripts' own tests
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make test-scripts
+
+      - name: Temp folders - verify
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts verify
 
   build-and-test:
     name: Build, test and lint
@@ -98,10 +107,20 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make build-checks
 
+      # Every example compiles against the built packages: a type a barrel forgot to export breaks one.
+      - name: Examples type-check
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: make examples-check
+
       # Creates an app from the PACKED @venizia/ignis preset in a temp folder and runs its checks.
       - name: VULCAN preset smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make preset-smoke
+
+      # Every test below must leave nothing in the system temp or in .agents/local/tmp (verify step).
+      - name: Temp folders - snapshot
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts snapshot
 
       # The make targets own the test flags (BUN_TEST_FLAGS, default --parallel, implies --isolate),
       # so CI and a developer's `make test-<pkg>` run the very same command.
@@ -132,6 +151,10 @@ jobs:
       - name: Test - core-server
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: make test-core-server
+
+      - name: Temp folders - verify
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: bun scripts/checks/tmp-leak/cli.ts verify
 
       - name: Lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

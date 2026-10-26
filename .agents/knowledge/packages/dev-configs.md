@@ -81,7 +81,8 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 | `max-params-own` | `houseConfigs`, `reactHouseConfigs` | At most 5 positional parameters on a function we write |
 | `no-new-error` | both | `getError`, never `new Error` / `Error()`; off in tests |
 | `no-leaked-render` | `reactHouseConfigs` only, `.jsx`/`.tsx` | `cond && <X />` draws `0`; fixer writes `cond ? <X /> : null` |
-| `const-class-values` | registered, enabled by no preset | exported `*State`/`*Status`/`*Stage`/`*Mode`/`*Kind`/`*Type` string-literal union (V-C-08). Three IGNIS types still match (`helpers` `TFieldMappingDataType` and `AESAlgorithmType`, `kernel` `TIdSchemaType`), so a preset at `error` would break `lint-helpers` and `lint-kernel` |
+| `const-class-values` | both, `warn` | V-C-08: a string-literal union in an exported declaration (alias, interface member, generic constraint, parameter or return type); skips `Pick`/`Omit`/`Extract`/`Exclude`/`Record` arguments and mapped-type keys; off in tests. `namePattern` narrows it to exported aliases with a matching name |
+| `@typescript-eslint/consistent-type-assertions` | both, `warn`, `assertionStyle: never` | V-C-10: `as X` warns, `as const` and `satisfies` do not; off in tests. These two warn only, so `make lint` (oxlint `--deny-warnings` is the oxlint side) still passes |
 
 Checked against the BANA copies (2026-10-18): `max-params-own` gave the same hits on a 6-case snippet and on the BANA frontend; `no-leaked-render` gave the same 48 hits and the same fixed output on 3755 `.tsx` files; `no-new-error` differs only in also catching a bare `Error('x')` call. BANA's `pascal-case-tsx` was not taken: IGNIS and ARDOR name `.tsx` files in kebab-case (`about.page.tsx`, `product-list.tsx`), so PascalCase is a BANA product rule.
 

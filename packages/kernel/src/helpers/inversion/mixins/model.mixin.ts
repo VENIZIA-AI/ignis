@@ -2,6 +2,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { TMixinTarget } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
+import { AuthorizeModelFormats, type TAuthorizeModelFormat } from '../common/constants';
 import { MetadataKeys } from '../common/keys';
 import type {
   IModelAuthorizeSettings,
@@ -131,16 +132,18 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
     }
 
     /** Authorization principals across all models that declare an authorize setting. */
-    getAuthorizeModelPrincipals(opts: { format: 'array' }): string[];
-    getAuthorizeModelPrincipals(opts: { format: 'record' }): Record<string, string>;
-    getAuthorizeModelPrincipals(opts: { format: 'array' | 'record' }) {
+    getAuthorizeModelPrincipals(opts: { format: typeof AuthorizeModelFormats.ARRAY }): string[];
+    getAuthorizeModelPrincipals(opts: {
+      format: typeof AuthorizeModelFormats.RECORD;
+    }): Record<string, string>;
+    getAuthorizeModelPrincipals(opts: { format: TAuthorizeModelFormat }) {
       switch (opts.format) {
-        case 'array': {
+        case AuthorizeModelFormats.ARRAY: {
           return collectAuthorizePrincipals({ modelRegistry: this.modelRegistry }).map(
             (item) => item.principal,
           );
         }
-        case 'record': {
+        case AuthorizeModelFormats.RECORD: {
           const record: Record<string, string> = {};
 
           const authorizePrincipals = collectAuthorizePrincipals({
@@ -160,20 +163,20 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       }
     }
 
-    getAuthorizeModelSettings(opts: { format: 'array' }): Array<{
+    getAuthorizeModelSettings(opts: { format: typeof AuthorizeModelFormats.ARRAY }): Array<{
       name: string;
       authorize: IModelAuthorizeSettings;
       entry: IModelRegistryEntry;
     }>;
     getAuthorizeModelSettings(opts: {
-      format: 'record';
+      format: typeof AuthorizeModelFormats.RECORD;
     }): Record<string, { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }>;
-    getAuthorizeModelSettings(opts: { format: 'array' | 'record' }) {
+    getAuthorizeModelSettings(opts: { format: TAuthorizeModelFormat }) {
       switch (opts.format) {
-        case 'array': {
+        case AuthorizeModelFormats.ARRAY: {
           return collectAuthorizeEntries({ modelRegistry: this.modelRegistry });
         }
-        case 'record': {
+        case AuthorizeModelFormats.RECORD: {
           const record: Record<
             string,
             { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }

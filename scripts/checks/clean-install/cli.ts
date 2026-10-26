@@ -452,6 +452,8 @@ const main = async (): Promise<number> => {
   const directories = workspaceClosure({ directories: rowPackages });
   assertFreshBuild({ directories });
 
+  // The one sanctioned use of the system temp: a sandbox below the repository would resolve the
+  // repository's node_modules and hide a missing peer. Removed in the finally below; tmp-leak lists it.
   const root = mkdtempSync(join(tmpdir(), 'ignis-clean-install-'));
   const failures: string[] = [];
   let checkCount = 0;

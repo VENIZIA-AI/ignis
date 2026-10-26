@@ -85,3 +85,18 @@ export class KafkaDefaults {
   static readonly SHUTDOWN_TIMEOUT = 30_000;
   static readonly LAG_MONITOR_INTERVAL = 30_000;
 }
+
+/** Why every broker of a consumer is gone: DISCONNECTED (the connections closed) or FAILED (they errored). */
+export class KafkaBrokersDownReasons {
+  static readonly DISCONNECTED = 'disconnected';
+  static readonly FAILED = 'failed';
+
+  static readonly SCHEME_SET = new Set<string>([this.DISCONNECTED, this.FAILED]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+/** Valid Kafka brokers-down reason values. */
+export type TKafkaBrokersDownReason = TConstValue<typeof KafkaBrokersDownReasons>;

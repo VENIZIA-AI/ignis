@@ -1,3 +1,4 @@
+import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
 import { isEmpty } from '@venizia/ignis-inversion';
 import C from 'node:crypto';
 import fs from 'node:fs';
@@ -30,7 +31,7 @@ export interface IAESKeyringEntry {
 
 export type TAESSecret = string | IAESKeyringEntry[];
 
-export type AESAlgorithmType = 'aes-256-cbc' | 'aes-256-gcm';
+export { AESAlgorithms, type AESAlgorithmType };
 
 export class AES extends BaseCryptoAlgorithm<
   AESAlgorithmType,

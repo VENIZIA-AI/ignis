@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import type { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
-import { type SecFetchSiteValues } from '../constants';
+import { type SecFetchSiteValues, type TCompressEncoding } from '../constants';
 
 export interface IBaseMiddlewareOptions {
   enable: boolean;
@@ -9,7 +9,7 @@ export interface IBaseMiddlewareOptions {
 }
 
 export interface ICompressOptions extends IBaseMiddlewareOptions {
-  encoding: 'gzip' | 'deflate';
+  encoding: TCompressEncoding;
   threshold?: number;
 }
 

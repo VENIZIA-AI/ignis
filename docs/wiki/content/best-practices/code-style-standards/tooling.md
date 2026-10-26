@@ -131,7 +131,7 @@ The rule classes and their options are in the [package README](https://github.co
 
 ## ESLint Configuration (what oxlint cannot run)
 
-ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the two house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object) and `venizia/no-new-error` (throw through `getError`, never `new Error`).
+ESLint runs what oxlint cannot express: `@typescript-eslint/naming-convention`, and the house rules - `venizia/max-params-own` (a function we write takes at most 5 positional parameters; beyond that, one options object), `venizia/no-new-error` (throw through `getError`, never `new Error`), and two that only warn: `venizia/const-class-values` (a string-literal union in an exported declaration is a const class plus `TConstValue`) and `@typescript-eslint/consistent-type-assertions` (`as X` casts; `as const` and `satisfies` pass).
 
 **`.configs/lints/eslint.config.mjs`:**
 ```typescript
@@ -139,6 +139,8 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default houseConfigs;
 ```
+
+The two warnings never fail `make lint`: oxlint is the one that runs with `--deny-warnings`, and these two rules run in ESLint. `const-class-values` skips key sets (`Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys). Both are off in tests.
 
 `max-params-own` does not count a signature that belongs to someone else: a callback passed inline to a call (`map`, `sort`, a library handler) or to a JSX prop, a function a declared type fixes, or a constructor whose parameters are all `@inject`. A hook callback (`useCallback(...)`) is yours, so it counts. Tests are exempt from `no-new-error`, because a test throws a plain `Error` to stand in for a driver. For a bootstrap that cannot import `getError`, disable the rule on that line and give the reason.
 
@@ -212,8 +214,8 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz lint --fix` | Fixes the whole project |
 | `devz lint src/a.ts src/b.tsx` | Checks only those files - what a pre-commit hook passes |
 | `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
-| `devz clean` | Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
-| `devz codemod model-settings [paths...] [--check]` | Moves `@model` settings from the flat keys to `query` and `access`. `--check` only lists what would change and exits 1 when anything would. A `settings` value that is not an object literal is reported with its file and line and left untouched |
+| `devz clean` | Takes no argument (`--help` prints the usage; any other argument exits 2 and deletes nothing). Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
+| `devz codemod model-settings [paths...] [--write \| --check]` | Moves `@model` settings from the flat keys to `query` and `access`, and `skipMigrate` to `migration.use`. A dry run unless you pass `--write`; `--check` is the dry run that exits 1 when anything would change. Inside git it reads only the files git knows, so ignored folders are never touched; `--help` prints the usage. A `settings` value that is not an object literal is reported with its file and line and left untouched |
 
 With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
 

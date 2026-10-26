@@ -116,7 +116,7 @@ tags: [process, build]
     target runs oxlint, `bun fmt` and `tsc -p scripts/tsconfig.json` and is part of `make lint-all`.
     `make test-scripts` runs their unit tests (the `__tests__` directories under each `scripts/<group>/`, positive and negative case per gate).
 12. `make clean-install` packs every package and installs each one alone into an empty project
-    under `tmpdir()`, with its required peers plus the peers `scripts/checks/clean-install/manifest.ts`
+    under the system `tmpdir()` (the one gate that does not use the repository's `.agents/local/tmp`), with its required peers plus the peers `scripts/checks/clean-install/manifest.ts`
     grants a sub-path. It does not build, and it refuses to start when its result could be wrong:
     - a package's newest `src/` file (outside `__tests__`) is newer than its newest `dist/` file -
       run `make build` first. The stamp is the whole `dist/`, not `index.js`, because the build is
@@ -148,6 +148,10 @@ tags: [process, build]
     (`LoggerFactory.use`) before the module that builds the application, or the build already logs
     and throws. `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
     the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
+
+`make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) against the built
+packages and reports every failing example before it fails; CI runs it after `make build-all` and the workspace
+bin link. Lint only format-checks the examples, so a type a package forgot to export breaks here first.
 
 ## Related
 

@@ -3,18 +3,29 @@ import { CleanCommand } from './clean';
 import { CodemodCommand } from './codemod';
 import { LintCommand } from './lint';
 
-const USAGE =
-  'Usage: devz lint [--fix] [files] | devz clean | devz codemod model-settings [paths...] [--check]';
+const USAGE = `Usage: devz <command> [options]
+
+Commands:
+  lint [--fix] [files]                          oxlint, ESLint and the formatter; --fix writes
+  clean                                         remove dist, node_modules/.cache and *.tsbuildinfo
+  codemod model-settings [paths...] [--write]   move @model settings to the grouped shape (dry run unless --write)
+
+Run \`devz clean --help\` or \`devz codemod model-settings --help\` for a command's options.`;
 
 const main = async (opts: { argv: string[] }): Promise<number> => {
   const [command, ...args] = opts.argv;
+
+  if (command === undefined || command === '--help' || command === '-h') {
+    console.log(USAGE);
+    return 0;
+  }
 
   if (command === 'lint') {
     return LintCommand.run({ root: process.cwd(), args });
   }
 
   if (command === 'clean') {
-    return CleanCommand.run({ root: process.cwd() });
+    return CleanCommand.run({ root: process.cwd(), args });
   }
 
   if (command === 'codemod') {

@@ -416,7 +416,6 @@ import { BasePostgresEntity, model, generateIdColumnDefs } from '@venizia/ignis'
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
-  type: 'entity',
   settings: { authorize: { principal: 'article' } },
 })
 export class Article extends BasePostgresEntity<typeof Article.schema> {

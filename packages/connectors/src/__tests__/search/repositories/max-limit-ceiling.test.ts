@@ -32,7 +32,11 @@ class DefaultCeilingDocument extends BaseSearchEntity {
 }
 
 /** A model that genuinely needs bigger pages says so, and is taken at its word. */
-@model({ type: 'entity', tableName: 'ceiling_raised', settings: { maxLimit: 5000 } })
+@model({
+  type: 'entity',
+  tableName: 'ceiling_raised',
+  settings: { query: { limit: { max: 5000 } } },
+})
 class RaisedCeilingDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'ceiling_raised',
@@ -41,7 +45,11 @@ class RaisedCeilingDocument extends BaseSearchEntity {
 }
 
 /** The override goes DOWN as readily as up - a model may be stricter than the framework default. */
-@model({ type: 'entity', tableName: 'ceiling_lowered', settings: { maxLimit: 25 } })
+@model({
+  type: 'entity',
+  tableName: 'ceiling_lowered',
+  settings: { query: { limit: { max: 25 } } },
+})
 class LoweredCeilingDocument extends BaseSearchEntity {
   static override schema = defineSearchCollection({
     name: 'ceiling_lowered',

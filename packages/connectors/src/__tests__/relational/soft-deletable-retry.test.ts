@@ -35,7 +35,7 @@ const retryAccounts = pgTable('soft_deletable_retry_accounts', {
 
 type TAccountRow = TTableObject<typeof retryAccounts>;
 
-@model({ type: 'entity', settings: { defaultFilter: { where: { deletedAt: null } } } })
+@model({ type: 'entity', settings: { query: { filter: { where: { deletedAt: null } } } } })
 class RetryAccountEntity extends BaseRelationalEntity<typeof retryAccounts> {
   static override schema = retryAccounts;
   static override TABLE_NAME = 'soft_deletable_retry_accounts';

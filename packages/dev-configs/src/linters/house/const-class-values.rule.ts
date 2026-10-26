@@ -2,16 +2,67 @@ import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
 
+/** Utility types whose type argument is a set of keys, not an enumerable value: `Pick<T, 'a' | 'b'>`. */
+const KEY_SET_TYPES = new Set(['Pick', 'Omit', 'Extract', 'Exclude', 'Record']);
+
+/** The union is a type argument of a key-set utility type, or the key range of a mapped type. */
+const isKeySet = (opts: { node: unknown }): boolean => {
+  const parent = readField({ node: opts.node, key: 'parent' });
+
+  if (nodeType({ node: parent }) === 'TSMappedType') {
+    return true;
+  }
+
+  if (nodeType({ node: parent }) !== 'TSTypeParameterInstantiation') {
+    return false;
+  }
+
+  const reference = readField({ node: parent, key: 'parent' });
+  const name = readField({ node: readField({ node: reference, key: 'typeName' }), key: 'name' });
+  return nodeType({ node: reference }) === 'TSTypeReference' && KEY_SET_TYPES.has(String(name));
+};
+
+/** The statement of the module that holds the node: the node's last ancestor before `Program`. */
+const topLevelStatement = (opts: { node: unknown }): unknown => {
+  let current = opts.node;
+
+  while (current) {
+    const parent = readField({ node: current, key: 'parent' });
+    if (nodeType({ node: parent }) === 'Program') {
+      return current;
+    }
+    current = parent;
+  }
+
+  return undefined;
+};
+
+const isStringLiteral = (opts: { member: unknown }): boolean => {
+  const { member } = opts;
+  return (
+    nodeType({ node: member }) === 'TSLiteralType' &&
+    typeof readField({ node: readField({ node: member, key: 'literal' }), key: 'value' }) ===
+      'string'
+  );
+};
+
+const isNullish = (opts: { member: unknown }): boolean => {
+  const type = nodeType({ node: opts.member });
+  return type === 'TSNullKeyword' || type === 'TSUndefinedKeyword';
+};
+
 /**
  * `venizia/const-class-values`. An enumerable string is a const class plus `TConstValue<typeof X>`,
- * never an exported union of string literals. Only a type whose name ends like a logic value is
- * checked (`State`, `Status`, `Stage`, `Mode`, `Kind`, `Type` by default): any other string union may
- * be a plain parameter type.
+ * never a union of string literals in an exported declaration: a type alias, an interface member, a
+ * generic constraint, a parameter or a return type of an exported function or class.
+ *
+ * Not counted: a union that is not all string literals (a `null` or `undefined` member is ignored),
+ * a key set (`Pick`, `Omit`, `Extract`, `Exclude`, `Record` arguments and mapped-type keys), and a
+ * declaration that is not exported. `namePattern` narrows the rule to exported type aliases whose name
+ * matches it (`(State|Status)$`), for a project that adopts the rule one name at a time.
  */
 export class ConstClassValuesRule {
   static readonly NAME = `${HOUSE_PLUGIN_NAMESPACE}/const-class-values`;
-
-  static readonly DEFAULT_NAME_PATTERN = '(State|Status|Stage|Mode|Kind|Type)$';
 
   static readonly RULE: Rule.RuleModule = {
     meta: {
@@ -25,40 +76,52 @@ export class ConstClassValuesRule {
     create: (context) => {
       const options: unknown = context.options[0];
       const configured = readField({ node: options, key: 'namePattern' });
-      const namePattern = new RegExp(
-        typeof configured === 'string' ? configured : ConstClassValuesRule.DEFAULT_NAME_PATTERN,
-      );
+      const namePattern = typeof configured === 'string' ? new RegExp(configured) : undefined;
 
-      const isStringLiteral = (member: unknown) =>
-        nodeType({ node: member }) === 'TSLiteralType' &&
-        typeof readField({ node: readField({ node: member, key: 'literal' }), key: 'value' }) ===
-          'string';
+      const isNamed = (opts: { statement: unknown; node: unknown }) => {
+        const { statement, node } = opts;
+        const declaration = readField({ node: statement, key: 'declaration' });
+        const name = readField({ node: readField({ node: declaration, key: 'id' }), key: 'name' });
+
+        return (
+          namePattern === undefined ||
+          (nodeType({ node: declaration }) === 'TSTypeAliasDeclaration' &&
+            readField({ node: declaration, key: 'typeAnnotation' }) === node &&
+            typeof name === 'string' &&
+            namePattern.test(name))
+        );
+      };
 
       return {
-        [`${AstNodeTypes.EXPORT_NAMED_DECLARATION} > TSTypeAliasDeclaration`]: (
-          node: Rule.Node,
-        ) => {
-          const id = readField({ node, key: 'id' });
-          const name = readField({ node: id, key: 'name' });
-          const typeAnnotation = readField({ node, key: 'typeAnnotation' });
-          const members = readField({ node: typeAnnotation, key: 'types' });
-
-          if (
-            typeof name === 'string' &&
-            namePattern.test(name) &&
-            nodeType({ node: typeAnnotation }) === 'TSUnionType' &&
-            Array.isArray(members) &&
-            members.every(isStringLiteral)
-          ) {
-            context.report({ node, messageId: 'constClass' });
+        [AstNodeTypes.UNION_TYPE]: (node: Rule.Node) => {
+          const members = readField({ node, key: 'types' });
+          if (!Array.isArray(members)) {
+            return;
           }
+
+          const values = members.filter((member) => !isNullish({ member }));
+          if (values.length < 2 || !values.every((member) => isStringLiteral({ member }))) {
+            return;
+          }
+
+          const statement = topLevelStatement({ node });
+          const statementType = nodeType({ node: statement });
+          const isExported =
+            statementType === AstNodeTypes.EXPORT_NAMED_DECLARATION ||
+            statementType === 'ExportDefaultDeclaration';
+
+          if (!isExported || isKeySet({ node }) || !isNamed({ statement, node })) {
+            return;
+          }
+
+          context.report({ node, messageId: 'constClass' });
         },
       };
     },
   };
 
   static build(opts: { severity?: TRuleSeverity; namePattern?: string } = {}): Linter.RuleEntry {
-    const { severity = 'error', namePattern = ConstClassValuesRule.DEFAULT_NAME_PATTERN } = opts;
-    return [severity, { namePattern }];
+    const { severity = 'error', namePattern } = opts;
+    return namePattern === undefined ? [severity] : [severity, { namePattern }];
   }
 }

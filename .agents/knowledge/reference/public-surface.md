@@ -12,12 +12,13 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (35)
+### `@venizia/dev-configs` (45)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
 - `ConstClassValuesRule` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -45,20 +46,30 @@ generated:
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
 - `readField` const
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
 ### `@venizia/dev-configs/compilers` (1)
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (34)
+### `@venizia/dev-configs/linters` (44)
 
 - `AstNodeTypes` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
 - `HOUSE_PLUGIN_NAMESPACE` const
@@ -86,14 +97,24 @@ generated:
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
 - `readField` const
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
-### `@venizia/dev-configs/linters/oxlint` (18)
+### `@venizia/dev-configs/linters/oxlint` (28)
 
 - `BrowserOxlintConfigs` class
+- `EqeqeqModes` class
 - `EqeqeqRule` class
 - `IOxlintPresetOptions` interface
 - `IRestrictedImportPath` interface
@@ -107,10 +128,19 @@ generated:
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
 - `ReactOxlintConfigs` class
+- `RuleSeverities` class
+- `SwitchCaseBracesModes` class
 - `SwitchCaseBracesRule` class
+- `TConstValue` type
+- `TEqeqeqMode` type
 - `TNamingSelector` type
 - `TOxlintRuleEntry` type
 - `TRuleSeverity` type
+- `TSwitchCaseBracesMode` type
+- `TUnusedArgsMode` type
+- `TUnusedVarsScope` type
+- `UnusedArgsModes` class
+- `UnusedVarsScopes` class
 
 ### `@venizia/dev-configs/testing` (2)
 
@@ -119,7 +149,7 @@ generated:
 
 ## inversion
 
-### `@venizia/ignis-inversion` (70)
+### `@venizia/ignis-inversion` (71)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -131,6 +161,7 @@ generated:
 - `BindingScopes` class
 - `BindingValueTypes` class
 - `Container` class
+- `ErrorLogLevels` class
 - `ErrorScopes` class
 - `fromError` const
 - `getError` const
@@ -238,7 +269,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (438)
+### `@venizia/ignis-helpers` (453)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -252,6 +283,7 @@ generated:
 - `AbstractWorkerMessageBusHandlerHelper` class
 - `AbstractWorkerThreadHelper` class
 - `AES` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `AnyObject` type
 - `AnyType` type
@@ -275,10 +307,12 @@ generated:
 - `BaseWorkerThreadHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
+- `BullQueueRoles` class
 - `Child` type
 - `COMBINING_MARKS_PATTERN` const
 - `ConsoleLogger` class
 - `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
 - `createContentDispositionHeader` const
@@ -314,11 +348,13 @@ generated:
 - `Environment` class
 - `EnvironmentNames` class
 - `Envs` const
+- `ErrorLogLevels` class
 - `ErrorPrettier` class
 - `ErrorScopes` class
 - `executePromiseWithLimit` const
 - `executeWithPerformanceMeasure` const
 - `FC` type
+- `FieldMappingDataTypes` class
 - `FileExtensions` class
 - `float` const
 - `formatLogMessage` const
@@ -485,6 +521,7 @@ generated:
 - `MINIMUM_KDF_SALT_BYTES` const
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `ModuleUtility` class
+- `MultipartStorages` class
 - `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
@@ -551,13 +588,17 @@ generated:
 - `TClass` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentDispositionType` type
 - `TContentType` type
+- `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
 - `TDurationUnit` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -591,6 +632,7 @@ generated:
 - `TLogLevel` type
 - `TMimeTypes` type
 - `TMixinTarget` type
+- `TMultipartStorage` type
 - `TNodePredicate` type
 - `TNullable` type
 - `TNumberConstValue` type
@@ -628,11 +670,15 @@ generated:
 - `TSecretRotationHandler` type
 - `TStringConstValue` type
 - `TTask` type
+- `TTcpClientState` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TTimerHandle` type
 - `TUidCaseForm` type
 - `TUploadNaming` type
@@ -679,7 +725,7 @@ generated:
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (62)
+### `@venizia/ignis-helpers/common` (63)
 
 - `AnyObject` type
 - `AnyType` type
@@ -691,6 +737,7 @@ generated:
 - `DurationAliases` class
 - `DurationMultipliers` class
 - `DurationUnits` class
+- `FieldMappingDataTypes` class
 - `FileExtensions` class
 - `GRPC` class
 - `HTTP` class
@@ -744,11 +791,12 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (151)
+### `@venizia/ignis-helpers/core` (158)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
 - `AbstractTemporalHelper` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `ApplicationError` class
 - `BaseHelper` class
@@ -767,6 +815,7 @@ generated:
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
 - `EnvironmentNames` class
+- `ErrorLogLevels` class
 - `ErrorScopes` class
 - `executeWithPerformanceMeasure` const
 - `fromError` const
@@ -848,7 +897,9 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TError` type
 - `TErrorByDefinition` type
 - `TErrorByField` type
@@ -883,7 +934,10 @@ generated:
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TUidCaseForm` type
 - `TUrlScheme` type
 - `UidAlphabets` class
@@ -911,7 +965,7 @@ generated:
 - `uuidV5` const
 - `uuidV7` const
 
-### `@venizia/ignis-helpers/temporal` (30)
+### `@venizia/ignis-helpers/temporal` (35)
 
 - `AbstractTemporalHelper` class
 - `DayjsTemporalAdapter` class
@@ -936,13 +990,18 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TRelativeUnit` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 
 ### `@venizia/ignis-helpers/socket-io` (17)
 
@@ -1005,7 +1064,7 @@ generated:
 - `CronHelper` class
 - `ICronHelperOptions` interface
 
-### `@venizia/ignis-helpers/kafka` (40)
+### `@venizia/ignis-helpers/kafka` (42)
 
 - `BaseKafkaHelper` class
 - `IKafkaAdminOptions` interface
@@ -1018,6 +1077,7 @@ generated:
 - `IKafkaTransactionContext` interface
 - `KafkaAcks` class
 - `KafkaAdminHelper` class
+- `KafkaBrokersDownReasons` class
 - `KafkaBundlerPluginNames` class
 - `KafkaClientEvents` class
 - `KafkaConsumerHelper` class
@@ -1033,6 +1093,7 @@ generated:
 - `PlatformaticWasmSpecifiers` class
 - `TKafkaAcks` type
 - `TKafkaBrokerEventCallback` type
+- `TKafkaBrokersDownReason` type
 - `TKafkaGroupJoinCallback` type
 - `TKafkaGroupLeaveCallback` type
 - `TKafkaGroupProtocol` type
@@ -1076,7 +1137,7 @@ generated:
 - `resolveDefaultTransportOptions` const
 - `WinstonLogger` class
 
-### `@venizia/ignis-helpers/pino` (16)
+### `@venizia/ignis-helpers/pino` (17)
 
 - `buildDestination` const
 - `buildPinoOptions` const
@@ -1087,6 +1148,7 @@ generated:
 - `PINO_CUSTOM_LEVELS` const
 - `PinoBackingLogger` class
 - `PinoDestination` class
+- `PinoFrequencies` class
 - `PinoLogger` class
 - `resolveDestinationPlan` const
 - `setPinoBackingLogger` const
@@ -1166,7 +1228,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (423)
+### `@venizia/ignis-kernel` (435)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1196,6 +1258,7 @@ generated:
 - `AuthorizationActions` class
 - `AuthorizationDecisions` class
 - `AuthorizationDomainScopes` class
+- `AuthorizationDomainSources` class
 - `AuthorizationEnforcerRegistry` class
 - `AuthorizationEnforcerTypes` class
 - `AuthorizationErrors` const
@@ -1207,6 +1270,7 @@ generated:
 - `AuthorizationRoles` class
 - `authorize` const
 - `AuthorizeBindingKeys` class
+- `AuthorizeModelFormats` class
 - `BaseAppErrorMiddleware` class
 - `BaseComponent` class
 - `BaseConfiguration` class
@@ -1232,6 +1296,7 @@ generated:
 - `commonResponseHeaders` const
 - `CommonStatuses` class
 - `component` const
+- `CompressEncodings` class
 - `conditionalCountResponse` const
 - `configuration` const
 - `Container` class
@@ -1312,9 +1377,10 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelSetting` interface
+- `IDeprecatedModelMetadata` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
+- `IdSchemaTypes` class
 - `IdType` type
 - `IEntityStatics` interface
 - `IEventHandler` interface
@@ -1336,6 +1402,7 @@ generated:
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelMigrationSettings` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
@@ -1365,7 +1432,6 @@ generated:
 - `IRpcMetadata` interface
 - `isClass` const
 - `isClassProvider` const
-- `IScopeFilterSettings` interface
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
 - `IServerConfigMixin` interface
@@ -1383,6 +1449,7 @@ generated:
 - `JOSEStandards` class
 - `jsonContent` const
 - `jsonResponse` const
+- `JWKSAlgorithms` class
 - `JWKSKeyDrivers` class
 - `JWKSKeyFormats` class
 - `JWKSModes` class
@@ -1392,6 +1459,7 @@ generated:
 - `MetadataRegistry` class
 - `MigrationStatuses` class
 - `model` const
+- `ModelTypes` class
 - `notFoundHandler` const
 - `NumberIdType` type
 - `OffsetSchema` const
@@ -1433,6 +1501,7 @@ generated:
 - `RestPaths` class
 - `RoleStatuses` class
 - `RouteConfigResolver` class
+- `RoutePathScopes` class
 - `rpc` const
 - `SchemaTypes` class
 - `ScopeFilterMissingBehaviors` class
@@ -1464,10 +1533,12 @@ generated:
 - `TAuthorizationDecision` type
 - `TAuthorizationDomainResolver` type
 - `TAuthorizationDomainScope` type
+- `TAuthorizationDomainSource` type
 - `TAuthorizationEnforcerType` type
 - `TAuthorizationPolicyVariant` type
 - `TAuthorizationVoter` type
 - `TAuthorizeFn` type
+- `TAuthorizeModelFormat` type
 - `TAuthStrategy` type
 - `TBasicTokenServiceOptions` type
 - `TBindingKey` type
@@ -1481,6 +1552,7 @@ generated:
 - `TCasbinEnforcerModelDriver` type
 - `TCasbinRuleVariant` type
 - `TChangePasswordRequest` type
+- `TCompressEncoding` type
 - `TContext` type
 - `TControllerMetadata` type
 - `TControllerTransport` type
@@ -1537,6 +1609,7 @@ generated:
 - `TLockStrength` type
 - `TMixinOpts` type
 - `TModelClass` type
+- `TModelType` type
 - `toContentRange` const
 - `toEntityId` const
 - `TOffset` type
@@ -1568,6 +1641,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRoutePathScope` type
 - `TRow` type
 - `TSchemaType` type
 - `TScopeFilterMissingBehavior` type
@@ -1660,7 +1734,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (128)
+### `@venizia/ignis-connectors` (130)
 
 - `AbstractRelationalDataSource` class
 - `AbstractSearchDataSource` class
@@ -1741,6 +1815,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SearchBaseRepository` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
@@ -1773,6 +1848,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -1791,9 +1867,10 @@ generated:
 - `validateJsonPathComponents` const
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/http` (20)
+### `@venizia/ignis-connectors/http` (22)
 
 - `HttpDataSource` class
+- `HttpReadShapes` class
 - `HttpRepository` class
 - `HttpResourceEntity` class
 - `HttpResponseReader` class
@@ -1812,9 +1889,10 @@ generated:
 - `THttpHeaders` type
 - `THttpHeadersResolver` type
 - `THttpQuery` type
+- `THttpReadShape` type
 - `THttpRepositoryOptions` type
 
-### `@venizia/ignis-connectors/relational` (74)
+### `@venizia/ignis-connectors/relational` (76)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -1862,6 +1940,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1883,6 +1962,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -1891,7 +1971,7 @@ generated:
 - `validateJsonColumnType` const
 - `validateJsonPathComponents` const
 
-### `@venizia/ignis-connectors/postgres` (83)
+### `@venizia/ignis-connectors/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1899,6 +1979,7 @@ generated:
 - `BasePostgresDataSource` class
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
+- `BigIntModes` class
 - `createRelations` const
 - `DefaultCRUDRepository` class
 - `enrichDataTypes` const
@@ -1943,6 +2024,7 @@ generated:
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
+- `TBigIntMode` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -2148,13 +2230,14 @@ generated:
 - `TypesenseBaseRepository` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/search/controllers` (5)
+### `@venizia/ignis-connectors/search/controllers` (6)
 
 - `AbstractSearchController` class
 - `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `TSearchScopeResolver` type
 
 ### `@venizia/ignis-connectors/typesense` (76)
 
@@ -2235,13 +2318,14 @@ generated:
 - `TypesenseQueryDialect` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/typesense/controllers` (5)
+### `@venizia/ignis-connectors/typesense/controllers` (6)
 
 - `AbstractSearchController` class
 - `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `TSearchScopeResolver` type
 
 ### `@venizia/ignis-connectors/meilisearch` (16)
 
@@ -2298,7 +2382,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1043)
+### `@venizia/ignis` (1072)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2323,6 +2407,7 @@ generated:
 - `AbstractWorkerMessageBusHandlerHelper` class
 - `AbstractWorkerThreadHelper` class
 - `AES` class
+- `AESAlgorithms` class
 - `AESAlgorithmType` type
 - `AnyObject` type
 - `AnyObjectSchema` const
@@ -2356,6 +2441,7 @@ generated:
 - `AuthorizationActions` class
 - `AuthorizationDecisions` class
 - `AuthorizationDomainScopes` class
+- `AuthorizationDomainSources` class
 - `AuthorizationEnforcerRegistry` class
 - `AuthorizationEnforcerTypes` class
 - `AuthorizationErrors` const
@@ -2368,6 +2454,7 @@ generated:
 - `authorize` const
 - `AuthorizeBindingKeys` class
 - `AuthorizeComponent` class
+- `AuthorizeModelFormats` class
 - `awaitHook` const
 - `BaseAppErrorMiddleware` class
 - `BaseApplication` class
@@ -2400,6 +2487,7 @@ generated:
 - `BasicTokenService` class
 - `bidiStream` const
 - `BigIntIdType` type
+- `BigIntModes` class
 - `Binding` class
 - `BindingKeys` class
 - `BindingNamespaces` class
@@ -2410,6 +2498,7 @@ generated:
 - `BootSteps` class
 - `buildDataRange` const
 - `BuildInfoRegistry` class
+- `BullQueueRoles` class
 - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` const
 - `CasbinAuthorizationEnforcer` class
 - `CasbinDomainMatchingFunctions` class
@@ -2423,11 +2512,13 @@ generated:
 - `commonResponseHeaders` const
 - `CommonStatuses` class
 - `component` const
+- `CompressEncodings` class
 - `conditionalCountResponse` const
 - `configuration` const
 - `ConsoleLogger` class
 - `Container` class
 - `CONTENT_TYPE_BY_EXTENSION` const
+- `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
 - `controller` const
@@ -2491,6 +2582,7 @@ generated:
 - `EnvironmentKeys` class
 - `EnvironmentNames` class
 - `Envs` const
+- `ErrorLogLevels` class
 - `ErrorPrettier` class
 - `errorResponses` const
 - `ErrorSchema` const
@@ -2505,6 +2597,7 @@ generated:
 - `extraRoleColumns` const
 - `extraUserColumns` const
 - `FC` type
+- `FieldMappingDataTypes` class
 - `FieldsSchema` const
 - `FileExtensions` class
 - `FilterQuerySchema` const
@@ -2618,10 +2711,11 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelSetting` interface
+- `IDeprecatedModelMetadata` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
+- `IdSchemaTypes` class
 - `IdType` type
 - `IDuration` interface
 - `IECDHEncryptedPayload` interface
@@ -2670,6 +2764,7 @@ generated:
 - `IModelAccessWriteSettings` interface
 - `IModelAuthorizeSettings` interface
 - `IModelMetadata` interface
+- `IModelMigrationSettings` interface
 - `IModelQuerySettings` interface
 - `IModelRegistryEntry` interface
 - `IModelSettings` interface
@@ -2755,7 +2850,6 @@ generated:
 - `IScopedCasbinEntities` interface
 - `IScopedCasbinPolicyFilter` interface
 - `IScopedCasbinTable` interface
-- `IScopeFilterSettings` interface
 - `isDatabaseTransaction` const
 - `isDataSourceClass` const
 - `ISearchableDataSourceCapabilities` interface
@@ -2831,6 +2925,7 @@ generated:
 - `JOSEStandards` class
 - `jsonContent` const
 - `jsonResponse` const
+- `JWKSAlgorithms` class
 - `JWKSController` class
 - `JWKSIssuerAuthenticationStrategy` class
 - `JWKSIssuerTokenService` class
@@ -2866,7 +2961,9 @@ generated:
 - `MINIMUM_RSA_MODULUS_BITS` const
 - `model` const
 - `ModelFactory` class
+- `ModelTypes` class
 - `ModuleUtility` class
+- `MultipartStorages` class
 - `NativeTemporalAdapter` class
 - `NetworkTcpClient` class
 - `NetworkTcpServer` class
@@ -2965,6 +3062,7 @@ generated:
 - `RetryJitterModes` class
 - `RoleStatuses` class
 - `RouteConfigResolver` class
+- `RoutePathScopes` class
 - `rpc` const
 - `RSA` class
 - `RSAAlgorithmType` type
@@ -3031,12 +3129,15 @@ generated:
 - `TAuthorizationDecision` type
 - `TAuthorizationDomainResolver` type
 - `TAuthorizationDomainScope` type
+- `TAuthorizationDomainSource` type
 - `TAuthorizationEnforcerType` type
 - `TAuthorizationPolicyVariant` type
 - `TAuthorizationVoter` type
 - `TAuthorizeFn` type
+- `TAuthorizeModelFormat` type
 - `TAuthStrategy` type
 - `TBasicTokenServiceOptions` type
+- `TBigIntMode` type
 - `TBindingKey` type
 - `TBindingNamespace` type
 - `TBindingScope` type
@@ -3055,8 +3156,10 @@ generated:
 - `TClass` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
+- `TCompressEncoding` type
 - `TConstructor` type
 - `TConstValue` type
+- `TContentDispositionType` type
 - `TContentType` type
 - `TContext` type
 - `TControllerMetadata` type
@@ -3064,6 +3167,7 @@ generated:
 - `TCoreErrorCode` type
 - `TCount` type
 - `TCountResponse` type
+- `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
 - `TCustomGrantMetadata` type
 - `TCustomGrantRow` type
@@ -3085,7 +3189,9 @@ generated:
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
 - `TemporalInclusivities` class
+- `TemporalNameWidths` class
 - `TemporalUnits` class
+- `TemporalWrittenDateStyles` class
 - `TEntityDataObject` type
 - `TEntityId` type
 - `TEntityObject` type
@@ -3166,6 +3272,8 @@ generated:
 - `TMixinOpts` type
 - `TMixinTarget` type
 - `TModelClass` type
+- `TModelType` type
+- `TMultipartStorage` type
 - `TNodePredicate` type
 - `TNodeServerInstance` type
 - `TNullable` type
@@ -3247,6 +3355,7 @@ generated:
 - `TRouteAuthorizeConfig` type
 - `TRouteContext` type
 - `TRouteHandler` type
+- `TRoutePathScope` type
 - `TRow` type
 - `TRpcHandler` type
 - `TRpcMiddleware` type
@@ -3275,11 +3384,15 @@ generated:
 - `TTableObject` type
 - `TTableSchemaWithId` type
 - `TTask` type
+- `TTcpClientState` type
 - `TTemporalDurationStyle` type
 - `TTemporalFields` type
 - `TTemporalInclusivity` type
 - `TTemporalInput` type
+- `TTemporalMonthNameWidth` type
+- `TTemporalNameWidth` type
 - `TTemporalUnit` type
+- `TTemporalWrittenDateStyle` type
 - `TTimerHandle` type
 - `TTzEnricherOptions` type
 - `TTzEnricherResult` type
@@ -3344,7 +3457,7 @@ generated:
 - `WhereSchema` const
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis/postgres` (83)
+### `@venizia/ignis/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -3352,6 +3465,7 @@ generated:
 - `BasePostgresDataSource` class
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
+- `BigIntModes` class
 - `createRelations` const
 - `DefaultCRUDRepository` class
 - `enrichDataTypes` const
@@ -3396,6 +3510,7 @@ generated:
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
+- `TBigIntMode` type
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -3430,7 +3545,7 @@ generated:
 - `TUserAuditEnricherResult` type
 - `UpdateBuilder` class
 
-### `@venizia/ignis/relational` (74)
+### `@venizia/ignis/relational` (76)
 
 - `AbstractRelationalDataSource` class
 - `BaseRelationalDataSource` class
@@ -3478,6 +3593,7 @@ generated:
 - `RelationalUpdateBuilder` class
 - `resolveAuditUserId` const
 - `ScopeFilterDenial` class
+- `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -3499,6 +3615,7 @@ generated:
 - `TRelationDefinition` type
 - `TRelationDefinitions` type
 - `TRelationMetadata` type
+- `TScopeWriteOperation` type
 - `TSoftDeletableTableSchema` type
 - `TTableColumns` type
 - `TTableInsert` type
@@ -3678,13 +3795,14 @@ generated:
 - `TypesenseBaseRepository` class
 - `VectorDistances` class
 
-### `@venizia/ignis/search/controllers` (5)
+### `@venizia/ignis/search/controllers` (6)
 
 - `AbstractSearchController` class
 - `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `TSearchScopeResolver` type
 
 ### `@venizia/ignis/meilisearch` (16)
 
@@ -3710,7 +3828,7 @@ generated:
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (66)
+### `@venizia/ignis/mail` (68)
 
 - `AmazonSesTransportHelper` class
 - `buildRawMimeMessage` function
@@ -3750,6 +3868,7 @@ generated:
 - `IVerificationDataGenerator` interface
 - `IVerificationGenerationOptions` interface
 - `IVerificationTokenGenerator` interface
+- `MailBackoffTypes` class
 - `MailComponent` class
 - `MailDefaults` class
 - `MailErrorCodes` class
@@ -3772,6 +3891,7 @@ generated:
 - `TemplateEngineService` class
 - `TGetMailQueueExecutorFn` type
 - `TGetMailTransportFn` type
+- `TMailBackoffType` type
 - `TMailgunConfig` type
 - `TMailgunModule` type
 - `TMailOptions` type
@@ -3913,13 +4033,14 @@ generated:
 - `TypesenseQueryDialect` class
 - `VectorDistances` class
 
-### `@venizia/ignis/typesense/controllers` (5)
+### `@venizia/ignis/typesense/controllers` (6)
 
 - `AbstractSearchController` class
 - `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
+- `TSearchScopeResolver` type
 
 ### `@venizia/ignis/testing` (8)
 

@@ -46,7 +46,7 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-@model({ type: 'entity' })
+@model()
 export class User extends ModelFactory.defineEntity({ table: userTable }) {}
 
 // 2. Create a DataSource

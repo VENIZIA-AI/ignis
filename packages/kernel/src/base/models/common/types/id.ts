@@ -18,6 +18,3 @@ declare const entityIdBrand: unique symbol;
  * a plain `string` assignable again, which erases the whole guarantee. Measured, not assumed.
  */
 export type TEntityId = string & { readonly [entityIdBrand]: never };
-
-/** Path-param id shape every entity family resolves to (`AbstractEntity.getIdType()`). */
-export type TIdSchemaType = 'number' | 'string';
