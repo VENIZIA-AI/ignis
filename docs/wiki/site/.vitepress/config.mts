@@ -460,6 +460,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-27',
+              collapsed: true,
+              items: [
+                {
+                  text: 'assertApplicationBoots Proves an Application Boots',
+                  link: '/changelogs/2026-10-27-assert-application-boots',
+                },
+              ],
+            },
+            {
               text: '2026-10-26',
               collapsed: true,
               items: [

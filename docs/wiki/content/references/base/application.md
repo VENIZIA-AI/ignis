@@ -339,6 +339,8 @@ graph TD
 
 Sixteen steps. `getBootSequence()` returns them as data (`ServerBootSteps` names each one), `runBootSequence()` logs `Boot step n/16 <name>` per step, and a subclass inserts its own step with `BootSequence.insertAfter({ steps, target, step })`.
 
+To run this sequence in a test without a database, a port or a network, call `assertApplicationBoots` from `@venizia/ignis/testing`: it skips each datasource's `configure()` and the secrets steps, and fails with the error boot raises. See [Prove the Application Boots](/guides/tutorials/testing#prove-the-application-boots).
+
 | Hook | When to Use | Notes |
 |------|-------------|-------|
 | **`staticConfigure()`** | Pre-DI static setup (static files, etc.) | Synchronous, called before `registerArtifacts` |
