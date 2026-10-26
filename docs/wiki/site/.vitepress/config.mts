@@ -474,6 +474,14 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'After 0.4.2 - What Changed and How to Upgrade',
+                  link: '/changelogs/2026-10-26-batch-overview',
+                },
+                {
+                  text: 'Repository Tooling',
+                  link: '/changelogs/2026-10-26-repository-tooling',
+                },
+                {
                   text: 'Connectors String Options Are Const Classes',
                   link: '/changelogs/2026-10-26-connectors-string-domains-const-classes',
                 },
