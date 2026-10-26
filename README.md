@@ -15,72 +15,46 @@
 [Documentation](https://ignis.venizia.ai) &#8226;
 [Quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart) &#8226;
 [Core API](https://ignis.venizia.ai/references/) &#8226;
-[Examples](#examples) &#8226;
+[Examples](examples/) &#8226;
 [Changelog](https://ignis.venizia.ai/changelogs/)
 
 </div>
 
 ---
 
-IGNIS is a TypeScript server framework. You write controllers, services and repositories. IGNIS
-wires them through a dependency injection container, serves them with Hono, validates each request
-against the route's Zod schema, and builds the OpenAPI document from the same schemas.
+IGNIS is a TypeScript server framework for APIs that outgrow a single file. You write controllers,
+services and repositories; IGNIS wires them through a dependency injection container, serves them
+with Hono, validates each request against the route's Zod schema, and builds the OpenAPI document from
+the same schemas. It is 0.x: a patch release can carry a breaking change, labeled in the
+[changelog](https://ignis.venizia.ai/changelogs/) with how to migrate.
 
-## Install
+## Get started
 
 ```bash
-bun init -y
-bun add @venizia/ignis @venizia/ignis-helpers hono @hono/zod-openapi \
-  @scalar/hono-api-reference winston winston-transport winston-daily-rotate-file
-bun add -d typescript@^6 @types/bun @venizia/dev-configs
+bun x @venizia/vulcan init --preset ignis   # a project with one controller, tests and API docs
+cd my-product && make dev                   # http://localhost:3000/api/hello
 ```
 
-`winston` is the default logger - the application refuses to start without a logger provider
-(register pino instead if you prefer). `@scalar/hono-api-reference` renders the API docs page.
-
-Replace the generated `tsconfig.json`:
-
-```json
-{
-  "extends": "@venizia/dev-configs/tsconfig.common.json",
-  "compilerOptions": {
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "useDefineForClassFields": false
-  },
-  "include": ["src"]
-}
-```
-
-> [!IMPORTANT]
-> Declare these options **inline**, even though the shared config already sets them. Bun ignores an
-> `extends` that names a package, so without them `@inject` and the route decorators are dropped
-> silently. `tsc` follows `extends`, so typecheck and build stay green - only what Bun runs breaks.
-
-## Hello world
-
-`src/index.ts`:
+The generated `HelloController`:
 
 ```typescript
 import { z } from '@hono/zod-openapi';
 import {
-  ApiReferenceComponent,
-  BaseApplication,
   BaseRestController,
   controller,
   get,
-  IApplicationInfo,
   jsonContent,
+  type TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
 
 @controller({ path: '/hello' })
-class HelloController extends BaseRestController {
+export class HelloController extends BaseRestController {
   constructor() {
-    super({ scope: 'HelloController', path: '/hello' });
+    super({ scope: HelloController.name });
   }
 
+  // binding() is abstract - leave it empty when every route uses @get/@post decorators.
   override binding() {}
 
   @get({
@@ -94,169 +68,45 @@ class HelloController extends BaseRestController {
       },
     },
   })
-  sayHello(c: Context) {
-    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
+  sayHello(context: TRouteContext) {
+    return context.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
-
-class App extends BaseApplication {
-  getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
-  }
-
-  staticConfigure() {}
-  postConfigure() {}
-  setupMiddlewares() {}
-
-  preConfigure() {
-    this.component(ApiReferenceComponent); // API docs at /api/doc/explorer
-    this.controller(HelloController);
-  }
-}
-
-const app = new App({
-  scope: 'App',
-  config: { host: '0.0.0.0', port: 3000, path: { base: '/api', isStrict: false } },
-});
-
-app.init(); // binds the application instance - call it before start()
-await app.start();
 ```
 
-```bash
-bun run src/index.ts
-curl http://localhost:3000/api/hello   # {"message":"Hello from IGNIS!"}
-```
-
-Open `http://localhost:3000/api/doc/explorer` for the generated API reference. Next:
-the [5-minute quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart), then
-[build a CRUD API](https://ignis.venizia.ai/guides/tutorials/building-a-crud-api).
+Next: the [5-minute quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart), or
+[add IGNIS to an existing project](https://ignis.venizia.ai/guides/tutorials/complete-installation).
 
 ## What you get
 
-| | |
-| :--- | :--- |
-| **Layered architecture** | Controller -> Service -> Repository -> DataSource, each one a container binding |
-| **Dependency injection** | `@inject` by namespaced key (`services.UserService`), singleton and transient scopes, tag-based lookup. The container is its own package, `@venizia/ignis-inversion` |
-| **Data access** | Drizzle-based repositories on PostgreSQL (node-postgres, postgres-js, PGlite, Supabase) and SQLite (libsql); search repositories on Typesense and Meilisearch; an HTTP connector that reads another IGNIS server. One filter language (`where`, `order`, `include`, ...) across them |
-| **Validation and OpenAPI** | One Zod schema per route validates the request and feeds the OpenAPI document; Scalar or Swagger UI renders it |
-| **Artifact registration** | Mark a class with `@controller`, `@service`, `@repository`, `@datasource`, `@component` or `@configuration`. `ignis-artifacts generate` writes a static index at build time, or `discoverArtifacts: true` registers every decorated class the application imports. No file-naming rule |
-| **Components** | Authentication (JWT, Basic, JWKS, service-to-service), Casbin authorization, API reference, health check, request tracker, mail, static assets and uploads, Socket.IO, WebSocket, gRPC over ConnectRPC |
-| **Helpers** | Logger (winston or pino), Redis (single, cluster, sentinel), BullMQ, MQTT and Kafka, MinIO, disk and Bun S3 storage, AES/RSA/ECDH crypto, cron, Snowflake, UUID v4/v5/v7 and opaque IDs, TCP/TLS/UDP, HTTP client, secrets with HashiCorp Vault, worker-thread pools, time zones |
-| **Runtimes** | Bun first (`Bun.serve`). Node.js 20+ through the optional `@hono/node-server`. A browser Worker through `@venizia/ignis-worker`. `bun build --compile` produces a single binary |
-
-[Core API](https://ignis.venizia.ai/references/) &#8226;
-[Components and helpers](https://ignis.venizia.ai/extensions/) &#8226;
-[Best practices](https://ignis.venizia.ai/best-practices/)
+- **Layers and dependency injection** - controller, service, repository and datasource, each a container binding: [the application](https://ignis.venizia.ai/guides/core-concepts/application/), [dependency injection](https://ignis.venizia.ai/guides/core-concepts/dependency-injection).
+- **One schema per route** - the same Zod schema validates the request and feeds the OpenAPI document: [REST controllers](https://ignis.venizia.ai/guides/core-concepts/rest-controllers).
+- **Data access** - PostgreSQL, SQLite, Typesense, Meilisearch and an HTTP connector behind one repository contract and one filter language: [persistence](https://ignis.venizia.ai/guides/core-concepts/persistent/).
+- **Row-level access** - a scope with a write guard on each model, so a caller stays inside its own rows: [model settings](https://ignis.venizia.ai/guides/core-concepts/persistent/model-settings).
+- **Components and helpers** - authentication, Casbin authorization, health check, mail, Socket.IO, WebSocket, Redis, queues, storage: [extensions](https://ignis.venizia.ai/extensions/).
+- **Bun, Node and the browser** - `Bun.serve`, Node 20+ through `@hono/node-server`, and a browser Worker: [browser and Web Worker](https://ignis.venizia.ai/guides/core-concepts/browser-and-web-worker).
 
 ## Packages
 
-Each package builds on the ones it depends on, so a change in `inversion` reaches everything:
+| Package | Role |
+| :--- | :--- |
+| [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun or Node, the components |
+| [`@venizia/ignis-kernel`](packages/kernel/) | The browser-pure core: DI, lifecycle, REST controllers, repository and datasource abstractions |
+| [`@venizia/ignis-connectors`](packages/connectors/) | PostgreSQL, SQLite, Typesense, Meilisearch and HTTP datasources and repositories |
+| [`@venizia/ignis-inversion`](packages/inversion/) | The standalone IoC container and the shared error type |
+| [`@venizia/ignis-filter`](packages/filter/) | The query filter language and its Zod schemas |
+| [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, IDs, secrets, time zones |
+| [`@venizia/ignis-boot`](packages/boot/) | Build-time tools: the artifact index and the build stamp |
+| [`@venizia/ignis-worker`](packages/core-worker/) | Runs an IGNIS application inside a browser Worker, with no server |
+| [`@venizia/dev-configs`](packages/dev-configs/) | Shared oxlint, ESLint and TypeScript presets, and the `devz` CLI |
 
-```
-dev-configs -> inversion -> {filter, helpers} -> kernel -> connectors -> ignis
-                                      helpers -> boot
-                                       kernel -> worker
-```
-
-| Package | Role | Latest | Next |
-| :--- | :--- | ---: | ---: |
-| [`@venizia/dev-configs`](packages/dev-configs/) | Shared lint, format and TypeScript presets: oxlint, ESLint (naming), tsconfig - backend, browser and React | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm next](https://img.shields.io/npm/v/@venizia/dev-configs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
-| [`@venizia/ignis-inversion`](packages/inversion/) | The standalone IoC container, its decorators, and the shared error type | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-inversion/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
-| [`@venizia/ignis-filter`](packages/filter/) | The query filter language and its Zod schemas, shared by every connector | [![npm](https://img.shields.io/npm/v/@venizia/ignis-filter.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-filter) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-filter/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-filter) |
-| [`@venizia/ignis-helpers`](packages/helpers/) | Logger, Redis, queues, storage, crypto, network, IDs, secrets, time zones | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-helpers/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
-| [`@venizia/ignis-boot`](packages/boot/) | Build-time tools: `ignis-artifacts` (the artifact index) and `BuildInfoStamp` (the build stamp) | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-boot/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-boot) |
-| [`@venizia/ignis-kernel`](packages/kernel/) | The browser-pure core: DI, lifecycle, REST controllers, repository and datasource abstractions, auth seams | [![npm](https://img.shields.io/npm/v/@venizia/ignis-kernel.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-kernel) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-kernel/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-kernel) |
-| [`@venizia/ignis-connectors`](packages/connectors/) | Relational (PostgreSQL, SQLite), search (Typesense, Meilisearch) and HTTP datasources and repositories | [![npm](https://img.shields.io/npm/v/@venizia/ignis-connectors.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-connectors) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-connectors/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-connectors) |
-| [`@venizia/ignis-worker`](packages/core-worker/) | Runs an IGNIS application inside a browser Worker, with no server | [![npm](https://img.shields.io/npm/v/@venizia/ignis-worker.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-worker) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-worker/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-worker) |
-| [`@venizia/ignis`](packages/core-server/) | The server framework: `BaseApplication` on Bun or Node, the components; re-exports the kernel and the connector sub-paths | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis) |
-
-**Latest** is the older stable line. **Next** is the newest release, prerelease included, and the
-tag this repository publishes to today. An application installs `@venizia/ignis` and adds `boot`
-for the artifact generator; the other framework packages come with it. The documentation site lives
-in [`docs/wiki`](docs/wiki/) and is not published to npm.
-The MCP server and the knowledge and agent tooling live in VULCAN: install `@venizia/vulcan-atlas` (`bun x @venizia/vulcan-atlas mcp`) to search the wiki, changelogs and knowledge bundle from an MCP client.
-
-## Is IGNIS for you?
-
-**Yes** if you are building a growing API - 10+ endpoints, real auth, several models - and want the
-structure to hold as the team grows.
-
-**Probably not** for a webhook receiver, a prototype, or a 3-endpoint service. Plain Hono is lighter.
-
-| | Hono alone | IGNIS on Hono |
-| :--- | :--- | :--- |
-| Structure | yours to design | controllers, services, repositories, datasources |
-| Dependency injection | none | a container with `@inject` |
-| Data access | bring your own | Drizzle-based repositories and one filter language |
-| OpenAPI | wire `@hono/zod-openapi` yourself | generated from each route's schemas, UI included |
-| Auth | middleware you write | authentication and Casbin authorization components |
-
-More on the design: [Philosophy](https://ignis.venizia.ai/guides/get-started/philosophy).
-
-> [!NOTE]
-> IGNIS is 0.x: minor versions can break. Pin exact versions and read the
-> [changelog](https://ignis.venizia.ai/changelogs/) before upgrading.
-
-## What IGNIS is built on
-
-| Project | What IGNIS uses it for | Where it lives in IGNIS |
-| :--- | :--- | :--- |
-| [Hono](https://hono.dev/) | The HTTP engine: routing, middleware, `Context`, request IDs, context storage; served by `Bun.serve` or `@hono/node-server` | `kernel` controllers and applications; `ignis` server application |
-| [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) and [Zod](https://zod.dev/) | Route definitions, request validation, the OpenAPI document | `kernel` controllers |
-| [Drizzle ORM](https://orm.drizzle.team/) | Table schemas, SQL, relations, and Zod schemas from tables (`drizzle-zod`) | `connectors` relational tier |
-| [Casbin](https://casbin.org/) | Policy enforcement for authorization (optional peer) | `ignis` authorize component |
-| [jose](https://github.com/panva/jose) | JWT signing and verification, JWKS | `kernel` and `ignis` authentication |
-| [Scalar](https://scalar.com/) and [Swagger UI](https://swagger.io/tools/swagger-ui/) | The API reference page (optional peers) | `ignis` API reference component |
-
-## Examples
-
-Every example lives in [`examples/`](examples/).
-
-| Example | What it shows | Smoke test |
-| :--- | :--- | :--- |
-| [5-mins-qs](examples/5-mins-qs/) | The single-file hello world | Its own `bun test` |
-| [pglite-quickstart](examples/pglite-quickstart/) | CRUD and a relation on PGlite - PostgreSQL in-process, no database server | Its own `bun test` |
-| [sqlite-quickstart](examples/sqlite-quickstart/) | The same CRUD and relation on SQLite through libsql | Its own `bun test` |
-| [browser-bff](examples/browser-bff/) | The same controllers answering from PGlite inside a browser Worker, with no server | Its own `bun test` (Bun Worker) |
-| [grpc-test](examples/grpc-test/) | gRPC (ConnectRPC) and REST controllers on one application | Its own `bun test` |
-| [rpc-api-server](examples/rpc-api-server/) | A REST API with JWT sign-up/sign-in, CRUD behind the token, and server-rendered JSX pages, on PGlite | Its own `bun test` |
-| [rpc-client-app](examples/rpc-client-app/) | The React client for `rpc-api-server`, with hooks generated from its OpenAPI document | none - client only |
-| [typesense-search](examples/typesense-search/) | A search API on Typesense alone, no PostgreSQL | Local (`docker compose up -d`) |
-| [socket-io-test](examples/socket-io-test/) | Socket.IO with Redis-backed rooms behind a mandatory authentication handshake | Local (docker) |
-| [websocket-test](examples/websocket-test/) | The same over Bun's native WebSocket, no Socket.IO protocol | Local (docker) |
-| [vert](examples/vert/) | The production reference: PostgreSQL CRUD, JWT/JWKS authentication, scoped Casbin authorization, transactions, relations, a generated artifact index | Local (docker) |
-| [supabase](examples/supabase/) | The postgres-js driver with Row Level Security driven by the request's user | Not done - blocked on a framework defect |
-
-The examples run against the local packages, so build those first:
-
-```bash
-bun install && make core boot
-cd examples/vert
-docker compose up -d               # Postgres and Redis
-cp .env.example .env
-bun run migrate:dev && bun run server:dev
-```
+The documentation site lives in [`docs/wiki`](docs/wiki/) and is not published to npm. Runnable
+projects are in [`examples/`](examples/).
 
 ## Contributing
 
-```bash
-git clone https://github.com/VENIZIA-AI/ignis.git && cd ignis
-bun install
-make build          # every package in dependency order, then the wiki and its checks
-make test-all
-make lint-all
-```
-
-IGNIS needs Bun 1.4 or later, for applications and contributors alike.
-
-Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*`, `fix/*`, `docs/*`,
-`chore/*` or `test/*`, and **pull requests target `develop`**. Bun only - never npm, yarn, or pnpm. See
-[CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and
-[SECURITY.md](SECURITY.md).
-
-MIT licensed - see [LICENSE.md](LICENSE.md).
-Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai
+Bun 1.4 or later; pull requests target `develop`. See [CONTRIBUTING.md](CONTRIBUTING.md). MIT
+licensed - see [LICENSE.md](LICENSE.md). Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues).
 
 ---
 

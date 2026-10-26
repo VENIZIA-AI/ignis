@@ -4,100 +4,41 @@
 
 **Documentation site for the IGNIS Framework**
 
-[![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-VitePress-powered documentation site with guides, API references, and best practices for the IGNIS Framework.
-
-[Installation](#installation) &#8226; [MCP Server](#mcp-server) &#8226; [Online Docs](https://ignis.venizia.ai)
+[Online docs](https://ignis.venizia.ai) &#8226; [Quickstart](https://ignis.venizia.ai/guides/get-started/5-minute-quickstart) &#8226; [Changelog](https://ignis.venizia.ai/changelogs/)
 
 </div>
 
 ---
 
-## Highlights
+The VitePress site at [ignis.venizia.ai](https://ignis.venizia.ai): guides, API references, extensions,
+best practices and changelogs for IGNIS. It is built from `content/`, is not published to npm and is not
+meant to be imported.
 
-| | Feature | |
-| :---: | :--- | :--- |
-| **1** | **VitePress Site** | Full-featured docs with guides, API references, and tutorials |
-
----
-
-## Features
-
-- **VitePress Documentation Site** - Full-featured docs with guides, API references, tutorials, and best practices
-
----
-
-## Installation
+## Work on the site
 
 ```bash
-bun add @venizia/ignis-docs
-# or
-npm install @venizia/ignis-docs
+bun run docs:dev       # dev server
+bun run docs:build     # check the sidebar, then build the static site
+bun run docs:preview   # serve the build
 ```
 
----
+## Layout
 
-## MCP Server
+| Folder | Holds |
+| :--- | :--- |
+| `content/guides/` | Getting started, core concepts, tutorials, migrations |
+| `content/references/` | The API: base classes, configuration, utilities |
+| `content/extensions/` | Components and helpers, one folder each |
+| `content/best-practices/` | Architecture, security, performance, code style |
+| `content/changelogs/` | One entry per change, newest first |
+| `site/.vitepress/` | The site config (sidebar, nav, footer) and the theme |
 
-The MCP server for AI assistants now ships from VULCAN as `@venizia/vulcan-atlas`. `@venizia/ignis-atlas` is deprecated.
-
-```bash
-bun x @venizia/vulcan-atlas mcp
-```
-
-See the [Atlas page](https://ignis.venizia.ai/extensions/atlas/) for the config and the tools.
-
----
-
-## Documentation Site
-
-### Development
-
-```bash
-# Start dev server
-bun run docs:dev
-
-# Build static site
-bun run docs:build
-
-# Preview production build
-bun run docs:preview
-```
-
-### Structure
-
-```
-wiki/
-├── guides/              # Getting started, core concepts, tutorials
-├── references/          # API documentation
-│   ├── base/            # BaseApplication, BaseRestController, BaseEntity, etc.
-│   ├── components/      # HealthCheck, Swagger, Auth, Mail, SocketIO, etc.
-│   ├── helpers/         # Logger, Redis, Queue, Storage, Crypto, etc.
-│   └── utilities/       # Parse, Date, Promise, Performance utilities
-├── best-practices/      # Architecture, security, performance, code style
-└── changelogs/          # Version release notes
-```
-
-### Online Documentation
-
-[https://ignis.venizia.ai](https://ignis.venizia.ai)
-
----
-
-## Related Links
-
-- [IGNIS Framework](https://github.com/VENIZIA-AI/ignis) - Main repository
-- [Online Documentation](https://ignis.venizia.ai) - Full documentation site
-- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
-
----
-
-## License
-
-MIT
+The AI-assistant MCP server ships from VULCAN as `@venizia/vulcan-atlas`
+(`bun x @venizia/vulcan-atlas mcp`); see the [Atlas page](https://ignis.venizia.ai/extensions/atlas/).
+MIT licensed. Part of [IGNIS](https://github.com/VENIZIA-AI/ignis).
 
 ---
 
