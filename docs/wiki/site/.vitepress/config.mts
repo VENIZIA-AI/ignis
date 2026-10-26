@@ -1,5 +1,6 @@
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { VENIZIA_LOGO_SVG } from './venizia-logo';
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -2350,10 +2351,15 @@ const config = defineConfig({
       '/extensions/atlas/': extensionsSidebar,
     },
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' },
+      { icon: { svg: VENIZIA_LOGO_SVG }, link: 'https://venizia.ai', ariaLabel: 'Venizia' },
+    ],
 
     footer: {
-      message: 'IGNIS is part of <a href="https://venizia.ai">Venizia</a>.',
+      message:
+        'Released under the MIT License. IGNIS is part of <a href="https://venizia.ai">VENIZIA</a>.',
+      copyright: 'Copyright © 2025 <a href="https://venizia.ai">VENIZIA Ltd. Co.</a>',
     },
   },
 });

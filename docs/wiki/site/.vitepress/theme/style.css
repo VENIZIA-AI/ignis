@@ -2232,3 +2232,25 @@ html:not(.dark) .ig-fill--muted {
     flex-direction: column;
   }
 }
+
+/* ── Venizia wordmark in the header ───────────────────────────────────────── */
+/* A social link is a 36px square; the wordmark is 119:28.9, so it gets its own width. */
+.VPSocialLinks .VPSocialLink[aria-label='Venizia'] {
+  width: auto;
+  padding: 0 6px;
+}
+
+/* The same divider VitePress draws between the nav menu and the social links: 1px by 24px, 8px each side. */
+.VPSocialLinks .VPSocialLink[aria-label='Venizia']::before {
+  flex-shrink: 0;
+  margin: 0 8px;
+  width: 1px;
+  height: 24px;
+  background-color: var(--vp-c-divider);
+  content: '';
+}
+
+.VPSocialLinks .VPSocialLink[aria-label='Venizia'] > svg {
+  width: 74px;
+  height: 18px;
+}
