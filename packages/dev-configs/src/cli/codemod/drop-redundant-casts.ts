@@ -68,6 +68,18 @@ export interface IProjectCastResult {
   baselineErrors: number;
 }
 
+/** One error of a check: its message key (file, code, text) and where it points. */
+interface IFoundError {
+  key: string;
+  file: string;
+  start: number;
+}
+
+interface IDiagnosticReport {
+  counts: Map<string, number>;
+  items: IFoundError[];
+}
+
 interface ICastCandidate {
   file: string;
   start: number;
@@ -78,13 +90,21 @@ interface ICastCandidate {
 }
 
 const MAX_ROUNDS = 50;
+/** How many times the new errors are used to name culprits before the rest is halved. */
+const MAX_NAMED_ATTEMPTS = 8;
 /** A file that can hold a cast: `as`, or an angle-bracket assertion. */
 const CAST_TEXT = /\bas\b|<[A-Za-z_$][^<>]*>\s*[A-Za-z_$(]/;
 const TEST_FILE_PATTERN = /(?:^|\/)__tests__\/|\.(?:test|spec)\.[cm]?tsx?$/;
 
-/** The compiler's own view of a package, with the text of some files replaced in memory. */
+/**
+ * The compiler's own view of a package, with the text of some files replaced in memory. It uses the
+ * compiler's incremental builder: a check after an edit revisits only the files whose exported types
+ * changed and the files that import them, and the parsed files are kept between checks.
+ */
 class TypecheckSession {
-  private readonly overrides = new Map<string, { text: string; sourceFile: ts.SourceFile }>();
+  private readonly parsed = new Map<string, ts.SourceFile>();
+  private readonly disk = new Map<string, string | undefined>();
+  private reference: ts.SemanticDiagnosticsBuilderProgram | undefined;
   private program: ts.Program | undefined;
   checks = 0;
 
@@ -95,44 +115,69 @@ class TypecheckSession {
     private readonly root: string,
   ) {}
 
-  /** Typechecks the package with `texts` replacing the files on disk; returns the errors as a count per message key. */
-  check(texts: Map<string, string>): Map<string, number> {
+  /**
+   * Typechecks the package with `texts` replacing the files on disk and returns the errors as a count
+   * per message key. With `asReference`, the result becomes the state later checks are measured from.
+   */
+  check(texts: Map<string, string>, opts: { asReference?: boolean } = {}): IDiagnosticReport {
     const { typescript, options, rootNames } = this;
     const host = typescript.createCompilerHost(options, true);
-    const read = host.getSourceFile.bind(host);
 
-    this.overrides.clear();
-    host.getSourceFile = (fileName, languageVersionOrOptions, onError, shouldCreate) => {
-      const text = texts.get(resolve(fileName));
-      if (text === undefined) {
-        return read(fileName, languageVersionOrOptions, onError, shouldCreate);
+    host.getSourceFile = (fileName, languageVersionOrOptions) => {
+      const key = resolve(fileName);
+      let source = texts.get(key);
+      if (source === undefined) {
+        if (!this.disk.has(key)) {
+          this.disk.set(key, typescript.sys.readFile(fileName));
+        }
+        source = this.disk.get(key);
       }
 
-      const cached = this.overrides.get(fileName);
-      if (cached?.text === text) {
-        return cached.sourceFile;
+      if (source === undefined) {
+        return undefined;
+      }
+
+      const version = typescript.sys.createHash?.(source) ?? `${source.length}`;
+      const cacheKey = `${key}\0${version}`;
+      const cached = this.parsed.get(cacheKey);
+      if (cached) {
+        return cached;
       }
 
       const sourceFile = typescript.createSourceFile(
         fileName,
-        text,
+        source,
         languageVersionOrOptions,
         true,
       );
-      this.overrides.set(fileName, { text, sourceFile });
+      // The builder reads a file's version to tell a changed file from an unchanged one; the type leaves it out.
+      Object.assign(sourceFile, { version });
+      this.parsed.set(cacheKey, sourceFile);
       return sourceFile;
     };
 
-    this.program = typescript.createProgram({
+    const builder = typescript.createSemanticDiagnosticsBuilderProgram(
       rootNames,
       options,
       host,
-      oldProgram: this.program,
-    });
+      this.reference,
+    );
+    this.program = builder.getProgram();
     this.checks += 1;
 
+    if (opts.asReference) {
+      this.reference = builder;
+    }
+
     const counts = new Map<string, number>();
-    for (const diagnostic of typescript.getPreEmitDiagnostics(this.program)) {
+    const items: IFoundError[] = [];
+    const diagnostics = [
+      ...builder.getOptionsDiagnostics(),
+      ...builder.getGlobalDiagnostics(),
+      ...builder.getSyntacticDiagnostics(),
+      ...builder.getSemanticDiagnostics(),
+    ];
+    for (const diagnostic of diagnostics) {
       if (diagnostic.category !== typescript.DiagnosticCategory.Error) {
         continue;
       }
@@ -141,13 +186,19 @@ class TypecheckSession {
       const message = typescript.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
       const key = `${where}|${diagnostic.code}|${message}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
+      items.push({
+        key,
+        file: diagnostic.file ? resolve(diagnostic.file.fileName) : '',
+        start: diagnostic.start ?? 0,
+      });
     }
 
-    return counts;
+    return { counts, items };
   }
 
   getProgram(): ts.Program {
     if (!this.program) {
+      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error('[TypecheckSession][getProgram] check() has not run yet');
     }
 
@@ -196,24 +247,33 @@ export class RedundantCasts {
       current.set(file, text);
     }
 
-    const baseline = session.check(new Map());
+    const baseline = session.check(new Map(), { asReference: true }).counts;
     const baselineErrors = [...baseline.values()].reduce((sum, count) => sum + count, 0);
     const rejected = new Set<string>();
     const removedPerFile = new Map<string, number>();
 
-    const isBroken = (texts: Map<string, string>): boolean => {
-      const counts = session.check(texts);
-      for (const [key, count] of counts) {
-        if (count > (baseline.get(key) ?? 0)) {
-          return true;
+    /** The errors `texts` adds to what the package already had. */
+    const newErrors = (texts: Map<string, string>): IFoundError[] => {
+      const report = session.check(texts);
+      const budget = new Map(baseline);
+      const added: IFoundError[] = [];
+
+      for (const item of report.items) {
+        const left = budget.get(item.key) ?? 0;
+        if (left > 0) {
+          budget.set(item.key, left - 1);
+          continue;
         }
+
+        added.push(item);
       }
 
-      return false;
+      return added;
     };
+    const isBroken = (texts: Map<string, string>): boolean => newErrors(texts).length > 0;
 
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
-      session.check(current);
+      session.check(current, { asReference: true });
       const candidates = RedundantCasts.collectCandidates({
         typescript,
         program: session.getProgram(),
@@ -229,7 +289,9 @@ export class RedundantCasts {
       const accepted = RedundantCasts.search({
         candidates,
         base: [],
-        isBroken: (chosen) => isBroken(RedundantCasts.apply({ texts: current, chosen })),
+        newErrors: (chosen) => newErrors(RedundantCasts.apply({ texts: current, chosen })),
+        suspectsOf: (chosen, found) =>
+          RedundantCasts.suspectsOf({ typescript, program: session.getProgram(), chosen, found }),
       });
       const acceptedKeys = new Set(accepted);
 
@@ -287,6 +349,7 @@ export class RedundantCasts {
     const read = typescript.readConfigFile(tsconfigPath, typescript.sys.readFile);
 
     if (read.error) {
+      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
         `[loadProject] cannot read ${tsconfigPath} | ${typescript.flattenDiagnosticMessageText(read.error.messageText, '\n')}`,
       );
@@ -482,19 +545,52 @@ export class RedundantCasts {
     return kept;
   }
 
-  /** The candidates whose removal, together with `base`, adds no error. Halves the list until the breaking ones stand alone. */
+  /**
+   * The candidates whose removal, together with `base`, adds no error. When a try fails, the places
+   * of the new errors name the casts most likely to blame; those are set aside and the rest is tried
+   * again. What cannot be named is halved until the breaking casts stand alone. Whatever is accepted
+   * was checked together with everything else accepted, so a wrong guess can only keep a cast.
+   */
   private static search(opts: {
     candidates: ICastCandidate[];
     base: ICastCandidate[];
-    isBroken: (chosen: ICastCandidate[]) => boolean;
+    newErrors: (chosen: ICastCandidate[]) => IFoundError[];
+    suspectsOf: (chosen: ICastCandidate[], found: IFoundError[]) => ICastCandidate[];
   }): ICastCandidate[] {
-    const { candidates, base, isBroken } = opts;
+    const { base, newErrors, suspectsOf } = opts;
+    let remaining = [...opts.candidates];
+
+    for (let attempt = 0; attempt < MAX_NAMED_ATTEMPTS && remaining.length > 0; attempt += 1) {
+      const chosen = [...base, ...remaining];
+      const found = newErrors(chosen);
+      if (found.length === 0) {
+        return remaining;
+      }
+
+      const suspects = suspectsOf(chosen, found);
+      if (suspects.length === 0) {
+        break;
+      }
+
+      const named = new Set(suspects);
+      remaining = remaining.filter((candidate) => !named.has(candidate));
+    }
+
+    return RedundantCasts.halve({ candidates: remaining, base, newErrors });
+  }
+
+  private static halve(opts: {
+    candidates: ICastCandidate[];
+    base: ICastCandidate[];
+    newErrors: (chosen: ICastCandidate[]) => IFoundError[];
+  }): ICastCandidate[] {
+    const { candidates, base, newErrors } = opts;
 
     if (candidates.length === 0) {
       return [];
     }
 
-    if (!isBroken([...base, ...candidates])) {
+    if (newErrors([...base, ...candidates]).length === 0) {
       return candidates;
     }
 
@@ -503,18 +599,106 @@ export class RedundantCasts {
     }
 
     const middle = Math.ceil(candidates.length / 2);
-    const first = RedundantCasts.search({
+    const first = RedundantCasts.halve({
       candidates: candidates.slice(0, middle),
       base,
-      isBroken,
+      newErrors,
     });
-    const second = RedundantCasts.search({
+    const second = RedundantCasts.halve({
       candidates: candidates.slice(middle),
       base: [...base, ...first],
-      isBroken,
+      newErrors,
     });
 
     return [...first, ...second];
+  }
+
+  /**
+   * The casts a set of new errors most likely comes from: for each error, the chosen cast nearest to
+   * it inside the same statement, else the nearest one before it in the same file. An error in a file
+   * with no chosen cast (an importer) names nothing; the halving deals with what stays.
+   */
+  private static suspectsOf(opts: {
+    typescript: TTypeScript;
+    program: ts.Program;
+    chosen: ICastCandidate[];
+    found: IFoundError[];
+  }): ICastCandidate[] {
+    const { typescript, program, chosen, found } = opts;
+    const suspects = new Set<ICastCandidate>();
+
+    for (const error of found) {
+      const inFile = chosen
+        .filter((candidate) => candidate.file === error.file)
+        .sort((a, b) => a.start - b.start);
+      const sourceFile = program.getSourceFile(error.file);
+      if (inFile.length === 0 || !sourceFile) {
+        continue;
+      }
+
+      let shift = 0;
+      const placed = inFile.map((candidate) => {
+        const start = candidate.start - shift;
+        shift += candidate.end - candidate.start - candidate.replacement.length;
+        return { candidate, start, end: start + candidate.replacement.length };
+      });
+      const statement = RedundantCasts.enclosingStatement({
+        typescript,
+        sourceFile,
+        position: error.start,
+      });
+      const distance = (item: { start: number; end: number }) =>
+        error.start < item.start
+          ? item.start - error.start
+          : error.start > item.end
+            ? error.start - item.end
+            : 0;
+      const inside = placed.filter(
+        (item) => statement && item.start >= statement.pos && item.end <= statement.end,
+      );
+      const before = placed.filter((item) => item.start <= error.start);
+      const pool = inside.length > 0 ? inside : before;
+      const nearest = [...pool].sort((a, b) => distance(a) - distance(b))[0];
+
+      if (nearest) {
+        suspects.add(nearest.candidate);
+      }
+    }
+
+    return [...suspects];
+  }
+
+  /** The smallest statement that holds `position`. */
+  private static enclosingStatement(opts: {
+    typescript: TTypeScript;
+    sourceFile: ts.SourceFile;
+    position: number;
+  }): ts.Node | undefined {
+    const { typescript, sourceFile, position } = opts;
+    let found: ts.Node | undefined;
+
+    const walk = (node: ts.Node): void => {
+      if (position < node.pos || position >= node.end) {
+        return;
+      }
+
+      const parent = node.parent;
+      const isStatement =
+        parent !== undefined &&
+        (typescript.isSourceFile(parent) ||
+          typescript.isBlock(parent) ||
+          typescript.isModuleBlock(parent) ||
+          typescript.isCaseClause(parent) ||
+          typescript.isDefaultClause(parent));
+      if (isStatement) {
+        found = node;
+      }
+
+      typescript.forEachChild(node, walk);
+    };
+
+    walk(sourceFile);
+    return found;
   }
 
   /** The texts with `chosen` removed, each file edited from the end so earlier offsets stay valid. */

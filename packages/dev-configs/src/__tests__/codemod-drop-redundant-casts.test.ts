@@ -64,7 +64,7 @@ describe('drop-redundant-casts', () => {
   const reasons = (result: ReturnType<typeof only>) => result?.kept.map((entry) => entry.reason);
 
   test('a cast the compiler does not need is removed', () => {
-    write('src/a.ts', 'const name: string = \'x\';\nexport const label = name as string;\n');
+    write('src/a.ts', "const name: string = 'x';\nexport const label = name as string;\n");
 
     const result = only(['src/a.ts']);
 
@@ -77,16 +77,16 @@ describe('drop-redundant-casts', () => {
       'src/a.ts',
       [
         'const takes = (value: string) => value;',
-        "const mixed: string | number = 'x' as string | number;",
-        'export const result = takes(mixed as string);',
+        'export const result = (mixed: string | number) => takes(mixed as string);',
         '',
       ].join('\n'),
     );
 
     const result = only(['src/a.ts']);
 
+    expect(result?.removed).toBe(0);
     expect(result?.output).toContain('takes(mixed as string)');
-    expect(reasons(result)).toContain(CastKeepReasons.NEEDED);
+    expect(reasons(result)).toEqual([CastKeepReasons.NEEDED]);
   });
 
   test('the needed cast does not hide the redundant one next to it', () => {
@@ -94,9 +94,8 @@ describe('drop-redundant-casts', () => {
       'src/a.ts',
       [
         'const takes = (value: string) => value;',
-        'const mixed: string | number = 1 as number;',
-        'const plain: string = \'y\';',
-        'export const a = takes(mixed as string);',
+        "const plain: string = 'y';",
+        'export const a = (mixed: string | number) => takes(mixed as string);',
         'export const b = plain as string;',
         '',
       ].join('\n'),
@@ -104,10 +103,9 @@ describe('drop-redundant-casts', () => {
 
     const result = only(['src/a.ts']);
 
-    expect(result?.removed).toBe(2);
+    expect(result?.removed).toBe(1);
     expect(result?.output).toContain('takes(mixed as string)');
     expect(result?.output).toContain('export const b = plain;');
-    expect(result?.output).toContain('const mixed: string | number = 1;');
   });
 
   test('as const, as unknown, a double cast and a cast of any are never touched', () => {
@@ -119,7 +117,7 @@ describe('drop-redundant-casts', () => {
         'export const double = 1 as unknown as string;',
         'declare const loose: any;',
         'export const fromAny = loose as string;',
-        'export const fromJson = JSON.parse(\'1\') as number;',
+        "export const fromJson = JSON.parse('1') as number;",
         '',
       ].join('\n'),
     );
@@ -161,7 +159,10 @@ describe('drop-redundant-casts', () => {
   });
 
   test('an import the removal leaves unused is dropped, an older unused import is not', () => {
-    write('src/types.ts', 'export interface Foo { a: number }\nexport interface Old { b: number }\n');
+    write(
+      'src/types.ts',
+      'export interface Foo { a: number }\nexport interface Old { b: number }\n',
+    );
     write(
       'src/a.ts',
       [
@@ -217,7 +218,7 @@ describe('drop-redundant-casts', () => {
 
   test('a removal that makes a new error elsewhere is refused', () => {
     write('src/a.ts', "export const value = { name: 'x' } as { name: string | undefined };\n");
-    write('src/b.ts', "import { value } from './a';\nexport const length: number = value.name.length;\n");
+    write('src/b.ts', "import { value } from './a';\nvalue.name = undefined;\n");
 
     const project = run(['src/a.ts']);
 
@@ -226,7 +227,10 @@ describe('drop-redundant-casts', () => {
   });
 
   test('a test file is skipped unless --include-tests is given', () => {
-    write('src/__tests__/a.test.ts', "const name: string = 'x';\nexport const label = name as string;\n");
+    write(
+      'src/__tests__/a.test.ts',
+      "const name: string = 'x';\nexport const label = name as string;\n",
+    );
 
     const skipped = only(['src/__tests__/a.test.ts']);
     const included = run(['src/__tests__/a.test.ts'], true).files[0];
@@ -242,13 +246,12 @@ describe('drop-redundant-casts', () => {
       lines.push(`export const v${index} = text as string;`);
     }
     lines.push('const takes = (value: string) => value;');
-    lines.push('const mixed: string | number = 1 as number;');
-    lines.push('export const needed = takes(mixed as string);');
+    lines.push('export const needed = (mixed: string | number) => takes(mixed as string);');
     write('src/a.ts', `${lines.join('\n')}\n`);
 
     const project = run(['src/a.ts']);
 
-    expect(project.files[0]?.removed).toBe(41);
+    expect(project.files[0]?.removed).toBe(40);
     expect(project.files[0]?.output).toContain('takes(mixed as string)');
     expect(project.checks).toBeLessThan(20);
   });
@@ -302,7 +305,9 @@ describe('drop-redundant-casts', () => {
       await code([]);
 
       expect(logs.join('\n')).toContain('(1 removed, 1 kept: 1 as-const)');
-      expect(logs.join('\n')).toContain('1 cast(s) would be removed in 1 file(s), 1 kept (1 as-const)');
+      expect(logs.join('\n')).toContain(
+        '1 cast(s) would be removed in 1 file(s), 1 kept (1 as-const)',
+      );
     });
 
     test('a file with no tsconfig above it is named in a warning and skipped', async () => {
@@ -322,6 +327,22 @@ describe('drop-redundant-casts', () => {
       expect(await CodemodCommand.run({ root, args: ['--help'] })).toBe(0);
       expect(logs.join('\n')).toContain('devz codemod model-settings');
       expect(logs.join('\n')).toContain('devz codemod drop-redundant-casts');
+    });
+
+    test('--include-tests tries the casts of a test file', async () => {
+      write('src/__tests__/a.test.ts', redundant);
+
+      expect(await code(['--check'])).toBe(0);
+      expect(await code(['--check', '--include-tests'])).toBe(1);
+    });
+
+    test('--project names the tsconfig, in both spellings', async () => {
+      write('src/a.ts', redundant);
+      writeFileSync(join(root, 'check.tsconfig.json'), TSCONFIG);
+
+      expect(await code(['--check', '--project', 'check.tsconfig.json'])).toBe(1);
+      expect(await code(['--check', '--project=check.tsconfig.json'])).toBe(1);
+      expect(await code(['--check', '--project', '--write'])).toBe(2);
     });
 
     test('a git-ignored folder is not read', async () => {

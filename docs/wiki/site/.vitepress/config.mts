@@ -499,6 +499,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
                 },
                 {
+                  text: 'devz codemod drop-redundant-casts',
+                  link: '/changelogs/2026-10-26-devz-codemod-drop-redundant-casts',
+                },
+                {
                   text: 'devz codemod --check Fails on Untouched Models',
                   link: '/changelogs/2026-10-26-devz-codemod-check-fails-on-untouched',
                 },
