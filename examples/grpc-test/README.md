@@ -103,3 +103,11 @@ re-exports the generated names; controller code imports from there, never from `
 
 - [PGlite quickstart](../pglite-quickstart) - REST CRUD with a relation
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

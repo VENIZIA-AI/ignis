@@ -172,3 +172,11 @@ The generated index replaces the runtime booters IGNIS once took from LoopBack 4
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>@venizia/ignis-boot is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

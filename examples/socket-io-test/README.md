@@ -85,3 +85,11 @@ unreachable.
 
 - [WebSocket test](../websocket-test) - the same shape on Bun's native WebSocket, no Socket.IO protocol
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

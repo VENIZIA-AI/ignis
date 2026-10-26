@@ -144,3 +144,11 @@ component's `MetaLink` table.
 ## Next
 
 - [PGlite quickstart](../pglite-quickstart) - the same models, repositories and CRUD factory in one small app
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

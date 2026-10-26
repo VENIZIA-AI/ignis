@@ -273,3 +273,11 @@ Conventional Commits (`feat:`, `fix:`, `docs:`, ...), branches `feature/*`, `fix
 
 MIT licensed - see [LICENSE.md](LICENSE.md).
 Questions: [GitHub Issues](https://github.com/VENIZIA-AI/ignis/issues) &#8226; developer@venizia.ai
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

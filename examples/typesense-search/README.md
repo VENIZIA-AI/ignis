@@ -119,3 +119,11 @@ container's `typesense-data` volume - `docker compose down -v` clears it.
 
 - [PGlite quickstart](../pglite-quickstart) - CRUD and a relation on Postgres
 - [`vert`](../vert) - the production reference: authentication, authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

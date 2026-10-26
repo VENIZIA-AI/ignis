@@ -99,3 +99,11 @@ and loads a JSX page.
 
 - [`rpc-client-app`](../rpc-client-app) - the React client with hooks generated from `/doc/openapi.json`
 - [`vert`](../vert) - the production reference: JWKS, scoped Casbin authorization, transactions
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

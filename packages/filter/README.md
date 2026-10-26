@@ -105,3 +105,11 @@ helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}.
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>@venizia/ignis-filter is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

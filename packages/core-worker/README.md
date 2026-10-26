@@ -131,3 +131,11 @@ browser sibling of `@venizia/ignis`; neither depends on the other, and it does n
 - [All changelogs](https://ignis.venizia.ai/changelogs/)
 
 MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>@venizia/ignis-worker is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

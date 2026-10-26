@@ -107,3 +107,11 @@ A binary must also call `LoggerFactory.use()` explicitly - the winston fallback 
 [Issues](https://github.com/VENIZIA-AI/ignis/issues)
 
 MIT licensed - see [LICENSE.md](LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>@venizia/ignis-helpers is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

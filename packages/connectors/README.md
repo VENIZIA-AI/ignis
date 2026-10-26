@@ -144,3 +144,11 @@ name (`@venizia/ignis/postgres`, ...) except `/http`. Its root re-exports `/post
 - [All changelogs](https://ignis.venizia.ai/changelogs/)
 
 MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai"><img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28"></a>
+  <br>
+  <sub>@venizia/ignis-connectors is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>
