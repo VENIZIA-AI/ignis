@@ -2,6 +2,7 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import { assertBindingsResolve } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
   type Binding,
@@ -36,8 +37,18 @@ export interface IAssertApplicationBootsOptions {
    */
   skipSteps?: TServerBootStep[];
 
-  /** Default `true`: resolves every service and repository, so an injection nobody references at boot still fails. An explicit value wins over the application's own `bootChecks`. */
+  /**
+   * Default `true`: after boot, resolves every service and repository with the shared core of
+   * `@venizia/ignis-inversion`, so an injection nobody references at boot still fails. An explicit value
+   * wins over the application's own `bootChecks`, whose boot step is off for the run.
+   */
   verifyBindings?: boolean;
+
+  /**
+   * Services or repositories the verification leaves unresolved, for one whose constructor needs
+   * infrastructure. A class (exact), a class name or a binding key. A name that matches nothing rejects.
+   */
+  skipBindings?: TBootProbeTarget[];
 
   /** Default `false`: an application that registered no controller proves nothing, for example when the artifact index was empty. */
   allowNoControllers?: boolean;
@@ -183,6 +194,7 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     skipComponents = [],
     skipSteps = DEFAULT_SKIPPED_STEPS,
     verifyBindings = true,
+    skipBindings = [],
     allowNoControllers = false,
     routes = true,
   } = options;
@@ -292,7 +304,7 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     binding: {
       allowManual: originalBinding?.allowManual ?? true,
       allowOverride: originalBinding?.allowOverride ?? true,
-      doVerify: verifyBindings,
+      doVerify: false,
     },
   };
 
@@ -312,6 +324,15 @@ export const assertApplicationBoots = async <Application extends BaseApplication
       fail(
         `The boot never went through 'registerDynamicBindings' | The wrap did not take effect, so datasources may have been configured`,
       );
+    }
+
+    if (verifyBindings) {
+      assertBindingsResolve({
+        container: target,
+        namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
+        skip: skipBindings,
+        scope: 'verifyBindings',
+      });
     }
 
     if (
