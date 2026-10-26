@@ -396,8 +396,12 @@
       </section>
 
       <section class="ig-footer-cta">
-        <h2>Build something that <span class="ig-gtext">scales</span>.</h2>
-        <p>Start with one endpoint, then add structure as the API grows.</p>
+        <h2>
+          Start with one endpoint.<br /><span class="ig-gtext"
+            >Keep the order as it&nbsp;grows.</span
+          >
+        </h2>
+        <p>The quickstart creates a project with a first endpoint in two commands.</p>
         <div class="ig-cta">
           <a href="/guides/get-started/5-minute-quickstart" class="ig-btn ig-btn--primary"
             >5-Minute Quickstart &#x2192;</a
