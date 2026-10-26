@@ -76,6 +76,7 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./services/core-api/.env.example
 ./services/core-api/package.json
 ./services/core-api/src/application.ts
+./services/core-api/src/boot.test.ts
 ./services/core-api/src/controllers/hello.controller.ts
 ./services/core-api/src/index.ts
 ./services/core-api/src/smoke.test.ts
@@ -131,6 +132,7 @@ export class HelloController extends BaseRestController {
 ```
 
 - `services/core-api/src/index.ts` - initializes and starts the application.
+- `services/core-api/src/boot.test.ts` - proves the application boots, with no database, port or network: it calls `assertApplicationBoots` from `@venizia/ignis/testing`.
 - `services/core-api/src/smoke.test.ts` - exercises the running server with an end-to-end smoke test.
 - `services/core-api/.env.example` - lists every `APP_ENV_*` key the app reads (application, server, logger), each with a comment. Copy it to `.env` for a local run: bun loads `.env` on start.
 - `services/core-api/.configs/lints/.ignore`, `.configs/formatters/.ignore` - paths `devz lint` skips, one pattern per line. They ship with comments only.
