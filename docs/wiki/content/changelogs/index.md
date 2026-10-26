@@ -18,13 +18,9 @@ This section tracks the history of significant changes, refactors, and updates t
 | Date | Title | Type |
 |------|-------|------|
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
-<<<<<<< HEAD
 | 2026-10-26 | [The Build Stamp Reads Its Commit and Branch Under Node](./2026-10-26-build-info-git-under-node) | Bug Fix |
-||||||| 59ad74f0
-=======
 | 2026-10-26 | [A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings](./2026-10-26-secret-rotation-failure-leaks-credentials) | Security |
 | 2026-10-26 | [A Datasource Family for Engines That Only Run SQL](./2026-10-26-raw-sql-datasource) | New Feature |
->>>>>>> origin/develop
 | 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
 | 2026-10-26 | [Connectors String Options Are Const Classes](./2026-10-26-connectors-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |

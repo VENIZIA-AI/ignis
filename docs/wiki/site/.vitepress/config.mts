@@ -417,7 +417,7 @@ const config = defineConfig({
       chunkSizeWarningLimit: 3500,
       rollupOptions: {
         output: {
-          manualChunks: id => {
+          manualChunks: (id) => {
             if (id.includes('node_modules')) {
               // Isolate mermaid (+ its heavy deps) - large and only needed on pages with diagrams.
               if (
@@ -479,13 +479,10 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-batch-overview',
                 },
                 {
-<<<<<<< HEAD
                   text: 'The Build Stamp Reads Its Commit and Branch Under Node',
                   link: '/changelogs/2026-10-26-build-info-git-under-node',
                 },
                 {
-||||||| 59ad74f0
-=======
                   text: 'A Failed Secret Rotation Left the Rotated Credentials in the Settings',
                   link: '/changelogs/2026-10-26-secret-rotation-failure-leaks-credentials',
                 },
@@ -494,7 +491,6 @@ const config = defineConfig({
                   link: '/changelogs/2026-10-26-raw-sql-datasource',
                 },
                 {
->>>>>>> origin/develop
                   text: 'Repository Tooling',
                   link: '/changelogs/2026-10-26-repository-tooling',
                 },
@@ -2307,7 +2303,10 @@ const config = defineConfig({
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
             { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
-            { text: 'Browser and Web Worker', link: '/guides/core-concepts/browser-and-web-worker' },
+            {
+              text: 'Browser and Web Worker',
+              link: '/guides/core-concepts/browser-and-web-worker',
+            },
             {
               text: 'Persistent Layer',
               collapsed: true,
@@ -2391,7 +2390,8 @@ const config = defineConfig({
     footer: {
       message:
         'Released under the MIT License. IGNIS is part of <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">VENIZIA</a>.',
-      copyright: 'Copyright © 2025 <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">Venizia Co., Ltd.</a>',
+      copyright:
+        'Copyright © 2025 <a href="https://venizia.ai" target="_blank" rel="noopener noreferrer">Venizia Co., Ltd.</a>',
     },
   },
 });
