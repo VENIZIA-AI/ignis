@@ -426,3 +426,106 @@ describe('devz codemod const-classes - the command', () => {
     expect(logs.join('\n')).toContain('devz codemod const-classes');
   });
 });
+
+/** Every class and the exact text of the decorators written on it. */
+const decoratorsByClass = (source: string): Record<string, string[]> => {
+  const sourceFile = ts.createSourceFile('a.ts', source, ts.ScriptTarget.Latest, true);
+  const byClass: Record<string, string[]> = {};
+
+  for (const statement of sourceFile.statements) {
+    if (ts.isClassDeclaration(statement) && statement.name) {
+      byClass[statement.name.text] = (ts.getDecorators(statement) ?? []).map((decorator) =>
+        decorator.getText(sourceFile),
+      );
+    }
+  }
+
+  return byClass;
+};
+
+describe('ConstClasses.convert - a decorated class keeps its decorators', () => {
+  // A new top-level declaration goes before the anchor's own comment, never between a decorator and
+  // the class it decorates: that would hand `@service()` to the new const class, and the service
+  // would no longer be registered.
+  const SERVICE =
+    "@service()\nexport class InvoiceService {}\n\nexport type TMode = 'draft' | 'final';\n";
+  const CONTROLLER = [
+    '/** The invoice controller. */',
+    '@controller({',
+    "  path: '/invoices',",
+    "  tags: ['billing'],",
+    '})',
+    '@authenticate()',
+    "@authorize({ action: 'read' })",
+    'export class InvoiceController {}',
+    '',
+    '/** How an invoice is billed. */',
+    "export type TBilling = 'once' | 'monthly';",
+    '',
+  ].join('\n');
+
+  test.each([
+    ['one @service()', SERVICE],
+    ['a multi-line @controller({ ... }), stacked decorators and a JSDoc above them', CONTROLLER],
+    [
+      'the decorated class right below the union, with no blank line',
+      "export type TMode = 'draft' | 'final';\n@service()\nexport class InvoiceService {}\n",
+    ],
+    [
+      'an interface member below the decorated class',
+      "@service()\nexport class InvoiceService {}\n\nexport interface IOptions {\n  mode: 'draft' | 'final';\n}\n",
+    ],
+  ])('%s', (_name, source) => {
+    const result = convert(source);
+
+    expect(result.proposals).toHaveLength(1);
+    expect(decoratorsByClass(result.output)).toEqual(
+      expect.objectContaining(decoratorsByClass(source)),
+    );
+    // The decorated class is still the first statement that follows its decorators.
+    const decorated = Object.entries(decoratorsByClass(source)).filter(([, d]) => d.length > 0);
+    for (const [className] of decorated) {
+      expect(result.output).toMatch(new RegExp(`\\)\\s*\\n\\s*export class ${className} \\{`));
+    }
+  });
+
+  test('the const class lands before the JSDoc of the alias, after the decorated class above it', () => {
+    const result = convert(CONTROLLER);
+
+    const controller = result.output.indexOf('export class InvoiceController');
+    const generated = result.output.indexOf('export class Billings');
+    const aliasDoc = result.output.indexOf('/** How an invoice is billed. */');
+
+    expect(controller).toBeGreaterThan(-1);
+    expect(generated).toBeGreaterThan(controller);
+    expect(aliasDoc).toBeGreaterThan(generated);
+  });
+
+  test('the check sees the bug it guards against: a class inserted between a decorator and its class', () => {
+    const correct = '@service()\nexport class InvoiceService {}\n\nexport class Modes {}\n';
+    const broken = '@service()\nexport class Modes {}\n\nexport class InvoiceService {}\n';
+
+    expect(decoratorsByClass(broken)).not.toEqual(decoratorsByClass(correct));
+    expect(decoratorsByClass(correct)).toEqual({ InvoiceService: ['@service()'], Modes: [] });
+  });
+
+  test('a union inside a decorated class is reported and the class is left byte for byte', () => {
+    const source = [
+      '@service()',
+      'export class ReportService {',
+      "  kind: 'monthly' | 'yearly' = 'monthly';",
+      '',
+      "  render(format: 'pdf' | 'html'): string {",
+      '    return format;',
+      '  }',
+      '}',
+      '',
+    ].join('\n');
+
+    const result = convert(source);
+
+    expect(result.output).toBe(source);
+    expect(result.proposals).toHaveLength(0);
+    expect(result.untouched).toHaveLength(2);
+  });
+});
