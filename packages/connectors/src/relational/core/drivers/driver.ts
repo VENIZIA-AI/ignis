@@ -1,4 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
+import type { IConnectorDriver } from '@/common/driver';
 
 /** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`, postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
 export interface IStatementResult {
@@ -21,10 +22,10 @@ export interface IRelationalConnection<TConnector> {
   release(opts?: { destroy?: boolean }): void;
 }
 
-/** Owns connection acquisition and raw control statements - the only two places hard-wired to a client library. `configure()` stays app-written: the framework never builds the driver for you. */
-export interface IRelationalDriver<TConnector, Client = unknown> {
-  createConnector(opts: { schema: TAnyDataSourceSchema }): TConnector;
+/** The common driver (connector, client, end) plus connection acquisition and raw control statements - the only places hard-wired to a client library. `configure()` stays app-written: the framework never builds the driver for you. */
+export interface IRelationalDriver<TConnector, Client = unknown> extends IConnectorDriver<
+  TConnector,
+  Client
+> {
   acquire(opts: { schema: TAnyDataSourceSchema }): Promise<IRelationalConnection<TConnector>>;
-  getClient(): Client;
-  end(): Promise<void>;
 }

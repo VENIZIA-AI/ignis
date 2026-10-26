@@ -27,6 +27,12 @@
       "require": "./dist/cjs/http/index.js",
       "default": "./dist/cjs/http/index.js"
     },
+    "./raw-sql": {
+      "types": "./dist/cjs/raw-sql/index.d.ts",
+      "import": "./dist/esm/raw-sql/index.js",
+      "require": "./dist/cjs/raw-sql/index.js",
+      "default": "./dist/cjs/raw-sql/index.js"
+    },
     "./relational": {
       "types": "./dist/cjs/relational/core/index.d.ts",
       "import": "./dist/esm/relational/core/index.js",
