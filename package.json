@@ -2,7 +2,7 @@
   "name": "@venizia/ignis-workspace",
   "version": "0.0.0",
   "private": true,
-  "description": "High-performance TypeScript server infrastructure framework enterprise patterns (IoC, Repositories, Decorators) with Hono speed (~140k req/s). Built on Drizzle ORM, Zod validation, and convention-based bootstrapping for Bun and Node.js.",
+  "description": "TypeScript server framework that puts enterprise patterns (IoC, Repositories, Decorators) on Hono. Built on Drizzle ORM, Zod validation, and convention-based bootstrapping for Bun and Node.js.",
   "keywords": [
     "backend",
     "bun",

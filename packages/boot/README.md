@@ -1,6 +1,6 @@
 # @venizia/ignis-boot
 
-Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes, and `BuildInfoStamp` stamps the build. Install it as a devDependency of the application, or as a dependency if production runs the source unbundled.
+Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes (on Bun, `@venizia/ignis-boot/auto` builds the same list in memory at start instead), and `BuildInfoStamp` stamps the build. Install it as a devDependency of the application, or as a dependency if production runs the source unbundled.
 
 ## Install
 

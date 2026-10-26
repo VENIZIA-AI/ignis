@@ -10,14 +10,12 @@
             <span class="ig-eyebrow__dot" />TypeScript · Hono · Drizzle · Bun
           </div>
           <h1>
-            Architecture without apology.<br /><span class="ig-gtext"
-              >Speed without sacrifice.</span
-            >
+            Architecture without apology.<br /><span class="ig-gtext">On Hono's engine.</span>
           </h1>
           <p class="ig-lede">
-            LoopBack&nbsp;4's architecture with Hono's raw throughput.
+            LoopBack&nbsp;4's architecture on Hono.
             <b>Dependency injection, repositories, auth and real-time</b>
-            - batteries included, none of the overhead.
+            - batteries included.
           </p>
           <div class="ig-cta">
             <a href="/guides/get-started/5-minute-quickstart" class="ig-btn ig-btn--primary"
@@ -29,11 +27,11 @@
           </div>
           <div class="ig-stats">
             <div class="ig-stat">
-              <div class="ig-stat__n ig-gtext">~140k</div>
-              <div class="ig-stat__l">req / sec</div>
+              <div class="ig-stat__n ig-gtext">9</div>
+              <div class="ig-stat__l">packages</div>
             </div>
             <div class="ig-stat">
-              <div class="ig-stat__n ig-gtext">~350</div>
+              <div class="ig-stat__n ig-gtext">~1.5k</div>
               <div class="ig-stat__l">LoC DI core</div>
             </div>
             <div class="ig-stat">
@@ -103,10 +101,10 @@
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
               </svg>
             </div>
-            <h3>~140k req/s</h3>
+            <h3>Built on Hono</h3>
             <p>
-              Direct Hono integration with zero wrapping overhead. Singleton datasources, SQL-level
-              field hiding, lazy metadata.
+              Direct Hono integration, no adapter layer. Singleton datasources, SQL-level field
+              hiding, lazy metadata.
             </p>
           </div>
           <div class="ig-fcard">
@@ -234,56 +232,6 @@
           </div>
         </div>
       </section>
-    </div>
-
-    <!-- ── Performance band (horizontal bar chart) ──────────────────────── -->
-    <div class="ig-divider" />
-    <div class="ig-wrap">
-      <div class="ig-perf">
-        <div class="ig-perf__copy">
-          <div class="ig-label">Performance</div>
-          <h2>Architecture has a<br />speed limit. IGNIS<br />doesn't hit it.</h2>
-          <p>
-            Built directly on Hono, IGNIS keeps near-bare-metal throughput while giving you the
-            structure heavier frameworks charge a tax for.
-          </p>
-          <p class="ig-fine">
-            Illustrative req/s, single instance. Your numbers depend on workload.
-          </p>
-        </div>
-        <div class="ig-bars">
-          <div class="ig-bar-row">
-            <div class="ig-bar-row__name">Hono</div>
-            <div class="ig-track">
-              <div class="ig-fill ig-fill--muted" style="width: 97%">~150k</div>
-            </div>
-          </div>
-          <div class="ig-bar-row ig-bar-row--hl">
-            <div class="ig-bar-row__name">IGNIS</div>
-            <div class="ig-track">
-              <div class="ig-fill ig-fill--ig" style="width: 92%">~140k</div>
-            </div>
-          </div>
-          <div class="ig-bar-row">
-            <div class="ig-bar-row__name">Fastify</div>
-            <div class="ig-track">
-              <div class="ig-fill ig-fill--muted" style="width: 50%">~75k</div>
-            </div>
-          </div>
-          <div class="ig-bar-row">
-            <div class="ig-bar-row__name">NestJS</div>
-            <div class="ig-track">
-              <div class="ig-fill ig-fill--muted" style="width: 18%">~25k</div>
-            </div>
-          </div>
-          <div class="ig-bar-row">
-            <div class="ig-bar-row__name">Express</div>
-            <div class="ig-track">
-              <div class="ig-fill ig-fill--muted" style="width: 11%">~15k</div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- ── Honest-fit positioning ────────────────────────────────────────── -->

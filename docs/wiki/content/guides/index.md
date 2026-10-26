@@ -1,6 +1,6 @@
 # Getting Started with IGNIS
 
-Welcome to IGNIS - a TypeScript framework that combines enterprise architecture patterns with Hono's blazing performance. Whether you're building a SaaS backend, REST API, gRPC service, or microservice, these guides will take you from installation to production-ready code with type-safe database operations, auto-generated OpenAPI docs, and clean dependency injection.
+Welcome to IGNIS - a TypeScript framework that combines enterprise architecture patterns on Hono. Whether you're building a SaaS backend, REST API, gRPC service, or microservice, these guides will take you from installation to production-ready code with type-safe database operations, auto-generated OpenAPI docs, and clean dependency injection.
 
 <div class="guide-cards">
 

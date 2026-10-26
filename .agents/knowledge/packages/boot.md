@@ -21,7 +21,7 @@ tags: [packages, boot, artifacts, generator]
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
-`@venizia/ignis-boot` is a build-time tool, not a runtime dependency. `ignis-artifacts generate`
+`@venizia/ignis-boot` is a build-time tool; only `@venizia/ignis-boot/auto` (Bun) runs inside the application, where a plugin scans `src` at start (cached) and inlines the list in a binary. `ignis-artifacts generate`
 walks a source root with the TypeScript compiler API, finds every named, non-abstract class that
 carries an IGNIS stereotype decorator, and writes `src/generated/artifacts.ts`: plain static imports
 plus one exported object in the `IArtifactIndex` shape. The application passes that object as

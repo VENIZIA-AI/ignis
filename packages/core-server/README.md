@@ -101,7 +101,7 @@ Three things to notice:
   first component that injects the application fails the boot.
 - `preConfigure()` is where you register components, controllers, services, repositories and
   datasources by hand. The `ignis-artifacts` generator in `@venizia/ignis-boot` can write that list
-  for you at build time.
+  for you at build time, and on Bun `@venizia/ignis-boot/auto` builds it at start.
 
 ## Built-in components
 
