@@ -22,8 +22,8 @@ if (typeof manifest.sideEffects === 'boolean') {
 } else if (Array.isArray(manifest.sideEffects)) {
   // CJS paths never resolve under dist/esm; bare globs such as `*.css` keep their meaning as-is.
   marker.sideEffects = manifest.sideEffects
-    .filter(path => !path.startsWith(CJS_ROOT))
-    .map(path => (path.startsWith(ESM_ROOT) ? `./${path.slice(ESM_ROOT.length)}` : path));
+    .filter((path) => !path.startsWith(CJS_ROOT))
+    .map((path) => (path.startsWith(ESM_ROOT) ? `./${path.slice(ESM_ROOT.length)}` : path));
 }
 
 await Bun.write('dist/esm/package.json', `${JSON.stringify(marker, null, 2)}\n`);
