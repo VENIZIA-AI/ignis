@@ -1,9 +1,9 @@
 # The shared build and lint targets of one package. A package Makefile sets the variables below
 # and includes this file.
 #
-#   FORMATS      cjs esm (default) | cjs | plain - which outputs `build` emits
-#   CJS_TSCONFIG the program the CJS pass emits (default .configs/builders/tsconfig.build.json)
-#   CJS_OUT      where the CJS pass lands (default dist/cjs); empty: the tsconfig's own outDir
+#   FORMATS      esm (default) | plain - which output `build` emits: ES modules in dist/esm, or tsc's own
+#                outDir from tsconfig.json
+#   ESM_TSCONFIG the program the ESM pass emits (default .configs/builders/tsconfig.build.json)
 #   POST_BUILD   a shell step only this package has, run after the emit
 #
 # Every tool comes from the package's node_modules/.bin, by absolute path: a recipe never depends on
@@ -20,15 +20,12 @@ TYPECHECK := bun check --no-pretty
 TSC_ALIAS := $(BIN)/tsc-alias
 ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
-FORMATS ?= cjs esm
-CJS_TSCONFIG ?= .configs/builders/tsconfig.build.json
-CJS_OUT ?= dist/cjs
-ESM_TSCONFIG := .configs/builders/tsconfig.esm.json
+FORMATS ?= esm
+ESM_TSCONFIG ?= .configs/builders/tsconfig.build.json
 
-# The programs `build` emits, each type-checked before `rebuild` deletes dist: the ESM program swaps
-# module/moduleResolution and can fail where the CJS one passed, and one that fails after clean
-# leaves a dist with cjs/ and no esm/.
-EMIT_TSCONFIGS := $(if $(filter cjs,$(FORMATS)),$(CJS_TSCONFIG)) $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
+# The program `build` emits, type-checked before `rebuild` deletes dist: one that fails after clean
+# leaves an empty dist, which looks like a hundred unrelated import failures downstream.
+EMIT_TSCONFIGS := $(if $(filter esm,$(FORMATS)),$(ESM_TSCONFIG))
 
 # The code and every JSON, YAML, CSS, HTML and Vue file (package.json keys are sorted); not Markdown.
 FMT_GLOB := "**/*.{ts,mts,tsx,js,mjs,json,jsonc,yml,yaml,css,html,vue}"
@@ -56,11 +53,6 @@ build:
 	@$(TYPECHECK) -p tsconfig.json
 ifneq ($(filter plain,$(FORMATS)),)
 	@$(TSC) -p tsconfig.json --extendedDiagnostics
-endif
-ifneq ($(filter cjs,$(FORMATS)),)
-	@echo ">>> Building CJS..."
-	@$(TSC) -p $(CJS_TSCONFIG) --extendedDiagnostics
-	@$(TSC_ALIAS) -p tsconfig.json $(if $(CJS_OUT),--outDir $(CJS_OUT))
 endif
 ifneq ($(filter esm,$(FORMATS)),)
 	@echo ">>> Building ESM..."

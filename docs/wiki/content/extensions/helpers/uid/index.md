@@ -40,7 +40,7 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 | Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
 | Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
 
-`getInstance()` answers one instance per copy of the module. The instance holds no state of its own: every caller draws v7 IDs from one sequence shared by the whole realm, so the CommonJS and the ESM copy of this package still climb together.
+`getInstance()` answers one instance per copy of the module. The instance holds no state of its own: every caller draws v7 IDs from one sequence shared by the whole realm, so two installed copies of this package still climb together.
 
 ### Pass a generator point-free
 

@@ -67,7 +67,7 @@ The framework's `AppErrorMiddleware` catches `ApplicationError` instances and fo
 - **`error` is refused on the free-form branch (`error?: never`).** This makes `getError({ message, error: caughtError })` fail to compile, so the mistake is caught before runtime - use `cause` instead.
 
 > [!IMPORTANT]
-> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere. The shape is an `Error` with a numeric `statusCode` and a `normalized` whose `text` is a string; a plain `Error` that only carries a `statusCode`, as an HTTP client's does, is not an `ApplicationError`.
+> **Use `isApplicationError()`, never `instanceof ApplicationError`.** There is one `ApplicationError` class, defined in `@venizia/ignis-inversion`. `helpers` re-exports it, so a browser app can raise and read the same errors the server does. But `instanceof` still fails across a package boundary: two installed copies of inversion (two versions nested by a package manager) give one source class two runtime constructors. `isApplicationError()` tests shape, not identity, so it works everywhere. The shape is an `Error` with a numeric `statusCode` and a `normalized` whose `text` is a string; a plain `Error` that only carries a `statusCode`, as an HTTP client's does, is not an `ApplicationError`.
 
 **Options shared by both forms**
 
@@ -341,7 +341,7 @@ Fill only where you choose to. A filled text carries every arg value inline, out
 ### Consume the error response from a browser client
 
 The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
-share it. Its only dependency is `reflect-metadata`; it ships dual CJS+ESM, and pulls in no server module. A frontend
+share it. Its only dependency is `reflect-metadata`; it ships ES modules only, and pulls in no server module. A frontend
 throws its own failures with the same `getError` the server uses, and reads the server's with the
 same field names.
 

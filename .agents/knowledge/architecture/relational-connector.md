@@ -210,8 +210,8 @@ It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecyc
 `Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol read by
 `isTransactionCommitted({ transaction })` (`transaction-state.ts`) - a registry symbol rather than a
 class check, so it recognises a handle or double built on `TransactionLifecycle` even when the
-repository and the transaction load from different module copies (a CommonJS
-`@venizia/ignis/testing` double with an ESM `@venizia/ignis-connectors` repository, or the reverse).
+repository and the transaction load from different module copies (a `@venizia/ignis/testing` double
+from one installed copy with a `@venizia/ignis-connectors` repository from another).
 COMMITTED returns `execute`'s result with a `warn` line and no second commit; any other state
 (ROLLED_BACK, FAILED, or a transaction not built on `TransactionLifecycle` at all) throws naming that
 `execute` ended the transaction before it could be committed, with no rollback attempt. If `execute`
@@ -416,8 +416,7 @@ differently, so each engine pins the answer it gives:
 Skipping a difference would prove nothing, so nothing is skipped. Add a third engine by adding one
 harness file.
 
-`__tests__/relational/no-engine-cycle.test.ts` walks the built `dist/cjs` - the two halves of the
-dual build emit the same tree - and asserts a family's `core/` reaches **no** engine adapter. A
+`__tests__/relational/no-engine-cycle.test.ts` walks the built `dist/esm` and asserts a family's `core/` reaches **no** engine adapter. A
 family is discovered, never named: any directory holding a `core/` subdirectory qualifies, and the
 adapters are that `core/`'s siblings. So `relational` and `search` are both walked today, a third
 paradigm is guarded the day its directory appears, and the forbidden set is every adapter in *any*

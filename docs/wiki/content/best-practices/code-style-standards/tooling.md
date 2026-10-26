@@ -54,7 +54,7 @@ my-app/
 |---|---|
 | `lints/` | The oxlint and ESLint configs, and `.ignore` for both linters |
 | `formatters/` | `.ignore`, the paths the formatter skips. The format itself lives in `bunfig.toml` |
-| `builders/` | Every other tsconfig and the bundler config: a library's `tsconfig.build.json` and `tsconfig.esm.json`, an app's `vite.config.mts`, and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`) |
+| `builders/` | Every other tsconfig and the bundler config: a library's `tsconfig.build.json`, an app's `vite.config.mts`, and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`) |
 
 `tsconfig.json` is the only tsconfig at the project root. Bun, the editor's TypeScript server and oxlint's type-aware engine only look for it there; without it, Bun silently stops applying legacy decorators. A project split into app, node and test programs keeps those in `.configs/builders/` and lists them in the root `tsconfig.json`:
 

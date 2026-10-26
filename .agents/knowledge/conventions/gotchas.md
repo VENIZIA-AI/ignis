@@ -41,7 +41,6 @@ tags: [conventions, gotchas, debugging]
 - [drizzle refuses an empty UPDATE with `No values to set`](#drizzle-refuses-an-empty-update-with-no-values-to-set)
 - [Do not name a schema `ErrorResponse`](#do-not-name-a-schema-errorresponse)
 - [Only the entity knows what the server stamps](#only-the-entity-knows-what-the-server-stamps)
-- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
 - [Only tsconfig.json stays at a project root](#only-tsconfigjson-stays-at-a-project-root)
 - [tsc-alias must read the root tsconfig.json](#tsc-alias-must-read-the-root-tsconfigjson)
 - [A stale .configs/builders/*.tsbuildinfo makes tsc emit nothing](#a-stale-configsbuilderstsbuildinfo-makes-tsc-emit-nothing)
@@ -90,7 +89,6 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
 - [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
 - [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
-- [A CommonJS package must not `require` an ESM-only peer at load](#a-commonjs-package-must-not-require-an-esm-only-peer-at-load)
 
 **DI and decorators**
 
@@ -146,12 +144,10 @@ else's untracked, in-progress one - aborted the build with `dist/` already gone.
 compiles, so a broken test fails loudly with the last good `dist/` intact. This holds for every
 package, `dev-configs` included.
 
-Guard **every** program the build emits, not just the first. `typecheck` checks `tsconfig.json`, the
-CJS tsconfig and the ESM tsconfig. `inversion`, `filter` and `boot` emit
-CJS and ESM from two configs, and `.configs/builders/tsconfig.esm.json` swaps `module`/`moduleResolution`, so it checks
-the same files under different rules and can fail where the CJS pass passed. Guarding one left a
-half-emitted `dist/` holding `cjs/` and no `esm/` - which every consumer resolving `main` hides until
-something resolves the `import` condition.
+Guard **every** program the build emits, not just the first. `typecheck` checks `tsconfig.json` and
+the one build program, `.configs/builders/tsconfig.build.json`. The build program excludes the tests and
+sets its own `outDir`, so guard both: a program the type-check skips can fail at emit, after `clean`
+has already wiped `dist/`.
 
 The diagnostic habit survives the fix. `dist/` is gitignored, so when `bun test` explodes
 catastrophically, check whether `dist/` is empty before debugging the tests: a fresh clone or
@@ -232,17 +228,18 @@ two, and the derivation fails if either stops being published.
 third party's packaging - `assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
 load time.
 
-Every claimed package dual-builds, and `assertBrowserImportCondition` refuses a claim whose sub-path
-publishes no `import` condition. A CommonJS-only package cannot be consumed by a browser bundler
-without a per-consumer workaround, so the claim would not be true. Both builds are probed, and they
-genuinely differ: `@libsql/client` reaches `child_process` only on its CommonJS path, and
-`drizzle-orm/supabase` resolves only on its CommonJS one.
+Every claimed package ships ES modules only, and `assertBrowserEsmEntry` refuses a claim whose sub-path
+publishes no runtime entry in `dist/esm`. A package that a browser bundler cannot take as ES modules
+would need a per-consumer workaround, so the claim would not be true. Entries are probed per runtime
+condition, and there is only `default` now, so the waived impure sub-paths are
+`./postgres/node-postgres`, `./postgres/postgres-js` and `./typesense`.
 
-Two traps come with the dual build. A `"sideEffects": false` package lets a bundler drop the
+Two traps come with the build. A `"sideEffects": false` package lets a bundler drop the
 `import 'reflect-metadata'` at the entry, and every decorator then fails with
 `Reflect.defineMetadata is not a function` - in the PRODUCTION build only, since dev serves modules
 unbundled. The packages that import it therefore list their entry:
-`"sideEffects": ["./dist/cjs/index.js", "./dist/esm/index.js"]`. And the ESM build needs
+`"sideEffects": ["./dist/esm/index.js"]`; the marker file `dist/esm/package.json` carries the same list
+re-rooted. And the ESM build needs
 `"tsc-alias": { "resolveFullPaths": true }`: without the `.js` extension `bun build` cannot resolve
 an extensionless FILE import (a directory with an `index.js` resolves either way, which is why this
 looks like it works until it doesn't).
@@ -308,8 +305,8 @@ applications.
 
 The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
 and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
-two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in the ESM copy was invisible to
-the CommonJS copy). A new module-level singleton in helpers follows the same shape, and its test loads the module
+two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in one copy was invisible to
+the other). A new module-level singleton in helpers follows the same shape, and its test loads the module
 twice through `require` plus `delete require.cache[path]` - a `?query` import does not give Bun a second copy.
 
 The brand goes where the check looks: `static readonly [BRAND] = true` when the check receives a
@@ -420,7 +417,7 @@ restated the flags (2026-10-17).
 `bun src/index.ts` transpiles each file alone. A decorated member whose type is imported by value -
 `@provide` returning `IHealthCheckOptions`, a class-decorated constructor taking `IControllerOptions` -
 keeps that import alive for `design:*` metadata, and linking then fails with `Export named 'X' not
-found` against the CJS dist. `import type { ... }` fixes it, and since issue #184 the base oxlint preset enforces
+found` against the dist. `import type { ... }` fixes it, and since issue #184 the base oxlint preset enforces
 it (`typescript/consistent-type-imports`, `fixStyle: inline-type-imports`), so a value import of a type fails lint. `tsc` output is unaffected (types are
 elided), so an application that builds first and runs `bun dist/index.js` never sees it - only a
 source-run probe does. The 2026-09-23 examples refresh removed the last value-imported
@@ -507,9 +504,8 @@ key never mounts the route, and nothing depends on `NODE_ENV`.
   `'services.X'` does not. Build keys with `BindingKeys.build({ namespace, key: X.name })`, never
   from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
   `--minify-whitespace --minify-syntax`.
-- The bundle carries helpers twice: the application's ESM import and core's CJS require.
-  `LoggerFactory` keeps the provider in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()`
-  in one copy is seen by the other. Register a provider at the entrypoint
+- If the bundle holds two copies of helpers (two installed versions), `LoggerFactory` keeps the provider
+  in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()` in one copy is seen by the other. Register a provider at the entrypoint
   (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
   `createRequire('./winston')`, which cannot resolve inside a binary.
 - Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
@@ -606,25 +602,9 @@ silently replaced by a `$ref` to the first.
 The CRUD factory reads `getServerStampedKeys()`; never match audit keys by name in the kernel. A
 search document is stamped by nothing, so its `createdAt` must stay writable.
 
-## A CommonJS package must not `require` an ESM-only peer at load
-
-core-server is CommonJS. A top-level `require('jose')` (or `require('postgres')` through drizzle)
-runs while the application is still loading, and when the application imports the same ESM package
-Bun refuses it: `require() async module ... is unsupported`. Intermittent with the peer first, 30/30
-with the IGNIS entry first. Load such a peer with a string-literal `import()` at first use
-(`JoseLoader`), or give the sub-path an `import` condition that re-exports an ESM build
-(`postgres-js.mts`). Never `ModuleUtility.load` for a required peer - a computed name drops it from a
-compiled binary. Guards: `packages/core-server/src/__tests__/authenticate/jose-lazy-load.test.ts`, and
-the clean-install gate's `importedAfter` rows (`@venizia/ignis` then `jose`, the postgres-js alias
-then `postgres`).
-
-The race lives only while modules load. Load the peer at boot (fail fast), never at import. The
-clean-install `bun-order` check runs its entry `ORDER_RUNS` (5) times, because the race crashes only
-some runs: at 19 in 30, a single run missed it about one gate run in 7.
-
 ## Only tsconfig.json stays at a project root
 
-Each project keeps every other tsconfig in `.configs/builders/`: the build programs (`tsconfig.build.json`, `tsconfig.esm.json`) and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`, with paths `../../`-relative). `bun check` follows the references like `tsc -b`.
+Each project keeps every other tsconfig in `.configs/builders/`: the build program (`tsconfig.build.json`) and the projects a solution `tsconfig.json` references (`tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json`, with paths `../../`-relative). `bun check` follows the references like `tsc -b`.
 `tsconfig.json` stays at the root. Bun (legacy decorators and `emitDecoratorMetadata`), the editor's
 TS server and oxlint's type-aware pass (`oxlint-tsgolint`) only look for `tsconfig.json` at the root.
 
@@ -633,8 +613,7 @@ threw. See [Bun silently drops `@inject`](#bun-can-silently-drop-inject-when-tsc
 
 ## tsc-alias must read the root tsconfig.json
 
-Build scripts run `tsc-alias -p tsconfig.json --outDir dist/cjs` (ESM: `--outDir dist/esm
---resolve-full-paths`; core-server: `--outDir dist`). Do not point `-p` at a `.configs/` file.
+Build scripts run `tsc-alias -p tsconfig.json --outDir dist/esm --resolve-full-paths`. Do not point `-p` at a `.configs/` file.
 
 tsc-alias resolves `paths` against the directory of the file it reads. Pointed at `.configs/`, it
 resolves `@/...` against `.configs/` and leaves those imports unrewritten in `dist`. The build still

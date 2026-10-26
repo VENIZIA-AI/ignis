@@ -11,111 +11,76 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": false,
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/cjs/index.d.ts",
+  "main": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
     },
     "./http": {
-      "types": "./dist/cjs/http/index.d.ts",
-      "import": "./dist/esm/http/index.js",
-      "require": "./dist/cjs/http/index.js",
-      "default": "./dist/cjs/http/index.js"
+      "types": "./dist/esm/http/index.d.ts",
+      "default": "./dist/esm/http/index.js"
     },
     "./raw-sql": {
-      "types": "./dist/cjs/raw-sql/index.d.ts",
-      "import": "./dist/esm/raw-sql/index.js",
-      "require": "./dist/cjs/raw-sql/index.js",
-      "default": "./dist/cjs/raw-sql/index.js"
+      "types": "./dist/esm/raw-sql/index.d.ts",
+      "default": "./dist/esm/raw-sql/index.js"
     },
     "./relational": {
-      "types": "./dist/cjs/relational/core/index.d.ts",
-      "import": "./dist/esm/relational/core/index.js",
-      "require": "./dist/cjs/relational/core/index.js",
-      "default": "./dist/cjs/relational/core/index.js"
+      "types": "./dist/esm/relational/core/index.d.ts",
+      "default": "./dist/esm/relational/core/index.js"
     },
     "./postgres": {
-      "types": "./dist/cjs/relational/postgres/index.d.ts",
-      "import": "./dist/esm/relational/postgres/index.js",
-      "require": "./dist/cjs/relational/postgres/index.js",
-      "default": "./dist/cjs/relational/postgres/index.js"
+      "types": "./dist/esm/relational/postgres/index.d.ts",
+      "default": "./dist/esm/relational/postgres/index.js"
     },
     "./postgres/node-postgres": {
-      "types": "./dist/cjs/relational/postgres/drivers/node-postgres.d.ts",
-      "import": "./dist/esm/relational/postgres/drivers/node-postgres.js",
-      "require": "./dist/cjs/relational/postgres/drivers/node-postgres.js",
-      "default": "./dist/cjs/relational/postgres/drivers/node-postgres.js"
+      "types": "./dist/esm/relational/postgres/drivers/node-postgres.d.ts",
+      "default": "./dist/esm/relational/postgres/drivers/node-postgres.js"
     },
     "./postgres/postgres-js": {
-      "types": "./dist/cjs/relational/postgres/drivers/postgres-js.d.ts",
-      "import": "./dist/esm/relational/postgres/drivers/postgres-js.js",
-      "require": "./dist/cjs/relational/postgres/drivers/postgres-js.js",
-      "default": "./dist/cjs/relational/postgres/drivers/postgres-js.js"
+      "types": "./dist/esm/relational/postgres/drivers/postgres-js.d.ts",
+      "default": "./dist/esm/relational/postgres/drivers/postgres-js.js"
     },
     "./postgres/pglite": {
-      "types": "./dist/cjs/relational/postgres/drivers/pglite.d.ts",
-      "import": "./dist/esm/relational/postgres/drivers/pglite.js",
-      "require": "./dist/cjs/relational/postgres/drivers/pglite.js",
-      "default": "./dist/cjs/relational/postgres/drivers/pglite.js"
+      "types": "./dist/esm/relational/postgres/drivers/pglite.d.ts",
+      "default": "./dist/esm/relational/postgres/drivers/pglite.js"
     },
     "./postgres/supabase": {
-      "types": "./dist/cjs/relational/postgres/supabase/index.d.ts",
-      "import": "./dist/esm/relational/postgres/supabase/index.js",
-      "require": "./dist/cjs/relational/postgres/supabase/index.js",
-      "default": "./dist/cjs/relational/postgres/supabase/index.js"
+      "types": "./dist/esm/relational/postgres/supabase/index.d.ts",
+      "default": "./dist/esm/relational/postgres/supabase/index.js"
     },
     "./sqlite": {
-      "types": "./dist/cjs/relational/sqlite/index.d.ts",
-      "import": "./dist/esm/relational/sqlite/index.js",
-      "require": "./dist/cjs/relational/sqlite/index.js",
-      "default": "./dist/cjs/relational/sqlite/index.js"
+      "types": "./dist/esm/relational/sqlite/index.d.ts",
+      "default": "./dist/esm/relational/sqlite/index.js"
     },
     "./sqlite/libsql": {
-      "types": "./dist/cjs/relational/sqlite/drivers/libsql.d.ts",
-      "import": "./dist/esm/relational/sqlite/drivers/libsql.js",
-      "require": "./dist/cjs/relational/sqlite/drivers/libsql.js",
-      "default": "./dist/cjs/relational/sqlite/drivers/libsql.js"
+      "types": "./dist/esm/relational/sqlite/drivers/libsql.d.ts",
+      "default": "./dist/esm/relational/sqlite/drivers/libsql.js"
     },
     "./search": {
-      "types": "./dist/cjs/search/core/index.d.ts",
-      "import": "./dist/esm/search/core/index.js",
-      "require": "./dist/cjs/search/core/index.js",
-      "default": "./dist/cjs/search/core/index.js"
+      "types": "./dist/esm/search/core/index.d.ts",
+      "default": "./dist/esm/search/core/index.js"
     },
     "./search/controllers": {
-      "types": "./dist/cjs/search/core/controllers/index.d.ts",
-      "import": "./dist/esm/search/core/controllers/index.js",
-      "require": "./dist/cjs/search/core/controllers/index.js",
-      "default": "./dist/cjs/search/core/controllers/index.js"
+      "types": "./dist/esm/search/core/controllers/index.d.ts",
+      "default": "./dist/esm/search/core/controllers/index.js"
     },
     "./typesense": {
-      "types": "./dist/cjs/search/typesense/index.d.ts",
-      "import": "./dist/esm/search/typesense/index.js",
-      "require": "./dist/cjs/search/typesense/index.js",
-      "default": "./dist/cjs/search/typesense/index.js"
+      "types": "./dist/esm/search/typesense/index.d.ts",
+      "default": "./dist/esm/search/typesense/index.js"
     },
     "./typesense/controllers": {
-      "types": "./dist/cjs/search/typesense/controllers/index.d.ts",
-      "import": "./dist/esm/search/typesense/controllers/index.js",
-      "require": "./dist/cjs/search/typesense/controllers/index.js",
-      "default": "./dist/cjs/search/typesense/controllers/index.js"
+      "types": "./dist/esm/search/typesense/controllers/index.d.ts",
+      "default": "./dist/esm/search/typesense/controllers/index.js"
     },
     "./meilisearch": {
-      "types": "./dist/cjs/search/meilisearch/index.d.ts",
-      "import": "./dist/esm/search/meilisearch/index.js",
-      "require": "./dist/cjs/search/meilisearch/index.js",
-      "default": "./dist/cjs/search/meilisearch/index.js"
+      "types": "./dist/esm/search/meilisearch/index.d.ts",
+      "default": "./dist/esm/search/meilisearch/index.js"
     },
     "./testing": {
-      "types": "./dist/cjs/testing/index.d.ts",
-      "import": "./dist/esm/testing/index.js",
-      "require": "./dist/cjs/testing/index.js",
-      "default": "./dist/cjs/testing/index.js"
+      "types": "./dist/esm/testing/index.d.ts",
+      "default": "./dist/esm/testing/index.js"
     },
     "./package.json": "./package.json"
   },

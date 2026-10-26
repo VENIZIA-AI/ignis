@@ -5,8 +5,7 @@ import { builtinModules } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// `__dirname`, not `import.meta`: this package emits CommonJS.
-const CONNECTORS_ROOT = join(__dirname, '../../..');
+const CONNECTORS_ROOT = join(import.meta.dir, '../../..');
 
 /**
  * `node:module`'s own list rather than a hand-written one: a bare `import ... from 'fs'` bundles

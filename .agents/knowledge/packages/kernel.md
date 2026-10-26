@@ -32,10 +32,9 @@ package depends on the other, and only `kernel` feeds `core` (`make core` needs 
 beside `boot` rather than after it is what keeps boot's node-only glob discovery out of the kernel
 graph.
 
-It ships a **dual CJS + ESM build** (`dist/cjs/index.js` and `dist/esm/index.js`, both conditions in
-one `exports` entry), like `inversion`, `filter`, and `boot`. The browser-purity claim is what forces
-the `import` condition: a browser bundler that finds only CommonJS either fails on the bare
-`require()` or needs a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
+It ships **ES modules only** (`dist/esm/index.js`, one `exports` entry with `types` and `default`),
+like `inversion`, `filter`, and `boot`. The browser-purity claim rests on it: a browser bundler takes
+the ES build without a per-consumer pre-bundling workaround. `packages/core-server/src/index.ts` re-exports
 the kernel barrel wholesale, so `@venizia/ignis` keeps its published name and its full public
 surface: no consumer import changed when this package was carved out of core.
 
@@ -284,7 +283,7 @@ body is empty - `{}`, a `where` alone, or only keys the body schema strips - wit
 
 `errorResponses()` (`base/models/common/schemas.ts`) is the one home of the `4XX`/`5XX` pair;
 `jsonResponse`, `htmlResponse` and core-server's static-asset definitions spread it. `ErrorSchema`
-carries the refId `ErrorResponse`: two copies of it (CJS and ESM) merge into one component, an
+carries the refId `ErrorResponse`: two copies of it (two installed copies) merge into one component, an
 `.extend()` documents as `allOf`, and a consumer schema with the same refId silently resolves to the
 framework's.
 
