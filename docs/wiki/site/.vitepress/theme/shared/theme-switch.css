@@ -2,11 +2,11 @@
  * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
  * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
  *
- * The light and dark switch. With View Transitions the old and the new page are two images and the new
- * one is revealed by a circle from the toggle (toggle-appearance.ts), so nothing flickers piece by piece.
- * Without the API a temporary `theme-fade` class cross-fades the colours; with reduced motion the
- * switch is instant. The toggle is an icon button: the sun and the moon stay in it and cross-fade with
- * a quarter turn.
+ * The light and dark switch: the whole page cross-fades in 200ms, and nothing moves across the screen.
+ * With View Transitions the old and the new page are two images that fade (the default root
+ * cross-fade, set to 200ms below); without the API a temporary `theme-fade` class fades the colours; with
+ * reduced motion the switch is instant (toggle-appearance.ts). The toggle is an icon button: the sun and
+ * the moon stay in it and cross-fade with a small turn.
  */
 
 /* ---- the toggle: the default switch restyled as an icon button ---------------------------------- */
@@ -72,19 +72,19 @@ html.dark .VPSwitchAppearance .icon .moon {
   transform: none;
 }
 
-/* ---- View Transitions: the new page, on top, revealed by a circle ------------------------------- */
+/* ---- View Transitions: the browser's default cross-fade of the root, 200ms ---------------------- */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
+  animation-duration: 200ms;
+  animation-timing-function: ease;
 }
 
-::view-transition-old(root) {
-  z-index: 1;
-}
-
-::view-transition-new(root) {
-  z-index: 2147483646;
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
 
 /* ---- the fallback: fade colours only while the class is on, never a permanent transition -------- */
