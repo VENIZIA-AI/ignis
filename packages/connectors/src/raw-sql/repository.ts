@@ -1,5 +1,5 @@
 import type { IRepository } from '@venizia/ignis-kernel';
-import { AbstractEntity } from '@venizia/ignis-kernel';
+import { AbstractEntity } from '@venizia/ignis-kernel/repository';
 import type { TSchemaType } from '@venizia/ignis-kernel/repository';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { BaseHelper } from '@venizia/ignis-helpers/core';

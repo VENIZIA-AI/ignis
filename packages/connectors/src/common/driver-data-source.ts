@@ -1,5 +1,6 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
-import { AbstractDataSource, MetadataRegistry } from '@venizia/ignis-kernel';
+import { AbstractDataSource } from '@venizia/ignis-kernel/repository';
+import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
 import type { AnyObject, AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IConnectorDriver } from './driver';
