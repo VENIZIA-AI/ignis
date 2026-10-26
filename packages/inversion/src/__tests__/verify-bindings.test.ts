@@ -324,7 +324,7 @@ describe('Container errors carry what is missing', () => {
 
 describe('the core stays portable', () => {
   test('K17 it imports only from inversion modules and reads no platform global', () => {
-    const source = readFileSync(join(import.meta.dir, '../modules/container/verifier.ts'), 'utf8');
+    const source = readFileSync(join(__dirname, '../modules/container/verifier.ts'), 'utf8');
     const specifiers = [...source.matchAll(/from '([^']+)'/g)].map((match) => match[1]);
 
     expect(specifiers.length).toBeGreaterThan(0);
