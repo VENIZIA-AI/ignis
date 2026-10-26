@@ -16,6 +16,7 @@
  */
 
 import { parseReleaseArgs, type TReleaseMode } from './release-args';
+import { NpmDistTags, ReleaseModes } from './release-constants';
 import { planFullSweep } from './release-plan';
 
 const WORKFLOW = 'package-release.yml';
@@ -41,10 +42,9 @@ const RELEASE_ORDER = [
 ] as const;
 
 /** The workflow publishes a stable bump under `latest` and a pre* bump under `next`. */
-const STABLE_MODES: ReadonlySet<TReleaseMode> = new Set(['patch', 'minor', 'major']);
 
 const toDistTag = (opts: { mode: TReleaseMode }): string =>
-  STABLE_MODES.has(opts.mode) ? 'latest' : 'next';
+  ReleaseModes.STABLE_SET.has(opts.mode) ? NpmDistTags.LATEST : NpmDistTags.NEXT;
 
 interface IPackageState {
   name: string;

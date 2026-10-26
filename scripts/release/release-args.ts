@@ -1,11 +1,6 @@
-export type TReleaseMode =
-  | 'patch'
-  | 'minor'
-  | 'major'
-  | 'prepatch'
-  | 'preminor'
-  | 'premajor'
-  | 'prerelease';
+import { ReleaseModes, type TReleaseMode } from './release-constants';
+
+export type { TReleaseMode };
 
 export interface IReleaseArgs {
   isDryRun: boolean;
@@ -21,7 +16,13 @@ export interface IReleaseArgs {
 /** Parses the command line of scripts/release/release.ts. Throws on an `--issue` that is not a number. */
 export const parseReleaseArgs = (args: ReadonlyArray<string>): IReleaseArgs => {
   const modeIndex = args.indexOf('--mode');
-  const mode = (modeIndex >= 0 ? args[modeIndex + 1] : 'prerelease') as TReleaseMode;
+  const requestedMode = modeIndex >= 0 ? args[modeIndex + 1] : ReleaseModes.PRERELEASE;
+  if (requestedMode === undefined || !ReleaseModes.isValid(requestedMode)) {
+    throw new Error(
+      `--mode must be one of ${[...ReleaseModes.SCHEME_SET].join(', ')}, got: ${requestedMode ?? 'nothing'}`,
+    );
+  }
+  const mode = requestedMode;
   const seedIndex = args.indexOf('--chain-released');
   const seeded = seedIndex >= 0 ? (args[seedIndex + 1] ?? '').split(',').filter(Boolean) : [];
   const issueIndex = args.indexOf('--issue');
