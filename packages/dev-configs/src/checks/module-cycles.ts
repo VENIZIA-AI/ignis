@@ -1,8 +1,7 @@
 /**
  * Lists import cycles in a built ESM directory. bun turns every member of a
  * cycle into a lazy initializer, and a barrel `export *` over such a member
- * can leave its exports undefined. Usage: bun scripts/checks/module-cycles.ts
- * packages/helpers/dist/esm [--max 0]
+ * can leave its exports undefined. Usage: devz check module-cycles packages/helpers/dist/esm [--max 0]
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
@@ -122,36 +121,42 @@ export class ModuleGraph {
   }
 }
 
-const run = (): number => {
+/**
+ * `devz check module-cycles <dir> [--max <n>]`: prints the cycles of a built ESM directory and
+ * returns 1 when there are more than `max` (no bound by default), 2 on a usage error.
+ */
+export const runModuleCycles = (opts: {
+  args: string[];
+  print: (line: string) => void;
+  printError: (line: string) => void;
+}): number => {
+  const { args, print, printError } = opts;
   const { positionals, values } = parseArgs({
-    args: process.argv.slice(2),
+    args,
     allowPositionals: true,
-    options: { max: { type: 'string' } },
+    options: { max: { type: 'string' }, dist: { type: 'string' } },
   });
-  const dir = positionals[0];
+  const dir = values.dist ?? positionals[0];
+  const usage = 'usage: devz check module-cycles <built ESM dir> [--max <n>]';
   if (!dir) {
-    console.error('usage: bun scripts/checks/module-cycles.ts <dist/esm dir> [--max <n>]');
+    printError(usage);
     return 2;
   }
 
   let max = Number.POSITIVE_INFINITY;
   if (values.max !== undefined) {
     if (!/^\d+$/.test(values.max)) {
-      console.error('usage: bun scripts/checks/module-cycles.ts <dist/esm dir> [--max <n>]');
+      printError(usage);
       return 2;
     }
     max = Number(values.max);
   }
 
   const cycles = ModuleGraph.fromDirectory({ dir }).cycles();
-  console.log(`${dir}: ${cycles.length} cycle(s)`);
+  print(`${dir}: ${cycles.length} cycle(s)`);
   for (const cycle of cycles) {
-    console.log(`  - ${cycle.join(' <-> ')}`);
+    print(`  - ${cycle.join(' <-> ')}`);
   }
 
   return cycles.length > max ? 1 : 0;
 };
-
-if (import.meta.main) {
-  process.exit(run());
-}

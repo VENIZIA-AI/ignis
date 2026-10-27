@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModuleGraph } from '../module-cycles';
+import { ModuleGraph } from '../../checks/module-cycles';
 
 const tmpDirs: string[] = [];
 

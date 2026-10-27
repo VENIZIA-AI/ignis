@@ -464,6 +464,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'devz check catalog, module-cycles, split-report',
+                  link: '/changelogs/2026-10-27-dev-configs-check-catalog-cycles-split',
+                },
+                {
                   text: 'dev-configs Testing Adds spawnSyncBounded',
                   link: '/changelogs/2026-10-27-dev-configs-testing-spawn-tmpdir',
                 },

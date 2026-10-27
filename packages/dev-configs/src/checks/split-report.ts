@@ -1,7 +1,7 @@
 /**
  * Informational report behind the file-splitting convention (conventions/file-splitting.md):
  * hub candidates, stray types files, scope folders without a barrel, files over the soft mark,
- * and import cycles per package. Never a gate. Usage: bun scripts/checks/split-report.ts [packages/kernel]
+ * and import cycles per package. Never a gate. Usage: devz check split-report [--dist <dir>] [packages/kernel]
  * - with no argument, scans every packages/* and examples/* directory that has a src/.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -26,7 +26,9 @@ interface IFileFacts {
 }
 
 export class SplitReport {
-  static run(opts: { packageDir: string }): void {
+  /** `distDir` is the built ESM folder inside a package (`dist/esm`, or `dist` where one build is published); `print` takes the report line by line. */
+  static run(opts: { packageDir: string; distDir?: string; print?: (line: string) => void }): void {
+    const { distDir = 'dist', print = console.log } = opts;
     const src = join(opts.packageDir, 'src');
     if (!existsSync(src)) {
       return;
@@ -46,44 +48,50 @@ export class SplitReport {
     );
     const long = facts.filter((f) => f.lines > SOFT_LINE_MARK);
     const noBarrel = SplitReport.foldersWithoutIndex({ dir: src });
-    const esm = join(opts.packageDir, 'dist/esm');
+    const esm = join(opts.packageDir, distDir);
     const cycles = existsSync(esm) ? ModuleGraph.fromDirectory({ dir: esm }).cycles().length : -1;
 
-    console.log(`\n## ${basename(opts.packageDir)} - ${facts.length} files`);
+    print(`\n## ${basename(opts.packageDir)} - ${facts.length} files`);
     const hubTitle = `hub candidates (> ${HUB_EXPORT_MARK} exports)`;
     const hubRows = hubs.map((f) => `${rel(f.file)} (${f.exports})`);
-    SplitReport.section({ title: hubTitle, rows: hubRows });
+    SplitReport.section({ title: hubTitle, rows: hubRows, print });
     const classTitle = 'files with 2+ exported classes';
     const classRows = multiClass.map((f) => `${rel(f.file)} (${f.classes.join(', ')})`);
-    SplitReport.section({ title: classTitle, rows: classRows });
+    SplitReport.section({ title: classTitle, rows: classRows, print });
     const strayTitle = 'types/constants outside common/';
     const strayRows = strayTypes.map((f) => rel(f.file));
-    SplitReport.section({ title: strayTitle, rows: strayRows });
+    SplitReport.section({ title: strayTitle, rows: strayRows, print });
     const barrelTitle = 'scope folders without index.ts';
     const barrelRows = noBarrel.map((d) => relative(opts.packageDir, d));
-    SplitReport.section({ title: barrelTitle, rows: barrelRows });
+    SplitReport.section({ title: barrelTitle, rows: barrelRows, print });
     const longTitle = `over ${SOFT_LINE_MARK} lines (a prompt to explain, not a defect)`;
     const longRows = long.map((f) => `${rel(f.file)} (${f.lines})`);
-    SplitReport.section({ title: longTitle, rows: longRows });
+    SplitReport.section({ title: longTitle, rows: longRows, print });
     const cycleMsg = cycles < 0 ? 'no dist' : cycles;
-    console.log(`- import cycles in dist/esm: ${cycleMsg}`);
+    print(`- import cycles in ${distDir}: ${cycleMsg}`);
   }
 
   /** Every packages/* and examples/* directory that has a src/ folder. */
-  static defaultTargets(): string[] {
-    const packages = readdirSync(resolve('packages'))
-      .map((name) => resolve('packages', name))
-      .filter((dir) => existsSync(join(dir, 'src')));
-    const examples = readdirSync(resolve('examples'))
-      .map((name) => resolve('examples', name))
-      .filter((dir) => existsSync(join(dir, 'src')));
-    return [...packages, ...examples];
+  static defaultTargets(opts: { root?: string } = {}): string[] {
+    const root = opts.root ?? process.cwd();
+    const withSource = (folder: string): string[] =>
+      existsSync(resolve(root, folder))
+        ? readdirSync(resolve(root, folder))
+            .map((name) => resolve(root, folder, name))
+            .filter((dir) => existsSync(join(dir, 'src')))
+        : [];
+
+    return [...withSource('packages'), ...withSource('examples')];
   }
 
-  private static section(opts: { title: string; rows: string[] }): void {
-    console.log(`- ${opts.title}: ${opts.rows.length}`);
+  private static section(opts: {
+    title: string;
+    rows: string[];
+    print: (line: string) => void;
+  }): void {
+    opts.print(`- ${opts.title}: ${opts.rows.length}`);
     for (const row of opts.rows) {
-      console.log(`    ${row}`);
+      opts.print(`    ${row}`);
     }
   }
 
@@ -140,15 +148,5 @@ export class SplitReport {
       out.push(...SplitReport.foldersWithoutIndex({ dir: full }));
     }
     return out;
-  }
-}
-
-if (import.meta.main) {
-  const targets = process.argv.slice(2);
-  const packages = targets.length
-    ? targets.map((target) => resolve(target))
-    : SplitReport.defaultTargets();
-  for (const packageDir of packages) {
-    SplitReport.run({ packageDir });
   }
 }

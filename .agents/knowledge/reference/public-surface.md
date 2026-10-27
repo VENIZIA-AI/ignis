@@ -142,24 +142,31 @@ generated:
 - `UnusedArgsModes` class
 - `UnusedVarsScopes` class
 
-### `@venizia/dev-configs/checks` (19)
+### `@venizia/dev-configs/checks` (26)
 
 - `assertBrowserEsmEntry` const
 - `assertNoWorkspaceExternal` const
 - `buildManifest` const
 - `checkPurity` const
 - `deriveEntries` const
+- `findCatalogProblems` const
 - `GLOBAL_PATTERNS` const
+- `ICatalogOptions` interface
+- `ICatalogProblem` interface
+- `ICatalogReport` interface
 - `IPurityClaim` interface
 - `IPurityEntry` interface
 - `IPurityOptions` interface
 - `IPurityReport` interface
 - `IPurityResult` interface
 - `IPurityRowVerdict` interface
+- `ModuleGraph` class
 - `probeEntry` const
 - `ProbeSeverities` class
 - `PURITY_SCRATCH_DIR` const
 - `PurityVerdicts` class
+- `runModuleCycles` const
+- `SplitReport` class
 - `stripBundlerPathComments` const
 - `TProbeSeverity` type
 - `TPurityVerdict` type
