@@ -201,12 +201,13 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
 };
 
 /**
- * Proves an IGNIS application boots, without real infrastructure: it runs the application's own boot
- * sequence (`init()` then `initialize()`) and never calls `start()`, so no socket is opened and no
- * post-start hook runs.
+ * Proves an IGNIS application boots, without a datasource connection, a socket or a secrets provider:
+ * it runs the application's own boot sequence (`init()` then `initialize()`) and never calls `start()`,
+ * so no socket is opened and no post-start hook runs.
  *
  * Datasources are bound and resolved but not configured, unless named in `keepDataSources`; the
- * secrets steps are skipped; every other step and every component runs as in a real boot. When the
+ * secrets steps are skipped; every other step and every component runs as in a real boot. A component
+ * that opens Redis, Kafka or S3 in `binding()` therefore runs for real: name it in `skipComponents`. When the
  * boot fails, the rejection is the original error. The application stays booted and is returned;
  * a failed boot leaves a half-booted instance, so build a new one rather than reuse it.
  *
