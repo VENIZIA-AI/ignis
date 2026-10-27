@@ -153,7 +153,11 @@ describe('UuidHelper.v5', () => {
     );
   });
 
-  test('a very long name does not keep its buffer afterwards', () => {
+  // The buffer of a 5 MB name is released by the collector, which frees ArrayBuffer memory on its own schedule: a
+  // single Bun.gc(true) followed by one read failed 1 run in 50 under CPU load (#587). The test therefore waits for
+  // the collector, up to a second, instead of assuming it is done. A generator that KEEPS the buffer never lets the
+  // number fall, so the bound still fails it - after the wait.
+  test('a very long name does not keep its buffer afterwards', async () => {
     // Bun reports ArrayBuffer memory under `external`; `arrayBuffers` stays 0 there.
     const generate = createUuidV5();
     const name = 'x'.repeat(5_000_000);
@@ -163,9 +167,19 @@ describe('UuidHelper.v5', () => {
 
     generate({ namespace: UuidNamespaces.DNS, name });
     generate({ namespace: UuidNamespaces.DNS, name: 'short' });
-    Bun.gc(true);
 
-    expect(process.memoryUsage().external - before).toBeLessThan(5_000_000);
+    const bound = 5_000_000;
+    let growth = Number.POSITIVE_INFINITY;
+    for (let attempt = 0; attempt < 40 && growth >= bound; attempt += 1) {
+      Bun.gc(true);
+      growth = process.memoryUsage().external - before;
+
+      if (growth >= bound) {
+        await Bun.sleep(25);
+      }
+    }
+
+    expect(growth).toBeLessThan(bound);
   });
 
   test('a namespace that is not a UUID is refused', () => {
