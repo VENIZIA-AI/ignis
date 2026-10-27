@@ -19,7 +19,7 @@ PURITY := $(DEVZ) check purity --claims scripts/checks/purity/manifest.ts
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
-.PHONY: test-all test-scripts build-checks examples-check purity purity-test clean-install tmp-leak-check \
+.PHONY: test-all test-scripts build-checks examples-check purity purity-test controls-check clean-install tmp-leak-check \
         $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
@@ -84,6 +84,11 @@ examples-check:
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
+# Every positive control a gate relies on is still a test (scripts/checks/controls.json): a deleted control
+# would let its gate pass for the wrong reason. Reads the test files, no run needed; needs dev-configs built.
+controls-check:
+	@$(DEVZ) check test-controls scripts/checks/controls.json
+
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
 	@bun test scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks

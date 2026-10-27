@@ -47,6 +47,7 @@ help:
 	@$(HELP_ROW) "lint-files / fmt-files" "Format check / write of package.json, .github, .agents, .configs, presets and examples."
 	@$(HELP_ROW) "lint-wiki / fmt-wiki" "Lint docs/wiki scripts and check its format / the same with --fix and write mode."
 	@$(HELP_ROW) "test-scripts" "Run the repository gate scripts' own regression tests."
+	@$(HELP_ROW) "controls-check" "Gate: every registered positive-control test still exists (scripts/checks/controls.json). Needs dev-configs built."
 	@$(HELP_ROW) "purity-test" "Run the purity probe's own regression tests."
 	@$(HELP_ROW) "build-checks" "Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build."
 	@echo ""

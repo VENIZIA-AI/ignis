@@ -1,0 +1,94 @@
+{
+  "controls": [
+    {
+      "gate": "purity probe",
+      "file": "packages/dev-configs/src/__tests__/checks/purity/probe.test.ts",
+      "titlePattern": "^(fails|still fails|reports but does not fail)",
+      "min": 7
+    },
+    {
+      "gate": "purity probe",
+      "file": "packages/dev-configs/src/__tests__/checks/purity/probe.test.ts",
+      "titlePattern": "removes the real collision|leaves a real unguarded process read alone",
+      "min": 2
+    },
+    {
+      "gate": "purity engine",
+      "file": "packages/dev-configs/src/__tests__/checks/purity/engine.test.ts",
+      "titlePattern": "^positive control",
+      "min": 5
+    },
+    {
+      "gate": "purity engine",
+      "file": "packages/dev-configs/src/__tests__/checks/purity/engine.test.ts",
+      "titlePattern": "rejects an entry that externalises|fails the derivation|fails when one runtime condition points outside",
+      "min": 6
+    },
+    {
+      "gate": "purity claims",
+      "file": "scripts/checks/purity/__tests__/claims.test.ts",
+      "titlePattern": "^every entry point|^helpers claims its five",
+      "min": 2
+    },
+    {
+      "gate": "clean-install",
+      "file": "scripts/checks/__tests__/clean-install-guards.test.ts",
+      "titlePattern": "is refused$|resolving a @venizia entry from the registry fails|missing the sandboxed package fails|no row loads is reported|is stale$",
+      "min": 5
+    },
+    {
+      "gate": "clean-install",
+      "file": "scripts/checks/__tests__/clean-install-manifest.test.ts",
+      "titlePattern": "is refused",
+      "min": 3
+    },
+    {
+      "gate": "tmp-leak",
+      "file": "scripts/checks/__tests__/tmp-leak.test.ts",
+      "titlePattern": "^reports a new entry|^throws when verify runs without a snapshot",
+      "min": 2
+    },
+    {
+      "gate": "package layout",
+      "file": "scripts/checks/__tests__/package-layout.test.ts",
+      "titlePattern": "tracks exactly the shared root entries|publishes the shared files list|runs force-update",
+      "min": 3
+    },
+    {
+      "gate": "verifyBindings core",
+      "file": "packages/inversion/src/__tests__/verify-bindings.test.ts",
+      "titlePattern": "^K\\d+",
+      "min": 18
+    },
+    {
+      "gate": "doVerify boot step",
+      "file": "packages/kernel/src/__tests__/applications/boot-checks.test.ts",
+      "titlePattern": "^true: the boot fails|^true: the error carries|^false: .*(fails|throws)",
+      "min": 4
+    },
+    {
+      "gate": "assertApplicationBoots",
+      "file": "packages/core-server/src/__tests__/testing/assert-application-boots.test.ts",
+      "titlePattern": "^(C1/C2|C2|C5|C7|C8|C15|C16|C17|C18|C21|C27|I3|I4|I5|I9|A1)\\b",
+      "min": 21
+    },
+    {
+      "gate": "bun runtime guard",
+      "file": "packages/core-server/src/__tests__/applications/bun-runtime-guard.test.ts",
+      "titlePattern": "^refuses",
+      "min": 4
+    },
+    {
+      "gate": "catalog check",
+      "file": "packages/dev-configs/src/__tests__/checks/catalog.test.ts",
+      "titlePattern": "^positive control",
+      "min": 3
+    },
+    {
+      "gate": "trim-tests tools",
+      "file": "packages/dev-configs/src/__tests__/checks/test-trim.test.ts",
+      "titlePattern": "^positive control",
+      "min": 4
+    }
+  ]
+}

@@ -460,6 +460,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-28',
+              collapsed: true,
+              items: [
+                {
+                  text: 'devz check test-weight, test-mutate and friends',
+                  link: '/changelogs/2026-10-28-dev-configs-test-trim-tools',
+                },
+              ],
+            },
+            {
               text: '2026-10-27',
               collapsed: true,
               items: [

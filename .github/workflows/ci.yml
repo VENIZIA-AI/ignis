@@ -44,6 +44,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make dev-configs
 
+      - name: Positive controls registry
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make controls-check
+
       - name: Dependency catalog
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make catalog-check
