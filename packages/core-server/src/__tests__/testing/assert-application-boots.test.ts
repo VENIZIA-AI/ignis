@@ -197,6 +197,37 @@ class CountingComponent extends BaseComponent {
   }
 }
 
+/** The error a component raises while it binds, kept so a test can tell the original rejection from a wrapped one. */
+const BINDING_FAILURE = new Error('cannot reach the broker');
+
+/** A component that needs infrastructure and fails while it binds, as one that connects to Redis or Kafka does. */
+class ThrowingComponent extends BaseComponent {
+  constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) application: BaseApplication) {
+    super({ scope: ThrowingComponent.name, initDefault: { enable: true, container: application } });
+  }
+
+  override binding(): ValueOrPromise<void> {
+    throw BINDING_FAILURE;
+  }
+}
+
+/** Records what an application logs, so a test can read the lines of one level. */
+const recordLogs = (application: BaseApplication): Array<{ level: string; message: string }> => {
+  const lines: Array<{ level: string; message: string }> = [];
+  const recorder: AnyType = {
+    for: () => recorder,
+    log: () => {},
+  };
+  for (const level of ['debug', 'info', 'warn', 'error']) {
+    recorder[level] = (...args: unknown[]) => {
+      lines.push({ level, message: args.map(String).join(' ') });
+    };
+  }
+
+  application.logger = recorder;
+  return lines;
+};
+
 /** A component that contributes a datasource while it binds. */
 class ContributingComponent extends BaseComponent {
   constructor(
@@ -498,6 +529,72 @@ describe('assertApplicationBoots - datasources and components', () => {
 
     expect(calls.override).toBeGreaterThan(0);
     expect(calls.failing).toBe(0);
+  });
+});
+
+describe('assertApplicationBoots - a failing component names the way out', () => {
+  const planned = () => new PlannedApplication({ ...FULL, components: [ThrowingComponent] });
+
+  test('a boot that fails inside a component logs one line naming skipComponents, and rejects with the original error', async () => {
+    const application = planned();
+    const lines = recordLogs(application);
+
+    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    const hints = lines.filter((line) => line.message.includes('skipComponents'));
+
+    expect(error).toBe(BINDING_FAILURE);
+    expect(hints).toHaveLength(1);
+    expect(hints[0].message).toContain("skipComponents: ['ThrowingComponent']");
+  });
+
+  test('with a skipped component before it, the hint names the component that failed', async () => {
+    const application = new PlannedApplication({
+      ...FULL,
+      components: [CountingComponent, ThrowingComponent],
+    });
+    const lines = recordLogs(application);
+
+    const error = await assertApplicationBoots(application, {
+      skipComponents: [CountingComponent],
+    }).catch((caught: unknown) => caught);
+    const hints = lines.filter((line) => line.message.includes('skipComponents'));
+
+    expect(error).toBe(BINDING_FAILURE);
+    expect(hints).toHaveLength(1);
+    expect(hints[0].message).toContain("skipComponents: ['ThrowingComponent']");
+  });
+
+  test('a component that finished before a later failure is not blamed', async () => {
+    const application = new PlannedApplication({
+      controllers: [BrokenController],
+      components: [CountingComponent],
+    });
+    const lines = recordLogs(application);
+
+    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
+  });
+
+  test('a boot that fails outside a component logs no hint', async () => {
+    const application = new PlannedApplication({ controllers: [BrokenController] });
+    const lines = recordLogs(application);
+
+    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
+  });
+
+  test('a component named in skipComponents is skipped, so the boot passes and nothing is hinted', async () => {
+    const application = planned();
+    const lines = recordLogs(application);
+
+    const booted = await assertApplicationBoots(application, {
+      skipComponents: [ThrowingComponent],
+    });
+
+    expect(booted).toBe(application);
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
   });
 });
 

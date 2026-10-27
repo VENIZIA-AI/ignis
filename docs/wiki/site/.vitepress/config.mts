@@ -501,6 +501,10 @@ const config = defineConfig({
                   text: 'assertApplicationBoots: components run for real',
                   link: '/changelogs/2026-10-28-assert-application-boots-components-run',
                 },
+                {
+                  text: 'assertApplicationBoots: skipComponents hint',
+                  link: '/changelogs/2026-10-28-assert-application-boots-skip-components-hint',
+                },
               ],
             },
             {
