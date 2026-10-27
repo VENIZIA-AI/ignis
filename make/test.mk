@@ -13,7 +13,8 @@ PURE := inversion filter helpers kernel connectors core-worker
 
 TEST_TARGETS := $(addprefix test-,$(PACKAGES))
 # The browser-purity engine is `devz check purity` (packages/dev-configs); this repository only owns the claims.
-PURITY := bun packages/dev-configs/dist/cli/index.js check purity --claims scripts/checks/purity/manifest.ts
+DEVZ := bun packages/dev-configs/dist/cli/index.js
+PURITY := $(DEVZ) check purity --claims scripts/checks/purity/manifest.ts
 
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
@@ -48,7 +49,7 @@ tmp-leak-check:
 	bun scripts/checks/tmp-leak/cli.ts verify || status=1; \
 	exit $$status
 
-# The repository gate scripts' own regression tests (module-cycles, split-report, wiki-source-links,
+# The repository gate scripts' own regression tests (wiki-source-links,
 # wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."

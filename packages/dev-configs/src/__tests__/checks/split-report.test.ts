@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { SplitReport } from '../split-report';
+import { SplitReport } from '../../checks/split-report';
 
 const tmpDirs: string[] = [];
 

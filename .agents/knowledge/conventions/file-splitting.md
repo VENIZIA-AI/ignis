@@ -99,7 +99,7 @@ have to call back into a sibling, do not extract it - leave it in the parent.
 
 - `make split-report` - hub candidates, stray `types.ts`, folders without a barrel, files over 500
   lines, cycles per package. Informational.
-- `bun scripts/checks/module-cycles.ts packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
+- `devz check module-cycles packages/<p>/dist/esm --max 0` - fails on an import cycle. bun turns
   cycle members into lazy initializers; a barrel over one can export `undefined`.
 - `make surface-check` - the public surface equals `reference/public-surface.md`. The snapshot
   records exported symbol names and kinds only, never a signature, generics, class members or a
