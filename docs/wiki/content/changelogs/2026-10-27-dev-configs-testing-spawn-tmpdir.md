@@ -16,7 +16,7 @@ packages: ['@venizia/dev-configs']
 
 - **`spawnSyncBounded({ cmd, timeout? })`.** `Bun.spawnSync` with a bound: it kills the child with SIGKILL after `timeout` (default 120 000 ms) and throws `[spawnSyncBounded] did not exit within N ms, killed | cmd: ...`. A sync spawn blocks the worker thread, so bun's own test timeout cannot stop a stuck child.
 - **`useRepoTmp({ root? })`** points `TMPDIR` at `<repository>/.agents/local/tmp/tests` (the repository is the nearest folder with a `.git`), makes an empty `.git` marker there, sets `GIT_CEILING_DIRECTORIES`, and makes `Bun.spawn` and `Bun.spawnSync` pass the new environment to children. It does nothing when `TMPDIR` is already inside that folder.
-- **`@venizia/dev-configs/testing/tmpdir-preload`** calls it. Add `[test] preload = ["@venizia/dev-configs/testing/tmpdir-preload"]` to a `bunfig.toml` and a bare `bun test` keeps its temp folders in the repository, as `make test` does.
+- **`@venizia/dev-configs/testing/tmpdir-preload`** calls it. Add `[test] preload = ["@venizia/dev-configs/testing/tmpdir-preload"]` to the `bunfig.toml` of **every package that runs tests** and a bare `bun test` keeps its temp folders in the repository, as `make test` does. Bun reads only the `bunfig.toml` of the folder it runs in, so a preload in the repository root does not apply to `bun test` run inside a workspace package (a root file covers a run from the root only).
 - IGNIS imports `spawnSyncBounded` from the package; its five copies are deleted and the suites keep their test counts.
 
 ## Who is affected
