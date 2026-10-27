@@ -187,20 +187,13 @@ describe('isApplicationError', () => {
   });
 });
 
-/** Pins the removal itself - nothing else asserts these fields are gone, so a regression re-adding either would pass the whole suite. */
+/** Pins the removal itself - nothing else asserts this field is gone, so a regression re-adding it would pass the whole suite. (`messageArgs` staying out of `extra` is pinned in normalized.test.ts.) */
 describe('the legacy duplicates stay removed', () => {
   test('no flat messageCode field on the instance', () => {
     const error = getError({ message: 'x', messageCode: 'a.b' });
 
     expect('messageCode' in error).toBe(false);
     expect(error.normalized.code).toBe('a.b');
-  });
-
-  test('extra never mirrors messageArgs', () => {
-    const error = getError({ message: 'x', messageArgs: { a: 1 } });
-
-    expect(error.extra).toBeUndefined();
-    expect(error.normalized.args).toEqual({ a: 1 });
   });
 });
 

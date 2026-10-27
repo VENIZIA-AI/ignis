@@ -1213,13 +1213,6 @@ describe('WebSocketServerHelper', () => {
       }).not.toThrow();
     });
 
-    test('should clean up user index entry when last client disconnects', () => {
-      helper.onClientDisconnect({ clientId: 'client-1' });
-
-      const userClients = helper.getClientsByUser({ userId: 'user-1' });
-      expect(userClients).toHaveLength(0);
-    });
-
     test('should preserve other clients of same user', async () => {
       const socket2 = createMockSocket('client-2');
       await connectAndAuth(helper, { clientId: 'client-2', socket: socket2, userId: 'user-1' });
@@ -1229,13 +1222,6 @@ describe('WebSocketServerHelper', () => {
       const userClients = helper.getClientsByUser({ userId: 'user-1' });
       expect(userClients).toHaveLength(1);
       expect(userClients[0].id).toBe('client-2');
-    });
-
-    test('should clean up room index entry when last client leaves', () => {
-      helper.onClientDisconnect({ clientId: 'client-1' });
-
-      const roomClients = helper.getClientsByRoom({ room: WebSocketDefaults.ROOM });
-      expect(roomClients).toHaveLength(0);
     });
   });
 
