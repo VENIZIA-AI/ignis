@@ -493,6 +493,10 @@ const config = defineConfig({
                   text: 'assertApplicationBoots Proves an Application Boots',
                   link: '/changelogs/2026-10-27-assert-application-boots',
                 },
+                {
+                  text: 'assertApplicationBoots duplicate-route false positive',
+                  link: '/changelogs/2026-10-28-assert-application-boots-duplicate-routes',
+                },
               ],
             },
             {

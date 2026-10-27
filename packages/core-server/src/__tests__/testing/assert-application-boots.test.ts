@@ -145,6 +145,47 @@ class SecondDuplicateController extends BaseRestController {
   }
 }
 
+/** A route with a validated request: Hono registers one route entry per handler, so this route has more than one entry. */
+@controller({ path: '/orders' })
+class ValidatedController extends BaseRestController {
+  constructor() {
+    super({ scope: ValidatedController.name });
+  }
+
+  override binding(): ValueOrPromise<void> {}
+
+  @get({
+    configs: {
+      path: '/:id',
+      request: { params: z.object({ id: z.string() }) },
+      responses: okResponse,
+    },
+  })
+  one(context: AnyType) {
+    return context.json({ hit: 'one' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+
+/** One controller that declares the same method and path twice: a real duplicate. */
+@controller({ path: '/twice' })
+class SelfDuplicateController extends BaseRestController {
+  constructor() {
+    super({ scope: SelfDuplicateController.name });
+  }
+
+  override binding(): ValueOrPromise<void> {}
+
+  @get({ configs: { path: '/same', responses: okResponse } })
+  first(context: AnyType) {
+    return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @get({ configs: { path: '/same', responses: okResponse } })
+  second(context: AnyType) {
+    return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+
 /** A component that needs infrastructure: its `binding()` only counts. */
 class CountingComponent extends BaseComponent {
   constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) application: BaseApplication) {
@@ -584,6 +625,23 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
     const booted = await assertApplicationBoots(application, { routes: false });
 
     expect(booted).toBe(application);
+  });
+
+  test('a route with a validated request chain is one route, not a duplicate of itself', async () => {
+    const application = new PlannedApplication({ controllers: [ValidatedController] });
+
+    expect(await assertApplicationBoots(application)).toBe(application);
+  });
+
+  test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {
+    const error = await assertApplicationBoots(
+      new PlannedApplication({ controllers: [SelfDuplicateController] }),
+    ).catch((caught: unknown) => caught);
+    const message = String(error);
+
+    expect(message).toContain('1 route(s) are mounted more than once');
+    expect(message).toContain('GET /twice/same');
+    expect(message.split('GET /twice/same').length - 1).toBe(1);
   });
 
   test('C27 distinct paths on one controller are not duplicates', async () => {
