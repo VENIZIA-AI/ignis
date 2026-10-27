@@ -18,6 +18,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | Date | Title | Type |
 |------|-------|------|
 | 2026-10-27 | [devz check purity - the Browser-Purity Gate Ships in dev-configs](./2026-10-27-dev-configs-check-purity) | Enhancement |
+| 2026-10-27 | [Consumers Resolve IGNIS Through Bundler Resolution - dev-configs tsconfig Change](./2026-10-27-consumer-tsconfig-bundler-resolution) | Behavior Change |
 | 2026-10-27 | [assertApplicationBoots Proves an Application Boots Without Infrastructure](./2026-10-27-assert-application-boots) | New Feature |
 | 2026-10-26 | [After 0.4.3 - What Changed and How to Upgrade](./2026-10-26-batch-overview-0-4-4) | Security |
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
