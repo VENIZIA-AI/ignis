@@ -91,6 +91,10 @@
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
     },
+    "./testing/tmpdir-preload": {
+      "types": "./dist/testing/tmpdir-preload.d.ts",
+      "default": "./dist/testing/tmpdir-preload.js"
+    },
     "./tsconfig.base.json": "./src/tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./src/tsconfig/tsconfig.common.json",
     "./tsconfig.browser.json": "./src/tsconfig/tsconfig.browser.json",

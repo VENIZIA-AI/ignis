@@ -2,7 +2,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { JoseLoader } from '@/components/auth/authenticate/services/jose-loader';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 const PACKAGE_ROOT = join(__dirname, '../../..');
 

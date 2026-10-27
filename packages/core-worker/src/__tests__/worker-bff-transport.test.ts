@@ -9,7 +9,7 @@ import type {
   IBffResponseEnvelope,
 } from '@/envelope/common';
 import { expectRejection } from '@venizia/dev-configs/testing';
-import { spawnSyncBounded } from './spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 type TMessageListener = (event: MessageEvent) => void;
 
