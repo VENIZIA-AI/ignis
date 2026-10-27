@@ -6,6 +6,17 @@ resource: packages/dev-configs/src/checks/test-mutate.ts
 tags: [process, test, mutation, devz]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [When to use it](#when-to-use-it)
+- [Steps](#steps)
+- [Baseline - IGNIS 0.4.4 (develop `439f3f0d`, 2026-10-28)](#baseline---ignis-044-develop-439f3f0d-2026-10-28)
+- [Result of the dead-code step - IGNIS 0.4.4 (2026-10-28)](#result-of-the-dead-code-step---ignis-044-2026-10-28)
+- [Result - IGNIS 0.4.5 (2026-10-28)](#result---ignis-045-2026-10-28)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## When to use it
 
 You want fewer or faster tests and you must not lose coverage. The rule: **a test is deleted only when a named surviving test goes red under the same break**, shown by a mutation. A test that cannot be shown redundant stays. The positive controls of every gate stay in any case (step 6).
@@ -85,6 +96,35 @@ What the baseline teaches: deleting cheap tests does not speed CI (half the file
 | Suite green without the file | 5 | negative fixtures: `PlainService` (undecorated), `IgnoredService` (in a `__tests__` folder), an abstract `GammaService`, a foreign-decorated class, an empty-domain readme |
 
 Nothing was deleted: the 5 are the scanner's positive controls. The negative fixtures named in `scanner.test.ts:39` and the other three are registered as `kind: file` entries. A first name-based scan had suggested 49 candidates; most were fixtures loaded by a path built at run time.
+
+## Result - IGNIS 0.4.5 (2026-10-28)
+
+Measured the way the baseline was: JUnit per package for the local numbers, the same CI job for the CI numbers.
+
+| What | Before (develop `439f3f0d`) | After (develop `9269c72e`) |
+|---|---|---|
+| Local wall time of the eight suites | about 52 s (helpers 4.7, kernel 17.1, connectors 12.9, core-server 8.5, core-worker 5.7, dev-configs 1.8, boot 1.3, inversion 0.1) | about 35 s (kernel 0.4; the rest within run-to-run noise) |
+| CI step "Test - kernel" | 17 to 18 s in all 10 runs measured | 1 to 2 s in all 15 runs measured |
+| CI job "Build, test and lint", median | 357 s over 10 runs (range 241 to 376) | 342 s over 15 runs (range 232 to 359) |
+| Cases (8 packages) | 7,047 | 7,061 (7,054 with the two slices still open) |
+| Registered positive controls | 15 | 26 |
+
+What the numbers say, honestly:
+
+- The whole saving is one file. `event-bus.test.ts` waited out its retry backoffs in real time (17.06 s alone); on Bun's fake clock it takes 0.16 s. That is about 16 s of a CI job whose own run-to-run spread is 140 s (the Build step alone ranges 72 to 120 s with no change to it), so the job median moved by 15 s and no single run proves it. The kernel step, which does not depend on the runner's mood, did.
+- Deleting duplicates saves no measurable time. 22 cases went (7 core-server, 2 kernel, 6 helpers, 4 connectors, 3 core-server); each ran in milliseconds. The value is maintenance: fewer places to change when a behaviour changes, and a ledger line that says which test still pins it.
+- The case count went UP by 14 because the work added what it needed: the four `devz check` tools (21 cases), the release-workflow guard test, the run watcher and tarball wait tests, the hint tests, two regression tests for BANA's findings. A trim is not a net deletion.
+
+What was deleted, in the order of the slices: T1 rewrote two flaky tests (a wall-clock guard became a count of work; a memory test now waits for the collector), T2 put the event bus on a fake clock, T3 deleted nothing (see above), T4 deleted 22 duplicate cases, each with a named survivor that goes red under the same break.
+
+Lessons for the next repository:
+
+1. **Measure first, and re-time alone.** Half of the files cost 3% of the time; a file that looks slow in a parallel run may only be waiting its turn.
+2. **A test that stays green without its fixture may be a negative fixture.** Register it (`kind: file`), do not delete it.
+3. **A mutant that leaves both tests green is a finding, not a failure of the method.** It showed that no websocket test pinned the index-entry cleanup, and that no scoped-model test pins the "only that domain" term; one gap got a test (#617), one is written in its pull request.
+4. **Identical bodies are not duplicates when the dialect, the driver or the algorithm differs.** The pglite/libsql and Postgres/SQLite pairs reach different branches; the two `recursive-tree` files share only their validation, and only that was deleted.
+5. **A "type-only placeholder" may be a no-throw check.** Read before deleting; five of seven were.
+6. **A regular expression is the name filter.** Parentheses and plus signs in a case title need escaping, or the replay runs no case and says so.
 
 ## Related
 
