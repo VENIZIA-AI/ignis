@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-28 | [assertApplicationBoots says what it does not stub - components run for real](./2026-10-28-assert-application-boots-components-run) | Enhancement |
 | 2026-10-28 | [assertApplicationBoots no longer reports a route with a validator chain as a duplicate](./2026-10-28-assert-application-boots-duplicate-routes) | Bug Fix |
 | 2026-10-28 | [devz check test-weight, test-dead-code, test-mutate and test-controls](./2026-10-28-dev-configs-test-trim-tools) | New Feature |
 | 2026-10-27 | [devz check catalog, module-cycles and split-report Ship in dev-configs](./2026-10-27-dev-configs-check-catalog-cycles-split) | Enhancement |
