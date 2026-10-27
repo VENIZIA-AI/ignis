@@ -436,6 +436,23 @@ Every package in the monorepo pins **TypeScript `^6.0.3`**; `@venizia/dev-config
 
 oxlint and ESLint do not look inside `.configs/` on their own, so the settings point at each file. The paths resolve against the folder VS Code opened: open the project folder itself. Format with `bun fmt` or `devz lint --fix`; the editor has no `bun fmt` hook of its own here.
 
+### A raw oxlint call prints "typeAware ... only supported in the root config"
+
+oxlint loads a config file it finds next to the files it lints (`oxlint.config.*`, `.oxlintrc.json`, `vite.config.*`), and it rejects `options.typeAware` in such a nested file:
+
+```text
+x The `options.typeAware` option is only supported in the root config, but it was found in <package>/.configs/lints/oxlint.config.mts.
+```
+
+The preset sets `typeAware`, and `.configs/lints/oxlint.config.mts` is the root config only when you hand it over. `make lint-*`, the pre-commit hook and `devz lint` always pass `-c`, so they never print this. A bare `oxlint packages/kernel` (or `oxlint .`) does. Pass the config, or turn the auto-loading off:
+
+```bash
+oxlint -c .configs/lints/oxlint.config.mts src          # the config as the root
+oxlint --disable-nested-config packages/kernel          # no auto-loaded config at all
+```
+
+In VS Code the Oxc extension has the matching switch: `oxc.disableNestedConfig` (default `false`; when `true` only `oxc.configPath` is used), and setting `oxc.configPath`, as the settings above do, also stops the nested loading. Both are resource-scoped. Open the package folder, not the monorepo root, or set `oxc.configPath` per folder.
+
 ### WebStorm / IntelliJ
 
 1. Go to **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
