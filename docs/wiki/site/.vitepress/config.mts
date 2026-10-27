@@ -464,6 +464,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'devz check purity Ships in dev-configs',
+                  link: '/changelogs/2026-10-27-dev-configs-check-purity',
+                },
+                {
                   text: 'Consumers Resolve IGNIS Through Bundler Resolution',
                   link: '/changelogs/2026-10-27-consumer-tsconfig-bundler-resolution',
                 },

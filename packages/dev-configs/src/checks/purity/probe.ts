@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { rm } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 export interface IPurityResult {
@@ -20,6 +19,16 @@ export interface IPurityResult {
   external: string[];
   buildError?: string;
 }
+
+/** Where the probe keeps its metafile, relative to the `cwd` it is given: the repository's own scratch, never the system temp. */
+export const PURITY_SCRATCH_DIR = '.agents/local/tmp';
+
+/**
+ * A browser entry must never reach `@venizia/dev-configs`: it is the Bun-only tooling package (its
+ * `./testing` entry imports `bun:test`). Matches the workspace folder (not its own test fixtures) and the installed copy.
+ */
+const DEV_CONFIGS_PATH =
+  /(^|\/)(packages\/dev-configs\/(?!src\/__tests__\/)|node_modules\/@venizia\/dev-configs\/)/;
 
 /** What a matched global means: ERROR is fatal, GUARDED is reported and never fatal. */
 export class ProbeSeverities {
@@ -254,9 +263,12 @@ export const probeEntry = async (opts: {
   entry: string;
   cwd: string;
   external?: string[];
+  /** Defaults to {@link PURITY_SCRATCH_DIR} under `cwd`. */
+  scratchDir?: string;
 }): Promise<IPurityResult> => {
-  const { entry, cwd, external = [] } = opts;
-  const metafilePath = join(tmpdir(), `ignis-purity-${randomUUID()}.json`);
+  const { entry, cwd, external = [], scratchDir = join(cwd, PURITY_SCRATCH_DIR) } = opts;
+  await mkdir(scratchDir, { recursive: true });
+  const metafilePath = join(scratchDir, `purity-${randomUUID()}.json`);
 
   // `--env=disable`: Bun inlines `process.env.NODE_ENV` as a compile-time string constant by
   // default, regardless of whether the read is reachable. That erases the very read this probe
@@ -312,6 +324,9 @@ export const probeEntry = async (opts: {
   }
 
   const builtins = findBuiltinSpecifiers(metafile);
+  const reachesDevConfigs = Object.keys(metafile.inputs).some((inputPath) =>
+    DEV_CONFIGS_PATH.test(inputPath),
+  );
   const unresolvedExternals = findUnresolvedExternalSpecifiers({
     metafile,
     builtins: new Set(builtins),
@@ -324,8 +339,13 @@ export const probeEntry = async (opts: {
     .filter((g) => g.severity === ProbeSeverities.GUARDED)
     .map((g) => g.name);
 
-  if (builtins.length > 0 || unresolvedExternals.length > 0) {
+  if (builtins.length > 0 || unresolvedExternals.length > 0 || reachesDevConfigs) {
     const reasons: string[] = [];
+    if (reachesDevConfigs) {
+      reasons.push(
+        'reaches @venizia/dev-configs, which is Bun-only tooling and never a browser dependency',
+      );
+    }
     if (builtins.length > 0) {
       reasons.push(`node builtin import(s): ${builtins.join(', ')}`);
     }

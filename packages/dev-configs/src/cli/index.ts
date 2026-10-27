@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { CheckCommand } from './check';
 import { CleanCommand } from './clean';
 import { CodemodCommand } from './codemod';
 import { LintCommand } from './lint';
@@ -7,6 +8,7 @@ const USAGE = `Usage: devz <command> [options]
 
 Commands:
   lint [--fix] [files]                          oxlint, ESLint and the formatter; --fix writes
+  check purity --claims <file> [package] [--json]  probe every entry claimed browser-pure (needs a build)
   clean                                         remove dist, node_modules/.cache and *.tsbuildinfo
   codemod model-settings [paths...] [--write]   move @model settings to the grouped shape (dry run unless --write)
   codemod drop-redundant-casts [paths...]       remove \`as X\` casts the compiler no longer needs (dry run unless --write)
@@ -24,6 +26,10 @@ const main = async (opts: { argv: string[] }): Promise<number> => {
 
   if (command === 'lint') {
     return LintCommand.run({ root: process.cwd(), args });
+  }
+
+  if (command === 'check') {
+    return CheckCommand.run({ root: process.cwd(), args });
   }
 
   if (command === 'clean') {

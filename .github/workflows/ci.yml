@@ -39,6 +39,11 @@ jobs:
         id: install
         run: bun install
 
+      # The purity engine, the catalog guard and the shared test helpers are `@venizia/dev-configs`, loaded from its dist.
+      - name: Build dev-configs
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make dev-configs
+
       - name: Dependency catalog
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make catalog-check
