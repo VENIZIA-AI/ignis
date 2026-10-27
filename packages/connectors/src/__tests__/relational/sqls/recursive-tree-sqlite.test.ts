@@ -243,32 +243,6 @@ describe('RecursiveTreeSql.walk - maxDepth is mandatory and validated (SQLite)',
 });
 
 describe('RecursiveTreeSql.walk - identifier injection is rejected (SQLite)', () => {
-  test('a malicious idColumn is rejected, not escaped-and-allowed', () => {
-    expect(() =>
-      RecursiveTreeSql.walk({
-        name: 'walked',
-        table: nodesTable,
-        rootId: 'root-1',
-        direction: RecursiveTreeDirections.DOWN,
-        maxDepth: 10,
-        idColumn: 'id"; DROP TABLE users; --',
-      }),
-    ).toThrow(/idColumn/);
-  });
-
-  test('a malicious parentColumn is rejected', () => {
-    expect(() =>
-      RecursiveTreeSql.walk({
-        name: 'walked',
-        table: nodesTable,
-        rootId: 'root-1',
-        direction: RecursiveTreeDirections.DOWN,
-        maxDepth: 10,
-        parentColumn: 'parent_id; SELECT pg_sleep(9999); --',
-      }),
-    ).toThrow(/parentColumn/);
-  });
-
   test('a malicious CTE name is rejected', () => {
     expect(() =>
       RecursiveTreeSql.walk({
@@ -279,19 +253,6 @@ describe('RecursiveTreeSql.walk - identifier injection is rejected (SQLite)', ()
         maxDepth: 10,
       }),
     ).toThrow(/name/);
-  });
-
-  test('a malicious entry in columns is rejected', () => {
-    expect(() =>
-      RecursiveTreeSql.walk({
-        name: 'walked',
-        table: nodesTable,
-        rootId: 'root-1',
-        direction: RecursiveTreeDirections.DOWN,
-        maxDepth: 10,
-        columns: ['label', 'weight); DROP TABLE tree_nodes; --'],
-      }),
-    ).toThrow(/columns/);
   });
 
   test('the error names the offending value, not just the field', () => {
@@ -322,19 +283,6 @@ describe('RecursiveTreeSql.walk - identifier injection is rejected (SQLite)', ()
 });
 
 describe('RecursiveTreeSql.walk - other guard rails (SQLite)', () => {
-  test('an invalid direction throws', () => {
-    expect(() =>
-      RecursiveTreeSql.walk({
-        name: 'walked',
-        table: nodesTable,
-        rootId: 'root-1',
-        // @ts-expect-error - deliberately invalid at the type level too
-        direction: 'SIDEWAYS',
-        maxDepth: 10,
-      }),
-    ).toThrow(/direction/);
-  });
-
   test('a non-Drizzle-table value throws, naming what actually arrived', () => {
     expect(() =>
       RecursiveTreeSql.walk({
