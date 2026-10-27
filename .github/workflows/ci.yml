@@ -56,6 +56,11 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: bun scripts/checks/tmp-leak/cli.ts snapshot
 
+      # The purity engine and the shared test helpers are `@venizia/dev-configs`, loaded from its dist.
+      - name: Build dev-configs
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: make dev-configs
+
       - name: Browser purity probe
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: make purity-test
