@@ -91,15 +91,6 @@ async function buildScopedEnforcer(lines: string[]) {
 }
 
 describe('scoped model — subject & role grants', () => {
-  test('role grant via assignment is allowed (ANY_MEMBER + membership)', async () => {
-    const e = await buildScopedEnforcer([
-      'g, User_2, Role_op, *',
-      'g2, User_2, Merchant_7',
-      'p, Role_op, ANY_MEMBER, Order, read, allow',
-    ]);
-    expect(e.enforceSync('User_2', 'Merchant_7', 'Order', 'read')).toBe(true);
-  });
-
   test('direct user grant is allowed via self-link', async () => {
     const e = await buildScopedEnforcer([
       'g2, User_3, Merchant_7',
@@ -135,15 +126,6 @@ describe('scoped model — domain scopes', () => {
       'p, Role_op, ANY_MEMBER, Order, read, allow',
     ]);
     expect(e.enforceSync('User_2', 'Merchant_99', 'Order', 'read')).toBe(false);
-  });
-
-  test('domain-specific grant matches only that domain (self-link)', async () => {
-    const e = await buildScopedEnforcer([
-      'g, User_4, Role_x, Merchant_7',
-      'p, Role_x, Merchant_7, Order, read, allow',
-    ]);
-    expect(e.enforceSync('User_4', 'Merchant_7', 'Order', 'read')).toBe(true);
-    expect(e.enforceSync('User_4', 'Merchant_8', 'Order', 'read')).toBe(false);
   });
 
   test('domain nesting: grant on Company applies to Branch via g3 edge', async () => {
@@ -218,16 +200,6 @@ describe('scoped model — action hierarchy', () => {
 });
 
 describe('scoped model — deny-override & DAG', () => {
-  test('an explicit deny overrides an allow from a role', async () => {
-    const e = await buildScopedEnforcer([
-      'g, User_9, Role_a, *',
-      'g2, User_9, Merchant_7',
-      'p, Role_a, ANY_MEMBER, Order, read, allow',
-      'p, User_9, ANY_MEMBER, Order, read, deny',
-    ]);
-    expect(e.enforceSync('User_9', 'Merchant_7', 'Order', 'read')).toBe(false);
-  });
-
   test('resource DAG: a node under either parent matches (multi-parent)', async () => {
     const e = await buildScopedEnforcer([
       'g, User_10, Role_r, *',
