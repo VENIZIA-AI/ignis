@@ -59,7 +59,7 @@ The tools are `devz check` commands of `@venizia/dev-configs` (Bun-only), so a r
    } ] }
    ```
 
-   Replayed on 2026-10-28: `ok   message-template-missing-keys: survivor red, candidate red`, and `git status` clean afterwards. That is the model line for a cross-package duplicate.
+   Replayed on 2026-10-28: `ok   message-template-missing-keys: survivor red, candidate red`, and `git status` clean afterwards. That is the model line for a cross-package duplicate. The candidate case was deleted afterwards (the T4 kernel slice), so the line is now the shape of a ledger line, no longer a replayable one.
 5. **Delete, re-measure, report.** One pull request per package or per kind. It carries the ledger lines, and the before and after numbers of its package. Update every citation of a removed test path in `.agents/knowledge` and `docs/wiki/content` (rule P-03); `git grep` for the old path must find nothing.
 6. **Keep the controls.** A positive control is a test that proves a gate can fail. `scripts/checks/controls.json` lists them as `{ gate, file, titlePattern, min }`, where `titlePattern` is a regular expression over the suite and case titles of that file and `min` is how many must match. `make controls-check` (`devz check test-controls scripts/checks/controls.json`) fails when one is gone or renamed; it reads the files, it runs nothing. A change that adds a control to a gate adds its line.
 

@@ -563,13 +563,6 @@ describe('the response message fills its %{key} placeholders', () => {
 });
 
 describe('MessageTemplate.render', () => {
-  test('fills every occurrence of a key, and reports each missing key once', () => {
-    expect(MessageTemplate.render({ text: '%{a}-%{a} %{b} %{b}', args: { a: 1 } })).toEqual({
-      text: '1-1 %{b} %{b}',
-      missing: ['b'],
-    });
-  });
-
   test('null and false are values; undefined and an inherited key are missing', () => {
     const args = Object.assign(Object.create({ inherited: 'no' }), {
       gone: undefined,
@@ -580,13 +573,6 @@ describe('MessageTemplate.render', () => {
     expect(MessageTemplate.render({ text: '%{nil} %{off} %{gone} %{inherited}', args })).toEqual({
       text: 'null false %{gone} %{inherited}',
       missing: ['gone', 'inherited'],
-    });
-  });
-
-  test('args that are not an object leave every placeholder as written', () => {
-    expect(MessageTemplate.render({ text: 'x %{a}', args: 'oops' })).toEqual({
-      text: 'x %{a}',
-      missing: ['a'],
     });
   });
 
