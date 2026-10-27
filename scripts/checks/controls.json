@@ -147,6 +147,12 @@
       "file": "scripts/release/__tests__/release-tarballs.test.ts",
       "titlePattern": "keeps asking through two 404s",
       "min": 1
+    },
+    {
+      "gate": "atlas index workflow guards",
+      "file": "scripts/release/__tests__/atlas-index-workflow.test.ts",
+      "titlePattern": "the key is read only by the step that publishes",
+      "min": 1
     }
   ]
 }

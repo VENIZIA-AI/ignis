@@ -13,6 +13,7 @@ tags: [process, release, ci]
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
 - [The two jobs and their guards](#the-two-jobs-and-their-guards)
+- [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
 - [Steps](#steps)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -71,6 +72,12 @@ exact version and every action is pinned by a full commit with its tag in a comm
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
 mutation in that test, in the same pull request.
+
+## The prebuilt atlas index of this repository
+
+IGNIS publishes the atlas index of its own commits, so a project that declares IGNIS as a source downloads it instead of building it. `.github/workflows/atlas-index.yml` runs on a push to `main`, to `develop` or of a tag, builds the index through VULCAN's action (`VENIZIA-AI/vulcan/.github/actions/atlas-index`, pinned by full commit to the installed VULCAN release; a bump is a deliberate pull request), signs it with the Actions secret `ATLAS_INDEX_KEY` and attaches the pair to the release `atlas-index`. The public half of the key is `atlas.index.keys` in `.configs/vulcan.config.mts`, rendered into `.agents/vulcan.manifest.json`; a reader accepts a pair only when a listed key verifies it, and otherwise builds locally as before. The job has `contents: write` and nothing else does; the secret is read only by the publishing step; `scripts/release/__tests__/atlas-index-workflow.test.ts` holds those rules.
+
+**Release tags get no pair from it.** The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from a push made with that token, so a release tag of IGNIS gets no pair from `atlas-index.yml`; the next push to `develop` covers the head. VULCAN 0.4.7 runs the action from its own release; IGNIS gets that when it moves to it. The release keeps the newest 20 branch-head pairs and every release-tag commit's pair, 300 pairs at most. A new key is made with `bun x --no-install vulcan x atlas index keygen` by the maintainer, who sets the secret; an agent never writes it.
 
 ## Steps
 
