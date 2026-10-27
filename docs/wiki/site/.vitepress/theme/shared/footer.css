@@ -116,7 +116,7 @@
 .foot-cols h4 {
   margin: 0 0 var(--space-3);
   color: var(--foot-muted);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }

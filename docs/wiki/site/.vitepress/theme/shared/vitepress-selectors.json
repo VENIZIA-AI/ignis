@@ -147,6 +147,11 @@
       "slot": "layout-bottom",
       "file": "Layout.vue",
       "needle": "layout-bottom"
+    },
+    {
+      "slot": "doc-before",
+      "file": "Layout.vue",
+      "needle": "doc-before"
     }
   ]
 }
