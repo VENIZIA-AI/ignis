@@ -31,6 +31,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { serveStatic } from 'hono/bun';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
@@ -282,7 +283,6 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
 
-    const { serveStatic } = require('hono/bun');
     server.use(restPath, serveStatic({ root: folderPath }));
 
     this.logger
