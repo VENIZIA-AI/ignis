@@ -21,7 +21,7 @@ packages:
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="warning" text="Behavior Change" /> <Badge type="tip" text="New Feature" />
 
-**In one line.** 0.4.4 fixes a secrets leak after a failed rotation, removes the deprecated `skipMigrate` key, adds a datasource family for engines that only run SQL, and adds two codemods that clean up casts and string unions. Update the packages together; the rest needs no action.
+**In one line.** 0.4.4 fixes a secrets leak after a failed rotation, removes the deprecated `skipMigrate` key, adds a datasource family for engines that only run SQL, adds a test helper that proves an application boots without infrastructure, and adds two codemods that clean up casts and string unions. Update the packages together; the rest needs no action.
 
 ## What changed
 
@@ -34,6 +34,7 @@ Each row links the entry with the details.
 | Breaking | `skipMigrate` is removed from `@model`; the decorator throws on it and names `migration: { use: false }`. `devz codemod model-settings` rewrites it | [skipMigrate is removed](/changelogs/2026-10-26-skipmigrate-removed) |
 | Behavior change | `devz codemod model-settings --check` exits 1 while a model is left untouched, and reports `@model(options)` and aliased decorators | [devz codemod --check](/changelogs/2026-10-26-devz-codemod-check-fails-on-untouched) |
 | Feature | `@venizia/ignis-connectors/raw-sql`: a datasource and repository base for an engine that runs SQL text and returns rows | [Raw SQL datasource](/changelogs/2026-10-26-raw-sql-datasource) |
+| Feature | `assertApplicationBoots` in `@venizia/ignis/testing` runs an application's real boot with no database, port or network, on a shared `verifyBindings` check in `@venizia/ignis-inversion`. New apps get `src/boot.test.ts` | [assertApplicationBoots](/changelogs/2026-10-27-assert-application-boots) |
 | Feature | `devz codemod drop-redundant-casts` removes the `as X` casts the compiler no longer needs | [drop-redundant-casts](/changelogs/2026-10-26-devz-codemod-drop-redundant-casts) |
 | Feature | `devz codemod const-classes` turns a string-literal union in an exported type into a const class | [const-classes](/changelogs/2026-10-26-devz-codemod-const-classes) |
 | Fix | `enable` is optional on middleware options; the middleware types say what is installed; `devz codemod` names a path it cannot read | [middleware enable and codemod empty path](/changelogs/2026-10-26-middleware-enable-optional-and-codemod-empty-path) |
@@ -63,11 +64,13 @@ bunx devz codemod drop-redundant-casts   # lists the casts the compiler no longe
 bunx devz codemod const-classes          # lists the string unions it would turn into const classes
 ```
 
-6. **Rotating secrets through Vault or calling `onSecretRotated()`?** Nothing to do: the leak is closed. Releases 0.2.0 to 0.4.3 had it, so check what logged or read the datasource settings after a failed rotation.
+6. **Optional: add the boot test** to an existing app. New apps created from the `ignis` preset already have `src/boot.test.ts`; an existing app copies it from [Prove the Application Boots](/guides/tutorials/testing#prove-the-application-boots).
+7. **Rotating secrets through Vault or calling `onSecretRotated()`?** Nothing to do: the leak is closed. Releases 0.2.0 to 0.4.3 had it, so check what logged or read the datasource settings after a failed rotation.
 
 ## Who is affected
 
-- **Apps that rotate database credentials.** Step 6; the security entry says who should care.
+- **Apps that rotate database credentials.** Step 7; the security entry says who should care.
 - **Scripts that call `devz codemod --check`.** Step 4.
-- **Apps with a model that sets `skipMigrate`, or tooling that reads `metadata.skipMigrate`.** Step 5; the entry has the replacement.
+- **Apps with a model that sets `skipMigrate`, or tooling that reads `metadata.skipMigrate`.** Step 3; the entry has the replacement.
+- **Apps that want the boot test.** Step 6; the entry has the file.
 - **Everyone else.** Update the packages together; no other change is needed.

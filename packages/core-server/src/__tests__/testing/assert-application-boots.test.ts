@@ -309,6 +309,70 @@ describe('assertApplicationBoots - the boot path', () => {
   });
 });
 
+describe('assertApplicationBoots - the shared verification core', () => {
+  const ORPHANED: IPlan = { ...FULL, services: [AccountService, OrphanService] };
+
+  test('I3 the rejection is the core error: it says what is missing and who needs it', async () => {
+    const error = await assertApplicationBoots(new PlannedApplication(ORPHANED)).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(String(error)).toContain('[verifyBindings] 1 binding(s) cannot be resolved | ');
+    expect(Reflect.get(Object(error), 'extra')).toMatchObject({
+      missing: { 'services.NeverRegistered': ['services.OrphanService'] },
+    });
+  });
+
+  test('I4 skipBindings leaves the service out, by class, by class name and by key', async () => {
+    for (const skip of [OrphanService, 'OrphanService', 'services.OrphanService']) {
+      const application = new PlannedApplication(ORPHANED);
+
+      expect(await assertApplicationBoots(application, { skipBindings: [skip] })).toBe(application);
+    }
+  });
+
+  test('I5 a skipBindings name that matches nothing rejects, naming it', async () => {
+    const error = await assertApplicationBoots(new PlannedApplication(FULL), {
+      skipBindings: ['services.Typo'],
+    }).catch((caught: unknown) => caught);
+
+    expect(String(error)).toContain('skip matched no binding: services.Typo');
+  });
+
+  test('I6 the application own doVerify: true does not fail the boot of a skipped binding', async () => {
+    const application = new PlannedApplication({
+      ...ORPHANED,
+      config: {
+        bootChecks: { binding: { doVerify: true, allowManual: true, allowOverride: true } },
+      },
+    });
+
+    expect(await assertApplicationBoots(application, { skipBindings: [OrphanService] })).toBe(
+      application,
+    );
+  });
+
+  test('I6 verifyBindings: false skips the verification and a skipBindings name is then not checked', async () => {
+    const application = new PlannedApplication(ORPHANED);
+
+    expect(await assertApplicationBoots(application, { verifyBindings: false })).toBe(application);
+  });
+
+  test('I9 the verification runs after validateScopeFilterSupport, so its error comes first when both fail', async () => {
+    class ScopeFilterFailingApplication extends PlannedApplication {
+      protected override validateScopeFilterSupport(): void {
+        throw new Error('SCOPE FILTER UNSUPPORTED');
+      }
+    }
+
+    const error = await assertApplicationBoots(new ScopeFilterFailingApplication(ORPHANED)).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(String(error)).toContain('SCOPE FILTER UNSUPPORTED');
+  });
+});
+
 describe('assertApplicationBoots - datasources and components', () => {
   test('C7 positive control: a plain initialize() fails at the datasource', async () => {
     const application = new PlannedApplication(FULL);
