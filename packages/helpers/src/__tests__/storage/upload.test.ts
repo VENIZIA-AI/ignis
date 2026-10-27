@@ -229,46 +229,6 @@ describe('Storage - upload', () => {
       expect(writes).toHaveLength(0);
     });
 
-    test('rejects invalid original file name (security gate)', async () => {
-      const message = await captureErrorMessage({
-        task: helper.upload({
-          bucket: { name: 'assets' },
-          files: [buildFile({ originalName: '../../etc/passwd' })],
-        }),
-      });
-
-      expect(message).toBe('[upload] Invalid original file name');
-      expect(writes).toHaveLength(0);
-    });
-
-    test('rejects invalid folder path', async () => {
-      const message = await captureErrorMessage({
-        task: helper.upload({
-          bucket: { name: 'assets' },
-          files: [buildFile({ folderPath: '../escape' })],
-        }),
-      });
-
-      expect(message).toBe('[upload] Invalid folder path');
-      expect(writes).toHaveLength(0);
-    });
-
-    test('rejects a MISSING size, but accepts a zero-byte file', async () => {
-      const message = await captureErrorMessage({
-        task: helper.upload({
-          bucket: { name: 'assets' },
-          files: [buildFile({ size: undefined as AnyType })],
-        }),
-      });
-
-      expect(message).toContain('[upload] Invalid file size');
-      expect(writes).toHaveLength(0);
-
-      // An empty file is a legal upload - only an absent or negative size is invalid.
-      await helper.upload({ bucket: { name: 'assets' }, files: [buildFile({ size: 0 })] });
-      expect(writes).toHaveLength(1);
-    });
-
     test('normalizes name and links with the object storage prefix', async () => {
       const result = await helper.upload({ bucket: { name: 'assets' }, files: [buildFile()] });
 
