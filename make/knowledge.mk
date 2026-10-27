@@ -1,14 +1,8 @@
-# The IGNIS-only knowledge and wiki gates. okf-*, surface-*, symbols-*, releases-* and agent-setup
+# The IGNIS-only knowledge gates. okf-*, surface-*, symbols-*, releases-*, agent-setup and the wiki gates
+# (wiki-links-check, wiki-anchors-check; the anchor gate reads the build, so `docs` runs first in build-all)
 # come from VULCAN (node_modules/@venizia/vulcan/base/make/vulcan.mk, included by the Makefile).
 
-.PHONY: split-report wiki-links-check wiki-anchors-check
+.PHONY: split-report
 
 split-report:
 	@$(DEVZ) check split-report --dist dist/esm
-
-wiki-links-check:
-	@bun scripts/wiki/wiki-source-links.ts
-
-# Dead `#fragment` links. Reads the emitted ids, so it needs a build - `docs` runs first in build-all.
-wiki-anchors-check:
-	@bun scripts/wiki/wiki-anchors.ts

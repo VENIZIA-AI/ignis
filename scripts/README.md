@@ -18,8 +18,8 @@ Root tooling of the IGNIS monorepo, grouped by purpose. Each group keeps its tes
 | `build/`      | `esm-marker.ts`                 | Writes `dist/esm/package.json` after an ESM build                                                                                                                             | `make/project.mk`, the build of each package                                     |
 | `build/`      | `force-update.sh`               | Raises a package's `@venizia/*` dependencies to the registry's latest                                                                                                         | the `force-update` script of each package and of the wiki, `package-release.yml` |
 | `build/`      | `build-checks/`                 | Tests of the built output: self-contained sourcemaps, the oxlint subpath loads no ESLint                                                                                      | `make build-checks` (CI, release workflow)                                       |
-| `wiki/`       | `wiki-anchors.ts`               | Every `#fragment` the wiki links to exists on its page                                                                                                                        | `make wiki-anchors-check`, part of `make build-all`                              |
-| `wiki/`       | `wiki-source-links.ts`          | Every source path the wiki and the knowledge bundle name is tracked by git                                                                                                    | `make wiki-links-check`, part of `make build-all`                                |
+
+The wiki link and anchor gates (`make wiki-links-check`, `make wiki-anchors-check`) are VULCAN's, configured in the Makefile (`WIKI_REPO`, `WIKI_LINKS_FLAGS`); the anchor gate reads the build, so it needs `make docs` first.
 
 The catalog check, the import-cycle list and the split report are `devz check catalog`, `devz check module-cycles` and `devz check split-report` (`packages/dev-configs/src/checks/`); `make catalog-check` and `make split-report` call them.
 

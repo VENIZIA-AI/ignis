@@ -25,7 +25,13 @@ SYSTEM_TMPDIR := $(or $(IGNIS_SYSTEM_TMPDIR),/tmp)
 # The npm name of a package directory, read from its package.json: $(call PKG_NAME,kernel).
 PKG_NAME = $(shell sed -n 's/^  "name": "\(.*\)",$$/\1/p' packages/$(1)/package.json)
 
-# VULCAN's shared targets (okf, atlas tables, agent setup). `-include`: a fresh clone has no
+# The wiki link and anchor gates are VULCAN's (wiki-links-check, wiki-anchors-check): they need the repository the
+# wiki links point into. The generated reference tables name symbols and paths of the code, not links, so the
+# link gate does not read them.
+WIKI_REPO := VENIZIA-AI/ignis
+WIKI_LINKS_FLAGS := --skip .agents/knowledge/reference/public-surface.md,.agents/knowledge/reference/source-map.md,.agents/knowledge/reference/components.md,.agents/knowledge/reference/helpers.md,.agents/knowledge/reference/binding-keys.md,.agents/knowledge/reference/makefile-targets.md
+
+# VULCAN's shared targets (okf, atlas tables, agent setup, the wiki gates). `-include`: a fresh clone has no
 # node_modules yet, and `bun install` must still run.
 -include node_modules/@venizia/vulcan/base/make/vulcan.mk
 
