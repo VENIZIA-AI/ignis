@@ -1,5 +1,6 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { asTypedContext } from '@venizia/ignis-kernel';
+import { AuthorizationPermissionBuilder } from '@/components/auth/authorize';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -98,8 +99,13 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     expect(memberDecision).toBe('deny');
   });
 
-  // The current setNamedRoleManager wiring and the prior addNamedMatchingFunc wiring are behaviorally identical, so only timing distinguishes them - this is the production-path detector for that regression.
-  test('production wiring stays fast on an incident-shaped policy set (perf regression guard)', async () => {
+  // The current setNamedRoleManager wiring and the prior addNamedMatchingFunc wiring give the same decisions, so
+  // only the WORK distinguishes them. The guard counts that work instead of timing it: a wall-clock bound turns a
+  // busy machine into a red test (#580), a count does not depend on load. It counts calls of the public matcher
+  // `AuthorizationPermissionBuilder.objectMatch` during one evaluate: 960 with the current wiring, 42,086,393
+  // (about 6.4 s) when the g4 axis goes back to addNamedMatchingFunc. The spy goes in BEFORE configure(), which
+  // registers the function with casbin.
+  test('production wiring keeps the work of one evaluate small on an incident-shaped policy set (work-count regression guard)', async () => {
     const moduleCount = 6;
     const subjectsPerModule = 20; // 6 * 20 = 120 subjects, one g4 edge each
     const operationsPerSubject = 8;
@@ -127,6 +133,7 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     lines.push('g, User_1, Role_1, *');
     lines.push('g2, User_1, Merchant_1');
 
+    const objectMatch = spyOn(AuthorizationPermissionBuilder, 'objectMatch');
     const e = scopedEnforcer(lines);
     await e.configure();
     const rules = await e.buildRules({
@@ -139,17 +146,14 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     const decision = await e.evaluate({ rules, request, context: asTypedContext({}) });
     expect(decision).toBe('allow');
 
-    const sampleCount = 20;
-    const durations: number[] = [];
-    for (let index = 0; index < sampleCount; index++) {
-      const start = performance.now();
-      await e.evaluate({ rules, request, context: asTypedContext({}) });
-      durations.push(performance.now() - start);
-    }
-    const averageMs = durations.reduce((sum, value) => sum + value, 0) / durations.length;
+    objectMatch.mockClear();
+    await e.evaluate({ rules, request, context: asTypedContext({}) });
+    const callsPerEvaluate = objectMatch.mock.calls.length;
+    objectMatch.mockRestore();
 
-    // Measured ~37ms under the current wiring against ~1800ms with the reverted wiring; the threshold is ~10x the measured average, still well under the reverted cost.
-    expect(averageMs).toBeLessThan(400);
+    // Positive control inside the test: the spy saw the matcher, so zero would mean the guard measured nothing.
+    expect(callsPerEvaluate).toBeGreaterThan(0);
+    expect(callsPerEvaluate).toBeLessThan(10_000);
   });
 });
 
