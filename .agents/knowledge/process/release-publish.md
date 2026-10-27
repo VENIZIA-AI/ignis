@@ -27,7 +27,8 @@ tags: [process, release, ci]
   kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
   before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
   unpushed or non-`develop` checkout because the workflow releases the commit it was dispatched on, and it waits
-  for a run that needs an approval with no time limit, saying so once (`scripts/release/release-watch.ts`).
+  for a run that needs an approval with no time limit, saying so once (`scripts/release/release-watch.ts`). After the last package it waits until the tarball of every released version answers 200
+  (`scripts/release/release-tarballs.ts`, up to fifteen minutes each, in parallel), because the registry lists a version minutes before its file is downloadable; the release is reported done only then.
 - A sweep without package names releases each package with source changes AND every package that depends on
   one, transitively (the plan says why): the published manifests pin internal dependencies exactly, so a
   package left behind keeps the old version and a consumer installs two copies. Naming packages releases

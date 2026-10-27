@@ -18,6 +18,7 @@
 import { parseReleaseArgs, type TReleaseMode } from './release-args';
 import { NpmDistTags, ReleaseModes } from './release-constants';
 import { planFullSweep } from './release-plan';
+import { type IPublishedPackage, waitForTarballs } from './release-tarballs';
 import { type IRunStatus, watchRun } from './release-watch';
 
 const WORKFLOW = 'package-release.yml';
@@ -309,7 +310,7 @@ const releasePackage = async (opts: {
   issue?: string;
   /** npm names published earlier in this run: their CI trusts the workspace for them. */
   chainReleased: Array<string>;
-}): Promise<void> => {
+}): Promise<IPublishedPackage> => {
   const { state, mode, issue, chainReleased } = opts;
 
   console.log(`\n▶ ${state.name} (${state.localVersion} -> ${mode})`);
@@ -352,6 +353,8 @@ const releasePackage = async (opts: {
   // The workflow pushes its own release commit. Without this the next package reads a stale local
   // version and the operator reads a repo that disagrees with the registry.
   await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', BRANCH] });
+
+  return { packageName: state.packageName, version: published };
 };
 
 const main = async (): Promise<void> => {
@@ -431,12 +434,18 @@ const main = async (): Promise<void> => {
       ? name
       : (states.find((state) => state.name === name)?.packageName ?? name),
   );
+  const released: Array<IPublishedPackage> = [];
   for (const state of plan) {
-    await releasePackage({ state, mode, issue, chainReleased });
+    released.push(await releasePackage({ state, mode, issue, chainReleased }));
     chainReleased.push(state.packageName);
   }
 
-  console.log(`\n✓ Released ${plan.length} package(s).`);
+  // The workflow is green and the packument lists the versions, but a tarball can answer 404 for
+  // minutes after that, and an install of the train fails in that window. Done means installable.
+  console.log(`\n  waiting until all ${released.length} tarball(s) answer 200...`);
+  await waitForTarballs({ packages: released });
+
+  console.log(`\n✓ Released ${plan.length} package(s); every tarball answers 200.`);
 };
 
 await main();
