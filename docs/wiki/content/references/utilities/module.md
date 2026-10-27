@@ -32,8 +32,9 @@ const client = vault.default({ endpoint, apiVersion: 'v1' });
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
-| `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module. Use this everywhere except a constructor |
-| `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async |
+| `load` | `load<T>(opts: { module: string }): Promise<T>` | Imports the module as an ES module, resolved from the project root: the copy your own `import` gets. Use this everywhere except a constructor |
+| `loadSync` | `loadSync<T>(opts: { module: string }): T` | Same, without awaiting - for a constructor or any path that cannot be async. It resolves with `require`, so a peer that ships both builds comes back as its CommonJS copy unless it was registered (see `preload`) |
+| `preload` | `preload(opts: { modules: Array<string> }): Promise<void>` | Loads each module with `load` and registers it, so `loadSync` returns that ES module copy. Call it once at the entrypoint, before the helpers are constructed |
 | `assertInstalled` | `assertInstalled(opts: { modules: Array<string>; scope?: string; allowRegistered?: boolean }): void` | Presence check only. Resolves each module in order and throws on the first miss, without executing any of them |
 | `register` | `register(opts: { modules: Record<string, AnyType> }): void` | Hands the framework peers the application already holds. `load` and `loadSync` serve a registered specifier from memory, with no filesystem lookup |
 | `setProjectRoot` | `setProjectRoot(opts: { projectRoot: string }): void` | Sets the root every peer lookup resolves against. A `ServerApplication` calls it during construction with `configs.projectRoot ?? process.cwd()` |
@@ -109,10 +110,23 @@ Register before the consumer runs. Nothing enforces that ordering, which is the 
 
 Registration is only worth it for the compiled-binary case. An application running from source resolves its peers from `node_modules` already.
 
+## One copy of a peer that ships two builds
+
+`bullmq` and `socket.io-client` ship an ES module build and a CommonJS one. `import { Queue } from 'bullmq'` in your code gets the ES module copy; the helper's constructor cannot await, so `loadSync` reads the peer with `require` and gets the CommonJS copy. Two copies means two classes: `queue instanceof Queue` across the two is `false`. Hold one copy by loading the ES module copy before the helpers are built:
+
+```typescript
+import { ModuleUtility } from '@venizia/ignis-helpers';
+
+// Once, at the entrypoint, before a BullMQHelper or SocketIOClientHelper is constructed.
+await ModuleUtility.preload({ modules: ['bullmq', 'socket.io-client'] });
+```
+
+Or hand the module to the one helper: `new BullMQHelper({ ..., module: await import('bullmq') })`. `ioredis`, `nodemailer`, `mailgun.js` and the SES client ship one build and have one copy either way.
+
 ## Notes
 
 - **Resolution is rooted at `getProjectRoot()/node_modules`** via Node's `createRequire`, so peers installed in the consuming application resolve even though this utility ships inside `packages/helpers/dist/`. `process.cwd()` is only the fallback for when no application has called `setProjectRoot` - an application that sets `configs.projectRoot`, which every compiled binary does, resolves its peers somewhere else.
-- **Only `loadSync` and `assertInstalled` use that root.** `load` is a bare dynamic `import(module)` with no `createRequire`, so it resolves the way the runtime would resolve any import from inside this package, not against the application's `node_modules`. Where that difference matters, register the peer or take it through the component's own options.
+- **`load` resolves from that root too.** It asks the runtime where `getProjectRoot()` would import the module from (`Bun.resolveSync`, the `import` condition of the package's `exports`) and imports that file, so you get the instance your own `import` of the peer holds. A module the project root cannot resolve is imported by name, as before. The result is the ES module namespace: a CommonJS-only peer arrives as `{ default: <exports> }`, as with any dynamic `import()`.
 - **`assertInstalled` stops at the first miss.** Later entries are never checked.
 - **`assertInstalled` never executes the module** - it only locates the file. Reach for it when you want to fail at startup rather than on first use.
 - **Call it once, at startup, not per request.** Place it in an initialisation hook (`configure`, `binding`, `boot`).

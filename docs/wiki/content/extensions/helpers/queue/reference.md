@@ -59,7 +59,7 @@ import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import { MQTTClientHelper, type IMQTTClientOptions } from '@venizia/ignis-helpers/mqtt';
 ```
 
-Importing `@venizia/ignis-helpers/bullmq` does not load `bullmq`. The helper loads it through `ModuleUtility.loadSync` when it builds its queue or worker, in the constructor. A module that imports the helper but never constructs one runs without `bullmq` installed.
+Importing `@venizia/ignis-helpers/bullmq` does not load `bullmq`. The helper loads it through `ModuleUtility.loadSync` when it builds its queue or worker, in the constructor; that read returns the CommonJS copy, so call `await ModuleUtility.preload({ modules: ['bullmq'] })` at the entrypoint (or pass `module`) when your own code imports `bullmq` and compares classes with `instanceof` - see [one copy of a peer](/references/utilities/module#one-copy-of-a-peer-that-ships-two-builds). A module that imports the helper but never constructs one runs without `bullmq` installed.
 
 A `bun build --compile` binary has no `node_modules` for that lookup, and without help its first queue throws `[ModuleUtility.loadSync] bullmq is required`. Pass the module through `module`, as in [Run it in a compiled binary](#run-it-in-a-compiled-binary).
 
