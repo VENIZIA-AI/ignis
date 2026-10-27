@@ -3,8 +3,8 @@
  * between 2026-07-20 and 2026-08-02 with a green build every time, because an unlinked page is not a
  * dead link. This fails the build instead.
  *
- * `content/changelogs/index.md` is the authority - it is a table every entry already has to appear
- * in, and it is what a reader lands on.
+ * The changelog entries are not in a menu: `content/changelogs/index.md` mounts the index component,
+ * which lists every dated entry from the files themselves, so an entry cannot be missed.
  */
 import { Glob } from 'bun';
 
@@ -13,7 +13,13 @@ const CONTENT = `${WIKI}content`;
 const CONFIG = `${WIKI}site/.vitepress/config.mts`;
 
 /** Author-facing skeletons, deliberately never linked from a reader-facing menu. */
-const UNLISTED = [/^extensions\/(components|helpers)\/template\//, /^index$/];
+const UNLISTED = [
+  /^extensions\/(components|helpers)\/template\//,
+  /^index$/,
+  /^changelogs\/\d{4}-\d{2}-\d{2}-/,
+  // The author skeleton and the one plan page, reached from the changelog index, not from a menu.
+  /^changelogs\/(template|planned-schema-migrator)$/,
+];
 
 const config = await Bun.file(CONFIG).text();
 const linked = new Set(

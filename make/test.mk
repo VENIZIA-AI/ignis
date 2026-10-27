@@ -49,11 +49,11 @@ tmp-leak-check:
 	bun scripts/checks/tmp-leak/cli.ts verify || status=1; \
 	exit $$status
 
-# The repository gate scripts' own regression tests (wiki-source-links,
-# wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
+# The repository gate scripts' own regression tests (release, preset, checks, build) - same reasoning as
+# purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
-	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__ scripts/wiki/__tests__
+	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
