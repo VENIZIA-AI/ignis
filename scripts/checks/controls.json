@@ -141,6 +141,12 @@
       "file": "scripts/release/__tests__/release-watch.test.ts",
       "titlePattern": "keeps waiting through a run that waits for approval",
       "min": 1
+    },
+    {
+      "gate": "release driver waits for every tarball",
+      "file": "scripts/release/__tests__/release-tarballs.test.ts",
+      "titlePattern": "keeps asking through two 404s",
+      "min": 1
     }
   ]
 }
