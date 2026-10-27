@@ -1213,6 +1213,23 @@ describe('WebSocketServerHelper', () => {
       }).not.toThrow();
     });
 
+    // The indexes are private, so the entry itself is read through the bracket: `getClientsByUser` and
+    // `getClientsByRoom` filter through the clients map and cannot tell a kept empty entry from a removed one.
+    // A kept entry is a leak that grows with every user and room that ever connected.
+    test('removes the user and the room entries from the indexes when the last client leaves', () => {
+      const index = helper as unknown as {
+        users: Map<string, Set<string>>;
+        rooms: Map<string, Set<string>>;
+      };
+      expect(index.users.has('user-1')).toBe(true);
+      expect(index.rooms.has(WebSocketDefaults.ROOM)).toBe(true);
+
+      helper.onClientDisconnect({ clientId: 'client-1' });
+
+      expect(index.users.has('user-1')).toBe(false);
+      expect(index.rooms.has(WebSocketDefaults.ROOM)).toBe(false);
+    });
+
     test('should preserve other clients of same user', async () => {
       const socket2 = createMockSocket('client-2');
       await connectAndAuth(helper, { clientId: 'client-2', socket: socket2, userId: 'user-1' });
