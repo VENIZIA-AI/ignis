@@ -3,6 +3,8 @@
   "extends": "./src/tsconfig/tsconfig.common.json",
   "compilerOptions": {
     "esModuleInterop": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "outDir": "dist",
     "rootDir": "src"
   },

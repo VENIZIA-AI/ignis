@@ -464,6 +464,10 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
+                  text: 'Consumers Resolve IGNIS Through Bundler Resolution',
+                  link: '/changelogs/2026-10-27-consumer-tsconfig-bundler-resolution',
+                },
+                {
                   text: 'assertApplicationBoots Proves an Application Boots',
                   link: '/changelogs/2026-10-27-assert-application-boots',
                 },
