@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**120 targets.**
+**121 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -37,6 +37,7 @@ generated:
 | `make clean-install-inversion` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make clean-install-kernel` | - | Load one package's sub-paths from a clean install. Needs a build. |
 | `make connectors` | `kernel` | Rebuild one package, after its dependencies. |
+| `make controls-check` | - | Gate: every registered positive-control test still exists (scripts/checks/controls.json). Needs dev-configs built. |
 | `make core` | `core-server` | Rebuild one package, after its dependencies. |
 | `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |

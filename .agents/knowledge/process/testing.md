@@ -62,5 +62,6 @@ tags: [process, test, bun]
 ## Related
 
 - [Build system](/process/build-system.md)
+- [Trimming tests](/process/trimming-tests.md)
 - [Debugging](/process/debugging.md)
 - [Git workflow](/process/git-workflow.md)

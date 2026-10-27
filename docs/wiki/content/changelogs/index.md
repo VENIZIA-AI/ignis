@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-28 | [devz check test-weight, test-dead-code, test-mutate and test-controls](./2026-10-28-dev-configs-test-trim-tools) | New Feature |
 | 2026-10-27 | [devz check catalog, module-cycles and split-report Ship in dev-configs](./2026-10-27-dev-configs-check-catalog-cycles-split) | Enhancement |
 | 2026-10-27 | [dev-configs Testing Export Adds spawnSyncBounded and a Repo-Tmp Preload](./2026-10-27-dev-configs-testing-spawn-tmpdir) | Enhancement |
 | 2026-10-27 | [devz check purity - the Browser-Purity Gate Ships in dev-configs](./2026-10-27-dev-configs-check-purity) | Enhancement |
