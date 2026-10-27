@@ -53,7 +53,6 @@ Postgres becomes one connector among several - existing Postgres code keeps work
 The neutral `ITransaction` no longer has a `connector` field - only `isActive`, `commit()`, `rollback()`. Postgres-specific details (`connector`, `isolationLevel`) moved to `IDatabaseTransaction` in the Postgres connector.
 
 **Before**
-
 ```typescript
 import { ITransaction } from '@venizia/ignis';
 
@@ -63,13 +62,12 @@ async function withTx(tx: ITransaction) {
 ```
 
 **After**
-
 ```typescript
-import { ITransaction } from '@venizia/ignis'; // neutral - no `connector`
-import { IDatabaseTransaction } from '@venizia/ignis/postgres'; // postgres-specific
+import { ITransaction } from '@venizia/ignis';                     // neutral - no `connector`
+import { IDatabaseTransaction } from '@venizia/ignis/postgres';    // postgres-specific
 
 async function withTx(tx: IDatabaseTransaction) {
-  await tx.connector.insert(userTable).values({ name: 'Alice' }); // connector on the postgres-specific type
+  await tx.connector.insert(userTable).values({ name: 'Alice' });  // connector on the postgres-specific type
 }
 ```
 
@@ -88,13 +86,11 @@ grep -rln "ITransaction" src/ | xargs grep -l "\.connector\b\|\.isolationLevel\b
 The `search-engine` helper module is gone from `@venizia/ignis-helpers`; it is now the Typesense connector in core. There is no compatibility re-export.
 
 **Before**
-
 ```typescript
 import { SearchClient, defineSearchCollection } from '@venizia/ignis-helpers';
 ```
 
 **After**
-
 ```typescript
 import {
   TypesenseDataSource,
@@ -113,19 +109,13 @@ See the [Search & Typesense guide](/guides/core-concepts/persistent/search-types
 The HTTP status code stays 501 when the underlying auth service doesn't implement a method. The response `messageCode` and message text changed, for `/token/refresh`, `/who-am-i`, and `/me`.
 
 **Before**
-
 ```json
 { "statusCode": 501, "message": "Method not implemented" }
 ```
 
 **After**
-
 ```json
-{
-  "statusCode": 501,
-  "messageCode": "core.not_supported",
-  "message": "[AuthController] refreshToken is not supported."
-}
+{ "statusCode": 501, "messageCode": "core.not_supported", "message": "[AuthController] refreshToken is not supported." }
 ```
 
 If client code pattern-matches on the literal `"Method not implemented"` string, switch to matching on `messageCode === 'core.not_supported'`. Message text is not a stable contract.
@@ -133,13 +123,11 @@ If client code pattern-matches on the literal `"Method not implemented"` string,
 ### 4. `applicationEnvironment.get` takes an options object instead of a positional `defaultValue`
 
 **Before**
-
 ```typescript
 const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_TYPESENSE_HOST, 'localhost');
 ```
 
 **After**
-
 ```typescript
 const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_TYPESENSE_HOST, {
   defaultValue: 'localhost',
@@ -195,20 +183,20 @@ All IGNIS example apps already declare both flags directly for this reason.
 <details>
 <summary>Files changed</summary>
 
-| File                                                      | Changes                                                                                                     |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `src/base/repositories/core/abstract.ts`                  | Generics renamed to `TDataObject` / `TPersistObject` / `TOptions`; no Drizzle imports                       |
-| `src/base/datasources/abstract.ts`                        | New. Engine-neutral `AbstractDataSource`, `getCapabilities()`, `NotSupported`-throwing `beginTransaction()` |
-| `src/base/models/base.ts`                                 | New. Engine-neutral `AbstractEntity`, `getIdType()`                                                         |
-| `src/connectors/postgres/**`                              | New connector - Relational family (datasource, entity, repository ladder)                                   |
-| `src/connectors/typesense/**`                             | New connector - search entity DSL, datasource/driver/query-dialect, repository ladder                       |
-| `src/connectors/memory/**`                                | New connector - `MemoryDataSource`, `MemoryRepository`, `where-matcher.ts`                                  |
-| `src/utilities/error.utility.ts`                          | New. `throwNotSupported` shared utility                                                                     |
-| `src/components/auth/authenticate/controllers/factory.ts` | Unimplemented-endpoint responses use `throwNotSupported`                                                    |
-| `packages/core-server/package.json`                       | New `exports` sub-paths (`./postgres`, `./memory`, `./typesense`); `typesense` added as optional peer       |
-| `packages/helpers/src/modules/search-engine/`             | Removed - folded into `@venizia/ignis`'s Typesense connector                                                |
-| `packages/helpers/src/modules/env/app-env.ts`             | Breaking - `ApplicationEnvironment.get` options-based signature                                             |
-| `packages/helpers/src/utilities/parse.utility.ts`         | New. `toDelimitedArray`, `toTrimmed` transforms                                                             |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/core/abstract.ts` | Generics renamed to `TDataObject` / `TPersistObject` / `TOptions`; no Drizzle imports |
+| `src/base/datasources/abstract.ts` | New. Engine-neutral `AbstractDataSource`, `getCapabilities()`, `NotSupported`-throwing `beginTransaction()` |
+| `src/base/models/base.ts` | New. Engine-neutral `AbstractEntity`, `getIdType()` |
+| `src/connectors/postgres/**` | New connector - Relational family (datasource, entity, repository ladder) |
+| `src/connectors/typesense/**` | New connector - search entity DSL, datasource/driver/query-dialect, repository ladder |
+| `src/connectors/memory/**` | New connector - `MemoryDataSource`, `MemoryRepository`, `where-matcher.ts` |
+| `src/utilities/error.utility.ts` | New. `throwNotSupported` shared utility |
+| `src/components/auth/authenticate/controllers/factory.ts` | Unimplemented-endpoint responses use `throwNotSupported` |
+| `packages/core-server/package.json` | New `exports` sub-paths (`./postgres`, `./memory`, `./typesense`); `typesense` added as optional peer |
+| `packages/helpers/src/modules/search-engine/` | Removed - folded into `@venizia/ignis`'s Typesense connector |
+| `packages/helpers/src/modules/env/app-env.ts` | Breaking - `ApplicationEnvironment.get` options-based signature |
+| `packages/helpers/src/utilities/parse.utility.ts` | New. `toDelimitedArray`, `toTrimmed` transforms |
 
 </details>
 

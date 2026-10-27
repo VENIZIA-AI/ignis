@@ -20,16 +20,16 @@ packages: ['@venizia/ignis', '@venizia/ignis-inversion']
 
 ## Notable version bumps
 
-| Package                                      | From     | To       |
-| -------------------------------------------- | -------- | -------- |
-| `@asteasolutions/zod-to-openapi` (core peer) | ^8.5.0   | ^9.0.0   |
-| `eslint-plugin-unicorn` (dev-configs)        | ^71.1.0  | ^72.0.0  |
-| `casbin`                                     | ^5.50.0  | ^5.51.1  |
-| `bullmq`                                     | ^5.80.1  | ^5.80.8  |
-| `@hono/zod-openapi`                          | ^1.4.0   | ^1.5.1   |
-| `@scalar/hono-api-reference`                 | ^0.11.9  | ^0.11.11 |
-| `hono`                                       | ^4.12.29 | ^4.12.30 |
-| `typescript-eslint`                          | ^8.63.0  | ^8.64.0  |
+| Package | From | To |
+|---|---|---|
+| `@asteasolutions/zod-to-openapi` (core peer) | ^8.5.0 | ^9.0.0 |
+| `eslint-plugin-unicorn` (dev-configs) | ^71.1.0 | ^72.0.0 |
+| `casbin` | ^5.50.0 | ^5.51.1 |
+| `bullmq` | ^5.80.1 | ^5.80.8 |
+| `@hono/zod-openapi` | ^1.4.0 | ^1.5.1 |
+| `@scalar/hono-api-reference` | ^0.11.9 | ^0.11.11 |
+| `hono` | ^4.12.29 | ^4.12.30 |
+| `typescript-eslint` | ^8.63.0 | ^8.64.0 |
 
 Everything else moved by patch or minor. Builds, full test suites, and lint are green on the new set.
 

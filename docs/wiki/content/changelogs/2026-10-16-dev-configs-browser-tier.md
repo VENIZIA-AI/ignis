@@ -1,6 +1,6 @@
 ---
 title: dev-configs Gains a Browser Tier
-description: '@venizia/dev-configs 0.3.1 adds lint, format and tsconfig presets for browser code without React, and the React preset now builds on them.'
+description: "@venizia/dev-configs 0.3.1 adds lint, format and tsconfig presets for browser code without React, and the React preset now builds on them."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -27,12 +27,12 @@ export default defineConfig(BrowserOxlintConfigs.create());
 - **`tsconfig.browser.json` and `tsconfig.react.json`.** These configs are for a library that a bundler builds. They set `moduleResolution: bundler`, add the `DOM` lib, and set `types: []`, so no Bun types reach `dist`. The React config also sets `jsx: react-jsx`.
 - **`ReactOxlintConfigs` builds on `BrowserOxlintConfigs`.** The rules are the same. The `crypto.randomUUID` ban now also covers `.mjs` and `.cjs` files.
 
-| Tool     | Backend                   | Browser                         | React                          |
-| -------- | ------------------------- | ------------------------------- | ------------------------------ |
-| oxlint   | `oxlintConfigs`           | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()`  |
-| oxfmt    | `oxfmtConfigs`            | `browserOxfmtConfigs`           | `browserOxfmtConfigs`          |
-| ESLint   | `namingConventionConfigs` | `namingConventionConfigs`       | `reactNamingConventionConfigs` |
-| tsconfig | `tsconfig.common.json`    | `tsconfig.browser.json`         | `tsconfig.react.json`          |
+| Tool | Backend | Browser | React |
+|---|---|---|---|
+| oxlint | `oxlintConfigs` | `BrowserOxlintConfigs.create()` | `ReactOxlintConfigs.create()` |
+| oxfmt | `oxfmtConfigs` | `browserOxfmtConfigs` | `browserOxfmtConfigs` |
+| ESLint | `namingConventionConfigs` | `namingConventionConfigs` | `reactNamingConventionConfigs` |
+| tsconfig | `tsconfig.common.json` | `tsconfig.browser.json` | `tsconfig.react.json` |
 
 ## Who is affected
 

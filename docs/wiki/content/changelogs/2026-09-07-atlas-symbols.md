@@ -57,11 +57,11 @@ The answer already lived in the built `.d.ts`. Nothing read it.
 
 ## Details
 
-| Symbol                                   | Change | Package                       |
-| ---------------------------------------- | ------ | ----------------------------- |
-| `symbol` (MCP tool)                      | New    | `@venizia/ignis-atlas`        |
-| `symbol` field on a `search` reply       | New    | `@venizia/ignis-atlas`        |
-| `symbols.json` (generated)               | New    | `.agents/knowledge/reference` |
-| `make symbols-gen`, `make symbols-check` | New    | Makefile                      |
+| Symbol | Change | Package |
+|---|---|---|
+| `symbol` (MCP tool) | New | `@venizia/ignis-atlas` |
+| `symbol` field on a `search` reply | New | `@venizia/ignis-atlas` |
+| `symbols.json` (generated) | New | `.agents/knowledge/reference` |
+| `make symbols-gen`, `make symbols-check` | New | Makefile |
 
 - Extension page: [Atlas](/extensions/atlas/).

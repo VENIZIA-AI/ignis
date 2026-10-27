@@ -12,8 +12,8 @@ packages: ['@venizia/ignis']
 
 **In one line.** The static-asset download route is now singular.
 
-| Before                              | After                              |
-| ----------------------------------- | ---------------------------------- |
+| Before | After |
+|---|---|
 | `GET {base}/downloads/{objectName}` | `GET {base}/download/{objectName}` |
 
 Nothing else moves. `{base}` is `/buckets/{bucketName}` unless `controller.bucket` is configured.

@@ -1,6 +1,6 @@
 ---
 title: A Dependency Reached Through An Import Cycle Can Still Name Its Class
-description: '@inject({ target }) takes a function returning the class. The function runs when the container resolves, so a class a barrel makes unreachable at module load is still nameable.'
+description: "@inject({ target }) takes a function returning the class. The function runs when the container resolves, so a class a barrel makes unreachable at module load is still nameable."
 packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
@@ -40,9 +40,7 @@ The thunk covers the decorator argument. It does not cover the type annotation, 
 `emitDecoratorMetadata` turns that annotation into a second, eager value reference:
 
 ```js
-__legacyMetadataTS('design:paramtypes', [
-  typeof NoteService === 'undefined' ? Object : NoteService,
-]);
+__legacyMetadataTS('design:paramtypes', [typeof NoteService === 'undefined' ? Object : NoteService]);
 ```
 
 `typeof` on a binding in the temporal dead zone throws too, so TypeScript's own guard does not help.

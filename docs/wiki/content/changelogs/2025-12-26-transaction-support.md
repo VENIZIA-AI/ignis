@@ -43,13 +43,13 @@ try {
 
 ### Core Package (`packages/core-server`)
 
-| File                                        | Changes                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------ |
-| `src/base/repositories/core/base.ts`        | Added `beginTransaction` and transaction handling logic            |
-| `src/base/repositories/core/readable.ts`    | Updated read methods to respect transaction context                |
-| `src/base/repositories/core/persistable.ts` | Updated write methods to respect transaction context               |
-| `src/base/datasources/common/types.ts`      | Added `ITransaction`, `ITransactionOptions`, and `IsolationLevels` |
-| `src/base/datasources/base.ts`              | Implemented `beginTransaction` on `BaseDataSource`                 |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/core/base.ts` | Added `beginTransaction` and transaction handling logic |
+| `src/base/repositories/core/readable.ts` | Updated read methods to respect transaction context |
+| `src/base/repositories/core/persistable.ts` | Updated write methods to respect transaction context |
+| `src/base/datasources/common/types.ts` | Added `ITransaction`, `ITransactionOptions`, and `IsolationLevels` |
+| `src/base/datasources/base.ts` | Implemented `beginTransaction` on `BaseDataSource` |
 
 ## Migration Guide
 

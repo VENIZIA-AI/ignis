@@ -1,6 +1,6 @@
 ---
 title: oxlint Config Without Loading ESLint
-description: '@venizia/dev-configs/linters/oxlint loads only the oxlint presets, so every oxlint run starts about a second sooner.'
+description: "@venizia/dev-configs/linters/oxlint loads only the oxlint presets, so every oxlint run starts about a second sooner."
 packages: ['@venizia/dev-configs']
 ---
 

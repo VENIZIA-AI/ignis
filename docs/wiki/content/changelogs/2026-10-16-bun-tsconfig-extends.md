@@ -1,6 +1,6 @@
 ---
 title: Restate the Decorator Options - Bun Ignores a Package tsconfig extends
-description: 'Bun skips a tsconfig extends that names a package, so the dev-configs decorator options never reach bun run or bun test. Restate two options in your own tsconfig.'
+description: "Bun skips a tsconfig extends that names a package, so the dev-configs decorator options never reach bun run or bun test. Restate two options in your own tsconfig."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -28,10 +28,10 @@ packages: ['@venizia/dev-configs']
 - **The trap is silent.** `tsc` follows the whole chain, so typecheck and build stay green. Only `bun run` and `bun test` diverge.
 - **Every IGNIS package and example now restates both options.** The published `dist` is byte-identical. The test suites now run the same class-field semantics as the code they ship.
 
-| `extends`                                        | What Bun compiles         |
-| ------------------------------------------------ | ------------------------- |
-| `@venizia/dev-configs/tsconfig.common.json`      | TC39 decorators - wrong   |
-| `@venizia/dev-configs/tsconfig.base.json`        | TC39 decorators - wrong   |
+| `extends` | What Bun compiles |
+|---|---|
+| `@venizia/dev-configs/tsconfig.common.json` | TC39 decorators - wrong |
+| `@venizia/dev-configs/tsconfig.base.json` | TC39 decorators - wrong |
 | the options restated in your own `tsconfig.json` | legacy decorators - right |
 
 ## Who is affected

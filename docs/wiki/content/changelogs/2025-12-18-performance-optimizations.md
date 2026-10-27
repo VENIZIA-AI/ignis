@@ -47,7 +47,6 @@ export class FilterBuilder extends BaseHelper {
 ```
 
 **Benefits:**
-
 - First call: `getTableColumns(schema)` → cached
 - Subsequent calls: Retrieved from WeakMap (O(1) lookup)
 - WeakMap allows garbage collection when schema is no longer referenced
@@ -67,13 +66,13 @@ const users = await repo.find({
     where: { status: 'active' },
     limit: 10,
     order: ['createdAt DESC'],
-  },
+  }
 });
 // Uses: db.select().from(table).where(...).orderBy(...).limit(10)
 ```
 
-| Scenario                | Improvement    |
-| ----------------------- | -------------- |
+| Scenario | Improvement |
+|----------|-------------|
 | Simple `find()` queries | ~15-20% faster |
 
 ### 3. Static schemaFactory Singleton
@@ -93,7 +92,6 @@ protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
 ```
 
 **Benefits:**
-
 - Single instance for all entities
 - Lazy initialization (created on first use)
 - Reduced memory footprint
@@ -113,7 +111,6 @@ return { count };
 ```
 
 **Benefits:**
-
 - Eliminates extra microtask queue entries
 - Reduces ~200-400 bytes memory per Promise on V8
 - Cleaner stack traces for debugging
@@ -122,12 +119,12 @@ return { count };
 
 ### Core Package (`packages/core-server`)
 
-| File                                        | Changes                                     |
-| ------------------------------------------- | ------------------------------------------- |
-| `src/base/repositories/operators/filter.ts` | WeakMap cache for `getTableColumns()`       |
-| `src/base/repositories/core/readable.ts`    | Core API optimization, async/await refactor |
-| `src/base/repositories/core/persistable.ts` | Async/await refactor                        |
-| `src/base/models/base.ts`                   | Static schemaFactory singleton              |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/operators/filter.ts` | WeakMap cache for `getTableColumns()` |
+| `src/base/repositories/core/readable.ts` | Core API optimization, async/await refactor |
+| `src/base/repositories/core/persistable.ts` | Async/await refactor |
+| `src/base/models/base.ts` | Static schemaFactory singleton |
 
 ## No Breaking Changes
 

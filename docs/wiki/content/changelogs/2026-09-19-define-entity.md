@@ -1,6 +1,6 @@
 ---
 title: A Model Declares Each Fact Once
-description: 'ModelFactory.defineEntity builds the entity class from a plain drizzle table, relations point at tables, and TEntityObject infers the row type - relations included.'
+description: "ModelFactory.defineEntity builds the entity class from a plain drizzle table, relations point at tables, and TEntityObject infers the row type - relations included."
 packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
@@ -67,9 +67,7 @@ export const policyTable = pgTable('Policy', {
 
 export const featureTable = pgTable('Feature', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  policyId: text('policy_id')
-    .notNull()
-    .references((): AnyPgColumn => policyTable.id),
+  policyId: text('policy_id').notNull().references((): AnyPgColumn => policyTable.id),
   parentId: text('parent_id').references((): AnyPgColumn => featureTable.id),
   code: text('code').notNull(),
 });
@@ -105,16 +103,16 @@ What to notice:
 
 ## How `one` finds its columns
 
-| The source table has                                                                              | `one(target)` resolves to                                                                               |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `fields` and `references` written out                                                             | Those, as written                                                                                       |
-| Only one of `fields` and `references`                                                             | An error at relation build                                                                              |
-| Exactly one foreign key to the target                                                             | That key's columns                                                                                      |
-| Two or more foreign keys to the target, one not claimed by a `one` written out on the same entity | That key's columns                                                                                      |
-| Two or more foreign keys to the target, otherwise                                                 | An error at relation build, naming the columns left - write `fields` and `references`                   |
-| No key, but the target has one back                                                               | The inverse side of a one-to-one - the target's entity must declare a `one()` back                      |
-| No key, but the target has two or more back                                                       | An error at relation build, naming the columns - write `fields` and `references` on this side, reversed |
-| No key either way                                                                                 | An error at relation build                                                                              |
+| The source table has | `one(target)` resolves to |
+|---|---|
+| `fields` and `references` written out | Those, as written |
+| Only one of `fields` and `references` | An error at relation build |
+| Exactly one foreign key to the target | That key's columns |
+| Two or more foreign keys to the target, one not claimed by a `one` written out on the same entity | That key's columns |
+| Two or more foreign keys to the target, otherwise | An error at relation build, naming the columns left - write `fields` and `references` |
+| No key, but the target has one back | The inverse side of a one-to-one - the target's entity must declare a `one()` back |
+| No key, but the target has two or more back | An error at relation build, naming the columns - write `fields` and `references` on this side, reversed |
+| No key either way | An error at relation build |
 
 A `one` to its own table follows the same rules, plus one: only one such `one` per entity may leave out `fields`. One self key cannot back both `previous` and `next`, so the second writes its columns.
 
@@ -149,14 +147,14 @@ The datasource now pairs every relation once, when it builds its schema - at boo
 
 ## What else comes with the class
 
-| Member                                       | What it is                                                                 |
-| -------------------------------------------- | -------------------------------------------------------------------------- |
-| `Policy.schema`                              | The drizzle table, precisely typed                                         |
-| `Policy.TABLE_NAME`                          | `getTableName(table)`                                                      |
-| `Policy.relationDefinitions`                 | The keyed relations, for `TEntityObject` - `undefined` when there are none |
-| `Policy.relations`                           | The array form the query dialect reads                                     |
-| `Policy.AUTHORIZATION_SUBJECT`               | As on any entity - the returned class is a `BaseRelationalEntity` subclass |
-| `new Policy().getSchema({ type: 'create' })` | The zod schema - `'create'`, `'update'` or `'select'`                      |
+| Member | What it is |
+|---|---|
+| `Policy.schema` | The drizzle table, precisely typed |
+| `Policy.TABLE_NAME` | `getTableName(table)` |
+| `Policy.relationDefinitions` | The keyed relations, for `TEntityObject` - `undefined` when there are none |
+| `Policy.relations` | The array form the query dialect reads |
+| `Policy.AUTHORIZATION_SUBJECT` | As on any entity - the returned class is a `BaseRelationalEntity` subclass |
+| `new Policy().getSchema({ type: 'create' })` | The zod schema - `'create'`, `'update'` or `'select'` |
 
 The returned class type is `TDefinedEntityClass<Schema, Relations>`, a named type, so a consumer's declaration build can reference it.
 

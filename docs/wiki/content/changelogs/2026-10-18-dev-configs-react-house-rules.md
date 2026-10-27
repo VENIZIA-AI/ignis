@@ -1,6 +1,6 @@
 ---
 title: dev-configs Gains no-leaked-render, Six More Accessibility Rules and a Shared Ignore List
-description: 'reactHouseConfigs bans cond && <X /> in JSX, both React presets run six more jsx-a11y rules, const-class-values is available, and the oxlint presets take an ignore list.'
+description: "reactHouseConfigs bans cond && <X /> in JSX, both React presets run six more jsx-a11y rules, const-class-values is available, and the oxlint presets take an ignore list."
 packages: ['@venizia/dev-configs']
 ---
 

@@ -24,11 +24,11 @@ stop one we declared ourselves.
 **This also fixes a plain bug.** What each backend reported was different, so the same object was
 served three ways:
 
-| Backend | Before                                                                        | Now                  |
-| ------- | ----------------------------------------------------------------------------- | -------------------- |
-| minio   | the type the uploader claimed                                                 | from the object name |
-| bun-s3  | always `application/octet-stream`, so images downloaded instead of displaying | from the object name |
-| disk    | always `application/octet-stream`                                             | from the object name |
+| Backend | Before | Now |
+|---|---|---|
+| minio | the type the uploader claimed | from the object name |
+| bun-s3 | always `application/octet-stream`, so images downloaded instead of displaying | from the object name |
+| disk | always `application/octet-stream` | from the object name |
 
 If your application relied on serving HTML or SVG from the asset routes, serve it from a separate
 domain instead. That is the structural control OWASP recommends and IGNIS cannot impose it for you.
@@ -43,10 +43,10 @@ list is the mechanism behind the XSS fix at the top of this page.
 
 **Which backend you use decides whether you notice.**
 
-| Backend      | `getStat` metadata key | Reached the whitelist before?                                                |
-| ------------ | ---------------------- | ---------------------------------------------------------------------------- |
-| minio        | `content-type`         | Yes - the uploader's claimed type was served back                            |
-| bun-s3, disk | `contentType`          | No - `applyMetadataHeaders` lowercases to `contenttype`, which never matched |
+| Backend | `getStat` metadata key | Reached the whitelist before? |
+|---|---|---|
+| minio | `content-type` | Yes - the uploader's claimed type was served back |
+| bun-s3, disk | `contentType` | No - `applyMetadataHeaders` lowercases to `contenttype`, which never matched |
 
 So on `bun-s3` and `disk` this changes nothing that was working. On `minio` it closes the exact hole:
 the type an uploader claimed no longer decides how a browser treats the file.
@@ -99,7 +99,7 @@ Before, it depended on the backend: `disk` answered `400 core.system_error`, `bu
 answered `500 core.system_error`. Neither is right, and they disagreed with each other.
 
 Storage helpers now throw a catalogued `core.storage.object_not_found` carrying a 404, so GET,
-DOWNLOAD and RECREATE_METALINK answer 404 with a code a client can branch on. A failure that is _not_
+DOWNLOAD and RECREATE_METALINK answer 404 with a code a client can branch on. A failure that is *not*
 a missing object still answers 500 - that discrimination is the point.
 
 `DELETE` of a missing object still answers **200** on every backend. S3 deletes idempotently and
@@ -151,11 +151,11 @@ new BunS3Helper({
 
 <Badge type="tip" text="New Feature" />
 
-| Option                           | What it solves                                                                                                                                                 |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `publicEndpoint`                 | `host` is inside every signature, so a URL signed against `http://minio:9000` cannot be rewritten afterwards. Sign against the name a browser can reach.       |
-| `virtualHostedStyle`             | AWS requires `bucket.s3.region.amazonaws.com` for newer buckets; MinIO and R2 take path style. Each bucket gets its own host, so one helper still serves many. |
-| `partSize`, `queueSize`, `retry` | Multipart tuning Bun already had and IGNIS did not expose.                                                                                                     |
+| Option | What it solves |
+|---|---|
+| `publicEndpoint` | `host` is inside every signature, so a URL signed against `http://minio:9000` cannot be rewritten afterwards. Sign against the name a browser can reach. |
+| `virtualHostedStyle` | AWS requires `bucket.s3.region.amazonaws.com` for newer buckets; MinIO and R2 take path style. Each bucket gets its own host, so one helper still serves many. |
+| `partSize`, `queueSize`, `retry` | Multipart tuning Bun already had and IGNIS did not expose. |
 
 ## listObjects no longer stops at 1000 keys
 
@@ -207,12 +207,12 @@ for the same reason.
 
 ## New APIs
 
-| Method                                                | Use it for                                                                                                                             |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `getObjectStream({ bucket, name, range? })`           | The bytes as a web stream, which is what a `Response` body wants. Ranged when asked.                                                   |
-| `writeStream({ bucket, name, source, contentType? })` | Upload without holding the object in memory. `upload` takes a `Buffer`, so a 5 GB file is 5 GB of heap; this is not.                   |
-| `presignPut`, `presignGet`                            | Signed URLs. `presignGet` takes `responseContentDisposition`, which keeps the attachment guarantee when S3 serves the object directly. |
-| `getObjectTags`, `replaceObjectTags`                  | Object tags, parsed into a plain object.                                                                                               |
+| Method | Use it for |
+|---|---|
+| `getObjectStream({ bucket, name, range? })` | The bytes as a web stream, which is what a `Response` body wants. Ranged when asked. |
+| `writeStream({ bucket, name, source, contentType? })` | Upload without holding the object in memory. `upload` takes a `Buffer`, so a 5 GB file is 5 GB of heap; this is not. |
+| `presignPut`, `presignGet` | Signed URLs. `presignGet` takes `responseContentDisposition`, which keeps the attachment guarantee when S3 serves the object directly. |
+| `getObjectTags`, `replaceObjectTags` | Object tags, parsed into a plain object. |
 
 ## MemoryStorageHelper
 
@@ -252,13 +252,13 @@ call to learn what it just uploaded.
 
 <Badge type="danger" text="Breaking" />
 
-| Before           | After               | Why                                                                                                                                 |
-| ---------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `isBucketExists` | `hasBucket`         | `is` + `Exists` is not English. `has*` is the ownership question                                                                    |
-| `getFile`        | `getObject`         | one interface was using two words for one thing                                                                                     |
-| `getFileStream`  | `getObjectStream`   | same                                                                                                                                |
-| `getFileType`    | `getMediaType`      | it returns `image`/`video`/`text`, and the old name read like `getMimeType`                                                         |
-| `setObjectTags`  | `replaceObjectTags` | `set` hid the fact that it replaces the WHOLE tag set - a caller flipping one tag silently dropped `retention` and `classification` |
+| Before | After | Why |
+|---|---|---|
+| `isBucketExists` | `hasBucket` | `is` + `Exists` is not English. `has*` is the ownership question |
+| `getFile` | `getObject` | one interface was using two words for one thing |
+| `getFileStream` | `getObjectStream` | same |
+| `getFileType` | `getMediaType` | it returns `image`/`video`/`text`, and the old name read like `getMimeType` |
+| `setObjectTags` | `replaceObjectTags` | `set` hid the fact that it replaces the WHOLE tag set - a caller flipping one tag silently dropped `retention` and `classification` |
 
 TypeScript catches every one of these.
 
@@ -270,9 +270,9 @@ hiding behind the rename - fix the name and you are done.
 
 <Badge type="danger" text="Breaking" />
 
-| Before                             | After                               |
-| ---------------------------------- | ----------------------------------- |
-| `POST {base}/upload`               | `POST {base}/objects`               |
+| Before | After |
+|---|---|
+| `POST {base}/upload` | `POST {base}/objects` |
 | `GET {base}/download/{objectName}` | `GET {base}/downloads/{objectName}` |
 
 `upload` was a verb sitting where a resource belongs; `POST` into the object collection already says
@@ -280,7 +280,7 @@ it. `download` became plural for the same reason - it names a set of representat
 
 **These two do NOT fail at compile time.** A client calling the old path gets a 404 at runtime.
 
-The action stays _before_ the key rather than after it, and that is forced rather than chosen: with
+The action stays *before* the key rather than after it, and that is forced rather than chosen: with
 nested object keys enabled, a suffix route never matches at all. Measured on Hono, a request to
 `/objects/photos/2024/a.png/download` is served by the catch-all with the key
 `photos/2024/a.png/download` - the `/download` suffix route is unreachable.

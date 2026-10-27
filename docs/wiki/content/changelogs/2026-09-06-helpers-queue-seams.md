@@ -32,13 +32,13 @@ The other needed to react to a Kafka stream error separately from a per-message 
 
 ## What changed
 
-| Symbol                                                      | Change                                                                                                                                                                                           | Package |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
-| `IBullMQOptions.queueOptions` / `.workerOptions`            | New; typed from `bullmq`'s `QueueOptions`/`WorkerOptions`, minus the fields the helper owns                                                                                                      | helpers |
-| `BullMQHelper.queueOptionsFor()` / `.workerOptionsFor()`    | New `protected` methods; merge the framework defaults, then the option, then the owned fields (`connection`, `concurrency`, `lockDuration`)                                                      | helpers |
-| `BullMQHelper.isClusterClient()`                            | New `protected` method; duck-types a Redis Cluster client (`instanceof Cluster`, `isCluster`, or a `nodes()` method), so a duplicated or cross-copy client still gets the `{queueName}` hash tag | helpers |
-| `IKafkaConsumerOptions.onStreamError` / `.onReconnectError` | New callbacks; each falls back to `onMessageError` when unset                                                                                                                                    | helpers |
-| `KafkaConsumerHelper`                                       | Every member is `protected`, not `private`                                                                                                                                                       | helpers |
+| Symbol | Change | Package |
+|---|---|---|
+| `IBullMQOptions.queueOptions` / `.workerOptions` | New; typed from `bullmq`'s `QueueOptions`/`WorkerOptions`, minus the fields the helper owns | helpers |
+| `BullMQHelper.queueOptionsFor()` / `.workerOptionsFor()` | New `protected` methods; merge the framework defaults, then the option, then the owned fields (`connection`, `concurrency`, `lockDuration`) | helpers |
+| `BullMQHelper.isClusterClient()` | New `protected` method; duck-types a Redis Cluster client (`instanceof Cluster`, `isCluster`, or a `nodes()` method), so a duplicated or cross-copy client still gets the `{queueName}` hash tag | helpers |
+| `IKafkaConsumerOptions.onStreamError` / `.onReconnectError` | New callbacks; each falls back to `onMessageError` when unset | helpers |
+| `KafkaConsumerHelper` | Every member is `protected`, not `private` | helpers |
 
 - `onMessageError` keeps its per-message role. A consumer that sets only `onMessageError` sees no behavior change.
 - `protected` here is an extension seam, not a stable contract between minor versions.

@@ -1,6 +1,6 @@
 ---
 title: dev-configs Warns on String-Literal Unions and Explicit Casts
-description: 'houseConfigs and reactHouseConfigs now warn on a string-literal union in an exported declaration (venizia/const-class-values) and on an as X cast (consistent-type-assertions). Warnings only; tests are exempt.'
+description: "houseConfigs and reactHouseConfigs now warn on a string-literal union in an exported declaration (venizia/const-class-values) and on an as X cast (consistent-type-assertions). Warnings only; tests are exempt."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -35,12 +35,7 @@ import { houseConfigs } from '@venizia/dev-configs/linters';
 
 export default [
   ...houseConfigs,
-  {
-    rules: {
-      'venizia/const-class-values': 'off',
-      '@typescript-eslint/consistent-type-assertions': 'off',
-    },
-  },
+  { rules: { 'venizia/const-class-values': 'off', '@typescript-eslint/consistent-type-assertions': 'off' } },
 ];
 ```
 

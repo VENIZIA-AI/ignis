@@ -1,6 +1,6 @@
 ---
 title: Artifact Identity No Longer Rides on the Class Name
-description: 'A minified build renames classes. Two classes that derive one binding key now fail registration, @repository injects a decorated datasource by its class, and the repository and datasource registries are keyed by class.'
+description: "A minified build renames classes. Two classes that derive one binding key now fail registration, @repository injects a decorated datasource by its class, and the repository and datasource registries are keyed by class."
 packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
@@ -12,14 +12,14 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel']
 
 **In one line.** A minified build renames `OrderService` to `e` and gives classes in different chunks the same short name. IGNIS no longer lets that hand one class another's instance.
 
-| Before                                                                                                                                                                       | Now                                                                                                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Two classes minified to `e` both derived `services.e`; the second silently replaced the first, and `@inject({ target })` got the wrong instance                              | `registerArtifacts` throws: `Two classes derive the binding key 'services.e' from their class name`, naming the fix. `bootChecks.allowDerivedKeyCollision: true` makes it a warning                                   |
+| Before | Now |
+|---|---|
+| Two classes minified to `e` both derived `services.e`; the second silently replaced the first, and `@inject({ target })` got the wrong instance | `registerArtifacts` throws: `Two classes derive the binding key 'services.e' from their class name`, naming the fix. `bootChecks.allowDerivedKeyCollision: true` makes it a warning |
 | `@repository` with no `@inject` built `datasources.<ClassName>` at decoration, so `@datasource({ binding: { key: 'ApiDataSource' } })` was missed once the class was renamed | The datasource is injected by its class: the container reads the key its registration recorded - decorated, `bindingList()` or `dataSource(X, { binding })` - and falls back to the derived key for a class bound raw |
-| An explicit `@inject` at index 0 was still checked against the parameter type: an interface or `import type` parameter threw under Bun/tsc and passed under Vite             | An explicit `@inject` decides for itself; an `Object` parameter type is not checked                                                                                                                                   |
-| A datasource pinned to its own namespace (`remotes.catalog`) was refused by an explicit `@inject({ target })`                                                                | A `target` class is judged by its datasource brand, in any namespace                                                                                                                                                  |
-| A repository found its model, and a datasource its models, by class name - two same-named classes swapped tables                                                             | Both registries are keyed by class                                                                                                                                                                                    |
-| Configurations ordered by `after` were keyed by class name; two same-named configurations dropped one                                                                        | The ordering graph is keyed by class                                                                                                                                                                                  |
+| An explicit `@inject` at index 0 was still checked against the parameter type: an interface or `import type` parameter threw under Bun/tsc and passed under Vite | An explicit `@inject` decides for itself; an `Object` parameter type is not checked |
+| A datasource pinned to its own namespace (`remotes.catalog`) was refused by an explicit `@inject({ target })` | A `target` class is judged by its datasource brand, in any namespace |
+| A repository found its model, and a datasource its models, by class name - two same-named classes swapped tables | Both registries are keyed by class |
+| Configurations ordered by `after` were keyed by class name; two same-named configurations dropped one | The ordering graph is keyed by class |
 
 **One key derivation, exported.** `ArtifactBindingKeys` (from `@venizia/ignis-kernel/metadata`) is the single place a key is derived: `resolve({ target, namespace, binding? })`, `findDerivedCollisions({ entries })` and `assertNoDerivedCollision({ entries, caller })`. `namespace` is a plain string. A framework that registers artifacts itself calls it rather than copying the rule.
 

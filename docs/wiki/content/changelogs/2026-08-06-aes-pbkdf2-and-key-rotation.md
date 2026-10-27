@@ -72,13 +72,13 @@ The envelope carries the IV, so a supplied one had nowhere to go. `IAESDecryptOp
 
 ## Who is affected
 
-| You                                                                      | Impact                                                              |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| You | Impact |
+|---|---|
 | Store AES ciphertext (a column, a cache entry, a file via `encryptFile`) | Those reads fail until you switch them to `LegacyAES` or re-encrypt |
-| Set `applicationSecret` on a bearer-token service                        | Every already-issued token fails verification as `TOKEN_INVALID`    |
-| Call `normalizeSecretKey` yourself                                       | Signature changed - `Buffer`, and no `padEnd`                       |
-| Use `AES` only for data written after upgrading                          | No action                                                           |
-| Use `ECDH`, `RSA` or hashing                                             | No action                                                           |
+| Set `applicationSecret` on a bearer-token service | Every already-issued token fails verification as `TOKEN_INVALID` |
+| Call `normalizeSecretKey` yourself | Signature changed - `Buffer`, and no `padEnd` |
+| Use `AES` only for data written after upgrading | No action |
+| Use `ECDH`, `RSA` or hashing | No action |
 
 The token case is the loud one: at deploy, every active session ends at once, and the log shows the ordinary `Invalid or expired token` warning. It looks exactly like normal expiry.
 

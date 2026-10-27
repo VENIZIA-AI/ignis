@@ -65,9 +65,7 @@ export const configs: IApplicationConfigs = {
 export class Application extends BaseApplication {
   preConfigure() {
     this.booter(CustomBooter);
-    this.bind({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS }).toValue({
-      restOptions: { path: '/health' },
-    });
+    this.bind({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS }).toValue({ restOptions: { path: '/health' } });
     this.component(HealthCheckComponent);
     this.service(PricingService);
   }
@@ -106,17 +104,17 @@ Migration:
 
 ## Details
 
-| Symbol                                                                                                         | Change           | Package       |
-| -------------------------------------------------------------------------------------------------------------- | ---------------- | ------------- |
-| `injectable`, `service`, `component`, `provide`, `pickRegistrationOptions`                                     | New              | `kernel`      |
-| `ArtifactTypes`, `IArtifactRegistrationOptions`, `IArtifactMetadata`, `IProvideMetadata`, `TArtifactCondition` | New              | `kernel`      |
-| `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts`                                       | New              | `kernel`      |
-| `RestApplication.registerArtifacts()`, `registerConfiguredArtifacts()`, `BootSteps.REGISTER_ARTIFACTS`         | New              | `kernel`      |
-| `ServerBootSteps`                                                                                              | New              | `core-server` |
-| `BaseApplication.boot()`                                                                                       | Deprecated no-op | `core-server` |
-| `BaseApplication.booter()`, `registerBooters()`                                                                | Removed          | `core-server` |
-| `Bootstrapper`, `BaseArtifactBooter`, the four booters, `BootMixin`, `discoverFiles`, `loadClasses`, `isClass` | Removed          | `boot`        |
-| `ignis-artifacts`, `generateArtifactIndex`, `checkArtifactIndex`, `ArtifactScanner`, `ArtifactIndexEmitter`    | New              | `boot`        |
-| `TMixinOpts.args`                                                                                              | Removed          | `kernel`      |
+| Symbol | Change | Package |
+|---|---|---|
+| `injectable`, `service`, `component`, `provide`, `pickRegistrationOptions` | New | `kernel` |
+| `ArtifactTypes`, `IArtifactRegistrationOptions`, `IArtifactMetadata`, `IProvideMetadata`, `TArtifactCondition` | New | `kernel` |
+| `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts` | New | `kernel` |
+| `RestApplication.registerArtifacts()`, `registerConfiguredArtifacts()`, `BootSteps.REGISTER_ARTIFACTS` | New | `kernel` |
+| `ServerBootSteps` | New | `core-server` |
+| `BaseApplication.boot()` | Deprecated no-op | `core-server` |
+| `BaseApplication.booter()`, `registerBooters()` | Removed | `core-server` |
+| `Bootstrapper`, `BaseArtifactBooter`, the four booters, `BootMixin`, `discoverFiles`, `loadClasses`, `isClass` | Removed | `boot` |
+| `ignis-artifacts`, `generateArtifactIndex`, `checkArtifactIndex`, `ArtifactScanner`, `ArtifactIndexEmitter` | New | `boot` |
+| `TMixinOpts.args` | Removed | `kernel` |
 
 - Reference: [Artifact Registration](/references/base/bootstrapping). Guide: [Registering artifacts](/guides/core-concepts/application/bootstrapping). Worked example: `examples/vert`.

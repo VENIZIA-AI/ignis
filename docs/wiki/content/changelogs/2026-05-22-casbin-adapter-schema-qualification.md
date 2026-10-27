@@ -67,7 +67,7 @@ new DrizzleCasbinAdapter({
 > [!NOTE]
 > All three entities accept `schemaName`, so each table can live in a different schema. The current queries only read `policy_definitions` and `permissions` in a `FROM`/`JOIN`, so `role.schemaName` is accepted as configuration but does not yet affect emitted SQL.
 
-| File                                                       | Package |
-| ---------------------------------------------------------- | ------- |
-| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | core    |
-| `src/__tests__/authorize/drizzle-casbin-adapter.test.ts`   | core    |
+| File | Package |
+|------|---------|
+| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | core |
+| `src/__tests__/authorize/drizzle-casbin-adapter.test.ts` | core |

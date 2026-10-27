@@ -1,6 +1,6 @@
 ---
 title: devz check test-weight, test-dead-code, test-mutate and test-controls
-description: 'Four dev-configs commands for trimming tests without losing coverage: the JUnit analysis, the unreferenced support files, the mutation-ledger replay and the positive-control registry check.'
+description: "Four dev-configs commands for trimming tests without losing coverage: the JUnit analysis, the unreferenced support files, the mutation-ledger replay and the positive-control registry check."
 packages: ['@venizia/dev-configs']
 ---
 

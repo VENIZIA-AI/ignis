@@ -20,7 +20,6 @@ Components can now register datasources and controllers during their `configure(
 When components register datasources during `configure()`, those datasources were never configured because `registerDataSources()` had already completed.
 
 **Initialization Order (Before):**
-
 1. `registerDataSources()` → configures initial datasources
 2. `registerComponents()` → component registers NEW datasource (too late!)
 3. `registerControllers()` → runs normally
@@ -50,8 +49,8 @@ await this.registerControllers();
 
 ### Core Package (`packages/core-server`)
 
-| File                            | Changes                                                                |
-| ------------------------------- | ---------------------------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/base/applications/base.ts` | Added second `registerDataSources()` call after `registerComponents()` |
 
 ## No Breaking Changes
@@ -93,14 +92,12 @@ protected async runConfigurationLoop(): Promise<void> {
 ```
 
 **Benefits of Multi-Pass:**
-
 - Handles arbitrary nesting depth
 - Components can register datasources, controllers, or other components
 - Datasources configured before components that depend on them
 - MAX_ITERATIONS prevents infinite loops from circular dependencies
 
 **LoopBack 4 Insights Applied:**
-
 - Three-phase execution pattern (configure → discover → load)
 - Observer ordering (datasources before components before controllers)
 - Stabilization detection (loop until no new bindings)

@@ -31,18 +31,16 @@ The application error middleware now propagates a machine-readable `messageCode`
 **Solution:** The handler reads `messageCode` and `extra` off the error (when present) and includes them in the response payload.
 
 **Before:**
-
 ```typescript
 const rs = {
   message: resolvedMessage,
   statusCode: resolvedStatusCode,
   requestId,
-  details: { url, path /* ... */ },
+  details: { url, path, /* ... */ },
 };
 ```
 
 **After:**
-
 ```typescript
 const messageCode = 'messageCode' in error ? error.messageCode : undefined;
 
@@ -52,7 +50,7 @@ const rs = {
   statusCode: resolvedStatusCode,
   requestId,
   extra: 'extra' in error ? error?.extra : undefined,
-  details: { url, path /* ... */ },
+  details: { url, path, /* ... */ },
 };
 ```
 
@@ -79,7 +77,6 @@ export class ApplicationError extends Error {
 ```
 
 **Usage:**
-
 ```typescript
 import { getError } from '@venizia/ignis-helpers';
 
@@ -94,7 +91,6 @@ throw getError({
 ```
 
 Response body:
-
 ```json
 {
   "message": "Email already registered",
@@ -106,7 +102,6 @@ Response body:
 ```
 
 **Benefits:**
-
 - Stable, localizable `messageCode` for clients to switch on
 - Structured error context without subclassing the error type
 - `ErrorSchema.catchall(z.any())` keeps extra fields type-safe and documented in OpenAPI
@@ -115,21 +110,21 @@ Response body:
 
 ### Core Package (`packages/core-server`)
 
-| File                                           | Changes                                                                                                 |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/base/middlewares/app-error.middleware.ts` | Surface `messageCode` and `extra` in the response body; destructure `NODE_ENV` for production detection |
 
 ### Helpers Package (`packages/helpers`)
 
-| File                             | Changes                                                                 |
-| -------------------------------- | ----------------------------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/modules/error/app-error.ts` | `ApplicationError.extra` property; constructor collects unknown options |
-| `src/modules/error/types.ts`     | `ErrorSchema` already permits extra keys via `.catchall(z.any())`       |
+| `src/modules/error/types.ts` | `ErrorSchema` already permits extra keys via `.catchall(z.any())` |
 
 ### Inversion Package (`packages/inversion`)
 
-| File                      | Changes                                       |
-| ------------------------- | --------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/common/app-error.ts` | Mirrors the helpers `ApplicationError` change |
 
 ## No Breaking Changes

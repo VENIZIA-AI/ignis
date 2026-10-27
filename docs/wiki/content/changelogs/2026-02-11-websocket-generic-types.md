@@ -32,14 +32,8 @@ All changes are backward compatible. Every generic parameter defaults to `Record
 **Solution:** Two generic type parameters (`AuthDataType`, `MetadataType`) flow through the server options and all callback types, providing compile-time type safety without breaking existing untyped usage.
 
 ```typescript
-interface AuthPayload {
-  token: string;
-  publicKey?: string;
-}
-interface UserMetadata {
-  role: string;
-  permissions: string[];
-}
+interface AuthPayload { token: string; publicKey?: string }
+interface UserMetadata { role: string; permissions: string[] }
 
 const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
   identifier: 'typed-ws',
@@ -64,7 +58,6 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 ```
 
 **Benefits:**
-
 - No more `as string` / `as unknown` casts in auth callbacks
 - Compile-time errors if metadata shape doesn't match
 - IntelliSense/autocomplete for auth data and metadata fields
@@ -76,13 +69,13 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 
 The generics propagate through the entire type chain:
 
-| Type                                                    | Generics       | Description                           |
-| ------------------------------------------------------- | -------------- | ------------------------------------- |
-| `TWebSocketAuthenticateFn<AuthDataType, MetadataType>`  | Both           | Auth payload input + metadata output  |
-| `TWebSocketHandshakeFn<AuthDataType>`                   | `AuthDataType` | Handshake receives typed auth data    |
-| `TWebSocketClientConnectedFn<MetadataType>`             | `MetadataType` | Connected callback has typed metadata |
-| `TWebSocketOutboundTransformer<DataType, MetadataType>` | `MetadataType` | Transformer receives typed client     |
-| `IWebSocketClient<MetadataType>`                        | `MetadataType` | Client tracking has typed metadata    |
+| Type | Generics | Description |
+|------|----------|-------------|
+| `TWebSocketAuthenticateFn<AuthDataType, MetadataType>` | Both | Auth payload input + metadata output |
+| `TWebSocketHandshakeFn<AuthDataType>` | `AuthDataType` | Handshake receives typed auth data |
+| `TWebSocketClientConnectedFn<MetadataType>` | `MetadataType` | Connected callback has typed metadata |
+| `TWebSocketOutboundTransformer<DataType, MetadataType>` | `MetadataType` | Transformer receives typed client |
+| `IWebSocketClient<MetadataType>` | `MetadataType` | Client tracking has typed metadata |
 
 ### 3. `serverPublicKey` Separated from Metadata
 
@@ -96,12 +89,11 @@ The generics propagate through the entire type chain:
 interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
   // ... existing fields ...
   metadata?: MetadataType;
-  serverPublicKey?: string; // NEW - separate from metadata
+  serverPublicKey?: string;  // NEW - separate from metadata
 }
 ```
 
 **Benefits:**
-
 - User metadata shape is not polluted by framework-internal fields
 - `MetadataType` generic accurately represents only user-defined data
 - Server public key is always accessible via `client.serverPublicKey` regardless of metadata type
@@ -113,14 +105,12 @@ interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record
 The generic parameter on `IWebSocketClient` and `IWebSocketData` changed from an unconstrained default to a constrained generic:
 
 **Before:**
-
 ```typescript
 interface IWebSocketClient<MetadataType = Record<string, unknown>> { ... }
 interface IWebSocketData<MetadataType = Record<string, unknown>> { ... }
 ```
 
 **After:**
-
 ```typescript
 interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record<string, unknown>> { ... }
 interface IWebSocketData<MetadataType extends Record<string, unknown> = Record<string, unknown>> { ... }
@@ -132,14 +122,14 @@ This ensures metadata is always an object type, preventing accidental usage like
 
 ### Helpers Package (`packages/helpers`)
 
-| File                                            | Changes                                                                                                                                                                                                                                                                                   |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/helpers/socket/websocket/common/types.ts`  | Added constrained generics to `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`; added generics to `TWebSocketAuthenticateFn`, `TWebSocketHandshakeFn`, `TWebSocketClientConnectedFn`, `TWebSocketOutboundTransformer`; added `serverPublicKey` field to `IWebSocketClient` |
-| `src/helpers/socket/websocket/server/helper.ts` | Updated class to accept and propagate `AuthDataType` and `MetadataType` generics                                                                                                                                                                                                          |
+| File | Changes |
+|------|---------|
+| `src/helpers/socket/websocket/common/types.ts` | Added constrained generics to `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`; added generics to `TWebSocketAuthenticateFn`, `TWebSocketHandshakeFn`, `TWebSocketClientConnectedFn`, `TWebSocketOutboundTransformer`; added `serverPublicKey` field to `IWebSocketClient` |
+| `src/helpers/socket/websocket/server/helper.ts` | Updated class to accept and propagate `AuthDataType` and `MetadataType` generics |
 
 ### Documentation (`packages/docs`)
 
-| File                                                    | Changes                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `wiki/extensions/helpers/websocket.md`                  | Added "Generic Type Parameters" section; updated type definitions for `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`, and all callback types to show generics; added `serverPublicKey` to tracked state table; updated auth flow diagram |
-| `wiki/changelogs/2026-02-11-websocket-generic-types.md` | New -- this changelog                                                                                                                                                                                                                                     |
+| File | Changes |
+|------|---------|
+| `wiki/extensions/helpers/websocket.md` | Added "Generic Type Parameters" section; updated type definitions for `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`, and all callback types to show generics; added `serverPublicKey` to tracked state table; updated auth flow diagram |
+| `wiki/changelogs/2026-02-11-websocket-generic-types.md` | New -- this changelog |

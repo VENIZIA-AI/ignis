@@ -1,8 +1,7 @@
 ---
 title: Dates Move Out, and Every Entry Loads On Its Own
-description: 'The 0.2.0-48 prerelease: the dayjs date utility gives way to TemporalHelper, search controllers and RecursiveTreeSql move to their own entries, compiled binaries get a typed module option, Node ESM works, and a clean-install gate proves every sub-path loads.'
-packages:
-  ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
+description: "The 0.2.0-48 prerelease: the dayjs date utility gives way to TemporalHelper, search controllers and RecursiveTreeSql move to their own entries, compiled binaries get a typed module option, Node ESM works, and a clean-install gate proves every sub-path loads."
+packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-19
@@ -11,18 +10,18 @@ One batch, so an application migrates once. It ships in `@venizia/ignis` 0.2.0-4
 
 ## Migration checklist
 
-| If your code...                                                                                                                              | Do this                                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| imports `dayjs` from `@venizia/ignis-helpers`                                                                                                | Install dayjs and configure it yourself, or move to `TemporalHelper` - see [Replace the dayjs IGNIS used to export](/extensions/helpers/temporal/#replace-the-dayjs-ignis-used-to-export) |
-| calls `isWeekday`, `getNextWeekday`, `getPreviousWeekday` or `getDateTz`                                                                     | Use `TemporalHelper` - the same page maps each one                                                                                                                                        |
-| relies on IGNIS setting `dayjs.tz` default to `APP_ENV_APPLICATION_TIMEZONE`                                                                 | Call `dayjs.tz.setDefault(...)` yourself, or pass `timeZone` to `TemporalHelper`                                                                                                          |
-| imports `dayjs` without declaring it                                                                                                         | `bun add dayjs` - IGNIS no longer installs it                                                                                                                                             |
-| reads `storage.connectedAt` or `storage.authenticatedAt` on a TCP server client                                                              | They are `Date` now, not dayjs objects                                                                                                                                                    |
-| imports a search controller from `@venizia/ignis-connectors`, `/search`, `/typesense`, `@venizia/ignis/search` or `@venizia/ignis/typesense` | Import it from `/search/controllers` or `/typesense/controllers`                                                                                                                          |
-| imports `RecursiveTreeSql` or its types from `@venizia/ignis-kernel`                                                                         | Import them from `@venizia/ignis` or `@venizia/ignis-connectors`                                                                                                                          |
-| reads `schemaFactory` on an entity class, or `.schema` off `typeof BaseEntity`                                                               | Call `getSchema({ type })`; read `schema` off the concrete class or the instance                                                                                                          |
-| passes `uuidV5` a name that may hold a lone surrogate                                                                                        | Expect a 400, or clean the string first                                                                                                                                                   |
-| runs a `bun build --compile` binary that uses Redis, BullMQ or the socket.io client                                                          | Pass the peer as `module`, or register it at the entrypoint - see [Compiled binaries](#compiled-binaries-get-a-typed-module-option)                                                       |
+| If your code... | Do this |
+|---|---|
+| imports `dayjs` from `@venizia/ignis-helpers` | Install dayjs and configure it yourself, or move to `TemporalHelper` - see [Replace the dayjs IGNIS used to export](/extensions/helpers/temporal/#replace-the-dayjs-ignis-used-to-export) |
+| calls `isWeekday`, `getNextWeekday`, `getPreviousWeekday` or `getDateTz` | Use `TemporalHelper` - the same page maps each one |
+| relies on IGNIS setting `dayjs.tz` default to `APP_ENV_APPLICATION_TIMEZONE` | Call `dayjs.tz.setDefault(...)` yourself, or pass `timeZone` to `TemporalHelper` |
+| imports `dayjs` without declaring it | `bun add dayjs` - IGNIS no longer installs it |
+| reads `storage.connectedAt` or `storage.authenticatedAt` on a TCP server client | They are `Date` now, not dayjs objects |
+| imports a search controller from `@venizia/ignis-connectors`, `/search`, `/typesense`, `@venizia/ignis/search` or `@venizia/ignis/typesense` | Import it from `/search/controllers` or `/typesense/controllers` |
+| imports `RecursiveTreeSql` or its types from `@venizia/ignis-kernel` | Import them from `@venizia/ignis` or `@venizia/ignis-connectors` |
+| reads `schemaFactory` on an entity class, or `.schema` off `typeof BaseEntity` | Call `getSchema({ type })`; read `schema` off the concrete class or the instance |
+| passes `uuidV5` a name that may hold a lone surrogate | Expect a 400, or clean the string first |
+| runs a `bun build --compile` binary that uses Redis, BullMQ or the socket.io client | Pass the peer as `module`, or register it at the entrypoint - see [Compiled binaries](#compiled-binaries-get-a-typed-module-option) |
 
 ## Breaking changes
 
@@ -116,12 +115,12 @@ const redis = new RedisSingleHelper({
 });
 ```
 
-| Class                                                                                 | Option                      | You pass               |
-| ------------------------------------------------------------------------------------- | --------------------------- | ---------------------- |
-| `RedisSingleHelper`, `RedisClusterHelper`, `RedisSentinelHelper`, `createRedisHelper` | `module`                    | `ioredis`              |
-| `BullMQHelper`                                                                        | `module`                    | `bullmq`               |
-| `SocketIOClientHelper`                                                                | `module`                    | `socket.io-client`     |
-| Mail BullMQ queue executor                                                            | `module` and `redis.module` | `bullmq` and `ioredis` |
+| Class | Option | You pass |
+|---|---|---|
+| `RedisSingleHelper`, `RedisClusterHelper`, `RedisSentinelHelper`, `createRedisHelper` | `module` | `ioredis` |
+| `BullMQHelper` | `module` | `bullmq` |
+| `SocketIOClientHelper` | `module` | `socket.io-client` |
+| Mail BullMQ queue executor | `module` and `redis.module` | `bullmq` and `ioredis` |
 
 Registering once at the entrypoint also works: `ModuleUtility.register({ modules: { ioredis, bullmq } })`. A test builds a real binary and runs it with no `node_modules` to prove both ways. See [Compiled binaries](/references/utilities/module#compiled-binaries).
 

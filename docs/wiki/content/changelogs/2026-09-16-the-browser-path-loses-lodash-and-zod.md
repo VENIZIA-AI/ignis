@@ -1,6 +1,6 @@
 ---
 title: The Browser Path Loses lodash, and utilities Loses zod
-description: 'inversion drops lodash for two hand-written functions, and the OpenAPI schema builders leave utilities/. kernel/metadata goes from 20 KB gzipped to 13.9 KB.'
+description: "inversion drops lodash for two hand-written functions, and the OpenAPI schema builders leave utilities/. kernel/metadata goes from 20 KB gzipped to 13.9 KB."
 packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 

@@ -24,10 +24,10 @@ export class ProductRepository extends HttpRepository<TProduct> {
 }
 ```
 
-| `type`                            | `model`  | Registers                            |
-| --------------------------------- | -------- | ------------------------------------ |
+| `type` | `model` | Registers |
+|---|---|---|
 | `RepositoryTypes.MODEL` (default) | Required | Model binding + datasource injection |
-| `RepositoryTypes.REMOTE`          | Refused  | Datasource injection only            |
+| `RepositoryTypes.REMOTE` | Refused | Datasource injection only |
 
 Before, a repository without `model` failed at decoration with `Missing 'model'`, so it lost the datasource injection too. Now `RepositoryTypes.REMOTE` keeps the injection and skips the model binding.
 
@@ -92,11 +92,11 @@ A server has no `location`. There, a relative `baseUrl` fails naming the `baseUr
 
 The spy read every body that was not JSON or a form with `req.text()`, even where it would not log it. That drained the stream, and a handler that read the bytes anyway got them UTF-8 mangled - an xlsx, an image or a PDF was lost.
 
-| `Content-Type`                                  | Before       | Now                                                                       |
-| ----------------------------------------------- | ------------ | ------------------------------------------------------------------------- |
-| `application/json`, form types                  | Parsed       | Parsed - a malformed body is still a 400                                  |
-| `text/*`                                        | `req.text()` | Read from a clone, or from Hono's cache when a middleware already read it |
-| Anything else except `application/octet-stream` | `req.text()` | Not read; logged as `<N bytes, content-type>`                             |
+| `Content-Type` | Before | Now |
+|---|---|---|
+| `application/json`, form types | Parsed | Parsed - a malformed body is still a 400 |
+| `text/*` | `req.text()` | Read from a clone, or from Hono's cache when a middleware already read it |
+| Anything else except `application/octet-stream` | `req.text()` | Not read; logged as `<N bytes, content-type>` |
 
 - **Who is affected:** any route behind `RequestTrackerComponent` that receives a binary body with its real content type. Nothing to change on your side.
 - **`parseBody` callers:** a binary type now returns the `<N bytes, content-type>` description instead of mangled text.

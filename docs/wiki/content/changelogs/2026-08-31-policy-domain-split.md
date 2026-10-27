@@ -38,14 +38,14 @@ The missing index is real too - no index touches `domain` - but it is the smalle
 
 ## The three domain states, and how each is stored now
 
-| State                             | `domain_type`   | `domain_id` |
-| --------------------------------- | --------------- | ----------- |
-| Any domain the subject belongs to | `NULL`          | `NULL`      |
-| System-wide (bypasses membership) | `'SYSTEM_WIDE'` | `NULL`      |
-| One typed domain                  | `'Merchant'`    | `'<id>'`    |
+| State | `domain_type` | `domain_id` |
+|---|---|---|
+| Any domain the subject belongs to | `NULL` | `NULL` |
+| System-wide (bypasses membership) | `'SYSTEM_WIDE'` | `NULL` |
+| One typed domain | `'Merchant'` | `'<id>'` |
 
 > [!WARNING]
-> **`NULL` _is_ `ANY_MEMBER`, not "unknown".** The adapter has always defaulted a null domain to `ANY_MEMBER`, and that stays true. Writing the literal `'ANY_MEMBER'` into `domain_type` is refused by the CHECK below - one state reachable two ways is exactly the ambiguity this split removes.
+> **`NULL` *is* `ANY_MEMBER`, not "unknown".** The adapter has always defaulted a null domain to `ANY_MEMBER`, and that stays true. Writing the literal `'ANY_MEMBER'` into `domain_type` is refused by the CHECK below - one state reachable two ways is exactly the ambiguity this split removes.
 
 ## The one place the two columns deliberately disagree
 
@@ -147,12 +147,12 @@ await repository.create({ data: { ..., metadata: { notOps: 1 } } });   // now a 
 
 ```typescript
 // default - nothing to write
-extraPolicyDefinitionColumns({ idType: 'string' });
+extraPolicyDefinitionColumns({ idType: 'string' })
 
 // an application storing its own metadata on this column
 type IMerchantPolicyMetadata = { ops: string[]; issuedBy: string };
 
-extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' });
+extraPolicyDefinitionColumns<{ idType: 'string' }, IMerchantPolicyMetadata>({ idType: 'string' })
 ```
 
 `Metadata` is a **type parameter rather than a field on `opts`** because, unlike `extraVariants`,
@@ -170,7 +170,7 @@ who opt in.
 - The CHECK helper returns **text**, not a Drizzle `SQL` object: a column reference inside a `sql` template renders schema-qualified (`"table"."column"`), which is not valid inside a table-level CHECK.
 - No enforcement path changed. The adapter still reads `domain`, and `ScopedCasbinAdapter`'s whitelist rule (`variant = <known value>`, never `NOT IN`) is untouched.
 
-| File                                                             | Package     |
-| ---------------------------------------------------------------- | ----------- |
-| `src/base/auth/authorize/builders/policy.builder.ts`             | kernel      |
+| File | Package |
+|------|---------|
+| `src/base/auth/authorize/builders/policy.builder.ts` | kernel |
 | `src/components/auth/models/entities/policy-definition.model.ts` | core-server |

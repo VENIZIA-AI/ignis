@@ -48,19 +48,18 @@ Each boundary needed its own translation step - and each step was a chance to dr
 ```typescript
 // All three resolve to the same `normalized { text, code, args }`.
 getError({ message: 'Only %{n} left', messageCode: 'stock.low', messageArgs: { n: 2 } }); // flat
-getError({ message: { text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } } }); // nested
-getError({ error: StockErrors.LOW, messageArgs: { n: 2 } }); // catalogued
+getError({ message: { text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } } });     // nested
+getError({ error: StockErrors.LOW, messageArgs: { n: 2 } });                              // catalogued
 ```
 
 **Precedence,** most specific first:
 
-| Field | Order                                                            |
-| ----- | ---------------------------------------------------------------- |
-| code  | `message.code` → the definition's `message.code` → `messageCode` |
-| args  | `message.args` → `messageArgs` → the definition's `message.args` |
+| Field | Order |
+|-------|-------|
+| code | `message.code` → the definition's `message.code` → `messageCode` |
+| args | `message.args` → `messageArgs` → the definition's `message.args` |
 
 **Benefits:**
-
 - Existing flat call sites are untouched - the input is a union, not a replacement.
 - A definition can be spread or passed; both resolve identically.
 - `transform` receives the default it replaces, so it can amend one field: `s => ({ ...s.message, text })`.
@@ -71,7 +70,7 @@ getError({ error: StockErrors.LOW, messageArgs: { n: 2 } }); // catalogued
 
 ```typescript
 getError({ error: SlugErrors.TAKEN, message: { args: { slug: 've-hoa-nhac' } } }); // amends args
-getError({ error: SlugErrors.TAKEN, message: { text: 'Custom' } }); // amends text
+getError({ error: SlugErrors.TAKEN, message: { text: 'Custom' } });                // amends text
 ```
 
 Omit a field and the definition supplies it.
@@ -156,10 +155,10 @@ production sanitization boundary are unchanged.
 
 ```typescript
 // Before
-transform: (s) => ({ code: s.messageCode, args: s.extra?.messageArgs ?? {}, text: 'VI' });
+transform: s => ({ code: s.messageCode, args: s.extra?.messageArgs ?? {}, text: 'VI' })
 
 // After
-transform: (s) => ({ ...s.message, text: 'VI' });
+transform: s => ({ ...s.message, text: 'VI' })
 ```
 
 ## Unchanged
@@ -174,18 +173,18 @@ transform: (s) => ({ ...s.message, text: 'VI' });
 
 **Mechanical - the compiler finds every one.** A codemod plus `tsc` covers these:
 
-| Rewrite                                                        | Notes                                         |
-| -------------------------------------------------------------- | --------------------------------------------- |
-| `key: 'x'` → `message: { code: 'x', … }`                       | inside every `TErrorDefinition`               |
-| `message: 'text'` → `message: { text: 'text', … }`             | inside every `TErrorDefinition`               |
-| `messageArgs: {…}` → `message: { args: {…} }`                  | inside every `TErrorDefinition`               |
-| `definition.key` → `definition.message.code`                   | reads of a definition                         |
-| `['key']` → `['message']['code']`                              | hand-rolled `IErrorKeyRegistry` augmentations |
-| `appErrorHandler({…})` → `new AppErrorMiddleware({…}).value()` | registration                                  |
+| Rewrite | Notes |
+|---------|-------|
+| `key: 'x'` → `message: { code: 'x', … }` | inside every `TErrorDefinition` |
+| `message: 'text'` → `message: { text: 'text', … }` | inside every `TErrorDefinition` |
+| `messageArgs: {…}` → `message: { args: {…} }` | inside every `TErrorDefinition` |
+| `definition.key` → `definition.message.code` | reads of a definition |
+| `['key']` → `['message']['code']` | hand-rolled `IErrorKeyRegistry` augmentations |
+| `appErrorHandler({…})` → `new AppErrorMiddleware({…}).value()` | registration |
 
 **Not caught by the compiler - check these by hand:**
 
-- **`error.messageCode` reads.** If your client types against a _different_ `ApplicationError` (a UI
+- **`error.messageCode` reads.** If your client types against a *different* `ApplicationError` (a UI
   package of your own), `tsc` stays green. The read then silently yields `undefined` - a blank error
   toast in production. Grep for `.messageCode` and repoint to `.normalized.code`.
 - **`error.extra?.messageArgs` reads.** Same failure mode. Repoint to `.normalized.args`.
@@ -193,8 +192,8 @@ transform: (s) => ({ ...s.message, text: 'VI' });
 
 ```typescript
 // A client rendering an error changes one line:
-translate(error.messageCode, error.extra?.messageArgs); // before
-translate(error.normalized.code, error.normalized.args); // after
+translate(error.messageCode, error.extra?.messageArgs);      // before
+translate(error.normalized.code, error.normalized.args);     // after
 ```
 
 ## Learn More

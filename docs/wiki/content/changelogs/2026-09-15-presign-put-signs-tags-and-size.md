@@ -1,6 +1,6 @@
 ---
 title: A Presigned PUT Can Carry a Tag Set and a Size
-description: 'presignPut takes tagging and contentLength. Both go inside the signature, because a tag that is merely sent is a tag S3 ignores.'
+description: "presignPut takes tagging and contentLength. Both go inside the signature, because a tag that is merely sent is a tag S3 ignores."
 packages: ['@venizia/ignis-helpers']
 ---
 

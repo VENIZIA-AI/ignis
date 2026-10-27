@@ -1,6 +1,6 @@
 ---
 title: Paging, Bulk Writes and Relation Settings
-description: 'Pages over a tied order no longer repeat or skip rows, bulk update and delete take where in the body, and an included relation keeps its hidden columns and row scope whatever its table is named.'
+description: "Pages over a tied order no longer repeat or skip rows, bulk update and delete take where in the body, and an included relation keeps its hidden columns and row scope whatever its table is named."
 packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ---
 
@@ -38,12 +38,12 @@ DELETE /products
 { "where": { "id": { "inq": ["...2000 ids"] } } }
 ```
 
-| Request              | Answer                                 |
-| -------------------- | -------------------------------------- |
-| `where` in the query | as before                              |
-| `where` in the body  | same as the query                      |
-| `where` in both      | `400` - which one was meant is a guess |
-| `where` in neither   | `400`                                  |
+| Request | Answer |
+|---|---|
+| `where` in the query | as before |
+| `where` in the body | same as the query |
+| `where` in both | `400` - which one was meant is a guess |
+| `where` in neither | `400` |
 
 `DELETE /` declares no body schema: one would make `@hono/zod-openapi` gate the media type, and a
 client sending `content-type: application/json` with no body would get `400` where it used to get
@@ -63,11 +63,11 @@ reaches the repository with no `where`, and the repository refuses it (`400`).
 class name unless `TABLE_NAME` says otherwise. A model whose table name differed lost its settings
 inside `include`:
 
-| Setting                         | Read directly | Included, before                  |
-| ------------------------------- | ------------- | --------------------------------- |
-| `hiddenProperties`              | hidden        | **returned**                      |
-| `scopeFilter`                   | applied       | **ignored** - other tenants' rows |
-| `defaultFilter`, `defaultLimit` | applied       | ignored                           |
+| Setting | Read directly | Included, before |
+|---|---|---|
+| `hiddenProperties` | hidden | **returned** |
+| `scopeFilter` | applied | **ignored** - other tenants' rows |
+| `defaultFilter`, `defaultLimit` | applied | ignored |
 
 Models are now found by their schema object first, so the table name no longer matters. A model
 whose `TABLE_NAME` matches its table was never affected.

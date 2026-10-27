@@ -1,6 +1,6 @@
 ---
 title: The Container Names a Cycle and Caches Any Singleton
-description: 'A subclass property @inject no longer leaks into its parent, isOptional holds on the { target } form, a cycle throws with its path, the singleton cache holds falsy values, and two symbols with one description are two keys.'
+description: "A subclass property @inject no longer leaks into its parent, isOptional holds on the { target } form, a cycle throws with its path, the singleton cache holds falsy values, and two symbols with one description are two keys."
 packages: ['@venizia/ignis-inversion']
 ---
 
@@ -12,16 +12,16 @@ packages: ['@venizia/ignis-inversion']
 
 **In one line.** Seven defects in `@venizia/ignis-inversion` are fixed. The container now behaves the same whatever the class names, the values or the key types.
 
-| Before                                                                                                                             | Now                                                                                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A subclass's property `@inject` was written into its parent's metadata, so the parent and every sibling then required that binding | Property metadata is copy-on-write per class, like constructor metadata                                                                                                                               |
-| `@inject({ target: X, isOptional: true })` threw when `X` was never registered                                                     | It resolves to `undefined`, as an optional key does                                                                                                                                                   |
-| A cycle (`A -> B -> A`) ended in `RangeError: Maximum call stack size exceeded`                                                    | It throws `Circular dependency \| services.A -> services.B -> services.A`                                                                                                                             |
-| A singleton that cached `null`, `false`, `0` or `''` survived `container.clear()`                                                  | `clear()` clears every cached value                                                                                                                                                                   |
-| A singleton that answered `undefined` ran again on every read                                                                      | It runs once, like any singleton                                                                                                                                                                      |
-| `Symbol('x')` and another `Symbol('x')` shared one binding                                                                         | They are two keys. `Symbol.for('x')` is still one key everywhere                                                                                                                                      |
-| A missing `{ namespace, key }` was reported as `[object Object]`                                                                   | The message names `namespace.key`                                                                                                                                                                     |
-| Injection metadata carrying both a class and a key resolved by the key                                                             | The class wins - the key its registration recorded - and the key is the fallback for a class nothing recorded. `@inject` itself still takes one or the other; this serves metadata a framework writes |
+| Before | Now |
+|---|---|
+| A subclass's property `@inject` was written into its parent's metadata, so the parent and every sibling then required that binding | Property metadata is copy-on-write per class, like constructor metadata |
+| `@inject({ target: X, isOptional: true })` threw when `X` was never registered | It resolves to `undefined`, as an optional key does |
+| A cycle (`A -> B -> A`) ended in `RangeError: Maximum call stack size exceeded` | It throws `Circular dependency \| services.A -> services.B -> services.A` |
+| A singleton that cached `null`, `false`, `0` or `''` survived `container.clear()` | `clear()` clears every cached value |
+| A singleton that answered `undefined` ran again on every read | It runs once, like any singleton |
+| `Symbol('x')` and another `Symbol('x')` shared one binding | They are two keys. `Symbol.for('x')` is still one key everywhere |
+| A missing `{ namespace, key }` was reported as `[object Object]` | The message names `namespace.key` |
+| Injection metadata carrying both a class and a key resolved by the key | The class wins - the key its registration recorded - and the key is the fallback for a class nothing recorded. `@inject` itself still takes one or the other; this serves metadata a framework writes |
 
 The cycle check is not on the hot path. A cached singleton or a `toValue` binding builds nothing and skips it. Any other read counts its nesting depth, and tracks keys only past 64 levels - deeper than any real graph. Measured, median of 9 runs: singleton, transient and provider reads all within noise of before. A cycle through an `await` is not detected.
 

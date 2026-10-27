@@ -1,6 +1,6 @@
 ---
 title: MetaLink Carries a Display Order
-description: 'A sequence column orders the rows of one principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic.'
+description: "A sequence column orders the rows of one principal. The caller supplies it; the component never derives one, because reading a maximum and writing max+1 is not atomic."
 packages: ['@venizia/ignis']
 ---
 
@@ -11,7 +11,7 @@ packages: ['@venizia/ignis']
 <Badge type="danger" text="Breaking" />
 
 ```ts
-sequence: integer().notNull().default(0);
+sequence: integer().notNull().default(0)
 ```
 
 Ordering is **per principal** - the images of one product, not of the whole table. Without it the

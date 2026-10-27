@@ -1,6 +1,6 @@
 ---
 title: Connectors String Options Are Const Classes
-description: 'Three string options in the connectors package - HTTP read shape, scope write operation and big-number id mode - are const classes with SCHEME_SET and isValid, and the id-type options use TIdSchemaType. The values are unchanged.'
+description: "Three string options in the connectors package - HTTP read shape, scope write operation and big-number id mode - are const classes with SCHEME_SET and isValid, and the id-type options use TIdSchemaType. The values are unchanged."
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -12,11 +12,11 @@ packages: ['@venizia/ignis-connectors']
 
 **In one line.** Options typed as a union of string literals are now a const class plus a `TConstValue` type, like `RepositoryTypes`. The values are the same, so existing code keeps compiling.
 
-| Option                                  | Const class            | Type                   | Values             |
-| --------------------------------------- | ---------------------- | ---------------------- | ------------------ |
-| HTTP `read({ shape })`                  | `HttpReadShapes`       | `THttpReadShape`       | `list`, `one`      |
-| Scope write guard `operation`           | `ScopeWriteOperations` | `TScopeWriteOperation` | `create`, `update` |
-| `big-number` id `numberMode` (Postgres) | `BigIntModes`          | `TBigIntMode`          | `number`, `bigint` |
+| Option | Const class | Type | Values |
+|---|---|---|---|
+| HTTP `read({ shape })` | `HttpReadShapes` | `THttpReadShape` | `list`, `one` |
+| Scope write guard `operation` | `ScopeWriteOperations` | `TScopeWriteOperation` | `create`, `update` |
+| `big-number` id `numberMode` (Postgres) | `BigIntModes` | `TBigIntMode` | `number`, `bigint` |
 
 ## What changed
 

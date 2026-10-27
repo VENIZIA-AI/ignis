@@ -1,6 +1,6 @@
 ---
 title: JSON-Path Where and Order Keys Are Now Qualified With the Table
-description: 'A JSON-path filter or order key now renders qualified with its table or query alias, in Postgres and SQLite, so a query joining two tables that share a JSON column name no longer fails with an ambiguous-column error.'
+description: "A JSON-path filter or order key now renders qualified with its table or query alias, in Postgres and SQLite, so a query joining two tables that share a JSON column name no longer fails with an ambiguous-column error."
 packages: ['@venizia/ignis-connectors']
 ---
 

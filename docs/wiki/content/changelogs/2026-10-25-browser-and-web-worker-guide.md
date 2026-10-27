@@ -1,6 +1,6 @@
 ---
 title: A Guide for Using IGNIS in a Browser or Web Worker
-description: 'A new guide lists the entries that bundle for a browser or Web Worker, a Vite config that needs no Node polyfill, and how to find the import that pulls in Node builtins. No code changes.'
+description: "A new guide lists the entries that bundle for a browser or Web Worker, a Vite config that needs no Node polyfill, and how to find the import that pulls in Node builtins. No code changes."
 packages: []
 ---
 

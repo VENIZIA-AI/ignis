@@ -39,7 +39,7 @@ merchantId: text('merchant_id').$type<TEntityId>().notNull(),
 const id = toEntityId({ value: request.params.merchantId });
 ```
 
-A `TEntityId` still behaves as a string everywhere a string is accepted - concatenation, `toUpperCase()`, template literals, `JSON.stringify`. Only the direction _into_ the type is restricted.
+A `TEntityId` still behaves as a string everywhere a string is accepted - concatenation, `toUpperCase()`, template literals, `JSON.stringify`. Only the direction *into* the type is restricted.
 
 ## It validates nothing, and that is the point
 
@@ -53,7 +53,7 @@ The value is making the conversion **visible at each boundary**. Every place a r
 Drizzle derives both `$inferSelect` and `$inferInsert` from the same column type. Branding a column therefore rejects **every literal** written against it until each one converts:
 
 ```typescript
-await merchantRepository.create({ data: { merchantId: 'M1' } }); // no longer compiles
+await merchantRepository.create({ data: { merchantId: 'M1' } });         // no longer compiles
 await merchantRepository.create({ data: { merchantId: toEntityId({ value: 'M1' }) } });
 ```
 
@@ -66,6 +66,6 @@ The obvious escape - `TEntityId | string` - was measured and does not work: a un
 - **Nobody, unless they opt in.** No IGNIS type changes, no column is branded by default, and no existing code needs updating. This release only makes the type available.
 - **A codebase adopting it** should brand one entity family first and convert its call sites, rather than branding everything at once.
 
-| File                              | Package |
-| --------------------------------- | ------- |
-| `src/base/models/common/types.ts` | kernel  |
+| File | Package |
+|------|---------|
+| `src/base/models/common/types.ts` | kernel |

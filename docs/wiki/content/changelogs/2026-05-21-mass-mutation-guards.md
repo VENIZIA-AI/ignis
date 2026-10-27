@@ -40,7 +40,6 @@ protected validateId(opts: { id: unknown; operationName: string }): void {
 ```
 
 Wired into both id-based operations:
-
 ```typescript
 this.validateId({ id: opts.id, operationName: 'updateById' });
 // ...
@@ -83,20 +82,20 @@ Because the check now keys off the resolved SQL, `updateById`/`deleteById` with 
 
 ## Behavior
 
-| Operation                                           | Input                     | Before                  | After                     |
-| --------------------------------------------------- | ------------------------- | ----------------------- | ------------------------- |
-| `updateById` / `deleteById`                         | `id: undefined` / `null`  | ran table-wide          | throws                    |
-| `updateById` / `deleteById`                         | `id: 0` / `''`            | ran (correct)           | ran (correct)             |
-| `updateAll` / `updateBy` / `deleteAll` / `deleteBy` | `where: {}`               | throws (unless `force`) | throws (unless `force`)   |
-| `updateAll` / `updateBy` / `deleteAll` / `deleteBy` | `where: { x: undefined }` | ran table-wide          | throws (unless `force`)   |
-| any bulk op                                         | `force: true`             | mass mutation           | mass mutation (unchanged) |
+| Operation | Input | Before | After |
+|-----------|-------|--------|-------|
+| `updateById` / `deleteById` | `id: undefined` / `null` | ran table-wide | throws |
+| `updateById` / `deleteById` | `id: 0` / `''` | ran (correct) | ran (correct) |
+| `updateAll` / `updateBy` / `deleteAll` / `deleteBy` | `where: {}` | throws (unless `force`) | throws (unless `force`) |
+| `updateAll` / `updateBy` / `deleteAll` / `deleteBy` | `where: { x: undefined }` | ran table-wide | throws (unless `force`) |
+| any bulk op | `force: true` | mass mutation | mass mutation (unchanged) |
 
 ## Files Changed
 
 ### Core Package (`packages/core-server`)
 
-| File                                        | Changes                                                                                                                                                                                                       |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/base/repositories/core/persistable.ts` | Added `validateId`; `validateWhereCondition` now resolves the where to SQL and treats a missing condition as empty; `validateId` wired into `updateById`/`deleteById`; removed unused `lodash/isEmpty` import |
 
 ## No Breaking Changes

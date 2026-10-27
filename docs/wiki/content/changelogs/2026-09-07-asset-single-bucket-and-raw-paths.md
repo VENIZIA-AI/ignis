@@ -28,12 +28,12 @@ An application that serves one bucket does not want the bucket in its URLs. Adop
 
 ### What changed
 
-| Symbol                                                          | Change                                                         | Package     |
-| --------------------------------------------------------------- | -------------------------------------------------------------- | ----------- |
-| `controller.bucket`                                             | New. `string` or `() => string`, read per request              | core-server |
-| `controller.rawObjectPath`                                      | New. `boolean`, default `false`                                | core-server |
-| `buildAssetDefinitions({ hasConfiguredBucket, rawObjectPath })` | New. Builds the ten route configs                              | core-server |
-| `StaticAssetDefinitions`                                        | Unchanged value, now the output of `buildAssetDefinitions({})` | core-server |
+| Symbol | Change | Package |
+|---|---|---|
+| `controller.bucket` | New. `string` or `() => string`, read per request | core-server |
+| `controller.rawObjectPath` | New. `boolean`, default `false` | core-server |
+| `buildAssetDefinitions({ hasConfiguredBucket, rawObjectPath })` | New. Builds the ten route configs | core-server |
+| `StaticAssetDefinitions` | Unchanged value, now the output of `buildAssetDefinitions({})` | core-server |
 
 A configured bucket shortens `upload`, `listObjects`, `getObjectByName`, `downloadObjectByName`, `deleteObject` and `recreateMetaLink`. Those routes also lose the `bucketName` path param.
 
@@ -61,12 +61,12 @@ The object segment becomes the <code v-pre>{objectName}{.+}</code> catch-all. Bo
 
 ### The four combinations
 
-| `bucket`   | `rawObjectPath` | The object route                                                        |
-| ---------- | --------------- | ----------------------------------------------------------------------- |
-| unset      | `false`         | <code v-pre>/assets/buckets/images/objects/photos%2F2024%2Ff.jpg</code> |
-| unset      | `true`          | <code v-pre>/assets/buckets/images/objects/photos/2024/f.jpg</code>     |
-| `'images'` | `false`         | <code v-pre>/assets/objects/photos%2F2024%2Ff.jpg</code>                |
-| `'images'` | `true`          | <code v-pre>/assets/objects/photos/2024/f.jpg</code>                    |
+| `bucket` | `rawObjectPath` | The object route |
+|---|---|---|
+| unset | `false` | <code v-pre>/assets/buckets/images/objects/photos%2F2024%2Ff.jpg</code> |
+| unset | `true` | <code v-pre>/assets/buckets/images/objects/photos/2024/f.jpg</code> |
+| `'images'` | `false` | <code v-pre>/assets/objects/photos%2F2024%2Ff.jpg</code> |
+| `'images'` | `true` | <code v-pre>/assets/objects/photos/2024/f.jpg</code> |
 
 #A catch-all matches everything under its prefix, and built-in routes register first. `defineRoutesBefore` registers your own routes ahead of them, so a literal path such as `/objects/i18n` still wins. `defineExtraRoutes` keeps registering after the built-ins.
 

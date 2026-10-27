@@ -42,33 +42,32 @@ Before, a list with facets or counts built its own body, like `{ facets, data }`
 
 **The route offers extras in `respond({ extra })`, in three kinds:**
 
-| Kind    | Declared as                                     | Runs                                                                                                                                     |
-| ------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Plain   | `() => value`                                   | When the client names it                                                                                                                 |
-| Default | `{ isDefault: true, compute }`                  | Always, unless the client switches it off                                                                                                |
-| Group   | `{ keys: [...], compute: ({ keys }) => value }` | When the client names it with keys; `compute` gets exactly those keys, so one aggregate pass serves them all. A group is never a default |
+| Kind | Declared as | Runs |
+|---|---|---|
+| Plain | `() => value` | When the client names it |
+| Default | `{ isDefault: true, compute }` | Always, unless the client switches it off |
+| Group | `{ keys: [...], compute: ({ keys }) => value }` | When the client names it with keys; `compute` gets exactly those keys, so one aggregate pass serves them all. A group is never a default |
 
 **The client names them in `x-request-extra`:**
 
-| Entry                | Meaning                         |
-| -------------------- | ------------------------------- |
-| `summary`            | A plain extra                   |
+| Entry | Meaning |
+|---|---|
+| `summary` | A plain extra |
 | `facets(status,tag)` | A group, with the keys it wants |
-| `-counts`            | A default switched off          |
-| `-*`                 | Every default switched off      |
+| `-counts` | A default switched off |
+| `-*` | Every default switched off |
 
 **The response:**
 
-| Request                                                                                                   | Body                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Nothing asked, and no default                                                                             | Unchanged: `{ count, data }`, or the bare array with `x-request-count: false`                                                     |
-| Anything computed                                                                                         | `{ data, extra }`, plus `count` unless `x-request-count: false`. The response carries `x-response-extra` naming what was computed |
-| An unknown name or key, a group with no keys, keys on a plain extra or on a `-name`, or a malformed entry | 400, naming what the route offers                                                                                                 |
+| Request | Body |
+|---|---|
+| Nothing asked, and no default | Unchanged: `{ count, data }`, or the bare array with `x-request-count: false` |
+| Anything computed | `{ data, extra }`, plus `count` unless `x-request-count: false`. The response carries `x-response-extra` naming what was computed |
+| An unknown name or key, a group with no keys, keys on a plain extra or on a `-name`, or a malformed entry | 400, naming what the route offers |
 
 A group named with no keys is a 400, not "every key". A client cannot trigger every dimension by accident. Names and keys are only matched against what the route declares, never evaluated.
 
 **The connector:**
-
 - `find({ options: { extra: { facets: ['status'], counts: false, summary: true } } })` sends `facets(status),-counts,summary`.
 - The result's `extra` is typed by what was asked for. Every entry is optional, since a route that offers none, or an older server, answers nothing.
 - With a range, `find` answers `{ data, range, extra }`; without one, `{ data, extra }`. Asked for, `extra` is always there, empty when nothing came back.

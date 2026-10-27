@@ -13,12 +13,12 @@ packages: ['@venizia/ignis']
 **In one line.** `validateEnvs()` used to throw on the first prefixed env name whose value was empty,
 and you opted out with `ALLOW_EMPTY_ENV_VALUE`. The default is now the other way round.
 
-| `ALLOW_EMPTY_ENV_VALUE`          | Behaviour                                                                  |
-| -------------------------------- | -------------------------------------------------------------------------- |
-| unset                            | Empty values allowed. `validateEnvs` skips. **This is the default**        |
-| blank (`ALLOW_EMPTY_ENV_VALUE=`) | Reads as unset, so allowed                                                 |
-| `false` or `0`                   | Every prefixed key must be non-empty. Boot throws on the first that is not |
-| anything else                    | Allowed                                                                    |
+| `ALLOW_EMPTY_ENV_VALUE` | Behaviour |
+|---|---|
+| unset | Empty values allowed. `validateEnvs` skips. **This is the default** |
+| blank (`ALLOW_EMPTY_ENV_VALUE=`) | Reads as unset, so allowed |
+| `false` or `0` | Every prefixed key must be non-empty. Boot throws on the first that is not |
+| anything else | Allowed |
 
 ## Why the default moved
 

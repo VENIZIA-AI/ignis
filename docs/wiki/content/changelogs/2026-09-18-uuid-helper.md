@@ -1,6 +1,6 @@
 ---
 title: One UUID Helper, Three Versions
-description: 'UuidHelper is the single door for UUIDs: v7 for database keys, v5 for deterministic idempotency keys, v4 for public tokens - measured faster than the uuid package on all three.'
+description: "UuidHelper is the single door for UUIDs: v7 for database keys, v5 for deterministic idempotency keys, v4 for public tokens - measured faster than the uuid package on all three."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -50,11 +50,11 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: `orders/${orderId}/refund` }); //
 
 ## Which version
 
-| Use                               | Version                   | Why                                                          |
-| --------------------------------- | ------------------------- | ------------------------------------------------------------ |
-| Database primary key              | `v7()`                    | Time-ordered, so a B-tree appends instead of splitting pages |
-| Idempotency key, deterministic id | `v5({ namespace, name })` | Same inputs, same id - no state to store                     |
-| Public identifier, random token   | `v4()`                    | No clock, nothing to correlate a caller by                   |
+| Use | Version | Why |
+|---|---|---|
+| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages |
+| Idempotency key, deterministic id | `v5({ namespace, name })` | Same inputs, same id - no state to store |
+| Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by |
 
 Two limits worth stating plainly:
 
@@ -71,11 +71,11 @@ Two limits worth stating plainly:
 Measured against `uuid@14.0.2` on the same machine, median of seven alternating passes, 200,000
 operations each:
 
-|     | `uuid`    | IGNIS        |      |
-| --- | --------- | ------------ | ---- |
-| v4  | 36.1 ns   | **32.6 ns**  | 1.1x |
-| v5  | 1508.8 ns | **409.8 ns** | 3.7x |
-| v7  | 255.1 ns  | **60.5 ns**  | 4.2x |
+| | `uuid` | IGNIS | |
+|---|---|---|---|
+| v4 | 36.1 ns | **32.6 ns** | 1.1x |
+| v5 | 1508.8 ns | **409.8 ns** | 3.7x |
+| v7 | 255.1 ns | **60.5 ns** | 4.2x |
 
 Version 5 hashes with SHA-1, and the digest is carried in IGNIS rather than borrowed: `node:crypto`
 is a Node builtin the browser-purity gate refuses, and `crypto.subtle.digest` is both asynchronous

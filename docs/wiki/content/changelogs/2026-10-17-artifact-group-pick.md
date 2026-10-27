@@ -1,6 +1,6 @@
 ---
 title: Slice an Artifact Group by Kind With ArtifactGroup.pick
-description: 'ArtifactGroup.pick({ group, kinds }) gives a run-mode splitter a group that carries only some kinds, resolved when artifacts are registered - AutoArtifacts and borrowed groups keep their run-mode gating.'
+description: "ArtifactGroup.pick({ group, kinds }) gives a run-mode splitter a group that carries only some kinds, resolved when artifacts are registered - AutoArtifacts and borrowed groups keep their run-mode gating."
 packages: ['@venizia/ignis-kernel']
 ---
 

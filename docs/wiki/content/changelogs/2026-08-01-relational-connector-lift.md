@@ -59,32 +59,24 @@ sub-paths. Each old name has a Postgres spelling that was already exported befor
 Rename the import. Do not switch to `@venizia/ignis/relational` - the class of that name there is the
 neutral one, and its `connector` is `unknown` rather than a `PgDatabase`.
 
-| Old name                            | Use instead                  | Kind           |
-| ----------------------------------- | ---------------------------- | -------------- |
-| `RelationalBaseRepository`          | `PostgresBaseRepository`     | abstract class |
-| `ReadableRelationalRepository`      | `ReadableRepository`         | class          |
-| `PersistableRelationalRepository`   | `PersistableRepository`      | class          |
-| `DefaultRelationalRepository`       | `DefaultCRUDRepository`      | class          |
-| `SoftDeletableRelationalRepository` | `SoftDeletableRepository`    | class          |
-| `AbstractRelationalDataSource`      | `AbstractPostgresDataSource` | abstract class |
-| `BaseRelationalDataSource`          | `BasePostgresDataSource`     | abstract class |
-| `FilterBuilder`                     | `PostgresFilterBuilder`      | class          |
-| `IRelationalDriver`                 | `TRelationalDriver`          | type           |
-| `IRelationalConnection`             | `TRelationalConnection`      | type           |
+| Old name | Use instead | Kind |
+|----------|-------------|------|
+| `RelationalBaseRepository` | `PostgresBaseRepository` | abstract class |
+| `ReadableRelationalRepository` | `ReadableRepository` | class |
+| `PersistableRelationalRepository` | `PersistableRepository` | class |
+| `DefaultRelationalRepository` | `DefaultCRUDRepository` | class |
+| `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | class |
+| `AbstractRelationalDataSource` | `AbstractPostgresDataSource` | abstract class |
+| `BaseRelationalDataSource` | `BasePostgresDataSource` | abstract class |
+| `FilterBuilder` | `PostgresFilterBuilder` | class |
+| `IRelationalDriver` | `TRelationalDriver` | type |
+| `IRelationalConnection` | `TRelationalConnection` | type |
 
 ```typescript
 // Before
-import {
-  BaseRelationalDataSource,
-  DefaultRelationalRepository,
-  FilterBuilder,
-} from '@venizia/ignis';
+import { BaseRelationalDataSource, DefaultRelationalRepository, FilterBuilder } from '@venizia/ignis';
 // After
-import {
-  BasePostgresDataSource,
-  DefaultCRUDRepository,
-  PostgresFilterBuilder,
-} from '@venizia/ignis';
+import { BasePostgresDataSource, DefaultCRUDRepository, PostgresFilterBuilder } from '@venizia/ignis';
 ```
 
 A repository subclass changes only its `extends` clause:
@@ -105,7 +97,7 @@ keep their own sub-paths, `@venizia/ignis/postgres/node-postgres` and
 ### The two driver types are now `T`-prefixed
 
 `IRelationalDriver` and `IRelationalConnection` were interfaces in
-`connectors/postgres/drivers/driver.ts`. They are now Postgres _narrowings_ - type aliases over the
+`connectors/postgres/drivers/driver.ts`. They are now Postgres *narrowings* - type aliases over the
 neutral interfaces of the same name. IGNIS names a symbol after its declaration keyword: `I` for an
 `interface`, `T` for a `type`. So the aliases are `TRelationalDriver` and `TRelationalConnection`.
 
@@ -114,24 +106,14 @@ The type parameters did not change, so an existing driver class needs one edit:
 ```typescript
 // Before
 import type { IRelationalConnection, IRelationalDriver } from '@venizia/ignis/postgres';
-export class MyDriver<Schema extends TAnyDataSourceSchema> implements IRelationalDriver<
-  Schema,
-  Pool
-> {
-  async acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>> {
-    /* ... */
-  }
+export class MyDriver<Schema extends TAnyDataSourceSchema> implements IRelationalDriver<Schema, Pool> {
+  async acquire(opts: { schema: Schema }): Promise<IRelationalConnection<Schema>> { /* ... */ }
 }
 
 // After
 import type { TRelationalConnection, TRelationalDriver } from '@venizia/ignis/postgres';
-export class MyDriver<Schema extends TAnyDataSourceSchema> implements TRelationalDriver<
-  Schema,
-  Pool
-> {
-  async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> {
-    /* ... */
-  }
+export class MyDriver<Schema extends TAnyDataSourceSchema> implements TRelationalDriver<Schema, Pool> {
+  async acquire(opts: { schema: Schema }): Promise<TRelationalConnection<Schema>> { /* ... */ }
 }
 ```
 
@@ -165,10 +147,10 @@ return this.denyOperation({ methodName: this.create.name });
 Both were `protected`, so they are invisible from outside but part of the contract a subclass
 inherits. Nothing about them changed for a caller that only uses the public verbs.
 
-| Removed                    | Was                                       | Use instead                                                                                 |
-| -------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `getQueryInterface(opts?)` | `protected`, on the repository base       | `queryExecutor`, a `protected` getter returning the datasource's `IRelationalQueryExecutor` |
-| `_updateBuilder`           | `protected` field of type `UpdateBuilder` | the public `updateBuilder` getter, or `dataSource.getQueryDialect()`                        |
+| Removed | Was | Use instead |
+|---------|-----|-------------|
+| `getQueryInterface(opts?)` | `protected`, on the repository base | `queryExecutor`, a `protected` getter returning the datasource's `IRelationalQueryExecutor` |
+| `_updateBuilder` | `protected` field of type `UpdateBuilder` | the public `updateBuilder` getter, or `dataSource.getQueryDialect()` |
 
 Resolving Drizzle's relational-query interface is engine knowledge, so it moved down into each
 engine's query executor, where it is now `private`. A subclass that overrode `getQueryInterface` to
@@ -233,14 +215,14 @@ inside of `PostgresFilterBuilder` and `SqliteFilterBuilder`, producing
 
 ### 3. The hand edits
 
-| If you have                                                             | Change to                                                | Why                                                        |
-| ----------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
-| `denyOperation(name)`                                                   | `denyOperation({ methodName: name })`                    | Options-object convention. Affects search repositories too |
-| an override of `getQueryInterface`                                      | call `resolveConnector` directly, or use `queryExecutor` | Moved into each engine's query executor                    |
-| a read of `this._updateBuilder`                                         | the public `updateBuilder` getter                        | The protected field is gone                                |
-| a match on `"is not a postgres transaction"`                            | `"is not a relational transaction"`                      | Message reworded, condition identical                      |
-| a parser reading `rs.rowCount` from the `shouldReturn: false` debug log | `rs.count`                                               | Normalized across drivers                                  |
-| `ReadableRepository === ReadableRelationalRepository`                   | `instanceof`                                             | The Postgres names are subclasses now, not aliases         |
+| If you have | Change to | Why |
+|---|---|---|
+| `denyOperation(name)` | `denyOperation({ methodName: name })` | Options-object convention. Affects search repositories too |
+| an override of `getQueryInterface` | call `resolveConnector` directly, or use `queryExecutor` | Moved into each engine's query executor |
+| a read of `this._updateBuilder` | the public `updateBuilder` getter | The protected field is gone |
+| a match on `"is not a postgres transaction"` | `"is not a relational transaction"` | Message reworded, condition identical |
+| a parser reading `rs.rowCount` from the `shouldReturn: false` debug log | `rs.count` | Normalized across drivers |
+| `ReadableRepository === ReadableRelationalRepository` | `instanceof` | The Postgres names are subclasses now, not aliases |
 
 ### 4. Verify
 
@@ -262,8 +244,8 @@ the engine-neutral one:
 import { DefaultRelationalRepository } from '@venizia/ignis/relational';
 import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
-neutral.connector; // unknown
-postgres.connector; // TRelationalConnector<TAnyDataSourceSchema>
+neutral.connector;    // unknown
+postgres.connector;   // TRelationalConnector<TAnyDataSourceSchema>
 ```
 
 Every Drizzle call on an `unknown` connector then fails to typecheck, one layer away from the import
@@ -408,15 +390,15 @@ JSON-path methods stay `protected` on the neutral base for the same reason: over
 Only `PostgresQueryOperators`, `UpdateBuilder`, and those JSON-path defaults remain genuinely
 Postgres-specific.
 
-| File                                                  | Package |
-| ----------------------------------------------------- | ------- |
-| `src/connectors/relational/**`                        | core    |
-| `src/connectors/postgres/datasources/**`              | core    |
-| `src/connectors/postgres/drivers/driver.ts`           | core    |
-| `src/connectors/postgres/repositories/**`             | core    |
-| `src/connectors/postgres/models/**`                   | core    |
-| `src/base/repositories/core/abstract.ts`              | core    |
-| `src/connectors/search/repositories/core/readable.ts` | core    |
+| File | Package |
+|------|---------|
+| `src/connectors/relational/**` | core |
+| `src/connectors/postgres/datasources/**` | core |
+| `src/connectors/postgres/drivers/driver.ts` | core |
+| `src/connectors/postgres/repositories/**` | core |
+| `src/connectors/postgres/models/**` | core |
+| `src/base/repositories/core/abstract.ts` | core |
+| `src/connectors/search/repositories/core/readable.ts` | core |
 
 See also: [Connectors](/references/base/connectors) for how IGNIS's engine-neutral contract works
 across every connector family, Postgres included.

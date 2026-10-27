@@ -31,16 +31,16 @@ my-app/
 
 ## Who is affected
 
-| You have                                                                    | Do this                                                                                                                                                                                            |
-| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `"lint": "sh scripts/lint.sh"`                                              | Change the scripts to `"lint": "devz lint"` and `"lint:fix": "devz lint --fix"`, then delete `scripts/lint.sh`                                                                                     |
-| `.configs/oxlint.config.mts`, `.configs/eslint.config.mjs`                  | Move them to `.configs/lints/`                                                                                                                                                                     |
-| `.configs/oxfmt.config.mts`                                                 | Move it to `.configs/formatters/`                                                                                                                                                                  |
-| `.configs/vite.config.ts`                                                   | Move it to `.configs/builders/`, add one `../` to every path the config builds from `import.meta.url`, and pass `--config .configs/builders/vite.config.ts` to `vite`                              |
-| `.configs/tsconfig.build.json`, `.configs/tsconfig.esm.json`                | Move them to `.configs/builders/` and add one `../` to each relative path inside them                                                                                                              |
+| You have | Do this |
+|---|---|
+| `"lint": "sh scripts/lint.sh"` | Change the scripts to `"lint": "devz lint"` and `"lint:fix": "devz lint --fix"`, then delete `scripts/lint.sh` |
+| `.configs/oxlint.config.mts`, `.configs/eslint.config.mjs` | Move them to `.configs/lints/` |
+| `.configs/oxfmt.config.mts` | Move it to `.configs/formatters/` |
+| `.configs/vite.config.ts` | Move it to `.configs/builders/`, add one `../` to every path the config builds from `import.meta.url`, and pass `--config .configs/builders/vite.config.ts` to `vite` |
+| `.configs/tsconfig.build.json`, `.configs/tsconfig.esm.json` | Move them to `.configs/builders/` and add one `../` to each relative path inside them |
 | `tsconfig.app.json`, `tsconfig.node.json`, `tsconfig.test.json` at the root | Move them to `.configs/builders/`, prefix their paths with `../../` (`include`, `paths`, `tsBuildInfoFile`, `exclude`), and point the `references` of `tsconfig.json` at `./.configs/builders/...` |
-| Paths to skip, in a config or on a lint command line                        | Put them in `.configs/lints/.ignore` and `.configs/formatters/.ignore`                                                                                                                             |
-| An editor setting that points at a config, such as `oxc.configPath`         | Point it at the new path                                                                                                                                                                           |
+| Paths to skip, in a config or on a lint command line | Put them in `.configs/lints/.ignore` and `.configs/formatters/.ignore` |
+| An editor setting that points at a config, such as `oxc.configPath` | Point it at the new path |
 
 `vulcan doctor` reports a config still left directly in `.configs/` and names the folder it belongs in.
 

@@ -22,10 +22,10 @@ packages: ['@venizia/ignis-helpers']
 
 Nothing changed for `SnowflakeUidHelper`. Pick between them on one question: may this ID reveal when it was created?
 
-| Helper               | `parseId()` reads back                | Pick it when                                               |
-| -------------------- | ------------------------------------- | ---------------------------------------------------------- |
+| Helper | `parseId()` reads back | Pick it when |
+|---|---|---|
 | `SnowflakeUidHelper` | The exact millisecond, and the worker | The ID is a primary key and you want insert order for free |
-| `OpaqueUidHelper`    | Nothing                               | The ID leaves your system                                  |
+| `OpaqueUidHelper` | Nothing | The ID leaves your system |
 
 ## Who is affected
 

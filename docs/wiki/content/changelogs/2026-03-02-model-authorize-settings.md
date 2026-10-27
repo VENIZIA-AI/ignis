@@ -22,7 +22,6 @@ Models can now declare their authorization principal directly in the `@model` de
 ### Model-Level Authorization Settings
 
 **Files:**
-
 - `packages/core-server/src/helpers/inversion/common/types.ts`
 - `packages/core-server/src/base/metadata/persistents.ts`
 - `packages/core-server/src/base/models/base.ts`
@@ -59,7 +58,6 @@ authorize: {
 ```
 
 **Benefits:**
-
 - Model is the single source of truth for its authorization principal
 - `AUTHORIZATION_SUBJECT` is auto-populated - no manual duplication
 - Explicit override still wins if set on the class directly
@@ -126,7 +124,7 @@ export interface IModelAuthorizeSettings {
 export interface IModelSettings {
   hiddenProperties?: string[];
   defaultFilter?: TFilter;
-  authorize?: IModelAuthorizeSettings; // NEW
+  authorize?: IModelAuthorizeSettings;  // NEW
 }
 ```
 
@@ -134,12 +132,11 @@ export interface IModelSettings {
 
 ```typescript
 class BaseEntity {
-  static AUTHORIZATION_SUBJECT?: string; // Auto-set by @model decorator
+  static AUTHORIZATION_SUBJECT?: string;  // Auto-set by @model decorator
 }
 ```
 
 Auto-population logic in the `@model` decorator:
-
 - If `settings.authorize.principal` is set and `AUTHORIZATION_SUBJECT` is not explicitly defined on the class → auto-populates
 - If `AUTHORIZATION_SUBJECT` is explicitly set on the subclass → decorator respects it, no overwrite
 
@@ -147,12 +144,12 @@ Auto-population logic in the `@model` decorator:
 
 ### Core Package (`packages/core-server`)
 
-| File                                          | Changes                                                                                                     |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `src/helpers/inversion/common/types.ts`       | Added `IModelAuthorizeSettings` interface, added `authorize?` to `IModelSettings`                           |
+| File | Changes |
+|------|---------|
+| `src/helpers/inversion/common/types.ts` | Added `IModelAuthorizeSettings` interface, added `authorize?` to `IModelSettings` |
 | `src/helpers/inversion/mixins/model.mixin.ts` | Added `getModelAuthorizeSettings()`, `getAuthorizeModelPrincipals()`, `getAuthorizeModelSettings()` methods |
-| `src/base/models/base.ts`                     | Added `static AUTHORIZATION_SUBJECT?: string` to `BaseEntity`                                               |
-| `src/base/metadata/persistents.ts`            | Auto-populate `AUTHORIZATION_SUBJECT` from `authorize.principal` in `@model` decorator                      |
+| `src/base/models/base.ts` | Added `static AUTHORIZATION_SUBJECT?: string` to `BaseEntity` |
+| `src/base/metadata/persistents.ts` | Auto-populate `AUTHORIZATION_SUBJECT` from `authorize.principal` in `@model` decorator |
 
 ## No Breaking Changes
 

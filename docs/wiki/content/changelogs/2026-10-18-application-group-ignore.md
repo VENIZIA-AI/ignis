@@ -1,6 +1,6 @@
 ---
 title: ArtifactGroup.application Leaves Out Ignored Files
-description: 'ArtifactGroup.application({ ignore }) leaves out the classes under globs relative to src - the patterns ignis-artifacts --ignore takes - so an application that generated its index with --ignore can drop the generated file.'
+description: "ArtifactGroup.application({ ignore }) leaves out the classes under globs relative to src - the patterns ignis-artifacts --ignore takes - so an application that generated its index with --ignore can drop the generated file."
 packages: ['@venizia/ignis-kernel', '@venizia/ignis-boot']
 ---
 

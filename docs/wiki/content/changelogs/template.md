@@ -8,7 +8,6 @@ description: [One sentence, plain - what changed and why it matters]
 ## [Main Title/Focus Area]
 
 <!-- Keep only the badges that apply -->
-
 <Badge type="tip" text="New Feature" /> <Badge type="tip" text="Enhancement" /> <Badge type="info" text="Bug Fix" /> <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" />
 
 **In one line.** [One plain sentence: what this release is, for a user.]
@@ -46,7 +45,6 @@ description: [One sentence, plain - what changed and why it matters]
 ```
 
 <!-- Or, for a non-code migration, a short numbered list -->
-
 1. [Step one]
 2. [Step two]
 
@@ -61,6 +59,6 @@ description: [One sentence, plain - what changed and why it matters]
 // Example usage, if it helps
 ```
 
-| File                  | Package |
-| --------------------- | ------- |
-| `src/path/to/file.ts` | core    |
+| File | Package |
+|------|---------|
+| `src/path/to/file.ts` | core |

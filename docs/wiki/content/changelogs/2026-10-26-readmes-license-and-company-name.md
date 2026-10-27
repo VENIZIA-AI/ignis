@@ -1,6 +1,6 @@
 ---
 title: READMEs, Licences and the Company Name
-description: 'Every package README carries the Venizia credit, the root README is short, the licence files name Venizia Co., Ltd. and no longer acknowledge other frameworks. Ships in 0.4.4.'
+description: "Every package README carries the Venizia credit, the root README is short, the licence files name Venizia Co., Ltd. and no longer acknowledge other frameworks. Ships in 0.4.4."
 packages:
   [
     '@venizia/dev-configs',

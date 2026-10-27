@@ -36,7 +36,6 @@ export type TCustomizableRouteConfig = TRouteAuthConfig & {
 ```
 
 Resolution logic:
-
 ```typescript
 const isEnabled = (routeKey: keyof ICustomizableRoutes) => {
   if (controller.enabledRoutes) {
@@ -47,7 +46,6 @@ const isEnabled = (routeKey: keyof ICustomizableRoutes) => {
 ```
 
 **Disable specific routes:**
-
 ```typescript
 ControllerFactory.defineCrudController({
   entity: User,
@@ -64,7 +62,6 @@ ControllerFactory.defineCrudController({
 ```
 
 **Whitelist only what you need:**
-
 ```typescript
 controller: {
   name: 'StatsController',
@@ -100,7 +97,6 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = /* distributive 
 ```
 
 **Benefits:**
-
 - Handlers that return the wrong response shape now fail to compile
 - Response types stay in sync with the OpenAPI response schemas
 - No runtime cost - purely type-level
@@ -116,37 +112,25 @@ The generated controller class previously passed `typeof routeDefinitions` as a 
 The 5th generic is now omitted (defaults to the small `Record<string, IAuthRouteConfig>`); the runtime `this.definitions = routeDefinitions` assignment is unchanged.
 
 **Before:**
-
 ```typescript
-class extends BaseRestController<
-  RouteEnv,
-  RouteSchema,
-  BasePath,
-  ConfigurableOptions,
-  typeof routeDefinitions
-> {
-  /* ... */
-}
+class extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions, typeof routeDefinitions> { /* ... */ }
 ```
 
 **After:**
-
 ```typescript
 // 5th generic intentionally omitted to keep .d.ts small (avoids TS7056)
-class extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
-  /* ... */
-}
+class extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> { /* ... */ }
 ```
 
 ## Files Changed
 
 ### Core Package (`packages/core-server`)
 
-| File                                         | Changes                                                                                                                                           |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/base/controllers/common/types.ts`       | `enabled` on `TCustomizableRouteConfig`; `ResponseBody` generic on `TContext`/`TRouteContext`/`TRouteHandler`; `TJsonResponse`, `TResponseBodyOf` |
-| `src/base/controllers/factory/controller.ts` | `enabledRoutes` option + `isEnabled()` gating around each route; omit `Definitions` generic                                                       |
-| `src/base/controllers/factory/definition.ts` | Response/header definition wiring for typed responses                                                                                             |
+| File | Changes |
+|------|---------|
+| `src/base/controllers/common/types.ts` | `enabled` on `TCustomizableRouteConfig`; `ResponseBody` generic on `TContext`/`TRouteContext`/`TRouteHandler`; `TJsonResponse`, `TResponseBodyOf` |
+| `src/base/controllers/factory/controller.ts` | `enabledRoutes` option + `isEnabled()` gating around each route; omit `Definitions` generic |
+| `src/base/controllers/factory/definition.ts` | Response/header definition wiring for typed responses |
 
 ## No Breaking Changes
 

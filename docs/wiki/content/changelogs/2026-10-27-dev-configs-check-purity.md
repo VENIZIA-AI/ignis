@@ -1,6 +1,6 @@
 ---
 title: devz check purity - the Browser-Purity Gate Ships in dev-configs
-description: 'The browser-purity gate of IGNIS moves into @venizia/dev-configs as devz check purity and the new ./checks export. A repository keeps only its claims. Output is identical; the gate also refuses an entry that reaches dev-configs.'
+description: "The browser-purity gate of IGNIS moves into @venizia/dev-configs as devz check purity and the new ./checks export. A repository keeps only its claims. Output is identical; the gate also refuses an entry that reaches dev-configs."
 packages: ['@venizia/dev-configs']
 ---
 

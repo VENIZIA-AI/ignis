@@ -1,6 +1,6 @@
 ---
 title: TSearchScopeResolver Is Exported
-description: 'The search controllers entry now exports the TSearchScopeResolver type, so a constant holding the result of defineSearchController with a scope no longer fails with TS2883.'
+description: "The search controllers entry now exports the TSearchScopeResolver type, so a constant holding the result of defineSearchController with a scope no longer fails with TS2883."
 packages: ['@venizia/ignis-connectors']
 ---
 

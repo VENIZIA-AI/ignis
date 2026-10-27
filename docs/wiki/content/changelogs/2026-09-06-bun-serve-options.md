@@ -28,13 +28,13 @@ export const configs: IServerApplicationConfigs = {
 
 ## What changed
 
-| Symbol                                        | Change                                                                      | Package     |
-| --------------------------------------------- | --------------------------------------------------------------------------- | ----------- |
-| `IServerApplicationConfigs.server`            | New optional group: `{ idleTimeout?: number; maxRequestBodySize?: number }` | core-server |
-| `IServerRuntimeConfigs`                       | New exported interface for that group                                       | core-server |
-| `ServerApplication.getServerRuntimeOptions()` | New protected method; returns `configs.server` with unset keys dropped      | core-server |
-| `ServerApplication.startBunModule()`          | Spreads `getServerRuntimeOptions()` into `Bun.serve`                        | core-server |
-| `ServerApplication.startNodeModule()`         | Logs one warning naming the ignored keys when the group is set              | core-server |
+| Symbol | Change | Package |
+|---|---|---|
+| `IServerApplicationConfigs.server` | New optional group: `{ idleTimeout?: number; maxRequestBodySize?: number }` | core-server |
+| `IServerRuntimeConfigs` | New exported interface for that group | core-server |
+| `ServerApplication.getServerRuntimeOptions()` | New protected method; returns `configs.server` with unset keys dropped | core-server |
+| `ServerApplication.startBunModule()` | Spreads `getServerRuntimeOptions()` into `Bun.serve` | core-server |
+| `ServerApplication.startNodeModule()` | Logs one warning naming the ignored keys when the group is set | core-server |
 
 - `idleTimeout` is in seconds and Bun caps it at 255. `maxRequestBodySize` is in bytes.
 - An unset key is not passed at all, so Bun's own default applies. Setting a key to `undefined` behaves like leaving it out.

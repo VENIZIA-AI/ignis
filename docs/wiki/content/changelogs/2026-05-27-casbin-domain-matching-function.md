@@ -68,13 +68,13 @@ m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act 
 <details>
 <summary>Available matching functions</summary>
 
-| Function                                    | Value          | Notes                                                                                              |
-| ------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------- |
-| `CasbinDomainMatchingFunctions.KEY_MATCH`   | `'keyMatch'`   | `*` is the only wildcard; exact compare otherwise. Recommended for `Merchant_<uuid>`-style domains |
-| `CasbinDomainMatchingFunctions.KEY_MATCH_2` | `'keyMatch2'`  | Adds URL-path `:param` segment matching                                                            |
-| `CasbinDomainMatchingFunctions.KEY_MATCH_3` | `'keyMatch3'`  | Adds `{param}` segment matching                                                                    |
-| `CasbinDomainMatchingFunctions.KEY_MATCH_4` | `'keyMatch4'`  | `{param}` with repeated-name equality checks                                                       |
-| `CasbinDomainMatchingFunctions.REGEX_MATCH` | `'regexMatch'` | Treats the stored/policy value as a full regular expression                                        |
+| Function | Value | Notes |
+|----------|-------|-------|
+| `CasbinDomainMatchingFunctions.KEY_MATCH` | `'keyMatch'` | `*` is the only wildcard; exact compare otherwise. Recommended for `Merchant_<uuid>`-style domains |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_2` | `'keyMatch2'` | Adds URL-path `:param` segment matching |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_3` | `'keyMatch3'` | Adds `{param}` segment matching |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_4` | `'keyMatch4'` | `{param}` with repeated-name equality checks |
+| `CasbinDomainMatchingFunctions.REGEX_MATCH` | `'regexMatch'` | Treats the stored/policy value as a full regular expression |
 
 </details>
 
@@ -84,8 +84,8 @@ m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act 
 > [!WARNING]
 > When using a domain model (`r = sub, dom, obj, act`), `normalizePayloadFn` must always return a `domain`. If it returns `undefined`, the enforcer falls back to the 3-argument `enforceSync` form, which mis-evaluates against a 4-argument model.
 
-| File                                                         | Package |
-| ------------------------------------------------------------ | ------- |
-| `src/components/auth/authorize/common/constants.ts`          | core    |
-| `src/components/auth/authorize/common/types.ts`              | core    |
-| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | core    |
+| File | Package |
+|------|---------|
+| `src/components/auth/authorize/common/constants.ts` | core |
+| `src/components/auth/authorize/common/types.ts` | core |
+| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | core |

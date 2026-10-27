@@ -1,13 +1,7 @@
 ---
 title: Dependencies No Package Imported Are Removed
 description: "zod leaves inversion, kernel and core-server, reflect-metadata leaves connectors, and drizzle-kit and tsx leave core-server's dev dependencies - none of them was imported by the package that declared it."
-packages:
-  [
-    '@venizia/ignis-inversion',
-    '@venizia/ignis-kernel',
-    '@venizia/ignis',
-    '@venizia/ignis-connectors',
-  ]
+packages: ['@venizia/ignis-inversion', '@venizia/ignis-kernel', '@venizia/ignis', '@venizia/ignis-connectors']
 ---
 
 # Changelog - 2026-10-17

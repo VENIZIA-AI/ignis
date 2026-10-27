@@ -1,6 +1,6 @@
 ---
 title: A CRUD Write Route No Longer Inherits a Read-Only Authorize
-description: 'defineCrudController refuses to boot when create, updateById, updateBy, deleteById or deleteBy would inherit a controller-level authorize whose action is read. Anyone allowed to read could write.'
+description: "defineCrudController refuses to boot when create, updateById, updateBy, deleteById or deleteBy would inherit a controller-level authorize whose action is read. Anyone allowed to read could write."
 packages: ['@venizia/ignis-kernel']
 ---
 

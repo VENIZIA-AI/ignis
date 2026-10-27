@@ -1,6 +1,6 @@
 ---
 title: scopeFilter Now Holds Writes to the Scope
-description: 'A create, createAll or an update payload that names a scope column is refused with a 403 when its value is outside the resolved scope. Return ScopeFilters.UNRESTRICTED for deliberate cross-scope writes.'
+description: "A create, createAll or an update payload that names a scope column is refused with a 403 when its value is outside the resolved scope. Return ScopeFilters.UNRESTRICTED for deliberate cross-scope writes."
 packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 ---
 
@@ -53,8 +53,7 @@ Return `ScopeFilters.UNRESTRICTED` from `resolve()` for the caller that may writ
   type: 'entity',
   settings: {
     access: {
-      resolve: () =>
-        isSystemScope() ? ScopeFilters.UNRESTRICTED : { merchantId: currentMerchantId() },
+      resolve: () => (isSystemScope() ? ScopeFilters.UNRESTRICTED : { merchantId: currentMerchantId() }),
       write: { sharedRows: true },
     },
   },

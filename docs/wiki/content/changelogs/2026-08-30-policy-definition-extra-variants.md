@@ -1,5 +1,5 @@
 ---
-title: 'PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds'
+title: "PolicyDefinition.variant Stays Closed by Default, but an App Can Now Declare Its Own Edge Kinds"
 description: "kernel@0.2.0-6 narrowed the variant column to IGNIS's seven edge kinds only, with no way for an application to add its own. extraPolicyDefinitionColumns now takes an extraVariants option that widens the column's type for one call site, while every app that declares nothing sees no change at all."
 packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
@@ -53,10 +53,10 @@ Fix these at the source - the type where the value first enters - rather than ca
 
 - **The check covers the write path, not the filter path.** `variant` is checked wherever a row is written - `$inferInsert`, and `AuthorizationPolicyBuilder`'s output - which is where all three wrong vocabularies were authored: a seed script and doc examples both write rows. It is NOT checked inside a `where` clause. `TWhere<T>` types every value as `any`, so `where: { variant: 'joindomain' }` compiles and returns zero rows in silence. A filter typo still fails the same quiet way a seed typo used to. Stated because "the column is typed now" reads like both paths are covered, and one is not.
 
-| File                                                                                  | Package     |
-| ------------------------------------------------------------------------------------- | ----------- |
+| File | Package |
+|------|---------|
 | `packages/core-server/src/components/auth/models/entities/policy-definition.model.ts` | core-server |
-| `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts`                  | kernel      |
+| `packages/kernel/src/base/auth/authorize/builders/policy.builder.ts` | kernel |
 
 ## See also
 

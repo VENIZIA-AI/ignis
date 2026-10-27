@@ -28,7 +28,6 @@ The default pagination limit (`DEFAULT_LIMIT` = 10) is now applied **consistentl
 Previously `LimitSchema` had `.default(DEFAULT_LIMIT)`. Zod only fills a default into a value that exists, so the limit appeared **only when a `scope` object was present**:
 
 **Before:**
-
 ```jsonc
 // no scope -> relation returned ALL rows (no limit)
 { "include": [{ "relation": "categories" }] }
@@ -40,7 +39,6 @@ Previously `LimitSchema` had `.default(DEFAULT_LIMIT)`. Zod only fills a default
 Adding an `order` clause silently changed the result count - a confusing footgun.
 
 **After:**
-
 ```jsonc
 // Both forms now cap to-many relations at DEFAULT_LIMIT (10)
 { "include": [{ "relation": "categories" }] }
@@ -110,11 +108,11 @@ const scopedFilter: TFilter =
 
 ### Core Package (`packages/core-server`)
 
-| File                                        | Changes                                                                                         |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/base/repositories/common/types.ts`     | Removed `.default(DEFAULT_LIMIT)` from `LimitSchema`; dropped now-unused `DEFAULT_LIMIT` import |
-| `src/base/repositories/core/readable.ts`    | `find()` applies `DEFAULT_LIMIT` to the top-level query only                                    |
-| `src/base/repositories/operators/filter.ts` | `toInclude()` caps to-many relation scopes at `DEFAULT_LIMIT`; to-one relations untouched       |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/common/types.ts` | Removed `.default(DEFAULT_LIMIT)` from `LimitSchema`; dropped now-unused `DEFAULT_LIMIT` import |
+| `src/base/repositories/core/readable.ts` | `find()` applies `DEFAULT_LIMIT` to the top-level query only |
+| `src/base/repositories/operators/filter.ts` | `toInclude()` caps to-many relation scopes at `DEFAULT_LIMIT`; to-one relations untouched |
 
 ## Migration Guide
 
@@ -129,12 +127,8 @@ Find queries that include to-many relations without a scope `limit`.
 
 ```typescript
 // Before - implicitly returned all related rows
-{
-  include: [{ relation: 'orders' }];
-}
+{ include: [{ relation: 'orders' }] }
 
 // After - request the count you actually need
-{
-  include: [{ relation: 'orders', scope: { limit: 500 } }];
-}
+{ include: [{ relation: 'orders', scope: { limit: 500 } }] }
 ```

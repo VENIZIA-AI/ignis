@@ -34,7 +34,6 @@ This release introduces a complete authorization system alongside a major restru
 The route config interface now supports both authentication and authorization:
 
 **Before:**
-
 ```typescript
 import { IAuthenticateRouteConfig } from '@venizia/ignis';
 
@@ -44,7 +43,6 @@ interface MyRouteConfig extends IAuthenticateRouteConfig {
 ```
 
 **After:**
-
 ```typescript
 import { IAuthRouteConfig } from '@venizia/ignis';
 
@@ -57,13 +55,11 @@ interface MyRouteConfig extends IAuthRouteConfig {
 ### 2. Helpers Source Directory Rename
 
 **Before:**
-
 ```
 packages/helpers/src/helpers/
 ```
 
 **After:**
-
 ```
 packages/helpers/src/modules/
 ```
@@ -73,13 +69,11 @@ Internal imports changed from `@/helpers/...` to `@/modules/...`. External impor
 ### 3. Authorization Terminology: `requirement` to `spec`
 
 **Before:**
-
 ```typescript
 authorize: { requirement: { action: 'read', resource: 'Article' } }
 ```
 
 **After:**
-
 ```typescript
 import { AuthorizationActions } from '@venizia/ignis';
 
@@ -136,7 +130,6 @@ AuthorizationEnforcerRegistry.getInstance().register({
 ```
 
 **Benefits:**
-
 - Role-based shortcuts (`alwaysAllowRoles`, `allowedRoles`)
 - Voter pattern for custom authorization logic
 - Rules caching per-request on Hono context
@@ -147,15 +140,15 @@ AuthorizationEnforcerRegistry.getInstance().register({
 
 ### Authorization Middleware Pipeline (7 Steps)
 
-| Step | Action                                                           | Short-circuits?  |
-| ---- | ---------------------------------------------------------------- | ---------------- |
-| 1    | Check `SKIP_AUTHORIZATION` flag                                  | Yes              |
-| 2    | Get authenticated user                                           | Yes (401)        |
-| 3    | Check role-based shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Yes              |
-| 4    | Execute voters                                                   | Yes (DENY/ALLOW) |
-| 5    | Resolve enforcer                                                 | No               |
-| 6    | Build/cache rules                                                | No               |
-| 7    | Evaluate via enforcer                                            | Yes (403)        |
+| Step | Action | Short-circuits? |
+|------|--------|-----------------|
+| 1 | Check `SKIP_AUTHORIZATION` flag | Yes |
+| 2 | Get authenticated user | Yes (401) |
+| 3 | Check role-based shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Yes |
+| 4 | Execute voters | Yes (DENY/ALLOW) |
+| 5 | Resolve enforcer | No |
+| 6 | Build/cache rules | No |
+| 7 | Evaluate via enforcer | Yes (403) |
 
 ### CRUD Factory Authorization Support
 
@@ -169,8 +162,8 @@ ControllerFactory.defineCrudController({
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   authorize: { action: AuthorizationActions.READ, resource: 'Article' },
   routes: {
-    find: { authenticate: { skip: true } }, // Public
-    count: { authorize: { skip: true } }, // Skip authz only
+    find: { authenticate: { skip: true } },           // Public
+    count: { authorize: { skip: true } },              // Skip authz only
     // Every write route declares its own authorize (a read spec is refused on them since 0.4.2)
     create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
     updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
@@ -196,7 +189,7 @@ Priority-based role comparison with identifier formatting:
 ```typescript
 import { AuthorizationRoles } from '@venizia/ignis';
 
-AuthorizationRoles.SUPER_ADMIN.identifier; // '999_super-admin'
+AuthorizationRoles.SUPER_ADMIN.identifier;  // '999_super-admin'
 AuthorizationRoles.ADMIN.isHigherThan({ target: AuthorizationRoles.USER }); // true
 ```
 
@@ -233,14 +226,12 @@ auth/
 All barrel `@/` imports within the auth module and controller files were replaced with specific file path imports:
 
 **Before:**
-
 ```typescript
 import { IAuthRouteConfig, TContext } from '@/base/controllers';
 import { getError } from '@/helpers';
 ```
 
 **After:**
-
 ```typescript
 import { IAuthRouteConfig, TContext } from '@/base/controllers/common/types';
 import { getError } from '@venizia/ignis-helpers';
@@ -261,48 +252,48 @@ authorize/providers/    → authorize/middlewares/authorize.middleware.ts
 
 ### Core Package (`packages/core-server`) -- New Files
 
-| File                                                                | Changes                                                                                                                                                                                            |
-| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/components/auth/authorize/common/constants.ts`                 | Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationRoles, AuthorizationEnforcerTypes, CasbinEnforcerCachedDrivers, CasbinEnforcerModelDrivers, CasbinRuleVariants constants |
-| `src/components/auth/authorize/common/keys.ts`                      | AuthorizeBindingKeys (OPTIONS, ALWAYS_ALLOW_ROLES, enforcerOptions(name))                                                                                                                          |
-| `src/components/auth/authorize/common/types.ts`                     | IAuthorizationEnforcer, IAuthorizationSpec, IAuthorizeOptions, ICasbinEnforcerOptions, TAuthorizationVoter, TAuthorizeFn                                                                           |
-| `src/components/auth/authorize/common/index.ts`                     | Barrel export for common                                                                                                                                                                           |
-| `src/components/auth/authorize/adapters/base-filtered.ts`           | BaseFilteredAdapter -- abstract template method pattern for casbin FilteredAdapter                                                                                                                 |
-| `src/components/auth/authorize/adapters/drizzle-casbin.ts`          | DrizzleCasbinAdapter -- Drizzle-based read-only FilteredAdapter with raw SQL                                                                                                                       |
-| `src/components/auth/authorize/component.ts`                        | AuthorizeComponent -- validates options, binds alwaysAllowRoles                                                                                                                                    |
-| `src/components/auth/authorize/enforcers/enforcer-registry.ts`      | AuthorizationEnforcerRegistry singleton with type-discriminated register()                                                                                                                         |
-| `src/components/auth/authorize/enforcers/casbin.enforcer.ts`        | CasbinAuthorizationEnforcer (optional peer dep, injects options from registry)                                                                                                                     |
-| `src/components/auth/authorize/middlewares/authorize.middleware.ts` | authorize() standalone function                                                                                                                                                                    |
-| `src/components/auth/authorize/providers/authorization.provider.ts` | AuthorizationProvider -- middleware factory                                                                                                                                                        |
-| `src/components/auth/authorize/models/authorization-role.model.ts`  | AuthorizationRole value object                                                                                                                                                                     |
-| `src/components/auth/base/abstract-auth-registry.ts`                | AbstractAuthRegistry shared base class                                                                                                                                                             |
-| `src/__tests__/authorize/authorize.test.ts`                         | 45 authorization tests                                                                                                                                                                             |
+| File | Changes |
+|------|---------|
+| `src/components/auth/authorize/common/constants.ts` | Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationRoles, AuthorizationEnforcerTypes, CasbinEnforcerCachedDrivers, CasbinEnforcerModelDrivers, CasbinRuleVariants constants |
+| `src/components/auth/authorize/common/keys.ts` | AuthorizeBindingKeys (OPTIONS, ALWAYS_ALLOW_ROLES, enforcerOptions(name)) |
+| `src/components/auth/authorize/common/types.ts` | IAuthorizationEnforcer, IAuthorizationSpec, IAuthorizeOptions, ICasbinEnforcerOptions, TAuthorizationVoter, TAuthorizeFn |
+| `src/components/auth/authorize/common/index.ts` | Barrel export for common |
+| `src/components/auth/authorize/adapters/base-filtered.ts` | BaseFilteredAdapter -- abstract template method pattern for casbin FilteredAdapter |
+| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | DrizzleCasbinAdapter -- Drizzle-based read-only FilteredAdapter with raw SQL |
+| `src/components/auth/authorize/component.ts` | AuthorizeComponent -- validates options, binds alwaysAllowRoles |
+| `src/components/auth/authorize/enforcers/enforcer-registry.ts` | AuthorizationEnforcerRegistry singleton with type-discriminated register() |
+| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | CasbinAuthorizationEnforcer (optional peer dep, injects options from registry) |
+| `src/components/auth/authorize/middlewares/authorize.middleware.ts` | authorize() standalone function |
+| `src/components/auth/authorize/providers/authorization.provider.ts` | AuthorizationProvider -- middleware factory |
+| `src/components/auth/authorize/models/authorization-role.model.ts` | AuthorizationRole value object |
+| `src/components/auth/base/abstract-auth-registry.ts` | AbstractAuthRegistry shared base class |
+| `src/__tests__/authorize/authorize.test.ts` | 45 authorization tests |
 
 ### Core Package (`packages/core-server`) -- Modified Files
 
-| File                                                               | Changes                                                                            |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| `src/base/controllers/abstract.ts`                                 | Added authorize middleware injection in getRouteConfigs() and getJSXRouteConfigs() |
-| `src/base/controllers/common/types.ts`                             | IAuthRouteConfig -- added authorize field, TRouteAuthorizeConfig type              |
-| `src/base/controllers/factory/definition.ts`                       | resolveRouteAuthorize() for CRUD factory authorization                             |
-| `src/base/controllers/factory/controller.ts`                       | authorize support in defineControllerRouteConfigs()                                |
-| `src/components/auth/authenticate/strategies/strategy-registry.ts` | Refactored to extend AbstractAuthRegistry                                          |
-| `src/components/auth/authenticate/index.ts`                        | Updated barrel exports                                                             |
-| `src/components/auth/index.ts`                                     | Added authorize, base, and models exports                                          |
-| `src/base/metadata/routes.ts`                                      | Updated IAuthRouteConfig references                                                |
+| File | Changes |
+|------|---------|
+| `src/base/controllers/abstract.ts` | Added authorize middleware injection in getRouteConfigs() and getJSXRouteConfigs() |
+| `src/base/controllers/common/types.ts` | IAuthRouteConfig -- added authorize field, TRouteAuthorizeConfig type |
+| `src/base/controllers/factory/definition.ts` | resolveRouteAuthorize() for CRUD factory authorization |
+| `src/base/controllers/factory/controller.ts` | authorize support in defineControllerRouteConfigs() |
+| `src/components/auth/authenticate/strategies/strategy-registry.ts` | Refactored to extend AbstractAuthRegistry |
+| `src/components/auth/authenticate/index.ts` | Updated barrel exports |
+| `src/components/auth/index.ts` | Added authorize, base, and models exports |
+| `src/base/metadata/routes.ts` | Updated IAuthRouteConfig references |
 
 ### Helpers Package (`packages/helpers`)
 
-| File                            | Changes                                              |
-| ------------------------------- | ---------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/helpers/` → `src/modules/` | Directory rename -- 59 internal import paths updated |
-| `src/index.ts`                  | Updated barrel export path                           |
-| `package.json`                  | Updated 7 sub-export paths in exports field          |
+| `src/index.ts` | Updated barrel export path |
+| `package.json` | Updated 7 sub-export paths in exports field |
 
 ### Tests
 
-| File                                        | Changes                                                                                                                                                                               |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/__tests__/authorize/authorize.test.ts` | 45 tests covering: DefaultAuthorizationEnforcer, CasbinAuthorizationEnforcer, AuthorizationProvider middleware, AbilityBuilder, AuthorizationRole, voters, conditions, role shortcuts |
 
 ## Migration Guide
@@ -349,17 +340,15 @@ this.component(AuthorizeComponent);
 // Step 3: Register enforcer(s) with co-located options
 AuthorizationEnforcerRegistry.getInstance().register({
   container: this,
-  enforcers: [
-    {
-      enforcer: CasbinAuthorizationEnforcer,
-      name: 'casbin',
-      type: AuthorizationEnforcerTypes.CASBIN,
-      options: {
-        model: { driver: CasbinEnforcerModelDrivers.FILE, definition: './security/model.conf' },
-        cached: { use: false },
-      },
+  enforcers: [{
+    enforcer: CasbinAuthorizationEnforcer,
+    name: 'casbin',
+    type: AuthorizationEnforcerTypes.CASBIN,
+    options: {
+      model: { driver: CasbinEnforcerModelDrivers.FILE, definition: './security/model.conf' },
+      cached: { use: false },
     },
-  ],
+  }],
 });
 ```
 

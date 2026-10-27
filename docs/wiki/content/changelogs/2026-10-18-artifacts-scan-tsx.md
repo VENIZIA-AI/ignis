@@ -1,6 +1,6 @@
 ---
 title: Auto Artifacts Register Classes in .tsx Files
-description: 'The artifact scanner, the scan cache and the build plugin read .tsx files as well as .ts, so a decorated class in a .tsx file - a controller rendering JSX - is registered instead of silently left out.'
+description: "The artifact scanner, the scan cache and the build plugin read .tsx files as well as .ts, so a decorated class in a .tsx file - a controller rendering JSX - is registered instead of silently left out."
 packages: ['@venizia/ignis-boot']
 ---
 

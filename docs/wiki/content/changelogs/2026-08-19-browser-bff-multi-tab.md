@@ -49,12 +49,12 @@ So the fix is not to make the database sharable. It is to make sure only one tab
 
 The browser releases a lock when its tab goes away - a crash included - so promotion needs no heartbeat and there is no stale-leader window.
 
-| Option         | Type           | Default       | Meaning                                                                     |
-| -------------- | -------------- | ------------- | --------------------------------------------------------------------------- |
-| `createWorker` | `() => Worker` | required      | Called only in the tab that wins the election                               |
-| `channelName`  | `string`       | `'ignis.bff'` | Distinguishes independent BFFs on one origin; the lock name derives from it |
-| `timeoutMs`    | `number`       | `30000`       | How long a follower waits for the leader to answer                          |
-| `scope`        | `string`       | class name    | Logger scope                                                                |
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `createWorker` | `() => Worker` | required | Called only in the tab that wins the election |
+| `channelName` | `string` | `'ignis.bff'` | Distinguishes independent BFFs on one origin; the lock name derives from it |
+| `timeoutMs` | `number` | `30000` | How long a follower waits for the leader to answer |
+| `scope` | `string` | class name | Logger scope |
 
 A host without `navigator.locks` runs single-tab, and loses nothing: `navigator.locks` and `navigator.storage.getDirectory` are both secure-context only, so wherever OPFS works the lock exists.
 
@@ -66,10 +66,10 @@ HTTP clients rarely accept a custom fetcher. A data provider or a generated clie
 
 It also reads a request's URL **without** constructing a `Request`. In Chromium, `new Request(existingRequest)` marks the original body disturbed - `bodyUsed` flips to `true` and the next read throws - so a hand-rolled bridge that builds one just to inspect the URL breaks the very pass-through it is deciding about. Any POST it decided to send to the network arrived unreadable.
 
-| File                            | Package |
-| ------------------------------- | ------- |
-| `src/transport/shared.ts`       | worker  |
-| `src/transport/fetch-bridge.ts` | worker  |
+| File | Package |
+|------|---------|
+| `src/transport/shared.ts` | worker |
+| `src/transport/fetch-bridge.ts` | worker |
 
 ## Also in this release - the framework audit
 

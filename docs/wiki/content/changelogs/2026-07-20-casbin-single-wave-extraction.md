@@ -46,14 +46,14 @@ This change replaces the whole shape with one recursive CTE that resolves the cl
 
 Required indexes on `PolicyDefinition`, verified against a real PostgreSQL database with `EXPLAIN (ANALYZE, BUFFERS)`:
 
-| Index                                       | Serves                                                                                                  | Without it                                                                                                    |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `(variant, subject_type, subject_id)`       | `queryPrincipalPolicy`'s CTE anchor term and its direct-edge branch                                     | Sequential scan (uses the grant branch's existing `(subject_type, subject_id)` scan only for that one branch) |
-| `(variant, subject_id)`                     | `queryPrincipalPolicy`'s recursive-term join and its role-grant branch                                  | Sequential scan                                                                                               |
-| `(variant)`, or per-variant partial indexes | `queryResourceInherits`, `queryActionInherits`, `queryDomainInherits` - each filters on `variant` alone | Sequential scan                                                                                               |
+| Index | Serves | Without it |
+|---|---|---|
+| `(variant, subject_type, subject_id)` | `queryPrincipalPolicy`'s CTE anchor term and its direct-edge branch | Sequential scan (uses the grant branch's existing `(subject_type, subject_id)` scan only for that one branch) |
+| `(variant, subject_id)` | `queryPrincipalPolicy`'s recursive-term join and its role-grant branch | Sequential scan |
+| `(variant)`, or per-variant partial indexes | `queryResourceInherits`, `queryActionInherits`, `queryDomainInherits` - each filters on `variant` alone | Sequential scan |
 
 The grant branch's `(subject_type, subject_id)` scan and the permission join's primary-key lookup were already efficient. The recursive term's sequential scan was the gap, because nothing indexes `variant`.
 
-| File                                                              | Package |
-| ----------------------------------------------------------------- | ------- |
-| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core    |
+| File | Package |
+|------|---------|
+| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core |

@@ -1,6 +1,6 @@
 ---
 title: installBffFetch Matches Whole Path Segments, and Can Be Limited to Named Origins
-description: 'The BFF fetch bridge no longer claims /apix for a basePath of /api, and a new origin option keeps calls to other origins on the network.'
+description: "The BFF fetch bridge no longer claims /apix for a basePath of /api, and a new origin option keeps calls to other origins on the network."
 packages: ['@venizia/ignis-worker']
 ---
 

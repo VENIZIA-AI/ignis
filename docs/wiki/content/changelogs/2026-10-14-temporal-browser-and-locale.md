@@ -1,6 +1,6 @@
 ---
 title: TemporalHelper Runs in Every Browser and Speaks a Locale
-description: 'IntlTemporalAdapter needs no Temporal, so TemporalHelper works in every browser. Month and weekday names, 12-hour time, relative time, diff, compare, a non-throwing parse and duration formatting replace what a frontend kept dayjs for.'
+description: "IntlTemporalAdapter needs no Temporal, so TemporalHelper works in every browser. Month and weekday names, 12-hour time, relative time, diff, compare, a non-throwing parse and duration formatting replace what a frontend kept dayjs for."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -33,25 +33,25 @@ Before, the default adapter needed the runtime's `Temporal`, which not every bro
 
 **Writing in a locale.** The constructor takes `locale` (default `en-US`); every call can pass its own.
 
-| New                              | What it writes                                          |
-| -------------------------------- | ------------------------------------------------------- |
-| `MMMM` / `MMM`                   | Month name, long / short                                |
-| `dddd` / `ddd`                   | Weekday name, long / short                              |
-| `hh` / `h`, `A` / `a`            | 12-hour clock and its AM/PM marker                      |
-| `L` / `LL`                       | The date in the locale's numeric order / its long form  |
+| New | What it writes |
+|---|---|
+| `MMMM` / `MMM` | Month name, long / short |
+| `dddd` / `ddd` | Weekday name, long / short |
+| `hh` / `h`, `A` / `a` | 12-hour clock and its AM/PM marker |
+| `L` / `LL` | The date in the locale's numeric order / its long form |
 | `formatIntl({ value, options })` | Any `Intl.DateTimeFormat` options, in the helper's zone |
 
 These tokens write only. `parse` stays numeric and strict, and a parse pattern holding one throws a 500.
 
 **New methods.**
 
-| Method                                                    | Answers                                                                                                                   |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `relative({ value, base, unit, numeric })`                | `3 hours ago`, `yesterday`, through `Intl.RelativeTimeFormat`. With a `unit`, it counts the unit's boundaries in the zone |
-| `diff({ value, other, unit })`                            | Whole units, truncated. The inverse of `add`: `diff(add(x, n), x)` is `n`, outside a zone that skipped a whole day        |
-| `compare({ value, other, unit })`                         | `-1`, `0` or `1`, at a unit's granularity in the zone                                                                     |
-| `tryParse(...)` / `isValid({ value })`                    | `null` / `false` where `parse` would throw a 400                                                                          |
-| `durationParts({ milliseconds })` / `formatDuration(...)` | `{ days, hours, ... }` / `1d1h30m`, or the locale's unit words                                                            |
+| Method | Answers |
+|---|---|
+| `relative({ value, base, unit, numeric })` | `3 hours ago`, `yesterday`, through `Intl.RelativeTimeFormat`. With a `unit`, it counts the unit's boundaries in the zone |
+| `diff({ value, other, unit })` | Whole units, truncated. The inverse of `add`: `diff(add(x, n), x)` is `n`, outside a zone that skipped a whole day |
+| `compare({ value, other, unit })` | `-1`, `0` or `1`, at a unit's granularity in the zone |
+| `tryParse(...)` / `isValid({ value })` | `null` / `false` where `parse` would throw a 400 |
+| `durationParts({ milliseconds })` / `formatDuration(...)` | `{ days, hours, ... }` / `1d1h30m`, or the locale's unit words |
 
 ## Who is affected
 

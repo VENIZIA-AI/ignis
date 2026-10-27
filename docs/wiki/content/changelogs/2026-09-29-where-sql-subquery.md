@@ -1,6 +1,6 @@
 ---
 title: A Where Can Restrict a Column by a SQL Subquery
-description: 'New inSql and ninSql operators take a Drizzle SQL subquery built in server code, so a list filtered by another table runs as one query with no id list in between.'
+description: "New inSql and ninSql operators take a Drizzle SQL subquery built in server code, so a list filtered by another table runs as one query with no id list in between."
 packages: ['@venizia/ignis-filter']
 ---
 
@@ -10,7 +10,7 @@ packages: ['@venizia/ignis-filter']
 
 <Badge type="tip" text="Feature" />
 
-**In one line.** A `where` can now say "this column is among the rows a subquery returns" - ``{ id: { inSql: sql`...` } }`` - so filtering by another table no longer needs a first query that collects ids.
+**In one line.** A `where` can now say "this column is among the rows a subquery returns" - `` { id: { inSql: sql`...` } } `` - so filtering by another table no longer needs a first query that collects ids.
 
 ## What is new
 

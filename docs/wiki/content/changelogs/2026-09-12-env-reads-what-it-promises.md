@@ -27,8 +27,8 @@ The normalisation runs **only when the call supplies a `defaultValue`**. That ca
 declared what it wants when the name carries nothing, so applying the default is the stated intent.
 
 ```ts
-applicationEnvironment.get('APP_ENV_EMPTY'); // still '' - unchanged
-applicationEnvironment.get('APP_ENV_EMPTY', { defaultValue: 'x' }); // 'x'
+applicationEnvironment.get('APP_ENV_EMPTY');                            // still '' - unchanged
+applicationEnvironment.get('APP_ENV_EMPTY', { defaultValue: 'x' });     // 'x'
 ```
 
 A read with no `defaultValue` is untouched, so no existing call changes shape. Whitespace counts as
@@ -42,7 +42,7 @@ against the empty string:
 ```ts
 applicationEnvironment.get('APP_ENV_NODES', {
   defaultValue: [],
-  transform: (raw) => raw.split(','), // raw is undefined, never '', when the line is empty
+  transform: raw => raw.split(','),   // raw is undefined, never '', when the line is empty
 });
 ```
 
@@ -52,8 +52,8 @@ applicationEnvironment.get('APP_ENV_NODES', {
 cannot parse. That makes `??` after it dead code.
 
 ```ts
-int(applicationEnvironment.get(KEY, { defaultValue: '6379' })); // correct
-int(applicationEnvironment.get(KEY)) ?? 6379; // always 0 when KEY is unset
+int(applicationEnvironment.get(KEY, { defaultValue: '6379' }));  // correct
+int(applicationEnvironment.get(KEY)) ?? 6379;                    // always 0 when KEY is unset
 ```
 
 The broken form is silent, and the harm is not the port. A retry budget that reads `0` means
@@ -73,15 +73,15 @@ This finishes the audit that removed the `APP_ENV_APPLICATION_DS_*` family on
 reader across IGNIS, its examples, and the largest consumer application, excluding the declaration
 itself and generated `dist` output.
 
-| Name                                                  | Readers       | Verdict |
-| ----------------------------------------------------- | ------------- | ------- |
-| `APP_ENV_POSTGRES_*` (5 names)                        | 34 to 46 each | Keep    |
-| `APP_ENV_APPLICATION_SECRET`                          | 36            | Keep    |
-| `APP_ENV_SERVER_BASE_PATH`                            | 9             | Keep    |
-| `APP_ENV_APPLICATION_ROLES`, `APP_ENV_JWT_EXPIRES_IN` | 5 each        | Keep    |
-| `APP_ENV_JWT_SECRET`                                  | 1             | Keep    |
-| `APP_ENV_OAUTH2_VIEW_FOLDER`                          | **0**         | Deleted |
-| `APP_ENV_DATASOURCE_NAME`                             | **0**         | Deleted |
+| Name | Readers | Verdict |
+|------|---------|---------|
+| `APP_ENV_POSTGRES_*` (5 names) | 34 to 46 each | Keep |
+| `APP_ENV_APPLICATION_SECRET` | 36 | Keep |
+| `APP_ENV_SERVER_BASE_PATH` | 9 | Keep |
+| `APP_ENV_APPLICATION_ROLES`, `APP_ENV_JWT_EXPIRES_IN` | 5 each | Keep |
+| `APP_ENV_JWT_SECRET` | 1 | Keep |
+| `APP_ENV_OAUTH2_VIEW_FOLDER` | **0** | Deleted |
+| `APP_ENV_DATASOURCE_NAME` | **0** | Deleted |
 
 `APP_ENV_JWT_SECRET` is why this was measured rather than guessed. It has one reader, in
 `examples/supabase/src/application.ts`, and a count taken from the consumer application alone would

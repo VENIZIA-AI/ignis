@@ -1,6 +1,6 @@
 ---
 title: A JSON-Path Segment Named null Now Reaches Its Key on Postgres
-description: 'Postgres JSON-path literals now quote every element, so a key named null (any case) is read as a key in where, order and update, instead of as SQL NULL.'
+description: "Postgres JSON-path literals now quote every element, so a key named null (any case) is read as a key in where, order and update, instead of as SQL NULL."
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -16,12 +16,12 @@ packages: ['@venizia/ignis-connectors']
 
 Postgres reads an unquoted `NULL` element of an array literal as SQL NULL. A path such as `metadata.NULL` therefore never reached the key `NULL`:
 
-| Call                               | Before                                       | Now                                |
-| ---------------------------------- | -------------------------------------------- | ---------------------------------- |
-| `where: { 'metadata.NULL': 'b' }`  | no rows                                      | the rows whose `NULL` key is `'b'` |
-| `where: { 'metadata.NULL': null }` | every row                                    | only the rows with no `NULL` key   |
-| `order: ['metadata.NULL DESC']`    | sorted by nothing (NULL for every row)       | sorted by the key's value          |
-| update `{ 'metadata.NULL': 'z' }`  | failed: `path element at position 1 is null` | writes the key                     |
+| Call | Before | Now |
+|---|---|---|
+| `where: { 'metadata.NULL': 'b' }` | no rows | the rows whose `NULL` key is `'b'` |
+| `where: { 'metadata.NULL': null }` | every row | only the rows with no `NULL` key |
+| `order: ['metadata.NULL DESC']` | sorted by nothing (NULL for every row) | sorted by the key's value |
+| update `{ 'metadata.NULL': 'z' }` | failed: `path element at position 1 is null` | writes the key |
 
 SQLite already quoted its path (`'$."NULL"'`) and is unchanged.
 

@@ -32,9 +32,9 @@ The old fixed 3 attempts / 100ms base was invented, not measured, and it does no
 
 But `EventBus` is fire-and-forget: nothing awaits a dispatch, so an unbounded retry window can hold a handler - and whatever it holds open, like a database connection - for minutes with nobody watching. `register()` now enforces two ceilings and rejects a value beyond either, loudly, at startup:
 
-| Ceiling              | Value    | Why                                                                                                                                                               |
-| -------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxAttempts`        | 10       | Twice the highest attempt count any known caller has asked for, enough room to tune without permitting an attempt storm.                                          |
+| Ceiling | Value | Why |
+|---|---|---|
+| `maxAttempts` | 10 | Twice the highest attempt count any known caller has asked for, enough room to tune without permitting an attempt storm. |
 | Total backoff window | 30,000ms | Matches `RetryHelper`'s own default cap on a single delay - a dispatch holding a handler's resources for longer than that is the case this bound exists to catch. |
 
 The total window is the sum of every inter-attempt delay the exponential backoff would produce, computed without jitter (jitter only ever shrinks a delay, so this is the true worst case). `maxAttempts: 6` with `baseDelayMs: 2000` is a legal attempt count on its own, but its window sums past 30 seconds and is rejected - the two ceilings are checked independently.
@@ -101,7 +101,7 @@ the map you hand it. A map built from computed keys off a **plain object literal
 to an index signature:
 
 ```typescript
-const EVENT_NAMES = { ORDER_PLACED: 'order.placed' }; // no `as const`
+const EVENT_NAMES = { ORDER_PLACED: 'order.placed' };        // no `as const`
 
 interface IPayloadMap {
   [EVENT_NAMES.ORDER_PLACED]: IOrderPlacedPayload;
@@ -137,8 +137,8 @@ reports nothing, the map is sound. Pinned in `kernel/src/__tests__/events/payloa
 - The exhaustion log line now names the handler shape (`binding-key:<key>` or `function:<name>`) instead of always assuming a binding key.
 - The class doc comment no longer claims a fixed retry window makes "'published' guarantee the same thing at every call site" - that stopped being true once retry became configurable. What the bus guarantees instead is a bounded maximum time a single dispatch can occupy, enforced by the two ceilings above.
 
-| File                                  | Package |
-| ------------------------------------- | ------- |
-| `src/base/events/event-bus.ts`        | kernel  |
-| `src/base/events/common/types.ts`     | kernel  |
-| `src/base/events/common/constants.ts` | kernel  |
+| File | Package |
+|------|---------|
+| `src/base/events/event-bus.ts` | kernel |
+| `src/base/events/common/types.ts` | kernel |
+| `src/base/events/common/constants.ts` | kernel |

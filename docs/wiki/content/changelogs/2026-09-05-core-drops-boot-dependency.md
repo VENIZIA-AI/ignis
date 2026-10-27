@@ -1,5 +1,5 @@
 ---
-title: '@venizia/ignis No Longer Depends on @venizia/ignis-boot'
+title: "@venizia/ignis No Longer Depends on @venizia/ignis-boot"
 description: The core package dropped its unused dependency on the boot package. An application that runs the ignis-artifacts generator declares @venizia/ignis-boot as its own devDependency.
 packages: ['@venizia/ignis']
 ---
@@ -40,6 +40,6 @@ The runtime boot API (`Bootstrapper`, the booters, `boot()`) was removed on 2026
 
 ## Details
 
-| Symbol                                               | Change  | Package     |
-| ---------------------------------------------------- | ------- | ----------- |
+| Symbol | Change | Package |
+|---|---|---|
 | `package.json` `dependencies["@venizia/ignis-boot"]` | Removed | core-server |

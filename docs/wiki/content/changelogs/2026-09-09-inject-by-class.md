@@ -35,11 +35,11 @@ The key is **recorded on the class**, by the two places that already compute it:
 The second write is what makes the awkward cases work. Deriving `<namespace>.<Class>` from metadata
 alone is wrong in three shapes that exist in production today:
 
-| Shape                                                              | What derivation would say | What is recorded       |
-| ------------------------------------------------------------------ | ------------------------- | ---------------------- |
-| `application.service(SomeService)` with no decorator               | nothing to derive from    | `services.SomeService` |
-| `@service({ binding: { namespace: SERVICE, key: 'otp-sender' } })` | `services.SmsOtpSender`   | `services.otp-sender`  |
-| `application.service(Svc, { binding: { key: 'Other' } })`          | `services.Svc`            | `services.Other`       |
+| Shape | What derivation would say | What is recorded |
+|---|---|---|
+| `application.service(SomeService)` with no decorator | nothing to derive from | `services.SomeService` |
+| `@service({ binding: { namespace: SERVICE, key: 'otp-sender' } })` | `services.SmsOtpSender` | `services.otp-sender` |
+| `application.service(Svc, { binding: { key: 'Other' } })` | `services.Svc` | `services.Other` |
 
 ## An artifact must register under a namespace
 
@@ -59,7 +59,6 @@ leading namespace segment carries no tag, so no boot step drains it and
 
 A declared `binding` is checked at import time; a `TMixinOpts.binding` at the call site is checked at
 registration. Minting your own namespace still works - `BindingNamespaces.createNamespace({ name })`
-
 - what is refused is an empty namespace, or one carrying a `.` or whitespace.
 
 ## Both injection paths, and one at a time

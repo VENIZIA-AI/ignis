@@ -1,6 +1,6 @@
 ---
 title: Auto Artifacts Register the Classes a tsc-Built Application Runs
-description: 'An application that builds with tsc and runs dist now registers the very classes its code runs: the list comes from src, each class is loaded from dist.'
+description: "An application that builds with tsc and runs dist now registers the very classes its code runs: the list comes from src, each class is loaded from dist."
 packages: ['@venizia/ignis-boot']
 ---
 

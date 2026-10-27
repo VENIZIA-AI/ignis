@@ -28,17 +28,17 @@ Scoping rows to a tenant meant overriding `find` and `count`. Each override copi
 
 ### What changed
 
-| Symbol                                             | Change                              | Package |
-| -------------------------------------------------- | ----------------------------------- | ------- |
-| `ReadableCrudController.getBaseWhere({ context })` | New. Returns `undefined` by default | kernel  |
+| Symbol | Change | Package |
+|---|---|---|
+| `ReadableCrudController.getBaseWhere({ context })` | New. Returns `undefined` by default | kernel |
 
 Each read verb combines the two sides as <code v-pre>{ and: [baseWhere, requestWhere] }</code>. A request without its own `where` gets the base where alone.
 
-| Verb       | How the base where is applied                                       |
-| ---------- | ------------------------------------------------------------------- |
-| `count`    | ANDed into the request `where`                                      |
-| `find`     | ANDed into `filter.where`                                           |
-| `findOne`  | ANDed into `filter.where`                                           |
+| Verb | How the base where is applied |
+|---|---|
+| `count` | ANDed into the request `where` |
+| `find` | ANDed into `filter.where` |
+| `findOne` | ANDed into `filter.where` |
 | `findById` | ANDed with `{ id }`, and the read goes through `repository.findOne` |
 
 `findById` takes the detour because `repository.findById` accepts no `where`. An id outside the scope answers the same body as an id that does not exist: `{ count: 0, data: null }`. It never returns another tenant's row.
@@ -79,11 +79,11 @@ Keeping one uploaded file's original name, or adding a route beside the built-in
 
 ### What changed
 
-| Symbol                                      | Change                                             | Package     |
-| ------------------------------------------- | -------------------------------------------------- | ----------- |
-| `IAssetControllerOptions.resolveObjectName` | New. Decides the stored object name                | core-server |
+| Symbol | Change | Package |
+|---|---|---|
+| `IAssetControllerOptions.resolveObjectName` | New. Decides the stored object name | core-server |
 | `IAssetControllerOptions.defineExtraRoutes` | New. Registers your routes after the built-in ones | core-server |
-| `TStaticAssetsComponentOptions[key]`        | Both hooks pass through the component config too   | core-server |
+| `TStaticAssetsComponentOptions[key]` | Both hooks pass through the component config too | core-server |
 
 - `resolveObjectName` is offered `{ originalName, defaultName, bucket }`. `defaultName` is the name IGNIS would have written; return it and nothing changes.
 - The returned name is still validated with `isValidPath()`, so a traversal cannot leave the bucket.

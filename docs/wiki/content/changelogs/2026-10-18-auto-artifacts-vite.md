@@ -1,6 +1,6 @@
 ---
 title: Auto Artifacts in Vite Builds
-description: 'IgnisArtifactsVitePlugin brings AutoArtifacts to a frontend or Web Worker built with Vite: the class list is built into the bundle, class names survive minification, and no generated index or side-effect import list is needed.'
+description: "IgnisArtifactsVitePlugin brings AutoArtifacts to a frontend or Web Worker built with Vite: the class list is built into the bundle, class names survive minification, and no generated index or side-effect import list is needed."
 packages: ['@venizia/ignis-boot']
 ---
 

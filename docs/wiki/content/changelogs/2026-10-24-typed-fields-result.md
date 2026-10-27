@@ -1,6 +1,6 @@
 ---
 title: A Read's Result Type Follows Its fields
-description: 'find, findOne and findById type the returned row from filter.fields, so an unselected column is a compile error; a repository that overrides them with the old <R = E> shape needs migrating.'
+description: "find, findOne and findById type the returned row from filter.fields, so an unselected column is a compile error; a repository that overrides them with the old <R = E> shape needs migrating."
 packages: ['@venizia/ignis-filter', '@venizia/ignis-kernel', '@venizia/ignis-connectors']
 ---
 

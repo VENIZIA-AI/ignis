@@ -91,11 +91,11 @@ runRepositoryConformance({
 The last two are not refusals. They are divergences - the same call succeeds on both engines and
 answers differently - so each engine pins the answer it actually gives:
 
-| Divergence                         | PostgreSQL      | SQLite                      |
-| ---------------------------------- | --------------- | --------------------------- |
-| `{ like: 'alpha' }`                | matches `alpha` | matches `Alpha` and `alpha` |
-| `{ nlike: 'alpha' }`               | keeps `Alpha`   | **drops** `Alpha`           |
-| `order: ['score ASC']` with a NULL | NULL last       | NULL first                  |
+| Divergence | PostgreSQL | SQLite |
+|---|---|---|
+| `{ like: 'alpha' }` | matches `alpha` | matches `Alpha` and `alpha` |
+| `{ nlike: 'alpha' }` | keeps `Alpha` | **drops** `Alpha` |
+| `order: ['score ASC']` with a NULL | NULL last | NULL first |
 
 A suite that skipped the differences would prove nothing, so nothing is skipped. It found a real
 defect on its first run: `PostgresQueryExecutor.readAffectedRowCount` knew `pg`'s `rowCount` and
@@ -162,15 +162,15 @@ Both carry generated drizzle-kit migrations under `migration/` and apply them in
 rather than hand-writing DDL. Runtime state - the database and rotating logs - lives under
 `app_data/`, the same layout `vert` uses.
 
-| File                                                       | Package |
-| ---------------------------------------------------------- | ------- |
-| `src/connectors/sqlite/**`                                 | core    |
-| `src/connectors/postgres/drivers/pglite.ts`                | core    |
-| `src/__tests__/connectors/relational/conformance/**`       | core    |
-| `src/__tests__/connectors/sqlite/**`                       | core    |
-| `src/__tests__/connectors/postgres/drivers/pglite.test.ts` | core    |
-| `examples/pglite-quickstart/**`                            | -       |
-| `examples/sqlite-quickstart/**`                            | -       |
+| File | Package |
+|------|---------|
+| `src/connectors/sqlite/**` | core |
+| `src/connectors/postgres/drivers/pglite.ts` | core |
+| `src/__tests__/connectors/relational/conformance/**` | core |
+| `src/__tests__/connectors/sqlite/**` | core |
+| `src/__tests__/connectors/postgres/drivers/pglite.test.ts` | core |
+| `examples/pglite-quickstart/**` | - |
+| `examples/sqlite-quickstart/**` | - |
 
 See also: [SQLite](/guides/core-concepts/persistent/sqlite) and
 [PGlite](/guides/core-concepts/persistent/pglite) for the guides,

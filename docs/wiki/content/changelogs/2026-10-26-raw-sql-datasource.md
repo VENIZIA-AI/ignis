@@ -1,6 +1,6 @@
 ---
 title: A Datasource Family for Engines That Only Run SQL
-description: 'New @venizia/ignis-connectors/raw-sql sub-path: BaseRawSqlDataSource and BaseRawSqlRepository for an analytics engine (ClickHouse, DuckDB, BigQuery) that runs SQL text and returns rows, with the driver lifecycle shared with the relational datasources.'
+description: "New @venizia/ignis-connectors/raw-sql sub-path: BaseRawSqlDataSource and BaseRawSqlRepository for an analytics engine (ClickHouse, DuckDB, BigQuery) that runs SQL text and returns rows, with the driver lifecycle shared with the relational datasources."
 packages: ['@venizia/ignis-connectors']
 ---
 

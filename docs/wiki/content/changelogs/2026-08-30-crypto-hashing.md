@@ -1,6 +1,6 @@
 ---
-title: 'A Real Hash Class Replaces the Removed hash() Utility'
-description: 'Added a Hash class (digests and HMACs, five algorithms, three output encodings) to the crypto module, and removed the old hash() utility outright. Every hash() call site must migrate - see the migration table.'
+title: "A Real Hash Class Replaces the Removed hash() Utility"
+description: "Added a Hash class (digests and HMACs, five algorithms, three output encodings) to the crypto module, and removed the old hash() utility outright. Every hash() call site must migrate - see the migration table."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -61,11 +61,11 @@ Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'payload', secret: 'my
 
 Three call shapes cover every known caller. Output is identical in all three - only the call shape changes.
 
-| Old call                                                                      | New call                                                                                                                          |
-| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `hash(data, { algorithm: 'MD5', outputType: 'hex' })` (13 sites)              | `Hash.withAlgorithm(HashAlgorithms.MD5).digest({ message: data, opts: { outputEncoding: HashOutputEncodings.HEX } })`             |
+| Old call | New call |
+|---|---|
+| `hash(data, { algorithm: 'MD5', outputType: 'hex' })` (13 sites) | `Hash.withAlgorithm(HashAlgorithms.MD5).digest({ message: data, opts: { outputEncoding: HashOutputEncodings.HEX } })` |
 | `hash(data, { algorithm: 'SHA256', secret, outputType: 'base64' })` (2 sites) | `Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: data, secret, opts: { outputEncoding: HashOutputEncodings.BASE64 } })` |
-| `hash(data, { algorithm: 'SHA256', secret, outputType: 'hex' })`              | `Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: data, secret, opts: { outputEncoding: HashOutputEncodings.HEX } })`    |
+| `hash(data, { algorithm: 'SHA256', secret, outputType: 'hex' })` | `Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: data, secret, opts: { outputEncoding: HashOutputEncodings.HEX } })` |
 
 `outputEncoding` defaults to `hex`, so `opts` can be dropped entirely when the target encoding is `hex`:
 
@@ -81,13 +81,13 @@ Hash.withAlgorithm(HashAlgorithms.MD5).digest({ message: data });
 - Every failure path uses `getError`/`ApplicationError` - never a raw `Error`.
 - Also replaced the deprecated `crypto.Encoding` type with `BufferEncoding` in `AES`, `LegacyAES`, and `RSA` - a type-only cleanup, not a behavior change.
 
-| File                                                    | Package |
-| ------------------------------------------------------- | ------- |
-| `src/modules/crypto/algorithms/hash.algorithm.ts`       | helpers |
-| `src/modules/crypto/common/constants.ts`                | helpers |
-| `src/modules/crypto/algorithms/aes.algorithm.ts`        | helpers |
+| File | Package |
+|------|---------|
+| `src/modules/crypto/algorithms/hash.algorithm.ts` | helpers |
+| `src/modules/crypto/common/constants.ts` | helpers |
+| `src/modules/crypto/algorithms/aes.algorithm.ts` | helpers |
 | `src/modules/crypto/algorithms/aes-legacy.algorithm.ts` | helpers |
-| `src/modules/crypto/algorithms/rsa.algorithm.ts`        | helpers |
+| `src/modules/crypto/algorithms/rsa.algorithm.ts` | helpers |
 
 ## AES Key Derivation Accepts a Per-Deployment Salt
 
@@ -108,10 +108,10 @@ The default cannot simply change. A downstream product already has data encrypte
 - A `kdfSalt` under 16 UTF-8 bytes throws instead of being silently accepted - short enough to look configured while giving up most of what a salt is for.
 - `LegacyAES` does not accept either option: its key derivation predates PBKDF2 and has no salt to override.
 
-| Option          | Type     | Default                            | Meaning                                            |
-| --------------- | -------- | ---------------------------------- | -------------------------------------------------- |
-| `kdfSalt`       | `string` | `DEFAULT_KDF_SALT`                 | PBKDF2 salt. Minimum 16 UTF-8 bytes when supplied. |
-| `kdfIterations` | `number` | `DEFAULT_KDF_ITERATIONS` (100,000) | PBKDF2 iteration count.                            |
+| Option | Type | Default | Meaning |
+|---|---|---|---|
+| `kdfSalt` | `string` | `DEFAULT_KDF_SALT` | PBKDF2 salt. Minimum 16 UTF-8 bytes when supplied. |
+| `kdfIterations` | `number` | `DEFAULT_KDF_ITERATIONS` (100,000) | PBKDF2 iteration count. |
 
 ```typescript
 import { AES } from '@venizia/ignis-helpers';
@@ -147,11 +147,11 @@ aes.decrypt({
 - The 16-byte minimum follows NIST SP 800-132's 128-bit recommendation for a KDF salt.
 - `RSA` and `ECDH` do not derive keys from a passphrase via PBKDF2, so neither takes this option.
 
-| File                                                    | Package |
-| ------------------------------------------------------- | ------- |
-| `src/modules/crypto/common/constants.ts`                | helpers |
-| `src/modules/crypto/algorithms/base.algorithm.ts`       | helpers |
-| `src/modules/crypto/algorithms/aes.algorithm.ts`        | helpers |
+| File | Package |
+|------|---------|
+| `src/modules/crypto/common/constants.ts` | helpers |
+| `src/modules/crypto/algorithms/base.algorithm.ts` | helpers |
+| `src/modules/crypto/algorithms/aes.algorithm.ts` | helpers |
 | `src/modules/crypto/algorithms/aes-legacy.algorithm.ts` | helpers |
 
 ## See also

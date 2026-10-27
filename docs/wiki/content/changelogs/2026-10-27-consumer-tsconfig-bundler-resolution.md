@@ -1,6 +1,6 @@
 ---
 title: Consumers Resolve IGNIS Through Bundler Resolution - dev-configs tsconfig Change
-description: 'tsconfig.common.json and tsconfig.base.json move to module esnext and moduleResolution bundler, with noUncheckedSideEffectImports off, so a package whose type is unset typechecks against the ESM-only IGNIS packages. Also: guidance for hono context-storage, test preloads and dual-package loaders.'
+description: "tsconfig.common.json and tsconfig.base.json move to module esnext and moduleResolution bundler, with noUncheckedSideEffectImports off, so a package whose type is unset typechecks against the ESM-only IGNIS packages. Also: guidance for hono context-storage, test preloads and dual-package loaders."
 packages: ['@venizia/dev-configs', '@venizia/ignis']
 ---
 

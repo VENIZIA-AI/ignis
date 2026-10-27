@@ -22,12 +22,12 @@ packages: ['@venizia/ignis-helpers']
 
 The first rule that matches wins:
 
-| Rule                                                                           | Result     |
-| ------------------------------------------------------------------------------ | ---------- |
-| `APP_ENV_LOGGER_COLOR` is set                                                  | That value |
-| `NO_COLOR` is set and non-empty                                                | Off        |
-| `NODE_ENV` is `local`, `debug`, `development`, `dev` or `sit` - or unset       | On         |
-| Anything else, including `production`, `staging`, `uat` and unrecognized names | Off        |
+| Rule | Result |
+|------|--------|
+| `APP_ENV_LOGGER_COLOR` is set | That value |
+| `NO_COLOR` is set and non-empty | Off |
+| `NODE_ENV` is `local`, `debug`, `development`, `dev` or `sit` - or unset | On |
+| Anything else, including `production`, `staging`, `uat` and unrecognized names | Off |
 
 That last row is the same fail-closed boundary the error sanitizer draws. Color is a terminal affordance for our own engineers; every other environment ships its lines to a file or an aggregator, where an escape code is noise every grep has to strip.
 

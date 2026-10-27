@@ -14,9 +14,9 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **A large `filter_by` no longer fails.** Single search was a GET, and Typesense refuses a GET query string over **4000 characters**. The binding constraint is that character budget, not a number of ids - how many fit depends entirely on how long each value is. A filter built from an authorization scope - ``organizerId:=[`uuid`, …]`` - spends it fast: as an illustration, 36-character uuids exhaust 4000 characters at roughly ninety ids, and past that the user could not search **at all**. Typesense names the remedy in the rejection itself - _"Query string exceeds max allowed length of 4000. Use the /multi_search end-point for larger payloads."_ The query now travels in the request body.
+- **A large `filter_by` no longer fails.** Single search was a GET, and Typesense refuses a GET query string over **4000 characters**. The binding constraint is that character budget, not a number of ids - how many fit depends entirely on how long each value is. A filter built from an authorization scope - `` organizerId:=[`uuid`, …] `` - spends it fast: as an illustration, 36-character uuids exhaust 4000 characters at roughly ninety ids, and past that the user could not search **at all**. Typesense names the remedy in the rejection itself - *"Query string exceeds max allowed length of 4000. Use the /multi_search end-point for larger payloads."* The query now travels in the request body.
 - **A page over 250 hits works.** Typesense refuses more than `--max-per-page` (250) per page. A larger limit is served as consecutive windows inside **one** call, so the round-trip count stays at one however large the page.
-- **`skip` no longer has to land on a page boundary.** `skip: 15, limit: 10` was rejected because a skip was expressed as a page _number_. Typesense supports `offset` natively, and the relational branch never had this rule - it passes `skip` straight through to the query builder.
+- **`skip` no longer has to land on a page boundary.** `skip: 15, limit: 10` was rejected because a skip was expressed as a page *number*. Typesense supports `offset` natively, and the relational branch never had this rule - it passes `skip` straight through to the query builder.
 - **`isFoundExact` tells the truth.** It was hardcoded `true`. When Typesense hits its search-time budget it sets `search_cutoff` and reports a partial count; that now surfaces as `isFoundExact: false`. Across windows it is AND-folded - one cut-off window makes the whole total an estimate.
 
 ## Who is affected
@@ -30,25 +30,23 @@ packages: ['@venizia/ignis']
 ## Behaviour changes
 
 > [!WARNING]
-> **An accidental guardrail is gone, and a deliberate one replaces it.** `limit: 5000` used to fail fast and cheap at the engine, because no page over 250 hits was servable at all. It now _can_ be served - twenty windows of 250, five thousand documents, and whatever your consumer then does with them.
+> **An accidental guardrail is gone, and a deliberate one replaces it.** `limit: 5000` used to fail fast and cheap at the engine, because no page over 250 hits was servable at all. It now *can* be served - twenty windows of 250, five thousand documents, and whatever your consumer then does with them.
 >
 > Shipping that removal on its own would leave ignis less safe than before, so **the framework now imposes a maximum page size of 1000**, and a model raises it deliberately:
 >
 > ```typescript
 > @model({ type: 'entity', settings: { maxLimit: 5000 } })
-> class ExportDocument extends BaseSearchEntity {
->   /* … */
-> }
+> class ExportDocument extends BaseSearchEntity { /* … */ }
 > ```
 >
 > **This cannot break anything that works today.** No caller can currently succeed with a limit above 250 - the engine refuses it - so a ceiling of 1000 only bounds the capability this release adds. 1000 sits above any list screen and well below what the engine can serve, so reaching it means you are doing something unusual and should say so.
 
 **There are two ceilings, at two layers, for two different reasons:**
 
-| Layer      | Limit                                       | Kind                                |
-| ---------- | ------------------------------------------- | ----------------------------------- |
-| repository | 1000, overridable per model via `maxLimit`  | **policy** - a number we chose      |
-| connector  | 12,500 (50 multi-search entries x 250 hits) | **physics** - imposed by the engine |
+| Layer | Limit | Kind |
+|---|---|---|
+| repository | 1000, overridable per model via `maxLimit` | **policy** - a number we chose |
+| connector | 12,500 (50 multi-search entries x 250 hits) | **physics** - imposed by the engine |
 
 The policy ceiling fires first, so callers normally never meet the physical one. Both refuse with `core.search_engine.page_too_large` - refused, never silently truncated to a short page that looks complete - and **every such message names the value you requested and the ceiling that applied**, because the code alone cannot tell you which of the three limits you met.
 
@@ -66,9 +64,9 @@ There is deliberately **no page-depth ceiling**. Deep pagination degrades gradua
 ## Details
 
 - `search()` and `multiSearch()` share one private transport and keep their own policy. A per-entry error arrives inside an HTTP 200 as `{ code, error }` next to siblings that succeeded. `search()` **throws** on one, because `ISearchResult` has nowhere to put an error and reporting it as an empty result would make a rejected filter indistinguishable from a genuine no-match. `multiSearch()` passes it through, because its contract is the raw envelope and its callers already inspect entries.
-- Searching an unprovisioned collection still answers empty with a warning, exactly as before - but that is now the **only** 404 tolerated, and removing the other one fixed a fault-hiding path. `/multi_search` reports a missing collection as a per-entry `{ code: 404, error }` inside an HTTP 200; it does not throw. The transport nonetheless also carried a _top-level_ 404 tolerance inherited from the GET path, and since no missing collection produces one on this endpoint, the only 404s left for it to catch were the ones that are **not** a missing collection - a misrouted URL, a proxy or ingress 404. It would have converted those into an empty result: a real fault reported as "no matches". They now surface as the dependency error they are.
+- Searching an unprovisioned collection still answers empty with a warning, exactly as before - but that is now the **only** 404 tolerated, and removing the other one fixed a fault-hiding path. `/multi_search` reports a missing collection as a per-entry `{ code: 404, error }` inside an HTTP 200; it does not throw. The transport nonetheless also carried a *top-level* 404 tolerance inherited from the GET path, and since no missing collection produces one on this endpoint, the only 404s left for it to catch were the ones that are **not** a missing collection - a misrouted URL, a proxy or ingress 404. It would have converted those into an empty result: a real fault reported as "no matches". They now surface as the dependency error they are.
 - `multiSearch()` does **not** window-split. Merging windows would mean synthesizing a response the engine never returned - with no honest value for `request_params` or `page` - and would break the 1:1 correspondence between `results[i]` and `searches[i]` that callers index on.
-- **Pagination is now asymmetric between the two search engines, deliberately.** Typesense expresses an arbitrary skip; Meilisearch still requires a page boundary. Meilisearch's two pagination modes return _different response shapes_ - `page`/`hitsPerPage` gives an exact `totalHits`, `offset`/`limit` gives `estimatedTotalHits`. Porting the fix there would buy arbitrary skip by making every total an estimate, which is a trade-off to decide rather than a change to copy.
+- **Pagination is now asymmetric between the two search engines, deliberately.** Typesense expresses an arbitrary skip; Meilisearch still requires a page boundary. Meilisearch's two pagination modes return *different response shapes* - `page`/`hitsPerPage` gives an exact `totalHits`, `offset`/`limit` gives `estimatedTotalHits`. Porting the fix there would buy arbitrary skip by making every total an estimate, which is a trade-off to decide rather than a change to copy.
 
 ### A limit this does not fix
 
@@ -76,31 +74,25 @@ There is deliberately **no page-depth ceiling**. Deep pagination degrades gradua
 
 ```typescript
 // ONE operation, however many values - measured to 20,000 ids (a 228 KB filter) over /multi_search
-where: {
-  orgId: {
-    inq: permittedOrgIds;
-  }
-}
+where: { orgId: { inq: permittedOrgIds } }
 
 // 2N-1 operations against a ceiling of 100 - so exactly 50 values pass and 51 fails
-where: {
-  or: permittedOrgIds.map((orgId) => ({ orgId }));
-}
+where: { or: permittedOrgIds.map(orgId => ({ orgId })) }
 ```
 
 Typesense counts operands plus operators, so N ORed equalities cost `2N-1`: 50 values come to 99 and are accepted, 51 come to 101 and are refused with `` `filter_by` has too many operations. Maximum allowed: 100 ``. `and:` behaves identically. A bracket list, by contrast, counts as **one operand however many values it holds** - a 5-value list ORed with 49 equalities still totals 99 and passes, while the same list with 50 equalities totals 101 and does not - which is why the first shape meets no operation ceiling at all.
 
-Both are semantically identical. Prefer the first for a large list. The framework deliberately does not rewrite one into the other: it would rescue only this one shape, and an `or:` across _different_ fields is beyond any such rewrite. Raising the server flag is also a valid answer, and costs no code at all.
+Both are semantically identical. Prefer the first for a large list. The framework deliberately does not rewrite one into the other: it would rescue only this one shape, and an `or:` across *different* fields is beyond any such rewrite. Raising the server flag is also a valid answer, and costs no code at all.
 
-| File                                                             | Package |
-| ---------------------------------------------------------------- | ------- |
-| `src/base/repositories/common/constants.ts`                      | core    |
-| `src/base/repositories/core/abstract.ts`                         | core    |
-| `src/base/metadata/persistents.ts`                               | core    |
-| `src/helpers/inversion/common/types.ts`                          | core    |
-| `src/connectors/search/repositories/core/base.ts`                | core    |
-| `src/connectors/typesense/connector.ts`                          | core    |
-| `src/connectors/typesense/internal/connector-internal.ts`        | core    |
-| `src/connectors/typesense/repositories/dialect/query-dialect.ts` | core    |
-| `src/connectors/typesense/repositories/common/types.ts`          | core    |
-| `src/connectors/search/common/errors.ts`                         | core    |
+| File | Package |
+|------|---------|
+| `src/base/repositories/common/constants.ts` | core |
+| `src/base/repositories/core/abstract.ts` | core |
+| `src/base/metadata/persistents.ts` | core |
+| `src/helpers/inversion/common/types.ts` | core |
+| `src/connectors/search/repositories/core/base.ts` | core |
+| `src/connectors/typesense/connector.ts` | core |
+| `src/connectors/typesense/internal/connector-internal.ts` | core |
+| `src/connectors/typesense/repositories/dialect/query-dialect.ts` | core |
+| `src/connectors/typesense/repositories/common/types.ts` | core |
+| `src/connectors/search/common/errors.ts` | core |

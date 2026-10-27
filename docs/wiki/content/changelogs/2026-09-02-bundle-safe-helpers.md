@@ -16,11 +16,11 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 
 A bundle of one line, `import { Environment } from '@venizia/ignis-helpers'`, printed `undefined`. Every compiled example crashed at import. Three separate causes, all fixed:
 
-| Cause                                                                   | Symptom                                                                                | Fix                                                                                 |
-| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| A dynamic `import('./x')` of our own module in the secrets factory      | bun wrapped `env`, `logger` and `BaseHelper` in lazy initializers the barrel never ran | Static imports; the optional peers stay behind `ModuleUtility.load`                 |
-| `bun build` folds `process.env.NODE_ENV` into the build machine's value | A binary built on a laptop believed it was in `development` forever                    | `Environment.ambient`, a read the bundler cannot fold; compile with `--env=disable` |
-| A bundle carries helpers twice (your ESM import, core's CJS require)    | `LoggerFactory.use()` in your entrypoint was invisible to the framework's copy         | The provider lives in one `globalThis` slot shared by both copies                   |
+| Cause | Symptom | Fix |
+|---|---|---|
+| A dynamic `import('./x')` of our own module in the secrets factory | bun wrapped `env`, `logger` and `BaseHelper` in lazy initializers the barrel never ran | Static imports; the optional peers stay behind `ModuleUtility.load` |
+| `bun build` folds `process.env.NODE_ENV` into the build machine's value | A binary built on a laptop believed it was in `development` forever | `Environment.ambient`, a read the bundler cannot fold; compile with `--env=disable` |
+| A bundle carries helpers twice (your ESM import, core's CJS require) | `LoggerFactory.use()` in your entrypoint was invisible to the framework's copy | The provider lives in one `globalThis` slot shared by both copies |
 
 ## What changed
 
@@ -59,14 +59,14 @@ Never `--minify` alone: it minifies identifiers and every class name becomes two
 
 ## Details
 
-| Symbol                                                          | Change                      | Package       |
-| --------------------------------------------------------------- | --------------------------- | ------------- |
-| `Environment.ambient`                                           | New                         | `helpers`     |
-| `Environment.current`, `ApplicationEnvironment.isDevelopment()` | Read through `ambient`      | `helpers`     |
-| `LoggerFactory.use()`, `LoggerFactory.currentProvider()`        | Shared `globalThis` slot    | `helpers`     |
-| `createSecretsHelper`                                           | Static provider imports     | `helpers`     |
-| `SHOULD_LOG_DEBUG`                                              | Reads `Environment.ambient` | `helpers`     |
-| `AppErrorMiddleware`, `RequestSpyMiddleware`                    | Read `Environment.ambient`  | `core-server` |
+| Symbol | Change | Package |
+|---|---|---|
+| `Environment.ambient` | New | `helpers` |
+| `Environment.current`, `ApplicationEnvironment.isDevelopment()` | Read through `ambient` | `helpers` |
+| `LoggerFactory.use()`, `LoggerFactory.currentProvider()` | Shared `globalThis` slot | `helpers` |
+| `createSecretsHelper` | Static provider imports | `helpers` |
+| `SHOULD_LOG_DEBUG` | Reads `Environment.ambient` | `helpers` |
+| `AppErrorMiddleware`, `RequestSpyMiddleware` | Read `Environment.ambient` | `core-server` |
 
 - Guards: `packages/helpers/src/__tests__/env/bundle-safe-reads.test.ts`, `packages/helpers/src/__tests__/logger/provider-slot.test.ts`.
 - Reference: [Logger](/extensions/helpers/logger/reference). Worked example: `examples/vert`.

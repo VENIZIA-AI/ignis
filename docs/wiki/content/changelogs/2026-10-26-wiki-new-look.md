@@ -1,6 +1,6 @@
 ---
 title: The Wiki Has a New Look
-description: 'The IGNIS wiki takes the shared Venizia design: a new header with an ecosystem switcher, a smooth light and dark switch, new doc pages and footer, and a new home page. Readers only; no package changes.'
+description: "The IGNIS wiki takes the shared Venizia design: a new header with an ecosystem switcher, a smooth light and dark switch, new doc pages and footer, and a new home page. Readers only; no package changes."
 packages: []
 ---
 

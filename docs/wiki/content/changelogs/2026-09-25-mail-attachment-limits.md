@@ -1,6 +1,6 @@
 ---
 title: Mail Attachments Read Only Under a Root, and Stop at a Size Limit
-description: 'An attachment path is read only inside the new attachmentRoot option and refused without it, a text or html body must be a string, a new maxAttachmentBytes option (default 25 MB) caps the attachments of one message, and a failed send no longer echoes the raw error text.'
+description: "An attachment path is read only inside the new attachmentRoot option and refused without it, a text or html body must be a string, a new maxAttachmentBytes option (default 25 MB) caps the attachments of one message, and a failed send no longer echoes the raw error text."
 packages: ['@venizia/ignis']
 ---
 
@@ -8,13 +8,13 @@ packages: ['@venizia/ignis']
 
 The mail component no longer reads a file or URL a caller names, and no longer buffers attachments without limit. Every change applies to every transport - Nodemailer, Mailgun and Amazon SES.
 
-| Change                                                                                                            | Who is affected                                                                      |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| [An attachment `path` is read only under `attachmentRoot`](#an-attachment-path-is-read-only-under-attachmentroot) | Applications that send an attachment by `path`                                       |
-| [`text` and `html` must be strings](#text-and-html-must-be-strings)                                               | Applications that pass anything but a string as the body                             |
-| [Attachments stop at `maxAttachmentBytes`](#attachments-stop-at-maxattachmentbytes)                               | Applications that send more than 25 MB of attachments in one message, or stream them |
-| [A failed send no longer echoes the raw error](#a-failed-send-no-longer-echoes-the-raw-error)                     | Code that reads the text of `core.mail.send_failed`                                  |
-| [Every breaking change at a glance](#every-breaking-change-at-a-glance)                                           | Everyone upgrading                                                                   |
+| Change | Who is affected |
+|---|---|
+| [An attachment `path` is read only under `attachmentRoot`](#an-attachment-path-is-read-only-under-attachmentroot) | Applications that send an attachment by `path` |
+| [`text` and `html` must be strings](#text-and-html-must-be-strings) | Applications that pass anything but a string as the body |
+| [Attachments stop at `maxAttachmentBytes`](#attachments-stop-at-maxattachmentbytes) | Applications that send more than 25 MB of attachments in one message, or stream them |
+| [A failed send no longer echoes the raw error](#a-failed-send-no-longer-echoes-the-raw-error) | Code that reads the text of `core.mail.send_failed` |
+| [Every breaking change at a glance](#every-breaking-change-at-a-glance) | Everyone upgrading |
 
 ## An attachment `path` is read only under `attachmentRoot`
 
@@ -87,11 +87,11 @@ Before, every attachment was read whole into memory with no limit. A 200 MB atta
 
 The limit counts all attachments of one message together, so it also bounds each one:
 
-| Content                                 | When it is checked                                                                                                  |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `Buffer`, `Uint8Array` or string        | Before the send, by byte length                                                                                     |
-| File under `attachmentRoot`             | By its size on disk before it is opened, then again while it is read - a file that grows in between is still capped |
-| Node `Readable` or web `ReadableStream` | Per chunk while it drains - the read stops as soon as the total passes the limit, and the rest is never buffered    |
+| Content | When it is checked |
+|---|---|
+| `Buffer`, `Uint8Array` or string | Before the send, by byte length |
+| File under `attachmentRoot` | By its size on disk before it is opened, then again while it is read - a file that grows in between is still capped |
+| Node `Readable` or web `ReadableStream` | Per chunk while it drains - the read stops as soon as the total passes the limit, and the rest is never buffered |
 
 Over the limit, `send()` throws `413 core.mail.attachment_too_large`. Any other `content` - `{ path }`, a number, a plain object - answers `400 core.mail.invalid_configuration` instead of a `500`. When a send is refused for any reason, every attachment stream it was given is destroyed, so no file descriptor stays open.
 
@@ -124,13 +124,13 @@ Before, the message was `Failed to send email: <error text>`, and the error enve
 
 ## Every breaking change at a glance
 
-| Before                                                   | Now                                               | What to do                                             |
-| -------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
-| `attachment.path` read any file                          | Refused without `attachmentRoot`, and outside it  | Set `attachmentRoot`, or pass `content`                |
-| `path: 'https://...'` or `path: 'data:...'` (Nodemailer) | Refused - a `path` is a file under the root       | Fetch or decode the bytes, pass `content`              |
-| `href` and `raw` attachments (Nodemailer)                | Refused                                           | Pass `content`                                         |
-| A built-in transport called directly read `path`         | It refuses every `path`                           | Send through `MailService`, or pass `content`          |
-| `text`/`html` as a `Buffer`, stream or object            | Refused (`null` still counts as absent)           | Pass a string                                          |
-| No attachment size limit                                 | 25 MB per message by default                      | Raise `maxAttachmentBytes` if you need more            |
-| Nodemailer and Mailgun streamed a stream attachment      | They receive its bytes, buffered within the limit | Nothing, unless you relied on streaming past the limit |
-| `send_failed` text carried the raw error                 | Fixed text; the error is in `cause`               | Read `error.cause`                                     |
+| Before | Now | What to do |
+|---|---|---|
+| `attachment.path` read any file | Refused without `attachmentRoot`, and outside it | Set `attachmentRoot`, or pass `content` |
+| `path: 'https://...'` or `path: 'data:...'` (Nodemailer) | Refused - a `path` is a file under the root | Fetch or decode the bytes, pass `content` |
+| `href` and `raw` attachments (Nodemailer) | Refused | Pass `content` |
+| A built-in transport called directly read `path` | It refuses every `path` | Send through `MailService`, or pass `content` |
+| `text`/`html` as a `Buffer`, stream or object | Refused (`null` still counts as absent) | Pass a string |
+| No attachment size limit | 25 MB per message by default | Raise `maxAttachmentBytes` if you need more |
+| Nodemailer and Mailgun streamed a stream attachment | They receive its bytes, buffered within the limit | Nothing, unless you relied on streaming past the limit |
+| `send_failed` text carried the raw error | Fixed text; the error is in `cause` | Read `error.cause` |

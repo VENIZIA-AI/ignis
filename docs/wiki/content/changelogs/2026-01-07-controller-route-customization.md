@@ -22,7 +22,6 @@ This release enhances the Controller Factory with comprehensive request/response
 ### Enhanced Route Customization
 
 **Files:**
-
 - `packages/core-server/src/base/controllers/factory/definition.ts`
 - `packages/core-server/src/base/controllers/common/types.ts`
 
@@ -56,22 +55,21 @@ routes: {
 
 **Customizable Components per Route:**
 
-| Route        | query | headers | params | body | response |
-| ------------ | ----- | ------- | ------ | ---- | -------- |
-| COUNT        | ✅    | ✅      | -      | -    | ✅       |
-| FIND         | ✅    | ✅      | -      | -    | ✅       |
-| FIND_BY_ID   | ✅    | ✅      | ✅     | -    | ✅       |
-| FIND_ONE     | ✅    | ✅      | -      | -    | ✅       |
-| CREATE       | -     | ✅      | -      | ✅   | ✅       |
-| UPDATE_BY_ID | -     | ✅      | ✅     | ✅   | ✅       |
-| UPDATE_BY    | ✅    | ✅      | -      | ✅   | ✅       |
-| DELETE_BY_ID | -     | ✅      | ✅     | -    | ✅       |
-| DELETE_BY    | ✅    | ✅      | -      | -    | ✅       |
+| Route | query | headers | params | body | response |
+|-------|-------|---------|--------|------|----------|
+| COUNT | ✅ | ✅ | - | - | ✅ |
+| FIND | ✅ | ✅ | - | - | ✅ |
+| FIND_BY_ID | ✅ | ✅ | ✅ | - | ✅ |
+| FIND_ONE | ✅ | ✅ | - | - | ✅ |
+| CREATE | - | ✅ | - | ✅ | ✅ |
+| UPDATE_BY_ID | - | ✅ | ✅ | ✅ | ✅ |
+| UPDATE_BY | ✅ | ✅ | - | ✅ | ✅ |
+| DELETE_BY_ID | - | ✅ | ✅ | - | ✅ |
+| DELETE_BY | ✅ | ✅ | - | - | ✅ |
 
 ### Generic Controller Definitions
 
 **Files:**
-
 - `packages/core-server/src/base/controllers/abstract.ts`
 - `packages/core-server/src/base/controllers/base.ts`
 - `packages/core-server/src/base/controllers/factory/controller.ts`
@@ -97,15 +95,13 @@ The `definitions` property now preserves the actual route definition types.
 **File:** `packages/core-server/src/base/controllers/factory/definition.ts`
 
 **Before:**
-
 ```typescript
-description: 'Returns the total count of records matching the optional where condition. Useful for pagination metadata or checking data existence without fetching records.';
+description: 'Returns the total count of records matching the optional where condition. Useful for pagination metadata or checking data existence without fetching records.'
 ```
 
 **After:**
-
 ```typescript
-description: 'Count records matching where condition';
+description: 'Count records matching where condition'
 ```
 
 All route descriptions are now concise and easy to read in API explorers.
@@ -116,34 +112,34 @@ All route descriptions are now concise and easy to read in API explorers.
 
 Added meaningful response descriptions for OpenAPI:
 
-| Route        | Response Description                                       |
-| ------------ | ---------------------------------------------------------- |
-| COUNT        | Total count of matching records                            |
-| FIND         | Array of matching records (with optional count)            |
-| FIND_BY_ID   | Single record matching ID or null                          |
-| FIND_ONE     | First matching record or null                              |
-| CREATE       | Created record with generated fields (id, createdAt, etc.) |
-| UPDATE_BY_ID | Updated record with all current fields                     |
-| UPDATE_BY    | Array of updated records                                   |
-| DELETE_BY_ID | Deleted record data                                        |
-| DELETE_BY    | Array of deleted records                                   |
+| Route | Response Description |
+|-------|---------------------|
+| COUNT | Total count of matching records |
+| FIND | Array of matching records (with optional count) |
+| FIND_BY_ID | Single record matching ID or null |
+| FIND_ONE | First matching record or null |
+| CREATE | Created record with generated fields (id, createdAt, etc.) |
+| UPDATE_BY_ID | Updated record with all current fields |
+| UPDATE_BY | Array of updated records |
+| DELETE_BY_ID | Deleted record data |
+| DELETE_BY | Array of deleted records |
 
 ## Files Changed
 
 ### Core Package (`packages/core-server`)
 
-| File                                         | Changes                                                        |
-| -------------------------------------------- | -------------------------------------------------------------- |
-| `src/base/controllers/abstract.ts`           | Added `Definitions` generic parameter                          |
-| `src/base/controllers/base.ts`               | Added `Definitions` generic parameter                          |
-| `src/base/controllers/common/types.ts`       | Added route config types                                       |
-| `src/base/controllers/factory/controller.ts` | Made `ICrudControllerOptions` generic, added type casts        |
+| File | Changes |
+|------|---------|
+| `src/base/controllers/abstract.ts` | Added `Definitions` generic parameter |
+| `src/base/controllers/base.ts` | Added `Definitions` generic parameter |
+| `src/base/controllers/common/types.ts` | Added route config types |
+| `src/base/controllers/factory/controller.ts` | Made `ICrudControllerOptions` generic, added type casts |
 | `src/base/controllers/factory/definition.ts` | Updated route configs, compact descriptions, response metadata |
 
 ### Examples (`examples/vert`)
 
-| File                                          | Changes                                       |
-| --------------------------------------------- | --------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/controllers/configuration.controller.ts` | Updated to use new route customization syntax |
 
 ## Migration Guide
@@ -151,7 +147,6 @@ Added meaningful response descriptions for OpenAPI:
 ### Step 1: Update Route Configuration Syntax
 
 **Before:**
-
 ```typescript
 routes: {
   create: {
@@ -162,7 +157,6 @@ routes: {
 ```
 
 **After:**
-
 ```typescript
 routes: {
   create: {

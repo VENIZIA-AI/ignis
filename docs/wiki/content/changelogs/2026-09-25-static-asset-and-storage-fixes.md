@@ -1,6 +1,6 @@
 ---
 title: Static Asset Scoping, a Real Body Limit, and Storage File Names
-description: 'A shared bucket can be scoped per controller and per route, configs.middlewares.bodyLimit finally does what its type promised, a recreated MetaLink refreshes every row instead of one, non-ASCII file names survive a direct-upload commit, and office files resolve to their registered MIME type.'
+description: "A shared bucket can be scoped per controller and per route, configs.middlewares.bodyLimit finally does what its type promised, a recreated MetaLink refreshes every row instead of one, non-ASCII file names survive a direct-upload commit, and office files resolve to their registered MIME type."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -8,18 +8,18 @@ packages: ['@venizia/ignis-helpers']
 
 Rebuilding the static-asset and storage examples exposed these defects. Each one is fixed at its root.
 
-| Fix                                                                                                                                       | Who is affected                                                                                                                        |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| [`controller.keyPrefix` scopes a shared bucket](#controller-keyprefix-scopes-a-shared-bucket)                                             | Two controllers or tenants sharing one bucket                                                                                          |
-| [`routes.<key>.enabled` drops a built-in route](#routes-key-enabled-drops-a-built-in-route)                                               | Applications that closed a route with a middleware override                                                                            |
-| [`PUT .../meta-links/{objectName}` refreshes every row](#put-meta-links-objectname-refreshes-every-row)                                   | Anyone calling the recreate route on a MetaLink table of their own                                                                     |
-| [`configs.middlewares.bodyLimit` is applied](#configs-middlewares-bodylimit-is-applied)                                                   | Applications passing `middlewares` through the constructor `config`; a hook-time assignment still has no effect and now fails the boot |
-| [Request spy parses forms only in development](#request-spy-parses-forms-only-in-development)                                             | Any route that reads a form body                                                                                                       |
-| [`extra.maxBytes` checks `content-length` before the body is read](#extra-maxbytes-checks-content-length-before-the-body-is-read)         | Applications with their own upload size guard                                                                                          |
-| [The error envelope honors the status on a thrown HTTPException](#the-error-envelope-honors-the-status-on-a-thrown-httpexception)         | Every JSON-body route (malformed JSON is now `400`, not `500`), and any route whose handler throws an `HTTPException`                  |
-| [Storage accepts non-ASCII and unusual file names](#storage-accepts-non-ascii-and-unusual-file-names)                                     | Direct upload commits; uploads with a generated key; `MinioHelper` metadata; `Content-Disposition`                                     |
-| [Office file types resolve to their registered MIME type](#office-file-types-resolve-to-their-registered-mime-type)                       | `.xlsx`, `.xls`, `.docx`, `.doc`, `.pptx`, `.ppt`, `.odt`, `.ods`                                                                      |
-| [`presignPost` stops naming the bucket twice in virtual-hosted style](#presignpost-stops-naming-the-bucket-twice-in-virtual-hosted-style) | `BunS3Helper` with `virtualHostedStyle: true`                                                                                          |
+| Fix | Who is affected |
+|---|---|
+| [`controller.keyPrefix` scopes a shared bucket](#controller-keyprefix-scopes-a-shared-bucket) | Two controllers or tenants sharing one bucket |
+| [`routes.<key>.enabled` drops a built-in route](#routes-key-enabled-drops-a-built-in-route) | Applications that closed a route with a middleware override |
+| [`PUT .../meta-links/{objectName}` refreshes every row](#put-meta-links-objectname-refreshes-every-row) | Anyone calling the recreate route on a MetaLink table of their own |
+| [`configs.middlewares.bodyLimit` is applied](#configs-middlewares-bodylimit-is-applied) | Applications passing `middlewares` through the constructor `config`; a hook-time assignment still has no effect and now fails the boot |
+| [Request spy parses forms only in development](#request-spy-parses-forms-only-in-development) | Any route that reads a form body |
+| [`extra.maxBytes` checks `content-length` before the body is read](#extra-maxbytes-checks-content-length-before-the-body-is-read) | Applications with their own upload size guard |
+| [The error envelope honors the status on a thrown HTTPException](#the-error-envelope-honors-the-status-on-a-thrown-httpexception) | Every JSON-body route (malformed JSON is now `400`, not `500`), and any route whose handler throws an `HTTPException` |
+| [Storage accepts non-ASCII and unusual file names](#storage-accepts-non-ascii-and-unusual-file-names) | Direct upload commits; uploads with a generated key; `MinioHelper` metadata; `Content-Disposition` |
+| [Office file types resolve to their registered MIME type](#office-file-types-resolve-to-their-registered-mime-type) | `.xlsx`, `.xls`, `.docx`, `.doc`, `.pptx`, `.ppt`, `.odt`, `.ods` |
+| [`presignPost` stops naming the bucket twice in virtual-hosted style](#presignpost-stops-naming-the-bucket-twice-in-virtual-hosted-style) | `BunS3Helper` with `virtualHostedStyle: true` |
 
 ## `controller.keyPrefix` scopes a shared bucket
 
@@ -74,10 +74,7 @@ Before, closing a route meant overriding it with a middleware that always refuse
 Before, the route did a plain `findOne` then `updateById`/`create`: on a table with two rows for the same object - a product image attached to the product and to a variant, the documented case for the table's non-unique pair - only the first row found was touched, and a refresh silently overwrote the row's own `storageType` with the storage backend this controller was configured for.
 
 ```typescript
-const response = await fetch(
-  `/assets/buckets/uploads/meta-links/${encodeURIComponent(objectName)}`,
-  { method: 'PUT' },
-);
+const response = await fetch(`/assets/buckets/uploads/meta-links/${encodeURIComponent(objectName)}`, { method: 'PUT' });
 const { success, action, count, metaLink, metaLinks } = await response.json();
 // action: 'refreshed' when rows for the object existed, 'created' when none did
 ```
@@ -140,7 +137,7 @@ const formData = await readFormBody({ req: context.req });
 > [!WARNING]
 > An application that calls `context.req.formData()` itself - middleware running ahead of any framework reader, such as an upload authorization guard - is **not** covered by `formBodyReader`. A malformed body there is a `500` in production, not a `400`, unless that middleware calls `readFormBody({ req: context.req })` instead. It returns the same cached `FormData`, so the swap is a one-line change.
 
-**Who is affected:** a route that reads a form body by hand, ahead of the framework's own reader, must switch to `readFormBody`. A route that declares its form body in OpenAPI (the static-asset upload, any `@hono/zod-openapi` form route) needs no change - its `400` on a malformed body is unchanged. Code that relied on the spy logging a non-JSON body outside development already saw nothing logged; this only changes whether it is _parsed_, which was never observable from the log line.
+**Who is affected:** a route that reads a form body by hand, ahead of the framework's own reader, must switch to `readFormBody`. A route that declares its form body in OpenAPI (the static-asset upload, any `@hono/zod-openapi` form route) needs no change - its `400` on a malformed body is unchanged. Code that relied on the spy logging a non-JSON body outside development already saw nothing logged; this only changes whether it is *parsed*, which was never observable from the log line.
 
 ## `extra.maxBytes` checks `content-length` before the body is read
 

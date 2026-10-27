@@ -37,12 +37,12 @@ async listOrders(opts: { context: TRouteContext }) {
 
 ## The contract
 
-| Header or body      | Value                                                                                                                         |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `Content-Range`     | `records <start>-<end>/<total>`, or `records */<total>` for an empty page. `total` is the exact count of the scope, never `*` |
-| `X-Response-Count`  | rows in this response, never the total                                                                                        |
-| `X-Response-Format` | `array`                                                                                                                       |
-| Body                | `{ count, data }`, or the bare array when the client sends `x-request-count: false`                                           |
+| Header or body | Value |
+|---|---|
+| `Content-Range` | `records <start>-<end>/<total>`, or `records */<total>` for an empty page. `total` is the exact count of the scope, never `*` |
+| `X-Response-Count` | rows in this response, never the total |
+| `X-Response-Format` | `array` |
+| Body | `{ count, data }`, or the bare array when the client sends `x-request-count: false` |
 
 A list never depends on a `/count` route. The CRUD factory keeps its `count` verb as an opt-in for callers that want a count alone.
 
@@ -62,13 +62,13 @@ A list never depends on a `/count` route. The CRUD factory keeps its `count` ver
 
 ## Details
 
-| Symbol                                                             | Change                                                                                                                 | Package    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `BaseRestController.respond({ context, format, payload, range? })` | Moved from `AbstractCrudController`; `range` added; `responseData` renamed `payload`; `format` typed `TResponseFormat` | kernel     |
-| `BaseRestController.normalizeCountData({ context, payload })`      | Moved from `AbstractCrudController`; `responseData` renamed `payload`                                                  | kernel     |
-| `BaseRestController.setListHeaders({ context, range, count })`     | New                                                                                                                    | kernel     |
-| `ResponseFormats` (`OBJECT`, `ARRAY`), `TResponseFormat`           | New                                                                                                                    | kernel     |
-| `AbstractSearchController.search()`                                | Sets the list headers                                                                                                  | connectors |
+| Symbol | Change | Package |
+|---|---|---|
+| `BaseRestController.respond({ context, format, payload, range? })` | Moved from `AbstractCrudController`; `range` added; `responseData` renamed `payload`; `format` typed `TResponseFormat` | kernel |
+| `BaseRestController.normalizeCountData({ context, payload })` | Moved from `AbstractCrudController`; `responseData` renamed `payload` | kernel |
+| `BaseRestController.setListHeaders({ context, range, count })` | New | kernel |
+| `ResponseFormats` (`OBJECT`, `ARRAY`), `TResponseFormat` | New | kernel |
+| `AbstractSearchController.search()` | Sets the list headers | connectors |
 
 The total behind `Content-Range` still comes from the repository's own count query, run beside the page query (in parallel outside a transaction, one after the other inside one). Folding it into the page query with a window function looks free on a small table and costs seconds on a large one.
 

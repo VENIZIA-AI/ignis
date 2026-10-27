@@ -56,14 +56,12 @@ A full review across all three connectors closed this and a dozen other gaps - s
 `opts` and `filter` are both required on every connector - Postgres and the search family. Bare `find()` and `find({})` are now compile errors. This only changes the search repositories in practice; Postgres already required a filter.
 
 **Before**
-
 ```typescript
 // worked on the search repositories only
 const all = await productSearchRepository.find();
 ```
 
 **After**
-
 ```typescript
 // the find-all form is explicit on every connector
 const all = await productSearchRepository.find({ filter: {} });
@@ -74,19 +72,17 @@ const all = await productSearchRepository.find({ filter: {} });
 Eleven Typesense-only tuning fields left the neutral search input: `numTypos`, `prefix`, `infix`, `useCache`, `cacheTtl`, `exhaustiveSearch`, `pinnedHits`, `hiddenHits`, `prioritizeExactMatch`, `dropTokensThreshold`, and `preset`. They now travel through `engineParams`, keyed by the engine's own wire name (snake_case).
 
 **Before**
-
 ```typescript
 await productSearchRepository.search({
   mode: 'keyword',
   query: 'wireless',
   queryBy: ['name'],
-  numTypos: 1, // camelCase neutral field
+  numTypos: 1,       // camelCase neutral field
   preset: 'listing',
 });
 ```
 
 **After**
-
 ```typescript
 await productSearchRepository.search({
   mode: 'keyword',
@@ -107,13 +103,11 @@ await productSearchRepository.search({
 `SearchConnectorInternal`, `TypesenseInternal`, and `MeilisearchInternal` are no longer part of the public API.
 
 **Before**
-
 ```typescript
 import { TypesenseInternal } from '@venizia/ignis/typesense';
 ```
 
 **After**
-
 ```typescript
 // Gone from the public surface - there is no specifier that resolves to it.
 // These were engine-internal helpers with no compatibility guarantee.
@@ -122,7 +116,6 @@ import { TypesenseInternal } from '@venizia/ignis/typesense';
 ### 5. `SwaggerComponent` renamed to `ApiReferenceComponent`
 
 **Before**
-
 ```typescript
 import { ISwaggerOptions, SwaggerBindingKeys, SwaggerComponent } from '@venizia/ignis';
 this.bind({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue(options);
@@ -130,13 +123,8 @@ this.component(SwaggerComponent);
 ```
 
 **After**
-
 ```typescript
-import {
-  ApiReferenceBindingKeys,
-  ApiReferenceComponent,
-  IApiReferenceOptions,
-} from '@venizia/ignis';
+import { ApiReferenceBindingKeys, ApiReferenceComponent, IApiReferenceOptions } from '@venizia/ignis';
 this.bind({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue(options);
 this.component(ApiReferenceComponent);
 ```
@@ -161,7 +149,6 @@ The old names remain as deprecated aliases, so existing applications compile and
   ```
 
   Two `or` arrays could collapse into one AND-of-both the same way. The merge is now top-key level: a user-supplied key replaces the default's value wholesale, and a user value of `undefined` never overrides a defined default.
-
 - **Cross-engine `409` / `404` alignment.** Typesense `createDocument` on a duplicate id now throws `409` (`core.search_engine.already_exists`) instead of a misleading `503`. Meilisearch `updateById` on a missing id now throws `404` instead of silently creating a new record.
 - **Meilisearch primary-key authority.** Update payloads now write the path id last and authoritative. A patch body carrying the primary key can no longer retarget a write onto a different row.
 - **`multiSearch` no longer leaks hidden fields.** Each collection's `@model` `hiddenProperties` are now injected into that entry's `excludeFields`, matching what single-collection `search()` already did.
@@ -171,31 +158,31 @@ The old names remain as deprecated aliases, so existing applications compile and
 
 ### Performance
 
-| Scenario                | Improvement                                                                                   |
-| ----------------------- | --------------------------------------------------------------------------------------------- |
-| Reads without `include` | Relation resolution runs only when `include` is present, and is memoized per schema           |
-| `update` / `delete`     | The `WHERE` condition is built once and reused, not built twice per call                      |
-| Meilisearch writes      | Task polling backs off exponentially (50ms doubling, 1s cap) instead of a fixed 50ms interval |
-| Typesense wire mapping  | camelCase-to-wire key mapping is O(1)                                                         |
+| Scenario | Improvement |
+|----------|-------------|
+| Reads without `include` | Relation resolution runs only when `include` is present, and is memoized per schema |
+| `update` / `delete` | The `WHERE` condition is built once and reused, not built twice per call |
+| Meilisearch writes | Task polling backs off exponentially (50ms doubling, 1s cap) instead of a fixed 50ms interval |
+| Typesense wire mapping | camelCase-to-wire key mapping is O(1) |
 
 <details>
 <summary>Files changed</summary>
 
-| File                                                       | Changes                                                                                |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `src/connectors/search/repositories/common/constants.ts`   | 11 engine knobs removed from `TSearchInput`; `engineParams` added                      |
-| `src/connectors/search/repositories/core/readable.ts`      | Strict `find` / `findOne`; `search` dispatch                                           |
-| `src/connectors/search/repositories/core/persistable.ts`   | `updateAll`/`deleteAll` count-only contract; `updateById` default-filter guard         |
-| `src/connectors/search/datasources/base.ts`                | `multiSearch` injects hidden fields into `excludeFields` per entry                     |
-| `src/connectors/search/index.ts`                           | Stop re-exporting `./internal`                                                         |
-| `src/connectors/postgres/repositories/dialect/filter.ts`   | `mergeFilter` top-key merge; `not` operator; JSON numeric cast; memoized relations     |
-| `src/connectors/postgres/repositories/dialect/query.ts`    | `exists` / `notExists` operators; NULL-aware `neq` / `ne`                              |
-| `src/connectors/postgres/repositories/core/readable.ts`    | Strict `find` / `findOne`                                                              |
-| `src/connectors/postgres/repositories/core/persistable.ts` | Build the `WHERE` once and reuse it                                                    |
-| `src/connectors/memory/**`                                 | Removed entirely                                                                       |
-| `src/connectors/meilisearch/connector.ts`                  | Missing-id `404`; primary-key authority; exponential poll backoff; batch-atomic import |
-| `src/connectors/typesense/connector.ts`                    | Duplicate-id `409` `already_exists` (was a misleading `503`)                           |
-| `src/connectors/typesense/compiler.ts`                     | Clear error for a `defaultSort` naming a nonexistent field                             |
+| File | Changes |
+|------|---------|
+| `src/connectors/search/repositories/common/constants.ts` | 11 engine knobs removed from `TSearchInput`; `engineParams` added |
+| `src/connectors/search/repositories/core/readable.ts` | Strict `find` / `findOne`; `search` dispatch |
+| `src/connectors/search/repositories/core/persistable.ts` | `updateAll`/`deleteAll` count-only contract; `updateById` default-filter guard |
+| `src/connectors/search/datasources/base.ts` | `multiSearch` injects hidden fields into `excludeFields` per entry |
+| `src/connectors/search/index.ts` | Stop re-exporting `./internal` |
+| `src/connectors/postgres/repositories/dialect/filter.ts` | `mergeFilter` top-key merge; `not` operator; JSON numeric cast; memoized relations |
+| `src/connectors/postgres/repositories/dialect/query.ts` | `exists` / `notExists` operators; NULL-aware `neq` / `ne` |
+| `src/connectors/postgres/repositories/core/readable.ts` | Strict `find` / `findOne` |
+| `src/connectors/postgres/repositories/core/persistable.ts` | Build the `WHERE` once and reuse it |
+| `src/connectors/memory/**` | Removed entirely |
+| `src/connectors/meilisearch/connector.ts` | Missing-id `404`; primary-key authority; exponential poll backoff; batch-atomic import |
+| `src/connectors/typesense/connector.ts` | Duplicate-id `409` `already_exists` (was a misleading `503`) |
+| `src/connectors/typesense/compiler.ts` | Clear error for a `defaultSort` naming a nonexistent field |
 
 </details>
 

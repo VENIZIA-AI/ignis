@@ -28,11 +28,11 @@ Nothing to configure. `g` (role assignment) and `g2` (membership) now read the s
 
 ## What each axis gains
 
-| Axis | Relation        | Gains                                                                                                       |
-| ---- | --------------- | ----------------------------------------------------------------------------------------------------------- |
-| `g`  | Role assignment | A role assigned at a parent domain matches a request at any child domain.                                   |
-| `g3` | Grant           | A grant declared at a parent domain applies at its child domains (unchanged - already true).                |
-| `g2` | Membership      | Joining a parent domain makes you a member of every child domain - what the `ANY_MEMBER` grant scope tests. |
+| Axis | Relation | Gains |
+|---|---|---|
+| `g` | Role assignment | A role assigned at a parent domain matches a request at any child domain. |
+| `g3` | Grant | A grant declared at a parent domain applies at its child domains (unchanged - already true). |
+| `g2` | Membership | Joining a parent domain makes you a member of every child domain - what the `ANY_MEMBER` grant scope tests. |
 
 ## How this stays fresh
 
@@ -58,10 +58,10 @@ There is no separate cache, TTL, or invalidation call for this. `g3` edges are o
 
 See the [Authorization component](/extensions/components/authorization/) for how enforcers are configured.
 
-| File                                                              | Package |
-| ----------------------------------------------------------------- | ------- |
-| `src/components/auth/authorize/role-managers/domain-hierarchy.ts` | core    |
-| `src/components/auth/authorize/role-managers/membership.ts`       | core    |
-| `src/components/auth/authorize/role-managers/base.ts`             | core    |
-| `src/components/auth/authorize/enforcers/casbin.enforcer.ts`      | core    |
-| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core    |
+| File | Package |
+|------|---------|
+| `src/components/auth/authorize/role-managers/domain-hierarchy.ts` | core |
+| `src/components/auth/authorize/role-managers/membership.ts` | core |
+| `src/components/auth/authorize/role-managers/base.ts` | core |
+| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | core |
+| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core |

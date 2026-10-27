@@ -37,8 +37,8 @@ buildClaimUrl(); // before: read an empty value from a second instance; now: rea
 
 ## Details
 
-| Symbol                                         | Change                                               | Package |
-| ---------------------------------------------- | ---------------------------------------------------- | ------- |
-| `applicationEnvironment`, `AppEnvs`, `Envs`    | One instance per process through a `Symbol.for` slot | helpers |
-| `ModuleUtility.register` / `load` / `loadSync` | Registry shared across module copies                 | helpers |
-| `RestApplication` constructor                  | Throws when `configs.path.base` is not a string      | kernel  |
+| Symbol | Change | Package |
+|---|---|---|
+| `applicationEnvironment`, `AppEnvs`, `Envs` | One instance per process through a `Symbol.for` slot | helpers |
+| `ModuleUtility.register` / `load` / `loadSync` | Registry shared across module copies | helpers |
+| `RestApplication` constructor | Throws when `configs.path.base` is not a string | kernel |

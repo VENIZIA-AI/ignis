@@ -45,19 +45,19 @@ export class Application extends BaseApplication {
 
 `registerSecrets()` returns:
 
-| Field      | Meaning                                                                       |
-| ---------- | ----------------------------------------------------------------------------- |
+| Field | Meaning |
+|---|---|
 | `provider` | `SecretProviders.SYSTEM_ENVS` (default), `HASHICORP_VAULT`, or `DOTENV_VAULT` |
-| `config`   | Provider-specific connection and auth settings                                |
-| `hydrate`  | Static secret paths merged into `Envs` at boot                                |
-| `lease`    | Dynamic credential leases, each mapped to a datasource by key                 |
+| `config` | Provider-specific connection and auth settings |
+| `hydrate` | Static secret paths merged into `Envs` at boot |
+| `lease` | Dynamic credential leases, each mapped to a datasource by key |
 
 The vault backends are optional peer dependencies, reached only through sub-paths and dynamic imports - importing `@venizia/ignis-helpers` never requires them:
 
-| Provider        | Peer               | Sub-path                                 |
-| --------------- | ------------------ | ---------------------------------------- |
-| HashiCorp Vault | `node-vault`       | `@venizia/ignis-helpers/hashicorp-vault` |
-| Dotenv Vault    | `@dotenvx/dotenvx` | `@venizia/ignis-helpers/dotenv-vault`    |
+| Provider | Peer | Sub-path |
+|---|---|---|
+| HashiCorp Vault | `node-vault` | `@venizia/ignis-helpers/hashicorp-vault` |
+| Dotenv Vault | `@dotenvx/dotenvx` | `@venizia/ignis-helpers/dotenv-vault` |
 
 Install a peer only in the application that uses that provider.
 

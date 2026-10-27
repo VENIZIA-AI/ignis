@@ -18,13 +18,14 @@ This release changes the string ID implementation from PostgreSQL `uuid` type to
 - **Consistent Naming**: Renamed `visibleColumns` to `visibleProperties` for consistency with `hiddenProperties`
 - **Removed 'uuid' Option**: Principal enricher now only supports `'number' | 'string'`
 
+
 ## String ID Changes
 
 ### Before
 
 ```typescript
 // Used PostgreSQL uuid type
-uuid('id').defaultRandom().primaryKey();
+uuid('id').defaultRandom().primaryKey()
 // Column type: uuid
 ```
 
@@ -32,9 +33,7 @@ uuid('id').defaultRandom().primaryKey();
 
 ```typescript
 // Uses text column with $defaultFn
-text('id')
-  .primaryKey()
-  .$defaultFn(() => crypto.randomUUID());
+text('id').primaryKey().$defaultFn(() => crypto.randomUUID())
 // Column type: text
 ```
 
@@ -46,9 +45,9 @@ import { nanoid } from 'nanoid';
 generateIdColumnDefs({
   id: {
     dataType: 'string',
-    generator: () => nanoid(), // Custom generator
+    generator: () => nanoid(),  // Custom generator
   },
-});
+})
 ```
 
 ### Type Definition
@@ -56,26 +55,24 @@ generateIdColumnDefs({
 ```typescript
 type TIdEnricherOptions = {
   id?: { columnName?: string } & (
-    | { dataType: 'string'; generator?: () => string } // NEW: optional generator
+    | { dataType: 'string'; generator?: () => string }  // NEW: optional generator
     | { dataType: 'number'; sequenceOptions?: PgSequenceOptions }
-    | {
-        dataType: 'big-number';
-        numberMode: 'number' | 'bigint';
-        sequenceOptions?: PgSequenceOptions;
-      }
+    | { dataType: 'big-number'; numberMode: 'number' | 'bigint'; sequenceOptions?: PgSequenceOptions }
   );
 };
 ```
+
 
 ## Naming Consistency
 
 Renamed internal properties for consistency:
 
-| Before                         | After                        |
-| ------------------------------ | ---------------------------- |
-| `_visibleColumns`              | `_visibleProperties`         |
-| `getVisibleColumns()`          | `getVisibleProperties()`     |
+| Before | After |
+|--------|-------|
+| `_visibleColumns` | `_visibleProperties` |
+| `getVisibleColumns()` | `getVisibleProperties()` |
 | `visibleColumns` getter/setter | `visibleProps` getter/setter |
+
 
 ## Principal Enricher Simplification
 
@@ -89,19 +86,21 @@ type IdType = 'number' | 'string' | 'uuid';
 type IdType = 'number' | 'string';
 ```
 
+
 ## Files Changed
 
 ### Core Package (`packages/core-server`)
 
-| File                                               | Changes                                         |
-| -------------------------------------------------- | ----------------------------------------------- |
-| `src/base/models/enrichers/id.enricher.ts`         | Text column with custom generator, type aliases |
-| `src/base/models/enrichers/principal.enricher.ts`  | Removed 'uuid' option, uses text for string IDs |
-| `src/base/repositories/core/base.ts`               | Renamed visibleColumns to visibleProperties     |
-| `src/base/repositories/core/readable.ts`           | Updated to use getVisibleProperties()           |
-| `src/base/repositories/core/persistable.ts`        | Updated to use getVisibleProperties()           |
-| `src/components/static-asset/models/base.model.ts` | uuid() to text()                                |
-| `src/components/auth/models/entities/*.ts`         | uuid() to text() for all auth models            |
+| File | Changes |
+|------|---------|
+| `src/base/models/enrichers/id.enricher.ts` | Text column with custom generator, type aliases |
+| `src/base/models/enrichers/principal.enricher.ts` | Removed 'uuid' option, uses text for string IDs |
+| `src/base/repositories/core/base.ts` | Renamed visibleColumns to visibleProperties |
+| `src/base/repositories/core/readable.ts` | Updated to use getVisibleProperties() |
+| `src/base/repositories/core/persistable.ts` | Updated to use getVisibleProperties() |
+| `src/components/static-asset/models/base.model.ts` | uuid() to text() |
+| `src/components/auth/models/entities/*.ts` | uuid() to text() for all auth models |
+
 
 ## Migration Guide
 
@@ -133,7 +132,7 @@ import { createId } from '@paralleldrive/cuid2';
 generateIdColumnDefs({
   id: {
     dataType: 'string',
-    generator: () => nanoid(), // or createId
+    generator: () => nanoid(),  // or createId
   },
-});
+})
 ```

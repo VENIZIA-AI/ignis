@@ -45,13 +45,13 @@ two copies of the package in one process still see one stamp.
 
 The generator resolves each field from CI first, then `git`, then the manifest:
 
-| Field     | CI variable                                                                      | Fallback                          |
-| --------- | -------------------------------------------------------------------------------- | --------------------------------- |
-| `version` | `APP_ENV_BUILD_VERSION`, `APP_BUILD_VERSION`, `CI_COMMIT_TAG`, `GITHUB_REF_NAME` | `package.json#version`            |
-| `commit`  | `APP_ENV_BUILD_COMMIT_TAG`, `APP_BUILD_COMMIT`, `CI_COMMIT_SHA`, `GITHUB_SHA`    | `git rev-parse --short=12 HEAD`   |
-| `branch`  | `APP_BUILD_BRANCH`, `CI_COMMIT_REF_NAME`, `GITHUB_REF_NAME`                      | `git rev-parse --abbrev-ref HEAD` |
-| `builtAt` | `APP_ENV_BUILD_DATE`, `APP_BUILD_DATE`                                           | the moment the generator ran      |
-| `service` | -                                                                                | `package.json#name`               |
+|Field|CI variable|Fallback|
+|---|---|---|
+|`version`|`APP_ENV_BUILD_VERSION`, `APP_BUILD_VERSION`, `CI_COMMIT_TAG`, `GITHUB_REF_NAME`|`package.json#version`|
+|`commit`|`APP_ENV_BUILD_COMMIT_TAG`, `APP_BUILD_COMMIT`, `CI_COMMIT_SHA`, `GITHUB_SHA`|`git rev-parse --short=12 HEAD`|
+|`branch`|`APP_BUILD_BRANCH`, `CI_COMMIT_REF_NAME`, `GITHUB_REF_NAME`|`git rev-parse --abbrev-ref HEAD`|
+|`builtAt`|`APP_ENV_BUILD_DATE`, `APP_BUILD_DATE`|the moment the generator ran|
+|`service`|-|`package.json#name`|
 
 The `APP_ENV_` spellings are read first, then the generic `APP_BUILD_` ones, then whatever the CI
 provider exports. Anything left reads `unspecified` - a field a pipeline forgot to wire is visible
@@ -87,19 +87,11 @@ mystery: a server whose clock has drifted.
   "status": "ok",
   "timestamp": "2026-09-11T07:30:00.000Z",
   "build": {
-    "service": "@nx/sale",
-    "version": "1.4.2",
-    "commit": "8f80b2a90d12",
-    "branch": "develop",
+    "service": "@nx/sale", "version": "1.4.2",
+    "commit": "8f80b2a90d12", "branch": "develop",
     "builtAt": "2026-09-10T15:00:00.000Z"
   },
-  "process": {
-    "pid": 42,
-    "uptime": 3600.5,
-    "uptimeHuman": "1h 0m 0s",
-    "runtime": "bun 1.4.2",
-    "environment": "production"
-  },
+  "process": { "pid": 42, "uptime": 3600.5, "uptimeHuman": "1h 0m 0s", "runtime": "bun 1.4.2", "environment": "production" },
   "memory": { "rss": "64.2 MB", "heapUsed": "32.1 MB", "heapTotal": "48.0 MB" }
 }
 ```

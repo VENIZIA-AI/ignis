@@ -1,6 +1,6 @@
 ---
 title: Auto Artifacts Root at the Entry Module, and ArtifactGroup.application
-description: '@venizia/ignis-boot/auto no longer depends on the working directory, and ArtifactGroup.application() gives each application in a multi-app process its own artifacts.'
+description: "@venizia/ignis-boot/auto no longer depends on the working directory, and ArtifactGroup.application() gives each application in a multi-app process its own artifacts."
 packages: ['@venizia/ignis-boot', '@venizia/ignis-kernel']
 ---
 

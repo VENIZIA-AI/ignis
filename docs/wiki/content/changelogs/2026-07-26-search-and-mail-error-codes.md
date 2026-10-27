@@ -16,10 +16,10 @@ packages: ['@venizia/ignis']
 
 Two catalogs join the five that already existed:
 
-| Catalog        | Codes                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| `SearchErrors` | `core.search_engine.not_found`, `core.search_engine.already_exists`                              |
-| `MailErrors`   | `core.mail.template_not_found`, `core.mail.invalid_configuration`, `core.mail.invalid_recipient` |
+| Catalog | Codes |
+|---|---|
+| `SearchErrors` | `core.search_engine.not_found`, `core.search_engine.already_exists` |
+| `MailErrors` | `core.mail.template_not_found`, `core.mail.invalid_configuration`, `core.mail.invalid_recipient` |
 
 Every code and status is byte-identical to before. If you branch on `error.normalized.code`, nothing to do.
 

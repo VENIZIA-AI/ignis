@@ -50,13 +50,13 @@ LoggerFactory.use({ provider: PinoLogger });
 
 `debug`, `info`, `warn`, `error`, `emerg` - each a direct method, plus `log(level, ...)` for dynamic choice. `alert`, `http`, `verbose`, and `silly` were removed (zero call sites, no consuming infrastructure; `alert` duplicated `emerg`). The default `debug` floor admits every level on both providers.
 
-| Level   | Priority | Color  |
-| ------- | -------- | ------ |
-| `error` | 0        | red    |
-| `emerg` | 0        | red    |
-| `warn`  | 1        | yellow |
-| `info`  | 2        | green  |
-| `debug` | 3        | blue   |
+| Level | Priority | Color |
+|-------|----------|-------|
+| `error` | 0 | red |
+| `emerg` | 0 | red |
+| `warn` | 1 | yellow |
+| `info` | 2 | green |
+| `debug` | 3 | blue |
 
 ## HfLogger rework
 
@@ -73,17 +73,17 @@ LoggerFactory.use({ provider: PinoLogger });
 
 ## Breaking changes
 
-| Change                                                                 | Migration                                                                                                                                          |
-| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Winston names left the root barrel                                     | Import `Logger`, `WinstonLogger`, `defineCustomLogger`, formatters, `DgramTransport`, and their option types from `@venizia/ignis-helpers/winston` |
-| winston is an optional peer                                            | Apps relying on the default: `bun add winston winston-transport winston-daily-rotate-file`                                                         |
-| Compiled binaries                                                      | Call `LoggerFactory.use({ provider })` explicitly                                                                                                  |
-| `applicationLogger` removed (value and `ApplicationLogger` type alias) | `ApplicationLogger.get('YourScope')`; annotate with `ILogger`                                                                                      |
-| `: Logger` annotations                                                 | Widen to `: ILogger` (also for `.for()` results)                                                                                                   |
-| `ApplicationLogger` is no longer a class                               | `instanceof AbstractLogger` for provider-agnostic checks                                                                                           |
-| Removed levels `alert`/`http`/`verbose`/`silly`                        | `alert` -> `emerg`, `http`/`verbose` -> `info` or `debug`, `silly` -> `debug`                                                                      |
-| `ICustomLoggerOptions` field names                                     | `logLevels` -> `levels`, `logColors` -> `colors`, `loggerFormatter` -> `formatter`                                                                 |
-| HfLogger flushed line format                                           | Now `<ISO time> [<levelName>] <scope> <message>`; the old NUL-padded shape was corrupt output, not a contract                                      |
+| Change | Migration |
+|---|---|
+| Winston names left the root barrel | Import `Logger`, `WinstonLogger`, `defineCustomLogger`, formatters, `DgramTransport`, and their option types from `@venizia/ignis-helpers/winston` |
+| winston is an optional peer | Apps relying on the default: `bun add winston winston-transport winston-daily-rotate-file` |
+| Compiled binaries | Call `LoggerFactory.use({ provider })` explicitly |
+| `applicationLogger` removed (value and `ApplicationLogger` type alias) | `ApplicationLogger.get('YourScope')`; annotate with `ILogger` |
+| `: Logger` annotations | Widen to `: ILogger` (also for `.for()` results) |
+| `ApplicationLogger` is no longer a class | `instanceof AbstractLogger` for provider-agnostic checks |
+| Removed levels `alert`/`http`/`verbose`/`silly` | `alert` -> `emerg`, `http`/`verbose` -> `info` or `debug`, `silly` -> `debug` |
+| `ICustomLoggerOptions` field names | `logLevels` -> `levels`, `logColors` -> `colors`, `loggerFormatter` -> `formatter` |
+| HfLogger flushed line format | Now `<ISO time> [<levelName>] <scope> <message>`; the old NUL-padded shape was corrupt output, not a contract |
 
 Untyped call sites (`this.logger.info(...)`, `LoggerFactory.getLogger([...])`, `.for('method')`) need no change.
 
@@ -91,16 +91,15 @@ Untyped call sites (`this.logger.info(...)`, `LoggerFactory.getLogger([...])`, `
 
 - **HfLogger entry layout v2** (256 bytes total):
 
-  | Field                        | Bytes  |
-  | ---------------------------- | ------ |
-  | `float64` epoch-ms timestamp | 0-7    |
-  | Level code                   | 8      |
-  | Scope length                 | 9      |
-  | Scope                        | 10-41  |
-  | Message length               | 42     |
-  | Message (cap 213 bytes)      | 43-255 |
+  | Field | Bytes |
+  |---|---|
+  | `float64` epoch-ms timestamp | 0-7 |
+  | Level code | 8 |
+  | Scope length | 9 |
+  | Scope | 10-41 |
+  | Message length | 42 |
+  | Message (cap 213 bytes) | 43-255 |
 
   Encode cache is FIFO-bounded at 4096.
-
 - **Winston pipeline:** two-stage formatting - shared prep on the logger, per-transport assembly. Console colorizes; file and UDP lines stay ANSI-free. File transports remain opt-in via `APP_ENV_LOGGER_FOLDER_PATH`.
 - Environment variables, the level guide, and every API signature: [Full reference](/extensions/helpers/logger/reference).

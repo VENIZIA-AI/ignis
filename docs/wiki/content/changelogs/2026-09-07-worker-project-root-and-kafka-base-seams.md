@@ -35,12 +35,12 @@ A consumer needed to override broker-connect handling and read the connected-bro
 
 ## What changed
 
-| Symbol                               | Change                                                                                                                                                    | Package     |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `IWorkerApplicationConfigs`          | New; extends the kernel's `IApplicationConfigs` with an optional `projectRoot`                                                                            | core-worker |
-| `WorkerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? globalThis.process?.cwd?.() ?? ''`; binds `CoreBindings.APPLICATION_PROJECT_ROOT`; shares the value with `ModuleUtility`  | core-worker |
-| `ProjectRootRegistry`                | New; the `globalThis`-slot half of `ModuleUtility.setProjectRoot()`/`getProjectRoot()`, with no Node import, reachable from `@venizia/ignis-helpers/core` | helpers     |
-| `BaseKafkaHelper`                    | `connectedBrokers`, `onBrokerConnect`, `onBrokerDisconnect` turn `protected`                                                                              | helpers     |
+| Symbol | Change | Package |
+|---|---|---|
+| `IWorkerApplicationConfigs` | New; extends the kernel's `IApplicationConfigs` with an optional `projectRoot` | core-worker |
+| `WorkerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? globalThis.process?.cwd?.() ?? ''`; binds `CoreBindings.APPLICATION_PROJECT_ROOT`; shares the value with `ModuleUtility` | core-worker |
+| `ProjectRootRegistry` | New; the `globalThis`-slot half of `ModuleUtility.setProjectRoot()`/`getProjectRoot()`, with no Node import, reachable from `@venizia/ignis-helpers/core` | helpers |
+| `BaseKafkaHelper` | `connectedBrokers`, `onBrokerConnect`, `onBrokerDisconnect` turn `protected` | helpers |
 
 - Unlike `ServerApplication`, `WorkerApplication` never warns about a missing `node_modules`: a browser Worker has no filesystem to check, and reaching for `node:fs` would bundle a Node builtin straight into it. It also never reads a bare `process.cwd()` - a real browser Worker has no such global - reading it defensively through `globalThis.process?.cwd?.()` instead, which resolves to `''` there.
 - `ModuleUtility.setProjectRoot()`/`getProjectRoot()` keep their exact signatures; they now delegate to `ProjectRootRegistry` internally, so every existing caller is unaffected.

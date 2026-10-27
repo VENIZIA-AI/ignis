@@ -1,6 +1,6 @@
 ---
 title: The Release Sweep Includes Every Dependent
-description: 'make release without package names now releases each changed package and every package that depends on one, so exactly pinned internal dependencies never leave a duplicate copy behind.'
+description: "make release without package names now releases each changed package and every package that depends on one, so exactly pinned internal dependencies never leave a duplicate copy behind."
 packages: []
 ---
 

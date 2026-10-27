@@ -22,7 +22,6 @@ This release adds the `shouldQueryRange` option to the `find()` method, enabling
 ### shouldQueryRange Option
 
 **Files:**
-
 - `packages/core-server/src/base/repositories/common/types.ts`
 - `packages/core-server/src/base/repositories/core/readable.ts`
 - `packages/core-server/src/base/repositories/core/abstract.ts`
@@ -34,20 +33,19 @@ This release adds the `shouldQueryRange` option to the `find()` method, enabling
 ```typescript
 // Without range (default behavior)
 const users = await userRepo.find({
-  filter: { limit: 10, skip: 20 },
+  filter: { limit: 10, skip: 20 }
 });
 // Returns: Array<User>
 
 // With range information
 const result = await userRepo.find({
   filter: { limit: 10, skip: 20 },
-  options: { shouldQueryRange: true },
+  options: { shouldQueryRange: true }
 });
 // Returns: { data: Array<User>, range: TDataRange }
 ```
 
 **Benefits:**
-
 - Single method call returns both data and count
 - Count query runs in parallel with data fetch (no performance penalty)
 - Range format follows HTTP Content-Range standard
@@ -61,9 +59,9 @@ New type for range information following HTTP Content-Range standard:
 
 ```typescript
 type TDataRange = {
-  start: number; // Starting index (0-based, inclusive)
-  end: number; // Ending index (0-based, inclusive)
-  total: number; // Total count matching the query
+  start: number;  // Starting index (0-based, inclusive)
+  end: number;    // Ending index (0-based, inclusive)
+  total: number;  // Total count matching the query
 };
 ```
 
@@ -72,25 +70,24 @@ type TDataRange = {
 ```typescript
 const { data, range } = await repo.find({
   filter: { limit: 10, skip: 20 },
-  options: { shouldQueryRange: true },
+  options: { shouldQueryRange: true }
 });
 
 // Format: "unit start-end/total"
-const contentRange =
-  data.length > 0
-    ? `records ${range.start}-${range.end}/${range.total}`
-    : `records */${range.total}`;
+const contentRange = data.length > 0
+  ? `records ${range.start}-${range.end}/${range.total}`
+  : `records */${range.total}`;
 
 res.setHeader('Content-Range', contentRange);
 // → "records 20-29/100"
 ```
 
-| Scenario           | Content-Range Header |
-| ------------------ | -------------------- |
-| Items 0-9 of 100   | `records 0-9/100`    |
-| Items 20-29 of 100 | `records 20-29/100`  |
-| No items found     | `records */0`        |
-| Last page (90-99)  | `records 90-99/100`  |
+| Scenario | Content-Range Header |
+|----------|---------------------|
+| Items 0-9 of 100 | `records 0-9/100` |
+| Items 20-29 of 100 | `records 20-29/100` |
+| No items found | `records */0` |
+| Last page (90-99) | `records 90-99/100` |
 
 ### Performance Optimization
 
@@ -108,17 +105,17 @@ const [data, { count: total }] = await Promise.all([
 
 ### Core Package (`packages/core-server`)
 
-| File                                         | Changes                                                                 |
-| -------------------------------------------- | ----------------------------------------------------------------------- |
-| `src/base/repositories/common/types.ts`      | Added `TDataRange` type, updated `IReadableRepository.find()` overloads |
-| `src/base/repositories/core/abstract.ts`     | Added abstract `find()` overload for `shouldQueryRange: true`           |
-| `src/base/repositories/core/readable.ts`     | Implemented `shouldQueryRange` logic with parallel execution            |
-| `src/base/controllers/factory/controller.ts` | Updated to use `shouldQueryRange` and set `Content-Range` header        |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/common/types.ts` | Added `TDataRange` type, updated `IReadableRepository.find()` overloads |
+| `src/base/repositories/core/abstract.ts` | Added abstract `find()` overload for `shouldQueryRange: true` |
+| `src/base/repositories/core/readable.ts` | Implemented `shouldQueryRange` logic with parallel execution |
+| `src/base/controllers/factory/controller.ts` | Updated to use `shouldQueryRange` and set `Content-Range` header |
 
 ### Helpers Package (`packages/helpers`)
 
-| File                           | Changes                               |
-| ------------------------------ | ------------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/common/constants/http.ts` | Added `CONTENT_RANGE` header constant |
 
 ## No Breaking Changes

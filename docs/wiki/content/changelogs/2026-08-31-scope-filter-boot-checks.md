@@ -16,9 +16,9 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 
 `scopeFilter` is honoured by relational repositories, reading the ambient request context. Two configurations break that, and until now both were quiet:
 
-| Configuration                    | What actually happened                          | Which direction it fails      |
-| -------------------------------- | ----------------------------------------------- | ----------------------------- |
-| The model is search-backed       | The setting is never read; no scope is applied  | **More rows** than intended   |
+| Configuration | What actually happened | Which direction it fails |
+|---|---|---|
+| The model is search-backed | The setting is never read; no scope is applied | **More rows** than intended |
 | `asyncContext.enable` is `false` | `resolve()` sees no context, `onMissing` denies | **Zero rows**, on every query |
 
 Neither threw. Neither logged. The first is the more dangerous of the two: on the relational path a missing scope **denies**, so a mistake shows up as an empty list somebody investigates - on the search path the same mistake shows up as a **wider** result, which looks like it worked.
@@ -72,7 +72,7 @@ It lives in `connectors` rather than the server layer because that is the packag
 - A model is treated as search-backed by its class, not its datasource: `BaseSearchEntity` in the prototype chain. A model with no `scopeFilter` is skipped before any of this.
 - This does not make `scopeFilter` work on search. It makes the gap loud. Scoping a search query is still the application's job - see the row-scope changelog for why that boundary is where it is.
 
-| File                            | Package     |
-| ------------------------------- | ----------- |
-| `src/common/scope-filter.ts`    | connectors  |
+| File | Package |
+|------|---------|
+| `src/common/scope-filter.ts` | connectors |
 | `src/base/applications/base.ts` | core-server |

@@ -1,6 +1,6 @@
 ---
 title: LINT_IGNORE and Shared Test Helpers
-description: 'A package skips generated paths in lint and format with LINT_IGNORE, and the rejection test helpers ship once from @venizia/dev-configs/testing.'
+description: "A package skips generated paths in lint and format with LINT_IGNORE, and the rejection test helpers ship once from @venizia/dev-configs/testing."
 packages: ['@venizia/dev-configs']
 ---
 

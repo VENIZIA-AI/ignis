@@ -1,6 +1,6 @@
 ---
 title: A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings
-description: 'When onSecretRotated() failed, the datasource restored the settings keys it had before but kept the rotated user and password if the settings had not held those keys. Fixed for every relational and raw-SQL datasource; affects @venizia/ignis and @venizia/ignis-connectors 0.2.0 to 0.4.3; fixed in 0.4.4.'
+description: "When onSecretRotated() failed, the datasource restored the settings keys it had before but kept the rotated user and password if the settings had not held those keys. Fixed for every relational and raw-SQL datasource; affects @venizia/ignis and @venizia/ignis-connectors 0.2.0 to 0.4.3; fixed in 0.4.4."
 packages: ['@venizia/ignis-connectors']
 ---
 

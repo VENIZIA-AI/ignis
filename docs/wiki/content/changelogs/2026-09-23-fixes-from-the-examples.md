@@ -1,6 +1,6 @@
 ---
 title: Fixes Found While Rebuilding the Examples
-description: 'Valid OpenAPI error keys, path.isStrict that works, search controllers that inject their repository, nested JSON-path updates on PostgreSQL, the Socket.IO unauthenticated notice, postgres-js under Bun, one repository injection for controller factories, one ErrorResponse component, CRUD routes that ignore audit fields in the body, apps that import jose loading reliably, an honest change-password document, and stop() closing every datasource.'
+description: "Valid OpenAPI error keys, path.isStrict that works, search controllers that inject their repository, nested JSON-path updates on PostgreSQL, the Socket.IO unauthenticated notice, postgres-js under Bun, one repository injection for controller factories, one ErrorResponse component, CRUD routes that ignore audit fields in the body, apps that import jose loading reliably, an honest change-password document, and stop() closing every datasource."
 packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
@@ -8,20 +8,20 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-kernel
 
 Rebuilding every example against the current framework exposed these defects. Each one is fixed at its root.
 
-| Fix                                                                                                                 | Who is affected                                                                              |
-| ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| [Error responses use valid OpenAPI keys](#error-responses-use-valid-openapi-keys)                                   | Generated OpenAPI clients; hand-written `'4xx \| 5xx'` keys                                  |
-| [`path.isStrict` controls trailing-slash matching](#path-isstrict-controls-trailing-slash-matching)                 | Apps that set `path.isStrict: false`                                                         |
-| [Search controllers inject their repository](#search-controllers-inject-their-repository)                           | `defineSearchController` subclasses                                                          |
-| [Nested JSON-path updates create missing objects](#nested-json-path-updates-create-missing-objects)                 | PostgreSQL updates with a multi-level JSON path                                              |
-| [A rejected Socket.IO client receives `unauthenticated`](#a-rejected-socket-io-client-receives-unauthenticated)     | Socket.IO clients that handle the notice                                                     |
-| [postgres-js loads under Bun next to `postgres`](#postgres-js-loads-under-bun-next-to-postgres)                     | Apps importing `PostgresJsDriver` and `postgres`                                             |
-| [Controller factories share one repository injection](#controller-factories-share-one-repository-injection)         | Authors of their own controller factory                                                      |
-| [One helper and one component for error responses](#one-helper-and-one-component-for-error-responses)               | Generated OpenAPI clients; hand-written error responses                                      |
-| [CRUD routes ignore audit fields in the request body](#crud-routes-ignore-audit-fields-in-the-request-body)         | Clients that send `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, or an `id` on update |
-| [Apps that import `jose` load reliably](#apps-that-import-jose-load-reliably)                                       | Apps importing `jose` and `@venizia/ignis` under Bun                                         |
-| [The change-password document lists every required field](#the-change-password-document-lists-every-required-field) | OpenAPI clients generated from the built-in `POST /auth/change-password`                     |
-| [`stop()` closes the datasources](#stop-closes-the-datasources)                                                     | Every app and test that calls `stop()`                                                       |
+| Fix | Who is affected |
+|---|---|
+| [Error responses use valid OpenAPI keys](#error-responses-use-valid-openapi-keys) | Generated OpenAPI clients; hand-written `'4xx \| 5xx'` keys |
+| [`path.isStrict` controls trailing-slash matching](#path-isstrict-controls-trailing-slash-matching) | Apps that set `path.isStrict: false` |
+| [Search controllers inject their repository](#search-controllers-inject-their-repository) | `defineSearchController` subclasses |
+| [Nested JSON-path updates create missing objects](#nested-json-path-updates-create-missing-objects) | PostgreSQL updates with a multi-level JSON path |
+| [A rejected Socket.IO client receives `unauthenticated`](#a-rejected-socket-io-client-receives-unauthenticated) | Socket.IO clients that handle the notice |
+| [postgres-js loads under Bun next to `postgres`](#postgres-js-loads-under-bun-next-to-postgres) | Apps importing `PostgresJsDriver` and `postgres` |
+| [Controller factories share one repository injection](#controller-factories-share-one-repository-injection) | Authors of their own controller factory |
+| [One helper and one component for error responses](#one-helper-and-one-component-for-error-responses) | Generated OpenAPI clients; hand-written error responses |
+| [CRUD routes ignore audit fields in the request body](#crud-routes-ignore-audit-fields-in-the-request-body) | Clients that send `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt`, or an `id` on update |
+| [Apps that import `jose` load reliably](#apps-that-import-jose-load-reliably) | Apps importing `jose` and `@venizia/ignis` under Bun |
+| [The change-password document lists every required field](#the-change-password-document-lists-every-required-field) | OpenAPI clients generated from the built-in `POST /auth/change-password` |
+| [`stop()` closes the datasources](#stop-closes-the-datasources) | Every app and test that calls `stop()` |
 
 ## Error responses use valid OpenAPI keys
 
@@ -165,10 +165,10 @@ A client could forge the audit trail through a generated CRUD route. `POST` stor
 
 The default bodies leave out the keys the entity says the server fills. Ask any entity with `getServerStampedKeys()`:
 
-| Entity                                           | Keys left out of create and update bodies                                                                 |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| Relational (`BaseEntity`, `defineEntity`)        | `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` - each one whose column has a default or `$onUpdate` |
-| Search (`BaseSearchEntity`) and any other entity | none                                                                                                      |
+| Entity | Keys left out of create and update bodies |
+|---|---|
+| Relational (`BaseEntity`, `defineEntity`) | `createdBy`, `modifiedBy`, `createdAt`, `modifiedAt` - each one whose column has a default or `$onUpdate` |
+| Search (`BaseSearchEntity`) and any other entity | none |
 
 Update bodies also leave out `id`: the path or the `where` names the rows.
 

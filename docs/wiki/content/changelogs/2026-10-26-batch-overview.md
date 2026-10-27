@@ -1,6 +1,6 @@
 ---
 title: After 0.4.2 - What Changed and How to Upgrade
-description: 'Every change since 0.4.2 in one table, grouped by Security, Breaking, Behavior changes, Features, Fixes and Docs/tooling, with an ordered upgrade checklist: update the packages, run the codemod, review shared rows, then read the rest.'
+description: "Every change since 0.4.2 in one table, grouped by Security, Breaking, Behavior changes, Features, Fixes and Docs/tooling, with an ordered upgrade checklist: update the packages, run the codemod, review shared rows, then read the rest."
 packages:
   [
     '@venizia/ignis-kernel',
@@ -24,21 +24,21 @@ packages:
 
 Each row links the entry with the details.
 
-| Group            | Change                                                                                                                                                                                 | Entry                                                                                             |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Security         | A restricted caller could change or delete a shared row when `write.sharedRows` was `false`. Updates and deletes now leave shared rows out unless it is `true`                         | [Shared rows need sharedRows](/changelogs/2026-10-26-shared-rows-writes-need-shared-rows)         |
-| Breaking         | `defaultFilter`, `defaultLimit`, `maxLimit` and `scopeFilter` are removed from `@model` settings and the decorator throws on them; `getScopeFilterSettings()` is `getAccessSettings()` | [Deprecated model settings keys removed](/changelogs/2026-10-26-remove-deprecated-model-settings) |
-| Behavior change  | `devz codemod model-settings` is a dry run unless you pass `--write`; `devz clean --help` no longer deletes                                                                            | [devz codemod dry run](/changelogs/2026-10-26-devz-codemod-dry-run-by-default)                    |
-| Behavior change  | `@model` `type` is optional (`'view'` throws); `skipMigrate` is deprecated for `migration: { use }` and warns at boot                                                                  | [type and migration settings](/changelogs/2026-10-26-model-type-and-migration-settings)           |
-| Behavior change  | ESLint warns on a string-literal union in an exported type and on an `as X` cast. Never fails the lint                                                                                 | [dev-configs warnings](/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts)             |
-| Behavior change  | `release.ts --mode` rejects an unknown mode; temp folders stay in `.agents/local/tmp`                                                                                                  | [Repository tooling](/changelogs/2026-10-26-repository-tooling)                                   |
-| Feature          | String options in the kernel are const classes with `SCHEME_SET` and `isValid`                                                                                                         | [Kernel](/changelogs/2026-10-26-kernel-string-domains-const-classes)                              |
-| Feature          | The same for connectors                                                                                                                                                                | [Connectors](/changelogs/2026-10-26-connectors-string-domains-const-classes)                      |
-| Feature          | The same for helpers, inversion and the server                                                                                                                                         | [Helpers, inversion, server](/changelogs/2026-10-26-helpers-string-domains-const-classes)         |
-| Feature          | The rule builder options of `@venizia/dev-configs` are const classes                                                                                                                   | [dev-configs rule options](/changelogs/2026-10-26-dev-configs-rule-options-const-classes)         |
-| Fix              | `TSearchScopeResolver` is exported, so `defineSearchController` type-checks                                                                                                            | [TSearchScopeResolver](/changelogs/2026-10-26-search-scope-type-export)                           |
-| Fix              | The release sweep includes every package that depends on a changed one                                                                                                                 | [Release sweep](/changelogs/2026-10-26-release-sweep-cascade)                                     |
-| Docs and tooling | Examples type-check in CI, `.gitignore` anchors `release/`, VULCAN 0.4.4                                                                                                               | [Repository tooling](/changelogs/2026-10-26-repository-tooling)                                   |
+| Group | Change | Entry |
+|---|---|---|
+| Security | A restricted caller could change or delete a shared row when `write.sharedRows` was `false`. Updates and deletes now leave shared rows out unless it is `true` | [Shared rows need sharedRows](/changelogs/2026-10-26-shared-rows-writes-need-shared-rows) |
+| Breaking | `defaultFilter`, `defaultLimit`, `maxLimit` and `scopeFilter` are removed from `@model` settings and the decorator throws on them; `getScopeFilterSettings()` is `getAccessSettings()` | [Deprecated model settings keys removed](/changelogs/2026-10-26-remove-deprecated-model-settings) |
+| Behavior change | `devz codemod model-settings` is a dry run unless you pass `--write`; `devz clean --help` no longer deletes | [devz codemod dry run](/changelogs/2026-10-26-devz-codemod-dry-run-by-default) |
+| Behavior change | `@model` `type` is optional (`'view'` throws); `skipMigrate` is deprecated for `migration: { use }` and warns at boot | [type and migration settings](/changelogs/2026-10-26-model-type-and-migration-settings) |
+| Behavior change | ESLint warns on a string-literal union in an exported type and on an `as X` cast. Never fails the lint | [dev-configs warnings](/changelogs/2026-10-26-dev-configs-warn-const-class-and-casts) |
+| Behavior change | `release.ts --mode` rejects an unknown mode; temp folders stay in `.agents/local/tmp` | [Repository tooling](/changelogs/2026-10-26-repository-tooling) |
+| Feature | String options in the kernel are const classes with `SCHEME_SET` and `isValid` | [Kernel](/changelogs/2026-10-26-kernel-string-domains-const-classes) |
+| Feature | The same for connectors | [Connectors](/changelogs/2026-10-26-connectors-string-domains-const-classes) |
+| Feature | The same for helpers, inversion and the server | [Helpers, inversion, server](/changelogs/2026-10-26-helpers-string-domains-const-classes) |
+| Feature | The rule builder options of `@venizia/dev-configs` are const classes | [dev-configs rule options](/changelogs/2026-10-26-dev-configs-rule-options-const-classes) |
+| Fix | `TSearchScopeResolver` is exported, so `defineSearchController` type-checks | [TSearchScopeResolver](/changelogs/2026-10-26-search-scope-type-export) |
+| Fix | The release sweep includes every package that depends on a changed one | [Release sweep](/changelogs/2026-10-26-release-sweep-cascade) |
+| Docs and tooling | Examples type-check in CI, `.gitignore` anchors `release/`, VULCAN 0.4.4 | [Repository tooling](/changelogs/2026-10-26-repository-tooling) |
 
 ## Upgrade checklist
 

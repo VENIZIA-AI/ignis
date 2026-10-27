@@ -1,6 +1,6 @@
 ---
 title: devz codemod Is a Dry Run Unless You Pass --write
-description: 'devz codemod model-settings no longer writes by default, reads only the files git knows (so ignored folders and worktrees are never rewritten), prints usage on --help and refuses an unknown flag. devz clean --help no longer deletes, and devz with no argument prints the commands.'
+description: "devz codemod model-settings no longer writes by default, reads only the files git knows (so ignored folders and worktrees are never rewritten), prints usage on --help and refuses an unknown flag. devz clean --help no longer deletes, and devz with no argument prints the commands."
 packages: ['@venizia/dev-configs', '@venizia/ignis-kernel']
 ---
 

@@ -55,7 +55,6 @@ try {
 ```
 
 **Benefits:**
-
 - Type-safe lock strength via `TLockStrength` union type
 - Consistent with existing `RepositoryOperationScopes`, `RelationTypes` patterns
 - Zero overhead when not used - lock logic is skipped entirely
@@ -86,12 +85,12 @@ const item = await repo.findOne({
 
 ### All Lock Strengths
 
-| Strength        | SQL                 | Use Case                                          |
-| --------------- | ------------------- | ------------------------------------------------- |
-| `update`        | `FOR UPDATE`        | Exclusive lock for writes                         |
+| Strength | SQL | Use Case |
+|----------|-----|----------|
+| `update` | `FOR UPDATE` | Exclusive lock for writes |
 | `no key update` | `FOR NO KEY UPDATE` | Exclusive lock, allows concurrent `FOR KEY SHARE` |
-| `share`         | `FOR SHARE`         | Shared read lock, prevents writes                 |
-| `key share`     | `FOR KEY SHARE`     | Weakest lock, only prevents key changes           |
+| `share` | `FOR SHARE` | Shared read lock, prevents writes |
+| `key share` | `FOR KEY SHARE` | Weakest lock, only prevents key changes |
 
 ### Safety Validations
 
@@ -124,12 +123,12 @@ await repo.findOne({
 
 ### Core Package (`packages/core-server`)
 
-| File                                        | Changes                                                                               |
-| ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `src/base/repositories/common/constants.ts` | Added `LockStrengths` class and `TLockStrength` type                                  |
-| `src/base/repositories/common/types.ts`     | Added `TLockConfig`, `TLockOptions` types. Added `lock?` to `IExtraOptions`           |
-| `src/base/repositories/core/abstract.ts`    | Added `validateLockOptions()` method                                                  |
-| `src/base/repositories/core/readable.ts`    | Applied `.for()` in `findWithCoreAPI()`. Added validation in `find()` and `findOne()` |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/common/constants.ts` | Added `LockStrengths` class and `TLockStrength` type |
+| `src/base/repositories/common/types.ts` | Added `TLockConfig`, `TLockOptions` types. Added `lock?` to `IExtraOptions` |
+| `src/base/repositories/core/abstract.ts` | Added `validateLockOptions()` method |
+| `src/base/repositories/core/readable.ts` | Applied `.for()` in `findWithCoreAPI()`. Added validation in `find()` and `findOne()` |
 
 ## No Breaking Changes
 

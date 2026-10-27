@@ -1,5 +1,5 @@
 ---
-title: 'Where Clauses Now Type-Check the Value, Not Just the Column'
+title: "Where Clauses Now Type-Check the Value, Not Just the Column"
 description: "TWhere<T> already rejected a column name that didn't exist on T. It did not check the value against that column's type at all - every value was any. It does now."
 packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-filter']
 ---
@@ -45,11 +45,11 @@ const wrongType: TWhere<Product> = { status: 123 };
 A column name that doesn't exist on `T` (`{ stat: 'active' }`) was already rejected before this
 change - that part of the mapped type was never the problem. Only the value side was `any`.
 
-| Type                 | Shape                                                    | Notes                                                      |
-| -------------------- | -------------------------------------------------------- | ---------------------------------------------------------- |
-| `TWhereOperators<V>` | `{ eq?: V; gt?: V; in?: V[]; between?: [V, V]; ... }`    | Mirrors `QueryOperators` field-by-field.                   |
-| `TWhereValue<V>`     | `V \| null \| TWhereOperators<V>`                        | `null` is mandatory - it is how a caller writes `IS NULL`. |
-| `TWhere<T>`          | `{ [K in keyof T]?: TWhereValue<T[K]> } & { and?; or? }` | Unchanged shape, tightened values.                         |
+| Type | Shape | Notes |
+|---|---|---|
+| `TWhereOperators<V>` | `{ eq?: V; gt?: V; in?: V[]; between?: [V, V]; ... }` | Mirrors `QueryOperators` field-by-field. |
+| `TWhereValue<V>` | `V \| null \| TWhereOperators<V>` | `null` is mandatory - it is how a caller writes `IS NULL`. |
+| `TWhere<T>` | `{ [K in keyof T]?: TWhereValue<T[K]> } & { and?; or? }` | Unchanged shape, tightened values. |
 
 ## One column type gets an exception: `isoTimestamp`
 
@@ -98,18 +98,18 @@ does: `connectors` imports the type from `filter`.
 ## Details
 
 - Operators come from `QueryOperators` in `packages/filter/src/common/operators.ts` - 25 field operators plus `and`/`or`/`not`. Every operator in that list has a matching field in `TWhereOperators<V>`; none were invented.
-- `between`/`notBetween` are now typed as a `[V, V]` tuple. A test that intentionally sends the wrong arity to prove the _runtime_ guard still fires (`postgres-query-operators-between.test.ts`) casts the literal `as any` - the type system and the runtime guard are answering different questions: what `tsc` can prove, versus what a wire caller can actually send.
+- `between`/`notBetween` are now typed as a `[V, V]` tuple. A test that intentionally sends the wrong arity to prove the *runtime* guard still fires (`postgres-query-operators-between.test.ts`) casts the literal `as any` - the type system and the runtime guard are answering different questions: what `tsc` can prove, versus what a wire caller can actually send.
 - `examples/vert`'s `comprehensive-operator-test.service.ts` compared `createdAt` against a `Date` value and was fixed at the call site with `.toISOString()`. `createdAt` is an `isoTimestamp` column (`generateTzColumnDefs()`), so that fix still works but is no longer required - it now falls under the exception above and accepts the `Date` directly. The call site was left as-is; both forms compile.
 
-| File                                                                    | Package       |
-| ----------------------------------------------------------------------- | ------------- |
-| `src/common/types.ts`                                                   | filter        |
-| `src/relational/core/repositories/core/persistable.ts`                  | connectors    |
-| `src/relational/core/repositories/core/readable.ts`                     | connectors    |
-| `src/relational/core/repositories/core/soft-deletable.ts`               | connectors    |
-| `src/relational/postgres/models/common/columns.ts`                      | connectors    |
-| `src/relational/sqlite/models/common/columns.ts`                        | connectors    |
-| `src/__tests__/filter-builder/postgres-query-operators-between.test.ts` | core-server   |
-| `src/__tests__/filter-builder/where-type-safety.test.ts`                | core-server   |
-| `src/__tests__/filter-builder/iso-timestamp-where.test.ts`              | core-server   |
-| `src/services/tests/comprehensive-operator-test.service.ts`             | examples/vert |
+| File | Package |
+|------|---------|
+| `src/common/types.ts` | filter |
+| `src/relational/core/repositories/core/persistable.ts` | connectors |
+| `src/relational/core/repositories/core/readable.ts` | connectors |
+| `src/relational/core/repositories/core/soft-deletable.ts` | connectors |
+| `src/relational/postgres/models/common/columns.ts` | connectors |
+| `src/relational/sqlite/models/common/columns.ts` | connectors |
+| `src/__tests__/filter-builder/postgres-query-operators-between.test.ts` | core-server |
+| `src/__tests__/filter-builder/where-type-safety.test.ts` | core-server |
+| `src/__tests__/filter-builder/iso-timestamp-where.test.ts` | core-server |
+| `src/services/tests/comprehensive-operator-test.service.ts` | examples/vert |

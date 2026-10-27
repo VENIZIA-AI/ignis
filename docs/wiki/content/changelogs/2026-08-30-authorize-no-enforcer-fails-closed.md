@@ -1,6 +1,6 @@
 ---
-title: 'authorize() Denies When No Enforcer Is Registered, Instead of Allowing Everything'
-description: 'A route with authorize() declared but zero enforcers registered used to allow every request. It now denies, honoring defaultDecision like every other inconclusive check in the pipeline.'
+title: "authorize() Denies When No Enforcer Is Registered, Instead of Allowing Everything"
+description: "A route with authorize() declared but zero enforcers registered used to allow every request. It now denies, honoring defaultDecision like every other inconclusive check in the pipeline."
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -50,10 +50,10 @@ this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
 - New error: `AuthorizationErrors.ENFORCER_NOT_REGISTERED` (`core.authorization.enforcer_not_registered`, 403) in `common/errors.ts`. `DENIED` and `DENIED_BY_VOTER` both describe an enforcer or voter actively refusing; this one names the different cause - no enforcer ran at all.
 - The fix is isolated to the no-enforcer branch in `createAuthorizeMiddleware` - the enforcer-registered path (build rules, evaluate, `ABSTAIN` -> `defaultDecision`) is untouched.
 
-| File                                                                          | Package |
-| ----------------------------------------------------------------------------- | ------- |
-| `packages/kernel/src/base/auth/authorize/providers/authorization.provider.ts` | kernel  |
-| `packages/kernel/src/base/auth/authorize/common/errors.ts`                    | kernel  |
+| File | Package |
+|------|---------|
+| `packages/kernel/src/base/auth/authorize/providers/authorization.provider.ts` | kernel |
+| `packages/kernel/src/base/auth/authorize/common/errors.ts` | kernel |
 
 ## See also
 

@@ -26,7 +26,6 @@ This release introduces **Default Filter** - a powerful feature that automatical
 ### Default Filter
 
 **Files:**
-
 - `packages/core-server/src/base/repositories/mixins/default-filter.ts`
 - `packages/core-server/src/base/repositories/operators/filter.ts`
 
@@ -42,7 +41,7 @@ This release introduces **Default Filter** - a powerful feature that automatical
     // Automatically applied to all queries
     defaultFilter: {
       where: { isDeleted: false },
-      limit: 100, // Prevent unbounded queries
+      limit: 100,  // Prevent unbounded queries
     },
   },
 })
@@ -56,7 +55,7 @@ export class User extends BaseEntity<typeof User.schema> {
 ```typescript
 // User query - default filter automatically merged
 await userRepo.find({
-  filter: { where: { status: 'active' } },
+  filter: { where: { status: 'active' } }
 });
 // Actual query: WHERE isDeleted = false AND status = 'active' LIMIT 100
 
@@ -67,14 +66,14 @@ await userRepo.count({ where: { role: 'admin' } });
 
 **Filter Merge Strategy:**
 
-| Property        | Strategy                                  |
-| --------------- | ----------------------------------------- |
-| `where`         | Deep merge (user overrides matching keys) |
-| `limit`         | User replaces default (if provided)       |
-| `offset`/`skip` | User replaces default (if provided)       |
-| `order`         | User replaces default (if provided)       |
-| `fields`        | User replaces default (if provided)       |
-| `include`       | User replaces default (if provided)       |
+| Property | Strategy |
+|----------|----------|
+| `where` | Deep merge (user overrides matching keys) |
+| `limit` | User replaces default (if provided) |
+| `offset`/`skip` | User replaces default (if provided) |
+| `order` | User replaces default (if provided) |
+| `fields` | User replaces default (if provided) |
+| `include` | User replaces default (if provided) |
 
 ```typescript
 // Default: { where: { isDeleted: false, status: 'pending' }, limit: 100 }
@@ -96,7 +95,7 @@ await repo.find({ filter: { where: { role: 'admin' } } });
 // Admin query - bypass default filter
 await repo.find({
   filter: { where: { role: 'admin' } },
-  options: { shouldSkipDefaultFilter: true },
+  options: { shouldSkipDefaultFilter: true }
 });
 // WHERE role = 'admin' (includes deleted records)
 
@@ -105,16 +104,15 @@ await repo.count({ where: {}, options: { shouldSkipDefaultFilter: true } });
 await repo.updateAll({
   where: { status: 'archived' },
   data: { isDeleted: true },
-  options: { shouldSkipDefaultFilter: true },
+  options: { shouldSkipDefaultFilter: true }
 });
 await repo.deleteAll({
   where: { createdAt: { lt: '2020-01-01' } },
-  options: { shouldSkipDefaultFilter: true, force: true },
+  options: { shouldSkipDefaultFilter: true, force: true }
 });
 ```
 
 **Benefits:**
-
 - Automatic soft-delete filtering without manual `where` additions
 - Multi-tenant isolation at the data layer
 - Consistent query behavior across the application
@@ -123,7 +121,6 @@ await repo.deleteAll({
 ### Repository Mixins
 
 **Files:**
-
 - `packages/core-server/src/base/repositories/mixins/default-filter.ts`
 - `packages/core-server/src/base/repositories/mixins/fields-visibility.ts`
 - `packages/core-server/src/base/repositories/mixins/index.ts`
@@ -169,7 +166,6 @@ export abstract class AbstractRepository<...>
 ```
 
 **Benefits:**
-
 - Separation of concerns
 - Reusable logic across different repository types
 - Easier testing of individual features
@@ -208,7 +204,6 @@ export type TTransactionOption = IExtraOptions;
 **File:** `packages/core-server/src/base/repositories/operators/filter.ts`
 
 **Changes:**
-
 - Renamed `DrizzleFilterBuilder` to `FilterBuilder`
 - Added `mergeFilter` method for combining default and user filters
 - Added `resolveHiddenProperties` and `resolveRelations` methods
@@ -220,13 +215,12 @@ const filterBuilder = new FilterBuilder();
 
 const result = filterBuilder.mergeFilter({
   defaultFilter: { where: { isDeleted: false }, limit: 100 },
-  userFilter: { where: { status: 'active' }, limit: 10 },
+  userFilter: { where: { status: 'active' }, limit: 10 }
 });
 // Result: { where: { isDeleted: false, status: 'active' }, limit: 10 }
 ```
 
 **Internal Changes:**
-
 - Relations now resolved internally via `resolveRelations` method
 - Hidden properties resolved via `resolveHiddenProperties` method
 - Simplified API for `build` method (no need to pass resolvers)
@@ -235,45 +229,43 @@ const result = filterBuilder.mergeFilter({
 
 ### Core Package (`packages/core-server`)
 
-| File                                                | Changes                                              |
-| --------------------------------------------------- | ---------------------------------------------------- |
-| `src/base/repositories/mixins/default-filter.ts`    | **NEW** - DefaultFilterMixin implementation          |
-| `src/base/repositories/mixins/fields-visibility.ts` | **NEW** - FieldsVisibilityMixin implementation       |
-| `src/base/repositories/mixins/index.ts`             | **NEW** - Barrel export for mixins                   |
-| `src/base/repositories/common/types.ts`             | Added `IExtraOptions`, `IWithTransaction` interfaces |
-| `src/base/repositories/core/base.ts`                | Refactored to use mixins, updated method signatures  |
-| `src/base/repositories/core/readable.ts`            | Added `applyDefaultFilter` calls to read operations  |
-| `src/base/repositories/core/persistable.ts`         | Added `applyDefaultFilter` calls to update/delete    |
-| `src/base/repositories/core/default-crud.ts`        | Updated type parameters                              |
-| `src/base/repositories/operators/filter.ts`         | Renamed to `FilterBuilder`, added `mergeFilter`      |
-| `src/helpers/inversion/common/types.ts`             | Added `defaultFilter` to model settings type         |
+| File | Changes |
+|------|---------|
+| `src/base/repositories/mixins/default-filter.ts` | **NEW** - DefaultFilterMixin implementation |
+| `src/base/repositories/mixins/fields-visibility.ts` | **NEW** - FieldsVisibilityMixin implementation |
+| `src/base/repositories/mixins/index.ts` | **NEW** - Barrel export for mixins |
+| `src/base/repositories/common/types.ts` | Added `IExtraOptions`, `IWithTransaction` interfaces |
+| `src/base/repositories/core/base.ts` | Refactored to use mixins, updated method signatures |
+| `src/base/repositories/core/readable.ts` | Added `applyDefaultFilter` calls to read operations |
+| `src/base/repositories/core/persistable.ts` | Added `applyDefaultFilter` calls to update/delete |
+| `src/base/repositories/core/default-crud.ts` | Updated type parameters |
+| `src/base/repositories/operators/filter.ts` | Renamed to `FilterBuilder`, added `mergeFilter` |
+| `src/helpers/inversion/common/types.ts` | Added `defaultFilter` to model settings type |
 
 ### Tests (`packages/core-server/src/__tests__`)
 
-| File                                    | Changes                                              |
-| --------------------------------------- | ---------------------------------------------------- |
+| File | Changes |
+|------|---------|
 | `default-filter/default-filter.test.ts` | **NEW** - Comprehensive test suite (150+ test cases) |
 
 ### Examples (`examples/vert`)
 
-| File                                                | Changes                            |
-| --------------------------------------------------- | ---------------------------------- |
+| File | Changes |
+|------|---------|
 | `src/services/tests/default-filter-test.service.ts` | **NEW** - Integration test service |
-| `src/services/tests/TEST_CASES.md`                  | **NEW** - Test case documentation  |
+| `src/services/tests/TEST_CASES.md` | **NEW** - Test case documentation |
 
 ## Breaking Changes
 
 ### DrizzleFilterBuilder Renamed to FilterBuilder
 
 **Before:**
-
 ```typescript
 import { DrizzleFilterBuilder } from '@venizia/ignis';
 const builder = new DrizzleFilterBuilder();
 ```
 
 **After:**
-
 ```typescript
 import { FilterBuilder } from '@venizia/ignis';
 const builder = new FilterBuilder();
@@ -282,7 +274,6 @@ const builder = new FilterBuilder();
 ### FilterBuilder.build() Signature Changed
 
 **Before:**
-
 ```typescript
 filterBuilder.build({
   tableName: 'users',
@@ -295,7 +286,6 @@ filterBuilder.build({
 ```
 
 **After:**
-
 ```typescript
 // Relations and hidden properties resolved internally
 filterBuilder.build({
@@ -308,7 +298,6 @@ filterBuilder.build({
 ### TTransactionOption Deprecated
 
 **Before:**
-
 ```typescript
 import { TTransactionOption } from '@venizia/ignis';
 
@@ -316,7 +305,6 @@ class MyRepo extends AbstractRepository<Schema, Data, Persist, TTransactionOptio
 ```
 
 **After:**
-
 ```typescript
 import { IExtraOptions } from '@venizia/ignis';
 
@@ -376,7 +364,7 @@ export class User extends BaseEntity<typeof User.schema> {
   type: 'entity',
   settings: {
     defaultFilter: {
-      where: { deletedAt: null }, // or { isDeleted: false }
+      where: { deletedAt: null },  // or { isDeleted: false }
     },
   },
 })
@@ -390,7 +378,7 @@ await postRepo.find({ filter: { where: { published: true } } });
 await postRepo.updateById({
   id: postId,
   data: { deletedAt: null },
-  options: { shouldSkipDefaultFilter: true },
+  options: { shouldSkipDefaultFilter: true }
 });
 ```
 
@@ -420,7 +408,7 @@ export class Document extends BaseEntity<typeof Document.schema> {}
         isActive: true,
         expiresAt: { gt: new Date().toISOString() },
       },
-      limit: 50, // Prevent unbounded queries
+      limit: 50,  // Prevent unbounded queries
     },
   },
 })

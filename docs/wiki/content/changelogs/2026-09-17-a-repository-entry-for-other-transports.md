@@ -1,6 +1,6 @@
 ---
 title: A Repository Entry for Other Transports
-description: 'kernel/repository carries AbstractRepository, AbstractDataSource and the CRUD contract without the OpenAPI layer - 14.7 KB instead of 105 KB.'
+description: "kernel/repository carries AbstractRepository, AbstractDataSource and the CRUD contract without the OpenAPI layer - 14.7 KB instead of 105 KB."
 packages: ['@venizia/ignis-filter', '@venizia/ignis-kernel']
 ---
 
@@ -15,10 +15,10 @@ import { AbstractDataSource, AbstractRepository } from '@venizia/ignis-kernel/re
 import type { TFilter, TWhere } from '@venizia/ignis-kernel/repository';
 ```
 
-| Entry                                       | Browser bundle      |
-| ------------------------------------------- | ------------------- |
-| `base/repositories` through the root barrel | 105.3 KB gzipped    |
-| `@venizia/ignis-kernel/repository`          | **14.7 KB gzipped** |
+| Entry | Browser bundle |
+|---|---|
+| `base/repositories` through the root barrel | 105.3 KB gzipped |
+| `@venizia/ignis-kernel/repository` | **14.7 KB gzipped** |
 
 ## Why it exists
 

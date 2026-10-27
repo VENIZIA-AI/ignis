@@ -1,6 +1,6 @@
 ---
 title: enable Is Optional on Middleware Options, and devz codemod Names a Path It Cannot Read
-description: 'The enable field of the middleware options is optional (default true), the middleware types say what is installed, and devz codemod warns when a path you pass holds no source files.'
+description: "The enable field of the middleware options is optional (default true), the middleware types say what is installed, and devz codemod warns when a path you pass holds no source files."
 packages: ['@venizia/ignis-kernel', '@venizia/dev-configs']
 ---
 

@@ -23,11 +23,11 @@ Repository mode was chosen when two directories existed: the wiki content and th
 
 ## What changed
 
-| Symbol                   | Change                                                                                           | Package |
-| ------------------------ | ------------------------------------------------------------------------------------------------ | ------- |
-| `isRepositoryCheckout()` | Requires all three corpus directories AND a root `package.json` named `@venizia/ignis-workspace` | atlas   |
-| `WORKSPACE_PACKAGE_NAME` | New exported constant                                                                            | atlas   |
-| `resolveMode()`          | The explicit `--root` error names every marker a checkout needs                                  | atlas   |
+| Symbol | Change | Package |
+|---|---|---|
+| `isRepositoryCheckout()` | Requires all three corpus directories AND a root `package.json` named `@venizia/ignis-workspace` | atlas |
+| `WORKSPACE_PACKAGE_NAME` | New exported constant | atlas |
+| `resolveMode()` | The explicit `--root` error names every marker a checkout needs | atlas |
 
 - Inside the IGNIS checkout nothing changes: the manifest matches and every directory is there.
 - Anywhere else the server falls through to the corpus packaged with the release, which is what a consumer wants.

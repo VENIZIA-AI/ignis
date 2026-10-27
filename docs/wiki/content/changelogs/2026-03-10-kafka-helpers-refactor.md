@@ -26,7 +26,6 @@ Complete rewrite of Kafka producer, consumer, and admin helpers from passthrough
 ### 1. Removed passthrough methods on Producer
 
 **Before:**
-
 ```typescript
 const helper = KafkaProducerHelper.newInstance({ ... });
 await helper.send({ messages: [{ topic: 'orders', key: 'k1', value: 'v1' }] });
@@ -34,7 +33,6 @@ await helper.sendBatch({ topicMessages: [...] });
 ```
 
 **After:**
-
 ```typescript
 const helper = KafkaProducerHelper.newInstance({ ... });
 const producer = helper.getProducer();
@@ -44,7 +42,6 @@ await producer.send({ messages: [{ topic: 'orders', key: 'k1', value: 'v1' }] })
 ### 2. Removed passthrough methods on Consumer
 
 **Before:**
-
 ```typescript
 const helper = KafkaConsumerHelper.newInstance({ ... });
 await helper.eachMessage(['orders'], async (message) => { ... });
@@ -52,7 +49,6 @@ await helper.batchMessages(['orders'], async (batch) => { ... });
 ```
 
 **After:**
-
 ```typescript
 const helper = KafkaConsumerHelper.newInstance({ ... });
 const consumer = helper.getConsumer();
@@ -63,7 +59,6 @@ for await (const message of stream) { ... }
 ### 3. Removed passthrough methods on Admin
 
 **Before:**
-
 ```typescript
 const helper = KafkaAdminHelper.newInstance({ ... });
 await helper.createTopics({ topics: ['my-topic'], partitions: 3, replicas: 1 });
@@ -72,7 +67,6 @@ await helper.describeGroups({ groups: ['my-group'] });
 ```
 
 **After:**
-
 ```typescript
 const helper = KafkaAdminHelper.newInstance({ ... });
 const admin = helper.getAdmin();
@@ -82,7 +76,6 @@ await admin.createTopics({ topics: ['my-topic'], partitions: 3, replicas: 1 });
 ### 4. Removed callback options
 
 **Before:**
-
 ```typescript
 new KafkaProducerHelper({
   onConnected: () => console.log('connected'),
@@ -97,7 +90,6 @@ Use `@platformatic/kafka` event emitters directly on the underlying client.
 ### 5. Removed types and constants
 
 The following exports were removed:
-
 - `KafkaConfigResourceTypes` - use `@platformatic/kafka` directly
 - `IKafkaProduceMessage`, `IKafkaSendOptions`, `IKafkaConsumedMessage`, `IKafkaCommitOptions` - use `@platformatic/kafka` types
 - `IKafkaBaseOpts` - renamed to `IKafkaConnectionOptions`
@@ -139,12 +131,12 @@ New `constants.ts` with centralized defaults and enumerations:
 ```typescript
 import { KafkaDefaults, KafkaAcks, KafkaGroupProtocol } from '@venizia/ignis-helpers/kafka';
 
-KafkaDefaults.RETRIES; // 3
-KafkaDefaults.SESSION_TIMEOUT; // 30_000
-KafkaAcks.ALL; // -1
-KafkaAcks.isValid(-1); // true
-KafkaGroupProtocol.CLASSIC; // 'classic'
-KafkaGroupProtocol.isValid('classic'); // true
+KafkaDefaults.RETRIES          // 3
+KafkaDefaults.SESSION_TIMEOUT  // 30_000
+KafkaAcks.ALL                  // -1
+KafkaAcks.isValid(-1)          // true
+KafkaGroupProtocol.CLASSIC     // 'classic'
+KafkaGroupProtocol.isValid('classic') // true
 ```
 
 ### SASL & TLS Support
@@ -167,23 +159,23 @@ KafkaConsumerHelper.newInstance({
 
 ### Helpers Package (`packages/helpers`)
 
-| File                                          | Changes                                                                        |
-| --------------------------------------------- | ------------------------------------------------------------------------------ |
-| `src/modules/queue/kafka/common/constants.ts` | New file: `KafkaGroupProtocol`, `KafkaAcks`, `KafkaDefaults`                   |
-| `src/modules/queue/kafka/common/types.ts`     | Rewritten: pure types/interfaces, generic support, extends `ConnectionOptions` |
-| `src/modules/queue/kafka/common/index.ts`     | Updated: exports both `constants` and `types`                                  |
-| `src/modules/queue/kafka/producer.helper.ts`  | Rewritten: thin wrapper with generics (234 -> 104 lines)                       |
-| `src/modules/queue/kafka/consumer.helper.ts`  | Rewritten: thin wrapper with generics (447 -> 114 lines)                       |
-| `src/modules/queue/kafka/admin.helper.ts`     | Rewritten: thin wrapper (357 -> 68 lines)                                      |
-| `src/__tests__/kafka/kafka.test.ts`           | Rewritten: 45 tests covering construction, factory, getters, close, constants  |
-| `package.json`                                | Upgraded `@platformatic/kafka` to `^1.30.0`, fixed sub-path export             |
+| File | Changes |
+|------|---------|
+| `src/modules/queue/kafka/common/constants.ts` | New file: `KafkaGroupProtocol`, `KafkaAcks`, `KafkaDefaults` |
+| `src/modules/queue/kafka/common/types.ts` | Rewritten: pure types/interfaces, generic support, extends `ConnectionOptions` |
+| `src/modules/queue/kafka/common/index.ts` | Updated: exports both `constants` and `types` |
+| `src/modules/queue/kafka/producer.helper.ts` | Rewritten: thin wrapper with generics (234 -> 104 lines) |
+| `src/modules/queue/kafka/consumer.helper.ts` | Rewritten: thin wrapper with generics (447 -> 114 lines) |
+| `src/modules/queue/kafka/admin.helper.ts` | Rewritten: thin wrapper (357 -> 68 lines) |
+| `src/__tests__/kafka/kafka.test.ts` | Rewritten: 45 tests covering construction, factory, getters, close, constants |
+| `package.json` | Upgraded `@platformatic/kafka` to `^1.30.0`, fixed sub-path export |
 
 ### Docs Package (`packages/docs`)
 
-| File                                                   | Changes                                 |
-| ------------------------------------------------------ | --------------------------------------- |
-| `wiki/extensions/helpers/kafka/index.md`               | Rewritten to match new thin wrapper API |
-| `wiki/changelogs/2026-03-10-kafka-helpers-refactor.md` | This changelog                          |
+| File | Changes |
+|------|---------|
+| `wiki/extensions/helpers/kafka/index.md` | Rewritten to match new thin wrapper API |
+| `wiki/changelogs/2026-03-10-kafka-helpers-refactor.md` | This changelog |
 
 ## Migration Guide
 
