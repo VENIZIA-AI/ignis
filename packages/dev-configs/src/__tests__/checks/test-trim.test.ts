@@ -202,6 +202,21 @@ describe('test-controls', () => {
     expect(report.problems[2].message).toContain('does not exist');
   });
 
+  test('positive control: a negative fixture entry passes while the file exists and fails when it is gone', async () => {
+    const root = makeFolder({ 'fixtures/plain.service.ts': 'export class PlainService {}\n' });
+    const entries = [{ gate: 'scanner', file: 'fixtures/plain.service.ts', kind: 'file' as const }];
+
+    expect(await checkControls({ root, controls: entries })).toEqual({ checked: 1, problems: [] });
+
+    rmSync(join(root, 'fixtures/plain.service.ts'));
+    const report = await checkControls({ root, controls: entries });
+
+    expect(report.problems).toHaveLength(1);
+    expect(report.problems[0].message).toContain(
+      'negative fixture fixtures/plain.service.ts does not exist',
+    );
+  });
+
   test('the command: 0 when all are found, 1 when one is gone, 2 without a registry', async () => {
     const good = makeFolder({
       'x.test.ts': SOURCE,

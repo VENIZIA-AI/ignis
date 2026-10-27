@@ -89,6 +89,46 @@
       "file": "packages/dev-configs/src/__tests__/checks/test-trim.test.ts",
       "titlePattern": "^positive control",
       "min": 4
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/artifacts/__tests__/ignored.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/artifacts/services/abstract.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/artifacts/services/foreign.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/artifacts/services/plain.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/artifacts/services/unexported.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/auto/app/src/services/gamma.service.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/groups/core/src/services/empty-domain/readme.ts",
+      "kind": "file"
+    },
+    {
+      "gate": "artifact scanner (negative fixture)",
+      "file": "packages/boot/src/__tests__/fixtures/reexport/app/src/services/foreign.service.ts",
+      "kind": "file"
     }
   ]
 }
