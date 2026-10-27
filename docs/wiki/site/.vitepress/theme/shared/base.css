@@ -1,0 +1,98 @@
+/* The rules every wiki shares: the same selector and the same declarations in the style.css of VULCAN, IGNIS and ARDOR.
+ * Product-only rules stay in each wiki's style.css; edit this file in VULCAN, never in a copy. */
+
+.content-container {
+  max-width: 100% !important;
+}
+.VPHero .text {
+  font-size: 2rem !important;
+}
+
+.VPHero .VPImage {
+  max-width: 180px !important;
+  max-height: 180px !important;
+}
+
+@media (min-width: 640px) {
+  .VPHero .VPImage {
+    max-width: 200px !important;
+    max-height: 200px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .VPImage {
+    max-width: 240px !important;
+    max-height: 240px !important;
+  }
+}
+.guide-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+@media (min-width: 640px) {
+  .guide-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 960px) {
+  .guide-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.guide-card h3,
+.guide-card p {
+  text-decoration: none !important;
+}
+
+.guide-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.guide-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: var(--vp-c-text-1);
+}
+
+.guide-card p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--vp-c-text-2);
+}
+.roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.stage-header {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.stage-header h4 {
+  margin: 0 !important;
+  font-size: 1rem;
+  display: inline !important;
+  line-height: 24px;
+}
+
+.roadmap-stage > p {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.stage-desc {
+  font-size: 0.8rem;
+  color: var(--vp-c-text-2);
+}

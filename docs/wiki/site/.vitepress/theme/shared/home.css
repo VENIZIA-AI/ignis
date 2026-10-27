@@ -144,13 +144,21 @@
   align-items: center;
 }
 
+/* the headline runs the full width above the two columns */
+.vh .hero-head {
+  grid-column: 1 / -1;
+}
+.vh .hero-copy .lede {
+  margin-top: 0;
+}
+
 .vh .eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   margin-bottom: var(--space-5);
   color: var(--accent-text);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -164,8 +172,8 @@
 .vh h1 {
   margin: 0;
   color: var(--text-title);
-  /* two beats: one line each at 1440, at most three lines at 375 */
-  font-size: clamp(27px, 2.16vw + 18.9px, 48px);
+  /* two beats: one line each from 960 up, at most three lines at 375 */
+  font-size: clamp(27px, 6vw, 84px);
   font-weight: 500;
   line-height: 1.04;
   letter-spacing: -0.03em;
@@ -202,7 +210,7 @@
   max-width: 52ch;
   margin: calc(var(--space-5) * -1) 0 var(--space-6);
   color: var(--text-muted);
-  font: 500 12px/1.5 var(--font-mono);
+  font: 500 13px/1.5 var(--font-mono);
   letter-spacing: 0.02em;
 }
 
@@ -222,7 +230,7 @@
   padding: 8px 8px 8px 16px;
   border-bottom: 1px solid var(--win-stroke);
   color: var(--win-muted);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -232,7 +240,7 @@
   border-radius: var(--radius);
   background: transparent;
   color: var(--win-text);
-  font: 500 11px var(--font-mono);
+  font: 500 13px var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: pointer;
@@ -296,7 +304,7 @@
   border-right: 1px solid var(--win-stroke);
   background: transparent;
   color: var(--win-muted);
-  font: 500 12px var(--font-mono);
+  font: 500 13px var(--font-mono);
   cursor: pointer;
   transition: color 0.18s;
 }
@@ -353,7 +361,7 @@
   padding: 10px 20px;
   border-top: 1px solid var(--win-stroke);
   color: var(--win-muted);
-  font: 400 12px/1.5 var(--font-sans);
+  font: 400 13px/1.5 var(--font-sans);
 }
 .vh .win-note a {
   color: var(--win-text);
@@ -481,6 +489,7 @@
   color: var(--text-muted);
 }
 .vh .sec-head p {
+  max-width: 72ch;
   margin: var(--space-4) 0 0;
   font-size: 17px;
   line-height: 1.5;
@@ -517,7 +526,7 @@
   display: block;
   margin-top: var(--space-2);
   color: var(--text-muted);
-  font: 500 12px/1.3 var(--font-mono);
+  font: 500 13px/1.3 var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -555,7 +564,7 @@
 }
 .vh .cell .name {
   color: var(--accent-text);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -569,14 +578,14 @@
 }
 .vh .cell p {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
 }
 .vh .cell .more {
   margin-top: auto;
   padding-top: var(--space-3);
   color: var(--text-title);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -594,7 +603,7 @@
   border: 1px solid var(--stroke-strong);
   border-radius: var(--radius);
   color: var(--text-title);
-  font: 500 10px/1.2 var(--font-mono);
+  font: 500 13px/1.2 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -627,7 +636,7 @@
 }
 .vh .status th {
   color: var(--text-muted);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -658,7 +667,7 @@
   display: block;
   margin-bottom: var(--space-3);
   color: var(--accent-text);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
 }
 .vh .step h3 {
@@ -670,7 +679,7 @@
 }
 .vh .step p {
   margin: 0 0 var(--space-4);
-  font-size: 15px;
+  font-size: 16px;
 }
 .vh .step .win-panel {
   display: block;
@@ -679,7 +688,7 @@
   border-radius: var(--radius);
   background: var(--win-bg);
   color: var(--win-text);
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 14px 16px;
 }
 
@@ -710,7 +719,7 @@
   position: relative;
   padding: 7px 0 7px 22px;
   border-top: 1px solid var(--stroke);
-  font-size: 15px;
+  font-size: 16px;
 }
 .vh .fit li:first-child {
   border-top: 0;
@@ -735,7 +744,7 @@
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
   background: var(--surface);
-  font-size: 15px;
+  font-size: 16px;
 }
 .vh .maturity::before {
   content: 'Maturity';
@@ -744,7 +753,7 @@
   gap: 8px;
   margin-bottom: var(--space-2);
   color: var(--accent-text);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -760,7 +769,7 @@
   gap: var(--space-3);
   margin-top: var(--space-6);
   color: var(--text-muted);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -800,6 +809,16 @@
 }
 
 @media (max-width: 560px) {
+  /* the tabs wrap onto two lines instead of scrolling sideways */
+  .vh .win-bar {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .vh .win-tab {
+    flex: 1 1 auto;
+    border-bottom: 1px solid var(--win-stroke);
+    padding: 10px 12px;
+  }
   .vh .stat {
     border-right: 0;
     border-bottom: 1px solid var(--stroke);

@@ -47,7 +47,7 @@
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font: 500 11px var(--font-mono);
+  font: 500 13px var(--font-mono);
   letter-spacing: 0;
 }
 
@@ -105,11 +105,11 @@
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
   color: var(--text-muted);
-  font: 500 11px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
 }
 
 .VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key:first-child::after {
-  font: 500 11px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
 }
 
 .VPSocialLink {
@@ -225,7 +225,7 @@
   margin: 0 0 var(--space-2);
   padding: 4px 8px;
   color: var(--text-muted);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -301,7 +301,7 @@
   border: 1px solid var(--accent-text);
   border-radius: var(--radius);
   color: var(--accent-text);
-  font: 500 10px/1.2 var(--font-mono);
+  font: 500 13px/1.2 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }

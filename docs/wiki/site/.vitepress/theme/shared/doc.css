@@ -33,7 +33,7 @@
 html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 .VPSidebarItem.level-0 > .item > .link > .text {
   color: var(--text-muted);
-  font: 500 12px/1.4 var(--font-mono);
+  font: 500 13px/1.4 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -106,6 +106,12 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
   line-height: 1.65;
 }
 
+/* a line of running text holds about 85 characters at most, a comfortable measure; tables, code and callouts keep the column */
+.vp-doc p,
+.vp-doc li {
+  max-width: 72ch;
+}
+
 .vp-doc li::marker {
   color: var(--accent-text);
 }
@@ -135,7 +141,7 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
   border-radius: var(--radius);
   background: var(--bg-soft);
   color: var(--text-title);
-  font-size: 0.86em;
+  font-size: max(13px, 0.86em);
 }
 
 .vp-doc kbd {
@@ -179,7 +185,7 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 .vp-doc th {
   background: var(--bg-soft);
   color: var(--text-muted);
-  font: 500 12px/1.2 var(--font-mono);
+  font: 500 13px/1.2 var(--font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -219,13 +225,33 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 }
 
 .vp-doc div[class*='language-'] > span.lang {
-  font: 500 11px var(--font-mono);
+  font: 500 13px var(--font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .vp-doc .vp-code-group .tabs label {
-  font: 500 12px/48px var(--font-mono);
+  font: 500 13px/48px var(--font-mono);
+}
+
+/* on a phone a code block keeps the page margin and its radius instead of bleeding to the screen edge */
+@media (max-width: 639px) {
+  .vp-doc div[class*='language-'],
+  .vp-doc .vp-block {
+    margin-right: 0;
+    margin-left: 0;
+    border-radius: var(--radius);
+  }
+
+  .vp-doc .vp-code-group .tabs {
+    margin-right: 0;
+    margin-left: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .vp-doc .vp-code-group div[class*='language-'] {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
 }
 
 /* ---- callouts: flat, a full hairline in a muted tone of the kind's colour, a faint tint, and an
@@ -274,7 +300,7 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
   gap: 8px;
   margin: 0 0 6px;
   color: var(--text-title);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -323,7 +349,7 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 
 .VPDocFooter .pager-link .desc {
   color: var(--text-muted);
-  font: 500 12px/1 var(--font-mono);
+  font: 500 13px/1 var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -338,7 +364,7 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 /* the line height stays 32px: the default theme places the outline marker from it */
 .VPDocAsideOutline .outline-title {
   color: var(--text-muted);
-  font: 500 12px/32px var(--font-mono);
+  font: 500 13px/32px var(--font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -361,6 +387,11 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
 /* the default theme fades the outline into the bottom of the window with a fixed curtain; it would lie over the footer */
 .VPDoc .aside-curtain {
   display: none;
+}
+
+/* ---- the local bar of a narrow screen (its label is 13px, not the default 12) ---- */
+html .VPLocalNav .menu-text {
+  font-size: 13px;
 }
 
 /* ---- the local bar of a narrow screen ----------------------------------------------------------- */
