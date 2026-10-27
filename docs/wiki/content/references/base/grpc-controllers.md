@@ -57,7 +57,7 @@ bun add @connectrpc/connect-web
 ```
 
 > [!NOTE]
-> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. A compiled binary has no `node_modules` to resolve against and must pass the peer through `IGrpcComponentConfig.module` - see [Peer Dependency Loading](#peer-dependency-loading). `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
+> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis`. It is only loaded at runtime when a gRPC controller is configured, with `ModuleUtility.load` from the application's project root, as the ES module copy your own import gets. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `ModuleUtility.assertInstalled()`. A compiled binary has no `node_modules` to resolve against and must pass the peer through `IGrpcComponentConfig.module` (or `ModuleUtility.register`) - see [Peer Dependency Loading](#peer-dependency-loading). `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
 
 ### Protobuf Code Generation
 
@@ -467,9 +467,9 @@ The adapter needs two entry points:
 - `@connectrpc/connect` -- for `createConnectRouter`
 - `@connectrpc/connect/protocol` -- for `universalServerRequestFromFetch` and `universalServerResponseToFetch`
 
-By default it loads both at runtime using `createRequire` from the application's `node_modules`. That keeps the specifier invisible to `Bun.build`, so a consumer who never uses gRPC is not forced to install the peer.
+By default it loads both at runtime with `ModuleUtility.load`, resolved from the application's project root. That keeps the specifier invisible to `Bun.build`, so a consumer who never uses gRPC is not forced to install the peer.
 
-**A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so `createRequire` has nothing to resolve against. Hand the peer over through the component options instead - the static import is what embeds it in the binary:
+**A compiled application must pass `module`.** A `bun build --compile` binary ships without `node_modules`, so there is nothing to resolve against; registering both entry points with `ModuleUtility.register` works too. Hand the peer over through the component options instead - the static import is what embeds it in the binary:
 
 ```typescript
 import * as connect from '@connectrpc/connect';

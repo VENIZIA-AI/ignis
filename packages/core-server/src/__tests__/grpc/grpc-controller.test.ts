@@ -1,5 +1,9 @@
 import 'reflect-metadata';
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { afterAll, afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { ModuleUtility } from '@venizia/ignis-helpers';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseGrpcController } from '@/base/controllers/grpc/base';
@@ -403,5 +407,75 @@ describe('BaseGrpcController - interceptors from the component options', () => {
 
   test('no interceptors passes no router option', async () => {
     expect(await buildController()).toEqual({});
+  });
+});
+
+// The adapter loads its peers with `ModuleUtility.load`, so a peer the application registered satisfies it: the
+// same path as a compiled binary, with no `node_modules` to resolve against. The project root points at an empty
+// folder, where the old `createRequire` lookup found nothing.
+describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility', () => {
+  const PEERS = ['@connectrpc/connect', '@connectrpc/connect/protocol'];
+  const root = mkdtempSync(join(tmpdir(), 'ignis-grpc-peers-'));
+
+  afterEach(() => {
+    ModuleUtility.setProjectRoot({ projectRoot: process.cwd() });
+    const registry: Map<string, unknown> = Reflect.get(
+      globalThis,
+      Symbol.for('ignis:module-registry'),
+    );
+    for (const peer of PEERS) {
+      registry.delete(peer);
+    }
+  });
+
+  afterAll(() => {
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test('registered peers build the router when the project root holds no node_modules', async () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        this.defineRoute({
+          configs: { name: 'Method1', method: GRPC.Methods.UNARY },
+          handler: () => ({}),
+        });
+      }
+    }
+
+    const calls: string[] = [];
+    ModuleUtility.setProjectRoot({ projectRoot: root });
+    ModuleUtility.register({
+      modules: {
+        '@connectrpc/connect': {
+          createConnectRouter: () => {
+            calls.push('createConnectRouter');
+            return { service: () => calls.push('service'), handlers: [] } as AnyType;
+          },
+        },
+        '@connectrpc/connect/protocol': {
+          universalServerRequestFromFetch: (() => ({})) as AnyType,
+          universalServerResponseToFetch: (() => new Response()) as AnyType,
+        },
+      },
+    });
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    ctrl.service = {} as AnyType;
+    await ctrl.configure();
+
+    expect(calls).toEqual(['createConnectRouter', 'service']);
+    expect(ctrl.isConfigured).toBe(true);
+  });
+
+  test('with nothing registered and no node_modules, the error names the peer to install', async () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    ModuleUtility.setProjectRoot({ projectRoot: root });
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    const error = await ctrl.configure().catch((caught: unknown) => caught);
+
+    expect(String(error)).toContain("Please install '@connectrpc/connect'");
   });
 });

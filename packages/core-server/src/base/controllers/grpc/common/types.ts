@@ -7,9 +7,9 @@ import type { Env, Hono, Input, MiddlewareHandler, Next, Schema } from 'hono';
 
 /**
  * The ConnectRPC peer itself, handed over by an application that already holds it. A
- * `bun build --compile` binary carries no `node_modules`, so the `createRequire` fallback in
- * {@link GrpcRequestAdapter} has nothing to resolve against - passing the modules through the gRPC
- * component options is what a compiled application does instead. Both entry points are needed: the
+ * `bun build --compile` binary carries no `node_modules`, so the lookup {@link GrpcRequestAdapter} makes with
+ * `ModuleUtility.load` has nothing to resolve against - passing the modules through the gRPC
+ * component options (or `ModuleUtility.register`) is what a compiled application does instead. Both entry points are needed: the
  * adapter builds its router from `@connectrpc/connect` and converts requests with
  * `@connectrpc/connect/protocol`. Typed as the shape the adapter actually calls, so a wrong module
  * is a compile error rather than a boot crash.
