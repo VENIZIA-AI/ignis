@@ -116,5 +116,8 @@ export default {
   },
   atlas: {
     tagPattern: '<dir>-v<version>',
+    // The prebuilt index of this repository is signed with the private key in the Actions secret ATLAS_INDEX_KEY;
+    // this is its public half, which a reader that declares IGNIS as a source trusts (a key list, so a key can rotate).
+    index: { keys: ['sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q='] },
   },
 } satisfies VulcanConfig;
