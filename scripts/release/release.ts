@@ -18,6 +18,7 @@
 import { parseReleaseArgs, type TReleaseMode } from './release-args';
 import { NpmDistTags, ReleaseModes } from './release-constants';
 import { planFullSweep } from './release-plan';
+import { type IRunStatus, watchRun } from './release-watch';
 
 const WORKFLOW = 'package-release.yml';
 const BRANCH = 'develop';
@@ -262,20 +263,22 @@ const waitForNewRun = async (opts: { previousRunId: string }): Promise<string> =
   throw new Error('Dispatched, but no new workflow run appeared within two minutes.');
 };
 
-const waitForCompletion = async (opts: { runId: string }): Promise<string> => {
-  for (;;) {
-    const { stdout } = await run({
-      command: ['gh', 'run', 'view', opts.runId, '--json', 'status,conclusion'],
-    });
-
-    const { status, conclusion } = JSON.parse(stdout) as { status: string; conclusion: string };
-    if (status === 'completed') {
-      return conclusion;
-    }
-
-    await sleep(10_000);
-  }
-};
+/** Watches the run to its end. A run that waits for an approval is waited for, with no deadline, and said so once. */
+const waitForCompletion = (opts: { runId: string }): Promise<string> =>
+  watchRun({
+    view: async () => {
+      const { stdout } = await run({
+        command: ['gh', 'run', 'view', opts.runId, '--json', 'status,conclusion'],
+      });
+      return JSON.parse(stdout) as IRunStatus;
+    },
+    sleep,
+    onWaiting: () => {
+      console.log(
+        `  run ${opts.runId} is waiting for an approval in the Actions page - still watching, no time limit`,
+      );
+    },
+  });
 
 /**
  * A green workflow is not proof of a publish: a run can put a version on npm and still fail

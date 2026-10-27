@@ -129,6 +129,18 @@
       "gate": "artifact scanner (negative fixture)",
       "file": "packages/boot/src/__tests__/fixtures/reexport/app/src/services/foreign.service.ts",
       "kind": "file"
+    },
+    {
+      "gate": "release workflow guards",
+      "file": "scripts/release/__tests__/release-workflow.test.ts",
+      "titlePattern": "no violation|names every guard once",
+      "min": 2
+    },
+    {
+      "gate": "release driver waits for approval",
+      "file": "scripts/release/__tests__/release-watch.test.ts",
+      "titlePattern": "keeps waiting through a run that waits for approval",
+      "min": 1
     }
   ]
 }

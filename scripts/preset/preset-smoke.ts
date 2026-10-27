@@ -4,7 +4,8 @@
  * because of this repository's hoisted node_modules or a file the tarball dropped.
  * Usage: bun scripts/preset/preset-smoke.ts   (needs a build: the packed tarballs ship dist)
  *
- *   VULCAN_CMD  how to run VULCAN (default `bun x @venizia/vulcan@latest`)
+ *   VULCAN_CMD  how to run VULCAN (default: `bun x @venizia/vulcan@<the version this repository declares in
+ *               devDependencies>`, never `latest`)
  *   VULCAN_TGZ  comma-separated packed VULCAN tarballs, installed in place of the registry copies
  *               while the version `init --preset` needs is not on npm
  *   SMOKE_DOCKER=1  also builds the app image from .configs/builders/Dockerfile and runs it (needs docker)
@@ -22,7 +23,6 @@ import {
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 
-const DEFAULT_VULCAN_CMD = 'bun x @venizia/vulcan@latest';
 const PROJECT = 'demo';
 const BACKEND_DIR = 'services';
 const APP = 'core-api';
@@ -498,8 +498,25 @@ const assertStampBaked = (opts: { binary: string }): void => {
   }
 };
 
+/** VULCAN at the version this repository declares: the smoke must not run a release that came out after it. */
+export const defaultVulcanCommand = (opts: { root: string }): string => {
+  const manifest = JSON.parse(readFileSync(join(opts.root, 'package.json'), 'utf8')) as {
+    devDependencies?: Record<string, string>;
+  };
+  const version = manifest.devDependencies?.['@venizia/vulcan'];
+  if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
+    throw new Error(
+      `[preset-smoke] devDependencies['@venizia/vulcan'] must be an exact version to pin the smoke, found: ${version}`,
+    );
+  }
+
+  return `bun x @venizia/vulcan@${version}`;
+};
+
 const smoke = async (opts: { root: string; scratch: string }): Promise<void> => {
-  const vulcan = (process.env.VULCAN_CMD ?? DEFAULT_VULCAN_CMD).split(/\s+/).filter(Boolean);
+  const vulcan = (process.env.VULCAN_CMD ?? defaultVulcanCommand({ root: opts.root }))
+    .split(/\s+/)
+    .filter(Boolean);
   const tarballDir = join(opts.scratch, 'tgz');
   const presetDir = join(opts.scratch, 'preset');
   const workDir = join(opts.scratch, 'work');

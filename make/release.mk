@@ -12,7 +12,7 @@ preset-build:
 	@bun scripts/preset/vulcan-preset.ts
 
 # Creates an app from the packed preset in a temp folder and runs its checks. Needs a build.
-# VULCAN_CMD (default: bun x @venizia/vulcan@latest) and VULCAN_TGZ (comma-separated packed VULCAN
+# VULCAN_CMD (default: bun x @venizia/vulcan@<the version in package.json devDependencies>) and VULCAN_TGZ (comma-separated packed VULCAN
 # tarballs) are read by the script.
 preset-smoke:
 	@bun scripts/preset/preset-smoke.ts

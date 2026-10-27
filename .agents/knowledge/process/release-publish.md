@@ -12,6 +12,7 @@ tags: [process, release, ci]
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
+- [The two jobs and their guards](#the-two-jobs-and-their-guards)
 - [Steps](#steps)
 - [Related](#related)
 <!-- okf:generated:contents end -->
@@ -25,7 +26,8 @@ tags: [process, release, ci]
   workflow one package at a time in dependency order (dev-configs, inversion, filter, helpers, boot,
   kernel, connectors, core-worker, core-server), waits for each run, and reads the registry back
   before the next dispatch - a range that goes stale mid-flight fails the run. The script refuses an
-  unpushed or non-`develop` checkout because the workflow builds `origin/develop`.
+  unpushed or non-`develop` checkout because the workflow releases the commit it was dispatched on, and it waits
+  for a run that needs an approval with no time limit, saying so once (`scripts/release/release-watch.ts`).
 - A sweep without package names releases each package with source changes AND every package that depends on
   one, transitively (the plan says why): the published manifests pin internal dependencies exactly, so a
   package left behind keeps the old version and a consumer installs two copies. Naming packages releases
@@ -53,6 +55,21 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 ## The VULCAN preset
 
 `@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app` and `vulcan.presets.lib` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has two kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`) and `presets/lib` (`--lib <name>`, a shared library: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib also gets the app's `.configs/` and its lint and clean scripts at build time. `scripts/preset/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app` and `dist/presets/lib`, named by `vulcan.presets.app` and `vulcan.presets.lib`; the release workflow runs it after "Sync develop", so the preset names the release it ships in. `make preset-smoke` (`scripts/preset/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
+
+## The two jobs and their guards
+
+The workflow has two jobs. `test` holds no secret and has read-only permissions: it builds, runs the checks
+below and the package's unit tests (`make test-$PACKAGE`), and runs the preset smoke against the VULCAN
+version the repository declares in `devDependencies` (never `latest`). `release` `needs: test`, runs only
+from `develop` (`if: github.ref == 'refs/heads/develop'`), is the only job with `contents: write`, and is the
+only one that reads the registry token, in the publish and the dist-tag steps. Both check out
+`${{ github.sha }}`, the dispatched commit, never a branch name, and the run name carries it. Bun is an
+exact version and every action is pinned by a full commit with its tag in a comment.
+
+`scripts/release/release-workflow.ts` reads the workflow and names every guard that is missing;
+`scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
+expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
+mutation in that test, in the same pull request.
 
 ## Steps
 

@@ -1,5 +1,5 @@
 name: 'NPM Release'
-run-name: 'NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}'
+run-name: 'NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }} | commit: ${{ github.sha }}'
 
 on:
   workflow_dispatch:
@@ -59,6 +59,13 @@ on:
 # the new symbol, and release `helpers` first. Otherwise a consumer resolves the old tarball and dies
 # at runtime on a symbol that exists only in this repository.
 
+# Read-only by default. The job that pushes the release commit and the tag states its own write access;
+# the job that tests holds no secret and cannot write. The release publishes only when the `test` job
+# passed and only from develop, and every job works on the dispatched commit (`github.sha`), so the
+# tests, the run name and the publish all name the same code.
+permissions:
+  contents: read
+
 # One release at a time, repository-wide. A release mutates a shared branch and the registry, and
 # the packages form a dependency chain, so two runs must never interleave. `cancel-in-progress: false`
 # makes a second dispatch WAIT rather than kill a run that is mid-publish. GitHub keeps only one run
@@ -74,32 +81,40 @@ env:
   BUILD_MODE: ${{ github.event.inputs.build_mode }}
 
 jobs:
-  release:
-    name: NPM Release
+  # ---------------------------------------------------------------------------------------------
+  # TEST - no secret, no write access: everything that must pass before a version leaves the building.
+  # ---------------------------------------------------------------------------------------------
+  test:
+    name: Test
     runs-on: ubuntu-26.04
+    permissions:
+      contents: read
 
     steps:
       # -------------------------------------------------------------------------
       # SETUP
       # -------------------------------------------------------------------------
+      # SETUP
+      # -------------------------------------------------------------------------
+      # The dispatched commit, never a branch name: the tests, the run name and the publish see one commit.
       - name: Checkout
-        uses: actions/checkout@v6.0.3
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6.4.0
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: latest
-
-      - name: Setup Git
-        run: |
-          git config user.name "venizia-ci"
-          git config user.email "developer@venizia.ai"
+          bun-version: '1.4.4'
 
       # -------------------------------------------------------------------------
       # PREPARE
@@ -351,7 +366,106 @@ jobs:
       # Before the bump and the publish: a preset that cannot create a working app must not ship.
       - name: VULCAN preset smoke
         if: ${{ env.PACKAGE == 'core-server' }}
-        run: make preset-smoke
+        # The VULCAN version this repository declares, never `latest`.
+        run: |
+          VULCAN_CMD="bun x @venizia/vulcan@$(jq -r '.devDependencies["@venizia/vulcan"]' package.json)" make preset-smoke
+
+      # The package's own unit tests, before a version is cut. A package without a test target (`filter`) says so.
+      - name: Unit tests
+        run: |
+          if make -n test-$PACKAGE > /dev/null 2>&1; then
+            make test-$PACKAGE
+          else
+            echo "No test target for $PACKAGE"
+          fi
+
+  # ---------------------------------------------------------------------------------------------
+  # RELEASE - needs the test job, runs only from develop, and is the only job with write access.
+  # The registry token is read in the steps that publish or move a dist-tag, and nowhere else.
+  # ---------------------------------------------------------------------------------------------
+  release:
+    name: NPM Release
+    needs: test
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+
+    steps:
+      # -------------------------------------------------------------------------
+      # SETUP
+      # -------------------------------------------------------------------------
+      # The dispatched commit, never a branch name: the tests, the run name and the publish see one commit.
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      - name: Setup Git
+        run: |
+          git config user.name "venizia-ci"
+          git config user.email "developer@venizia.ai"
+
+      # -------------------------------------------------------------------------
+      # PREPARE
+      # -------------------------------------------------------------------------
+      - name: Get package info
+        run: |
+          # Map package input to actual folder path
+          case $PACKAGE in
+            *) PACKAGE_PATH="packages/$PACKAGE" ;;
+          esac
+
+          PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
+          CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
+
+          echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+
+          echo "┌─────────────────────────────────────────────────"
+          echo "│ Package:     $PACKAGE_NAME"
+          echo "│ Path:        $PACKAGE_PATH"
+          echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
+          echo "└─────────────────────────────────────────────────"
+
+      # BEFORE the install, and across the WHOLE workspace - not just the package being released.
+      #
+      # Before the install, because `force-update` rewrites the internal version ranges and an
+      # install that ran first has already resolved the OLD ones. When a sibling moves past a
+      # declared range, that range stops covering the workspace copy, so bun downloads the published
+      # tarball instead of linking the source tree, and the build silently type-checks against a
+      # package one release behind: 15 x TS2305 on `@venizia/ignis-helpers/core` cost one run.
+      #
+      # Across the whole workspace, because `bun install` resolves every member, so ANY package with
+      # a stale range fails the run - even one the release does not touch. A core-worker release died
+      # exactly that way, on a range belonging to core-server, six minutes after a connectors release
+      # made it stale. Only the released package's manifest is committed later; the rest are repaired
+      # in the runner and repaired again next time.
+      - name: Force update workspace
+        run: bun run --filter "@venizia/*" force-update "${{ github.event.inputs.dependencies_from == 'workspace' && 'workspace' || 'highest' }}"
+
+      - name: Install
+        run: bun install
+
+      # -------------------------------------------------------------------------
+      # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
+      # -------------------------------------------------------------------------
+      - name: Build
+        run: make $PACKAGE
 
       # -------------------------------------------------------------------------
       # VERSION & GIT
@@ -364,9 +478,6 @@ jobs:
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "TAG_NAME=$PACKAGE-v$NEW_VERSION" >> $GITHUB_ENV
           echo ">>> New version: $NEW_VERSION"
-
-      - name: Sync develop
-        run: git fetch origin && git checkout develop && git pull origin develop
 
       # The preset names the versions this release ships with, so it is written after the bump and
       # after the sync that brings in the chain's earlier releases.
@@ -443,12 +554,13 @@ jobs:
       # race or a permissions problem, a failed commit is an empty diff or a hook.
       - name: Push release
         run: |
-          # develop can move between the sync and this push - a human merge, or the previous package
-          # of a release chain. The version is already on the registry by now, so rebase and retry
-          # once instead of leaving develop behind a release that really happened.
-          git push origin develop || {
-            git pull --rebase origin develop
-            git push origin develop
+          # develop can move after the dispatch - a human merge. The version is already on the registry
+          # by now, so rebase the release commit onto the new tip and retry once instead of leaving
+          # develop behind a release that really happened.
+          git push origin HEAD:develop || {
+            git fetch origin develop
+            git rebase origin/develop
+            git push origin HEAD:develop
           }
 
           echo "IS_PUSHED=true" >> $GITHUB_ENV
