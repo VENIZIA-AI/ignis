@@ -7,7 +7,7 @@ import {
 } from '@/bun';
 import { ArtifactScanner } from '@/generator';
 import { afterAll, describe, expect, spyOn, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 
@@ -99,12 +99,23 @@ describe('GroupArtifactsResolver - a compiled tree with no compiled classes', ()
 });
 
 describe('ArtifactSources - one scan per package', () => {
+  // A copy of the fixture package with a cache of its own: the shared fixture's cache file is written by every
+  // other test file that scans it, and a write between the removal and the call below made the scan count 0.
+  const copy = mkdtempSync(join(tmpdir(), 'ignis-scan-once-'));
+
+  afterAll(() => {
+    rmSync(copy, { recursive: true, force: true });
+  });
+
   test('two groups of one package scan it once', () => {
+    cpSync(join(CORE, 'src'), join(copy, 'src'), { recursive: true });
+    cpSync(join(CORE, 'package.json'), join(copy, 'package.json'));
+    const site = join(copy, 'src', 'groups.ts');
     ArtifactSources.clear();
-    rmSync(ArtifactScanCache.location({ root: dirname(GROUPS_FILE) }), { force: true });
+    rmSync(ArtifactScanCache.location({ root: dirname(site) }), { force: true });
     const scan = spyOn(ArtifactScanner.prototype, 'scanWithReport');
-    ArtifactSources.folderArtifacts({ folder: 'inventory', site: GROUPS_FILE });
-    ArtifactSources.folderArtifacts({ folder: 'commerce', site: GROUPS_FILE });
+    ArtifactSources.folderArtifacts({ folder: 'inventory', site });
+    ArtifactSources.folderArtifacts({ folder: 'commerce', site });
     expect(scan).toHaveBeenCalledTimes(1);
     scan.mockRestore();
   });
