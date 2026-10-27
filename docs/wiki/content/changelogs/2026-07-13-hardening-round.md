@@ -1,7 +1,8 @@
 ---
 title: Security and Reliability Hardening - SQL Injection, Filter Scope, and 11 More Fixes
 description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results, plus ten other bugs in errors, logging, uploads, and boot.
-packages: ['@venizia/ignis', '@venizia/ignis-boot', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
+packages:
+  ['@venizia/ignis', '@venizia/ignis-boot', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-13
@@ -58,8 +59,8 @@ A framework-wide audit found a query path that built SQL by string-concatenating
 
 ```typescript
 await repository.deleteAll({ where: { status: 'archived' } }); // scoped - unchanged
-await repository.deleteAll({ options: { force: true } });      // whole collection - now explicit
-await repository.deleteAll({});                                 // now throws
+await repository.deleteAll({ options: { force: true } }); // whole collection - now explicit
+await repository.deleteAll({}); // now throws
 ```
 
 **2. Every constructor parameter of a container-instantiated class must carry `@inject`.**
@@ -72,13 +73,13 @@ an undecorated one
 
 Mixing decorated and undecorated constructor parameters was never supported. Decorate every parameter.
 
-| If you | Then |
-|---|---|
-| call `deleteAll({})` expecting a truncate | pass `options: { force: true }` |
-| have a constructor mixing `@inject` and plain parameters | decorate every parameter |
-| log errors with `%j` | switch to `%s` |
-| rely on `or: []` matching every row | it now matches none |
-| set `NODE_ENV=dev` and expected sanitized errors | use `alpha` or `staging` instead |
+| If you                                                   | Then                             |
+| -------------------------------------------------------- | -------------------------------- |
+| call `deleteAll({})` expecting a truncate                | pass `options: { force: true }`  |
+| have a constructor mixing `@inject` and plain parameters | decorate every parameter         |
+| log errors with `%j`                                     | switch to `%s`                   |
+| rely on `or: []` matching every row                      | it now matches none              |
+| set `NODE_ENV=dev` and expected sanitized errors         | use `alpha` or `staging` instead |
 
 ## Details
 
@@ -86,11 +87,11 @@ Mixing decorated and undecorated constructor parameters was never supported. Dec
 - The array-filter fix keeps operator names as framework constants (never user input). It binds only the values, preserving the previous element-type behavior via an explicit cast.
 - The uploads fix also removes a double-decode in the static-asset controller. That double-decode could turn an encoded `%2F` in a filename into a real path separator.
 
-| Metric | Value |
-|---|---|
-| Bugs closed | 13 |
-| SQL injections closed | 1 |
-| Tests passing | 2714 (inversion 96, helpers 1014, boot 81, core 1523) |
+| Metric                | Value                                                 |
+| --------------------- | ----------------------------------------------------- |
+| Bugs closed           | 13                                                    |
+| SQL injections closed | 1                                                     |
+| Tests passing         | 2714 (inversion 96, helpers 1014, boot 81, core 1523) |
 
 Zero lint findings and zero type errors span all four packages. All nine examples type-check. The dual CJS + ESM build of `inversion` is intact.
 

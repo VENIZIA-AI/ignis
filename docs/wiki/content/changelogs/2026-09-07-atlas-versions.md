@@ -81,12 +81,12 @@ The release commits already did. Nothing read them.
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `version` (MCP tool) | New | `@venizia/ignis-atlas` |
-| `changes` (MCP tool) | New | `@venizia/ignis-atlas` |
-| `releases.json` (generated) | New | `.agents/knowledge/reference` |
-| `make releases-gen`, `make releases-check` | New | Makefile |
+| Symbol                                     | Change | Package                       |
+| ------------------------------------------ | ------ | ----------------------------- |
+| `version` (MCP tool)                       | New    | `@venizia/ignis-atlas`        |
+| `changes` (MCP tool)                       | New    | `@venizia/ignis-atlas`        |
+| `releases.json` (generated)                | New    | `.agents/knowledge/reference` |
+| `make releases-gen`, `make releases-check` | New    | Makefile                      |
 
 One limit is worth knowing. A changelog file that names no package carries an empty `packages`, so a package filter never returns it - 9 files today. A window between two versions is keyed by commit position, so two releases of one day are still separable.
 

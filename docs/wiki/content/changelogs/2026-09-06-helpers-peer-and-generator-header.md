@@ -36,10 +36,10 @@ The first line of every generated index read `Regenerate: ignis-artifacts genera
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `peerDependencies["@hono/zod-openapi"]` | New, `^1.5.1` | helpers |
-| `ArtifactIndexEmitter.renderHeader()` | New static method | boot |
-| `ArtifactIndexEmitter.render()` | New required `command` option | boot |
-| `ArtifactIndexEmitter.HEADER` | Removed | boot |
-| `ArtifactIndexEmitter.DEFAULT_EXPORT_NAME` | New constant, `'GeneratedArtifacts'` | boot |
+| Symbol                                     | Change                               | Package |
+| ------------------------------------------ | ------------------------------------ | ------- |
+| `peerDependencies["@hono/zod-openapi"]`    | New, `^1.5.1`                        | helpers |
+| `ArtifactIndexEmitter.renderHeader()`      | New static method                    | boot    |
+| `ArtifactIndexEmitter.render()`            | New required `command` option        | boot    |
+| `ArtifactIndexEmitter.HEADER`              | Removed                              | boot    |
+| `ArtifactIndexEmitter.DEFAULT_EXPORT_NAME` | New constant, `'GeneratedArtifacts'` | boot    |

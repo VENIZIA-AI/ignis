@@ -1,6 +1,6 @@
 ---
 title: devz codemod --check Fails While a Model Is Left Untouched
-description: "devz codemod model-settings --check now exits 1 when a model is left untouched, not only when a file would change, and the codemod reports a @model with a variable argument or an aliased import instead of skipping it."
+description: 'devz codemod model-settings --check now exits 1 when a model is left untouched, not only when a file would change, and the codemod reports a @model with a variable argument or an aliased import instead of skipping it.'
 packages: ['@venizia/dev-configs']
 ---
 

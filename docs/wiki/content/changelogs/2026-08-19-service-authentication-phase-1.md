@@ -1,7 +1,8 @@
 ---
 title: Your Own Authentication Strategies, and Tokens That Say Who They Are For
 description: Register a strategy beyond jwt and basic, check aud and iss when verifying, and stamp them when issuing.
-packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
+packages:
+  ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-08-19
@@ -52,23 +53,29 @@ jwtOptions: {
 
 All three go together, so nothing is left half-renamed:
 
-| Removed | Use instead |
-|---|---|
-| `SwaggerComponent` | `ApiReferenceComponent` |
-| `ISwaggerOptions` | `IApiReferenceOptions` |
+| Removed                              | Use instead                                     |
+| ------------------------------------ | ----------------------------------------------- |
+| `SwaggerComponent`                   | `ApiReferenceComponent`                         |
+| `ISwaggerOptions`                    | `IApiReferenceOptions`                          |
 | `SwaggerBindingKeys.SWAGGER_OPTIONS` | `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` |
 
 ```ts
 // Before
 import { ISwaggerOptions, SwaggerBindingKeys, SwaggerComponent } from '@venizia/ignis';
 
-this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue({ /* ... */ });
+this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue({/* ... */});
 this.component(SwaggerComponent);
 
 // After
-import { ApiReferenceBindingKeys, ApiReferenceComponent, IApiReferenceOptions } from '@venizia/ignis';
+import {
+  ApiReferenceBindingKeys,
+  ApiReferenceComponent,
+  IApiReferenceOptions,
+} from '@venizia/ignis';
 
-this.bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue({ /* ... */ });
+this.bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue({
+  /* ... */
+});
 this.component(ApiReferenceComponent);
 ```
 
@@ -79,11 +86,11 @@ It is a rename only. `SwaggerBindingKeys.SWAGGER_OPTIONS` always held the same
 
 The compatibility aliases are gone rather than marked. Each is a pure rename with no behaviour attached:
 
-| Removed | Use instead | Package |
-|---|---|---|
-| `QueueHelper` | `SequentialQueueHelper` | helpers |
-| `TNodePostgresConnector` | `TRelationalConnector` | connectors |
-| `TNodePostgresTransactionConnector` | `TRelationalConnector` | connectors |
+| Removed                             | Use instead             | Package    |
+| ----------------------------------- | ----------------------- | ---------- |
+| `QueueHelper`                       | `SequentialQueueHelper` | helpers    |
+| `TNodePostgresConnector`            | `TRelationalConnector`  | connectors |
+| `TNodePostgresTransactionConnector` | `TRelationalConnector`  | connectors |
 
 `TRelationalConnector` covers both Postgres cases: `NodePgDatabase` and `PostgresJsDatabase` both extend `PgDatabase`, so the driver-specific aliases described a distinction that stopped existing when the relational tier went engine-neutral.
 
@@ -148,11 +155,11 @@ jose accepts a token whose `aud` **contains** the configured value. A token carr
 
 Every verification failure still surfaces as one `TOKEN_INVALID`, but the jose error survives on `cause` - `JWTClaimValidationFailed: unexpected "aud" claim value` rather than a generic "invalid or expired token". That distinction is the difference between an afternoon and a week during a fleet-wide rollout.
 
-| File | Package |
-|------|---------|
-| `src/base/auth/authenticate/common/constants.ts` | kernel |
-| `src/base/auth/authenticate/common/types.ts` | kernel |
-| `src/base/auth/authenticate/strategies/strategy-registry.ts` | kernel |
-| `src/base/auth/base/abstract-auth-registry.ts` | kernel |
-| `src/components/auth/authenticate/services/bearer/` | core |
-| `src/components/api-reference/` | core |
+| File                                                         | Package |
+| ------------------------------------------------------------ | ------- |
+| `src/base/auth/authenticate/common/constants.ts`             | kernel  |
+| `src/base/auth/authenticate/common/types.ts`                 | kernel  |
+| `src/base/auth/authenticate/strategies/strategy-registry.ts` | kernel  |
+| `src/base/auth/base/abstract-auth-registry.ts`               | kernel  |
+| `src/components/auth/authenticate/services/bearer/`          | core    |
+| `src/components/api-reference/`                              | core    |

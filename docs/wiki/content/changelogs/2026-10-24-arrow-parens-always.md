@@ -1,6 +1,6 @@
 ---
 title: Arrow Functions Always Carry Parentheses
-description: "The repository format sets arrowParens to always, so a single-parameter arrow is written (x) => x; the whole repository is reformatted once."
+description: 'The repository format sets arrowParens to always, so a single-parameter arrow is written (x) => x; the whole repository is reformatted once.'
 packages: []
 ---
 

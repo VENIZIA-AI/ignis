@@ -1,6 +1,6 @@
 ---
 title: The App Image Refuses .env Files in Its Build Context
-description: "The generated Dockerfile stops when a .env file reaches the build context, so secrets never land in a builder layer."
+description: 'The generated Dockerfile stops when a .env file reaches the build context, so secrets never land in a builder layer.'
 packages: ['@venizia/ignis']
 ---
 
@@ -19,11 +19,11 @@ packages: ['@venizia/ignis']
 
 ## Who is affected
 
-| You have | Do this |
-|---|---|
+| You have                                                                   | Do this                                                                                                                 |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | A project made by `vulcan init` with VULCAN 0.3.6 that builds an app image | Add `**/.env`, `**/.env.*` and `!**/.env.example` to the root `.dockerignore`. `vulcan doctor` 0.3.7 warns until you do |
-| An app made from `@venizia/ignis` 0.3.4 | Copy the guard into `.configs/builders/Dockerfile`, after `COPY --chown=bun . .`, or recreate the file from 0.3.5 |
-| A CI cache that ran a 0.3.4 image build with `.env` files present | Clear the builder cache and rotate those secrets |
+| An app made from `@venizia/ignis` 0.3.4                                    | Copy the guard into `.configs/builders/Dockerfile`, after `COPY --chown=bun . .`, or recreate the file from 0.3.5       |
+| A CI cache that ran a 0.3.4 image build with `.env` files present          | Clear the builder cache and rotate those secrets                                                                        |
 
 ```dockerfile
 COPY --chown=bun . .

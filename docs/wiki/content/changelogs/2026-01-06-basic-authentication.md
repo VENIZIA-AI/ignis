@@ -23,6 +23,7 @@ This release adds HTTP Basic Authentication support to the IGNIS authentication 
 **File:** `packages/core-server/src/components/auth/authenticate/strategies/basic.strategy.ts`
 
 New authentication strategy that:
+
 - Extracts credentials from `Authorization: Basic <base64>` header
 - Decodes base64-encoded `username:password` format
 - Verifies credentials using custom `verifyCredentials` function
@@ -33,6 +34,7 @@ New authentication strategy that:
 **File:** `packages/core-server/src/components/auth/authenticate/services/basic-token.service.ts`
 
 Service handling credential extraction and verification:
+
 - Parses `Authorization` header with `Basic` scheme
 - Decodes base64 credentials to `username:password`
 - Supports custom credential verification logic
@@ -69,7 +71,7 @@ import { BasicTokenService } from '@venizia/ignis';
 const verifyCredentials = async (username: string, password: string) => {
   const user = await userRepository.findOne({ where: { username } });
 
-  if (!user || !await comparePassword(password, user.passwordHash)) {
+  if (!user || !(await comparePassword(password, user.passwordHash))) {
     throw new HttpErrors.Unauthorized('Invalid credentials');
   }
 
@@ -89,12 +91,12 @@ curl -X GET http://api.example.com/users \
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/components/auth/authenticate/strategies/basic.strategy.ts` | New BasicAuthenticationStrategy |
-| `src/components/auth/authenticate/services/basic-token.service.ts` | New BasicTokenService |
-| `src/components/auth/authenticate/common/keys.ts` | Added STRATEGY_BASIC constant |
-| `src/components/auth/index.ts` | Export basic auth components |
+| File                                                               | Changes                         |
+| ------------------------------------------------------------------ | ------------------------------- |
+| `src/components/auth/authenticate/strategies/basic.strategy.ts`    | New BasicAuthenticationStrategy |
+| `src/components/auth/authenticate/services/basic-token.service.ts` | New BasicTokenService           |
+| `src/components/auth/authenticate/common/keys.ts`                  | Added STRATEGY_BASIC constant   |
+| `src/components/auth/index.ts`                                     | Export basic auth components    |
 
 ## Security Considerations
 

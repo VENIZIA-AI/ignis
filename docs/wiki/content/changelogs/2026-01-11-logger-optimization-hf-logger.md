@@ -49,6 +49,7 @@ class UserService {
 ```
 
 **Benefits:**
+
 - Clear method context in log output
 - Cached sub-loggers for performance
 - Consistent logging pattern across codebase
@@ -80,12 +81,12 @@ logger.log('info', MSG_ORDER_FILLED);
 
 **Performance Characteristics:**
 
-| Metric | Value |
-|--------|-------|
+| Metric      | Value                |
+| ----------- | -------------------- |
 | Log latency | ~100-300 nanoseconds |
-| Buffer size | 64K entries (16MB) |
-| Entry size | 256 bytes fixed |
-| Allocation | Zero in hot path |
+| Buffer size | 64K entries (16MB)   |
+| Entry size  | 256 bytes fixed      |
+| Allocation  | Zero in hot path     |
 
 ### Configurable File Rotation
 
@@ -97,12 +98,12 @@ logger.log('info', MSG_ORDER_FILLED);
 
 **Environment Variables:**
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `APP_ENV_LOGGER_FILE_FREQUENCY` | `1h` | Rotation frequency |
-| `APP_ENV_LOGGER_FILE_MAX_SIZE` | `100m` | Max file size before rotation |
-| `APP_ENV_LOGGER_FILE_MAX_FILES` | `5d` | Retention period (days) |
-| `APP_ENV_LOGGER_FILE_DATE_PATTERN` | `YYYYMMDD_HH` | Date pattern in filename |
+| Variable                           | Default       | Description                   |
+| ---------------------------------- | ------------- | ----------------------------- |
+| `APP_ENV_LOGGER_FILE_FREQUENCY`    | `1h`          | Rotation frequency            |
+| `APP_ENV_LOGGER_FILE_MAX_SIZE`     | `100m`        | Max file size before rotation |
+| `APP_ENV_LOGGER_FILE_MAX_FILES`    | `5d`          | Retention period (days)       |
+| `APP_ENV_LOGGER_FILE_DATE_PATTERN` | `YYYYMMDD_HH` | Date pattern in filename      |
 
 **Programmatic Configuration:**
 
@@ -119,10 +120,10 @@ const customLogger = defineCustomLogger({
         frequency: '24h',
         maxSize: '500m',
         maxFiles: '30d',
-        datePattern: 'YYYYMMDD'
-      }
-    }
-  }
+        datePattern: 'YYYYMMDD',
+      },
+    },
+  },
 });
 ```
 
@@ -151,6 +152,7 @@ APP_ENV_LOGGER_FORMAT=text
 **Problem:** Logger had per-call overhead from prefix formatting and method binding.
 
 **Solution:**
+
 - Pre-computed formatted prefix at construction
 - Static cache inside Logger class
 - Direct Winston method calls instead of bound methods
@@ -162,14 +164,16 @@ export class Logger {
   private readonly _formattedPrefix: string;
 
   private constructor(scope: string, logger: winston.Logger) {
-    this._formattedPrefix = `[${scope}] `;  // Pre-computed once
+    this._formattedPrefix = `[${scope}] `; // Pre-computed once
     this._logger = logger;
   }
 
   static get(scope: string): Logger {
     // Fast path with caching
     let cached = this.cache.get(scope);
-    if (cached) { return cached; }
+    if (cached) {
+      return cached;
+    }
     cached = new Logger(scope, applicationLogger);
     this.cache.set(scope, cached);
     return cached;
@@ -182,41 +186,42 @@ export class Logger {
 }
 ```
 
-| Scenario | Improvement |
-|----------|-------------|
-| Logger instantiation | ~5x faster (cached) |
-| Log method call | ~2x faster (no binding) |
-| Prefix formatting | ~3x faster (pre-computed) |
+| Scenario             | Improvement               |
+| -------------------- | ------------------------- |
+| Logger instantiation | ~5x faster (cached)       |
+| Log method call      | ~2x faster (no binding)   |
+| Prefix formatting    | ~3x faster (pre-computed) |
 
 ## Files Changed
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
+| File                                       | Changes                                                                   |
+| ------------------------------------------ | ------------------------------------------------------------------------- |
 | `src/helpers/logger/application-logger.ts` | Optimized Logger class with caching, `.for()` method, pre-computed prefix |
-| `src/helpers/logger/default-logger.ts` | Configurable file rotation options via env vars |
-| `src/helpers/logger/hf-logger.ts` | New HfLogger for zero-allocation logging |
-| `src/helpers/logger/index.ts` | Export HfLogger and HfLogFlusher |
-| `src/__tests__/logger/hf-logger.test.ts` | 50 comprehensive tests for HfLogger |
+| `src/helpers/logger/default-logger.ts`     | Configurable file rotation options via env vars                           |
+| `src/helpers/logger/hf-logger.ts`          | New HfLogger for zero-allocation logging                                  |
+| `src/helpers/logger/index.ts`              | Export HfLogger and HfLogFlusher                                          |
+| `src/__tests__/logger/hf-logger.test.ts`   | 50 comprehensive tests for HfLogger                                       |
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
+| File                                 | Changes                    |
+| ------------------------------------ | -------------------------- |
 | `src/helpers/inversion/container.ts` | Updated to use Logger type |
-| `src/base/middlewares/*.ts` | Updated imports for Logger |
+| `src/base/middlewares/*.ts`          | Updated imports for Logger |
 
 ### Documentation (`packages/docs`)
 
-| File | Changes |
-|------|---------|
-| `wiki/extensions/helpers/logger.md` | Complete documentation update |
+| File                                 | Changes                               |
+| ------------------------------------ | ------------------------------------- |
+| `wiki/extensions/helpers/logger.md`  | Complete documentation update         |
 | `wiki/extensions/helpers/network.md` | Updated with configuration interfaces |
 
 ## No Breaking Changes
 
 All changes are backward compatible:
+
 - `ApplicationLogger` is exported as a type alias for `Logger`
 - Existing code using `LoggerFactory.getLogger()` continues to work
 - New `.for()` method is additive
@@ -247,9 +252,9 @@ logger.log('debug', HfLogger.encodeMessage('Tick received'));
 
 ### Choose the Right Logger
 
-| Use Case | Logger |
-|----------|--------|
-| General application | `Logger` / `LoggerFactory` |
-| High-frequency trading | `HfLogger` |
-| Performance-critical paths | `HfLogger` |
-| Debug/development | `Logger` with `DEBUG=true` |
+| Use Case                   | Logger                     |
+| -------------------------- | -------------------------- |
+| General application        | `Logger` / `LoggerFactory` |
+| High-frequency trading     | `HfLogger`                 |
+| Performance-critical paths | `HfLogger`                 |
+| Debug/development          | `Logger` with `DEBUG=true` |

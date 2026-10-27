@@ -1,6 +1,6 @@
 ---
 title: The HTTP Connector Follows the Session and Keeps the Server's Errors
-description: "connectors/http gains per-request hooks, per-call headers and abort, and an error that is the one the server threw - including under error.rootKey. Ids and baseUrls that name the wrong route are refused."
+description: 'connectors/http gains per-request hooks, per-call headers and abort, and an error that is the one the server threw - including under error.rootKey. Ids and baseUrls that name the wrong route are refused.'
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -32,22 +32,22 @@ await products.find({ filter, options: { headers: { 'x-trace': id }, signal } })
 
 **Errors.** A server with `error.rootKey` wraps its error envelope, and the connector read every such failure as `core.system_error`. Set `errorRootKey` to the same key. The thrown error now carries:
 
-| Field | Value |
-|---|---|
-| `statusCode` | The response status |
-| `normalized.code`, `normalized.args`, `normalized.text` | The server's own. A server that sent no text (a proxy's HTML 502) reads as `HTTP 502` |
-| `extra` | The server's `extra`, with `requestId` added. A relaying server's own upstream id is kept as `upstreamRequestId` |
-| `cause` | The server's `details.cause` - a 422's per-field issues, `{ path, message, code }` |
-| `message` | The server's text, prefixed with the verb, status and path, for logs. The host and query are left out: a server that relays the error would send them to its own clients |
+| Field                                                   | Value                                                                                                                                                                    |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `statusCode`                                            | The response status                                                                                                                                                      |
+| `normalized.code`, `normalized.args`, `normalized.text` | The server's own. A server that sent no text (a proxy's HTML 502) reads as `HTTP 502`                                                                                    |
+| `extra`                                                 | The server's `extra`, with `requestId` added. A relaying server's own upstream id is kept as `upstreamRequestId`                                                         |
+| `cause`                                                 | The server's `details.cause` - a 422's per-field issues, `{ path, message, code }`                                                                                       |
+| `message`                                               | The server's text, prefixed with the verb, status and path, for logs. The host and query are left out: a server that relays the error would send them to its own clients |
 
 **Requests that named the wrong route.**
 
-| Before | Now |
-|---|---|
-| `deleteById({ id: '.' })` sent `DELETE /users/` - the bulk route, behind a router or proxy that ignores the trailing slash | An empty, `.` or `..` id throws 400 before any request |
-| `baseUrl: 'api'` followed the current page route; `'localhost:3000'` was taken as absolute | A `baseUrl` is absolute or starts with `/`; anything else throws at construction |
-| A `FormData` body went out as `application/json`, with no boundary, when a content-type was configured | A `FormData` body always carries the multipart content-type `fetch` writes |
-| An empty list body, a non-JSON answer or a bigint in a query threw a bare `SyntaxError` or `TypeError` | They throw an `ApplicationError` (500, 502, 400) |
+| Before                                                                                                                     | Now                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `deleteById({ id: '.' })` sent `DELETE /users/` - the bulk route, behind a router or proxy that ignores the trailing slash | An empty, `.` or `..` id throws 400 before any request                           |
+| `baseUrl: 'api'` followed the current page route; `'localhost:3000'` was taken as absolute                                 | A `baseUrl` is absolute or starts with `/`; anything else throws at construction |
+| A `FormData` body went out as `application/json`, with no boundary, when a content-type was configured                     | A `FormData` body always carries the multipart content-type `fetch` writes       |
+| An empty list body, a non-JSON answer or a bigint in a query threw a bare `SyntaxError` or `TypeError`                     | They throw an `ApplicationError` (500, 502, 400)                                 |
 
 **Readers.** `HttpResponseReader` is exported - `parseContentRange`, `readErrorEnvelope` and `readError` - for a client that talks to the same server without the connector.
 

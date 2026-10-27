@@ -1,7 +1,8 @@
 ---
 title: Dependencies at Their Latest, Eight Peer Majors Raised
-description: "Every floor at its newest release; ioredis 6, bullmq 6, nodemailer 10, mailgun.js 14, @scalar/hono-api-reference 0.12, meilisearch 0.62, node-vault 0.13, eslint-plugin-unicorn 78."
-packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-connectors', '@venizia/dev-configs']
+description: 'Every floor at its newest release; ioredis 6, bullmq 6, nodemailer 10, mailgun.js 14, @scalar/hono-api-reference 0.12, meilisearch 0.62, node-vault 0.13, eslint-plugin-unicorn 78.'
+packages:
+  ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-connectors', '@venizia/dev-configs']
 ---
 
 # Changelog - 2026-10-22
@@ -12,16 +13,16 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-connector
 
 **In one line.** Peer floors now ask for the newest major. Upgrade these in your app with IGNIS.
 
-| Peer | Was | Now | Watch for |
-|---|---|---|---|
-| `ioredis` | ^5 | ^6 | Node 20+; RESP3 on the wire, reply shapes unchanged (default `replyMapping: 'legacy'`) |
-| `bullmq` | ^5 | ^6 | Removed: `Queue#client`, repeatable jobs, `Job#discard`, `paused` state; `Worker#resume()` async |
-| `nodemailer` | ^8 | ^10 | Node 20+; TLS certificates validated for OAuth2 token and proxy requests |
-| `mailgun.js` | ^13 | ^14 | IP pools on the v3 API |
-| `@scalar/hono-api-reference` | ^0.11 | ^0.12 | None for IGNIS |
-| `meilisearch` | ^0.59 \|\| ^0.60 | ^0.62 | None for IGNIS |
-| `node-vault` | ^0.12 | ^0.13 | Behind `HTTPS_PROXY`, the proxy must allow `CONNECT` to Vault |
-| `eslint-plugin-unicorn` (dev-configs) | ^74 | ^78 | None for the presets |
+| Peer                                  | Was              | Now   | Watch for                                                                                        |
+| ------------------------------------- | ---------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| `ioredis`                             | ^5               | ^6    | Node 20+; RESP3 on the wire, reply shapes unchanged (default `replyMapping: 'legacy'`)           |
+| `bullmq`                              | ^5               | ^6    | Removed: `Queue#client`, repeatable jobs, `Job#discard`, `paused` state; `Worker#resume()` async |
+| `nodemailer`                          | ^8               | ^10   | Node 20+; TLS certificates validated for OAuth2 token and proxy requests                         |
+| `mailgun.js`                          | ^13              | ^14   | IP pools on the v3 API                                                                           |
+| `@scalar/hono-api-reference`          | ^0.11            | ^0.12 | None for IGNIS                                                                                   |
+| `meilisearch`                         | ^0.59 \|\| ^0.60 | ^0.62 | None for IGNIS                                                                                   |
+| `node-vault`                          | ^0.12            | ^0.13 | Behind `HTTPS_PROXY`, the proxy must allow `CONNECT` to Vault                                    |
+| `eslint-plugin-unicorn` (dev-configs) | ^74              | ^78   | None for the presets                                                                             |
 
 Every other floor sits at the newest release of its major.
 

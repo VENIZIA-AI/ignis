@@ -27,6 +27,7 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, plus ref
 **File:** `packages/dev-configs/tsconfig/tsconfig.base.json`
 
 **Before:**
+
 ```jsonc
 {
   "compilerOptions": {
@@ -35,12 +36,13 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, plus ref
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "downlevelIteration": true
-  }
+    "downlevelIteration": true,
+  },
 }
 ```
 
 **After:**
+
 ```jsonc
 {
   "compilerOptions": {
@@ -50,8 +52,8 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, plus ref
     "lib": ["ES2024"],
     "types": ["bun"],
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
-  }
+    "emitDecoratorMetadata": true,
+  },
 }
 ```
 
@@ -80,21 +82,21 @@ Corrected a connection-type mismatch that broke the helpers build, and added the
 
 ### Dev Configs (`packages/dev-configs`)
 
-| File | Changes |
-|------|---------|
-| `tsconfig/tsconfig.base.json` | ES2024 target/lib, `types: ["bun"]`, `ignoreDeprecations: "6.0"`, removed redundant interop/iteration options |
-| `tsconfig/tsconfig.common.json` | Aligned with TS6 |
-| `package.json` | `typescript@^6.0.2`, `no-useless-assignment` rule, release `0.0.7-x` |
+| File                            | Changes                                                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `tsconfig/tsconfig.base.json`   | ES2024 target/lib, `types: ["bun"]`, `ignoreDeprecations: "6.0"`, removed redundant interop/iteration options |
+| `tsconfig/tsconfig.common.json` | Aligned with TS6                                                                                              |
+| `package.json`                  | `typescript@^6.0.2`, `no-useless-assignment` rule, release `0.0.7-x`                                          |
 
 ### All Packages
 
-| File | Changes |
-|------|---------|
-| `packages/*/package.json` | `typescript` bumped to `^6.0.2` |
-| `packages/*/tsconfig*.json` | Inherit ES2024 base config |
+| File                                                              | Changes                               |
+| ----------------------------------------------------------------- | ------------------------------------- |
+| `packages/*/package.json`                                         | `typescript` bumped to `^6.0.2`       |
+| `packages/*/tsconfig*.json`                                       | Inherit ES2024 base config            |
 | `packages/core-server/src/components/mail/helpers/transporters/*` | Removed `validateModule` startup gate |
-| `packages/helpers/src/modules/redis/default.helper.ts` | Fixed redis connection type |
-| `packages/helpers/src/modules/queue/bullmq/helper.ts` | Fixed BullMQ connection type |
+| `packages/helpers/src/modules/redis/default.helper.ts`            | Fixed redis connection type           |
+| `packages/helpers/src/modules/queue/bullmq/helper.ts`             | Fixed BullMQ connection type          |
 
 ## No Breaking Changes
 

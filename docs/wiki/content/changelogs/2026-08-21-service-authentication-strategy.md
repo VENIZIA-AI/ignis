@@ -52,29 +52,29 @@ payload { "iss": "commerce", "aud": "pricing", "sub": "commerce",
 
 The callee checks, in order:
 
-| Check | What it stops |
-|---|---|
-| `iss` is a key of `callers` | An unknown service calling at all. The map **is** the allowlist |
-| Signature against `createRemoteJWKSet(callers[iss])` | Anyone without the caller's private key |
-| `audience` equals this service's `name` | A token minted for one service being replayed at another |
-| `typ` is `svc+jwt` | A user token being presented as a service assertion |
-| `algorithms: ['EdDSA']` | Algorithm confusion |
-| `htm` and `htu` match this request | A capture replayed against a different method or path |
+| Check                                                | What it stops                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------- |
+| `iss` is a key of `callers`                          | An unknown service calling at all. The map **is** the allowlist |
+| Signature against `createRemoteJWKSet(callers[iss])` | Anyone without the caller's private key                         |
+| `audience` equals this service's `name`              | A token minted for one service being replayed at another        |
+| `typ` is `svc+jwt`                                   | A user token being presented as a service assertion             |
+| `algorithms: ['EdDSA']`                              | Algorithm confusion                                             |
+| `htm` and `htu` match this request                   | A capture replayed against a different method or path           |
 
 `iss` is read unverified first, only to pick which key set to check the signature against. The same value is then enforced as the expected issuer, so a forged `iss` buys nothing beyond selecting the key set that rejects it.
 
 ## Options
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `name` | `string` | required | The `iss` this service stamps, and the `aud` it demands |
-| `resolvePrincipal` | `(opts) => IAuthUser \| null` | required | Which application principal a verified caller acts as. Return `null` to refuse |
-| `keys` | `{ driver, format, private, public, kid? }` | - | Present only on a service that calls out. Absent means verify-only, and no certs route |
-| `callers` | `Record<string, string \| { jwksUrl, acceptMaxAgeSeconds? }>` | `{}` | Caller name to its JWKS url. Also the allowlist |
-| `signLifetimeSeconds` | `number` | `60` | How long the assertions this service mints stay valid |
-| `acceptMaxAgeSeconds` | `number` | `60` | The oldest assertion this service accepts |
-| `clockToleranceSeconds` | `number` | `5` | Clock skew allowance |
-| `rest.path` | `string` | `/svc-certs` | Where the certs route is mounted |
+| Option                  | Type                                                          | Default      | Meaning                                                                                |
+| ----------------------- | ------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| `name`                  | `string`                                                      | required     | The `iss` this service stamps, and the `aud` it demands                                |
+| `resolvePrincipal`      | `(opts) => IAuthUser \| null`                                 | required     | Which application principal a verified caller acts as. Return `null` to refuse         |
+| `keys`                  | `{ driver, format, private, public, kid? }`                   | -            | Present only on a service that calls out. Absent means verify-only, and no certs route |
+| `callers`               | `Record<string, string \| { jwksUrl, acceptMaxAgeSeconds? }>` | `{}`         | Caller name to its JWKS url. Also the allowlist                                        |
+| `signLifetimeSeconds`   | `number`                                                      | `60`         | How long the assertions this service mints stay valid                                  |
+| `acceptMaxAgeSeconds`   | `number`                                                      | `60`         | The oldest assertion this service accepts                                              |
+| `clockToleranceSeconds` | `number`                                                      | `5`          | Clock skew allowance                                                                   |
+| `rest.path`             | `string`                                                      | `/svc-certs` | Where the certs route is mounted                                                       |
 
 ### The caller does not choose the window
 
@@ -95,10 +95,10 @@ Not for widening the window - for the opposite direction. Two machines never agr
 
 Widening the window for old tokens is the side effect - and it is why this is a security knob rather than an operational one. With the defaults there are **two** numbers, and they answer different questions:
 
-| | Seconds | Question it answers |
-|---|---|---|
-| Acceptance window | **65** | What does this machine accept? Age 64 passes, 65 does not |
-| Replay window | **70** | How long can a captured assertion be used? A caller running the full tolerance fast mints a token we accept 5s early, then keep accepting for another 64 |
+|                   | Seconds | Question it answers                                                                                                                                      |
+| ----------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Acceptance window | **65**  | What does this machine accept? Age 64 passes, 65 does not                                                                                                |
+| Replay window     | **70**  | How long can a captured assertion be used? A caller running the full tolerance fast mints a token we accept 5s early, then keep accepting for another 64 |
 
 Widening `clockToleranceSeconds` widens the second one second for second.
 
@@ -120,9 +120,9 @@ The JWK format cannot offer that: `importJWK` imports whatever it is handed, and
 
 An `iss` absent from `callers` is refused before any network call, so a caller name can never steer the key-set fetch at an arbitrary host. Membership is tested with `Object.hasOwn`, not a truthiness check - `iss: "constructor"` would otherwise walk a prototype-chain lookup straight past the allowlist.
 
-| File | Package |
-|------|---------|
-| `src/base/auth/authenticate/common/` | kernel |
-| `src/components/auth/authenticate/services/service/` | core |
-| `src/components/auth/authenticate/strategies/service.strategy.ts` | core |
-| `src/components/auth/authenticate/controllers/service-certs/` | core |
+| File                                                              | Package |
+| ----------------------------------------------------------------- | ------- |
+| `src/base/auth/authenticate/common/`                              | kernel  |
+| `src/components/auth/authenticate/services/service/`              | core    |
+| `src/components/auth/authenticate/strategies/service.strategy.ts` | core    |
+| `src/components/auth/authenticate/controllers/service-certs/`     | core    |

@@ -44,29 +44,29 @@ await application.start();
   empty report, so the fix is to delete the whole method, not just the `override` keyword (keeping
   an `override` with no base method to override is `TS4113`):
 
-  | File | Line | Site |
-  |---|---|---|
-  | `packages/search/src/migrations/bootstrap.ts` | 104 | `await app.boot();` |
-  | `packages/core/src/helpers/bootstraps/migration.ts` | 31 | `await application.boot();` |
-  | `packages/core/src/helpers/bootstraps/worker.ts` | 34 | `await application.boot();` |
-  | `packages/core/src/helpers/bootstraps/migration.ts` | 25 | `bootOptions: {}` |
-  | `packages/core/src/common/app-config.ts` | 15 | `bootOptions: {` |
-  | `packages/search/src/migrations/bootstrap.ts` | 61 | `override async boot()` |
-  | `packages/commerce/src/application.ts` | 169 | `override async boot()` |
-  | `packages/finance/src/application.ts` | 47 | `override async boot()` |
-  | `packages/helpdesk/src/application.ts` | 204 | `override async boot()` |
-  | `packages/identity/src/application.ts` | 100 | `override async boot()` |
-  | `packages/inventory/src/application.ts` | 121 | `override async boot()` |
-  | `packages/invoice/src/application.ts` | 113 | `override async boot()` |
-  | `packages/ledger/src/application.ts` | 83 | `override async boot()` |
-  | `packages/licensing/src/application.ts` | 36 | `override async boot()` |
-  | `packages/outreach/src/application.ts` | 20 | `override async boot()` |
-  | `packages/payment/src/application.ts` | 24 | `override async boot()` |
-  | `packages/pricing/src/application.ts` | 66 | `override async boot()` |
-  | `packages/sale/src/application.ts` | 161 | `override async boot()` |
-  | `packages/search/src/application.ts` | 68 | `override async boot()` |
-  | `packages/signal/src/application.ts` | 24 | `override async boot()` |
-  | `packages/taxation/src/application.ts` | 76 | `override async boot()` |
+  | File                                                | Line | Site                        |
+  | --------------------------------------------------- | ---- | --------------------------- |
+  | `packages/search/src/migrations/bootstrap.ts`       | 104  | `await app.boot();`         |
+  | `packages/core/src/helpers/bootstraps/migration.ts` | 31   | `await application.boot();` |
+  | `packages/core/src/helpers/bootstraps/worker.ts`    | 34   | `await application.boot();` |
+  | `packages/core/src/helpers/bootstraps/migration.ts` | 25   | `bootOptions: {}`           |
+  | `packages/core/src/common/app-config.ts`            | 15   | `bootOptions: {`            |
+  | `packages/search/src/migrations/bootstrap.ts`       | 61   | `override async boot()`     |
+  | `packages/commerce/src/application.ts`              | 169  | `override async boot()`     |
+  | `packages/finance/src/application.ts`               | 47   | `override async boot()`     |
+  | `packages/helpdesk/src/application.ts`              | 204  | `override async boot()`     |
+  | `packages/identity/src/application.ts`              | 100  | `override async boot()`     |
+  | `packages/inventory/src/application.ts`             | 121  | `override async boot()`     |
+  | `packages/invoice/src/application.ts`               | 113  | `override async boot()`     |
+  | `packages/ledger/src/application.ts`                | 83   | `override async boot()`     |
+  | `packages/licensing/src/application.ts`             | 36   | `override async boot()`     |
+  | `packages/outreach/src/application.ts`              | 20   | `override async boot()`     |
+  | `packages/payment/src/application.ts`               | 24   | `override async boot()`     |
+  | `packages/pricing/src/application.ts`               | 66   | `override async boot()`     |
+  | `packages/sale/src/application.ts`                  | 161  | `override async boot()`     |
+  | `packages/search/src/application.ts`                | 68   | `override async boot()`     |
+  | `packages/signal/src/application.ts`                | 24   | `override async boot()`     |
+  | `packages/taxation/src/application.ts`              | 76   | `override async boot()`     |
 
 ## Breaking changes
 
@@ -116,16 +116,16 @@ Migration:
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `BaseApplication.boot()`, `hasWarnedBootDeprecated` | Removed | core-server |
-| `BaseApplication implements IBootableApplication` | Removed | core-server |
-| `IBootOptions`, `IArtifactOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` | Removed | boot |
-| `IApplicationConfigs.bootOptions` | Removed | kernel |
-| `IApplicationBootOptions`, `IApplicationArtifactOptions` (kernel mirror) | Removed | kernel |
-| `BindingNamespaces.BOOTERS` | Removed | kernel |
-| `base/services/base-crud.ts` (dead `BaseCrudService` placeholder) | Removed | kernel |
-| `ArtifactScanner.scan()`'s `ignore` option | Fixed - now merges with `DEFAULT_IGNORE` instead of replacing it | boot |
+| Symbol                                                                                                                    | Change                                                           | Package     |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------- |
+| `BaseApplication.boot()`, `hasWarnedBootDeprecated`                                                                       | Removed                                                          | core-server |
+| `BaseApplication implements IBootableApplication`                                                                         | Removed                                                          | core-server |
+| `IBootOptions`, `IArtifactOptions`, `IBootReport`, `IBootPhaseReport`, `TBootPhase`, `BootPhases`, `IBootableApplication` | Removed                                                          | boot        |
+| `IApplicationConfigs.bootOptions`                                                                                         | Removed                                                          | kernel      |
+| `IApplicationBootOptions`, `IApplicationArtifactOptions` (kernel mirror)                                                  | Removed                                                          | kernel      |
+| `BindingNamespaces.BOOTERS`                                                                                               | Removed                                                          | kernel      |
+| `base/services/base-crud.ts` (dead `BaseCrudService` placeholder)                                                         | Removed                                                          | kernel      |
+| `ArtifactScanner.scan()`'s `ignore` option                                                                                | Fixed - now merges with `DEFAULT_IGNORE` instead of replacing it | boot        |
 
 `ArtifactScanner.scan()`'s `ignore` option merging instead of replacing was a latent bug caught while
 touching this file - nobody passes `--ignore` today, in this repo or in a consumer, so its blast radius is

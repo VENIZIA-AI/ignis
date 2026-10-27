@@ -22,10 +22,10 @@ Since the header started printing the real `--root`, `--out`, `--ignore` and `--
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `checkArtifactIndex()` | Compares everything below the first line; a missing file is still stale | boot |
-| `generateArtifactIndex()` | Unchanged: rewrites the file whenever any line differs, header included | boot |
+| Symbol                    | Change                                                                  | Package |
+| ------------------------- | ----------------------------------------------------------------------- | ------- |
+| `checkArtifactIndex()`    | Compares everything below the first line; a missing file is still stale | boot    |
+| `generateArtifactIndex()` | Unchanged: rewrites the file whenever any line differs, header included | boot    |
 
 ## Who is affected
 

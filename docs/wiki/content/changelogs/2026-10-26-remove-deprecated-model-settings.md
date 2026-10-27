@@ -1,6 +1,6 @@
 ---
 title: The Deprecated Model Settings Keys Are Removed
-description: "defaultFilter, defaultLimit, maxLimit and scopeFilter are gone from @model settings. A model that still uses one throws when the decorator runs. getScopeFilterSettings() is now getAccessSettings(). devz codemod model-settings rewrites the keys."
+description: 'defaultFilter, defaultLimit, maxLimit and scopeFilter are gone from @model settings. A model that still uses one throws when the decorator runs. getScopeFilterSettings() is now getAccessSettings(). devz codemod model-settings rewrites the keys.'
 packages: ['@venizia/ignis-kernel', '@venizia/ignis-connectors']
 ---
 
@@ -35,13 +35,13 @@ bunx devz codemod model-settings --check   # dry run that exits 1 if anything wo
 bun fmt && bun run typecheck               # tidy the formatting, then check
 ```
 
-| Old key | New key |
-|---|---|
-| `defaultFilter` | `query.filter` |
-| `defaultLimit` | `query.limit.default` |
-| `maxLimit` | `query.limit.max` |
-| `scopeFilter` | `access` |
-| `scopeFilter.writeGuard` | `access.write.mode` |
+| Old key                  | New key                   |
+| ------------------------ | ------------------------- |
+| `defaultFilter`          | `query.filter`            |
+| `defaultLimit`           | `query.limit.default`     |
+| `maxLimit`               | `query.limit.max`         |
+| `scopeFilter`            | `access`                  |
+| `scopeFilter.writeGuard` | `access.write.mode`       |
 | `scopeFilter.sharedRows` | `access.write.sharedRows` |
 
 The codemod prints, with file and line, any `settings` it cannot read for sure (a variable, a call, a spread) and leaves it alone; fix those by hand. See [Model Settings](/guides/core-concepts/persistent/model-settings) and [the 0.4.2 regrouping](/changelogs/2026-10-25-model-settings-query-access).

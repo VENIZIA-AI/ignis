@@ -14,14 +14,14 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **`defaultQueryBy` on the collection definition.** The sibling of `defaultSort`: that one says how a collection *sorts*, this one says what *searching it means*.
+- **`defaultQueryBy` on the collection definition.** The sibling of `defaultSort`: that one says how a collection _sorts_, this one says what _searching it means_.
 
   ```typescript
   defineSearchCollection({
     name: 'merchants',
     fields: [field.string('title'), field.string('description'), field.number('rating')],
-    defaultSort: 'rating',                     // how this collection sorts
-    defaultQueryBy: ['title', 'description'],  // what searching it means
+    defaultSort: 'rating', // how this collection sorts
+    defaultQueryBy: ['title', 'description'], // what searching it means
   });
   ```
 
@@ -39,25 +39,25 @@ packages: ['@venizia/ignis']
 
 **The fallback is deliberately narrow, and every narrowing does work:**
 
-| Case | `query_by` sent |
-|---|---|
-| keyword, real term, no caller `queryBy` | **the collection's default** |
-| keyword, real term, caller supplied `queryBy` | the caller's - a default never overrides |
-| keyword, term is `*`, blank, or absent | **none**, default declared or not |
-| semantic | unchanged - it carries `vectorField`, never `queryBy` |
-| hybrid | unchanged - its `queryBy` is **required** by the schema, so it is never absent |
-| `find()` | unchanged - it always searches `q = '*'` and never sets `query_by` |
+| Case                                          | `query_by` sent                                                                |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| keyword, real term, no caller `queryBy`       | **the collection's default**                                                   |
+| keyword, real term, caller supplied `queryBy` | the caller's - a default never overrides                                       |
+| keyword, term is `*`, blank, or absent        | **none**, default declared or not                                              |
+| semantic                                      | unchanged - it carries `vectorField`, never `queryBy`                          |
+| hybrid                                        | unchanged - its `queryBy` is **required** by the schema, so it is never absent |
+| `find()`                                      | unchanged - it always searches `q = '*'` and never sets `query_by`             |
 
-A `*` or blank term matches every document *regardless of field*, so naming fields for it means nothing - and a bare filter listing already reached the engine correctly as `q: '*'` with no `query_by`. A naive default would have broken exactly that, which is why it is a tested case rather than a remark.
+A `*` or blank term matches every document _regardless of field_, so naming fields for it means nothing - and a bare filter listing already reached the engine correctly as `q: '*'` with no `query_by`. A naive default would have broken exactly that, which is why it is a tested case rather than a remark.
 
 ## Details
 
-- **The type check lives in the DSL, not in an engine compiler** - a deliberate departure from `defaultSort`, whose numeric-scalar rule sits in the Typesense compiler. Two reasons. `default_sorting_field` is part of the *provisioned schema* and reaches a compiler; `defaultQueryBy` is a *per-query* parameter that reaches none, so deferring would mean it was checked nowhere and failed at query time as an engine error. And engines genuinely disagree about what is sortable, whereas "full-text matching needs text" is not an engine choice - the neutral vocabulary already names the two types that qualify.
+- **The type check lives in the DSL, not in an engine compiler** - a deliberate departure from `defaultSort`, whose numeric-scalar rule sits in the Typesense compiler. Two reasons. `default_sorting_field` is part of the _provisioned schema_ and reaches a compiler; `defaultQueryBy` is a _per-query_ parameter that reaches none, so deferring would mean it was checked nowhere and failed at query time as an engine error. And engines genuinely disagree about what is sortable, whereas "full-text matching needs text" is not an engine choice - the neutral vocabulary already names the two types that qualify.
 - **The default is resolved in the repository, never in the dialect.** The repository knows the entity; `applySearchInput` is collection-blind by design and receives a complete input. Threading the collection into the dialect would make the engine layer depend on the model layer to save one indirection.
 - **No page-depth or `maxOffset` member came along with it.** That is application policy, and this is one field.
 
-| File | Package |
-|------|---------|
-| `src/connectors/search/models/types.ts` | core |
-| `src/connectors/search/models/define-search-collection.ts` | core |
-| `src/connectors/search/repositories/core/readable.ts` | core |
+| File                                                       | Package |
+| ---------------------------------------------------------- | ------- |
+| `src/connectors/search/models/types.ts`                    | core    |
+| `src/connectors/search/models/define-search-collection.ts` | core    |
+| `src/connectors/search/repositories/core/readable.ts`      | core    |

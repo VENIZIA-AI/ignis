@@ -1,6 +1,6 @@
 ---
 title: A Guide to Model Settings
-description: "One guide page walks a multi-merchant Product through every @model setting: hiddenProperties, query, access with its write guard, limits and authorize. No code changes."
+description: 'One guide page walks a multi-merchant Product through every @model setting: hiddenProperties, query, access with its write guard, limits and authorize. No code changes.'
 packages: []
 ---
 

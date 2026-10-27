@@ -25,11 +25,13 @@ Adds pluggable field codecs to `AbstractBearerTokenService`, allowing consumers 
 ### 1. Default serialization changed from `String()` to `JSON.stringify`
 
 Fields without a codec are now serialized via `JSON.stringify` instead of `String()`. This means:
+
 - Strings are now JSON-quoted: `"hello"` → `'"hello"'` (encrypted form differs)
 - Numbers and booleans roundtrip correctly: `42` → `"42"` → `42` (previously stayed as string `"42"`)
 - Existing encrypted tokens using `String()` serialization **will fail to deserialize** under the new logic
 
 **Before:**
+
 ```typescript
 // String "hello" serialized as: hello
 // Number 42 serialized as: 42
@@ -37,6 +39,7 @@ Fields without a codec are now serialized via `JSON.stringify` instead of `Strin
 ```
 
 **After:**
+
 ```typescript
 // String "hello" serialized as: "hello" (JSON)
 // Number 42 serialized as: 42 (JSON)
@@ -48,6 +51,7 @@ Fields without a codec are now serialized via `JSON.stringify` instead of `Strin
 The built-in roles codec is no longer automatically applied. If you use AES payload encryption with the `roles` field, you must explicitly pass `ROLES_CODEC` in the `fieldCodecs` array.
 
 **Before:**
+
 ```typescript
 // ROLES_CODEC was automatically applied - no configuration needed
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
@@ -61,6 +65,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 ```
 
 **After:**
+
 ```typescript
 import { AuthenticationFieldCodecs } from '@venizia/ignis';
 
@@ -110,12 +115,17 @@ const rolesCodec = AuthenticationFieldCodecs.ROLES_CODEC;
 // Build a custom codec
 const permissionsCodec = AuthenticationFieldCodecs.build<string[]>({
   key: 'permissions',
-  serialize(opts) { return opts.value.join(','); },
-  deserialize(opts) { return opts.raw.split(','); },
+  serialize(opts) {
+    return opts.value.join(',');
+  },
+  deserialize(opts) {
+    return opts.raw.split(',');
+  },
 });
 ```
 
 **Benefits:**
+
 - Type-safe: generic `<T>` flows through serialize/deserialize
 - Reusable: codecs are plain objects, shareable across services
 - `build()` factory validates structure at the type level
@@ -137,8 +147,12 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       AuthenticationFieldCodecs.ROLES_CODEC,
       AuthenticationFieldCodecs.build<string[]>({
         key: 'permissions',
-        serialize(opts) { return opts.value.join(','); },
-        deserialize(opts) { return opts.raw.split(','); },
+        serialize(opts) {
+          return opts.value.join(',');
+        },
+        deserialize(opts) {
+          return opts.raw.split(',');
+        },
       }),
     ],
   },
@@ -173,16 +187,16 @@ protected deserializeField(opts: { key: string; value: string }) {
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/components/auth/authenticate/common/types.ts` | Added `IPayloadFieldCodec<T>` interface; added `fieldCodecs?: IPayloadFieldCodec[]` to `IJWSTokenServiceOptions`, `IJWKSIssuerOptions`, `IJWKSVerifierOptions` |
-| `src/components/auth/authenticate/common/codecs.ts` | New file - `AuthenticationFieldCodecs` class with `ROLES_CODEC` and `build()` factory |
-| `src/components/auth/authenticate/common/constants.ts` | Removed `ROLES_CODEC` (moved to `codecs.ts`) |
-| `src/components/auth/authenticate/common/index.ts` | Added `export * from './codecs'` |
-| `src/components/auth/authenticate/services/bearer/abstract.service.ts` | Added `fieldCodecs` Map; updated `configurePayloadEncryption` to accept codecs; extracted `serializeField`/`deserializeField` methods; symmetric JSON serialization |
-| `src/components/auth/authenticate/services/bearer/jws.service.ts` | Forwards `fieldCodecs` to `configurePayloadEncryption` |
-| `src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts` | Forwards `fieldCodecs` to `configurePayloadEncryption` |
-| `src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts` | Forwards `fieldCodecs` to `configurePayloadEncryption` |
+| File                                                                        | Changes                                                                                                                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/auth/authenticate/common/types.ts`                          | Added `IPayloadFieldCodec<T>` interface; added `fieldCodecs?: IPayloadFieldCodec[]` to `IJWSTokenServiceOptions`, `IJWKSIssuerOptions`, `IJWKSVerifierOptions`      |
+| `src/components/auth/authenticate/common/codecs.ts`                         | New file - `AuthenticationFieldCodecs` class with `ROLES_CODEC` and `build()` factory                                                                               |
+| `src/components/auth/authenticate/common/constants.ts`                      | Removed `ROLES_CODEC` (moved to `codecs.ts`)                                                                                                                        |
+| `src/components/auth/authenticate/common/index.ts`                          | Added `export * from './codecs'`                                                                                                                                    |
+| `src/components/auth/authenticate/services/bearer/abstract.service.ts`      | Added `fieldCodecs` Map; updated `configurePayloadEncryption` to accept codecs; extracted `serializeField`/`deserializeField` methods; symmetric JSON serialization |
+| `src/components/auth/authenticate/services/bearer/jws.service.ts`           | Forwards `fieldCodecs` to `configurePayloadEncryption`                                                                                                              |
+| `src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`   | Forwards `fieldCodecs` to `configurePayloadEncryption`                                                                                                              |
+| `src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts` | Forwards `fieldCodecs` to `configurePayloadEncryption`                                                                                                              |
 
 ## Migration Guide
 
@@ -214,7 +228,11 @@ If you had custom logic working around the old `String()` corruption (e.g., post
 ```typescript
 const myArrayCodec = AuthenticationFieldCodecs.build<string[]>({
   key: 'tags',
-  serialize(opts) { return JSON.stringify(opts.value); },
-  deserialize(opts) { return JSON.parse(opts.raw); },
+  serialize(opts) {
+    return JSON.stringify(opts.value);
+  },
+  deserialize(opts) {
+    return JSON.parse(opts.raw);
+  },
 });
 ```

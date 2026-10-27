@@ -26,6 +26,7 @@ isApplicationError(getError({ message: 'x', statusCode: 400 })); // true, as bef
 The guard now also requires `normalized` to be an object with a string `text`. It still tests shape, not class identity, so an `ApplicationError` from the other build copy (CJS against ESM) still matches.
 
 Inside IGNIS this also fixes three paths that trusted the guard:
+
 - A worker encoded such an error as an `ApplicationError` envelope with no `normalized`.
 - The search connectors and the mail service rethrew it unwrapped, instead of sanitizing it as a 503 or 500.
 

@@ -49,10 +49,10 @@ Each of the ten reads now treats a blank line as absent, whitespace included:
 blankToUndefined(process.env.APP_ENV_LOGGER_FORMAT) ?? 'text';
 ```
 
-| Where | Names |
-|-------|-------|
+| Where                    | Names                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- |
 | `@venizia/ignis-helpers` | `APPLICATION_ENV_PREFIX`, `APP_ENV_APPLICATION_TIMEZONE`, and five winston plus one pino logger settings |
-| `@venizia/ignis` | `APP_ENV_APPLICATION_NAME`, and every name the startup banner prints |
+| `@venizia/ignis`         | `APP_ENV_APPLICATION_NAME`, and every name the startup banner prints                                     |
 
 `blankToUndefined` is new, and exported - from the root barrel and from
 `@venizia/ignis-helpers/core`, since it is pure. It answers `undefined` for `undefined`, `''` and

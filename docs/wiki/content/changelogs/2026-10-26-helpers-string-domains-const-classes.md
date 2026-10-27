@@ -1,6 +1,6 @@
 ---
 title: Helpers, Inversion and Server String Options Are Const Classes
-description: "Fourteen string options in the inversion, helpers and server packages - error log level, field mapping type, AES algorithm, pattern tokens, TCP client state and more - are const classes with SCHEME_SET and isValid. The values are unchanged."
+description: 'Fourteen string options in the inversion, helpers and server packages - error log level, field mapping type, AES algorithm, pattern tokens, TCP client state and more - are const classes with SCHEME_SET and isValid. The values are unchanged.'
 packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis']
 ---
 
@@ -12,23 +12,23 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-helpers', '@venizia/ignis
 
 **In one line.** Options typed as a union of string literals are now a const class plus a `TConstValue` type, like `RepositoryTypes`. The values are the same, so existing code keeps compiling.
 
-| Option | Const class | Type | Values |
-|---|---|---|---|
-| `ApplicationError` `logLevel` (inversion) | `ErrorLogLevels` | `TErrorLogLevel` | `error`, `emerg`, `warn`, `info`, `debug` |
-| High-frequency logger level | `LogLevels` (already existed) | `THfLogLevel` | same five |
-| `IFieldMapping.type` | `FieldMappingDataTypes` | `TFieldMappingDataType` | `string`, `number`, `strings`, `numbers`, `boolean` |
-| `AES` cipher | `AESAlgorithms` | `AESAlgorithmType` | `aes-256-cbc`, `aes-256-gcm` |
-| pino file roll frequency | `PinoFrequencies` | `TFrequency` | `hourly`, `daily` |
-| Fetcher client | `FetcherVariants` | `TFetcherVariant` | `node-fetch`, `axios` |
-| BullMQ helper role | `BullQueueRoles` | `TBullQueueRole` | `queue`, `worker` |
-| TCP client state | `TcpClientStates` | `TTcpClientState` | `unauthorized`, `authenticating`, `authenticated` |
-| Kafka consumer, why every broker is gone | `KafkaBrokersDownReasons` | `TKafkaBrokersDownReason` | `disconnected`, `failed` |
-| `createContentDispositionHeader({ type })` | `ContentDispositionTypes` | `TContentDispositionType` | `attachment`, `inline` |
-| `parseMultipartBody({ storage })`, static-asset upload `storage` | `MultipartStorages` | `TMultipartStorage` | `memory`, `disk` |
-| Locale month and weekday name width | `TemporalNameWidths` | `TTemporalNameWidth` | `narrow`, `short`, `long` (months: `short`, `long`) |
-| Locale `writtenDate` style | `TemporalWrittenDateStyles` | `TTemporalWrittenDateStyle` | `numeric`, `long` |
-| Pattern dialect tokens | `PatternTokens` | `TPatternToken`, `TWriteOnlyToken` | the 27 tokens, 12 of them write-only |
-| Mail queue `backoff.type` (server) | `MailBackoffTypes` | `TMailBackoffType` | `fixed`, `exponential` |
+| Option                                                           | Const class                   | Type                               | Values                                              |
+| ---------------------------------------------------------------- | ----------------------------- | ---------------------------------- | --------------------------------------------------- |
+| `ApplicationError` `logLevel` (inversion)                        | `ErrorLogLevels`              | `TErrorLogLevel`                   | `error`, `emerg`, `warn`, `info`, `debug`           |
+| High-frequency logger level                                      | `LogLevels` (already existed) | `THfLogLevel`                      | same five                                           |
+| `IFieldMapping.type`                                             | `FieldMappingDataTypes`       | `TFieldMappingDataType`            | `string`, `number`, `strings`, `numbers`, `boolean` |
+| `AES` cipher                                                     | `AESAlgorithms`               | `AESAlgorithmType`                 | `aes-256-cbc`, `aes-256-gcm`                        |
+| pino file roll frequency                                         | `PinoFrequencies`             | `TFrequency`                       | `hourly`, `daily`                                   |
+| Fetcher client                                                   | `FetcherVariants`             | `TFetcherVariant`                  | `node-fetch`, `axios`                               |
+| BullMQ helper role                                               | `BullQueueRoles`              | `TBullQueueRole`                   | `queue`, `worker`                                   |
+| TCP client state                                                 | `TcpClientStates`             | `TTcpClientState`                  | `unauthorized`, `authenticating`, `authenticated`   |
+| Kafka consumer, why every broker is gone                         | `KafkaBrokersDownReasons`     | `TKafkaBrokersDownReason`          | `disconnected`, `failed`                            |
+| `createContentDispositionHeader({ type })`                       | `ContentDispositionTypes`     | `TContentDispositionType`          | `attachment`, `inline`                              |
+| `parseMultipartBody({ storage })`, static-asset upload `storage` | `MultipartStorages`           | `TMultipartStorage`                | `memory`, `disk`                                    |
+| Locale month and weekday name width                              | `TemporalNameWidths`          | `TTemporalNameWidth`               | `narrow`, `short`, `long` (months: `short`, `long`) |
+| Locale `writtenDate` style                                       | `TemporalWrittenDateStyles`   | `TTemporalWrittenDateStyle`        | `numeric`, `long`                                   |
+| Pattern dialect tokens                                           | `PatternTokens`               | `TPatternToken`, `TWriteOnlyToken` | the 27 tokens, 12 of them write-only                |
+| Mail queue `backoff.type` (server)                               | `MailBackoffTypes`            | `TMailBackoffType`                 | `fixed`, `exponential`                              |
 
 ## What changed
 

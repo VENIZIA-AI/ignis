@@ -1,6 +1,6 @@
 ---
 title: Const Values Stay Literal
-description: "TConstValue, TStringConstValue and TNumberConstValue no longer widen to string or number in an object literal, a let or an inferred generic. A test that compares one of these values with a plain string needs a type argument."
+description: 'TConstValue, TStringConstValue and TNumberConstValue no longer widen to string or number in an object literal, a let or an inferred generic. A test that compares one of these values with a plain string needs a type argument.'
 packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
@@ -20,7 +20,7 @@ class Periods {
 type TPeriod = TConstValue<typeof Periods>; // '12h' | '24h'
 
 const rows: { value: TPeriod }[] = [{ value: Periods.HALF_DAY }, { value: Periods.DAY }];
-const mapped = rows.map(row => ({ value: row.value }));
+const mapped = rows.map((row) => ({ value: row.value }));
 const typed: { value: TPeriod }[] = mapped; // compiled only after this fix
 ```
 

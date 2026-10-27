@@ -27,14 +27,14 @@ The guard turns that silent miss into a throw at class-initialization time, whic
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `BindingNamespaces.createNamespace()` | Throws on a name holding `.`, holding whitespace, or empty | kernel |
-| `BindingNamespaces.CONFIGURATION` | New. Resolves to `'configurations'` | kernel |
-| `TInferSchema<T>` | Constrains `T` to `z.ZodType`, previously `z.ZodTypeAny` | kernel |
-| `TCustomizableRouteConfig` | `response.schema` is `z.ZodType`, previously `z.ZodTypeAny` | kernel |
-| `defineSearchRouteConfigs()` | `selectSchema` is `z.ZodType`, previously `z.ZodTypeAny` | connectors |
-| `deriveSearchDocumentSchema()` | Returns `z.ZodType`, previously `z.ZodTypeAny` | connectors |
+| Symbol                                | Change                                                      | Package    |
+| ------------------------------------- | ----------------------------------------------------------- | ---------- |
+| `BindingNamespaces.createNamespace()` | Throws on a name holding `.`, holding whitespace, or empty  | kernel     |
+| `BindingNamespaces.CONFIGURATION`     | New. Resolves to `'configurations'`                         | kernel     |
+| `TInferSchema<T>`                     | Constrains `T` to `z.ZodType`, previously `z.ZodTypeAny`    | kernel     |
+| `TCustomizableRouteConfig`            | `response.schema` is `z.ZodType`, previously `z.ZodTypeAny` | kernel     |
+| `defineSearchRouteConfigs()`          | `selectSchema` is `z.ZodType`, previously `z.ZodTypeAny`    | connectors |
+| `deriveSearchDocumentSchema()`        | Returns `z.ZodType`, previously `z.ZodTypeAny`              | connectors |
 
 ## z.ZodTypeAny is gone from the public types
 

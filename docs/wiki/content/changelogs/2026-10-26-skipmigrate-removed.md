@@ -1,6 +1,6 @@
 ---
 title: skipMigrate Is Removed From @model
-description: "The deprecated skipMigrate key of @model is gone. The decorator throws on it and names the replacement, migration: { use: false }. devz codemod model-settings rewrites it. Ships in 0.4.4."
+description: 'The deprecated skipMigrate key of @model is gone. The decorator throws on it and names the replacement, migration: { use: false }. devz codemod model-settings rewrites it. Ships in 0.4.4.'
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -20,11 +20,11 @@ packages: ['@venizia/ignis-kernel']
 
 ## Who is affected
 
-| You wrote | Now |
-|---|---|
-| `@model({ skipMigrate: true })` | Throws. Write `migration: { use: false }`. |
-| `@model({ skipMigrate: false })` | Throws. Remove the key: `migration.use` is `true` by default. |
-| `@model({ migration: { use: false } })` | Works, as before. |
+| You wrote                                                   | Now                                                                  |
+| ----------------------------------------------------------- | -------------------------------------------------------------------- |
+| `@model({ skipMigrate: true })`                             | Throws. Write `migration: { use: false }`.                           |
+| `@model({ skipMigrate: false })`                            | Throws. Remove the key: `migration.use` is `true` by default.        |
+| `@model({ migration: { use: false } })`                     | Works, as before.                                                    |
 | Tooling that reads `metadata.skipMigrate` from the registry | Reads `undefined`. Read `metadata.migration?.use !== false` instead. |
 
 ## Migrate

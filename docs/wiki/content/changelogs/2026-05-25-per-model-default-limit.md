@@ -37,12 +37,10 @@ import { pgTable } from 'drizzle-orm/pg-core';
   settings: { defaultLimit: 200 }, // Default to 200 rows when no limit is given
 })
 export class Country extends BaseEntity<typeof Country.schema> {
-  static override schema = pgTable('Country', {
-    /* ... */
-  });
+  static override schema = pgTable('Country', {/* ... */});
 }
 
-await countryRepo.find({ filter: {} });            // LIMIT 200
+await countryRepo.find({ filter: {} }); // LIMIT 200
 await countryRepo.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
 ```
 
@@ -60,10 +58,10 @@ await productRepo.find({
 
 This builds on the [consistent default-limit work](/changelogs/2026-05-20-relation-scope-default-limit), which established a single resolution point for default limits, by making that default configurable per model.
 
-| File | Package |
-|------|---------|
-| `src/helpers/inversion/common/types.ts` | core |
-| `src/base/metadata/persistents.ts` | core |
-| `src/base/repositories/mixins/default-filter.ts` | core |
-| `src/base/repositories/core/readable.ts` | core |
-| `src/base/repositories/operators/filter.ts` | core |
+| File                                             | Package |
+| ------------------------------------------------ | ------- |
+| `src/helpers/inversion/common/types.ts`          | core    |
+| `src/base/metadata/persistents.ts`               | core    |
+| `src/base/repositories/mixins/default-filter.ts` | core    |
+| `src/base/repositories/core/readable.ts`         | core    |
+| `src/base/repositories/operators/filter.ts`      | core    |

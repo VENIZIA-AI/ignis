@@ -1,7 +1,8 @@
 ---
 title: Dependency floors raised across the chain, audit down to six accepted advisories
 description: Every catalog range moved to its latest compatible version, two Bun WebSocket mirror signatures narrowed for bun-types 1.4, and the six advisories that remain are named with the reason each one stays.
-packages: ['@venizia/ignis-boot', '@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers']
+packages:
+  ['@venizia/ignis-boot', '@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-04
@@ -52,11 +53,11 @@ socket.send(new Uint8Array(payload));
 
 The six advisories that remain, and why each one stays:
 
-| Advisory | Where | Why it stays |
-|---|---|---|
-| `decode-uri-component` <= 0.4.2 (DoS on malformed percent-encoding) | `minio` -> `query-string` 7 | every patched release is ESM-only and `minio` `require()`s it from CommonJS; an override breaks object storage at runtime. Exposure: `minio` builds these query strings itself. |
-| `stream-json` <= 3.4.0 (quadratic filters) | `minio` | patched releases are ESM-only and drop the `jsonl/Parser.js` path `minio` imports; `minio` never uses the affected `pick`/`ignore`/`filter`/`replace` filters. |
-| `esbuild` <= 0.24.2 (dev server CORS) | `vitepress` -> `vite` 5, `drizzle-kit` | dev-server only; a workspace-wide override would force `vite` 5 onto an `esbuild` it does not support. |
-| `vite` 5.4.x (three dev-server advisories) | `vitepress` 1.6.4 (latest) | the docs dev server only; `vitepress` has no release on `vite` 6 or later. |
+| Advisory                                                            | Where                                  | Why it stays                                                                                                                                                                    |
+| ------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `decode-uri-component` <= 0.4.2 (DoS on malformed percent-encoding) | `minio` -> `query-string` 7            | every patched release is ESM-only and `minio` `require()`s it from CommonJS; an override breaks object storage at runtime. Exposure: `minio` builds these query strings itself. |
+| `stream-json` <= 3.4.0 (quadratic filters)                          | `minio`                                | patched releases are ESM-only and drop the `jsonl/Parser.js` path `minio` imports; `minio` never uses the affected `pick`/`ignore`/`filter`/`replace` filters.                  |
+| `esbuild` <= 0.24.2 (dev server CORS)                               | `vitepress` -> `vite` 5, `drizzle-kit` | dev-server only; a workspace-wide override would force `vite` 5 onto an `esbuild` it does not support.                                                                          |
+| `vite` 5.4.x (three dev-server advisories)                          | `vitepress` 1.6.4 (latest)             | the docs dev server only; `vitepress` has no release on `vite` 6 or later.                                                                                                      |
 
 Re-run the audit with `bun audit`; the count must not grow past these six.

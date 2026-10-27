@@ -1,6 +1,6 @@
 ---
 title: An HTTP Connector
-description: "connectors/http reads an IGNIS REST server through the repository contract - same filter vocabulary in, same Content-Range envelope out, 12.8 KB with no SQL stack."
+description: 'connectors/http reads an IGNIS REST server through the repository contract - same filter vocabulary in, same Content-Range envelope out, 12.8 KB with no SQL stack.'
 packages: ['@venizia/ignis-connectors', '@venizia/ignis-filter']
 ---
 
@@ -26,9 +26,9 @@ const tickets = new HttpRepository<ITicket>({ dataSource, resource: 'tickets' })
 await tickets.find({ filter: { where: { status: 'open' }, limit: 20 } });
 ```
 
-| Entry | Browser bundle |
-|---|---|
-| `@venizia/ignis-connectors` | 144.2 KB gzipped |
+| Entry                            | Browser bundle                           |
+| -------------------------------- | ---------------------------------------- |
+| `@venizia/ignis-connectors`      | 144.2 KB gzipped                         |
 | `@venizia/ignis-connectors/http` | **12.8 KB gzipped** - no drizzle, no zod |
 
 ## Why a datasource

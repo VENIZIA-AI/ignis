@@ -26,7 +26,7 @@ await migrator.autoupdate();
 // Or with options
 await migrator.autoupdate({
   models: [User, Role], // Specific models only (optional)
-  dryRun: true,         // Preview SQL without executing
+  dryRun: true, // Preview SQL without executing
 });
 
 // Fresh start (destructive - use with caution)
@@ -35,11 +35,10 @@ await migrator.automigrate(); // Drops and recreates all tables
 
 ### Migration Behaviors
 
-| Method | Behavior | Data Loss |
-|--------|----------|-----------|
-| `autoupdate()` | Compares DB ↔ Model, applies ALTER statements | **No** |
-| `automigrate()` | Drops and recreates tables | **Yes** |
-
+| Method          | Behavior                                      | Data Loss |
+| --------------- | --------------------------------------------- | --------- |
+| `autoupdate()`  | Compares DB ↔ Model, applies ALTER statements | **No**    |
+| `automigrate()` | Drops and recreates tables                    | **Yes**   |
 
 ## Implementation Steps
 
@@ -268,15 +267,24 @@ export class TypeMapper {
     const type = column.dataType;
 
     switch (type) {
-      case 'string': return column.length ? `varchar(${column.length})` : 'text';
-      case 'number': return 'integer';
-      case 'bigint': return 'bigint';
-      case 'boolean': return 'boolean';
-      case 'date': return 'timestamp';
-      case 'json': return 'jsonb';
-      case 'uuid': return 'uuid';
-      case 'custom': return column.sqlName; // For custom types
-      default: return 'text';
+      case 'string':
+        return column.length ? `varchar(${column.length})` : 'text';
+      case 'number':
+        return 'integer';
+      case 'bigint':
+        return 'bigint';
+      case 'boolean':
+        return 'boolean';
+      case 'date':
+        return 'timestamp';
+      case 'json':
+        return 'jsonb';
+      case 'uuid':
+        return 'uuid';
+      case 'custom':
+        return column.sqlName; // For custom types
+      default:
+        return 'text';
     }
   }
 
@@ -345,7 +353,7 @@ export class SchemaMigrator {
     }
 
     // Create all tables fresh
-    const changes = schemas.map(schema => ({
+    const changes = schemas.map((schema) => ({
       type: 'CREATE_TABLE' as const,
       table: getTableConfig(schema).name,
       sql: this.generateCreateTable(schema),
@@ -357,18 +365,18 @@ export class SchemaMigrator {
   /** Get schemas from registry or specific models */
   private getSchemas(models?: Array<typeof BaseEntity>): PgTable[] {
     if (models) {
-      return models.map(m => m.schema);
+      return models.map((m) => m.schema);
     }
 
     const registry = MetadataRegistry.getInstance();
     const allModels = registry.getAllModels();
-    return [...allModels.values()].map(entry => entry.schema);
+    return [...allModels.values()].map((entry) => entry.schema);
   }
 
   /** Execute schema changes */
   private async executeChanges(
     changes: TSchemaChange[],
-    opts?: { verbose?: boolean }
+    opts?: { verbose?: boolean },
   ): Promise<IMigrationResult>;
 }
 ```
@@ -408,60 +416,56 @@ export abstract class BaseDataSource<...> {
 }
 ```
 
-
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `packages/core-server/src/base/datasources/migrator.ts` | Main SchemaMigrator class |
-| `packages/core-server/src/base/datasources/introspector.ts` | Database schema introspection |
-| `packages/core-server/src/base/datasources/differ.ts` | Schema comparison logic |
-| `packages/core-server/src/base/datasources/type-mapper.ts` | Drizzle ↔ PostgreSQL type mapping |
+| File                                                        | Purpose                           |
+| ----------------------------------------------------------- | --------------------------------- |
+| `packages/core-server/src/base/datasources/migrator.ts`     | Main SchemaMigrator class         |
+| `packages/core-server/src/base/datasources/introspector.ts` | Database schema introspection     |
+| `packages/core-server/src/base/datasources/differ.ts`       | Schema comparison logic           |
+| `packages/core-server/src/base/datasources/type-mapper.ts`  | Drizzle ↔ PostgreSQL type mapping |
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `packages/core-server/src/base/datasources/common/types.ts` | Add migration types and interfaces |
-| `packages/core-server/src/base/datasources/base.ts` | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
-| `packages/core-server/src/base/datasources/index.ts` | Export new classes |
-
+| File                                                        | Changes                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
+| `packages/core-server/src/base/datasources/common/types.ts` | Add migration types and interfaces                   |
+| `packages/core-server/src/base/datasources/base.ts`         | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
+| `packages/core-server/src/base/datasources/index.ts`        | Export new classes                                   |
 
 ## Drizzle to PostgreSQL Type Mapping
 
-| Drizzle | PostgreSQL | Notes |
-|---------|------------|-------|
-| `text()` | `text` | Variable-length string |
-| `varchar({ length })` | `varchar(n)` | Fixed max length |
-| `integer()` | `integer` | 32-bit signed |
-| `bigint()` | `bigint` | 64-bit signed |
-| `serial()` | `serial` | Auto-increment |
-| `boolean()` | `boolean` | true/false |
-| `timestamp()` | `timestamp` | Date and time |
-| `date()` | `date` | Date only |
-| `json()` | `json` | JSON storage |
-| `jsonb()` | `jsonb` | Binary JSON (indexed) |
-| `uuid()` | `uuid` | UUID type |
-| `numeric({ precision, scale })` | `numeric(p,s)` | Exact decimal |
-| `real()` | `real` | 32-bit float |
-| `doublePrecision()` | `double precision` | 64-bit float |
-
+| Drizzle                         | PostgreSQL         | Notes                  |
+| ------------------------------- | ------------------ | ---------------------- |
+| `text()`                        | `text`             | Variable-length string |
+| `varchar({ length })`           | `varchar(n)`       | Fixed max length       |
+| `integer()`                     | `integer`          | 32-bit signed          |
+| `bigint()`                      | `bigint`           | 64-bit signed          |
+| `serial()`                      | `serial`           | Auto-increment         |
+| `boolean()`                     | `boolean`          | true/false             |
+| `timestamp()`                   | `timestamp`        | Date and time          |
+| `date()`                        | `date`             | Date only              |
+| `json()`                        | `json`             | JSON storage           |
+| `jsonb()`                       | `jsonb`            | Binary JSON (indexed)  |
+| `uuid()`                        | `uuid`             | UUID type              |
+| `numeric({ precision, scale })` | `numeric(p,s)`     | Exact decimal          |
+| `real()`                        | `real`             | 32-bit float           |
+| `doublePrecision()`             | `double precision` | 64-bit float           |
 
 ## Change Detection Matrix
 
-| Change Type | Detection Method | SQL Generated |
-|-------------|------------------|---------------|
-| New table | Table not in DB | `CREATE TABLE` |
-| New column | Column not in DB | `ALTER TABLE ADD COLUMN` |
-| Removed column | Column not in model | `ALTER TABLE DROP COLUMN` |
-| Type change | Compare data_type | `ALTER TABLE ALTER COLUMN TYPE` |
-| Nullability | Compare is_nullable | `SET NOT NULL` / `DROP NOT NULL` |
-| Default change | Compare column_default | `SET DEFAULT` / `DROP DEFAULT` |
-| New FK | Constraint not in DB | `ADD CONSTRAINT ... FOREIGN KEY` |
-| Removed FK | Constraint not in model | `DROP CONSTRAINT` |
-| New index | Index not in DB | `CREATE INDEX` |
-| Removed index | Index not in model | `DROP INDEX` |
-
+| Change Type    | Detection Method        | SQL Generated                    |
+| -------------- | ----------------------- | -------------------------------- |
+| New table      | Table not in DB         | `CREATE TABLE`                   |
+| New column     | Column not in DB        | `ALTER TABLE ADD COLUMN`         |
+| Removed column | Column not in model     | `ALTER TABLE DROP COLUMN`        |
+| Type change    | Compare data_type       | `ALTER TABLE ALTER COLUMN TYPE`  |
+| Nullability    | Compare is_nullable     | `SET NOT NULL` / `DROP NOT NULL` |
+| Default change | Compare column_default  | `SET DEFAULT` / `DROP DEFAULT`   |
+| New FK         | Constraint not in DB    | `ADD CONSTRAINT ... FOREIGN KEY` |
+| Removed FK     | Constraint not in model | `DROP CONSTRAINT`                |
+| New index      | Index not in DB         | `CREATE INDEX`                   |
+| Removed index  | Index not in model      | `DROP INDEX`                     |
 
 ## Usage Examples
 
@@ -510,26 +514,24 @@ if (process.env.NODE_ENV === 'development') {
 }
 ```
 
-
 ## Safety Considerations
 
 ### autoupdate() Guarantees
 
-| Guarantee | Description |
-|-----------|-------------|
-| No table drops | Never drops tables, even if removed from models |
-| No data loss | Column drops are explicit (column must be removed from model) |
-| Transactional | Each ALTER runs in its own transaction |
-| Idempotent | Safe to run multiple times |
+| Guarantee      | Description                                                   |
+| -------------- | ------------------------------------------------------------- |
+| No table drops | Never drops tables, even if removed from models               |
+| No data loss   | Column drops are explicit (column must be removed from model) |
+| Transactional  | Each ALTER runs in its own transaction                        |
+| Idempotent     | Safe to run multiple times                                    |
 
 ### Dangerous Operations (Require Confirmation)
 
-| Operation | Risk | Mitigation |
-|-----------|------|------------|
-| `DROP COLUMN` | Data loss | Logged with warning |
-| `ALTER TYPE` | May fail if incompatible | Checks compatibility first |
-| `automigrate()` | Drops all tables | Requires `force: true` |
-
+| Operation       | Risk                     | Mitigation                 |
+| --------------- | ------------------------ | -------------------------- |
+| `DROP COLUMN`   | Data loss                | Logged with warning        |
+| `ALTER TYPE`    | May fail if incompatible | Checks compatibility first |
+| `automigrate()` | Drops all tables         | Requires `force: true`     |
 
 ## Future Enhancements
 
@@ -539,15 +541,14 @@ if (process.env.NODE_ENV === 'development') {
 4. **Multi-Schema Support** - Support for PostgreSQL schemas beyond `public`
 5. **MySQL/SQLite Support** - Extend beyond PostgreSQL
 
-
 ## Comparison with Alternatives
 
-| Feature | IGNIS Migrator | Drizzle Kit | LoopBack 4 |
-|---------|----------------|-------------|------------|
-| CLI required | No | Yes | No |
-| Auto-discovery | Yes (from @model) | No (manual schema file) | Yes |
-| Incremental updates | Yes | Yes | Yes |
-| Dry run | Yes | Yes | No |
-| Type safety | Full | Full | Partial |
-| Random file names | No | Yes | No |
-| Bidirectional | Planned | No | No |
+| Feature             | IGNIS Migrator    | Drizzle Kit             | LoopBack 4 |
+| ------------------- | ----------------- | ----------------------- | ---------- |
+| CLI required        | No                | Yes                     | No         |
+| Auto-discovery      | Yes (from @model) | No (manual schema file) | Yes        |
+| Incremental updates | Yes               | Yes                     | Yes        |
+| Dry run             | Yes               | Yes                     | No         |
+| Type safety         | Full              | Full                    | Partial    |
+| Random file names   | No                | Yes                     | No         |
+| Bidirectional       | Planned           | No                      | No         |

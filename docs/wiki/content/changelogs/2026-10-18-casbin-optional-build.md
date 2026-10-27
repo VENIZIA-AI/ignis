@@ -1,6 +1,6 @@
 ---
 title: An Application Without casbin Compiles Again
-description: "Bun.build of an application that imports @venizia/ignis but does not install the optional peer casbin no longer fails with Could not resolve: casbin."
+description: 'Bun.build of an application that imports @venizia/ignis but does not install the optional peer casbin no longer fails with Could not resolve: casbin.'
 packages: ['@venizia/ignis']
 ---
 

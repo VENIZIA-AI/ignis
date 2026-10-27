@@ -32,12 +32,12 @@ const commerceSchema = pgSchema('commerce');
 
 @model({ type: 'entity' })
 export class MetaLinkModel extends BaseRelationalEntity<typeof MetaLinkModel.schema> {
-  static override schema = commerceSchema.table('MetaLink', { /* the MetaLink columns */ });
+  static override schema = commerceSchema.table('MetaLink', {/* the MetaLink columns */});
 }
 
 this.bind<TStaticAssetsComponentOptions<typeof MetaLinkModel.schema>>({
   key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({ /* ... */ });
+}).toValue({/* ... */});
 ```
 
 The new constraint is `TMetaLinkCompatibleSchema`: any table whose row carries the MetaLink fields.
@@ -69,7 +69,7 @@ error TS2345: Argument of type 'typeof StaticAssetComponent' is not assignable t
 `StaticAssetComponent<Schema>` carries the table now, so both paths take a namespaced table:
 
 ```ts
-application.component(StaticAssetComponent, { options: { assets: { /* ... */ } } });
+application.component(StaticAssetComponent, { options: { assets: {/* ... */} } });
 ```
 
 Inside the controller factory the table type is erased on purpose: every read and write there is on

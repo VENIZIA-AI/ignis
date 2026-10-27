@@ -27,6 +27,7 @@ This update adds strict validation to the `@repository` decorator and fixes seve
 ### 1. Repository Constructor Signature
 
 **Before:**
+
 ```typescript
 constructor(opts: {
   entityClass: TClass<BaseEntity<EntitySchema>>;
@@ -36,6 +37,7 @@ constructor(opts: {
 ```
 
 **After:**
+
 ```typescript
 constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> })
 ```
@@ -43,6 +45,7 @@ constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySch
 ### 2. @repository Decorator Requirements
 
 **Before:**
+
 ```typescript
 // Would silently fail to register model
 @repository({ model: User })
@@ -50,6 +53,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ```
 
 **After:**
+
 ```typescript
 // Throws Error: Invalid metadata | Missing 'dataSource'
 @repository({ model: User })
@@ -63,6 +67,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 ### 3. Constructor Parameter Type
 
 **Before:**
+
 ```typescript
 constructor(
   @inject({ key: 'datasources.PostgresDataSource' })
@@ -71,6 +76,7 @@ constructor(
 ```
 
 **After:**
+
 ```typescript
 constructor(
   @inject({ key: 'datasources.PostgresDataSource' })
@@ -81,12 +87,14 @@ constructor(
 ### 4. Filter Column Validation
 
 **Before:**
+
 ```typescript
 // Silently ignored 'invalidColumn'
 await repo.find({ filter: { where: { invalidColumn: 'value' } } });
 ```
 
 **After:**
+
 ```typescript
 // Error: [toWhere] Table: User | Column NOT FOUND | key: 'invalidColumn'
 await repo.find({ filter: { where: { invalidColumn: 'value' } } });
@@ -129,6 +137,7 @@ export class PostgresDataSource extends BaseDataSource<...> {
 ```
 
 **Benefits:**
+
 - Maximum database compatibility with `text` column type
 - Customizable ID generation (UUID, nanoid, cuid, etc.)
 - Application-level ID generation via `$defaultFn()`
@@ -157,8 +166,8 @@ await repo.find({ filter: { where: { name: { IREGEXP: '^john' } } } });
 await repo.create({
   data: { name: 'John' },
   options: {
-    log: { use: true, level: 'debug' }
-  }
+    log: { use: true, level: 'debug' },
+  },
 });
 ```
 
@@ -168,7 +177,7 @@ await repo.create({
 
 **Vulnerability:** Empty `IN` arrays would return `true`, bypassing security filters.
 
-**Fix:** Empty `IN` arrays now return `sql\`false\``. 
+**Fix:** Empty `IN` arrays now return `sql\`false\``.
 
 ```typescript
 // Before: WHERE id IN () => true (bypass)
@@ -191,26 +200,26 @@ await repo.find({ filter: { where: { age: { BETWEEN: [10] } } } });
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/base/models/base.ts` | Static schema/relations support, IEntity interface |
-| `src/base/models/common/types.ts` | IEntity interface definition |
-| `src/base/models/enrichers/id.enricher.ts` | Text column with customizable ID generator |
-| `src/base/repositories/core/base.ts` | Constructor signature change, relations auto-resolution |
-| `src/base/repositories/core/readable.ts` | Constructor change, getQueryInterface validation |
-| `src/base/repositories/core/persistable.ts` | Constructor change, log option, TypeScript overloads |
-| `src/base/repositories/operators/filter.ts` | Column validation, error throwing |
-| `src/base/repositories/operators/query.ts` | REGEXP/IREGEXP fix, BETWEEN validation, IN empty array fix |
-| `src/base/datasources/base.ts` | Schema auto-discovery feature |
-| `src/base/metadata/persistents.ts` | Repository decorator validation, constructor type validation |
+| File                                        | Changes                                                      |
+| ------------------------------------------- | ------------------------------------------------------------ |
+| `src/base/models/base.ts`                   | Static schema/relations support, IEntity interface           |
+| `src/base/models/common/types.ts`           | IEntity interface definition                                 |
+| `src/base/models/enrichers/id.enricher.ts`  | Text column with customizable ID generator                   |
+| `src/base/repositories/core/base.ts`        | Constructor signature change, relations auto-resolution      |
+| `src/base/repositories/core/readable.ts`    | Constructor change, getQueryInterface validation             |
+| `src/base/repositories/core/persistable.ts` | Constructor change, log option, TypeScript overloads         |
+| `src/base/repositories/operators/filter.ts` | Column validation, error throwing                            |
+| `src/base/repositories/operators/query.ts`  | REGEXP/IREGEXP fix, BETWEEN validation, IN empty array fix   |
+| `src/base/datasources/base.ts`              | Schema auto-discovery feature                                |
+| `src/base/metadata/persistents.ts`          | Repository decorator validation, constructor type validation |
 
 ### Examples (`examples/vert`)
 
-| File | Changes |
-|------|---------|
-| `src/repositories/user.repository.ts` | Updated to proper types |
-| `src/repositories/configuration.repository.ts` | Updated patterns |
-| `src/datasources/postgres.datasource.ts` | Using auto-discovery |
+| File                                           | Changes                 |
+| ---------------------------------------------- | ----------------------- |
+| `src/repositories/user.repository.ts`          | Updated to proper types |
+| `src/repositories/configuration.repository.ts` | Updated patterns        |
+| `src/datasources/postgres.datasource.ts`       | Using auto-discovery    |
 
 ## Migration Guide
 
@@ -231,9 +240,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 // Option B: With explicit constructor
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) ds: PostgresDataSource,
-  ) {
+  constructor(@inject({ key: 'datasources.PostgresDataSource' }) ds: PostgresDataSource) {
     super(ds); // Just pass dataSource
   }
 }
@@ -250,5 +257,6 @@ Ensure all `@repository` decorators have both `model` and `dataSource`.
 ### Step 3: REGEXP Migration (PostgreSQL Users)
 
 Replace MySQL-style REGEXP with PostgreSQL syntax:
+
 - `REGEXP` → uses `~` (case-sensitive)
 - `IREGEXP` → uses `~*` (case-insensitive)

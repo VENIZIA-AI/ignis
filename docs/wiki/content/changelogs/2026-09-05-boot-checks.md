@@ -48,11 +48,11 @@ A container resolves lazily. A made-up `@inject` key, or a dependency a `when` c
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `IApplicationConfigs.bootChecks` | New: `{ binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean } }` | kernel |
-| `BootSteps.VERIFY_BINDINGS` | New step, after `POST_CONFIGURE` | kernel |
-| `RestApplication.verifyBindings()` | New protected step body | kernel |
-| `RestApplication.assertNoBindingCollision()` | `allowOverride` defaults to `bootChecks.binding.allowOverride` (`true` when the group is absent); the message names the setting when it is the reason | kernel |
+| Symbol                                       | Change                                                                                                                                                | Package |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `IApplicationConfigs.bootChecks`             | New: `{ binding?: { doVerify: boolean; allowManual: boolean; allowOverride: boolean } }`                                                              | kernel  |
+| `BootSteps.VERIFY_BINDINGS`                  | New step, after `POST_CONFIGURE`                                                                                                                      | kernel  |
+| `RestApplication.verifyBindings()`           | New protected step body                                                                                                                               | kernel  |
+| `RestApplication.assertNoBindingCollision()` | `allowOverride` defaults to `bootChecks.binding.allowOverride` (`true` when the group is absent); the message names the setting when it is the reason | kernel  |
 
 - Reference: [Artifact registration](/references/base/bootstrapping). Guide: [Registering artifacts](/guides/core-concepts/application/bootstrapping).

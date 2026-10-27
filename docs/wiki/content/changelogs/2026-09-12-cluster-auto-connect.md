@@ -45,10 +45,10 @@ so the same rule had to be spelled out by hand at every call site.
 
 ## Two options are now stated, not inherited
 
-| Option | Value | Why |
-|--------|-------|-----|
-| `lazyConnect` | `!autoConnect` | The rule single and sentinel already follow |
-| `enableOfflineQueue` | `true` | Commands issued between bind and connect must queue, not throw |
+| Option               | Value          | Why                                                            |
+| -------------------- | -------------- | -------------------------------------------------------------- |
+| `lazyConnect`        | `!autoConnect` | The rule single and sentinel already follow                    |
+| `enableOfflineQueue` | `true`         | Commands issued between bind and connect must queue, not throw |
 
 `enableOfflineQueue: true` was already the effective behaviour, but it came from the ioredis default
 rather than from IGNIS. It is written down now, so it cannot move under you on an ioredis upgrade.

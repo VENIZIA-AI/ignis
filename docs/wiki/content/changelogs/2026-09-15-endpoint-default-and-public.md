@@ -1,6 +1,6 @@
 ---
 title: One Endpoint Option, Two Audiences
-description: "BunS3Helper takes endpoint: { default, public? }. The default host is what this process talks to; the public host is what a browser is handed, and only signed URLs use it."
+description: 'BunS3Helper takes endpoint: { default, public? }. The default host is what this process talks to; the public host is what a browser is handed, and only signed URLs use it.'
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -17,16 +17,16 @@ new BunS3Helper({
   accessKey,
   secretKey,
   endpoint: {
-    default: 'http://minio:9000',        // what THIS process talks to
-    public: 'https://cdn.example.com',   // what a BROWSER is handed
+    default: 'http://minio:9000', // what THIS process talks to
+    public: 'https://cdn.example.com', // what a BROWSER is handed
   },
 });
 ```
 
-| Before | After |
-|---|---|
-| `endpoint: 'http://minio:9000'` | `endpoint: { default: 'http://minio:9000' }` |
-| `publicEndpoint: 'https://cdn...'` | `endpoint: { public: 'https://cdn...' }` |
+| Before                             | After                                        |
+| ---------------------------------- | -------------------------------------------- |
+| `endpoint: 'http://minio:9000'`    | `endpoint: { default: 'http://minio:9000' }` |
+| `publicEndpoint: 'https://cdn...'` | `endpoint: { public: 'https://cdn...' }`     |
 
 The compiler finds every site. `public` is optional and falls back to `default`, so one reachable
 host still serves both audiences.
@@ -45,8 +45,8 @@ read-only CDN would not have worked at all.
 
 Now each call states its audience:
 
-| Goes to `default` | Goes to `public` |
-|---|---|
+| Goes to `default`                                                    | Goes to `public`                          |
+| -------------------------------------------------------------------- | ----------------------------------------- |
 | the `S3Client`, every bucket operation, `copyObject`, object tagging | `presignGet`, `presignPut`, `presignPost` |
 
 Measured with a `fetch` double that records the URL actually attempted: `getBuckets()` on

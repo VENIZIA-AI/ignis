@@ -1,6 +1,6 @@
 ---
 title: The HTTP Repository Can Call the find-one Route
-description: "HttpRepository takes an opt-in findOnePath, so findOne reads GET /<resource>/find-one, the route defineCrudController generates, instead of asking the list route for one row."
+description: 'HttpRepository takes an opt-in findOnePath, so findOne reads GET /<resource>/find-one, the route defineCrudController generates, instead of asking the list route for one row.'
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -29,6 +29,6 @@ const product = await productRepository.findOne({ filter: { where: { sku: 'LAMP-
 
 - **Everyone.** No action needed; nothing changes until you pass `findOnePath`.
 
-| File | Package |
-|------|---------|
+| File                     | Package    |
+| ------------------------ | ---------- |
 | `src/http/repository.ts` | connectors |

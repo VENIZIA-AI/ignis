@@ -45,7 +45,7 @@ try {
 | Wire field   | Where it lands                                                                   |
 | ------------ | -------------------------------------------------------------------------------- |
 | `normalized` | `normalized`, verbatim - `text`, `code`, and `args` round-trip unchanged         |
-| `message`    | `normalized.text`, but only when `normalized` is missing entirely               |
+| `message`    | `normalized.text`, but only when `normalized` is missing entirely                |
 | `statusCode` | `statusCode`; `400` when the payload carries none                                |
 | `extra`      | `extra`, verbatim                                                                |
 | `requestId`  | `extra.requestId` - the identifier a support ticket quotes, so it survives       |

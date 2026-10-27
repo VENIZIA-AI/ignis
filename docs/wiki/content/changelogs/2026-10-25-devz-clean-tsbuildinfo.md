@@ -1,6 +1,6 @@
 ---
 title: devz clean Removes tsbuildinfo Files
-description: "devz clean now also deletes the top-level *.tsbuildinfo file that an incremental type-check leaves next to tsconfig.json."
+description: 'devz clean now also deletes the top-level *.tsbuildinfo file that an incremental type-check leaves next to tsconfig.json.'
 packages: ['@venizia/dev-configs']
 ---
 

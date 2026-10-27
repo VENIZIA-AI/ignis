@@ -1,6 +1,6 @@
 ---
 title: The Last Breaking Round Before 0.2.0
-description: "Four breaking changes, batched before 0.2.0 stable: ioredis becomes an optional peer, ErrorSchema leaves helpers, resolvers take an options object, and upload labels in the query are refused."
+description: 'Four breaking changes, batched before 0.2.0 stable: ioredis becomes an optional peer, ErrorSchema leaves helpers, resolvers take an options object, and upload labels in the query are refused.'
 packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
@@ -10,13 +10,13 @@ The last breaking changes before `0.2.0` stable, in one batch so an application 
 
 ## Migration checklist
 
-| If your code... | Do this |
-|---|---|
+| If your code...                                                                                                    | Do this                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | reaches Redis at runtime (`createRedisHelper`, a Redis helper, `BullMQHelper`, the socket-io/websocket components) | `bun add ioredis` in the package the service STARTS from - peers resolve from the project root, which is that package under an isolated install |
-| imports `ErrorSchema` or `TErrorResponse` from `@venizia/ignis-helpers` | import them from `@venizia/ignis` (or `@venizia/ignis-kernel`) |
-| calls `resolveValue(x)`, `resolveValueAsync(x)` | `resolveValue({ value: x })`, `resolveValueAsync({ value: x })` |
-| calls `resolveClass(ref)`, `resolveInjectTarget(target)` | `resolveClass({ ref })`, `resolveInjectTarget({ target })` |
-| sends upload labels (`principalType`, `principalId`, `variant`, `sequence`, `folderPath`) in the query | send them in the form body (or the `upload-commit` JSON body) |
+| imports `ErrorSchema` or `TErrorResponse` from `@venizia/ignis-helpers`                                            | import them from `@venizia/ignis` (or `@venizia/ignis-kernel`)                                                                                  |
+| calls `resolveValue(x)`, `resolveValueAsync(x)`                                                                    | `resolveValue({ value: x })`, `resolveValueAsync({ value: x })`                                                                                 |
+| calls `resolveClass(ref)`, `resolveInjectTarget(target)`                                                           | `resolveClass({ ref })`, `resolveInjectTarget({ target })`                                                                                      |
+| sends upload labels (`principalType`, `principalId`, `variant`, `sequence`, `folderPath`) in the query             | send them in the form body (or the `upload-commit` JSON body)                                                                                   |
 
 ## `ioredis` is an optional peer
 

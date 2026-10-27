@@ -95,29 +95,40 @@ Any unexpected error, such as a connection failure, returned its raw `error.mess
 
 ```typescript
 // .refine
-schema.refine(fn, { message: 'Must not exceed 4 decimal places', params: { code: 'numeric.decimal.too_many_places' } });
+schema.refine(fn, {
+  message: 'Must not exceed 4 decimal places',
+  params: { code: 'numeric.decimal.too_many_places' },
+});
 
 // .superRefine
 schema.superRefine((value, ctx) =>
-  ctx.addIssue({ code: 'custom', message: '…', path: ['items', i, 'quantity'], params: { code: 'numeric.decimal.too_many_places' } }),
+  ctx.addIssue({
+    code: 'custom',
+    message: '…',
+    path: ['items', i, 'quantity'],
+    params: { code: 'numeric.decimal.too_many_places' },
+  }),
 );
 
 // A built-in rule that needs a code -> use refine instead of .min()
-z.string().refine(s => s.length >= 5, { message: 'Too short', params: { code: 'name.too_short' } });
+z.string().refine((s) => s.length >= 5, {
+  message: 'Too short',
+  params: { code: 'name.too_short' },
+});
 ```
 
 Built-in checks (type, `.min`, `.email`, ...) cannot carry a custom code in Zod v4 - re-express them as a `refine` if you need one.
 
 ### Files changed
 
-| File | Change |
-|------|--------|
+| File                                                     | Change                                                                                                                                            |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/base/middlewares/app-error/app-error.middleware.ts` | Thin orchestrator: routes Zod / DB-client / retryable-DB / domain / unknown errors; honors `rootKey` on the Zod branch; gates production messages |
-| `src/base/middlewares/app-error/zod.handler.ts` | New - derives `messageCode`/`message` from the primary issue |
-| `src/base/middlewares/app-error/database.handler.ts` | New - SQLSTATE class 22/23/44 classification and 40001/40P01 retryable detection |
-| `src/base/middlewares/app-error/definition.ts` | Expanded Postgres error codes; adds `POSTGRES_CLIENT_ERROR_CLASSES`, `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE`, `POSTGRES_RETRYABLE_ERROR_CODES` |
-| `src/base/middlewares/app-error/types.ts` | `IDatabaseError`, `IZodIssueLike` interfaces |
-| `src/base/middlewares/index.ts` | Re-exports the per-middleware folders |
+| `src/base/middlewares/app-error/zod.handler.ts`          | New - derives `messageCode`/`message` from the primary issue                                                                                      |
+| `src/base/middlewares/app-error/database.handler.ts`     | New - SQLSTATE class 22/23/44 classification and 40001/40P01 retryable detection                                                                  |
+| `src/base/middlewares/app-error/definition.ts`           | Expanded Postgres error codes; adds `POSTGRES_CLIENT_ERROR_CLASSES`, `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE`, `POSTGRES_RETRYABLE_ERROR_CODES`   |
+| `src/base/middlewares/app-error/types.ts`                | `IDatabaseError`, `IZodIssueLike` interfaces                                                                                                      |
+| `src/base/middlewares/index.ts`                          | Re-exports the per-middleware folders                                                                                                             |
 
 ## See also
 

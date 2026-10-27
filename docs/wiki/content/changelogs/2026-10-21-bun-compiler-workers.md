@@ -1,6 +1,6 @@
 ---
 title: BunCompiler Compiles Bun Workers Into the Binary
-description: "BunCompiler.compile({ workers }) bundles the Bun Worker files an app starts into the same executable."
+description: 'BunCompiler.compile({ workers }) bundles the Bun Worker files an app starts into the same executable.'
 packages: ['@venizia/dev-configs']
 ---
 

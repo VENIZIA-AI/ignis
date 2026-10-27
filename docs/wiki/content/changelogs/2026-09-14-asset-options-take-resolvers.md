@@ -1,6 +1,6 @@
 ---
 title: Asset Options Take A Resolver Anywhere They Took A Value
-description: "controller.bucket, metaLink.model and metaLink.repository accept a value or a function returning one; TResolveObjectName is renamed TObjectNameResolver, following the verb-last naming the repository already uses."
+description: 'controller.bucket, metaLink.model and metaLink.repository accept a value or a function returning one; TResolveObjectName is renamed TObjectNameResolver, following the verb-last naming the repository already uses.'
 packages: ['@venizia/ignis']
 ---
 
@@ -12,12 +12,12 @@ packages: ['@venizia/ignis']
 
 **In one line.** One type is renamed, and three options widen to `TValueOrAsyncResolver`.
 
-| Before | After |
-|---|---|
-| `TResolveObjectName` | `TObjectNameResolver` |
-| `controller.bucket?: string \| (() => string)` | `controller.bucket?: TValueOrAsyncResolver<string>` |
-| `metaLink.model: typeof BaseRelationalEntity<Schema>` | `metaLink.model: TValueOrAsyncResolver<...>` |
-| `metaLink.repository: DefaultCRUDRepository<Schema>` | `metaLink.repository: TValueOrAsyncResolver<...>` |
+| Before                                                | After                                               |
+| ----------------------------------------------------- | --------------------------------------------------- |
+| `TResolveObjectName`                                  | `TObjectNameResolver`                               |
+| `controller.bucket?: string \| (() => string)`        | `controller.bucket?: TValueOrAsyncResolver<string>` |
+| `metaLink.model: typeof BaseRelationalEntity<Schema>` | `metaLink.model: TValueOrAsyncResolver<...>`        |
+| `metaLink.repository: DefaultCRUDRepository<Schema>`  | `metaLink.repository: TValueOrAsyncResolver<...>`   |
 
 The rename is the breaking half. `TResolveObjectName` read verb-first, which named an action; every
 other type in the repository names a thing. The shape is untouched, so the fix is the new name.

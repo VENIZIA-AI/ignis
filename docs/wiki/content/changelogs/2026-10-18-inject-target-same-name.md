@@ -1,6 +1,6 @@
 ---
 title: Injecting a Class That Shares Its Name With the Bound One Is an Error
-description: "@inject({ target: X }) resolves the key recorded on X. When a different class of the same name is bound under that key, resolution now stops with an error naming both instead of handing back the other class."
+description: '@inject({ target: X }) resolves the key recorded on X. When a different class of the same name is bound under that key, resolution now stops with an error naming both instead of handing back the other class.'
 packages: ['@venizia/ignis-inversion']
 ---
 

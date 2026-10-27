@@ -15,7 +15,9 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis-kernel']
 ```typescript
 import { HttpResponseReader } from '@venizia/ignis-kernel/repository';
 
-const range = HttpResponseReader.parseContentRange({ header: response.headers.get('content-range') });
+const range = HttpResponseReader.parseContentRange({
+  header: response.headers.get('content-range'),
+});
 const envelope = HttpResponseReader.readErrorEnvelope({ body, rootKey: 'error' });
 ```
 

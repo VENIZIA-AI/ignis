@@ -62,13 +62,13 @@ throw getError({
 
 That line now logs at `warn`, so it stays out of `APP-error-*.log` and still reaches `APP-info-*.log`.
 
-| `logLevel` | Console | `APP-info-*.log` | `APP-error-*.log` |
-|---|---|---|---|
-| `emerg` | yes | yes | yes |
-| `error` (default) | yes | yes | yes |
-| `warn` | yes | yes | no |
-| `info` | yes | yes | no |
-| `debug` | yes | no | no |
+| `logLevel`        | Console | `APP-info-*.log` | `APP-error-*.log` |
+| ----------------- | ------- | ---------------- | ----------------- |
+| `emerg`           | yes     | yes              | yes               |
+| `error` (default) | yes     | yes              | yes               |
+| `warn`            | yes     | yes              | no                |
+| `info`            | yes     | yes              | no                |
+| `debug`           | yes     | no               | no                |
 
 > [!TIP]
 > Use `info` rather than `debug` for a failure you want quiet but still recorded. A `debug` line reaches the console but neither log file.
@@ -114,17 +114,17 @@ this.logger.warn('[recalculate] Order totals failed | %s', ErrorPrettier.format(
 
 It keeps `name`, the full untruncated `message`, `code`, the `pg` diagnostics, the root stack frames and a flattened `cause` chain. It drops `query`, `params` and the duplicated stack header. Pass it through `%s`, which prints the string verbatim and keeps the message's real newlines.
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `error` | `unknown` | - | The thrown value. Anything works, including a string or a plain object |
-| `messageCode` | `string` | - | Renders a `code:` line. The middleware passes `normalized.code` |
-| `extra` | `Record<string, unknown>` | - | Caller context. Redacted before printing |
-| `includeStack` | `boolean` | `true` | Frames are noise on an intentional error |
+| Option         | Type                      | Default | Meaning                                                                |
+| -------------- | ------------------------- | ------- | ---------------------------------------------------------------------- |
+| `error`        | `unknown`                 | -       | The thrown value. Anything works, including a string or a plain object |
+| `messageCode`  | `string`                  | -       | Renders a `code:` line. The middleware passes `normalized.code`        |
+| `extra`        | `Record<string, unknown>` | -       | Caller context. Redacted before printing                               |
+| `includeStack` | `boolean`                 | `true`  | Frames are noise on an intentional error                               |
 
 `ErrorPrettier.summarize` returns the same projection as a typed `IErrorSummary` object, for a JSON sink or a log aggregator.
 
-| File | Package |
-|------|---------|
-| `src/modules/logger/formatting/error-prettier.ts` | helpers |
-| `src/modules/error/types.ts` | inversion |
-| `src/base/middlewares/app-error/app-error.middleware.ts` | core |
+| File                                                     | Package   |
+| -------------------------------------------------------- | --------- |
+| `src/modules/logger/formatting/error-prettier.ts`        | helpers   |
+| `src/modules/error/types.ts`                             | inversion |
+| `src/base/middlewares/app-error/app-error.middleware.ts` | core      |

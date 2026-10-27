@@ -1,6 +1,6 @@
 ---
 title: dev-configs Rule Options Are Const Classes
-description: "The severity and mode options of the dev-configs rule builders - RuleSeverities, EqeqeqModes, UnusedVarsScopes, UnusedArgsModes and SwitchCaseBracesModes - are const classes with SCHEME_SET and isValid. The values and defaults are unchanged."
+description: 'The severity and mode options of the dev-configs rule builders - RuleSeverities, EqeqeqModes, UnusedVarsScopes, UnusedArgsModes and SwitchCaseBracesModes - are const classes with SCHEME_SET and isValid. The values and defaults are unchanged.'
 packages: ['@venizia/dev-configs']
 ---
 
@@ -12,13 +12,13 @@ packages: ['@venizia/dev-configs']
 
 **In one line.** The options of the rule builders (`EqeqeqRule.build`, `NoUnusedVarsRule.build`, `SwitchCaseBracesRule.build`) were unions of string literals. They are const classes now, like `RepositoryTypes`. The values and the defaults are the same, so existing configs keep working.
 
-| Option | Const class | Type | Values |
-|---|---|---|---|
-| `severity` of every builder | `RuleSeverities` | `TRuleSeverity` | `off`, `warn`, `error` |
-| `EqeqeqRule.build({ mode })` | `EqeqeqModes` | `TEqeqeqMode` | `always`, `smart` |
-| `NoUnusedVarsRule.build({ vars })` | `UnusedVarsScopes` | `TUnusedVarsScope` | `all`, `local` |
-| `NoUnusedVarsRule.build({ args })` | `UnusedArgsModes` | `TUnusedArgsMode` | `all`, `after-used`, `none` |
-| `SwitchCaseBracesRule.build({ mode })` | `SwitchCaseBracesModes` | `TSwitchCaseBracesMode` | `always`, `avoid` |
+| Option                                 | Const class             | Type                    | Values                      |
+| -------------------------------------- | ----------------------- | ----------------------- | --------------------------- |
+| `severity` of every builder            | `RuleSeverities`        | `TRuleSeverity`         | `off`, `warn`, `error`      |
+| `EqeqeqRule.build({ mode })`           | `EqeqeqModes`           | `TEqeqeqMode`           | `always`, `smart`           |
+| `NoUnusedVarsRule.build({ vars })`     | `UnusedVarsScopes`      | `TUnusedVarsScope`      | `all`, `local`              |
+| `NoUnusedVarsRule.build({ args })`     | `UnusedArgsModes`       | `TUnusedArgsMode`       | `all`, `after-used`, `none` |
+| `SwitchCaseBracesRule.build({ mode })` | `SwitchCaseBracesModes` | `TSwitchCaseBracesMode` | `always`, `avoid`           |
 
 ## What changed
 

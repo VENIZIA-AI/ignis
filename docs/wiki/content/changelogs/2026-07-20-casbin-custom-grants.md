@@ -63,11 +63,11 @@ const rows = planGrant({
 - `ops` holds method names, not full permission codes. The subject comes from the target node, so `ops: ['find']` against node `Order` resolves to `Order.find`.
 - **Expansion parity.** A planned custom row and the equivalent per-operation rows expand to identical casbin lines. Nothing downstream, including the enforcer, can tell the two encodings apart.
 
-| File | Package |
-|------|---------|
-| `src/components/auth/authorize/common/grant-planner.ts` | core |
-| `src/components/auth/authorize/common/custom-grant.ts` | core |
-| `src/components/auth/authorize/common/policy-builder.ts` | core |
-| `src/components/auth/authorize/common/constants.ts` | core |
-| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core |
-| `src/components/auth/models/entities/policy-definition.model.ts` | core |
+| File                                                              | Package |
+| ----------------------------------------------------------------- | ------- |
+| `src/components/auth/authorize/common/grant-planner.ts`           | core    |
+| `src/components/auth/authorize/common/custom-grant.ts`            | core    |
+| `src/components/auth/authorize/common/policy-builder.ts`          | core    |
+| `src/components/auth/authorize/common/constants.ts`               | core    |
+| `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core    |
+| `src/components/auth/models/entities/policy-definition.model.ts`  | core    |

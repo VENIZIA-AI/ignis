@@ -52,12 +52,12 @@ Counting export names is how this was nearly missed - a name diff cannot see a s
 
 Each layer adds exactly one capability, so a host takes only what it can support.
 
-| Class | Package | Adds | Needs a server? |
-|---|---|---|---|
-| `AbstractApplication` | `ignis-kernel` | config, lifecycle hooks, `init()`, the DI container | no |
-| `RestApplication` | `ignis-kernel` | the `OpenAPIHono` routers, `getServer()`, `getRootRouter()` | no |
-| `ServerApplication` | `ignis` | `start()`, `stop()`, `getServerHost()`, Bun and Node hosting | yes |
-| `BaseApplication` | `ignis` | resource registration, secrets, boot | yes |
+| Class                 | Package        | Adds                                                         | Needs a server? |
+| --------------------- | -------------- | ------------------------------------------------------------ | --------------- |
+| `AbstractApplication` | `ignis-kernel` | config, lifecycle hooks, `init()`, the DI container          | no              |
+| `RestApplication`     | `ignis-kernel` | the `OpenAPIHono` routers, `getServer()`, `getRootRouter()`  | no              |
+| `ServerApplication`   | `ignis`        | `start()`, `stop()`, `getServerHost()`, Bun and Node hosting | yes             |
+| `BaseApplication`     | `ignis`        | resource registration, secrets, boot                         | yes             |
 
 ```typescript
 // Unchanged. This is still the class you extend.
@@ -78,12 +78,12 @@ class Application extends BaseApplication {
 
 Four methods on `AbstractApplication` are called from its **constructor**, before any subclass field exists:
 
-| Method | Kernel default | `ServerApplication` override |
-|---|---|---|
-| `getDefaultAsyncContextEnabled()` | `false` | `true` |
-| `getEnvServerHost()` | `undefined` | `process.env.HOST` |
-| `getEnvServerPort()` | `undefined` | `process.env.PORT` |
-| `getProjectRoot()` | `''` | `process.cwd()` |
+| Method                            | Kernel default | `ServerApplication` override |
+| --------------------------------- | -------------- | ---------------------------- |
+| `getDefaultAsyncContextEnabled()` | `false`        | `true`                       |
+| `getEnvServerHost()`              | `undefined`    | `process.env.HOST`           |
+| `getEnvServerPort()`              | `undefined`    | `process.env.PORT`           |
+| `getProjectRoot()`                | `''`           | `process.cwd()`              |
 
 > [!WARNING]
 > An override must return a literal or read module-level state only. Reading `this.something` from one of these yields `undefined`, silently, because the subclass field has not been assigned yet. `getProjectRoot()` is the one applications override most often.
@@ -117,13 +117,13 @@ When you add code to the kernel, import helpers through `@venizia/ignis-helpers/
 
 ## Files changed
 
-| Area | What |
-|---|---|
-| [`packages/kernel`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel) | New package - `@venizia/ignis-kernel` |
+| Area                                                                                                                                     | What                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [`packages/kernel`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel)                                                       | New package - `@venizia/ignis-kernel`                       |
 | [`packages/core-server/src/base/applications`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications) | `ServerApplication` added; `BaseApplication` now extends it |
-| [`packages/core-server/src/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/index.ts) | Re-exports the kernel, keeping the public surface whole |
-| [`packages/helpers/src/core.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/core.ts) | Widened with pure parse, retry and performance utilities |
-| [`scripts/checks/purity`](https://github.com/VENIZIA-AI/ignis/blob/main/scripts/checks/purity) | New browser purity gate |
+| [`packages/core-server/src/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/index.ts)                   | Re-exports the kernel, keeping the public surface whole     |
+| [`packages/helpers/src/core.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/core.ts)                             | Widened with pure parse, retry and performance utilities    |
+| [`scripts/checks/purity`](https://github.com/VENIZIA-AI/ignis/blob/main/scripts/checks/purity)                                           | New browser purity gate                                     |
 
 ## Related
 

@@ -38,11 +38,11 @@ reachable. The framework cannot answer that, so it reports rather than refuses.
 
 The warning fires when all three hold:
 
-| Condition | Detail |
-|---|---|
-| The route is mounted | `stats.enable === true`, or an unset `enable` on a development `NODE_ENV` |
-| No key is configured | `stats.secretKey` is `undefined` |
-| The host is not provably a dev machine | `NODE_ENV` is outside `DEVELOPMENT_ENVS`, **including unset** |
+| Condition                              | Detail                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| The route is mounted                   | `stats.enable === true`, or an unset `enable` on a development `NODE_ENV` |
+| No key is configured                   | `stats.secretKey` is `undefined`                                          |
+| The host is not provably a dev machine | `NODE_ENV` is outside `DEVELOPMENT_ENVS`, **including unset**             |
 
 A **blank** `secretKey` never warns, because a blank key fails closed - the route refuses every
 request rather than serving them.
@@ -65,7 +65,9 @@ the route at all.
 
 ```ts
 const secretKey = applicationEnvironment.get<string>('APP_ENV_HEALTH_SECRET_KEY');
-stats: { enable: Boolean(secretKey), secretKey }
+stats: {
+  enable: (Boolean(secretKey), secretKey);
+}
 ```
 
 ## Who is affected

@@ -1,7 +1,16 @@
 ---
 title: Every Browser-Safe Package Now Ships ESM
 description: The packages that claim browser purity publish a real ESM build, so a bundler needs no workarounds - plus one shared default middleware stack and one request-id rule for both hosts.
-packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-worker', '@venizia/ignis-filter', '@venizia/ignis-helpers', '@venizia/ignis-inversion', '@venizia/ignis-kernel']
+packages:
+  [
+    '@venizia/ignis-connectors',
+    '@venizia/ignis',
+    '@venizia/ignis-worker',
+    '@venizia/ignis-filter',
+    '@venizia/ignis-helpers',
+    '@venizia/ignis-inversion',
+    '@venizia/ignis-kernel',
+  ]
 ---
 
 # Changelog - 2026-08-18

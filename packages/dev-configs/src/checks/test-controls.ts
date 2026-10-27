@@ -12,8 +12,15 @@ export interface IControlEntry {
   gate: string;
   /** Repository-relative path of the test file. */
   file: string;
-  /** A regular expression matched against the TITLES (suite and case) in that file. */
-  titlePattern: string;
+  /**
+   * `test` (default): `file` is a test file and `titlePattern` is matched against its titles.
+   * `file`: `file` is a NEGATIVE FIXTURE, a file a test needs to be absent from the result (a class the
+   * scanner must ignore). It only has to exist: without it the test's "not found" assertion passes for the
+   * wrong reason.
+   */
+  kind?: 'test' | 'file';
+  /** A regular expression matched against the TITLES (suite and case) in that file. Not used by `file` entries. */
+  titlePattern?: string;
   /** At least this many titles must match. Default 1. */
   min?: number;
 }
@@ -97,7 +104,14 @@ export const checkControls = async (opts: {
   for (const entry of opts.controls) {
     const path = join(opts.root, entry.file);
     if (!existsSync(path)) {
-      problems.push({ entry, message: `the test file ${entry.file} does not exist` });
+      problems.push({
+        entry,
+        message: `the ${entry.kind === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
+      });
+      continue;
+    }
+
+    if (entry.kind === 'file') {
       continue;
     }
 
@@ -105,14 +119,14 @@ export const checkControls = async (opts: {
       source: readFileSync(path, 'utf8'),
       fileName: entry.file,
     });
-    const pattern = new RegExp(entry.titlePattern);
+    const pattern = new RegExp(entry.titlePattern ?? '');
     const matched = titles.filter((title) => pattern.test(title)).length;
     const min = entry.min ?? 1;
 
     if (matched < min) {
       problems.push({
         entry,
-        message: `${matched} title(s) match /${entry.titlePattern}/ in ${entry.file}, ${min} required | the control of gate '${entry.gate}' is gone or renamed`,
+        message: `${matched} title(s) match /${entry.titlePattern ?? ''}/ in ${entry.file}, ${min} required | the control of gate '${entry.gate}' is gone or renamed`,
       });
     }
   }

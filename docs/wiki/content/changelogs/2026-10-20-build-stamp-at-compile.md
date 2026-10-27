@@ -1,6 +1,6 @@
 ---
 title: The Build Stamp Is Baked at Compile and Resolved From Git at Start
-description: "BuildInfoStamp bakes the commit, branch and build time into the binary, a run from source reads them from git, and the ignis-build-info CLI and its generated file are gone."
+description: 'BuildInfoStamp bakes the commit, branch and build time into the binary, a run from source reads them from git, and the ignis-build-info CLI and its generated file are gone.'
 packages: ['@venizia/dev-configs', '@venizia/ignis-boot']
 ---
 
@@ -79,7 +79,7 @@ await BuildInfoStamp.register();
 
 See [Stamping a build](/guides/core-concepts/application/build-info) for the full how-to.
 
-| File | Package |
-|------|---------|
-| `src/build-info/stamp.ts` | boot |
-| `src/compilers/bun.ts` | dev-configs |
+| File                      | Package     |
+| ------------------------- | ----------- |
+| `src/build-info/stamp.ts` | boot        |
+| `src/compilers/bun.ts`    | dev-configs |

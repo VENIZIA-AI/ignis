@@ -1,6 +1,6 @@
 ---
 title: The HTTP Connector Writes
-description: "HttpRepository gains create, updateById, updateAll/updateBy, deleteById and deleteAll/deleteBy over the IGNIS CRUD routes, and HttpDataSource.request takes a body and headers on any method, PUT included."
+description: 'HttpRepository gains create, updateById, updateAll/updateBy, deleteById and deleteAll/deleteBy over the IGNIS CRUD routes, and HttpDataSource.request takes a body and headers on any method, PUT included.'
 packages: ['@venizia/ignis-connectors']
 ---
 
@@ -26,13 +26,13 @@ await dataSource.write({ paths: ['products', product.id], method: 'PUT', body: r
 
 ## What is new
 
-| Method | Request |
-|---|---|
-| `create({ data })` | `POST /<resource>` |
-| `updateById({ id, data })` | `PATCH /<resource>/:id` |
+| Method                                    | Request                                                  |
+| ----------------------------------------- | -------------------------------------------------------- |
+| `create({ data })`                        | `POST /<resource>`                                       |
+| `updateById({ id, data })`                | `PATCH /<resource>/:id`                                  |
 | `updateAll` / `updateBy({ where, data })` | `PATCH /<resource>`, `where` in the body beside the data |
-| `deleteById({ id })` | `DELETE /<resource>/:id` |
-| `deleteAll` / `deleteBy({ where })` | `DELETE /<resource>`, `where` in the body |
+| `deleteById({ id })`                      | `DELETE /<resource>/:id`                                 |
+| `deleteAll` / `deleteBy({ where })`       | `DELETE /<resource>`, `where` in the body                |
 
 - **`HttpDataSource.request()`** takes `body` and per-request `headers`, on any method. A plain object or array goes out as JSON with `content-type: application/json`; a string, `FormData`, `Blob`, `URLSearchParams`, `ArrayBuffer` or typed array goes as it is. The 401 retry resends the same body.
 - **`HttpDataSource.write()`** answers `{ data, count }` - the rows and the server's `x-response-count`.

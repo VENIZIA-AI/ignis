@@ -25,6 +25,7 @@ The crypto module previously had inconsistent API patterns (positional args vs o
 ### 1. `encrypt()` / `decrypt()` API Changed to Options Objects
 
 **Before:**
+
 ```typescript
 aes.encrypt(message, secret);
 aes.decrypt(encrypted, secret);
@@ -33,6 +34,7 @@ rsa.decrypt(encrypted, privateKey);
 ```
 
 **After:**
+
 ```typescript
 aes.encrypt({ message, secret });
 aes.decrypt({ message: encrypted, secret });
@@ -43,11 +45,13 @@ rsa.decrypt({ message: encrypted, secret: privateKey });
 ### 2. Extra Options Moved to `opts` Property
 
 **Before:**
+
 ```typescript
 aes.encrypt(message, secret, { iv, inputEncoding, outputEncoding });
 ```
 
 **After:**
+
 ```typescript
 aes.encrypt({ message, secret, opts: { iv, inputEncoding, outputEncoding } });
 ```
@@ -55,13 +59,30 @@ aes.encrypt({ message, secret, opts: { iv, inputEncoding, outputEncoding } });
 ### 3. `ICryptoAlgorithm` Generic Parameters Changed
 
 **Before (6 params):**
+
 ```typescript
-ICryptoAlgorithm<AlgorithmNameType, MessageType, SecretKeyType, EncryptReturnType, DecryptReturnType, ExtraOptions>
+ICryptoAlgorithm<
+  AlgorithmNameType,
+  MessageType,
+  SecretKeyType,
+  EncryptReturnType,
+  DecryptReturnType,
+  ExtraOptions
+>;
 ```
 
 **After (7 params):**
+
 ```typescript
-ICryptoAlgorithm<AlgorithmNameType, EncryptInputType, DecryptInputType, SecretKeyType, EncryptReturnType, DecryptReturnType, ExtraOptions>
+ICryptoAlgorithm<
+  AlgorithmNameType,
+  EncryptInputType,
+  DecryptInputType,
+  SecretKeyType,
+  EncryptReturnType,
+  DecryptReturnType,
+  ExtraOptions
+>;
 ```
 
 ## New Features
@@ -91,6 +112,7 @@ const encrypted = await ecdh.encrypt({ message: 'Hello!', secret: aliceKey });
 ```
 
 **Benefits:**
+
 - Inherits `BaseHelper` scoped logging via `AbstractCryptoAlgorithm`
 - Proper `algorithm` field (`'ecdh-p256'`) on instance
 - Exported from `@venizia/ignis-helpers` alongside AES and RSA
@@ -107,16 +129,24 @@ const encrypted = await ecdh.encrypt({ message: 'Hello!', secret: aliceKey });
 ```typescript
 export interface ICryptoAlgorithm<
   AlgorithmNameType extends string,
-  EncryptInputType = unknown,   // What goes INTO encrypt()
-  DecryptInputType = unknown,   // What goes INTO decrypt()
+  EncryptInputType = unknown, // What goes INTO encrypt()
+  DecryptInputType = unknown, // What goes INTO decrypt()
   SecretKeyType = unknown,
   EncryptReturnType = unknown,
   DecryptReturnType = unknown,
   ExtraOptions = unknown,
 > {
   algorithm: AlgorithmNameType;
-  encrypt(opts: { message: EncryptInputType; secret: SecretKeyType; opts?: ExtraOptions }): EncryptReturnType;
-  decrypt(opts: { message: DecryptInputType; secret: SecretKeyType; opts?: ExtraOptions }): DecryptReturnType;
+  encrypt(opts: {
+    message: EncryptInputType;
+    secret: SecretKeyType;
+    opts?: ExtraOptions;
+  }): EncryptReturnType;
+  decrypt(opts: {
+    message: DecryptInputType;
+    secret: SecretKeyType;
+    opts?: ExtraOptions;
+  }): DecryptReturnType;
 }
 ```
 
@@ -126,44 +156,44 @@ export interface ICryptoAlgorithm<
 
 79 tests covering all crypto algorithms:
 
-| Category | Tests | Coverage |
-|----------|-------|---------|
-| BaseCryptoAlgorithm | TC-001 - TC-010 | Construction, validation, `normalizeSecretKey`, `getAlgorithmKeySize` |
-| AES-256-CBC | TC-011 - TC-025 | Roundtrip, secrets, IV, encoding, error handling, unicode, JSON |
-| AES-256-GCM | TC-026 - TC-036 | Same as CBC + auth tag tamper detection |
-| AES Cross-algorithm | TC-037 - TC-038 | CBC ↔ GCM isolation |
-| AES File Ops | TC-039 - TC-042 | `encryptFile`/`decryptFile`, empty path guard |
-| RSA | TC-043 - TC-057 | Key generation, roundtrip, encoding, error handling |
-| ECDH | TC-058 - TC-079 | Key exchange, derivation, roundtrip, hkdfInfo isolation, third-party rejection |
+| Category            | Tests           | Coverage                                                                       |
+| ------------------- | --------------- | ------------------------------------------------------------------------------ |
+| BaseCryptoAlgorithm | TC-001 - TC-010 | Construction, validation, `normalizeSecretKey`, `getAlgorithmKeySize`          |
+| AES-256-CBC         | TC-011 - TC-025 | Roundtrip, secrets, IV, encoding, error handling, unicode, JSON                |
+| AES-256-GCM         | TC-026 - TC-036 | Same as CBC + auth tag tamper detection                                        |
+| AES Cross-algorithm | TC-037 - TC-038 | CBC ↔ GCM isolation                                                            |
+| AES File Ops        | TC-039 - TC-042 | `encryptFile`/`decryptFile`, empty path guard                                  |
+| RSA                 | TC-043 - TC-057 | Key generation, roundtrip, encoding, error handling                            |
+| ECDH                | TC-058 - TC-079 | Key exchange, derivation, roundtrip, hkdfInfo isolation, third-party rejection |
 
 ## Files Changed
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `src/helpers/crypto/common/types.ts` | `ICryptoAlgorithm` expanded from 6 to 7 generic params (split `MessageType` → `EncryptInputType` + `DecryptInputType`) |
-| `src/helpers/crypto/algorithms/base.algorithm.ts` | `AbstractCryptoAlgorithm` and `BaseCryptoAlgorithm` updated to 7 generic params; options-object signatures on abstract methods |
-| `src/helpers/crypto/algorithms/aes.algorithm.ts` | `encrypt()`/`decrypt()` now use `{ message, secret, opts? }` pattern; `encryptFile()`/`decryptFile()` use `{ absolutePath, secret }` |
-| `src/helpers/crypto/algorithms/rsa.algorithm.ts` | Same options-object refactor; explicit 7-param extends |
-| `src/helpers/crypto/algorithms/ecdh.algorithm.ts` | Now extends `AbstractCryptoAlgorithm`; options-object API; HKDF info default changed to `'ignis-ecdh-aes-gcm'` |
-| `src/helpers/crypto/algorithms/index.ts` | Added ECDH export |
-| `src/__tests__/crypto/algorithms.test.ts` | New - 79 tests, 110 assertions |
+| File                                              | Changes                                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/helpers/crypto/common/types.ts`              | `ICryptoAlgorithm` expanded from 6 to 7 generic params (split `MessageType` → `EncryptInputType` + `DecryptInputType`)               |
+| `src/helpers/crypto/algorithms/base.algorithm.ts` | `AbstractCryptoAlgorithm` and `BaseCryptoAlgorithm` updated to 7 generic params; options-object signatures on abstract methods       |
+| `src/helpers/crypto/algorithms/aes.algorithm.ts`  | `encrypt()`/`decrypt()` now use `{ message, secret, opts? }` pattern; `encryptFile()`/`decryptFile()` use `{ absolutePath, secret }` |
+| `src/helpers/crypto/algorithms/rsa.algorithm.ts`  | Same options-object refactor; explicit 7-param extends                                                                               |
+| `src/helpers/crypto/algorithms/ecdh.algorithm.ts` | Now extends `AbstractCryptoAlgorithm`; options-object API; HKDF info default changed to `'ignis-ecdh-aes-gcm'`                       |
+| `src/helpers/crypto/algorithms/index.ts`          | Added ECDH export                                                                                                                    |
+| `src/__tests__/crypto/algorithms.test.ts`         | New - 79 tests, 110 assertions                                                                                                       |
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
+| File                                                             | Changes                                                                              |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `src/components/auth/authenticate/services/jwt-token.service.ts` | Updated AES consumer to use options objects: `this.aes.encrypt({ message, secret })` |
 
 ### Documentation (`packages/docs`)
 
-| File | Changes |
-|------|---------|
-| `wiki/extensions/helpers/crypto.md` | Rewritten - added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
-| `wiki/changelogs/2026-02-11-crypto-refactor-ecdh.md` | New - this changelog |
-| `wiki/changelogs/index.md` | Added entry for this changelog |
-| `site/.vitepress/config.mts` | Added sidebar entry for this changelog |
+| File                                                 | Changes                                                                                                |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `wiki/extensions/helpers/crypto.md`                  | Rewritten - added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
+| `wiki/changelogs/2026-02-11-crypto-refactor-ecdh.md` | New - this changelog                                                                                   |
+| `wiki/changelogs/index.md`                           | Added entry for this changelog                                                                         |
+| `site/.vitepress/config.mts`                         | Added sidebar entry for this changelog                                                                 |
 
 ## Migration Guide
 
@@ -205,14 +235,22 @@ If you extended `BaseCryptoAlgorithm`, update the generic parameters:
 class MyAlgo extends BaseCryptoAlgorithm<MyType, string, string, string, string, IMyOptions> {}
 
 // After (7 params)
-class MyAlgo extends BaseCryptoAlgorithm<MyType, string, string, string, string, string, IMyOptions> {}
+class MyAlgo extends BaseCryptoAlgorithm<
+  MyType,
+  string,
+  string,
+  string,
+  string,
+  string,
+  IMyOptions
+> {}
 ```
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `packages/helpers` rebuild | Clean |
-| `packages/helpers` lint | Clean (0 errors, 0 warnings) |
-| `packages/helpers` tests | 79 pass, 0 fail, 110 expect() calls |
-| `packages/core-server` rebuild | Clean |
+| Check                          | Result                              |
+| ------------------------------ | ----------------------------------- |
+| `packages/helpers` rebuild     | Clean                               |
+| `packages/helpers` lint        | Clean (0 errors, 0 warnings)        |
+| `packages/helpers` tests       | 79 pass, 0 fail, 110 expect() calls |
+| `packages/core-server` rebuild | Clean                               |

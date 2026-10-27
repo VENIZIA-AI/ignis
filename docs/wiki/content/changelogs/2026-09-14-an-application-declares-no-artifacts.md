@@ -1,6 +1,6 @@
 ---
 title: An Application Lists None Of Its Own Artifacts
-description: "configs.discoverArtifacts: true registers every decorated class in the import graph, so a stereotype is the whole declaration. when still keeps several applications in one process apart."
+description: 'configs.discoverArtifacts: true registers every decorated class in the import graph, so a stereotype is the whole declaration. when still keeps several applications in one process apart.'
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -20,7 +20,7 @@ import './generated/artifacts';
 // application.ts
 export const beConfigs: IApplicationConfigs = {
   path: { base: '/', isStrict: true },
-  discoverArtifacts: true,   // no list of services, repositories, components or configurations
+  discoverArtifacts: true, // no list of services, repositories, components or configurations
 };
 ```
 
@@ -43,12 +43,12 @@ its repository registers it.
 
 ## Discovery is off until you ask, and that is deliberate
 
-| `discoverArtifacts` | `artifacts` | What registers |
-|---|---|---|
-| unset | unset | nothing - unchanged |
-| unset | set | exactly what it lists - unchanged |
-| `true` | unset | every decorated class |
-| `true` | set | the union, de-duplicated |
+| `discoverArtifacts` | `artifacts` | What registers                    |
+| ------------------- | ----------- | --------------------------------- |
+| unset               | unset       | nothing - unchanged               |
+| unset               | set         | exactly what it lists - unchanged |
+| `true`              | unset       | every decorated class             |
+| `true`              | set         | the union, de-duplicated          |
 
 **An absent `artifacts` still registers nothing.** Reading it as "register everything" was the first
 shape of this change, and it is a trap: a consumer whose `createAppConfig` omits the key on purpose

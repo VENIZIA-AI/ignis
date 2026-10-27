@@ -1,7 +1,8 @@
 ---
 title: ignis-filter - the Filter Vocabulary as a Browser-Safe Package
 description: The filter shape, operators and query schemas now ship as @venizia/ignis-filter, usable in a browser without the server framework. Applications on @venizia/ignis need no changes.
-packages: ['@venizia/ignis', '@venizia/ignis-filter', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
+packages:
+  ['@venizia/ignis', '@venizia/ignis-filter', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-25
@@ -40,11 +41,11 @@ The package now resolves to `@venizia/ignis-inversion`, `lodash` and `reflect-me
 
 ## Two subpaths, and which one you want
 
-| Import | Contains | Use it |
-|---|---|---|
-| `@venizia/ignis-filter` | `TFilter`, `QueryOperators`, `Sorts` | Anywhere. Resolves no `zod`. |
-| `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, the rest | In a browser. Adds `zod`. |
-| `@venizia/ignis` | the same schemas, with OpenAPI metadata | **On a server.** |
+| Import                          | Contains                                | Use it                       |
+| ------------------------------- | --------------------------------------- | ---------------------------- |
+| `@venizia/ignis-filter`         | `TFilter`, `QueryOperators`, `Sorts`    | Anywhere. Resolves no `zod`. |
+| `@venizia/ignis-filter/schemas` | `FilterSchema`, `WhereSchema`, the rest | In a browser. Adds `zod`.    |
+| `@venizia/ignis`                | the same schemas, with OpenAPI metadata | **On a server.**             |
 
 The split is deliberate: importing the vocabulary must not drag a validator into a bundle that only needs `QueryOperators`.
 

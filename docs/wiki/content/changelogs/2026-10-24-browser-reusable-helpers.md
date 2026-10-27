@@ -1,6 +1,6 @@
 ---
 title: The Fetcher and the Socket.IO Client Run in a Browser
-description: "NodeFetcher encodes JSON bodies, merges default headers, and takes query-string options; the socket.io client has a browser-pure entry. No existing behavior changes except two bug fixes."
+description: 'NodeFetcher encodes JSON bodies, merges default headers, and takes query-string options; the socket.io client has a browser-pure entry. No existing behavior changes except two bug fixes.'
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -15,13 +15,16 @@ packages: ['@venizia/ignis-helpers']
 ```typescript
 const request = new NodeFetchNetworkRequest({
   name: 'api',
-  networkOptions: { baseUrl: 'https://api.example.com', queryString: { nullish: 'skip', nested: 'json' } },
+  networkOptions: {
+    baseUrl: 'https://api.example.com',
+    queryString: { nullish: 'skip', nested: 'json' },
+  },
 });
 
 await request.getNetworkService().post({
   url: request.getRequestUrl({ paths: ['items'] }),
   params: { filter: { where: { id: 1 } } }, // ?filter=%7B%22where%22%3A%7B%22id%22%3A1%7D%7D
-  body: { name: 'lamp' },                    // sent as JSON
+  body: { name: 'lamp' }, // sent as JSON
 });
 ```
 

@@ -25,12 +25,12 @@ export const configs: IServerApplicationConfigs = {
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `IServerApplicationConfigs.projectRoot` | New optional string | core-server |
-| `ServerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? process.cwd()`; still binds `CoreBindings.APPLICATION_PROJECT_ROOT`; hands the value to `ModuleUtility.setProjectRoot()` | core-server |
-| `ModuleUtility.setProjectRoot()` / `getProjectRoot()` | New; every optional-peer lookup (`loadSync`, `assertInstalled`) resolves under `<projectRoot>/node_modules` instead of the process cwd | helpers |
-| `GrpcRequestAdapter` | Resolves `@connectrpc/connect` under the same root | core-server |
+| Symbol                                                | Change                                                                                                                                                   | Package     |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `IServerApplicationConfigs.projectRoot`               | New optional string                                                                                                                                      | core-server |
+| `ServerApplication.getProjectRoot()`                  | Returns `configs.projectRoot ?? process.cwd()`; still binds `CoreBindings.APPLICATION_PROJECT_ROOT`; hands the value to `ModuleUtility.setProjectRoot()` | core-server |
+| `ModuleUtility.setProjectRoot()` / `getProjectRoot()` | New; every optional-peer lookup (`loadSync`, `assertInstalled`) resolves under `<projectRoot>/node_modules` instead of the process cwd                   | helpers     |
+| `GrpcRequestAdapter`                                  | Resolves `@connectrpc/connect` under the same root                                                                                                       | core-server |
 
 - Until now the binding had no reader: nothing in the framework resolved anything from it. It now decides where optional peers are looked up: `ModuleUtility.loadSync`/`assertInstalled` (mail transports, the secrets providers) and the gRPC adapter. The pino transports resolve at the first log line, usually before an application exists, and keep using the cwd.
 - Set `projectRoot` only to the directory that holds `node_modules` **at run time**. In a `bun build --compile` binary `__dirname` is the compile-time directory and `import.meta.dir` is virtual, so a binary leaves the option unset (the cwd) or derives it from `process.execPath`. When the option is set and `<projectRoot>/node_modules` does not exist, the boot log carries one warning.

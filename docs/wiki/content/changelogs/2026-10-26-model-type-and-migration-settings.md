@@ -1,6 +1,6 @@
 ---
-title: "@model: type Is Optional, skipMigrate Becomes migration.use"
-description: "@model({ type }) is optional and typed by ModelTypes. skipMigrate is replaced by migration: { use }, kept for one release with a boot warning. devz codemod model-settings rewrites skipMigrate."
+title: '@model: type Is Optional, skipMigrate Becomes migration.use'
+description: '@model({ type }) is optional and typed by ModelTypes. skipMigrate is replaced by migration: { use }, kept for one release with a boot warning. devz codemod model-settings rewrites skipMigrate.'
 packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 ---
 
@@ -30,12 +30,12 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 
 ## Who is affected
 
-| You wrote | Now |
-|---|---|
-| `@model({ type: 'entity' })` | Works. `type` can be removed. |
-| `@model({ type: 'view' })` | Throws. Views were never supported. |
-| `@model({ skipMigrate: true })` | Works, warns at boot. Write `migration: { use: false }`. |
-| `@model({ skipMigrate: false })` | Works, warns at boot. Remove the key. |
+| You wrote                        | Now                                                      |
+| -------------------------------- | -------------------------------------------------------- |
+| `@model({ type: 'entity' })`     | Works. `type` can be removed.                            |
+| `@model({ type: 'view' })`       | Throws. Views were never supported.                      |
+| `@model({ skipMigrate: true })`  | Works, warns at boot. Write `migration: { use: false }`. |
+| `@model({ skipMigrate: false })` | Works, warns at boot. Remove the key.                    |
 
 ## Migrate
 

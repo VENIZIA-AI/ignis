@@ -1,6 +1,6 @@
 ---
 title: devz codemod const-classes Turns a String-Literal Union Into a Const Class
-description: "A new devz codemod rewrites a string-literal union in an exported type or interface property as a const class with SCHEME_SET and isValid plus TConstValue. It proposes the names, a mapping file overrides them, and the values stay the same."
+description: 'A new devz codemod rewrites a string-literal union in an exported type or interface property as a const class with SCHEME_SET and isValid plus TConstValue. It proposes the names, a mapping file overrides them, and the values stay the same.'
 packages: ['@venizia/dev-configs']
 ---
 
@@ -66,15 +66,15 @@ The class is the type name without its leading `T`, in the plural (`TQueueReason
 
 ## Options
 
-| Option | Meaning |
-|---|---|
-| `--write` | Write the changed files. Without it, nothing is written |
-| `--check` | Dry run that exits 1 while a union can be converted or is left untouched |
-| `--map <file>` | JSON overrides keyed by the id the dry run prints |
-| `--emit-map <file>` | Write the proposals as a mapping file to edit |
+| Option                   | Meaning                                                                  |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `--write`                | Write the changed files. Without it, nothing is written                  |
+| `--check`                | Dry run that exits 1 while a union can be converted or is left untouched |
+| `--map <file>`           | JSON overrides keyed by the id the dry run prints                        |
+| `--emit-map <file>`      | Write the proposals as a mapping file to edit                            |
 | `--import-from <module>` | Where `TConstValue` comes from (default `@venizia/ignis-helpers/common`) |
-| `--include-tests` | Also convert test files |
-| `--help` | Print the usage and exit 0 |
+| `--include-tests`        | Also convert test files                                                  |
+| `--help`                 | Print the usage and exit 0                                               |
 
 An unknown option, `--write` with `--check`, a missing value or a mapping file that cannot be read exits 2 and writes nothing.
 

@@ -1,6 +1,6 @@
 ---
 title: RecursiveTreeSql Reads Tables in a Named Schema and Takes an Anchor Filter
-description: "RecursiveTreeSql.walk now qualifies a Postgres table with its schema, and a new anchorFilter option filters the anchor term the way recursiveFilter filters the recursive one."
+description: 'RecursiveTreeSql.walk now qualifies a Postgres table with its schema, and a new anchorFilter option filters the anchor term the way recursiveFilter filters the recursive one.'
 packages: ['@venizia/ignis-connectors']
 ---
 

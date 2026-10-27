@@ -1,6 +1,6 @@
 ---
 title: The Wiki's Claims Were Checked Against the Code
-description: "Unsupported performance and popularity claims are gone, the runtimes and boot modes are corrected, the home page says Casbin authorization is experimental and OAuth2 is a stub, and the intro pages and first tutorials were checked against 0.4.3."
+description: 'Unsupported performance and popularity claims are gone, the runtimes and boot modes are corrected, the home page says Casbin authorization is experimental and OAuth2 is a stub, and the intro pages and first tutorials were checked against 0.4.3.'
 packages: []
 ---
 

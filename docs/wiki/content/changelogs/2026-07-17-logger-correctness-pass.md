@@ -40,8 +40,8 @@ packages: ['@venizia/ignis-helpers']
 - New exports: `resolveLoggerLevel({ configured })` and `resolveDefaultTransportOptions()`. `resolveLoggerLevel` validates against `LogLevels`, falling back to `debug` with a console warning. `resolveDefaultTransportOptions` returns the env-driven default transport set, resolved at call time.
 - `definePrettyLoggerFormatter` gained `colorize?: boolean` (default `true`) for building plain text formatters.
 
-| File | Package |
-|------|---------|
-| `src/modules/logger/default-logger.ts` | helpers |
-| `src/modules/logger/application-logger.ts` | helpers |
+| File                                               | Package |
+| -------------------------------------------------- | ------- |
+| `src/modules/logger/default-logger.ts`             | helpers |
+| `src/modules/logger/application-logger.ts`         | helpers |
 | `src/modules/logger/transports/dgram.transport.ts` | helpers |

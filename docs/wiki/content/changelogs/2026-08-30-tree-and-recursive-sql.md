@@ -1,6 +1,6 @@
 ---
-title: "Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel"
-description: "TreeWalker and TreeBuilder bring pure in-memory tree walking and building to @venizia/ignis-helpers. RecursiveTreeSql builds a bounded, injection-safe WITH RECURSIVE query in @venizia/ignis-kernel, with maxDepth mandatory and validated at runtime."
+title: 'Tree Utilities Join helpers, and RecursiveTreeSql Bounds Every Recursive Walk in kernel'
+description: 'TreeWalker and TreeBuilder bring pure in-memory tree walking and building to @venizia/ignis-helpers. RecursiveTreeSql builds a bounded, injection-safe WITH RECURSIVE query in @venizia/ignis-kernel, with maxDepth mandatory and validated at runtime.'
 packages: ['@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
@@ -28,8 +28,8 @@ import { TreeBuilder, TreeWalker } from '@venizia/ignis-helpers';
 
 const tree = await TreeBuilder.build({
   rootValue: rootCategory,
-  getChildren: category => fetchChildCategories(category.id),
-  getKey: category => category.id,
+  getChildren: (category) => fetchChildCategories(category.id),
+  getKey: (category) => category.id,
 });
 
 TreeWalker.walk({
@@ -44,11 +44,11 @@ TreeWalker.walk({
 
 Each of these looks like it could be "fixed" to match intuition. Don't - each was paid for in production.
 
-| Behavior | What it means |
-|---|---|
-| `shouldPrune(node, depth)` returning `true` | `node` is still visited - `onVisit` still runs. Only its children are skipped. Measuring depth to a boundary needs the boundary node counted. |
-| `build` sees a repeated `getKey` | Skips that branch. Does not throw. Real hierarchies contain legitimate diamonds - the same node reachable through two parents - and a diamond is not a cycle. |
-| `leaves({ includePath: true })` | Returns the root-to-leaf chain alongside each leaf, so building something like a nested order-line view costs one traversal instead of two. |
+| Behavior                                    | What it means                                                                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shouldPrune(node, depth)` returning `true` | `node` is still visited - `onVisit` still runs. Only its children are skipped. Measuring depth to a boundary needs the boundary node counted.                 |
+| `build` sees a repeated `getKey`            | Skips that branch. Does not throw. Real hierarchies contain legitimate diamonds - the same node reachable through two parents - and a diamond is not a cycle. |
+| `leaves({ includePath: true })`             | Returns the root-to-leaf chain alongside each leaf, so building something like a nested order-line view costs one traversal instead of two.                   |
 
 ### Who is affected
 
@@ -61,11 +61,11 @@ Each of these looks like it could be "fixed" to match intuition. Don't - each wa
 - `TreeBuilder.build`'s `getChildren` may return a plain array or a promise; the build is always asynchronous even when a given fetcher is not, because real callers fetch children from a repository.
 - `RecursiveTreeSql`, the SQL-emitting counterpart for a database-backed tree walk, lives in `@venizia/ignis-kernel` - see the next section.
 
-| File | Package |
-|------|---------|
+| File                               | Package |
+| ---------------------------------- | ------- |
 | `src/modules/tree/common/types.ts` | helpers |
-| `src/modules/tree/walk.ts` | helpers |
-| `src/modules/tree/builder.ts` | helpers |
+| `src/modules/tree/walk.ts`         | helpers |
+| `src/modules/tree/builder.ts`      | helpers |
 
 ## RecursiveTreeSql - A Bounded, Injection-Safe WITH RECURSIVE Builder
 
@@ -96,19 +96,19 @@ const walk = RecursiveTreeSql.walk({
 const rows = await db.execute(sql`${walk} SELECT * FROM category_ancestors`);
 ```
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `name` | `string` | - | CTE name your own `SELECT` references afterward. |
-| `table` | `unknown` | - | A Drizzle table. Checked at runtime with `is(table, Table)`, and also picks the SQL dialect - see below. |
-| `rootId` | `string` | - | The row to start from. Bound as an ordinary parameter, never spliced into SQL text. |
-| `direction` | `'UP' \| 'DOWN'` | - | `DOWN` follows `parentColumn -> idColumn` (descendants). `UP` follows the reverse (ancestors). |
-| `maxDepth` | `number` | - (required) | Recursion bound, counted in **edges**. Must be a positive integer - `<= 0` throws. |
-| `idColumn` | `string` | `'id'` | |
-| `parentColumn` | `string` | `'parent_id'` | |
-| `columns` | `string[]` | `[]` | Extra columns carried into every row of the walk. |
-| `recursiveFilter` | `SQL` | - | ANDed into the recursive term's `WHERE` clause. Build it with Drizzle's own `sql` tag. |
-| `trackPath` | `boolean` | `false` | Emits `path` and `is_cycle`; stops expanding a row once it re-visits an id already in its own path. **The two columns come back in different shapes per engine - see below.** |
-| `startDepth` | `number` | `0` | Depth value assigned to the root row. |
+| Option            | Type             | Default       | Meaning                                                                                                                                                                       |
+| ----------------- | ---------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | `string`         | -             | CTE name your own `SELECT` references afterward.                                                                                                                              |
+| `table`           | `unknown`        | -             | A Drizzle table. Checked at runtime with `is(table, Table)`, and also picks the SQL dialect - see below.                                                                      |
+| `rootId`          | `string`         | -             | The row to start from. Bound as an ordinary parameter, never spliced into SQL text.                                                                                           |
+| `direction`       | `'UP' \| 'DOWN'` | -             | `DOWN` follows `parentColumn -> idColumn` (descendants). `UP` follows the reverse (ancestors).                                                                                |
+| `maxDepth`        | `number`         | - (required)  | Recursion bound, counted in **edges**. Must be a positive integer - `<= 0` throws.                                                                                            |
+| `idColumn`        | `string`         | `'id'`        |                                                                                                                                                                               |
+| `parentColumn`    | `string`         | `'parent_id'` |                                                                                                                                                                               |
+| `columns`         | `string[]`       | `[]`          | Extra columns carried into every row of the walk.                                                                                                                             |
+| `recursiveFilter` | `SQL`            | -             | ANDed into the recursive term's `WHERE` clause. Build it with Drizzle's own `sql` tag.                                                                                        |
+| `trackPath`       | `boolean`        | `false`       | Emits `path` and `is_cycle`; stops expanding a row once it re-visits an id already in its own path. **The two columns come back in different shapes per engine - see below.** |
+| `startDepth`      | `number`         | `0`           | Depth value assigned to the root row.                                                                                                                                         |
 
 ### `maxDepth` is mandatory, and `0` is rejected too
 
@@ -116,12 +116,12 @@ const rows = await db.execute(sql`${walk} SELECT * FROM category_ancestors`);
 
 **It counts edges, not rows.** The root sits at `depth 0`, so `maxDepth: N` returns up to **N+1** rows. Measured against a real Postgres on a five-node chain:
 
-| `maxDepth` | Rows | Deepest `depth` |
-|---|---|---|
-| `1` | 2 | 1 |
-| `2` | 3 | 2 |
-| `4` | 5 | 4 |
-| `5` | 5 | 4 (chain exhausted) |
+| `maxDepth` | Rows | Deepest `depth`     |
+| ---------- | ---- | ------------------- |
+| `1`        | 2    | 1                   |
+| `2`        | 3    | 2                   |
+| `4`        | 5    | 4                   |
+| `5`        | 5    | 4 (chain exhausted) |
 
 Worth stating because "depth" and "how many levels I want back" are the same word to most callers and differ by one. Asking for `maxDepth: 1` to get the row and its parent is right; expecting one row is not.
 
@@ -152,18 +152,18 @@ const walk = RecursiveTreeSql.walk({
 
 Postgres and SQLite express `path` differently, because SQLite has no array type:
 
-| Engine | `path` | Membership test |
-|---|---|---|
-| Postgres | native array (`ARRAY[...]`) | `= ANY(path)` |
-| SQLite | text, each id wrapped in a `char(31)` delimiter | `instr(path, char(31) \|\| id \|\| char(31)) > 0` |
+| Engine   | `path`                                          | Membership test                                   |
+| -------- | ----------------------------------------------- | ------------------------------------------------- |
+| Postgres | native array (`ARRAY[...]`)                     | `= ANY(path)`                                     |
+| SQLite   | text, each id wrapped in a `char(31)` delimiter | `instr(path, char(31) \|\| id \|\| char(31)) > 0` |
 
 `char(31)` is the ASCII Unit Separator - a control character that does not occur in ordinary UUIDs, serial ids, slugs, or emails. Wrapping every id on both sides, rather than joining with a plain separator, stops a partial match: without it, an id of `1` would look like it appeared inside `12`. The SQLite form is exact as long as no id value ever contains that byte. `RecursiveTreeSql` does not validate or escape id values for this - it is a real, if narrow, gap: an id containing `char(31)` could produce a false-negative cycle match.
 
 **Both emitted columns reach your code in a different shape per engine.** The generated SQL is correct on each, but the rows are not interchangeable:
 
-| Column | Postgres | SQLite |
-|---|---|---|
-| `path` | `string[]` - a real array | `string` - ids joined and wrapped by `char(31)` |
+| Column     | Postgres                   | SQLite                                             |
+| ---------- | -------------------------- | -------------------------------------------------- |
+| `path`     | `string[]` - a real array  | `string` - ids joined and wrapped by `char(31)`    |
 | `is_cycle` | `boolean` (`true`/`false`) | `number` (`1`/`0`) - SQLite has no boolean literal |
 
 So `row.path.length` and `row.is_cycle === true` both work on Postgres and both fail on SQLite - the first throws, the second is quietly always `false`. Read `is_cycle` truthily, and split `path` on `String.fromCharCode(31)` when the engine is SQLite. Stated here because nothing in the type signature shows it: `walk()` returns a `SQL`, and the row shape is whatever the driver hands back.
@@ -180,9 +180,9 @@ So `row.path.length` and `row.is_cycle === true` both work on Postgres and both 
 - `import { RecursiveTreeSql } from '@venizia/ignis'` resolves - `core-server` re-exports `kernel` wholesale, so no new dependency is needed to reach it from an application already on `@venizia/ignis`.
 - The in-memory counterpart for a tree you build without a database - `TreeWalker`/`TreeBuilder` - lives in `@venizia/ignis-helpers`, see the section above.
 
-| File | Package |
-|------|---------|
-| `src/base/repositories/sqls/recursive-tree.ts` | kernel |
+| File                                           | Package |
+| ---------------------------------------------- | ------- |
+| `src/base/repositories/sqls/recursive-tree.ts` | kernel  |
 
 ## See also
 

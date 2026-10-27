@@ -1,7 +1,8 @@
 ---
 title: Order Entries Get One Parser, and toOrderBy Can Sort by an Expression
-description: "parseOrderEntry is now a public export every relational and search dialect shares, toOrderBy gains an expressions option for sorting by a joined column or a computed SQL expression, and a malformed order entry is now a 400 instead of a silent truncation."
-packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-filter', '@venizia/ignis-kernel']
+description: 'parseOrderEntry is now a public export every relational and search dialect shares, toOrderBy gains an expressions option for sorting by a joined column or a computed SQL expression, and a malformed order entry is now a 400 instead of a silent truncation.'
+packages:
+  ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-filter', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-26
@@ -31,17 +32,17 @@ parseOrderEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
 
 ## Error messages, before and after
 
-| Case | Relational, before | Relational, after |
-|---|---|---|
-| Invalid direction | `[FilterBuilder][toOrderBy] Table: <t> \| Invalid direction: 'RANDOM' \| Expected: 'ASC' or 'DESC'` | `[parseOrderEntry] Invalid direction \| entry: "name RANDOM" \| Expected: 'ASC' or 'DESC'` |
-| Extra tokens | Silently accepted; the tail was dropped | `[parseOrderEntry] Too many tokens \| entry: "name DESC NULLS LAST" \| Expected: '<field>' or '<field> ASC\|DESC'` |
-| Empty entry | Reached the dialect as an unknown column | `[parseOrderEntry] Order entry has no field \| entry: ""` |
+| Case              | Relational, before                                                                                  | Relational, after                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Invalid direction | `[FilterBuilder][toOrderBy] Table: <t> \| Invalid direction: 'RANDOM' \| Expected: 'ASC' or 'DESC'` | `[parseOrderEntry] Invalid direction \| entry: "name RANDOM" \| Expected: 'ASC' or 'DESC'`                         |
+| Extra tokens      | Silently accepted; the tail was dropped                                                             | `[parseOrderEntry] Too many tokens \| entry: "name DESC NULLS LAST" \| Expected: '<field>' or '<field> ASC\|DESC'` |
+| Empty entry       | Reached the dialect as an unknown column                                                            | `[parseOrderEntry] Order entry has no field \| entry: ""`                                                          |
 
-| Case | Search (Typesense/Meilisearch), before | Search, after |
-|---|---|---|
+| Case              | Search (Typesense/Meilisearch), before                     | Search, after                                                    |
+| ----------------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
 | Invalid direction | `Invalid sort direction '<direction>' for field '<field>'` | Same `[parseOrderEntry] Invalid direction` message as relational |
-| Extra tokens | Silently accepted; the tail was dropped | Same `[parseOrderEntry] Too many tokens` message |
-| Empty entry | Silently accepted as an empty field | Same `[parseOrderEntry] Order entry has no field` message |
+| Extra tokens      | Silently accepted; the tail was dropped                    | Same `[parseOrderEntry] Too many tokens` message                 |
+| Empty entry       | Silently accepted as an empty field                        | Same `[parseOrderEntry] Order entry has no field` message        |
 
 Status codes: every case that was already an error was a `400` and still is; the "silently accepted" cases (extra tokens, an empty entry) are now `400` for the first time. Unknown-column messages (`Column NOT FOUND | key: '<key>'`) are unchanged and still name the key.
 

@@ -74,7 +74,7 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
     super({
       name: PostgresDataSource.name,
       driver: 'node-postgres',
-      config: { /* connection config */ },
+      config: {/* connection config */},
 
       // Manual schema registration - verbose and error-prone
       schema: Object.assign(

@@ -29,7 +29,7 @@ The tools are `devz check` commands of `@venizia/dev-configs` (Bun-only), so a r
    - (b) tests pinned to internals, and **type-only placeholders** (`@ts-expect-error` followed by `expect(true).toBe(true)`: the type check already catches them). `as never`, `as any`, `spyOn` and `toHaveBeenCalledTimes` counts are signals to read, not verdicts; `readFileSync` of a `.ts` file is a poor signal (gates read `dist` on purpose);
    - (c) slow tests, from the alone-timings (real timers and spawned processes are the usual cause);
    - (d) flaky tests (an assertion on wall-clock time or process-wide memory);
-   - (e) dead test code: `devz check test-dead-code` lists support files under `__tests__` that no other file refers to by name or by path. They are candidates: delete one, run the package suite, keep it if anything fails or loads it by a path built at run time.
+   - (e) dead test code: `devz check test-dead-code` lists support files under `__tests__` that no other file refers to by name or by path. They are candidates: delete one, run the package suite, keep it if anything fails or loads it by a path built at run time. **A candidate that stays green without it may be a negative fixture**: a file a test needs to be ABSENT from a result (a class the scanner must ignore). The assertion `expect(names).not.toContain('PlainService')` passes with or without the file, so deleting it keeps the suite green and silently removes the test's teeth. Keep it, and register it in `scripts/checks/controls.json` as `{ "gate": ..., "file": ..., "kind": "file" }`; delete it only if a mutation shows the test still goes red without it.
 3. **Coverage prefilter.** Run the candidate and its proposed survivor with `bun test --coverage --coverage-reporter=lcov --coverage-dir=<scratch>`; the candidate's covered lines should be a subset of the survivor's. In the lcov a package's own sources appear as `src/...ts` and a sibling package as `../<pkg>/dist/esm/....js`: compare like with like. This only nominates candidates.
 4. **Mutation proof, one ledger line per deletion.** Write `{ candidate, survivor, mutant }` and replay it:
 
@@ -74,6 +74,17 @@ The tools are `devz check` commands of `@venizia/dev-configs` (Bun-only), so a r
 | Largest single item | `kernel/events/event-bus.test.ts`: 17.0 s alone, real timers |
 
 What the baseline teaches: deleting cheap tests does not speed CI (half the files cost 3.2% of the time); a file that looks slow in the parallel run may be contention, so re-time it alone; the time is in a few files with real timers and spawned processes.
+
+## Result of the dead-code step - IGNIS 0.4.4 (2026-10-28)
+
+`devz check test-dead-code` listed 24 candidates (22 unreferenced, 2 folder-referenced). Each was removed in turn and the package suite run:
+
+| Outcome | Count | What they are |
+|---|---|---|
+| Suite red without the file | 19 | boot fixtures that the artifact scanner discovers by scanning a folder; `helpers/.../kafka/consumer.manual.ts` and `producer.manual.ts`, loaded by tests |
+| Suite green without the file | 5 | negative fixtures: `PlainService` (undecorated), `IgnoredService` (in a `__tests__` folder), an abstract `GammaService`, a foreign-decorated class, an empty-domain readme |
+
+Nothing was deleted: the 5 are the scanner's positive controls. The negative fixtures named in `scanner.test.ts:39` and the other three are registered as `kind: file` entries. A first name-based scan had suggested 49 candidates; most were fixtures loaded by a path built at run time.
 
 ## Related
 

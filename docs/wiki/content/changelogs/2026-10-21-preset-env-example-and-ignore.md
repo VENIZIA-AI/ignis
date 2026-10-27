@@ -1,6 +1,6 @@
 ---
 title: The App Preset Lists Its Environment Keys and Ships Its Ignore Files
-description: ".env.example names every APP_ENV key the app reads, the .ignore files come with the app, and the image refuses anything that is not a commit sha."
+description: '.env.example names every APP_ENV key the app reads, the .ignore files come with the app, and the image refuses anything that is not a commit sha.'
 packages: ['@venizia/ignis']
 ---
 
@@ -21,7 +21,7 @@ packages: ['@venizia/ignis']
 
 ## Who is affected
 
-| You have | Do this |
-|---|---|
+| You have                                         | Do this                                                                                                                                                  |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | An app made from `@venizia/ignis` 0.3.5 or older | Copy the new `.env.example`, the two `.ignore` files and the `APP_BUILD_COMMIT` check of `.configs/builders/Dockerfile` from a new app, if you want them |
-| An image build that runs before the first commit | Commit first: `git add -A && git commit -m init` |
+| An image build that runs before the first commit | Commit first: `git add -A && git commit -m init`                                                                                                         |

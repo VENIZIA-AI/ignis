@@ -1,6 +1,6 @@
 ---
 title: installShutdownSignals Stops the Application on SIGTERM and SIGINT
-description: "ServerApplication.installShutdownSignals is an opt-in, idempotent hook that calls stop() once on a signal, exits, force-exits after a timeout, and returns an uninstall function."
+description: 'ServerApplication.installShutdownSignals is an opt-in, idempotent hook that calls stop() once on a signal, exits, force-exits after a timeout, and returns an uninstall function.'
 packages: ['@venizia/ignis']
 ---
 

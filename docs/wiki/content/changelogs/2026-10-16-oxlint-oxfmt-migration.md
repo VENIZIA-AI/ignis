@@ -1,6 +1,6 @@
 ---
 title: IGNIS Lints with oxlint and Formats with oxfmt
-description: "The IGNIS repository replaces Prettier and most of ESLint with oxlint and oxfmt, and @venizia/dev-configs gains matching exports. Nothing was removed from the package."
+description: 'The IGNIS repository replaces Prettier and most of ESLint with oxlint and oxfmt, and @venizia/dev-configs gains matching exports. Nothing was removed from the package.'
 packages: ['@venizia/dev-configs']
 ---
 
@@ -32,15 +32,15 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 - **The TypeScript target is ES2025.** `tsconfig.base.json` and `tsconfig.common.json` move from ES2024 to ES2025, target and lib. The emitted JavaScript of every IGNIS package is unchanged; the gain is the ES2025 types (`Set` methods, iterator helpers, `Promise.try`).
 - **New `@venizia/dev-configs` exports.** Subpaths `/compilers`, `/formatters` and `/linters`, plus one class per rule (see the table below).
 
-| New export | From | Use |
-|------------|------|-----|
-| `oxlintConfigs` | `/linters` | The oxlint rules |
-| `namingConventionConfigs` | `/linters` | ESLint config with the naming-convention rule only |
-| `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`, `NamingConventionRule` | `/linters` | Rebuild one rule with `build()` to customize it |
-| `ReactOxlintConfigs` | `/linters` | The React preset for oxlint, as strict as the backend preset |
-| `reactNamingConventionConfigs` | `/linters` | The naming rule for a React project (PascalCase components) |
-| `NoRestrictedPropertiesRule` | `/linters` | Bans `crypto.randomUUID`, which a plain-http origin does not have |
-| `oxfmtConfigs` | `/formatters` | The oxfmt options |
+| New export                                                                                                                                 | From          | Use                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- | ----------------------------------------------------------------- |
+| `oxlintConfigs`                                                                                                                            | `/linters`    | The oxlint rules                                                  |
+| `namingConventionConfigs`                                                                                                                  | `/linters`    | ESLint config with the naming-convention rule only                |
+| `EqeqeqRule`, `NoUnusedVarsRule`, `SwitchCaseBracesRule`, `NoRestrictedImportsRule`, `PreferNullishCoalescingRule`, `NamingConventionRule` | `/linters`    | Rebuild one rule with `build()` to customize it                   |
+| `ReactOxlintConfigs`                                                                                                                       | `/linters`    | The React preset for oxlint, as strict as the backend preset      |
+| `reactNamingConventionConfigs`                                                                                                             | `/linters`    | The naming rule for a React project (PascalCase components)       |
+| `NoRestrictedPropertiesRule`                                                                                                               | `/linters`    | Bans `crypto.randomUUID`, which a plain-http origin does not have |
+| `oxfmtConfigs`                                                                                                                             | `/formatters` | The oxfmt options                                                 |
 
 ## Who is affected
 
@@ -52,14 +52,14 @@ On `packages/kernel` (253 files), linting went from 8.16s to about 0.8s with typ
 
 ## For contributors
 
-| Command | What it does |
-|---------|--------------|
-| `make lint-<pkg>` | oxlint, ESLint and an oxfmt check for one package, e.g. `make lint-kernel` |
-| `make fmt-<pkg>` | The same with fixes applied |
-| `make lint-packages` / `make fmt` | Every package |
-| `make lint-all` | Packages, examples, example typecheck and `scripts/` |
+| Command                                                         | What it does                                                                 |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `make lint-<pkg>`                                               | oxlint, ESLint and an oxfmt check for one package, e.g. `make lint-kernel`   |
+| `make fmt-<pkg>`                                                | The same with fixes applied                                                  |
+| `make lint-packages` / `make fmt`                               | Every package                                                                |
+| `make lint-all`                                                 | Packages, examples, example typecheck and `scripts/`                         |
 | `make build` / `make rebuild` / `make clean` / `make typecheck` | Inside a package: build, type-check then clean then build, clean, type-check |
-| `make <pkg>` | From the root: rebuild one package after its dependencies, as before |
+| `make <pkg>`                                                    | From the root: rebuild one package after its dependencies, as before         |
 
 Each package now has a two-to-four-line `Makefile` that includes the shared `make/project.mk`. Its `package.json` keeps only `force-update`, `prepublishOnly` (`make rebuild`) and, for `atlas` and `boot`, `test`. The `scripts/build.sh`, `clean.sh` and `rebuild.sh` files are gone, and so are the `lint` and `prettier:*` scripts. Examples keep their own scripts, because you copy them.
 

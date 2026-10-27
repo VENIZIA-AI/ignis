@@ -36,18 +36,18 @@ A two-phase upload asks the backend for a presigned URL, uploads straight to S3,
 
 ### What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `IStorageHelper.presignPut(opts)` | New. Returns a time-limited PUT URL | helpers |
-| `IStorageHelper.presignGet(opts)` | New. Returns a time-limited GET URL, with an optional response content type | helpers |
-| `IStorageHelper.getObjectTags(opts)` | New. Returns an object's tags as a plain `Record<string, string>` | helpers |
-| `IStorageHelper.replaceObjectTags(opts)` | New. Replaces an object's tags | helpers |
-| `StoragePresignDefaults` | New const class: `PUT_EXPIRES_IN_SECONDS` (600), `GET_EXPIRES_IN_SECONDS` (60) | helpers |
+| Symbol                                   | Change                                                                         | Package |
+| ---------------------------------------- | ------------------------------------------------------------------------------ | ------- |
+| `IStorageHelper.presignPut(opts)`        | New. Returns a time-limited PUT URL                                            | helpers |
+| `IStorageHelper.presignGet(opts)`        | New. Returns a time-limited GET URL, with an optional response content type    | helpers |
+| `IStorageHelper.getObjectTags(opts)`     | New. Returns an object's tags as a plain `Record<string, string>`              | helpers |
+| `IStorageHelper.replaceObjectTags(opts)` | New. Replaces an object's tags                                                 | helpers |
+| `StoragePresignDefaults`                 | New const class: `PUT_EXPIRES_IN_SECONDS` (600), `GET_EXPIRES_IN_SECONDS` (60) | helpers |
 
-| Method | `expiresInSeconds` default | Extra option |
-|---|---|---|
-| `presignPut` | 600 | none - a content type on a presigned PUT is never sent to S3 |
-| `presignGet` | 60 | `responseContentType`, forwarded as the download's `Content-Type` |
+| Method       | `expiresInSeconds` default | Extra option                                                      |
+| ------------ | -------------------------- | ----------------------------------------------------------------- |
+| `presignPut` | 600                        | none - a content type on a presigned PUT is never sent to S3      |
+| `presignGet` | 60                         | `responseContentType`, forwarded as the download's `Content-Type` |
 
 `MinioHelper` and `BunS3Helper` implement all four. `BaseStorageHelper` implements them too, but only to throw - a backend with no transport for presigning or tagging says so with a message naming the class and the method, rather than returning `undefined` or a broken link. `DiskHelper` has no object storage to presign against, so it inherits that throw.
 

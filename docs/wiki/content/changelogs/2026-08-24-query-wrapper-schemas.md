@@ -17,10 +17,10 @@ packages: ['@venizia/ignis']
 
 Two composed schemas ship from `@venizia/ignis`:
 
-| Schema | Query shape | Use it for |
-|---|---|---|
-| `FilterQuerySchema` | `{ filter?: TFilter }` | Any route that takes a full filter |
-| `WhereQuerySchema` | `{ where?: TWhere }` | Any route that takes conditions and no pagination |
+| Schema              | Query shape            | Use it for                                        |
+| ------------------- | ---------------------- | ------------------------------------------------- |
+| `FilterQuerySchema` | `{ filter?: TFilter }` | Any route that takes a full filter                |
+| `WhereQuerySchema`  | `{ where?: TWhere }`   | Any route that takes conditions and no pagination |
 
 Before:
 
@@ -47,9 +47,9 @@ The generated `find`, `findById` and `findOne` routes now use `FilterQuerySchema
 `FilterSchema` already ends with `.optional()`. A second one is the same schema written longer, and `.partial()` on a single optional key does nothing either. These three accept exactly the same requests:
 
 ```typescript
-z.object({ filter: FilterSchema })
-z.object({ filter: FilterSchema.optional() })
-z.object({ filter: FilterSchema.optional() }).partial()
+z.object({ filter: FilterSchema });
+z.object({ filter: FilterSchema.optional() });
+z.object({ filter: FilterSchema.optional() }).partial();
 ```
 
 So if you are overriding `find`, `findById` or `findOne` only to make `filter` optional, delete the override. The framework default already behaves that way, and it carries an OpenAPI description your override was replacing with nothing.

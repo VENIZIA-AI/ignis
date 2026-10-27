@@ -30,9 +30,9 @@ const helper = KafkaProducerHelper.newInstance({
   onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
 });
 
-helper.isHealthy();      // true when broker connected
+helper.isHealthy(); // true when broker connected
 helper.getHealthStatus(); // 'connected' | 'disconnected' | 'unknown'
-await helper.close();     // graceful shutdown with timeout fallback
+await helper.close(); // graceful shutdown with timeout fallback
 ```
 
 ### Consumer Message Callbacks
@@ -105,14 +105,14 @@ const producer = KafkaProducerHelper.newInstance({
 
 ### New Constants
 
-| Constant | Description |
-|----------|-------------|
-| `KafkaHealthStatuses` | `CONNECTED`, `DISCONNECTED`, `UNKNOWN` |
-| `KafkaClientEvents` | All broker + consumer event name constants |
-| `KafkaDefaults.SHUTDOWN_TIMEOUT` | `30000` |
-| `KafkaDefaults.LAG_MONITOR_INTERVAL` | `30000` |
-| `KafkaDefaults.CONSUME_MODE` | `'committed'` |
-| `KafkaDefaults.CONSUME_FALLBACK_MODE` | `'latest'` |
+| Constant                              | Description                                |
+| ------------------------------------- | ------------------------------------------ |
+| `KafkaHealthStatuses`                 | `CONNECTED`, `DISCONNECTED`, `UNKNOWN`     |
+| `KafkaClientEvents`                   | All broker + consumer event name constants |
+| `KafkaDefaults.SHUTDOWN_TIMEOUT`      | `30000`                                    |
+| `KafkaDefaults.LAG_MONITOR_INTERVAL`  | `30000`                                    |
+| `KafkaDefaults.CONSUME_MODE`          | `'committed'`                              |
+| `KafkaDefaults.CONSUME_FALLBACK_MODE` | `'latest'`                                 |
 
 ### New Callback Types
 
@@ -127,39 +127,39 @@ All callbacks follow the IGNIS `opts: { ... }` pattern with `ValueOrPromise<void
 
 ### Renamed Types
 
-| Before | After |
-|--------|-------|
-| `IKafkaProducerOpts` | `IKafkaProducerOptions` |
-| `IKafkaConsumerOpts` | `IKafkaConsumerOptions` |
-| `IKafkaAdminOpts` | `IKafkaAdminOptions` |
+| Before                     | After                         |
+| -------------------------- | ----------------------------- |
+| `IKafkaProducerOpts`       | `IKafkaProducerOptions`       |
+| `IKafkaConsumerOpts`       | `IKafkaConsumerOptions`       |
+| `IKafkaAdminOpts`          | `IKafkaAdminOptions`          |
 | `IKafkaSchemaRegistryOpts` | `IKafkaSchemaRegistryOptions` |
 
 ## Files Changed
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `kafka/common/constants.ts` | Added `KafkaHealthStatuses`, `KafkaClientEvents`, new defaults |
-| `kafka/common/types.ts` | Added callback types, enhanced options, transaction context, schema registry options |
-| `kafka/base.ts` | **New**: `BaseKafkaHelper<TClient>` - shared health tracking, broker events, graceful shutdown |
-| `kafka/producer.ts` | Extended `BaseKafkaHelper`, added `runInTransaction()`, graceful shutdown |
-| `kafka/consumer.ts` | Extended `BaseKafkaHelper`, added `start()`, message callbacks, lag monitoring, graceful shutdown |
-| `kafka/admin.ts` | Extended `BaseKafkaHelper`, added graceful shutdown |
-| `kafka/schema/registry.ts` | **New**: `KafkaSchemaRegistryHelper` |
-| `kafka/index.ts` | Added base and schema exports |
+| File                        | Changes                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------- |
+| `kafka/common/constants.ts` | Added `KafkaHealthStatuses`, `KafkaClientEvents`, new defaults                                    |
+| `kafka/common/types.ts`     | Added callback types, enhanced options, transaction context, schema registry options              |
+| `kafka/base.ts`             | **New**: `BaseKafkaHelper<TClient>` - shared health tracking, broker events, graceful shutdown    |
+| `kafka/producer.ts`         | Extended `BaseKafkaHelper`, added `runInTransaction()`, graceful shutdown                         |
+| `kafka/consumer.ts`         | Extended `BaseKafkaHelper`, added `start()`, message callbacks, lag monitoring, graceful shutdown |
+| `kafka/admin.ts`            | Extended `BaseKafkaHelper`, added graceful shutdown                                               |
+| `kafka/schema/registry.ts`  | **New**: `KafkaSchemaRegistryHelper`                                                              |
+| `kafka/index.ts`            | Added base and schema exports                                                                     |
 
 ### Docs Package (`packages/docs`)
 
-| File | Changes |
-|------|---------|
-| `wiki/extensions/helpers/kafka/index.md` | Rewritten - architecture, BaseKafkaHelper, all constants |
-| `wiki/extensions/helpers/kafka/producer.md` | Rewritten - health, transactions, graceful shutdown |
-| `wiki/extensions/helpers/kafka/consumer.md` | Rewritten - callbacks, start(), lag monitoring, graceful shutdown |
-| `wiki/extensions/helpers/kafka/admin.md` | Updated - health tracking, graceful shutdown |
-| `wiki/extensions/helpers/kafka/schema-registry.md` | **New** |
-| `wiki/extensions/helpers/kafka/examples.md` | Rewritten - all examples use new callback/health API |
-| `wiki/changelogs/2026-03-12-kafka-helpers-enhancement.md` | This changelog |
+| File                                                      | Changes                                                           |
+| --------------------------------------------------------- | ----------------------------------------------------------------- |
+| `wiki/extensions/helpers/kafka/index.md`                  | Rewritten - architecture, BaseKafkaHelper, all constants          |
+| `wiki/extensions/helpers/kafka/producer.md`               | Rewritten - health, transactions, graceful shutdown               |
+| `wiki/extensions/helpers/kafka/consumer.md`               | Rewritten - callbacks, start(), lag monitoring, graceful shutdown |
+| `wiki/extensions/helpers/kafka/admin.md`                  | Updated - health tracking, graceful shutdown                      |
+| `wiki/extensions/helpers/kafka/schema-registry.md`        | **New**                                                           |
+| `wiki/extensions/helpers/kafka/examples.md`               | Rewritten - all examples use new callback/health API              |
+| `wiki/changelogs/2026-03-12-kafka-helpers-enhancement.md` | This changelog                                                    |
 
 ## Backward Compatibility
 

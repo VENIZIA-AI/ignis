@@ -48,8 +48,8 @@ Run it **after** every consumer is on this release. Until then the old code stil
 - That bug shipped in the first draft of this change and **every existing adapter test still passed**, because they stub `execute` and return row literals. It was caught by `scoped-adapter-domain-sql-e2e.test.ts`, which runs the adapter's own statements against a real Postgres.
 - `null` is still `ANY_MEMBER`: the CASE yields NULL for a null `domain_type`, and `buildGrantLines` defaults it exactly as it did for a null `domain`.
 
-| File | Package |
-|------|---------|
-| `src/base/auth/authorize/builders/policy.builder.ts` | kernel |
+| File                                                              | Package     |
+| ----------------------------------------------------------------- | ----------- |
+| `src/base/auth/authorize/builders/policy.builder.ts`              | kernel      |
 | `src/components/auth/authorize/adapters/scoped-casbin.adapter.ts` | core-server |
-| `src/components/auth/models/entities/policy-definition.model.ts` | core-server |
+| `src/components/auth/models/entities/policy-definition.model.ts`  | core-server |

@@ -46,6 +46,7 @@ await transaction.commit(); // resolved even when COMMIT failed
 ### 1. `commit()` and `rollback()` now throw on failure
 
 **Before**
+
 ```typescript
 const transaction = await dataSource.beginTransaction();
 try {
@@ -58,6 +59,7 @@ try {
 ```
 
 **After**
+
 ```typescript
 const transaction = await dataSource.beginTransaction();
 try {
@@ -80,6 +82,7 @@ Nest the rollback in its own `try` so a rollback failure never masks the origina
 `connector` is now `TRelationalConnector<Schema>` instead of the node-postgres-specific `TNodePostgresTransactionConnector`.
 
 **Before**
+
 ```typescript
 import type { TNodePostgresTransactionConnector } from '@venizia/ignis/postgres';
 
@@ -87,6 +90,7 @@ function useTx(connector: TNodePostgresTransactionConnector<typeof schema>) {}
 ```
 
 **After**
+
 ```typescript
 import type { TRelationalConnector } from '@venizia/ignis/postgres';
 
@@ -122,21 +126,21 @@ bun add postgres  # postgres-js (needed for the Supabase transaction pooler)
 <details>
 <summary>Files changed</summary>
 
-| File | Changes |
-|------|---------|
-| `src/connectors/postgres/drivers/driver.ts` | New. `IRelationalDriver` / `IRelationalConnection` / `IStatementResult` contracts |
-| `src/connectors/postgres/drivers/node-postgres.ts` | New. `NodePostgresDriver` |
-| `src/connectors/postgres/drivers/postgres-js.ts` | New. `PostgresJsDriver` |
-| `src/connectors/postgres/drivers/resolve.ts` | New. `resolveDatabaseDriver` |
-| `src/connectors/postgres/drivers/index.ts` | New. Exports only the contract + `resolveDatabaseDriver` |
-| `src/connectors/postgres/supabase/pooler.ts` | New. `PoolerModes` + `buildPostgresJsOptions` |
-| `src/connectors/postgres/supabase/rls.ts` | New. `withAuthContext` |
-| `src/connectors/postgres/supabase/index.ts` | New. Re-exports pooler/rls + Supabase Drizzle roles |
-| `src/utilities/drizzle-result.utility.ts` | New. `readAffectedRowCount` / `readResultRows` driver-shape readers |
-| `src/connectors/postgres/datasources/abstract.ts` | `driver` / `resolveDriver` / `useDriver` / `getClient`; `pool` deprecated |
-| `src/connectors/postgres/datasources/base.ts` | Transaction lifecycle: BEGIN-leak fix, commit/rollback throw + destroy, commit/rollback race guard |
-| `src/connectors/postgres/datasources/common/types.ts` | `TRelationalConnector`; `IDatabaseTransaction.connector` retyped; deprecated aliases retained |
-| `packages/core-server/package.json` | `pg` + `postgres` optional peers; new sub-path exports; grpc export path fixed |
+| File                                                  | Changes                                                                                            |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `src/connectors/postgres/drivers/driver.ts`           | New. `IRelationalDriver` / `IRelationalConnection` / `IStatementResult` contracts                  |
+| `src/connectors/postgres/drivers/node-postgres.ts`    | New. `NodePostgresDriver`                                                                          |
+| `src/connectors/postgres/drivers/postgres-js.ts`      | New. `PostgresJsDriver`                                                                            |
+| `src/connectors/postgres/drivers/resolve.ts`          | New. `resolveDatabaseDriver`                                                                       |
+| `src/connectors/postgres/drivers/index.ts`            | New. Exports only the contract + `resolveDatabaseDriver`                                           |
+| `src/connectors/postgres/supabase/pooler.ts`          | New. `PoolerModes` + `buildPostgresJsOptions`                                                      |
+| `src/connectors/postgres/supabase/rls.ts`             | New. `withAuthContext`                                                                             |
+| `src/connectors/postgres/supabase/index.ts`           | New. Re-exports pooler/rls + Supabase Drizzle roles                                                |
+| `src/utilities/drizzle-result.utility.ts`             | New. `readAffectedRowCount` / `readResultRows` driver-shape readers                                |
+| `src/connectors/postgres/datasources/abstract.ts`     | `driver` / `resolveDriver` / `useDriver` / `getClient`; `pool` deprecated                          |
+| `src/connectors/postgres/datasources/base.ts`         | Transaction lifecycle: BEGIN-leak fix, commit/rollback throw + destroy, commit/rollback race guard |
+| `src/connectors/postgres/datasources/common/types.ts` | `TRelationalConnector`; `IDatabaseTransaction.connector` retyped; deprecated aliases retained      |
+| `packages/core-server/package.json`                   | `pg` + `postgres` optional peers; new sub-path exports; grpc export path fixed                     |
 
 </details>
 

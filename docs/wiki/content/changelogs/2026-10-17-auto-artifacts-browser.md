@@ -1,6 +1,6 @@
 ---
 title: Auto Artifacts Build for the Browser
-description: "A browser Bun.build of an application using @venizia/ignis-boot/auto no longer fails on node:net - the module a browser bundle reaches no longer loads the helpers barrel."
+description: 'A browser Bun.build of an application using @venizia/ignis-boot/auto no longer fails on node:net - the module a browser bundle reaches no longer loads the helpers barrel.'
 packages: ['@venizia/ignis-boot']
 ---
 

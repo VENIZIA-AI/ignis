@@ -1,6 +1,6 @@
 ---
 title: The Browser Auto Index Is Tree-Shaken Again
-description: "A browser build imports the auto artifact index eagerly again, which brings a frontend bundle back to its size; server builds stay lazy. IgnisArtifactsPlugin.create({ lazyIndex }) chooses explicitly."
+description: 'A browser build imports the auto artifact index eagerly again, which brings a frontend bundle back to its size; server builds stay lazy. IgnisArtifactsPlugin.create({ lazyIndex }) chooses explicitly.'
 packages: ['@venizia/ignis-boot']
 ---
 

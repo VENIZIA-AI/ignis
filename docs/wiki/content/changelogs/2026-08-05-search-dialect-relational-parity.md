@@ -66,26 +66,26 @@ switch (compiled.outcome) {
 - A model with no `defineSearchCollection` is **unvalidated, not empty**: field checking is skipped entirely, so entities without a collection definition behave exactly as before.
 - Where the two engines legitimately differ they now say so instead of guessing. Meilisearch expresses `exists`, `notExists` and `is: null` natively; Typesense has no null at all - an optional field is either present or absent, and `filter_by` cannot test which - so those four are one limitation, reported with one message.
 
-| Operator | relational | typesense | meilisearch |
-|---|---|---|---|
-| `eq` `ne` `gt` `gte` `lt` `lte` `in` `inq` `nin` `between` `notBetween` | yes | yes | yes |
-| `is` `isn` | yes | value only | yes, incl. `null` |
-| `exists` `notExists` | yes | **no** | yes |
-| `not` | yes | no | no |
-| `like` `ilike` `regexp` and friends | yes | no | no |
-| `contains` `containedBy` `overlaps` | yes | no | no |
+| Operator                                                                | relational | typesense  | meilisearch       |
+| ----------------------------------------------------------------------- | ---------- | ---------- | ----------------- |
+| `eq` `ne` `gt` `gte` `lt` `lte` `in` `inq` `nin` `between` `notBetween` | yes        | yes        | yes               |
+| `is` `isn`                                                              | yes        | value only | yes, incl. `null` |
+| `exists` `notExists`                                                    | yes        | **no**     | yes               |
+| `not`                                                                   | yes        | no         | no                |
+| `like` `ilike` `regexp` and friends                                     | yes        | no         | no                |
+| `contains` `containedBy` `overlaps`                                     | yes        | no         | no                |
 
 - `not` is classified unsupported on both engines rather than partially implemented. `not: 'x'` is a trivial rewrite but `not: { and: [...] }` needs De Morgan through an arbitrary tree, and an operator that works until it doesn't is worse than one that never does.
 - **Known asymmetry, deliberate.** These new rejections carry catalogued codes; the relational branch's equivalents (`Invalid query operator`, `Column NOT FOUND`) stay uncoded. Cataloguing those means touching the SQL branch, and is scoped separately.
 - **Known gap, deliberate.** A caller who cannot read a hidden field can still probe its value through filter results. That exposure is identical on the relational branch, which does not consult `hiddenProperties` when resolving a `where` either, so it is cross-cutting hardening rather than something to fix on one side only.
 
-| File | Package |
-|------|---------|
-| `src/connectors/search/repositories/common/types.ts` | core |
-| `src/connectors/search/repositories/common/dialect-helpers.ts` | core |
-| `src/connectors/search/repositories/core/base.ts` | core |
-| `src/connectors/search/repositories/core/readable.ts` | core |
-| `src/connectors/search/repositories/core/persistable.ts` | core |
-| `src/connectors/search/common/errors.ts` | core |
-| `src/connectors/typesense/repositories/dialect/query-dialect.ts` | core |
-| `src/connectors/meilisearch/repositories/dialect/query-dialect.ts` | core |
+| File                                                               | Package |
+| ------------------------------------------------------------------ | ------- |
+| `src/connectors/search/repositories/common/types.ts`               | core    |
+| `src/connectors/search/repositories/common/dialect-helpers.ts`     | core    |
+| `src/connectors/search/repositories/core/base.ts`                  | core    |
+| `src/connectors/search/repositories/core/readable.ts`              | core    |
+| `src/connectors/search/repositories/core/persistable.ts`           | core    |
+| `src/connectors/search/common/errors.ts`                           | core    |
+| `src/connectors/typesense/repositories/dialect/query-dialect.ts`   | core    |
+| `src/connectors/meilisearch/repositories/dialect/query-dialect.ts` | core    |

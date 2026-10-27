@@ -43,12 +43,14 @@ private heartbeatAll() {
 ```
 
 **Key design decisions:**
+
 - **Server is passive** - only sweeps, never sends heartbeat events. This is simpler and puts control with the client
 - **Only sweeps AUTHENTICATED clients** - unauthorized clients have their own auth timeout (5s)
 - **`lastActivity` already tracked** - every message updates `lastActivity` in Bun's `message` handler, so any client communication (not just heartbeat events) keeps the connection alive
 - **`heartbeat` event is a no-op** - if a client sends `{ event: 'heartbeat' }`, the server returns early (no message handler invocation). The `lastActivity` update happens upstream in the Bun handler
 
 **Timer lifecycle:**
+
 - Started at the end of `configure()` (after Redis ready + subscriptions)
 - Cleared in `shutdown()` before disconnecting clients
 
@@ -59,8 +61,8 @@ private heartbeatAll() {
 ```typescript
 // Helper options
 interface IWebSocketServerOptions {
-  heartbeatInterval?: number;  // Default: 30_000 (30s between sweeps)
-  heartbeatTimeout?: number;   // Default: 90_000 (3x interval - disconnect after 3 missed heartbeats)
+  heartbeatInterval?: number; // Default: 30_000 (30s between sweeps)
+  heartbeatTimeout?: number; // Default: 90_000 (3x interval - disconnect after 3 missed heartbeats)
 }
 
 // Core component options (passed through to helper)
@@ -84,7 +86,7 @@ export class WebSocketEvents {
   static readonly JOIN = 'join';
   static readonly LEAVE = 'leave';
   static readonly ERROR = 'error';
-  static readonly HEARTBEAT = 'heartbeat';  // NEW
+  static readonly HEARTBEAT = 'heartbeat'; // NEW
 
   // SCHEME_SET updated to include HEARTBEAT (7 events total)
 }
@@ -97,8 +99,8 @@ export class WebSocketEvents {
 ```typescript
 export class WebSocketDefaults {
   // ...existing defaults...
-  static readonly HEARTBEAT_INTERVAL = 30_000;  // 30s between sweeps
-  static readonly HEARTBEAT_TIMEOUT = 90_000;   // 3x interval - 3 missed = disconnect
+  static readonly HEARTBEAT_INTERVAL = 30_000; // 30s between sweeps
+  static readonly HEARTBEAT_TIMEOUT = 90_000; // 3x interval - 3 missed = disconnect
 }
 ```
 
@@ -122,10 +124,10 @@ export class WebSocketDefaults {
 
 ## Wiki Documentation
 
-| Document | Path | Content |
-|----------|------|---------|
-| WebSocket Helper Reference | `wiki/extensions/helpers/websocket.md` | WebSocketServerHelper API, WebSocketEmitter API, constants, types, auth flow, heartbeat, Redis integration |
-| WebSocket Component Reference | `wiki/extensions/components/websocket.md` | Binding keys, lifecycle, setup guide, component internals, troubleshooting |
+| Document                      | Path                                      | Content                                                                                                    |
+| ----------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| WebSocket Helper Reference    | `wiki/extensions/helpers/websocket.md`    | WebSocketServerHelper API, WebSocketEmitter API, constants, types, auth flow, heartbeat, Redis integration |
+| WebSocket Component Reference | `wiki/extensions/components/websocket.md` | Binding keys, lifecycle, setup guide, component internals, troubleshooting                                 |
 
 Both documents added to VitePress sidebar and linked from their respective index pages.
 
@@ -133,42 +135,42 @@ Both documents added to VitePress sidebar and linked from their respective index
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `src/helpers/socket/websocket/common/constants.ts` | Added `HEARTBEAT` event to `WebSocketEvents`; added `HEARTBEAT_INTERVAL` (30s) and `HEARTBEAT_TIMEOUT` (90s) to `WebSocketDefaults`; changed `MAX_PAYLOAD_LENGTH` from 16MB to 128KB |
-| `src/helpers/socket/websocket/common/types.ts` | Added `heartbeatInterval?` and `heartbeatTimeout?` to `IWebSocketServerOptions` |
-| `src/helpers/socket/websocket/server/helper.ts` | Added `heartbeatInterval`, `heartbeatTimeout`, `heartbeatTimer` private fields; `startHeartbeatTimer()` and `heartbeatAll()` methods; heartbeat event early return in `onClientMessage()`; timer start in `configure()`; timer cleanup in `shutdown()` |
-| `src/__tests__/websocket/websocket.test.ts` | Updated `WebSocketEvents` tests (7 events); updated `WebSocketDefaults` tests (128KB, heartbeat constants); added heartbeat edge cases; added dedicated "Heartbeat - Application-Level Liveness Check" test group (8 tests) |
+| File                                               | Changes                                                                                                                                                                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/helpers/socket/websocket/common/constants.ts` | Added `HEARTBEAT` event to `WebSocketEvents`; added `HEARTBEAT_INTERVAL` (30s) and `HEARTBEAT_TIMEOUT` (90s) to `WebSocketDefaults`; changed `MAX_PAYLOAD_LENGTH` from 16MB to 128KB                                                                   |
+| `src/helpers/socket/websocket/common/types.ts`     | Added `heartbeatInterval?` and `heartbeatTimeout?` to `IWebSocketServerOptions`                                                                                                                                                                        |
+| `src/helpers/socket/websocket/server/helper.ts`    | Added `heartbeatInterval`, `heartbeatTimeout`, `heartbeatTimer` private fields; `startHeartbeatTimer()` and `heartbeatAll()` methods; heartbeat event early return in `onClientMessage()`; timer start in `configure()`; timer cleanup in `shutdown()` |
+| `src/__tests__/websocket/websocket.test.ts`        | Updated `WebSocketEvents` tests (7 events); updated `WebSocketDefaults` tests (128KB, heartbeat constants); added heartbeat edge cases; added dedicated "Heartbeat - Application-Level Liveness Check" test group (8 tests)                            |
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/components/websocket/common/types.ts` | Added `heartbeatInterval?` and `heartbeatTimeout?` to `IServerOptions` |
-| `src/components/websocket/component.ts` | Pass `heartbeatInterval` and `heartbeatTimeout` through to `WebSocketServerHelper` constructor |
+| File                                       | Changes                                                                                        |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `src/components/websocket/common/types.ts` | Added `heartbeatInterval?` and `heartbeatTimeout?` to `IServerOptions`                         |
+| `src/components/websocket/component.ts`    | Pass `heartbeatInterval` and `heartbeatTimeout` through to `WebSocketServerHelper` constructor |
 
 ### Documentation (`packages/docs`)
 
-| File | Changes |
-|------|---------|
-| `wiki/extensions/helpers/websocket.md` | New - comprehensive WebSocket helper reference |
-| `wiki/extensions/components/websocket.md` | New - WebSocket component reference |
-| `wiki/extensions/helpers/index.md` | Added WebSocket row to helper index |
-| `wiki/extensions/components/index.md` | Added WebSocket row to component index |
-| `site/.vitepress/config.mts` | Added sidebar entries for both WebSocket docs |
+| File                                      | Changes                                        |
+| ----------------------------------------- | ---------------------------------------------- |
+| `wiki/extensions/helpers/websocket.md`    | New - comprehensive WebSocket helper reference |
+| `wiki/extensions/components/websocket.md` | New - WebSocket component reference            |
+| `wiki/extensions/helpers/index.md`        | Added WebSocket row to helper index            |
+| `wiki/extensions/components/index.md`     | Added WebSocket row to component index         |
+| `site/.vitepress/config.mts`              | Added sidebar entries for both WebSocket docs  |
 
 ### Examples
 
-| File | Changes |
-|------|---------|
+| File                                  | Changes                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
 | `examples/websocket-test/client.html` | Manual Authenticate button, manual Heartbeat button, close code `4002` mapping |
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `packages/helpers` rebuild | Clean |
-| `packages/helpers` lint | Clean (0 errors, 5 pre-existing warnings) |
-| `packages/helpers` tests | 179 pass, 0 fail, 348 expect() calls |
-| `packages/core-server` rebuild | Clean |
-| `packages/core-server` lint | Clean (0 errors, 5 pre-existing warnings) |
+| Check                          | Result                                    |
+| ------------------------------ | ----------------------------------------- |
+| `packages/helpers` rebuild     | Clean                                     |
+| `packages/helpers` lint        | Clean (0 errors, 5 pre-existing warnings) |
+| `packages/helpers` tests       | 179 pass, 0 fail, 348 expect() calls      |
+| `packages/core-server` rebuild | Clean                                     |
+| `packages/core-server` lint    | Clean (0 errors, 5 pre-existing warnings) |

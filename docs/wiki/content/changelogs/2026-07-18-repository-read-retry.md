@@ -28,7 +28,7 @@ After an update, tell `retry` what "fresh" means:
 ```typescript
 const order = await orderRepository.findById({
   id,
-  options: { retry: { until: result => result?.status === 'PAID' } },
+  options: { retry: { until: (result) => result?.status === 'PAID' } },
 });
 ```
 
@@ -48,21 +48,21 @@ const order = await orderRepository.findById({
 
 ## Options
 
-| Option | Default | Meaning |
-|---|---|---|
-| `maxAttempts` | `3` | Total reads, including the first |
-| `until` | per verb (below) | Return `true` to stop: "the result is fresh enough" |
-| `maxTotalMs` | unlimited | Stop starting new attempts after this much time |
-| `backoff` | 50ms up to 500ms, jittered | Wait between attempts |
-| `signal` | - | Cancel the loop (rejects the call) |
+| Option        | Default                    | Meaning                                             |
+| ------------- | -------------------------- | --------------------------------------------------- |
+| `maxAttempts` | `3`                        | Total reads, including the first                    |
+| `until`       | per verb (below)           | Return `true` to stop: "the result is fresh enough" |
+| `maxTotalMs`  | unlimited                  | Stop starting new attempts after this much time     |
+| `backoff`     | 50ms up to 500ms, jittered | Wait between attempts                               |
+| `signal`      | -                          | Cancel the loop (rejects the call)                  |
 
 Default `until` per verb - the predicate is typed, so it sees exactly what the verb returns:
 
-| Verb | Stops when |
-|---|---|
-| `findOne` / `findById` | result is not `null`/`undefined` |
-| `find` | array is non-empty |
-| `find` + `shouldQueryRange: true` | `data` is non-empty |
+| Verb                              | Stops when                       |
+| --------------------------------- | -------------------------------- |
+| `findOne` / `findById`            | result is not `null`/`undefined` |
+| `find`                            | array is non-empty               |
+| `find` + `shouldQueryRange: true` | `data` is non-empty              |
 
 ## Who is affected
 

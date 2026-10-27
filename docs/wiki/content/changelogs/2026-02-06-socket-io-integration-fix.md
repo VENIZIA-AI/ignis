@@ -35,11 +35,13 @@ The `SocketIOComponent` was broken in two ways: (1) it called `getServerInstance
 The type alias was renamed to comply with the naming convention lint rule (`T*` prefix for type aliases).
 
 **Before:**
+
 ```typescript
 import { ISocketIOServerOptions } from '@venizia/ignis-helpers';
 ```
 
 **After:**
+
 ```typescript
 import { TSocketIOServerOptions } from '@venizia/ignis-helpers';
 ```
@@ -47,11 +49,13 @@ import { TSocketIOServerOptions } from '@venizia/ignis-helpers';
 ### 2. `TEventHandler` Renamed to `TSocketIOEventHandler`
 
 **Before:**
+
 ```typescript
 import { TEventHandler } from '@venizia/ignis-helpers';
 ```
 
 **After:**
+
 ```typescript
 import { TSocketIOEventHandler } from '@venizia/ignis-helpers';
 ```
@@ -61,10 +65,11 @@ import { TSocketIOEventHandler } from '@venizia/ignis-helpers';
 The constructor now accepts a discriminated union based on `runtime` instead of a flat options object with `server`.
 
 **Before:**
+
 ```typescript
 const helper = new SocketIOServerHelper({
   identifier: 'my-socket',
-  server: httpServer,          // node:http.Server - required
+  server: httpServer, // node:http.Server - required
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -73,11 +78,12 @@ const helper = new SocketIOServerHelper({
 ```
 
 **After (Node.js):**
+
 ```typescript
 const helper = new SocketIOServerHelper({
   runtime: RuntimeModules.NODE,
   identifier: 'my-socket',
-  server: httpServer,          // node:http.Server - required for Node
+  server: httpServer, // node:http.Server - required for Node
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -86,6 +92,7 @@ const helper = new SocketIOServerHelper({
 ```
 
 **After (Bun):**
+
 ```typescript
 const { Server: BunEngine } = await import('@socket.io/bun-engine');
 const engine = new BunEngine({ path: '/io', cors: { origin: '*' } });
@@ -93,7 +100,7 @@ const engine = new BunEngine({ path: '/io', cors: { origin: '*' } });
 const helper = new SocketIOServerHelper({
   runtime: RuntimeModules.BUN,
   identifier: 'my-socket',
-  engine,                      // @socket.io/bun-engine - required for Bun
+  engine, // @socket.io/bun-engine - required for Bun
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -123,6 +130,7 @@ this.application.registerPostStartHook({
 ```
 
 **Lifecycle order:**
+
 ```
 start()
   -> initialize()        // Components register hooks here
@@ -132,6 +140,7 @@ start()
 ```
 
 **Benefits:**
+
 - Components no longer need to override `start()` to access the server instance
 - Hooks execute in registration order with performance logging
 - Clean separation of concerns - components declare what they need, framework handles timing
@@ -174,6 +183,7 @@ switch (this.runtime) {
 ```
 
 **Benefits:**
+
 - Single helper class works for both runtimes
 - Type-safe - discriminated union prevents passing wrong options
 - `getEngine()` method exposes bun-engine instance when needed
@@ -243,6 +253,7 @@ override binding(): ValueOrPromise<void> {
 ```
 
 **Bun mode specifics:**
+
 - CORS type bridging - extracts individual fields to avoid `socket.io` vs `bun-engine` type mismatch (no `as any`)
 - Wires engine into running Bun server via `serverInstance.reload({ fetch, websocket })`
 - Uses early return pattern for non-Socket.IO requests
@@ -260,6 +271,7 @@ getServerInstance<
 ```
 
 Usage:
+
 ```typescript
 // Bun runtime - get typed Bun server
 const server = this.application.getServerInstance<TBunServerInstance>();
@@ -276,40 +288,41 @@ const server = this.application.getServerInstance<TNodeServerInstance>();
 Reimplemented to properly use `SocketIOComponent` instead of manual workarounds.
 
 **Application changes:**
+
 - Uses `RedisHelper` instead of manual `new Redis()` + `DefaultRedisHelper`
 - Clean `setupSocketIO()` method: binds Redis, auth handler, client connected handler, registers `SocketIOComponent`
 - No more `override start()` - the component handles lifecycle via post-start hooks
 
 **New REST endpoints (controller):**
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/socket/info` | Server info (status, connected clients) |
-| `GET` | `/socket/clients` | List all connected client IDs |
-| `GET` | `/socket/health` | Health check |
-| `POST` | `/socket/broadcast` | Broadcast message to all clients |
-| `POST` | `/socket/room/{roomId}/send` | Send message to a room |
-| `POST` | `/socket/client/{clientId}/send` | Send message to specific client |
-| `POST` | `/socket/client/{clientId}/join` | Join client to rooms |
-| `POST` | `/socket/client/{clientId}/leave` | Remove client from rooms |
-| `GET` | `/socket/client/{clientId}/rooms` | List rooms a client belongs to |
+| Method | Path                              | Description                             |
+| ------ | --------------------------------- | --------------------------------------- |
+| `GET`  | `/socket/info`                    | Server info (status, connected clients) |
+| `GET`  | `/socket/clients`                 | List all connected client IDs           |
+| `GET`  | `/socket/health`                  | Health check                            |
+| `POST` | `/socket/broadcast`               | Broadcast message to all clients        |
+| `POST` | `/socket/room/{roomId}/send`      | Send message to a room                  |
+| `POST` | `/socket/client/{clientId}/send`  | Send message to specific client         |
+| `POST` | `/socket/client/{clientId}/join`  | Join client to rooms                    |
+| `POST` | `/socket/client/{clientId}/leave` | Remove client from rooms                |
+| `GET`  | `/socket/client/{clientId}/rooms` | List rooms a client belongs to          |
 
 **New service methods:**
 
-| Method | Description |
-|--------|-------------|
-| `joinRoom({ clientId, rooms })` | Looks up client, calls `socket.join(rooms)` |
+| Method                           | Description                                          |
+| -------------------------------- | ---------------------------------------------------- |
+| `joinRoom({ clientId, rooms })`  | Looks up client, calls `socket.join(rooms)`          |
 | `leaveRoom({ clientId, rooms })` | Looks up client, calls `socket.leave(room)` per room |
-| `getClientRooms({ clientId })` | Returns `Array.from(client.socket.rooms)` |
-| `isReady()` | Checks if `SocketIOServerHelper` is bound |
+| `getClientRooms({ clientId })`   | Returns `Array.from(client.socket.rooms)`            |
+| `isReady()`                      | Checks if `SocketIOServerHelper` is bound            |
 
 **Socket event handlers (via `registerClientHandlers`):**
 
-| Event | Description |
-|-------|-------------|
+| Event          | Description                                         |
+| -------------- | --------------------------------------------------- |
 | `chat:message` | Send to room or broadcast depending on `room` field |
-| `echo` | Echo back data with timestamp |
-| `get-clients` | Return connected clients list |
+| `echo`         | Echo back data with timestamp                       |
+| `get-clients`  | Return connected clients list                       |
 
 ### 7. Automated Test Client
 
@@ -377,12 +390,12 @@ New binding key: `SocketIOBindingKeys.VALIDATE_ROOM_HANDLER`
 
 New type aliases for better developer experience:
 
-| Type | Signature |
-|------|-----------|
-| `TSocketIOAuthenticateFn` | `(args: IHandshake) => ValueOrPromise<boolean>` |
-| `TSocketIOValidateRoomFn` | `(opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>` |
-| `TSocketIOClientConnectedFn` | `(opts: { socket: IOSocket }) => ValueOrPromise<void>` |
-| `TSocketIOEventHandler<T>` | `(data: T) => ValueOrPromise<void>` (renamed from `TEventHandler`) |
+| Type                         | Signature                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `TSocketIOAuthenticateFn`    | `(args: IHandshake) => ValueOrPromise<boolean>`                             |
+| `TSocketIOValidateRoomFn`    | `(opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>` |
+| `TSocketIOClientConnectedFn` | `(opts: { socket: IOSocket }) => ValueOrPromise<void>`                      |
+| `TSocketIOEventHandler<T>`   | `(data: T) => ValueOrPromise<void>` (renamed from `TEventHandler`)          |
 
 ### 8. `close()` Made Private
 
@@ -432,29 +445,29 @@ Only required when using `SocketIOComponent` with Bun runtime. Dynamically impor
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `src/helpers/socket-io/common/types.ts` | Added `ISocketIOServerBaseOptions`, `ISocketIOServerNodeOptions`, `ISocketIOServerBunOptions` interfaces; added `TSocketIOServerOptions` discriminated union; added `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`, `TSocketIOEventHandler` type aliases; added `validateRoomFn` and `pingInterval` fields |
-| `src/helpers/socket-io/server/helper.ts` | Complete reorganization; async `configure()` with `waitForRedisReady()`; Redis error handlers on all 3 connections; room validation via `validateRoomFn`; ping uses local `socket.emit()`; `getEngine()` throws on non-Bun; `close()` made private; configurable `pingInterval` |
-| `src/helpers/socket-io/client/helper.ts` | Renamed `TEventHandler` → `TSocketIOEventHandler` |
+| File                                     | Changes                                                                                                                                                                                                                                                                                                                                        |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/helpers/socket-io/common/types.ts`  | Added `ISocketIOServerBaseOptions`, `ISocketIOServerNodeOptions`, `ISocketIOServerBunOptions` interfaces; added `TSocketIOServerOptions` discriminated union; added `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`, `TSocketIOEventHandler` type aliases; added `validateRoomFn` and `pingInterval` fields |
+| `src/helpers/socket-io/server/helper.ts` | Complete reorganization; async `configure()` with `waitForRedisReady()`; Redis error handlers on all 3 connections; room validation via `validateRoomFn`; ping uses local `socket.emit()`; `getEngine()` throws on non-Bun; `close()` made private; configurable `pingInterval`                                                                |
+| `src/helpers/socket-io/client/helper.ts` | Renamed `TEventHandler` → `TSocketIOEventHandler`                                                                                                                                                                                                                                                                                              |
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/base/applications/abstract.ts` | Added `postStartHooks` registry, `registerPostStartHook()`, `executePostStartHooks()`; generic `getServerInstance<T>()`; call hooks at end of `start()` |
+| File                                    | Changes                                                                                                                                                                                                                                                                                                                                |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/base/applications/abstract.ts`     | Added `postStartHooks` registry, `registerPostStartHook()`, `executePostStartHooks()`; generic `getServerInstance<T>()`; call hooks at end of `start()`                                                                                                                                                                                |
 | `src/components/socket-io/component.ts` | Complete rewrite: split into `resolveBindings()`, `registerBunHook()`, `registerNodeHook()`; runtime detection via `RuntimeModules.detect()`; post-start hook pattern; CORS type bridging for bun-engine; uses new type aliases; both hooks `await configure()`; added `VALIDATE_ROOM_HANDLER` binding; Bun fetch returns 404 fallback |
-| `src/components/socket-io/keys.ts` | Added `VALIDATE_ROOM_HANDLER` binding key |
-| `package.json` | Added `@socket.io/bun-engine` as optional peer dep and dev dep |
+| `src/components/socket-io/keys.ts`      | Added `VALIDATE_ROOM_HANDLER` binding key                                                                                                                                                                                                                                                                                              |
+| `package.json`                          | Added `@socket.io/bun-engine` as optional peer dep and dev dep                                                                                                                                                                                                                                                                         |
 
 ### Socket.IO Test Example (`examples/socket-io-test`)
 
-| File | Changes |
-|------|---------|
-| `src/application.ts` | Replaced `DefaultRedisHelper` + manual `Redis` with `RedisHelper`; clean `setupSocketIO()` using binding keys + `SocketIOComponent`; removed manual `override start()` |
-| `src/services/socket-event.service.ts` | Added `joinRoom()`, `leaveRoom()`, `getClientRooms()`, `isReady()` methods; lazy getter for `SocketIOServerHelper` |
-| `src/controllers/socket-test.controller.ts` | Added join/leave/rooms route configs and handlers; added `ClientRoomsSchema` |
-| `client.ts` | Complete rewrite as automated test runner with 15+ test cases covering all REST + socket features |
+| File                                        | Changes                                                                                                                                                                |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/application.ts`                        | Replaced `DefaultRedisHelper` + manual `Redis` with `RedisHelper`; clean `setupSocketIO()` using binding keys + `SocketIOComponent`; removed manual `override start()` |
+| `src/services/socket-event.service.ts`      | Added `joinRoom()`, `leaveRoom()`, `getClientRooms()`, `isReady()` methods; lazy getter for `SocketIOServerHelper`                                                     |
+| `src/controllers/socket-test.controller.ts` | Added join/leave/rooms route configs and handlers; added `ClientRoomsSchema`                                                                                           |
+| `client.ts`                                 | Complete rewrite as automated test runner with 15+ test cases covering all REST + socket features                                                                      |
 
 ## Migration Guide
 
@@ -530,13 +543,13 @@ If you had a custom `override start()` to initialize Socket.IO after the server 
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `packages/helpers` rebuild | Clean |
-| `packages/helpers` lint | Clean (0 errors, 0 warnings) |
-| `packages/core-server` rebuild | Clean |
-| `packages/core-server` lint | Clean (0 errors, 5 pre-existing test warnings) |
-| `packages/boot` rebuild | Clean |
-| `packages/core-server` tests | 403 pass, 7 pre-existing failures (SocketIOClientHelper xhr poll) |
-| `examples/socket-io-test` tsc | Clean |
-| `bun client.ts` (all 15+ tests) | All passed |
+| Check                           | Result                                                            |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `packages/helpers` rebuild      | Clean                                                             |
+| `packages/helpers` lint         | Clean (0 errors, 0 warnings)                                      |
+| `packages/core-server` rebuild  | Clean                                                             |
+| `packages/core-server` lint     | Clean (0 errors, 5 pre-existing test warnings)                    |
+| `packages/boot` rebuild         | Clean                                                             |
+| `packages/core-server` tests    | 403 pass, 7 pre-existing failures (SocketIOClientHelper xhr poll) |
+| `examples/socket-io-test` tsc   | Clean                                                             |
+| `bun client.ts` (all 15+ tests) | All passed                                                        |

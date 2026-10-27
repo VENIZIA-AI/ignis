@@ -37,11 +37,11 @@ Each request now borrows its own enforcer from a pool instead of racing on a sha
 
 New fields on `ICasbinEnforcerOptions`:
 
-| Option | Default | Meaning |
-|---|---|---|
-| `isScoped` | `false` | Enables the 4-token scoped model |
-| `poolSize` | `16` | Enforcers held in the per-request pool |
-| `poolAcquireTimeoutMs` | `5000` | Wait for a pooled enforcer before failing closed |
+| Option                 | Default | Meaning                                          |
+| ---------------------- | ------- | ------------------------------------------------ |
+| `isScoped`             | `false` | Enables the 4-token scoped model                 |
+| `poolSize`             | `16`    | Enforcers held in the per-request pool           |
+| `poolAcquireTimeoutMs` | `5000`  | Wait for a pooled enforcer before failing closed |
 
 ## Who is affected
 
@@ -67,10 +67,15 @@ New fields on `ICasbinEnforcerOptions`:
 
 ```typescript
 // Before
-interface ICasbinPolicyFilter { principalType: string; principalValue: string | number; }
+interface ICasbinPolicyFilter {
+  principalType: string;
+  principalValue: string | number;
+}
 
 // After
-interface ICasbinPolicyFilter { principal: { type: string; id: IdType }; }
+interface ICasbinPolicyFilter {
+  principal: { type: string; id: IdType };
+}
 ```
 
 ### 3. `CasbinRuleVariants` trimmed

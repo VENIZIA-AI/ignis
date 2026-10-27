@@ -1,6 +1,6 @@
 ---
 title: Repository Tooling - Release Mode Check, Examples Gate, Temp Folders
-description: "scripts/release/release.ts rejects an unknown --mode, make examples-check type-checks every example, tests and scripts keep their temp folders in .agents/local/tmp, and the repository adopts VULCAN 0.4.4. Nothing here changes a published package."
+description: 'scripts/release/release.ts rejects an unknown --mode, make examples-check type-checks every example, tests and scripts keep their temp folders in .agents/local/tmp, and the repository adopts VULCAN 0.4.4. Nothing here changes a published package.'
 packages: []
 ---
 

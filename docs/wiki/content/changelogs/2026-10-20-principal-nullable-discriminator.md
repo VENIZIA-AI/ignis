@@ -1,6 +1,6 @@
 ---
 title: isNullableDiscriminator for the Principal Enricher
-description: "generatePrincipalColumnDefs takes isNullableDiscriminator; false makes the type column NOT NULL. The default keeps it nullable."
+description: 'generatePrincipalColumnDefs takes isNullableDiscriminator; false makes the type column NOT NULL. The default keeps it nullable.'
 packages: ['@venizia/ignis-connectors']
 ---
 

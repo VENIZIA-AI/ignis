@@ -1,6 +1,6 @@
 ---
 title: The Container Stops Pulling zod
-description: "Importing Container alone cost 437 KB in a browser bundle, 423 KB of it zod, for a four-line const class. Splitting one file takes it to 64 KB."
+description: 'Importing Container alone cost 437 KB in a browser bundle, 423 KB of it zod, for a four-line const class. Splitting one file takes it to 64 KB.'
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -10,10 +10,10 @@ packages: ['@venizia/ignis-kernel']
 
 <Badge type="tip" text="Fix" />
 
-| | minified | gzip |
-|---|---|---|
-| Before | 437 KB | 107 KB |
-| After | **64 KB** | **21 KB** |
+|        | minified  | gzip      |
+| ------ | --------- | --------- |
+| Before | 437 KB    | 107 KB    |
+| After  | **64 KB** | **21 KB** |
 
 Nothing about the API changed. `@venizia/ignis-kernel`'s public surface is identical.
 
@@ -50,12 +50,12 @@ Nothing in a type system stops someone re-adding that import, so the measurement
 ## And a sub-path for consumers that never serve HTTP
 
 ```ts
-import { service, BindingNamespaces, ArtifactTypes } from "@venizia/ignis-kernel/metadata";
+import { service, BindingNamespaces, ArtifactTypes } from '@venizia/ignis-kernel/metadata';
 ```
 
-| Entry | minified | gzip |
-|---|---|---|
-| `@venizia/ignis-kernel` | 619 KB | 161 KB |
+| Entry                            | minified  | gzip      |
+| -------------------------------- | --------- | --------- |
+| `@venizia/ignis-kernel`          | 619 KB    | 161 KB    |
 | `@venizia/ignis-kernel/metadata` | **69 KB** | **23 KB** |
 
 The root barrel is heavy **correctly** - it carries the REST surface. Splitting `constants.ts` did

@@ -1,6 +1,6 @@
 ---
 title: A Search Controller Can Be Scoped Per Request
-description: "SearchControllerFactory.defineSearchController takes a scope option: a function of the request context returning a filter that the server ANDs into every search. The client cannot widen or remove it."
+description: 'SearchControllerFactory.defineSearchController takes a scope option: a function of the request context returning a filter that the server ANDs into every search. The client cannot widen or remove it.'
 packages: ['@venizia/ignis-connectors']
 ---
 

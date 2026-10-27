@@ -55,10 +55,10 @@ const redis = createRedisHelper({
 
 ### Renamed exports
 
-| Before | After |
-|--------|-------|
-| `DefaultRedisHelper` | `AbstractRedisHelper` |
-| `RedisHelper` | `RedisSingleHelper` |
+| Before                | After                       |
+| --------------------- | --------------------------- |
+| `DefaultRedisHelper`  | `AbstractRedisHelper`       |
+| `RedisHelper`         | `RedisSingleHelper`         |
 | `IRedisHelperOptions` | `IRedisSingleHelperOptions` |
 
 ```typescript
@@ -67,26 +67,30 @@ import { RedisHelper, DefaultRedisHelper } from '@venizia/ignis-helpers';
 import type { IRedisHelperOptions } from '@venizia/ignis-helpers';
 
 const redis = new RedisHelper({ name: 'cache', host, port, password });
-if (connection instanceof DefaultRedisHelper) { /* ... */ }
+if (connection instanceof DefaultRedisHelper) {
+  /* ... */
+}
 
 // After
 import { RedisSingleHelper, AbstractRedisHelper } from '@venizia/ignis-helpers';
 import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
 
 const redis = new RedisSingleHelper({ name: 'cache', host, port, password });
-if (connection instanceof AbstractRedisHelper) { /* ... */ }
+if (connection instanceof AbstractRedisHelper) {
+  /* ... */
+}
 ```
 
 ### Lowercase method aliases removed
 
 Only the camelCase method names remain.
 
-| Removed | Use instead |
-|---------|--------------|
-| `mset` | `mSet` |
-| `mget` | `mGet` |
-| `hset` | `hSet` |
-| `hgetall` | `hGetAll` |
+| Removed   | Use instead |
+| --------- | ----------- |
+| `mset`    | `mSet`      |
+| `mget`    | `mGet`      |
+| `hset`    | `hSet`      |
+| `hgetall` | `hGetAll`   |
 
 ### `onError` callback `error` is now `unknown`
 
@@ -94,14 +98,14 @@ Only the camelCase method names remain.
 // Before
 onError: ({ name, helper, error }) => {
   console.error(error.message); // compiled fine with `any`
-}
+};
 
 // After
 onError: ({ name, helper, error }) => {
   if (error instanceof Error) {
     console.error(error.message); // narrowing required
   }
-}
+};
 ```
 
 ### Type fields against `IRedisHelper`, not a concrete class
@@ -132,7 +136,7 @@ const redis = new RedisSentinelHelper({
   masterName: 'mymaster',
   sentinels: [
     { host: '10.0.0.1', port: 26379 },
-    { host: '10.0.0.2' },          // port defaults to 26379
+    { host: '10.0.0.2' }, // port defaults to 26379
   ],
   role: 'master',
   password: 'data-node-secret',
@@ -165,17 +169,17 @@ The factory is overloaded so TypeScript infers the concrete return type when `mo
 
 ### Segregated `IRedisHelper` interfaces
 
-| Interface | Methods |
-|-----------|---------|
-| `IRedisConnection` | `getClient`, `duplicateClient`, `ping`, `connect`, `disconnect` |
-| `IRedisKeyValue` | `set`, `get`, `del`, `keys`, `getString`, `getStrings`, `getObject`, `getObjects`, `mSet`, `mGet` |
-| `IRedisHash` | `hSet`, `hGetAll`, `hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen` |
-| `IRedisPubSub` | `publish`, `subscribe`, `unsubscribe` |
-| `IRedisJson` | `jSet`, `jGet`, `jDelete`, `jNumberIncreaseBy`, `jStringAppend`, `jPush`, `jPop` |
-| `IRedisCommand` | `execute` |
-| `IRedisKey` | `exists`, `expire`, `expireAt`, `ttl`, `persist`, `incr`, `decr`, `incrBy`, `decrBy` |
-| `IRedisSet` | `sAdd`, `sRem`, `sMembers`, `sIsMember`, `sCard` |
-| `IRedisList` | `lPush`, `rPush`, `lPop`, `rPop`, `lRange`, `lLen` |
+| Interface          | Methods                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| `IRedisConnection` | `getClient`, `duplicateClient`, `ping`, `connect`, `disconnect`                                   |
+| `IRedisKeyValue`   | `set`, `get`, `del`, `keys`, `getString`, `getStrings`, `getObject`, `getObjects`, `mSet`, `mGet` |
+| `IRedisHash`       | `hSet`, `hGetAll`, `hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen`                 |
+| `IRedisPubSub`     | `publish`, `subscribe`, `unsubscribe`                                                             |
+| `IRedisJson`       | `jSet`, `jGet`, `jDelete`, `jNumberIncreaseBy`, `jStringAppend`, `jPush`, `jPop`                  |
+| `IRedisCommand`    | `execute`                                                                                         |
+| `IRedisKey`        | `exists`, `expire`, `expireAt`, `ttl`, `persist`, `incr`, `decr`, `incrBy`, `decrBy`              |
+| `IRedisSet`        | `sAdd`, `sRem`, `sMembers`, `sIsMember`, `sCard`                                                  |
+| `IRedisList`       | `lPush`, `rPush`, `lPop`, `rPop`, `lRange`, `lLen`                                                |
 
 ### Edge-case semantics
 

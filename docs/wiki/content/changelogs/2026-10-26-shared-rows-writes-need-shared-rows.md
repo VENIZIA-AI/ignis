@@ -1,6 +1,6 @@
 ---
 title: A Shared Row Can No Longer Be Changed or Deleted Without sharedRows
-description: "Under a scope with a null branch, a restricted caller could update or delete a shared row (null scope column) when the patch did not name the column, even with write.sharedRows false. Update, delete, soft delete and restore now leave shared rows out unless write.sharedRows is true."
+description: 'Under a scope with a null branch, a restricted caller could update or delete a shared row (null scope column) when the patch did not name the column, even with write.sharedRows false. Update, delete, soft delete and restore now leave shared rows out unless write.sharedRows is true.'
 packages: ['@venizia/ignis-connectors']
 ---
 

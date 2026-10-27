@@ -51,13 +51,18 @@ await articleRepository.search({
 `search()` is a single method discriminated by a required `mode` field. A bare `search({ params })` call - the shape introduced on 2026-07-05 - no longer type-checks.
 
 **Before**
+
 ```typescript
 const result = await articleRepository.search({ params: { q: 'typescript', query_by: ['title'] } });
 ```
 
 **After**
+
 ```typescript
-const result = await articleRepository.search({ mode: 'raw', params: { q: 'typescript', query_by: ['title'] } });
+const result = await articleRepository.search({
+  mode: 'raw',
+  params: { q: 'typescript', query_by: ['title'] },
+});
 ```
 
 ## Details

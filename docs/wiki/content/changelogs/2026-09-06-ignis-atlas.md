@@ -45,11 +45,11 @@ Two servers answered the same kind of question: `ignis-docs-mcp` for the wiki, `
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `ignis-docs-mcp` (bin) | Removed | `@venizia/ignis-docs` |
+| Symbol                                               | Change  | Package                   |
+| ---------------------------------------------------- | ------- | ------------------------- |
+| `ignis-docs-mcp` (bin)                               | Removed | `@venizia/ignis-docs`     |
 | `okf_search`, `okf_list_concepts`, `okf_get_concept` | Removed | `.agents/knowledge-tools` |
-| `search`, `get` (MCP tools) | New | `@venizia/ignis-atlas` |
-| `ignis-atlas` (bin) | New | `@venizia/ignis-atlas` |
+| `search`, `get` (MCP tools)                          | New     | `@venizia/ignis-atlas`    |
+| `ignis-atlas` (bin)                                  | New     | `@venizia/ignis-atlas`    |
 
 - Extension page: [Atlas](/extensions/atlas/).

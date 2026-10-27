@@ -1,6 +1,6 @@
 ---
 title: HttpRepository Takes an Extra Query, a Default Limit and Searches
-description: "HttpRepository reads take a query beside filter and where, a defaultLimit setting bounds every find, and search() calls the IGNIS search route."
+description: 'HttpRepository reads take a query beside filter and where, a defaultLimit setting bounds every find, and search() calls the IGNIS search route.'
 packages: ['@venizia/ignis-connectors']
 ---
 

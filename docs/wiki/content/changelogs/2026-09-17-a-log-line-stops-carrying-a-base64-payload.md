@@ -1,6 +1,6 @@
 ---
 title: A Log Line Stops Carrying a Base64 Payload
-description: "Long strings are capped in the shared sanitiser, with the original length kept in the marker. Stack traces are exempt."
+description: 'Long strings are capped in the shared sanitiser, with the original length kept in the marker. Stack traces are exempt.'
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -20,10 +20,10 @@ and none of it was readable.
 The **original length stays in the marker**. That number is what tells you the field held a 300 KB
 image rather than a truncated sentence.
 
-| | |
-|---|---|
-| Default | 2048 characters |
-| Turn it off | `APP_ENV_LOGGER_MAX_STRING_LENGTH=0` |
+|              |                                      |
+| ------------ | ------------------------------------ |
+| Default      | 2048 characters                      |
+| Turn it off  | `APP_ENV_LOGGER_MAX_STRING_LENGTH=0` |
 | Never capped | `stack`, `stacktrace`, `stack_trace` |
 
 A stack trace is long by nature and useless cut - it is the whole reason the line is being read.

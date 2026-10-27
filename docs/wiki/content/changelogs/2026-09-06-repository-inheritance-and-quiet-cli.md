@@ -18,7 +18,9 @@ export class TicketRepositoryCore extends DefaultCRUDRepository<typeof Ticket> {
 
 @repository()
 export class TicketRepository extends TicketRepositoryCore {
-  findOpen() { /* ... */ }
+  findOpen() {
+    /* ... */
+  }
 }
 ```
 
@@ -40,8 +42,8 @@ Artifact metadata (`binding`, `scope`, `order`, `when`, `allowOverride`) is own 
 
 ## Details
 
-| Symbol | Change | Package |
-|---|---|---|
-| `repository(metadata?)` | Argument optional; inherits from the decorated parent | kernel |
-| `LoggerResolver.warnConsoleFallbackOnce()` | Public; called by the console resolver on first use | helpers |
-| `ignis-artifacts` CLI | Quiet logger provider installed first | boot |
+| Symbol                                     | Change                                                | Package |
+| ------------------------------------------ | ----------------------------------------------------- | ------- |
+| `repository(metadata?)`                    | Argument optional; inherits from the decorated parent | kernel  |
+| `LoggerResolver.warnConsoleFallbackOnce()` | Public; called by the console resolver on first use   | helpers |
+| `ignis-artifacts` CLI                      | Quiet logger provider installed first                 | boot    |

@@ -24,6 +24,7 @@ Fixed two bugs in the filter/pagination system where the `offset` field was sile
 **Problem:** The `FilterBuilder.build()` method only destructured `skip` from the filter, ignoring the `offset` field entirely. Users passing `{ offset: 20 }` instead of `{ skip: 20 }` would get no pagination offset applied.
 
 **Before:**
+
 ```typescript
 const { limit, skip, order, fields, where, include } = filter;
 
@@ -35,6 +36,7 @@ return {
 ```
 
 **After:**
+
 ```typescript
 const { limit, skip, offset, order, fields, where, include } = filter;
 const effectiveOffset = skip ?? offset;
@@ -54,6 +56,7 @@ return {
 **Problem:** `SkipSchema` and `OffsetSchema` used `.default(0)`, which meant any query parsed through these schemas would always have `skip: 0` or `offset: 0` even when the caller didn't provide them. This caused issues when `skip`/`offset` should be `undefined` (no pagination).
 
 **Before:**
+
 ```typescript
 export const SkipSchema = z.number().optional().default(0).openapi({
   description: 'Number of items to skip for pagination. Default is 0.',
@@ -65,6 +68,7 @@ export const OffsetSchema = z.number().optional().default(0).openapi({
 ```
 
 **After:**
+
 ```typescript
 export const SkipSchema = z.number().optional().openapi({
   description: 'Number of items to skip for pagination.',
@@ -79,10 +83,10 @@ export const OffsetSchema = z.number().optional().openapi({
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
+| File                                        | Changes                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------- |
 | `src/base/repositories/operators/filter.ts` | Destructure `offset` from filter, use `skip ?? offset` as effective offset |
-| `src/base/repositories/common/types.ts` | Removed `.default(0)` from `SkipSchema` and `OffsetSchema` |
+| `src/base/repositories/common/types.ts`     | Removed `.default(0)` from `SkipSchema` and `OffsetSchema`                 |
 
 ## No Breaking Changes
 

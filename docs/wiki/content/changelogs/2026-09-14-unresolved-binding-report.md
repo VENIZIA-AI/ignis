@@ -15,19 +15,19 @@ registrations nothing ever read.
 
 ```ts
 await application.initialize();
-application.startResolutionCounting();   // counting is off until you ask
+application.startResolutionCounting(); // counting is off until you ask
 
 // ... run the traffic that exercises the application ...
 
-application.getUnresolvedBindings();   // ['repositories.OrphanRepository', ...]
+application.getUnresolvedBindings(); // ['repositories.OrphanRepository', ...]
 ```
 
 ## The asymmetry it closes
 
-| The mistake | Before |
-|---|---|
-| A dependency is injected but never registered | boot dies, naming the class - `bootChecks.binding.doVerify` |
-| A class is registered but nothing ever injects it | nothing says anything, ever |
+| The mistake                                       | Before                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| A dependency is injected but never registered     | boot dies, naming the class - `bootChecks.binding.doVerify` |
+| A class is registered but nothing ever injects it | nothing says anything, ever                                 |
 
 So a hand-written artifact list can only grow. Someone adds a repository, a later change removes the
 last site that injects it, and the registration line stays. Measured in one downstream service: 59
@@ -39,11 +39,11 @@ condemn five live registrations.
 
 ## Four members, and counting is off until you ask
 
-| Member | Answers |
-|---|---|
-| `getResolutionCounts()` | a copy of key to read count; a key bound and never read is absent |
-| `startResolutionCounting()` | clears the counts and starts counting - OFF by default |
-| `stopResolutionCounting()` | stops counting, keeps what was counted |
+| Member                            | Answers                                                               |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `getResolutionCounts()`           | a copy of key to read count; a key bound and never read is absent     |
+| `startResolutionCounting()`       | clears the counts and starts counting - OFF by default                |
+| `stopResolutionCounting()`        | stops counting, keeps what was counted                                |
 | `getUnresolvedBindings({ tags })` | bound keys with no count, defaulting to `services` and `repositories` |
 
 **Counting is off by default, and that is the point.** The counter sits on `BaseContainer.get`, the

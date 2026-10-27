@@ -38,10 +38,10 @@ Implement the hook and `GET /me` starts serving it - no controller code required
 
 ## Options
 
-| Option | Meaning |
-|---|---|
-| `?withUserInformation=true\|false\|1\|0` | Merges `getUserInformation`'s result under `userInformation` on the `/who-am-i` response |
-| `payload.getUserInformation.response.schema` | Documents the `/me` response shape in OpenAPI |
+| Option                                       | Meaning                                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `?withUserInformation=true\|false\|1\|0`     | Merges `getUserInformation`'s result under `userInformation` on the `/who-am-i` response |
+| `payload.getUserInformation.response.schema` | Documents the `/me` response shape in OpenAPI                                            |
 
 ## Who is affected
 

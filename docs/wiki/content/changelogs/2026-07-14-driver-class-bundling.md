@@ -1,7 +1,8 @@
 ---
 title: Database Driver Bundling Fix - pg and postgres Are Truly Optional Now
 description: Applications that bundled with bun build --compile, esbuild, webpack, or rollup pulled in the unused Postgres driver package regardless of which one they installed. Datasources now name their driver as a class, which fixes bundling and needs a small config change.
-packages: ['@venizia/ignis-boot', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
+packages:
+  ['@venizia/ignis-boot', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
 # Changelog - 2026-07-14
@@ -70,15 +71,15 @@ export class PostgresDataSource extends BasePostgresDataSource<IConfigs> {
 }
 ```
 
-| If you | Then |
-|---|---|
-| write `@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })` | name the class instead: `@datasource({ driver: NodePostgresDriver })` |
-| build the Drizzle connector by hand in `configure()` | delete that line - the base class builds it |
-| call `useDriver({ driver: new NodePostgresDriver({ pool }) })` | the constructor now takes `{ client }` |
-| pass a bare `pg.Client` | construct a `Pool` instead - a `Client` was never supported and now fails at construction |
-| carry `--external postgres` in a bundler config | remove it - no longer necessary |
-| write `@datasource({ driver: DataSourceDrivers.TYPESENSE })` on a search datasource | drop `driver` entirely: `@datasource()` |
-| maintain a custom driver | keep calling `useDriver()` - unchanged and still public |
+| If you                                                                              | Then                                                                                      |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| write `@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })`                    | name the class instead: `@datasource({ driver: NodePostgresDriver })`                     |
+| build the Drizzle connector by hand in `configure()`                                | delete that line - the base class builds it                                               |
+| call `useDriver({ driver: new NodePostgresDriver({ pool }) })`                      | the constructor now takes `{ client }`                                                    |
+| pass a bare `pg.Client`                                                             | construct a `Pool` instead - a `Client` was never supported and now fails at construction |
+| carry `--external postgres` in a bundler config                                     | remove it - no longer necessary                                                           |
+| write `@datasource({ driver: DataSourceDrivers.TYPESENSE })` on a search datasource | drop `driver` entirely: `@datasource()`                                                   |
+| maintain a custom driver                                                            | keep calling `useDriver()` - unchanged and still public                                   |
 
 ## Details
 
@@ -86,12 +87,12 @@ export class PostgresDataSource extends BasePostgresDataSource<IConfigs> {
 - A bundling test (`bundle/optional-peers.test.ts`) now builds four fixtures and checks the actual bundle output, so this class of bug cannot regress silently again.
 - `DataSourceDrivers` still exists as an identity constant for names and validation. It is no longer a configuration channel for choosing a driver.
 
-| Package | Tests passing |
-|---|---|
-| inversion | 96 |
-| helpers | 1014 |
-| boot | 81 |
-| core | 1518 |
+| Package   | Tests passing |
+| --------- | ------------- |
+| inversion | 96            |
+| helpers   | 1014          |
+| boot      | 81            |
+| core      | 1518          |
 
 Zero type errors, zero lint findings across all four packages; all nine examples type-check.
 

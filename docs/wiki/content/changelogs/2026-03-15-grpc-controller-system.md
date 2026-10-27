@@ -33,6 +33,7 @@ Introduces a full gRPC controller system built on ConnectRPC, alongside a struct
 The controller base classes have been split into transport-specific directories. The old files (`base/controllers/abstract.ts` and `base/controllers/base.ts`) are removed.
 
 **Before:**
+
 ```typescript
 import { AbstractController, BaseController } from '@venizia/ignis';
 // or
@@ -41,6 +42,7 @@ import { BaseController } from '../base/controllers/base';
 ```
 
 **After:**
+
 ```typescript
 import { AbstractRestController, BaseRestController } from '@venizia/ignis';
 // or
@@ -55,12 +57,15 @@ import { BaseRestController } from '../base/controllers/rest/base';
 If you were building custom gRPC controllers against the previous internal API, the following changes apply:
 
 **Before:**
+
 ```typescript
 class MyGrpcController extends AbstractGrpcController {
-  implementation = { /* handler map */ };
-  definitions: Record<string, IRpcMetadata> = { /* separate metadata map */ };
+  implementation = {/* handler map */};
+  definitions: Record<string, IRpcMetadata> = {/* separate metadata map */};
 
-  getImplementation() { return this.implementation; }
+  getImplementation() {
+    return this.implementation;
+  }
 }
 
 // Adapter creation
@@ -68,11 +73,11 @@ const adapter = createHonoConnectAdapter(options);
 ```
 
 **After:**
+
 ```typescript
 class MyGrpcController extends AbstractGrpcController {
   // Unified map - single write per RPC:
   // this.definitions[configs.name] = { configs, handler };
-
   // Structure: IRpcRegistration<RouteEnv>
   // {
   //   configs: IRpcMetadata;    // { name, method, authenticate?, authorize? }
@@ -87,12 +92,12 @@ const adapter = await GrpcRequestAdapter.build({
 });
 ```
 
-| Removed | Replacement |
-|---------|-------------|
-| `implementation` property | Merged into `definitions` via `IRpcRegistration` |
-| `getImplementation()` method | No longer needed -- definitions are accessed directly |
-| `createHonoConnectAdapter()` function | `GrpcRequestAdapter.build()` |
-| `IConnectAdapterOptions` type | Removed (unused) |
+| Removed                               | Replacement                                           |
+| ------------------------------------- | ----------------------------------------------------- |
+| `implementation` property             | Merged into `definitions` via `IRpcRegistration`      |
+| `getImplementation()` method          | No longer needed -- definitions are accessed directly |
+| `createHonoConnectAdapter()` function | `GrpcRequestAdapter.build()`                          |
+| `IConnectAdapterOptions` type         | Removed (unused)                                      |
 
 ## New Features
 
@@ -120,12 +125,12 @@ export class GreeterController extends BaseGrpcController {
 
 Declarative decorators for all four gRPC patterns:
 
-| Decorator | Pattern | Status |
-|-----------|---------|--------|
-| `@unary` | Unary | Supported |
-| `@serverStream` | Server Streaming | Throws at boot (reserved for future HTTP/2 support) |
-| `@clientStream` | Client Streaming | Throws at boot (reserved for future HTTP/2 support) |
-| `@bidiStream` | Bidirectional Streaming | Throws at boot (reserved for future HTTP/2 support) |
+| Decorator       | Pattern                 | Status                                              |
+| --------------- | ----------------------- | --------------------------------------------------- |
+| `@unary`        | Unary                   | Supported                                           |
+| `@serverStream` | Server Streaming        | Throws at boot (reserved for future HTTP/2 support) |
+| `@clientStream` | Client Streaming        | Throws at boot (reserved for future HTTP/2 support) |
+| `@bidiStream`   | Bidirectional Streaming | Throws at boot (reserved for future HTTP/2 support) |
 
 ### GrpcRequestAdapter -- ConnectRPC Bridge with AsyncLocalStorage
 
@@ -143,6 +148,7 @@ const adapter = await GrpcRequestAdapter.build({
 ```
 
 **Benefits:**
+
 - Production-safe concurrent request handling via AsyncLocalStorage
 - Clean separation between ConnectRPC transport and Hono routing
 - Automatic context propagation through the handler chain
@@ -174,10 +180,14 @@ Applications can now serve both REST and gRPC from the same process using `Contr
 
 ```typescript
 @controller({ path: '/api/users', transport: ControllerTransports.REST })
-export class UserRestController extends BaseRestController { /* ... */ }
+export class UserRestController extends BaseRestController {
+  /* ... */
+}
 
 @controller({ path: '/grpc', transport: ControllerTransports.GRPC })
-export class UserGrpcController extends BaseGrpcController { /* ... */ }
+export class UserGrpcController extends BaseGrpcController {
+  /* ... */
+}
 ```
 
 ### Component-Based gRPC Registration
@@ -198,48 +208,48 @@ export class Application extends BaseApplication {
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/base/controllers/grpc/adapter.ts` | New: `GrpcRequestAdapter` class replacing `createHonoConnectAdapter` |
-| `src/base/controllers/grpc/abstract.ts` | Refactored: unified `definitions` map using `IRpcRegistration` |
-| `src/base/controllers/grpc/base.ts` | New: `BaseGrpcController` concrete implementation |
-| `src/base/controllers/grpc/common/types.ts` | Added `IRpcRegistration`, removed `IConnectAdapterOptions` |
-| `src/base/controllers/rest/abstract.ts` | Renamed from `base/controllers/abstract.ts` to `AbstractRestController` |
-| `src/base/controllers/rest/base.ts` | Renamed from `base/controllers/base.ts` to `BaseRestController` |
-| `src/base/controllers/common/constants.ts` | Added `ControllerTransports` enum |
-| `src/base/controllers/common/types.ts` | Updated controller type definitions |
-| `src/base/controllers/factory/controller.ts` | Updated controller factory for dual transport |
-| `src/base/controllers/index.ts` | Updated barrel exports |
-| `src/base/metadata/routes/rpc.ts` | New: `@unary`, `@serverStream`, `@clientStream`, `@bidiStream` decorators |
-| `src/base/metadata/index.ts` | Updated metadata exports |
-| `src/base/applications/base.ts` | Updated application base for gRPC support |
-| `src/base/applications/types.ts` | Updated application types |
-| `src/base/mixins/index.ts` | Updated mixin exports |
-| `src/components/controller/grpc/grpc.component.ts` | New: `GrpcComponent` |
-| `src/components/controller/rest/rest.component.ts` | New: `RestComponent` |
-| `src/components/index.ts` | Updated component exports |
-| `src/components/auth/authenticate/controllers/factory.ts` | Updated for REST controller rename |
-| `src/components/auth/authenticate/controllers/jwks/controller.ts` | Updated for REST controller rename |
-| `src/components/health-check/controller.ts` | Updated for REST controller rename |
-| `src/components/static-asset/controller/factory.ts` | Updated for REST controller rename |
-| `src/helpers/inversion/common/keys.ts` | Updated binding keys |
-| `src/helpers/inversion/common/types.ts` | Updated inversion types |
-| `src/helpers/inversion/mixins/controllers/grpc.ts` | New: `GrpcControllerMetadataMixin` |
-| `src/helpers/inversion/mixins/index.ts` | Updated mixin exports |
-| `src/helpers/inversion/registry.ts` | Updated registry for gRPC support |
-| `package.json` | Added `@connectrpc/connect` as optional peer dep and dev dep |
+| File                                                              | Changes                                                                   |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `src/base/controllers/grpc/adapter.ts`                            | New: `GrpcRequestAdapter` class replacing `createHonoConnectAdapter`      |
+| `src/base/controllers/grpc/abstract.ts`                           | Refactored: unified `definitions` map using `IRpcRegistration`            |
+| `src/base/controllers/grpc/base.ts`                               | New: `BaseGrpcController` concrete implementation                         |
+| `src/base/controllers/grpc/common/types.ts`                       | Added `IRpcRegistration`, removed `IConnectAdapterOptions`                |
+| `src/base/controllers/rest/abstract.ts`                           | Renamed from `base/controllers/abstract.ts` to `AbstractRestController`   |
+| `src/base/controllers/rest/base.ts`                               | Renamed from `base/controllers/base.ts` to `BaseRestController`           |
+| `src/base/controllers/common/constants.ts`                        | Added `ControllerTransports` enum                                         |
+| `src/base/controllers/common/types.ts`                            | Updated controller type definitions                                       |
+| `src/base/controllers/factory/controller.ts`                      | Updated controller factory for dual transport                             |
+| `src/base/controllers/index.ts`                                   | Updated barrel exports                                                    |
+| `src/base/metadata/routes/rpc.ts`                                 | New: `@unary`, `@serverStream`, `@clientStream`, `@bidiStream` decorators |
+| `src/base/metadata/index.ts`                                      | Updated metadata exports                                                  |
+| `src/base/applications/base.ts`                                   | Updated application base for gRPC support                                 |
+| `src/base/applications/types.ts`                                  | Updated application types                                                 |
+| `src/base/mixins/index.ts`                                        | Updated mixin exports                                                     |
+| `src/components/controller/grpc/grpc.component.ts`                | New: `GrpcComponent`                                                      |
+| `src/components/controller/rest/rest.component.ts`                | New: `RestComponent`                                                      |
+| `src/components/index.ts`                                         | Updated component exports                                                 |
+| `src/components/auth/authenticate/controllers/factory.ts`         | Updated for REST controller rename                                        |
+| `src/components/auth/authenticate/controllers/jwks/controller.ts` | Updated for REST controller rename                                        |
+| `src/components/health-check/controller.ts`                       | Updated for REST controller rename                                        |
+| `src/components/static-asset/controller/factory.ts`               | Updated for REST controller rename                                        |
+| `src/helpers/inversion/common/keys.ts`                            | Updated binding keys                                                      |
+| `src/helpers/inversion/common/types.ts`                           | Updated inversion types                                                   |
+| `src/helpers/inversion/mixins/controllers/grpc.ts`                | New: `GrpcControllerMetadataMixin`                                        |
+| `src/helpers/inversion/mixins/index.ts`                           | Updated mixin exports                                                     |
+| `src/helpers/inversion/registry.ts`                               | Updated registry for gRPC support                                         |
+| `package.json`                                                    | Added `@connectrpc/connect` as optional peer dep and dev dep              |
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `src/common/constants/grpc.ts` | New: GRPC protocol constants (headers, methods, status codes, content types) |
-| `src/common/constants/index.ts` | Updated constants barrel export |
+| File                            | Changes                                                                      |
+| ------------------------------- | ---------------------------------------------------------------------------- |
+| `src/common/constants/grpc.ts`  | New: GRPC protocol constants (headers, methods, status codes, content types) |
+| `src/common/constants/index.ts` | Updated constants barrel export                                              |
 
 ### Examples
 
-| File | Changes |
-|------|---------|
+| File                  | Changes                       |
+| --------------------- | ----------------------------- |
 | `examples/grpc-test/` | New: gRPC example application |
 
 ## Migration Guide

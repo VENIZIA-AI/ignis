@@ -28,6 +28,7 @@ Added full JWKS (JSON Web Key Set) asymmetric authentication support for microse
 ### 1. JWT options now use a discriminated union
 
 **Before:**
+
 ```typescript
 this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   jwtSecret: env.get('JWT_SECRET'),
@@ -37,12 +38,14 @@ this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 ```
 
 **After:**
+
 ```typescript
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-  standard: JOSEStandards.JWS,   // Discriminant field
-  options: {                       // Options nested under 'options'
+  standard: JOSEStandards.JWS, // Discriminant field
+  options: {
+    // Options nested under 'options'
     jwtSecret: env.get('JWT_SECRET'),
-    applicationSecret: env.get('APP_SECRET'),  // Now optional
+    applicationSecret: env.get('APP_SECRET'), // Now optional
     getTokenExpiresFn: () => 86_400,
   },
 });
@@ -50,21 +53,21 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 
 ### 2. Service and type renames
 
-| Before | After |
-|--------|-------|
-| `JWTTokenService` | `JWSTokenService` |
-| `IJWTTokenServiceOptions` | `IJWSTokenServiceOptions` (inner type) |
-| `defineJWTAuth` (component method) | `defineJWSAuth` |
+| Before                             | After                                  |
+| ---------------------------------- | -------------------------------------- |
+| `JWTTokenService`                  | `JWSTokenService`                      |
+| `IJWTTokenServiceOptions`          | `IJWSTokenServiceOptions` (inner type) |
+| `defineJWTAuth` (component method) | `defineJWSAuth`                        |
 
 ### 3. Removed constants
 
 The following constants were removed from `Authentication`:
 
-| Removed | Replacement |
-|---------|-------------|
-| `Authentication.ACCESS_TOKEN_SECRET` | Use env vars directly |
-| `Authentication.REFRESH_TOKEN_SECRET` | Use env vars directly |
-| `Authentication.ACCESS_TOKEN_EXPIRES_IN` | Use `getTokenExpiresFn` |
+| Removed                                   | Replacement             |
+| ----------------------------------------- | ----------------------- |
+| `Authentication.ACCESS_TOKEN_SECRET`      | Use env vars directly   |
+| `Authentication.REFRESH_TOKEN_SECRET`     | Use env vars directly   |
+| `Authentication.ACCESS_TOKEN_EXPIRES_IN`  | Use `getTokenExpiresFn` |
 | `Authentication.REFRESH_TOKEN_EXPIRES_IN` | Use `getTokenExpiresFn` |
 
 ### 4. Strategy registration is now manual
@@ -78,25 +81,23 @@ this.component(AuthenticateComponent);
 
 AuthenticationStrategyRegistry.getInstance().register({
   container: this,
-  strategies: [
-    { strategy: JWSAuthenticationStrategy, name: 'jwt' },
-  ],
+  strategies: [{ strategy: JWSAuthenticationStrategy, name: 'jwt' }],
 });
 ```
 
 ### 5. File structure changed
 
-| Before | After |
-|--------|-------|
-| `services/jwt-token.service.ts` | `services/bearer/jws.service.ts` |
-| `services/basic-token.service.ts` | `services/basic/service.ts` |
-| `strategies/jwt.strategy.ts` | `strategies/jws.strategy.ts` |
-| (n/a) | `services/bearer/abstract.service.ts` |
-| (n/a) | `services/bearer/jwks/abstract.service.ts` |
-| (n/a) | `services/bearer/jwks/issuer.service.ts` |
-| (n/a) | `services/bearer/jwks/verifier.service.ts` |
-| (n/a) | `strategies/jwks.strategy.ts` |
-| (n/a) | `controllers/jwks/controller.ts` |
+| Before                            | After                                      |
+| --------------------------------- | ------------------------------------------ |
+| `services/jwt-token.service.ts`   | `services/bearer/jws.service.ts`           |
+| `services/basic-token.service.ts` | `services/basic/service.ts`                |
+| `strategies/jwt.strategy.ts`      | `strategies/jws.strategy.ts`               |
+| (n/a)                             | `services/bearer/abstract.service.ts`      |
+| (n/a)                             | `services/bearer/jwks/abstract.service.ts` |
+| (n/a)                             | `services/bearer/jwks/issuer.service.ts`   |
+| (n/a)                             | `services/bearer/jwks/verifier.service.ts` |
+| (n/a)                             | `strategies/jwks.strategy.ts`              |
+| (n/a)                             | `controllers/jwks/controller.ts`           |
 
 ## New Features
 
@@ -127,6 +128,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 ```
 
 **Features:**
+
 - Lazy initialization with retry-on-failure - keys are loaded on first use, failed init is retried
 - Supports PEM and JWK key formats
 - Supports file-based (`JWKSKeyDrivers.FILE`) and inline (`JWKSKeyDrivers.TEXT`) key drivers
@@ -147,13 +149,14 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   options: {
     mode: JWKSModes.VERIFIER,
     jwksUrl: 'https://auth-service.internal/certs',
-    cacheTtlMs: 43_200_000,   // 12h cache (default)
-    cooldownMs: 30_000,        // 30s cooldown (default)
+    cacheTtlMs: 43_200_000, // 12h cache (default)
+    cooldownMs: 30_000, // 30s cooldown (default)
   },
 });
 ```
 
 **Features:**
+
 - Lazy initialization - JWKS URL is set up on first verification
 - Configurable cache TTL and cooldown
 - Verify-only - `generate()` throws, preventing accidental signing
@@ -176,6 +179,7 @@ AbstractBearerTokenService
 ```
 
 **Shared in base class:**
+
 - `extractCredentials()` - parse `Authorization: Bearer` header
 - `verify()` → delegates to abstract `doVerify()`
 - `generate()` → delegates to abstract `getSigner()` + `getSigningKey()`
@@ -237,16 +241,16 @@ Added `AuthenticateBindingKeys.JWKS_OPTIONS` for binding JWKS-specific options. 
 
 **File:** `common/constants.ts`
 
-| Constant | Values | Purpose |
-|----------|--------|---------|
-| `JOSEStandards.JWS` | `'JWS'` | Discriminant for symmetric JWT |
-| `JOSEStandards.JWKS` | `'JWKS'` | Discriminant for asymmetric JWT |
-| `JWKSModes.ISSUER` | `'issuer'` | Sign tokens + serve JWKS |
-| `JWKSModes.VERIFIER` | `'verifier'` | Verify tokens via remote JWKS |
-| `JWKSKeyDrivers.FILE` | `'file'` | Load keys from filesystem |
-| `JWKSKeyDrivers.TEXT` | `'text'` | Inline key content |
-| `JWKSKeyFormats.PEM` | `'PEM'` | PKCS8/SPKI PEM format |
-| `JWKSKeyFormats.JWK` | `'JWK'` | JSON Web Key format |
+| Constant              | Values       | Purpose                         |
+| --------------------- | ------------ | ------------------------------- |
+| `JOSEStandards.JWS`   | `'JWS'`      | Discriminant for symmetric JWT  |
+| `JOSEStandards.JWKS`  | `'JWKS'`     | Discriminant for asymmetric JWT |
+| `JWKSModes.ISSUER`    | `'issuer'`   | Sign tokens + serve JWKS        |
+| `JWKSModes.VERIFIER`  | `'verifier'` | Verify tokens via remote JWKS   |
+| `JWKSKeyDrivers.FILE` | `'file'`     | Load keys from filesystem       |
+| `JWKSKeyDrivers.TEXT` | `'text'`     | Inline key content              |
+| `JWKSKeyFormats.PEM`  | `'PEM'`      | PKCS8/SPKI PEM format           |
+| `JWKSKeyFormats.JWK`  | `'JWK'`      | JSON Web Key format             |
 
 ## Security Fixes
 
@@ -260,49 +264,49 @@ Added `AuthenticateBindingKeys.JWKS_OPTIONS` for binding JWKS-specific options. 
 
 ```typescript
 // Before: leaked internal error details
-message: `[verify] Failed to verify token | Message: ${error.message}`
+message: `[verify] Failed to verify token | Message: ${error.message}`;
 
 // After: sanitized
-message: '[verify] Invalid or expired token'
+message: '[verify] Invalid or expired token';
 ```
 
 ## Files Changed
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `components/auth/authenticate/component.ts` | Discriminated union dispatch, `defineJWSAuth`, `defineJWKSAuth`, removed `applicationSecret` validation |
-| `components/auth/authenticate/common/constants.ts` | Added `JOSEStandards`, `JWKSModes`, `JWKSKeyDrivers`, `JWKSKeyFormats`; removed legacy `Authentication` constants |
-| `components/auth/authenticate/common/keys.ts` | Added `JWKS_OPTIONS` binding key |
-| `components/auth/authenticate/common/types.ts` | Added `TJWTTokenServiceOptions` discriminated union, `IJWKSIssuerOptions`, `IJWKSVerifierOptions`, `TJWKSTokenServiceOptions`; made `applicationSecret` optional |
-| `components/auth/authenticate/services/bearer/abstract.service.ts` | **New.** `AbstractBearerTokenService` with shared extract/verify/generate/encrypt/decrypt |
-| `components/auth/authenticate/services/bearer/jws.service.ts` | Renamed from `jwt-token.service.ts`; extends `AbstractBearerTokenService`; removed duplicated AES logic |
-| `components/auth/authenticate/services/bearer/jwks/abstract.service.ts` | **New.** `AbstractJWKSTokenService` with lazy init + retry |
-| `components/auth/authenticate/services/bearer/jwks/issuer.service.ts` | **New.** Asymmetric signing, key parsing (PEM/JWK), JWKS export |
-| `components/auth/authenticate/services/bearer/jwks/verifier.service.ts` | **New.** Remote JWKS verification with cache |
-| `components/auth/authenticate/services/basic/service.ts` | Moved from `basic-token.service.ts` |
-| `components/auth/authenticate/strategies/jws.strategy.ts` | Renamed from `jwt.strategy.ts`; uses `JWSTokenService` |
-| `components/auth/authenticate/strategies/jwks.strategy.ts` | **New.** `JWKSIssuerAuthenticationStrategy`, `JWKSVerifierAuthenticationStrategy` |
-| `components/auth/authenticate/controllers/jwks/controller.ts` | **New.** Serves `/certs` JWKS endpoint |
-| `components/auth/authenticate/controllers/jwks/definitions.ts` | **New.** Route config for GET /certs |
+| File                                                                    | Changes                                                                                                                                                          |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `components/auth/authenticate/component.ts`                             | Discriminated union dispatch, `defineJWSAuth`, `defineJWKSAuth`, removed `applicationSecret` validation                                                          |
+| `components/auth/authenticate/common/constants.ts`                      | Added `JOSEStandards`, `JWKSModes`, `JWKSKeyDrivers`, `JWKSKeyFormats`; removed legacy `Authentication` constants                                                |
+| `components/auth/authenticate/common/keys.ts`                           | Added `JWKS_OPTIONS` binding key                                                                                                                                 |
+| `components/auth/authenticate/common/types.ts`                          | Added `TJWTTokenServiceOptions` discriminated union, `IJWKSIssuerOptions`, `IJWKSVerifierOptions`, `TJWKSTokenServiceOptions`; made `applicationSecret` optional |
+| `components/auth/authenticate/services/bearer/abstract.service.ts`      | **New.** `AbstractBearerTokenService` with shared extract/verify/generate/encrypt/decrypt                                                                        |
+| `components/auth/authenticate/services/bearer/jws.service.ts`           | Renamed from `jwt-token.service.ts`; extends `AbstractBearerTokenService`; removed duplicated AES logic                                                          |
+| `components/auth/authenticate/services/bearer/jwks/abstract.service.ts` | **New.** `AbstractJWKSTokenService` with lazy init + retry                                                                                                       |
+| `components/auth/authenticate/services/bearer/jwks/issuer.service.ts`   | **New.** Asymmetric signing, key parsing (PEM/JWK), JWKS export                                                                                                  |
+| `components/auth/authenticate/services/bearer/jwks/verifier.service.ts` | **New.** Remote JWKS verification with cache                                                                                                                     |
+| `components/auth/authenticate/services/basic/service.ts`                | Moved from `basic-token.service.ts`                                                                                                                              |
+| `components/auth/authenticate/strategies/jws.strategy.ts`               | Renamed from `jwt.strategy.ts`; uses `JWSTokenService`                                                                                                           |
+| `components/auth/authenticate/strategies/jwks.strategy.ts`              | **New.** `JWKSIssuerAuthenticationStrategy`, `JWKSVerifierAuthenticationStrategy`                                                                                |
+| `components/auth/authenticate/controllers/jwks/controller.ts`           | **New.** Serves `/certs` JWKS endpoint                                                                                                                           |
+| `components/auth/authenticate/controllers/jwks/definitions.ts`          | **New.** Route config for GET /certs                                                                                                                             |
 
 ### Deleted Files
 
-| File | Reason |
-|------|--------|
-| `services/jwt-token.service.ts` | Replaced by `services/bearer/jws.service.ts` |
-| `services/basic-token.service.ts` | Replaced by `services/basic/service.ts` |
-| `strategies/jwt.strategy.ts` | Replaced by `strategies/jws.strategy.ts` |
+| File                              | Reason                                       |
+| --------------------------------- | -------------------------------------------- |
+| `services/jwt-token.service.ts`   | Replaced by `services/bearer/jws.service.ts` |
+| `services/basic-token.service.ts` | Replaced by `services/basic/service.ts`      |
+| `strategies/jwt.strategy.ts`      | Replaced by `strategies/jws.strategy.ts`     |
 
 ### Examples (`examples/vert`)
 
-| File | Changes |
-|------|---------|
-| `src/application.ts` | Updated to use discriminated union options, JWKS issuer mode, manual strategy registration |
-| `src/services/authentication.service.ts` | Updated imports for `JWSTokenService` → uses new binding key patterns |
-| `src/controllers/authorization-example/controller.ts` | Updated strategy name references |
-| `src/controllers/test/controller.ts` | Updated strategy name references |
+| File                                                  | Changes                                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `src/application.ts`                                  | Updated to use discriminated union options, JWKS issuer mode, manual strategy registration |
+| `src/services/authentication.service.ts`              | Updated imports for `JWSTokenService` → uses new binding key patterns                      |
+| `src/controllers/authorization-example/controller.ts` | Updated strategy name references                                                           |
+| `src/controllers/test/controller.ts`                  | Updated strategy name references                                                           |
 
 ## Migration Guide
 
@@ -330,7 +334,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   standard: JOSEStandards.JWS,
   options: {
     jwtSecret: env.get('JWT_SECRET'),
-    applicationSecret: env.get('APP_SECRET'),  // Optional now
+    applicationSecret: env.get('APP_SECRET'), // Optional now
     getTokenExpiresFn: () => 86_400,
   },
 });
@@ -361,9 +365,7 @@ this.component(AuthenticateComponent);
 // Then register strategies manually
 AuthenticationStrategyRegistry.getInstance().register({
   container: this,
-  strategies: [
-    { strategy: JWSAuthenticationStrategy, name: 'jwt' },
-  ],
+  strategies: [{ strategy: JWSAuthenticationStrategy, name: 'jwt' }],
 });
 ```
 

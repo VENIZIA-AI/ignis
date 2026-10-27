@@ -1,6 +1,6 @@
 ---
 title: Filter and Update Errors Quote the Rejected Key on One Line
-description: "Error messages that quote a key, field or order entry from the request now escape control characters and Unicode line terminators, so a crafted key can no longer split a log line."
+description: 'Error messages that quote a key, field or order entry from the request now escape control characters and Unicode line terminators, so a crafted key can no longer split a log line.'
 packages: ['@venizia/ignis-connectors', '@venizia/ignis-filter']
 ---
 
@@ -20,12 +20,12 @@ A key such as `na\nme` used to print a real newline inside the message, so a cal
 - DEL (`\u007f`) and the C1 range (`\u0080`-`\u009f`);
 - the Unicode line and paragraph separators (` `, ` `).
 
-| Message | Where |
-|---|---|
-| `Column NOT FOUND \| key: '...'` | relational `toWhere`, `toOrderBy`, JSON-path columns, and updates |
-| `Invalid JSON path component: '...'` | relational JSON-path keys |
-| `Field NOT FOUND \| field: '...'` | Typesense and Meilisearch |
-| `[parseOrderEntry] ... \| entry: "..."` | every dialect's order parser |
+| Message                                 | Where                                                             |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `Column NOT FOUND \| key: '...'`        | relational `toWhere`, `toOrderBy`, JSON-path columns, and updates |
+| `Invalid JSON path component: '...'`    | relational JSON-path keys                                         |
+| `Field NOT FOUND \| field: '...'`       | Typesense and Meilisearch                                         |
+| `[parseOrderEntry] ... \| entry: "..."` | every dialect's order parser                                      |
 
 ## Who is affected
 

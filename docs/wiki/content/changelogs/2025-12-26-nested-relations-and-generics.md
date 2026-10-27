@@ -30,13 +30,15 @@ This update introduces support for deeply nested relation queries in repositorie
 // Now works recursively!
 const result = await repo.findOne({
   filter: {
-    include: [{
-      relation: 'orders',
-      scope: {
-        include: [{ relation: 'items' }] // Level 2
-      }
-    }]
-  }
+    include: [
+      {
+        relation: 'orders',
+        scope: {
+          include: [{ relation: 'items' }], // Level 2
+        },
+      },
+    ],
+  },
 });
 ```
 
@@ -54,7 +56,7 @@ type UserWithPosts = User & { posts: Post[] };
 
 // Type-safe call
 const user = await userRepo.findOne<UserWithPosts>({
-  filter: { include: [{ relation: 'posts' }] }
+  filter: { include: [{ relation: 'posts' }] },
 });
 
 // TypeScript knows 'posts' exists!
@@ -62,6 +64,7 @@ console.log(user?.posts.length);
 ```
 
 **Benefits:**
+
 - Stronger type safety in application code.
 - Reduces need for `as any` casting.
 - Better IDE auto-completion.
@@ -70,18 +73,19 @@ console.log(user?.posts.length);
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/base/repositories/common/types.ts` | Added generic `<R>` to all repository interface methods |
-| `src/base/repositories/core/base.ts` | Implemented `getRelationResolver` and updated abstract signatures |
-| `src/base/repositories/core/readable.ts` | Updated `find`, `findOne`, `findById` to support generics |
-| `src/base/repositories/core/persistable.ts` | Updated `create`, `update`, `delete` methods to support generics |
-| `src/base/repositories/operators/filter.ts` | Added `relationResolver` support for recursive includes |
+| File                                        | Changes                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------- |
+| `src/base/repositories/common/types.ts`     | Added generic `<R>` to all repository interface methods           |
+| `src/base/repositories/core/base.ts`        | Implemented `getRelationResolver` and updated abstract signatures |
+| `src/base/repositories/core/readable.ts`    | Updated `find`, `findOne`, `findById` to support generics         |
+| `src/base/repositories/core/persistable.ts` | Updated `create`, `update`, `delete` methods to support generics  |
+| `src/base/repositories/operators/filter.ts` | Added `relationResolver` support for recursive includes           |
 
 ## Migration Guide
 
 ### No Breaking Changes
 
 This update is fully backward compatible.
+
 - Existing calls to repository methods will continue to work (using the default `DataObject` return type).
 - The new generic type parameter is optional.

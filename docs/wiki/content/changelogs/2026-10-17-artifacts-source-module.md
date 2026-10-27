@@ -1,6 +1,6 @@
 ---
 title: ignis-artifacts Finds Decorators Another Package Re-Exports
-description: "A repeatable --source-module flag lets ignis-artifacts index classes whose stereotype decorators come from a package that re-exports them, such as a frontend framework built on the kernel."
+description: 'A repeatable --source-module flag lets ignis-artifacts index classes whose stereotype decorators come from a package that re-exports them, such as a frontend framework built on the kernel.'
 packages: ['@venizia/ignis-boot']
 ---
 

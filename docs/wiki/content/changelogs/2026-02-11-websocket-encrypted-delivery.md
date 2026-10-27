@@ -45,6 +45,7 @@ const helper = new WebSocketServerHelper({
 ```
 
 **Type:**
+
 ```typescript
 type TWebSocketOutboundTransformer<DataType = unknown> = (opts: {
   client: IWebSocketClient;
@@ -61,11 +62,11 @@ type TWebSocketOutboundTransformer<DataType = unknown> = (opts: {
 
 **Solution:** Clean conditional -- if `outboundTransformer` is configured, iterate all clients individually with concurrency control. If not, use pure Bun pub/sub.
 
-| Method | No transformer | Transformer configured |
-|--------|---------------|----------------------|
-| `sendToClient()` | Direct `socket.send()` | Runs transformer if `client.encrypted` |
-| `sendToRoom()` | Bun `server.publish()` (O(1)) | `executePromiseWithLimit` over all room clients |
-| `broadcast()` | Bun `server.publish()` (O(1)) | `executePromiseWithLimit` over all authenticated clients |
+| Method           | No transformer                | Transformer configured                                   |
+| ---------------- | ----------------------------- | -------------------------------------------------------- |
+| `sendToClient()` | Direct `socket.send()`        | Runs transformer if `client.encrypted`                   |
+| `sendToRoom()`   | Bun `server.publish()` (O(1)) | `executePromiseWithLimit` over all room clients          |
+| `broadcast()`    | Bun `server.publish()` (O(1)) | `executePromiseWithLimit` over all authenticated clients |
 
 ### 3. Concurrent Encryption via `executePromiseWithLimit`
 
@@ -93,6 +94,7 @@ helper.enableClientEncryption({ clientId });
 ```
 
 **What it does:**
+
 1. Sets `client.encrypted = true`
 2. Unsubscribes from `BROADCAST_TOPIC` (Bun pub/sub)
 3. Unsubscribes from all room topics
@@ -119,6 +121,7 @@ const helper = new WebSocketServerHelper({
 ```
 
 **Auth + handshake flow:**
+
 1. Client sends `{ event: 'authenticate', data: { token, publicKey } }`
 2. `authenticateFn` validates the token
 3. `handshakeFn` performs key exchange using the same payload
@@ -126,6 +129,7 @@ const helper = new WebSocketServerHelper({
 5. On failure: client closed with code `4004`
 
 **Type:**
+
 ```typescript
 type TWebSocketHandshakeFn = (opts: {
   clientId: string;
@@ -161,50 +165,50 @@ this.bind<TWebSocketHandshakeFn>({
 
 ## New Constants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `WebSocketDefaults.ENCRYPTED_BATCH_LIMIT` | `10` | Default max concurrent encryption operations |
+| Constant                                  | Value | Description                                  |
+| ----------------------------------------- | ----- | -------------------------------------------- |
+| `WebSocketDefaults.ENCRYPTED_BATCH_LIMIT` | `10`  | Default max concurrent encryption operations |
 
 ## New Options
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `IWebSocketServerOptions.outboundTransformer` | `TWebSocketOutboundTransformer` | `undefined` | Callback to transform outbound messages (encryption) |
-| `IWebSocketServerOptions.encryptedBatchLimit` | `number` | `10` | Max concurrent operations for room/broadcast delivery |
-| `IWebSocketServerOptions.requireEncryption` | `boolean` | `false` | Enforce ECDH key exchange during authentication |
-| `IWebSocketServerOptions.handshakeFn` | `TWebSocketHandshakeFn` | `undefined` | Key exchange callback (required when `requireEncryption` is `true`) |
+| Field                                         | Type                            | Default     | Description                                                         |
+| --------------------------------------------- | ------------------------------- | ----------- | ------------------------------------------------------------------- |
+| `IWebSocketServerOptions.outboundTransformer` | `TWebSocketOutboundTransformer` | `undefined` | Callback to transform outbound messages (encryption)                |
+| `IWebSocketServerOptions.encryptedBatchLimit` | `number`                        | `10`        | Max concurrent operations for room/broadcast delivery               |
+| `IWebSocketServerOptions.requireEncryption`   | `boolean`                       | `false`     | Enforce ECDH key exchange during authentication                     |
+| `IWebSocketServerOptions.handshakeFn`         | `TWebSocketHandshakeFn`         | `undefined` | Key exchange callback (required when `requireEncryption` is `true`) |
 
 ## Files Changed
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
-| `src/helpers/socket/websocket/common/types.ts` | Added `outboundTransformer`, `encryptedBatchLimit`, `requireEncryption`, `handshakeFn` to `IWebSocketServerOptions`; added `TWebSocketHandshakeFn` type |
-| `src/helpers/socket/websocket/common/constants.ts` | Added `ENCRYPTED_BATCH_LIMIT = 10` to `WebSocketDefaults` |
-| `src/helpers/socket/websocket/server/helper.ts` | Added `sendToClientAsync()`, import `executePromiseWithLimit`, conditional delivery in `sendToRoom()`/`broadcast()`, `enableClientEncryption()`, `encryptedBatchLimit` field, `requireEncryption` field, `handshakeFn` field, combined auth+handshake in `handleAuthenticate()` |
+| File                                               | Changes                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/helpers/socket/websocket/common/types.ts`     | Added `outboundTransformer`, `encryptedBatchLimit`, `requireEncryption`, `handshakeFn` to `IWebSocketServerOptions`; added `TWebSocketHandshakeFn` type                                                                                                                         |
+| `src/helpers/socket/websocket/common/constants.ts` | Added `ENCRYPTED_BATCH_LIMIT = 10` to `WebSocketDefaults`                                                                                                                                                                                                                       |
+| `src/helpers/socket/websocket/server/helper.ts`    | Added `sendToClientAsync()`, import `executePromiseWithLimit`, conditional delivery in `sendToRoom()`/`broadcast()`, `enableClientEncryption()`, `encryptedBatchLimit` field, `requireEncryption` field, `handshakeFn` field, combined auth+handshake in `handleAuthenticate()` |
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/components/websocket/common/keys.ts` | Added `OUTBOUND_TRANSFORMER` and `HANDSHAKE_HANDLER` binding keys |
+| File                                       | Changes                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/components/websocket/common/keys.ts`  | Added `OUTBOUND_TRANSFORMER` and `HANDSHAKE_HANDLER` binding keys                                                                    |
 | `src/components/websocket/common/types.ts` | Added `TWebSocketOutboundTransformer`, `TWebSocketHandshakeFn` to `IResolvedBindings`; added `requireEncryption` to `IServerOptions` |
-| `src/components/websocket/component.ts` | Resolves and passes `outboundTransformer`, `handshakeFn`, `requireEncryption` to `WebSocketServerHelper` |
+| `src/components/websocket/component.ts`    | Resolves and passes `outboundTransformer`, `handshakeFn`, `requireEncryption` to `WebSocketServerHelper`                             |
 
 ### Documentation (`packages/docs`)
 
-| File | Changes |
-|------|---------|
-| `wiki/extensions/helpers/websocket.md` | Added encryption section, outbound transformer docs, updated types/constants/methods |
-| `wiki/extensions/components/websocket.md` | Added `OUTBOUND_TRANSFORMER` binding key, encryption setup example |
-| `wiki/changelogs/2026-02-11-websocket-encrypted-delivery.md` | New -- this changelog |
-| `site/.vitepress/config.mts` | Added sidebar entry for this changelog |
+| File                                                         | Changes                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `wiki/extensions/helpers/websocket.md`                       | Added encryption section, outbound transformer docs, updated types/constants/methods |
+| `wiki/extensions/components/websocket.md`                    | Added `OUTBOUND_TRANSFORMER` binding key, encryption setup example                   |
+| `wiki/changelogs/2026-02-11-websocket-encrypted-delivery.md` | New -- this changelog                                                                |
+| `site/.vitepress/config.mts`                                 | Added sidebar entry for this changelog                                               |
 
 ## Verification Results
 
-| Check | Result |
-|-------|--------|
-| `packages/helpers` rebuild | Clean |
-| `packages/helpers` lint | Clean (0 errors, 0 warnings) |
+| Check                                    | Result                             |
+| ---------------------------------------- | ---------------------------------- |
+| `packages/helpers` rebuild               | Clean                              |
+| `packages/helpers` lint                  | Clean (0 errors, 0 warnings)       |
 | `packages/core-server` tests (WebSocket) | 11 pass, 0 fail, 18 expect() calls |

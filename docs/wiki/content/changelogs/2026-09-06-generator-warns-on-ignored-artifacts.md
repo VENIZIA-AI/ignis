@@ -24,12 +24,12 @@ A package once excluded `components/**` because its components were registered b
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `ArtifactScanner.scanWithReport()` | New: `{ artifacts, ignored }`; `ignored` holds decorated classes under a user pattern only | boot |
-| `IScanReport` | New exported interface | boot |
-| `generateArtifactIndex()` / `checkArtifactIndex()` | Return `ignored` beside their previous fields | boot |
-| `ignis-artifacts generate` / `check` | One `warning:` line per hidden class on stderr; exit codes unchanged | boot |
+| Symbol                                             | Change                                                                                     | Package |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------- |
+| `ArtifactScanner.scanWithReport()`                 | New: `{ artifacts, ignored }`; `ignored` holds decorated classes under a user pattern only | boot    |
+| `IScanReport`                                      | New exported interface                                                                     | boot    |
+| `generateArtifactIndex()` / `checkArtifactIndex()` | Return `ignored` beside their previous fields                                              | boot    |
+| `ignis-artifacts generate` / `check`               | One `warning:` line per hidden class on stderr; exit codes unchanged                       | boot    |
 
 - The default patterns (`**/__tests__/**`, `**/*.test.ts`, `**/*.spec.ts`, `**/generated/**`) never produce a warning.
 - A pattern that hides a class on purpose, such as controllers registered by cohort, keeps working; the line is information, not a failure.

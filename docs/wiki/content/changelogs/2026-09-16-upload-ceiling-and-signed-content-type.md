@@ -1,6 +1,6 @@
 ---
 title: An Upload Ceiling, and a Signed Content Type
-description: "The UPLOAD route takes maxBytes, and presignPut can sign content-type. Both close a gap where the uploader, not the application, decided what was stored."
+description: 'The UPLOAD route takes maxBytes, and presignPut can sign content-type. Both close a gap where the uploader, not the application, decided what was stored.'
 packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 

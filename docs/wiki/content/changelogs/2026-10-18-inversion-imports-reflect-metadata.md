@@ -1,6 +1,6 @@
 ---
 title: Decorators Work in a Split Chunk Without Importing reflect-metadata First
-description: "The inversion registry imports reflect-metadata itself, so decorated code that a bundler evaluates before the package entry no longer fails with Reflect.getMetadata is not a function."
+description: 'The inversion registry imports reflect-metadata itself, so decorated code that a bundler evaluates before the package entry no longer fails with Reflect.getMetadata is not a function.'
 packages: ['@venizia/ignis-inversion']
 ---
 

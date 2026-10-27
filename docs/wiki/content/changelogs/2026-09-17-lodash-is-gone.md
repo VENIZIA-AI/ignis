@@ -1,6 +1,6 @@
 ---
 title: lodash Is Gone
-description: "Five functions across 31 call sites, for 24 KB. isEmpty and omit now live in inversion; get, set and round were replaced where they were used."
+description: 'Five functions across 31 call sites, for 24 KB. isEmpty and omit now live in inversion; get, set and round were replaced where they were used.'
 packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion', '@venizia/ignis-kernel']
 ---
 
@@ -10,13 +10,13 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis-inversion', '@venizia/ignis
 
 <Badge type="tip" text="Fix" />
 
-| Function | Call sites | Replaced by |
-|---|---|---|
-| `isEmpty` | 20 | `isEmpty` in `@venizia/ignis-inversion` |
-| `omit` | 8 | `omit` in `@venizia/ignis-inversion` |
-| `get` | 1 | plain indexing - the key came from `Object.keys`, never a path |
-| `set` | 1 | plain assignment - drizzle's `columns` is a flat map |
-| `round` | 1 | a local exponent-shift round |
+| Function  | Call sites | Replaced by                                                    |
+| --------- | ---------- | -------------------------------------------------------------- |
+| `isEmpty` | 20         | `isEmpty` in `@venizia/ignis-inversion`                        |
+| `omit`    | 8          | `omit` in `@venizia/ignis-inversion`                           |
+| `get`     | 1          | plain indexing - the key came from `Object.keys`, never a path |
+| `set`     | 1          | plain assignment - drizzle's `columns` is a flat map           |
+| `round`   | 1          | a local exponent-shift round                                   |
 
 Both shared functions are re-exported from `@venizia/ignis-helpers/common`, so nothing outside
 inversion imports them by a new path.
@@ -24,8 +24,8 @@ inversion imports them by a new path.
 ## `isEmpty` is not `!value`, and that is the whole point
 
 ```ts
-isEmpty({ value: {} });   // true
-!{};                      // false
+isEmpty({ value: {} }); // true
+!{}; // false
 ```
 
 Three cases were actual mismatches while writing it, each kept as a test:
@@ -46,10 +46,10 @@ both stringify and serialise identically.
 
 ## Measured
 
-| Entry | Before | After |
-|---|---|---|
-| `@venizia/ignis-helpers/core` | 20.8 KB gzipped | **17.2 KB** |
-| `@venizia/ignis-kernel/metadata` | 14.9 KB | **14.0 KB** |
+| Entry                            | Before          | After       |
+| -------------------------------- | --------------- | ----------- |
+| `@venizia/ignis-helpers/core`    | 20.8 KB gzipped | **17.2 KB** |
+| `@venizia/ignis-kernel/metadata` | 14.9 KB         | **14.0 KB** |
 
 A guard test fails if `lodash` reaches the container, the metadata entry or the utilities barrel.
 One `import isEmpty from 'lodash/isEmpty'` brings the whole library back, and nothing else in the

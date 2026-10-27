@@ -1,5 +1,5 @@
 ---
-title: "Typed JSON-Path Keys in TWhere, and an Opt-In TOrderEntry"
+title: 'Typed JSON-Path Keys in TWhere, and an Opt-In TOrderEntry'
 description: "A JSON-path key like 'metadata.a.b' now type-checks against T's JSON columns with no cast, and a new TOrderEntry<T> type checks an order list the same way. Both additive, no runtime change."
 packages: ['@venizia/ignis-filter']
 ---
@@ -44,7 +44,9 @@ Ordering had the same gap: `TFilter<T>.order` is `string[]`, so nothing caught a
   ```typescript
   import type { TOrderEntry } from '@venizia/ignis-filter';
 
-  const order = ['name DESC', 'metadata.rank asc'] satisfies TOrderEntry<Product & { name: string }>[];
+  const order = ['name DESC', 'metadata.rank asc'] satisfies TOrderEntry<
+    Product & { name: string }
+  >[];
   ```
 
 `TJsonColumnKey`, `TJsonPathKey` and `TOrderEntry` are exported from `@venizia/ignis-filter` and reachable through `@venizia/ignis-kernel` and `@venizia/ignis`.
@@ -63,8 +65,8 @@ Ordering had the same gap: `TFilter<T>.order` is `string[]`, so nothing caught a
 
 ## Details
 
-| File | Package |
-|------|---------|
-| `src/common/types.ts` | filter |
+| File                  | Package |
+| --------------------- | ------- |
+| `src/common/types.ts` | filter  |
 
 See [JSON/JSONB Filtering](/references/base/filter-system/json-filtering#typed-json-path-keys) and [Fields, Ordering & Pagination](/references/base/filter-system/fields-order-pagination#typed-order-entries-opt-in) for the full reference.

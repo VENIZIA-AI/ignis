@@ -1,6 +1,6 @@
 ---
 title: devz codemod drop-redundant-casts Removes the as Casts the Compiler No Longer Needs
-description: "A new devz codemod takes out an as X cast only when the package still typechecks without it. It checks the package in batches, not once per cast, is a dry run by default, and reports how many casts stayed and why."
+description: 'A new devz codemod takes out an as X cast only when the package still typechecks without it. It checks the package in batches, not once per cast, is a dry run by default, and reports how many casts stayed and why.'
 packages: ['@venizia/dev-configs']
 ---
 
@@ -30,13 +30,13 @@ bun check                                             # then your own typecheck
 
 ## Options
 
-| Option | Meaning |
-|---|---|
-| `--write` | Write the changed files. Without it, nothing is written |
-| `--check` | Dry run that exits 1 while a removable cast remains |
+| Option                 | Meaning                                                                          |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| `--write`              | Write the changed files. Without it, nothing is written                          |
+| `--check`              | Dry run that exits 1 while a removable cast remains                              |
 | `--project <tsconfig>` | The tsconfig to check against. Default: the nearest `tsconfig.json` of each file |
-| `--include-tests` | Also try casts in test files |
-| `--help` | Print the usage and exit 0 |
+| `--include-tests`      | Also try casts in test files                                                     |
+| `--help`               | Print the usage and exit 0                                                       |
 
 An unknown option, or `--write` with `--check`, exits 2 and writes nothing. Like `model-settings`, it reads the files git knows (tracked, or untracked and not ignored).
 

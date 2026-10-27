@@ -19,7 +19,10 @@ export const configs: IApplicationConfigs = {
   path: { base: '/api', isStrict: true },
   artifacts: [
     { dataSources: GeneratedArtifacts.dataSources, repositories: GeneratedArtifacts.repositories },
-    { when: () => runMode !== 'migrate', index: { services: GeneratedArtifacts.services, components: GeneratedArtifacts.components } },
+    {
+      when: () => runMode !== 'migrate',
+      index: { services: GeneratedArtifacts.services, components: GeneratedArtifacts.components },
+    },
     { when: () => runMode === 'server', index: { controllers: GeneratedArtifacts.controllers } },
   ],
 };
@@ -31,11 +34,11 @@ export const configs: IApplicationConfigs = {
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `IConditionalArtifactIndex` | New: `{ when: TArtifactCondition; index: TArtifactIndexInput }` | kernel |
-| `TArtifactIndexInput` | Now `IArtifactIndex \| IConditionalArtifactIndex \| TArtifactIndexInput[]` | kernel |
-| `ArtifactIndexHelper.flatten()` | Now async; takes `{ input, application }`; drops a conditional subtree whose `when` answers false | kernel |
+| Symbol                          | Change                                                                                            | Package |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- | ------- |
+| `IConditionalArtifactIndex`     | New: `{ when: TArtifactCondition; index: TArtifactIndexInput }`                                   | kernel  |
+| `TArtifactIndexInput`           | Now `IArtifactIndex \| IConditionalArtifactIndex \| TArtifactIndexInput[]`                        | kernel  |
+| `ArtifactIndexHelper.flatten()` | Now async; takes `{ input, application }`; drops a conditional subtree whose `when` answers false | kernel  |
 
 - `when` receives `{ application }` and may be async, the same signature as the `when` on a class decorator. It may ignore its argument and read the environment instead.
 - A false `when` drops the whole subtree, nested arrays included. Nothing behind it is bound, so `bootChecks.binding.doVerify` never sees it either.

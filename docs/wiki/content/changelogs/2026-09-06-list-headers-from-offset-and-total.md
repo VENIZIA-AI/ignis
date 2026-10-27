@@ -23,10 +23,10 @@ return context.json({ found, isFoundExact, hits });
 
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `BaseRestController.setListHeaders()` | Options are `{ context, count }` plus either `{ range }` or `{ offset, total }`; the second form derives the range with `buildDataRange` | kernel |
-| `toContentRange({ range, count })` | Exported from `@venizia/ignis-kernel` (was module-private) | kernel |
+| Symbol                                | Change                                                                                                                                   | Package |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `BaseRestController.setListHeaders()` | Options are `{ context, count }` plus either `{ range }` or `{ offset, total }`; the second form derives the range with `buildDataRange` | kernel  |
+| `toContentRange({ range, count })`    | Exported from `@venizia/ignis-kernel` (was module-private)                                                                               | kernel  |
 
 - An empty page still writes `records */<total>`.
 - `respond()` is unchanged; use it when the body is the `{ count, data }` envelope.

@@ -1,6 +1,6 @@
 ---
 title: A Repository Method Runs Its Own Transaction, and a Double Stubs One In Tests
-description: "runInTransaction begins, commits, and rolls back for you; TransactionDouble from @venizia/ignis/testing stubs beginTransaction() with no database behind it. The real transaction handle is now backed by a shared class - behavior unchanged."
+description: 'runInTransaction begins, commits, and rolls back for you; TransactionDouble from @venizia/ignis/testing stubs beginTransaction() with no database behind it. The real transaction handle is now backed by a shared class - behavior unchanged.'
 packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 ---
 
@@ -37,11 +37,11 @@ Pass a `transaction` and `runInTransaction` joins it: it never commits or rolls 
 `transactionOptions` is ignored. Pass none and it owns one: begins, commits on success, and rolls
 back on failure - rethrowing the original error even when the rollback itself fails.
 
-| | Joined (`transaction` passed) | Owned (none passed) |
-|---|---|---|
-| Begin | Never | `beginTransaction(transactionOptions)` |
-| Commit | Never | After `execute` resolves |
-| Rollback | Never | On failure, then rethrows the original error |
+|          | Joined (`transaction` passed) | Owned (none passed)                          |
+| -------- | ----------------------------- | -------------------------------------------- |
+| Begin    | Never                         | `beginTransaction(transactionOptions)`       |
+| Commit   | Never                         | After `execute` resolves                     |
+| Rollback | Never                         | On failure, then rethrows the original error |
 
 That turns a service method that must work stand-alone and nested inside a caller's transaction into
 a one-line forward, not two code paths:

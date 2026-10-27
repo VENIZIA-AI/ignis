@@ -27,14 +27,14 @@ fetches it. `http://169.254.169.254/latest/meta-data/iam/security-credentials/` 
 
 Checking the hostname is not enough, and neither is checking one resolved address:
 
-| Bypass | What stops it |
-|---|---|
-| `http://169.254.169.254/` | the literal address is checked before anything connects |
-| `http://evil.test/` resolving to `127.0.0.1` | every resolved address is checked, not the name |
-| a host with one public and one internal A record | **any** non-public address rejects the whole host |
-| `https://good.test/` redirecting to `http://10.0.0.5/` | every hop is re-checked, not just the first |
-| `::ffff:169.254.169.254` | an IPv4 address inside an IPv6 wrapper is unwrapped and checked |
-| a body that never ends | the read is capped and cancels |
+| Bypass                                                 | What stops it                                                   |
+| ------------------------------------------------------ | --------------------------------------------------------------- |
+| `http://169.254.169.254/`                              | the literal address is checked before anything connects         |
+| `http://evil.test/` resolving to `127.0.0.1`           | every resolved address is checked, not the name                 |
+| a host with one public and one internal A record       | **any** non-public address rejects the whole host               |
+| `https://good.test/` redirecting to `http://10.0.0.5/` | every hop is re-checked, not just the first                     |
+| `::ffff:169.254.169.254`                               | an IPv4 address inside an IPv6 wrapper is unwrapped and checked |
+| a body that never ends                                 | the read is capped and cancels                                  |
 
 ## Two halves, because one of them runs in a browser
 
@@ -45,20 +45,20 @@ browser-pure.
 `UrlIngest` needs `node:dns` and lives on the root barrel.
 
 ```ts
-import { UrlPolicy } from '@venizia/ignis-helpers/core';   // pure
-import { UrlIngest } from '@venizia/ignis-helpers';        // node
+import { UrlPolicy } from '@venizia/ignis-helpers/core'; // pure
+import { UrlIngest } from '@venizia/ignis-helpers'; // node
 ```
 
 ## The policy is per call
 
-| Option | Default | Meaning |
-|---|---|---|
-| `allowedSchemes` | `['https:']` | `http:` is available; pass it when your inputs need it |
-| `allowPrivateAddress` | `false` | **Turning this on in a path that takes user input re-opens the hole** |
-| `allowedHosts` | none | when set, nothing outside the list passes |
-| `maxRedirects` | `3` | each hop re-checked |
-| `timeout` | 10 seconds | an `IDuration`; a slow host holds a worker slot exactly this long |
-| `maxBytes` | 10 MB | the read cancels the moment it is crossed |
+| Option                | Default      | Meaning                                                               |
+| --------------------- | ------------ | --------------------------------------------------------------------- |
+| `allowedSchemes`      | `['https:']` | `http:` is available; pass it when your inputs need it                |
+| `allowPrivateAddress` | `false`      | **Turning this on in a path that takes user input re-opens the hole** |
+| `allowedHosts`        | none         | when set, nothing outside the list passes                             |
+| `maxRedirects`        | `3`          | each hop re-checked                                                   |
+| `timeout`             | 10 seconds   | an `IDuration`; a slow host holds a worker slot exactly this long     |
+| `maxBytes`            | 10 MB        | the read cancels the moment it is crossed                             |
 
 Nothing is a build-time constant. An app that must reach plain `http` says so at the call site
 rather than weakening the default for everyone.

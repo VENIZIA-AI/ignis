@@ -1,6 +1,6 @@
 ---
 title: Kernel String Options Are Const Classes
-description: "Six string options in the kernel package - compress encoding, JWKS algorithm, authorization domain source, route path scope, id schema type and authorize model format - are const classes with SCHEME_SET and isValid. The values are unchanged."
+description: 'Six string options in the kernel package - compress encoding, JWKS algorithm, authorization domain source, route path scope, id schema type and authorize model format - are const classes with SCHEME_SET and isValid. The values are unchanged.'
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -12,14 +12,14 @@ packages: ['@venizia/ignis-kernel']
 
 **In one line.** Six options typed as a union of string literals are now a const class plus a `TConstValue` type, like `RepositoryTypes`. The values are the same, so existing code keeps compiling.
 
-| Option | Const class | Type | Values |
-|---|---|---|---|
-| `ICompressOptions.encoding` | `CompressEncodings` | `TCompressEncoding` | `gzip`, `deflate` |
-| `IJWKSIssuerOptions.algorithm` | `JWKSAlgorithms` | `TJWKSAlgorithm` | `ES256`, `RS256`, `EdDSA` |
-| `IAuthorizationDomainSource.from` | `AuthorizationDomainSources` | `TAuthorizationDomainSource` | `param`, `header`, `query`, `context` |
-| `registerRoutesFromRegistry({ paths })` | `RoutePathScopes` | `TRoutePathScope` | `static`, `param`, `all` |
-| `AbstractEntity.getIdType()` | `IdSchemaTypes` | `TIdSchemaType` | `number`, `string` |
-| `getAuthorizeModelPrincipals({ format })`, `getAuthorizeModelSettings({ format })` | `AuthorizeModelFormats` | `TAuthorizeModelFormat` | `array`, `record` |
+| Option                                                                             | Const class                  | Type                         | Values                                |
+| ---------------------------------------------------------------------------------- | ---------------------------- | ---------------------------- | ------------------------------------- |
+| `ICompressOptions.encoding`                                                        | `CompressEncodings`          | `TCompressEncoding`          | `gzip`, `deflate`                     |
+| `IJWKSIssuerOptions.algorithm`                                                     | `JWKSAlgorithms`             | `TJWKSAlgorithm`             | `ES256`, `RS256`, `EdDSA`             |
+| `IAuthorizationDomainSource.from`                                                  | `AuthorizationDomainSources` | `TAuthorizationDomainSource` | `param`, `header`, `query`, `context` |
+| `registerRoutesFromRegistry({ paths })`                                            | `RoutePathScopes`            | `TRoutePathScope`            | `static`, `param`, `all`              |
+| `AbstractEntity.getIdType()`                                                       | `IdSchemaTypes`              | `TIdSchemaType`              | `number`, `string`                    |
+| `getAuthorizeModelPrincipals({ format })`, `getAuthorizeModelSettings({ format })` | `AuthorizeModelFormats`      | `TAuthorizeModelFormat`      | `array`, `record`                     |
 
 ## What changed
 

@@ -64,7 +64,7 @@ import { toJsonSafe } from '@venizia/ignis-helpers';
 const safe = toJsonSafe({ value: payload, depth: 5 });
 ```
 
-| File | Package |
-|------|---------|
-| `src/common/redact.ts` | helpers |
+| File                                          | Package |
+| --------------------------------------------- | ------- |
+| `src/common/redact.ts`                        | helpers |
 | `src/modules/logger/formatting/deep-splat.ts` | helpers |

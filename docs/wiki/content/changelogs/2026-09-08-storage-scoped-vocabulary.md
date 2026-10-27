@@ -32,28 +32,35 @@ method and the bucket on another. Three vocabularies for two nouns.
 Three interfaces replace all of it:
 
 ```ts
-interface IBucketRef { name: string }
-interface IObjectRef { key: string }
-interface IObjectLocation { bucket: IBucketRef; object: IObjectRef }
+interface IBucketRef {
+  name: string;
+}
+interface IObjectRef {
+  key: string;
+}
+interface IObjectLocation {
+  bucket: IBucketRef;
+  object: IObjectRef;
+}
 ```
 
 `key` is the word S3 uses, and the word `IUploadResult` already returned.
 
 ## What changed
 
-| Method | Before | Now |
-|---|---|---|
-| `hasBucket`, `getBucket`, `createBucket`, `removeBucket` | `{ name }` | `{ bucket }` |
-| `getObject`, `getObjectStream`, `getStat`, `removeObject` | `{ bucket, name }` | `{ bucket, object }` |
-| `getObjectTags`, `replaceObjectTags` | `{ bucket, name }` | `{ bucket, object }` |
-| `presignPut`, `presignGet` | `{ bucket, name }` | `{ bucket, object }` |
-| `removeObjects` | `{ bucket, names: string[] }` | `{ bucket, objects: IObjectRef[] }` |
-| `listObjects`, `upload` | `bucket: string` | `bucket: IBucketRef` |
-| `normalizeLinkFn` | `{ bucketName, normalizeName }` | `IObjectLocation` |
-| `buildObjectLink` | `{ bucketName, objectName, ... }` | `{ bucket, object, ... }` |
-| `BunS3Helper.writeStream` | `{ bucket, name, source }` | `{ bucket, object, source }` |
-| `isValidName` | `{ name }`, for a bucket AND for a key segment | split, see below |
-| `isValidPath` | `{ path, maxDepth }` | `isValidObjectKey({ object, maxDepth })` |
+| Method                                                    | Before                                         | Now                                      |
+| --------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------- |
+| `hasBucket`, `getBucket`, `createBucket`, `removeBucket`  | `{ name }`                                     | `{ bucket }`                             |
+| `getObject`, `getObjectStream`, `getStat`, `removeObject` | `{ bucket, name }`                             | `{ bucket, object }`                     |
+| `getObjectTags`, `replaceObjectTags`                      | `{ bucket, name }`                             | `{ bucket, object }`                     |
+| `presignPut`, `presignGet`                                | `{ bucket, name }`                             | `{ bucket, object }`                     |
+| `removeObjects`                                           | `{ bucket, names: string[] }`                  | `{ bucket, objects: IObjectRef[] }`      |
+| `listObjects`, `upload`                                   | `bucket: string`                               | `bucket: IBucketRef`                     |
+| `normalizeLinkFn`                                         | `{ bucketName, normalizeName }`                | `IObjectLocation`                        |
+| `buildObjectLink`                                         | `{ bucketName, objectName, ... }`              | `{ bucket, object, ... }`                |
+| `BunS3Helper.writeStream`                                 | `{ bucket, name, source }`                     | `{ bucket, object, source }`             |
+| `isValidName`                                             | `{ name }`, for a bucket AND for a key segment | split, see below                         |
+| `isValidPath`                                             | `{ path, maxDepth }`                           | `isValidObjectKey({ object, maxDepth })` |
 
 TypeScript catches every one of these. There is no runtime-only case in this batch.
 
@@ -65,9 +72,9 @@ TypeScript catches every one of these. There is no runtime-only case in this bat
 two nouns this release just separated everywhere else. It is now three names for three questions:
 
 ```ts
-helper.isValidSegment({ segment: 'photo.png' });                 // one segment or file name
-helper.isValidBucketName({ bucket: { name: 'assets' } });        // a bucket name
-helper.isValidObjectKey({ object: { key: 'a/b/photo.png' } });   // a whole object key
+helper.isValidSegment({ segment: 'photo.png' }); // one segment or file name
+helper.isValidBucketName({ bucket: { name: 'assets' } }); // a bucket name
+helper.isValidObjectKey({ object: { key: 'a/b/photo.png' } }); // a whole object key
 ```
 
 The rules did not change, only which one you ask for. `isValidObjectKey` still takes `maxDepth`.

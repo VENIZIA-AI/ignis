@@ -31,7 +31,7 @@ A datasource that had not resolved a connector yet - cold, not yet touched by a 
 
 ## Details
 
-| File | Package |
-|------|---------|
-| `src/components/auth/authorize/adapters/base-filtered.ts` | core |
-| `src/components/auth/authorize/adapters/types.ts` | core |
+| File                                                      | Package |
+| --------------------------------------------------------- | ------- |
+| `src/components/auth/authorize/adapters/base-filtered.ts` | core    |
+| `src/components/auth/authorize/adapters/types.ts`         | core    |

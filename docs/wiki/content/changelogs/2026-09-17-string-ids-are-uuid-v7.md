@@ -1,6 +1,6 @@
 ---
 title: String Ids Are UUID v7
-description: "The default string primary key is now a time-ordered UUID v7: inserts 11-36% faster, a 27% smaller index, ordered paging ~2.5x faster."
+description: 'The default string primary key is now a time-ordered UUID v7: inserts 11-36% faster, a 27% smaller index, ordered paging ~2.5x faster.'
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -21,12 +21,12 @@ v7  01a0affa-991a-716e-b520-12c39bcddbf1   01a0affa991a = creation ms
 
 Measured on PGlite, 200k rows, `id text PRIMARY KEY`:
 
-| | v4 | v7 |
-|---|---|---|
-| Generate one id | 55-59 ns | 77-80 ns |
-| Insert 200k rows | 913-1030 ms | **663-812 ms** |
-| Primary-key index | 15 MB | **11 MB** |
-| Lookup by id (2000) | 160-174 ms | 165-189 ms |
+|                                  | v4           | v7              |
+| -------------------------------- | ------------ | --------------- |
+| Generate one id                  | 55-59 ns     | 77-80 ns        |
+| Insert 200k rows                 | 913-1030 ms  | **663-812 ms**  |
+| Primary-key index                | 15 MB        | **11 MB**       |
+| Lookup by id (2000)              | 160-174 ms   | 165-189 ms      |
 | `ORDER BY id` paging (200 pages) | 2596-2633 ms | **932-1083 ms** |
 
 A random id lands anywhere in the B-tree and splits pages; a time-ordered one appends. Generating

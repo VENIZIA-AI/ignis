@@ -44,10 +44,10 @@ class Order extends BasePostgresEntity {
 
 ## Options
 
-| Option | Type | Default | Meaning |
-|---|---|---|---|
-| `resolve` | `() => TWhere \| typeof ScopeFilters.UNRESTRICTED \| null \| undefined` | required | Returns the current caller's scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope on this call; or `null`/`undefined` when the scope cannot be determined at all. |
-| `onMissing` | `'deny' \| 'allow'` | `'deny'` | What happens when `resolve()` returns null/undefined. `'deny'` matches zero rows. `'allow'` runs the query unscoped - an explicit, reviewed opt-out for migrations and background jobs, never inferable from a request. |
+| Option      | Type                                                                    | Default  | Meaning                                                                                                                                                                                                                 |
+| ----------- | ----------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolve`   | `() => TWhere \| typeof ScopeFilters.UNRESTRICTED \| null \| undefined` | required | Returns the current caller's scope `where`; `ScopeFilters.UNRESTRICTED` to apply no scope on this call; or `null`/`undefined` when the scope cannot be determined at all.                                               |
+| `onMissing` | `'deny' \| 'allow'`                                                     | `'deny'` | What happens when `resolve()` returns null/undefined. `'deny'` matches zero rows. `'allow'` runs the query unscoped - an explicit, reviewed opt-out for migrations and background jobs, never inferable from a request. |
 
 ## A third state: unrestricted for one call
 
@@ -83,11 +83,11 @@ resolve: () => {
 },
 ```
 
-| `resolve()` returns | Behavior |
-|---|---|
-| a `TWhere` | ANDed into the query, as always |
+| `resolve()` returns         | Behavior                             |
+| --------------------------- | ------------------------------------ |
+| a `TWhere`                  | ANDed into the query, as always      |
 | `ScopeFilters.UNRESTRICTED` | no scope applied, for this call only |
-| `null` / `undefined` | `onMissing` - denies by default |
+| `null` / `undefined`        | `onMissing` - denies by default      |
 
 The order matters, and it is the whole safety property: `ScopeFilters.UNRESTRICTED` is checked by exact symbol identity, before the null/undefined branch. A resolver that forgets a `return` on some branch produces `undefined` - not the symbol - and still lands in deny. `ScopeFilters.UNRESTRICTED` is a `Symbol.for(...)`, deliberately: no JSON body, query string, or header can ever produce it, so the bypass can only come from code the application wrote and reviewed. It is re-evaluated on every call, exactly like a `where` - a resolver can return it once and a scoped `where` the next time.
 
@@ -98,7 +98,9 @@ The order matters, and it is the whole safety property: `ScopeFilters.UNRESTRICT
 ```typescript
 @model({ settings: { scopeFilter: { resolve: () => currentTenantWhere() } } })
 class Merchant extends BasePostgresEntity {
-  static override relations = () => [{ name: 'products', type: RelationTypes.MANY, schema: Product.schema }];
+  static override relations = () => [
+    { name: 'products', type: RelationTypes.MANY, schema: Product.schema },
+  ];
 }
 
 @model({ settings: { scopeFilter: { resolve: () => currentTenantWhere() } } })
@@ -194,13 +196,13 @@ family by removing its guard in the same change that adds `scopeFilter`, or leav
 `scopeFilter` injects a `where`. A hand-written guard loads the row and throws `403`/`404`. The two
 have **opposite failure profiles**, and neither is strictly better:
 
-| | `scopeFilter` (inject a `where`) | Guard (load the row, throw) |
-|---|---|---|
-| A handler that forgets | **still scoped** - the repository does it | **a hole** - nothing runs |
-| `create` | **not covered** - an `INSERT` has no `where` | **covered** - it asserts on the payload |
-| Admin targeting another principal | **silently narrows**, reports success | **throws** - cannot silently succeed |
-| Indirect / per-row ownership | **not expressible** - `resolve()` is synchronous | expressible - it may query |
-| Cost per operation | none - one more `where` clause | a read before every write |
+|                                   | `scopeFilter` (inject a `where`)                 | Guard (load the row, throw)             |
+| --------------------------------- | ------------------------------------------------ | --------------------------------------- |
+| A handler that forgets            | **still scoped** - the repository does it        | **a hole** - nothing runs               |
+| `create`                          | **not covered** - an `INSERT` has no `where`     | **covered** - it asserts on the payload |
+| Admin targeting another principal | **silently narrows**, reports success            | **throws** - cannot silently succeed    |
+| Indirect / per-row ownership      | **not expressible** - `resolve()` is synchronous | expressible - it may query              |
+| Cost per operation                | none - one more `where` clause                   | a read before every write               |
 
 Read the first and third rows together: `scopeFilter` removes the class of bug where somebody forgot
 to check, and introduces the class where a legitimate cross-principal write quietly does nothing. A
@@ -212,11 +214,11 @@ guard is the mirror image. Choose per model, and expect to keep guards on `creat
 - **`onMissing: 'deny'` compiles to a real, deterministic SQL condition** - an empty `inq` (`WHERE id IN ()` shaped), which every relational dialect already reduces to a literal `false`. It is not "return an empty array after the fact"; the database itself matches nothing.
 - **`shouldSkipDefaultFilter: true` still only removes `defaultFilter`.** A model combining `scopeFilter` (tenant) with `defaultFilter` (soft-delete) keeps the tenant scope even when a caller skips the soft-delete filter to read deleted rows.
 
-| File | Package |
-|------|---------|
-| `src/helpers/inversion/common/types.ts` | kernel |
-| `src/base/repositories/common/constants.ts` | kernel |
-| `src/relational/core/repositories/core/base.ts` | connectors |
-| `src/relational/core/repositories/core/readable.ts` | connectors |
-| `src/relational/core/repositories/dialect/filter.ts` | connectors |
+| File                                                      | Package    |
+| --------------------------------------------------------- | ---------- |
+| `src/helpers/inversion/common/types.ts`                   | kernel     |
+| `src/base/repositories/common/constants.ts`               | kernel     |
+| `src/relational/core/repositories/core/base.ts`           | connectors |
+| `src/relational/core/repositories/core/readable.ts`       | connectors |
+| `src/relational/core/repositories/dialect/filter.ts`      | connectors |
 | `src/relational/core/repositories/common/scope-filter.ts` | connectors |

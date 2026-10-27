@@ -24,6 +24,7 @@ Major architecture refactor following Loopback 4 patterns with auto-discovery.
 ### 1. Model Static Properties
 
 **Before:**
+
 ```typescript
 const userTable = pgTable('User', {...});
 const userRelations = createRelations({...});
@@ -37,6 +38,7 @@ export class User extends BaseEntity<typeof userTable> {
 ```
 
 **After:**
+
 ```typescript
 @model({ type: 'entity' })
 export class User extends BaseEntity<typeof User.schema> {
@@ -48,6 +50,7 @@ export class User extends BaseEntity<typeof User.schema> {
 ### 2. Repository Constructor
 
 **Before:**
+
 ```typescript
 @repository({})
 export class UserRepository extends DefaultCRUDRepository<typeof userTable> {
@@ -58,6 +61,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof userTable> {
 ```
 
 **After:**
+
 ```typescript
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
@@ -68,6 +72,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 ### 3. DataSource Schema
 
 **Before:**
+
 ```typescript
 @datasource({})
 export class PostgresDataSource extends BaseDataSource {
@@ -83,6 +88,7 @@ export class PostgresDataSource extends BaseDataSource {
 ```
 
 **After:**
+
 ```typescript
 @datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource {
@@ -129,6 +135,7 @@ export class Configuration extends BaseEntity<typeof Configuration.schema> {
 ```
 
 **Benefits:**
+
 - Simplified Model Definition
 - Better Type Safety
 
@@ -155,6 +162,7 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 ```
 
 **Benefits:**
+
 - Reduced Boilerplate
 - Clear Repository Role
 
@@ -173,7 +181,7 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
     super({
       name: PostgresDataSource.name,
       driver: 'node-postgres',
-      config: { /* connection config */ },
+      config: {/* connection config */},
       // NO schema property - auto-discovered!
     });
   }
@@ -186,6 +194,7 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 ```
 
 **Benefits:**
+
 - No Manual Schema Registration
 - Decoupled Models and DataSources
 
@@ -193,33 +202,33 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/base/models/base.ts` | Added static `schema`, `relations`, `TABLE_NAME` |
-| `src/base/datasources/base.ts` | Added auto-discovery via `buildAutoDiscoveredSchema()` |
-| `src/base/repositories/core/base.ts` | Added lazy resolution, static container reference |
-| `src/base/repositories/core/readable.ts` | Made constructor opts optional |
-| `src/base/repositories/core/persistable.ts` | Made constructor opts optional |
-| `src/base/repositories/core/default-crud.ts` | Added documentation |
-| `src/base/metadata/persistents.ts` | Updated decorators for auto-discovery |
-| `src/base/applications/base.ts` | Added `AbstractRepository.setContainer(this)` |
-| `src/components/static-asset/models/base.model.ts` | Updated to new pattern |
+| File                                               | Changes                                                |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| `src/base/models/base.ts`                          | Added static `schema`, `relations`, `TABLE_NAME`       |
+| `src/base/datasources/base.ts`                     | Added auto-discovery via `buildAutoDiscoveredSchema()` |
+| `src/base/repositories/core/base.ts`               | Added lazy resolution, static container reference      |
+| `src/base/repositories/core/readable.ts`           | Made constructor opts optional                         |
+| `src/base/repositories/core/persistable.ts`        | Made constructor opts optional                         |
+| `src/base/repositories/core/default-crud.ts`       | Added documentation                                    |
+| `src/base/metadata/persistents.ts`                 | Updated decorators for auto-discovery                  |
+| `src/base/applications/base.ts`                    | Added `AbstractRepository.setContainer(this)`          |
+| `src/components/static-asset/models/base.model.ts` | Updated to new pattern                                 |
 
 ### Helpers Package (`packages/helpers`)
 
-| File | Changes |
-|------|---------|
+| File                                    | Changes                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `src/helpers/inversion/common/types.ts` | Added `IModelMetadata`, `IRelationDefinition`, `IModelStatic`, `IRepositoryMetadata`, `IRepositoryBinding` |
-| `src/helpers/inversion/registry.ts` | Added `registerModel`, `registerRepositoryBinding`, `buildDataSourceSchema` |
+| `src/helpers/inversion/registry.ts`     | Added `registerModel`, `registerRepositoryBinding`, `buildDataSourceSchema`                                |
 
 ### Examples (`examples/vert`)
 
-| File | Changes |
-|------|---------|
-| `src/models/entities/user.model.ts` | Updated to static schema pattern |
-| `src/models/entities/configuration.model.ts` | Updated to static schema pattern |
-| `src/datasources/postgres.datasource.ts` | Removed manual schema registration |
-| `src/repositories/user.repository.ts` | Updated to use `@repository` decorator |
+| File                                           | Changes                                |
+| ---------------------------------------------- | -------------------------------------- |
+| `src/models/entities/user.model.ts`            | Updated to static schema pattern       |
+| `src/models/entities/configuration.model.ts`   | Updated to static schema pattern       |
+| `src/datasources/postgres.datasource.ts`       | Removed manual schema registration     |
+| `src/repositories/user.repository.ts`          | Updated to use `@repository` decorator |
 | `src/repositories/configuration.repository.ts` | Updated to use `@repository` decorator |
 
 ## Migration Guide

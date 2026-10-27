@@ -40,7 +40,7 @@ this.defineRoute({
     }),
     authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   },
-  handler: async context => {
+  handler: async (context) => {
     if (!this.service.refreshToken) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
@@ -99,6 +99,7 @@ defineAuthController({
 > Because the endpoint authenticates with the standard JWT strategy, the caller must present a still-valid access token. If you need rotation or revocation of long-lived refresh tokens, implement that policy inside your `refreshToken` service method.
 
 **Benefits:**
+
 - Token renewal without a full re-authentication
 - Opt-in: services that don't implement `refreshToken` cleanly return `501`
 - Response shape is customizable and OpenAPI-documented
@@ -107,10 +108,10 @@ defineAuthController({
 
 ### Core Package (`packages/core-server`)
 
-| File | Changes |
-|------|---------|
-| `src/components/auth/authenticate/controllers/factory.ts` | Added `POST /token/refresh`; switched routes to `HTTP.Methods.*`; added route descriptions |
-| `src/components/auth/authenticate/common/types.ts` | `refreshToken?` on `IAuthService` (+ `RTRS` generic); optional `refreshToken` payload config |
+| File                                                      | Changes                                                                                      |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/components/auth/authenticate/controllers/factory.ts` | Added `POST /token/refresh`; switched routes to `HTTP.Methods.*`; added route descriptions   |
+| `src/components/auth/authenticate/common/types.ts`        | `refreshToken?` on `IAuthService` (+ `RTRS` generic); optional `refreshToken` payload config |
 
 ## No Breaking Changes
 
