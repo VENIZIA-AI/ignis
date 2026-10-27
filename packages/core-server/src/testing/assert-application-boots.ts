@@ -207,7 +207,8 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
  *
  * Datasources are bound and resolved but not configured, unless named in `keepDataSources`; the
  * secrets steps are skipped; every other step and every component runs as in a real boot. A component
- * that opens Redis, Kafka or S3 in `binding()` therefore runs for real: name it in `skipComponents`. When the
+ * that opens Redis, Kafka or S3 in `binding()` therefore runs for real: name it in `skipComponents`.
+ * When the boot fails inside a component, one warning names it; the rejection is still the original error. When the
  * boot fails, the rejection is the original error. The application stays booted and is returned;
  * a failed boot leaves a half-booted instance, so build a new one rather than reuse it.
  *
@@ -259,6 +260,8 @@ export const assertApplicationBoots = async <Application extends BaseApplication
   const skippedSteps = new Set<string>(skipSteps);
   const patches: IPatch[] = [];
   let sweepsSeen = 0;
+  // The components whose `configure()` is running, innermost last: when the boot rejects, the last one is where it failed.
+  const configuringComponents: string[] = [];
 
   const neutralise = async (opts: {
     namespace: string;
@@ -296,12 +299,23 @@ export const assertApplicationBoots = async <Application extends BaseApplication
   const wrappedRegister = async (opts: IDynamicBindingsOptions): Promise<void> => {
     sweepsSeen += 1;
     const userBefore = opts.onBeforeConfigure;
+    const userAfter = opts.onAfterConfigure;
 
     return originalRegisterDynamicBindings.call(target, {
       ...opts,
       onBeforeConfigure: async ({ binding }) => {
         await neutralise({ namespace: opts.namespace, binding });
+        if (opts.namespace === BindingNamespaces.COMPONENT) {
+          const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
+          configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
+        }
         await userBefore?.({ binding });
+      },
+      onAfterConfigure: async ({ binding, instance }) => {
+        if (opts.namespace === BindingNamespaces.COMPONENT) {
+          configuringComponents.pop();
+        }
+        await userAfter?.({ binding, instance });
       },
     });
   };
@@ -378,6 +392,17 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     }
 
     return target;
+  } catch (error) {
+    const failing = configuringComponents.at(-1);
+    if (failing) {
+      target.logger
+        .for('assertApplicationBoots')
+        .warn(
+          `The boot failed inside component ${failing} | If it needs infrastructure, skipComponents: ['${failing}'] skips it, and skipBindings lists the services that depend on it`,
+        );
+    }
+
+    throw error;
   } finally {
     for (const patch of patches.reverse()) {
       patch.restore();
