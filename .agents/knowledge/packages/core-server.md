@@ -28,12 +28,10 @@ required peers.
 
 `jose` is required but never loaded at import: the token services reach it through `JoseLoader`
 (`components/auth/authenticate/services/jose-loader.ts`, internal, not exported), a string-literal
-`import()` cached once per process. Core is CommonJS, and a top-level `require('jose')` raced an
-application's own `import 'jose'` under Bun. The literal keeps `jose` in a compiled binary;
+`import()` cached once per process, so `jose` loads on first use, not at import. The literal keeps `jose` in a compiled binary;
 `ModuleUtility.load` would not. A failed load is not cached. `AuthenticateComponent` preloads `jose`
 at boot when JWT or service options are set, so a missing `jose` fails the boot instead of turning
-every token check into a 401. A load at boot cannot race: measured, even a `require` there never
-crashed (the application's own load has settled). Tests reach the private `importer` seam by bracket
+every token check into a 401. Tests reach the private `importer` seam by bracket
 access.
 
 Database clients (`pg`, `postgres`, `@libsql/client`, `typesense`, `meilisearch`)
@@ -69,8 +67,7 @@ full contract.
 `getProjectRoot()` calls `ModuleUtility.setProjectRoot()`, so optional-peer lookups and the gRPC
 adapter's `@connectrpc/connect` resolution happen under `<projectRoot>/node_modules`.
 `configs.server` (`idleTimeout` in seconds, `maxRequestBodySize` in bytes) is spread into
-`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults, and the node runtime logs a
-warning and ignores the group. Override `getServerRuntimeOptions()` for anything beyond those two
+`Bun.serve` by `startBunModule`; unset keys keep Bun's defaults. Override `getServerRuntimeOptions()` for anything beyond those two
 keys instead of re-implementing `startBunModule`.
 
 `EnvironmentKeys` (`src/common/environments.ts`) is the env vocabulary, split into what the

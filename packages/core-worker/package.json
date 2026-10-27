@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-worker",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Browser Web Worker host for the IGNIS framework: the request/response envelope, the transport contract, and WorkerApplication - the layer that listens on `onmessage` instead of a socket, so a RestApplication can serve its controllers with no server anywhere.",
   "keywords": [
     "browser",
@@ -8,8 +8,6 @@
     "envelope",
     "hono",
     "ignis",
-    "loopback",
-    "loopback4",
     "rest",
     "transport",
     "typescript",
@@ -39,18 +37,14 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [
-    "./dist/cjs/index.js",
     "./dist/esm/index.js"
   ],
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/cjs/index.d.ts",
+  "main": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
     },
     "./package.json": "./package.json"
   },

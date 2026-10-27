@@ -17,12 +17,28 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-10-27 | [devz check catalog, module-cycles and split-report Ship in dev-configs](./2026-10-27-dev-configs-check-catalog-cycles-split) | Enhancement |
+| 2026-10-27 | [dev-configs Testing Export Adds spawnSyncBounded and a Repo-Tmp Preload](./2026-10-27-dev-configs-testing-spawn-tmpdir) | Enhancement |
+| 2026-10-27 | [devz check purity - the Browser-Purity Gate Ships in dev-configs](./2026-10-27-dev-configs-check-purity) | Enhancement |
+| 2026-10-27 | [Consumers Resolve IGNIS Through Bundler Resolution - dev-configs tsconfig Change](./2026-10-27-consumer-tsconfig-bundler-resolution) | Behavior Change |
+| 2026-10-27 | [assertApplicationBoots Proves an Application Boots Without Infrastructure](./2026-10-27-assert-application-boots) | New Feature |
+| 2026-10-26 | [After 0.4.3 - What Changed and How to Upgrade](./2026-10-26-batch-overview-0-4-4) | Security |
 | 2026-10-26 | [After 0.4.2 - What Changed and How to Upgrade](./2026-10-26-batch-overview) | Security |
+| 2026-10-26 | [READMEs, Licences and the Company Name](./2026-10-26-readmes-license-and-company-name) | Enhancement |
+| 2026-10-26 | [The Wiki's Claims Were Checked Against the Code](./2026-10-26-wiki-claims-checked-against-the-code) | Bug Fix |
+| 2026-10-26 | [The Wiki Has a New Look](./2026-10-26-wiki-new-look) | Enhancement |
+| 2026-10-26 | [A Failed Secret Rotation Left the Rotated Credentials in the Datasource Settings](./2026-10-26-secret-rotation-failure-leaks-credentials) | Security |
+| 2026-10-26 | [A Datasource Family for Engines That Only Run SQL](./2026-10-26-raw-sql-datasource) | New Feature |
 | 2026-10-26 | [Repository Tooling - Release Mode Check, Examples Gate, Temp Folders](./2026-10-26-repository-tooling) | Behavior Change |
 | 2026-10-26 | [Connectors String Options Are Const Classes](./2026-10-26-connectors-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [Kernel String Options Are Const Classes](./2026-10-26-kernel-string-domains-const-classes) | Enhancement |
 | 2026-10-26 | [A Shared Row Can No Longer Be Changed or Deleted Without sharedRows](./2026-10-26-shared-rows-writes-need-shared-rows) | Security |
 | 2026-10-26 | [Helpers, Inversion and Server String Options Are Const Classes](./2026-10-26-helpers-string-domains-const-classes) | Enhancement |
+| 2026-10-26 | [devz codemod const-classes Turns a String-Literal Union Into a Const Class](./2026-10-26-devz-codemod-const-classes) | Feature |
+| 2026-10-26 | [devz codemod drop-redundant-casts Removes the as Casts the Compiler No Longer Needs](./2026-10-26-devz-codemod-drop-redundant-casts) | Feature |
+| 2026-10-26 | [skipMigrate Is Removed From @model](./2026-10-26-skipmigrate-removed) | Breaking |
+| 2026-10-26 | [enable Is Optional on Middleware Options, and devz codemod Names a Path It Cannot Read](./2026-10-26-middleware-enable-optional-and-codemod-empty-path) | Bug Fix |
+| 2026-10-26 | [devz codemod --check Fails While a Model Is Left Untouched](./2026-10-26-devz-codemod-check-fails-on-untouched) | Behavior Change |
 | 2026-10-26 | [devz codemod Is a Dry Run Unless You Pass --write](./2026-10-26-devz-codemod-dry-run-by-default) | Behavior Change |
 | 2026-10-26 | [dev-configs Rule Options Are Const Classes](./2026-10-26-dev-configs-rule-options-const-classes) | Enhancement |
 | 2026-10-26 | [dev-configs Warns on String-Literal Unions and Explicit Casts](./2026-10-26-dev-configs-warn-const-class-and-casts) | Enhancement |

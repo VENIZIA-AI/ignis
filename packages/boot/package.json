@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Build-time artifact index generator for IGNIS applications: scans decorated classes with the TypeScript AST and emits one static registration file per package, so bun build --compile sees plain imports.",
   "keywords": [
     "artifact-index",
@@ -30,7 +30,7 @@
     "directory": "packages/boot"
   },
   "bin": {
-    "ignis-artifacts": "./dist/cjs/clis/artifacts.js"
+    "ignis-artifacts": "./dist/esm/clis/artifacts.js"
   },
   "files": [
     "README.md",
@@ -40,49 +40,35 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [
-    "./dist/cjs/bun/auto.js",
     "./dist/esm/bun/auto.js"
   ],
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/cjs/index.d.ts",
+  "main": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
     },
     "./package.json": "./package.json",
     "./generator": {
-      "types": "./dist/cjs/generator/index.d.ts",
-      "import": "./dist/esm/generator/index.js",
-      "require": "./dist/cjs/generator/index.js",
-      "default": "./dist/cjs/generator/index.js"
+      "types": "./dist/esm/generator/index.d.ts",
+      "default": "./dist/esm/generator/index.js"
     },
     "./bun": {
-      "types": "./dist/cjs/bun/index.d.ts",
-      "import": "./dist/esm/bun/index.js",
-      "require": "./dist/cjs/bun/index.js",
-      "default": "./dist/cjs/bun/index.js"
+      "types": "./dist/esm/bun/index.d.ts",
+      "default": "./dist/esm/bun/index.js"
     },
     "./auto": {
-      "types": "./dist/cjs/bun/auto.d.ts",
-      "import": "./dist/esm/bun/auto.js",
-      "require": "./dist/cjs/bun/auto.js",
-      "default": "./dist/cjs/bun/auto.js"
+      "types": "./dist/esm/bun/auto.d.ts",
+      "default": "./dist/esm/bun/auto.js"
     },
     "./vite": {
-      "types": "./dist/cjs/vite/index.d.ts",
-      "import": "./dist/esm/vite/index.js",
-      "require": "./dist/cjs/vite/index.js",
-      "default": "./dist/cjs/vite/index.js"
+      "types": "./dist/esm/vite/index.d.ts",
+      "default": "./dist/esm/vite/index.js"
     },
     "./build-info": {
-      "types": "./dist/cjs/build-info/index.d.ts",
-      "import": "./dist/esm/build-info/index.js",
-      "require": "./dist/cjs/build-info/index.js",
-      "default": "./dist/cjs/build-info/index.js"
+      "types": "./dist/esm/build-info/index.d.ts",
+      "default": "./dist/esm/build-info/index.js"
     }
   },
   "publishConfig": {

@@ -197,7 +197,7 @@ extra: {
 
 ### `BunS3Helper` fails to construct or import
 
-- **Cause:** running on Node.js. `BunS3Helper` imports `S3Client` from the `bun` builtin module, which only resolves under the Bun runtime.
+- **Cause:** running outside Bun. `BunS3Helper` imports `S3Client` from the `bun` builtin module, which only resolves under the Bun runtime.
 - **Fix:** run the app under Bun, or use `DiskHelper` outside it.
 
 ## See also

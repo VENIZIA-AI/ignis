@@ -1,4 +1,4 @@
-import { Environment, RuntimeModules } from '@venizia/ignis-helpers';
+import { Environment } from '@venizia/ignis-helpers';
 import { BuildInfoRegistry, type TBuildInfoRecord } from '@venizia/ignis-helpers/core';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import type { IHealthCheckOptions } from './common';
@@ -152,8 +152,7 @@ export class HealthCheckReporter {
         pid: process.pid,
         uptime,
         uptimeHuman: HealthCheckReporter.toHumanUptime({ seconds: uptime }),
-        // `versions.node` carries no `v` prefix, so both runtimes read `<name> <semver>`.
-        runtime: RuntimeModules.isBun() ? `bun ${Bun.version}` : `node ${process.versions.node}`,
+        runtime: `bun ${Bun.version}`,
         // `ambient`, not `current`: an unset `NODE_ENV` is reported as such, never dressed up as `development`.
         environment: Environment.ambient ?? BuildInfoRegistry.UNSPECIFIED,
       },

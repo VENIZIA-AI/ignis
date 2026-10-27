@@ -46,20 +46,20 @@ tags: [process, build]
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
    longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
    rebuild`), `force-update` (the shared `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
-5. The Makefile variables are `FORMATS` (`cjs esm` by default, `cjs` or `plain`), `CJS_TSCONFIG`
-   (default `.configs/builders/tsconfig.build.json`), `CJS_OUT` (default `dist/cjs`; empty means the
-   tsconfig's own `outDir`) and `POST_BUILD` (a package-only shell step after the emit).
-   `dev-configs` is `plain`; `core-server` is `cjs` with `CJS_OUT := dist`; `filter` sets `CJS_TSCONFIG := tsconfig.json` and an empty
-   `CJS_OUT`; `boot` sets `POST_BUILD := chmod +x dist/cjs/clis/*.js`. The rest build `cjs esm`.
+5. The Makefile variables are `FORMATS` (`esm` by default, or `plain`), `ESM_TSCONFIG`
+   (default `.configs/builders/tsconfig.build.json`) and `POST_BUILD` (a package-only shell step
+   after the emit). `dev-configs` is `plain` (`tsc` on `tsconfig.json`, output in `dist/`); `boot`
+   sets `POST_BUILD := chmod +x dist/esm/clis/*.js`. Every other package builds `esm`, and `core-server`
+   and `filter` have a Makefile that only includes `make/project.mk`.
    `build` runs `bun check -p tsconfig.json` first (type-checks `src` AND `src/__tests__`; same
    diagnostics as `tsc --noEmit`, about 10x faster), then
-   the CJS pass: `tsc` on the CJS tsconfig (which excludes `__tests__`, `*.test.ts`, `*.spec.ts`)
-   and `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) to rewrite path
-   aliases. Every ESM pass runs `tsc -p .configs/builders/tsconfig.esm.json`, then `tsc-alias` with
-   `--resolve-full-paths` (so `dist/esm` imports carry `.js` and load under Node's ESM loader) and
-   then `bun ../../scripts/build/esm-marker.ts`, which writes `dist/esm/package.json` with
-   `"type": "module"` and the package's `sideEffects` re-rooted - without it Node parses every file
-   as CommonJS first (measured on `connectors/http`: 38.0 -> 30.7 ms). Then `POST_BUILD`, then
+   the one build program: `tsc -p .configs/builders/tsconfig.build.json` (ESNext modules, `bundler`
+   resolution, output in `dist/esm`, tests excluded: `__tests__`, `*.test.ts`, `*.spec.ts`), then
+   `tsc-alias -p tsconfig.json` (the ROOT tsconfig, never a `.configs/` one) with
+   `--resolve-full-paths` (so `dist/esm` imports carry `.js`), and then
+   `bun ../../scripts/build/esm-marker.ts`, which writes `dist/esm/package.json` with
+   `"type": "module"` and the package's `sideEffects` re-rooted - so a bundler and TypeScript (a
+   `nodenext` consumer reading the `.d.ts` files) treat everything there as ES modules. Then `POST_BUILD`, then
    `DONE | Build completed successfully!`. Every tool is called by absolute path from the package's
    `node_modules/.bin`, so a recipe never depends on `PATH`. `clean` removes `dist`,
    `*.tsbuildinfo` and `.configs/builders/*.tsbuildinfo`. A package that must skip paths in `lint`/`lint-fix`
@@ -73,7 +73,7 @@ tags: [process, build]
    `noEmitOnError: true` from `packages/dev-configs/src/tsconfig/tsconfig.base.json`. A type error
    anywhere aborts the build and the closing `DONE | Build completed successfully!` never prints.
    `rebuild` runs `typecheck` *before* `clean`, and `typecheck` covers `tsconfig.json` plus every
-   program `build` emits (the CJS and the ESM tsconfig). So a failure leaves the previous `dist/`
+   program `build` emits (`.configs/builders/tsconfig.build.json`). So a failure leaves the previous `dist/`
    intact instead of emptying it - that ordering is what closes the empty-`dist/` trap. There is
    no exception: `dev-configs` (`FORMATS := plain`) type-checks `tsconfig.json` first like every
    package. Do not trust a scrollback that got truncated; if a build's success is in doubt, rerun
@@ -126,7 +126,7 @@ tags: [process, build]
     - a non-private package has no claim - a config-only package such as `dev-configs` carries an
       explicit `configOnly` claim and gets no row;
     - a browser-claimed ESM entry (from `scripts/checks/purity/manifest.ts`) matches no row, which would
-      skip its browser build. The CJS entries never match by design.
+      skip its browser build.
 
     After each install it also checks every `@venizia/*` entry in the sandbox `bun.lock` resolves to
     the packed tarball, not the registry. One blind spot remains: a granted peer brings its own

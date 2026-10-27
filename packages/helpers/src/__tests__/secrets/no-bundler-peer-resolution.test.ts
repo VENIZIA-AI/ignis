@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 /** Bun.build resolves literal dynamic-import specifiers at bundle time - and `minify.syntax` folds const-held specifiers back to literals - so optional peers must stay invisible or consumers are forced to install/externalize them. */
 /** Probes bundle in subprocesses: in-process Bun.build under `bun test` reports spurious errors for modules other test files already loaded. */

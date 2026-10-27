@@ -1,4 +1,3 @@
-import { warnDeprecatedModelMetadata } from '@/base/applications/deprecations';
 import { model } from '@/base/metadata';
 import { normalizeModelMetadata } from '@/base/metadata/model-metadata';
 import { AbstractEntity, ModelTypes } from '@/base/models';
@@ -64,7 +63,7 @@ describe('@model - type', () => {
   });
 });
 
-describe('normalizeModelMetadata - migration and skipMigrate', () => {
+describe('normalizeModelMetadata - migration', () => {
   test('neither set: the metadata comes back untouched', () => {
     const metadata: IModelMetadata = { type: ModelTypes.ENTITY };
 
@@ -72,46 +71,21 @@ describe('normalizeModelMetadata - migration and skipMigrate', () => {
     expect('skipMigrate' in normalize(metadata)).toBe(false);
   });
 
-  test('skipMigrate: true becomes migration.use false, and the registry shows both', () => {
-    const result = normalize({ skipMigrate: true });
-
-    expect(result.migration).toEqual({ use: false });
-    expect(result.skipMigrate).toBe(true);
-    expect(result.deprecatedMetadata).toEqual([
-      { key: 'skipMigrate', use: 'migration: { use: false }' },
-    ]);
-  });
-
-  test('skipMigrate: false becomes migration.use true and a derived skipMigrate false', () => {
-    const result = normalize({ skipMigrate: false });
-
-    expect(result.migration).toEqual({ use: true });
-    expect(result.skipMigrate).toBe(false);
-    expect(result.deprecatedMetadata).toHaveLength(1);
-  });
-
-  test('migration alone: use defaults to true, skipMigrate is derived and nothing is deprecated', () => {
+  test('migration alone: use defaults to true and no other field is added', () => {
     const empty = normalize({ migration: {} });
     const off = normalize({ migration: { use: false } });
     const on = normalize({ migration: { use: true } });
 
     expect(empty.migration).toEqual({ use: true });
-    expect(empty.skipMigrate).toBe(false);
-    expect(off.skipMigrate).toBe(true);
-    expect(on.skipMigrate).toBe(false);
-    expect(empty.deprecatedMetadata).toBeUndefined();
-    expect(off.deprecatedMetadata).toBeUndefined();
-  });
-
-  test('both set is an error naming the model and the key to keep', () => {
-    expect(() => normalize({ skipMigrate: true, migration: { use: false } })).toThrow(
-      /\[model\]\[Probe\] skipMigrate and migration are both set.*keep migration/,
-    );
+    expect(off.migration).toEqual({ use: false });
+    expect(on.migration).toEqual({ use: true });
+    expect('skipMigrate' in empty).toBe(false);
+    expect('skipMigrate' in off).toBe(false);
   });
 
   test('the other metadata is carried through', () => {
     const result = normalize({
-      skipMigrate: true,
+      migration: { use: false },
       tableName: 'Item',
       settings: { hiddenProperties: ['a'] },
     });
@@ -121,29 +95,63 @@ describe('normalizeModelMetadata - migration and skipMigrate', () => {
   });
 });
 
-describe('@model - what the public registry holds', () => {
-  test('an old skipMigrate model: both fields, so consumer tooling reading either keeps working', () => {
-    const Old = declare({ skipMigrate: true });
-    const entry = registry.getModelMetadata({ target: Old });
+/** `skipMigrate` is no longer a typed key, so these callers are the untyped ones the throw is for. */
+const withSkipMigrate = (value: unknown, extra: object = {}): IModelMetadata =>
+  ({ skipMigrate: value, ...extra }) as never;
 
-    expect(entry?.skipMigrate).toBe(true);
-    expect(entry?.migration?.use).toBe(false);
+describe('normalizeModelMetadata - skipMigrate is removed', () => {
+  test('skipMigrate: true throws, naming the model, the replacement and the codemod', () => {
+    expect(() => normalize(withSkipMigrate(true))).toThrow(
+      /\[model\]\[Probe\] skipMigrate was removed in 0\.4\.4 \| write migration: \{ use: false \} \| run .*devz codemod model-settings --write/,
+    );
   });
 
-  test('a new migration model: both fields too', () => {
+  test('skipMigrate: false throws and says to remove the key, because use is true by default', () => {
+    expect(() => normalize(withSkipMigrate(false))).toThrow(
+      /remove the key \(migration\.use is true by default\)/,
+    );
+  });
+
+  test('a value that is not a boolean throws too: the key is gone whatever it holds', () => {
+    expect(() => normalize(withSkipMigrate('yes'))).toThrow(/skipMigrate was removed in 0\.4\.4/);
+    expect(() => normalize(withSkipMigrate(undefined))).toThrow(
+      /skipMigrate was removed in 0\.4\.4/,
+    );
+  });
+
+  test('it throws when migration is also set: there is no valid mix', () => {
+    expect(() => normalize(withSkipMigrate(true, { migration: { use: false } }))).toThrow(
+      /skipMigrate was removed in 0\.4\.4/,
+    );
+  });
+
+  test('the key is not in the type either: writing it is a type error', () => {
+    // @ts-expect-error skipMigrate is no longer a key of IModelMetadata
+    const metadata: IModelMetadata = { skipMigrate: true };
+
+    expect(() => normalize(metadata)).toThrow(/skipMigrate was removed/);
+  });
+
+  test('the model decorator throws at decoration, so the class never registers', () => {
+    expect(() => declare(withSkipMigrate(true))).toThrow(/skipMigrate was removed in 0\.4\.4/);
+    expect(registry.getAllModels().size).toBe(0);
+  });
+});
+
+describe('@model - what the public registry holds', () => {
+  test('a migration model: the entry carries migration and no skipMigrate', () => {
     const New = declare({ migration: { use: false } });
     const entry = registry.getModelMetadata({ target: New });
 
-    expect(entry?.skipMigrate).toBe(true);
     expect(entry?.migration?.use).toBe(false);
+    expect(entry && 'skipMigrate' in entry).toBe(false);
   });
 
-  test('a model that says nothing: no migration field and no skipMigrate, as before', () => {
+  test('a model that says nothing: no migration field', () => {
     const Plain = declare({ type: ModelTypes.ENTITY });
     const entry = registry.getModelMetadata({ target: Plain });
 
     expect(entry?.migration).toBeUndefined();
-    expect(entry?.skipMigrate).toBeUndefined();
   });
 
   test('a consumer can build its migration list from the registry', () => {
@@ -156,42 +164,5 @@ describe('@model - what the public registry holds', () => {
     );
 
     expect(migrated).toHaveLength(2);
-  });
-});
-
-describe('warnDeprecatedModelMetadata', () => {
-  const collect = () => {
-    const lines: string[] = [];
-    const logger = {
-      warn: (template: string, ...args: unknown[]) => {
-        lines.push(args.reduce<string>((text, arg) => text.replace('%s', String(arg)), template));
-      },
-    };
-
-    return { lines, logger };
-  };
-
-  test('prints one warning for a skipMigrate model, naming the model, the key, the new key and 0.4.4', () => {
-    class WarnedProduct extends AbstractEntity {
-      getSchema<T>(): T {
-        return {} as T;
-      }
-    }
-    model({ skipMigrate: true })(WarnedProduct);
-    const { lines, logger } = collect();
-
-    expect(warnDeprecatedModelMetadata({ logger: logger as never })).toBe(1);
-    expect(lines).toEqual([
-      '[deprecated] model WarnedProduct uses skipMigrate | use migration: { use: false } instead | removed in 0.4.4',
-    ]);
-  });
-
-  test('prints nothing for models on the new key or with none', () => {
-    declare({ migration: { use: false } });
-    declare({});
-    const { lines, logger } = collect();
-
-    expect(warnDeprecatedModelMetadata({ logger: logger as never })).toBe(0);
-    expect(lines).toEqual([]);
   });
 });

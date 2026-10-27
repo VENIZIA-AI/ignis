@@ -1,5 +1,6 @@
 import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+import { VENIZIA_LOGO_SVG } from './theme/shared/venizia-logo.ts';
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -340,10 +341,8 @@ const config = defineConfig({
   base: '/',
   appearance: 'dark',
   markdown: {
-    theme: {
-      light: 'github-light',
-      dark: 'one-dark-pro',
-    },
+    // The code windows are dark in both themes (theme/shared/tokens.css), so one dark theme serves both.
+    theme: 'one-dark-pro',
   },
   srcDir: '../content',
   outDir: './.vitepress/dist',
@@ -351,28 +350,19 @@ const config = defineConfig({
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [
+    // The home page and its terminal hide their reveal states only under this class, set before first paint.
+    ['script', {}, "document.documentElement.classList.add('js');"],
     // Favicon + PWA
     ['link', { rel: 'icon', href: '/logo.svg' }],
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
     ['link', { rel: 'manifest', href: '/site.webmanifest' }],
-    // Fonts - preconnect
-    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
-    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    // Fonts - stylesheet
-    [
-      'link',
-      {
-        rel: 'stylesheet',
-        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap',
-      },
-    ],
     // Open Graph
     ['meta', { property: 'og:type', content: 'website' }],
     [
       'meta',
       {
         property: 'og:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: 'IGNIS - Focus on business value. IGNIS holds the discipline.',
       },
     ],
     [
@@ -380,7 +370,7 @@ const config = defineConfig({
       {
         property: 'og:description',
         content:
-          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+          'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
@@ -391,7 +381,7 @@ const config = defineConfig({
       'meta',
       {
         name: 'twitter:title',
-        content: 'IGNIS - Architecture without apology. Speed without sacrifice.',
+        content: 'IGNIS - Focus on business value. IGNIS holds the discipline.',
       },
     ],
     [
@@ -399,7 +389,7 @@ const config = defineConfig({
       {
         name: 'twitter:description',
         content:
-          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+          'Controllers, services and repositories, connected by dependency injection. Validation and API docs come from the same code.',
       },
     ],
     ['meta', { name: 'twitter:image', content: '/og-image.png' }],
@@ -416,7 +406,7 @@ const config = defineConfig({
       chunkSizeWarningLimit: 3500,
       rollupOptions: {
         output: {
-          manualChunks: id => {
+          manualChunks: (id) => {
             if (id.includes('node_modules')) {
               // Isolate mermaid (+ its heavy deps) - large and only needed on pages with diagrams.
               if (
@@ -470,12 +460,62 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-10-27',
+              collapsed: true,
+              items: [
+                {
+                  text: 'devz check catalog, module-cycles, split-report',
+                  link: '/changelogs/2026-10-27-dev-configs-check-catalog-cycles-split',
+                },
+                {
+                  text: 'dev-configs Testing Adds spawnSyncBounded',
+                  link: '/changelogs/2026-10-27-dev-configs-testing-spawn-tmpdir',
+                },
+                {
+                  text: 'devz check purity Ships in dev-configs',
+                  link: '/changelogs/2026-10-27-dev-configs-check-purity',
+                },
+                {
+                  text: 'Consumers Resolve IGNIS Through Bundler Resolution',
+                  link: '/changelogs/2026-10-27-consumer-tsconfig-bundler-resolution',
+                },
+                {
+                  text: 'assertApplicationBoots Proves an Application Boots',
+                  link: '/changelogs/2026-10-27-assert-application-boots',
+                },
+              ],
+            },
+            {
               text: '2026-10-26',
               collapsed: true,
               items: [
                 {
+                  text: 'After 0.4.3 - What Changed and How to Upgrade',
+                  link: '/changelogs/2026-10-26-batch-overview-0-4-4',
+                },
+                {
                   text: 'After 0.4.2 - What Changed and How to Upgrade',
                   link: '/changelogs/2026-10-26-batch-overview',
+                },
+                {
+                  text: 'READMEs, Licences and the Company Name',
+                  link: '/changelogs/2026-10-26-readmes-license-and-company-name',
+                },
+                {
+                  text: "The Wiki's Claims Were Checked Against the Code",
+                  link: '/changelogs/2026-10-26-wiki-claims-checked-against-the-code',
+                },
+                {
+                  text: 'The Wiki Has a New Look',
+                  link: '/changelogs/2026-10-26-wiki-new-look',
+                },
+                {
+                  text: 'A Failed Secret Rotation Left the Rotated Credentials in the Settings',
+                  link: '/changelogs/2026-10-26-secret-rotation-failure-leaks-credentials',
+                },
+                {
+                  text: 'A Datasource Family for Engines That Only Run SQL',
+                  link: '/changelogs/2026-10-26-raw-sql-datasource',
                 },
                 {
                   text: 'Repository Tooling',
@@ -496,6 +536,26 @@ const config = defineConfig({
                 {
                   text: 'Helpers and Server String Options Are Const Classes',
                   link: '/changelogs/2026-10-26-helpers-string-domains-const-classes',
+                },
+                {
+                  text: 'devz codemod const-classes',
+                  link: '/changelogs/2026-10-26-devz-codemod-const-classes',
+                },
+                {
+                  text: 'devz codemod drop-redundant-casts',
+                  link: '/changelogs/2026-10-26-devz-codemod-drop-redundant-casts',
+                },
+                {
+                  text: 'skipMigrate Is Removed From @model',
+                  link: '/changelogs/2026-10-26-skipmigrate-removed',
+                },
+                {
+                  text: 'enable Is Optional on Middleware Options',
+                  link: '/changelogs/2026-10-26-middleware-enable-optional-and-codemod-empty-path',
+                },
+                {
+                  text: 'devz codemod --check Fails on Untouched Models',
+                  link: '/changelogs/2026-10-26-devz-codemod-check-fails-on-untouched',
                 },
                 {
                   text: 'devz codemod Dry Run by Default',
@@ -2274,7 +2334,10 @@ const config = defineConfig({
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
             { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
-            { text: 'Browser and Web Worker', link: '/guides/core-concepts/browser-and-web-worker' },
+            {
+              text: 'Browser and Web Worker',
+              link: '/guides/core-concepts/browser-and-web-worker',
+            },
             {
               text: 'Persistent Layer',
               collapsed: true,
@@ -2294,6 +2357,7 @@ const config = defineConfig({
                 },
                 { text: 'PGlite', link: '/guides/core-concepts/persistent/pglite' },
                 { text: 'SQLite', link: '/guides/core-concepts/persistent/sqlite' },
+                { text: 'Raw SQL Engines', link: '/guides/core-concepts/persistent/raw-sql' },
                 {
                   text: 'Search & Typesense',
                   link: '/guides/core-concepts/persistent/search-typesense',
@@ -2349,7 +2413,10 @@ const config = defineConfig({
       '/extensions/atlas/': extensionsSidebar,
     },
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' },
+      { icon: { svg: VENIZIA_LOGO_SVG }, link: 'https://venizia.ai', ariaLabel: 'Venizia' },
+    ],
   },
 });
 

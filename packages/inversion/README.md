@@ -1,8 +1,8 @@
 # @venizia/ignis-inversion
 
 The dependency injection container under IGNIS, and the error type every IGNIS package throws. It
-depends on no other IGNIS package, so you can install it alone to get LoopBack 4-style bindings
-without the framework.
+depends on no other IGNIS package, so you can install it alone to get bindings by key, tags and
+scopes without the framework.
 
 ## Install
 
@@ -122,8 +122,8 @@ try {
 becomes `text`. A missing code becomes `MessageCode.DEFAULT` (`core.system_error`). Unknown
 top-level keys go into `extra`.
 
-Test with `isApplicationError(error)`, not `instanceof ApplicationError`. A CommonJS copy and an
-ES module copy of the package can both be loaded, and `instanceof` fails across them.
+Test with `isApplicationError(error)`, not `instanceof ApplicationError`. Two installed copies of the
+package (two versions nested by a package manager) each hold their own class, and `instanceof` fails across them.
 
 ## Entry points
 
@@ -131,8 +131,7 @@ ES module copy of the package can both be loaded, and `instanceof` fails across 
 | :--- | :--- | :--- |
 | `@venizia/ignis-inversion` | Everything: container, bindings, `@inject`, `MetadataRegistry`, errors | none |
 
-The package ships both CommonJS (`dist/cjs`) and ES modules (`dist/esm`). `import` resolves the ES
-build, `require` the CommonJS one. The ES build is what a browser bundle takes.
+The package ships ES modules only (`dist/esm`). That build is what a browser bundle takes.
 
 ## Where it sits
 
@@ -148,3 +147,16 @@ Depends on nothing in IGNIS. Used by filter, helpers and kernel: dev-configs -> 
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/ignis-inversion is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

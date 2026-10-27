@@ -1,0 +1,381 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * An inner page: the three VitePress regions (sidebar, article, outline) in the Venizia look - flat
+ * blocks, 1px hairlines, a 4px radius, uppercase mono labels and small square markers. It restyles what
+ * the default theme already renders (.VPSidebar, .vp-doc, .VPDocAsideOutline, .VPDocFooter); the
+ * geometry (widths, breakpoints, the mobile sheets) is the default theme's. Reads tokens.css and the
+ * product's accent.
+ */
+
+/* ---- the sidebar ----------------------------------------------------------------------------- */
+/* the vertical rule is the sidebar's right edge drawn from just below the header rule (65px: the 64px bar and
+   its 1px rule), so it meets the rule at a corner instead of crossing the header */
+@media (min-width: 960px) {
+  .VPSidebar {
+    background-image: linear-gradient(var(--stroke), var(--stroke));
+    background-repeat: no-repeat;
+    background-position: right 65px;
+    background-size: 1px 100%;
+  }
+}
+
+.VPSidebar {
+  box-shadow: none;
+}
+
+.VPSidebar .group + .group {
+  border-top: 1px solid var(--stroke);
+}
+
+.VPSidebarItem.level-0 > .item > .text,
+html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
+.VPSidebarItem.level-0 > .item > .link > .text {
+  color: var(--text-muted);
+  font: 500 12px/1.4 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.VPSidebarItem.level-1 .text,
+.VPSidebarItem.level-2 .text,
+.VPSidebarItem.level-3 .text {
+  color: var(--text-body);
+  font-size: 14.5px;
+  font-weight: 400;
+  line-height: 1.35;
+  transition: color 0.18s;
+}
+
+.VPSidebarItem .link:hover .text {
+  color: var(--text-title);
+}
+
+.VPSidebarItem.is-active > .item {
+  margin: 1px 0;
+}
+
+.VPSidebarItem.is-active > .item .link {
+  margin-right: 8px;
+  margin-left: -12px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.VPSidebarItem.is-active > .item .link .text {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+/* ---- the article ----------------------------------------------------------------------------- */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4 {
+  color: var(--text-title);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.vp-doc h1 {
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.vp-doc h2 {
+  border-top: 1px solid var(--stroke);
+  font-size: clamp(24px, 2.6vw, 30px);
+  line-height: 1.15;
+}
+
+.vp-doc h3 {
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.vp-doc .header-anchor {
+  color: var(--accent-text);
+}
+
+.vp-doc p,
+.vp-doc li {
+  font-size: 16.5px;
+  line-height: 1.65;
+}
+
+.vp-doc li::marker {
+  color: var(--accent-text);
+}
+
+.vp-doc a:not(.header-anchor, .VPButton, .pager-link) {
+  color: var(--text-title);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s;
+}
+
+.vp-doc a:not(.header-anchor, .VPButton, .pager-link):hover {
+  text-decoration-color: var(--text-title);
+}
+
+.vp-doc strong {
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.vp-doc :not(pre, h1, h2, h3, h4, h5, h6) > code {
+  padding: 2px 6px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  background: var(--bg-soft);
+  color: var(--text-title);
+  font-size: 0.86em;
+}
+
+.vp-doc kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--stroke-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--radius);
+  color: var(--text-title);
+  font: 500 0.8em var(--font-mono);
+}
+
+.vp-doc hr {
+  border-top: 1px solid var(--stroke);
+}
+
+.vp-doc blockquote p {
+  margin: 8px 0;
+  color: var(--text-body);
+}
+
+/* tables: hairlines, a mono header, no zebra */
+.vp-doc table {
+  border: 1px solid var(--stroke);
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+.vp-doc tr,
+.vp-doc tr:nth-child(2n) {
+  background: transparent;
+}
+
+.vp-doc th,
+.vp-doc td {
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--stroke);
+  vertical-align: top;
+}
+
+.vp-doc th {
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  font: 500 12px/1.2 var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vp-doc tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ---- code blocks: the dark window of the home page ----------------------------------------------- */
+.vp-doc div[class*='language-'],
+.vp-doc .vp-code-group .tabs {
+  border: 1px solid var(--win-stroke);
+}
+
+@media (min-width: 640px) {
+  .vp-doc div[class*='language-'] {
+    border-radius: var(--radius);
+  }
+
+  .vp-doc .vp-code-group .tabs {
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .vp-doc .vp-code-group div[class*='language-'] {
+    border-radius: 0 0 var(--radius) var(--radius);
+  }
+}
+
+.vp-doc .vp-code-group div[class*='language-'] {
+  border-top: 0;
+}
+
+.vp-doc div[class*='language-'] pre,
+.vp-doc div[class*='language-'] code {
+  font-family: var(--font-mono);
+}
+
+.vp-doc div[class*='language-'] > span.lang {
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vp-doc .vp-code-group .tabs label {
+  font: 500 12px/48px var(--font-mono);
+}
+
+/* ---- callouts: flat, a full hairline in a muted tone of the kind's colour, a faint tint, and an
+   uppercase label with a small square marker, as the eyebrows of venizia.ai. No stripe on one side. */
+.vp-doc .custom-block {
+  --callout: var(--text-muted);
+  margin: 16px 0 24px;
+  padding: 14px 18px;
+  border: 1px solid color-mix(in srgb, var(--callout) 40%, var(--stroke));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--callout) 6%, var(--surface));
+  color: var(--text-body);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+.vp-doc .custom-block.tip,
+.vp-doc .custom-block.important {
+  --callout: var(--accent);
+}
+
+.vp-doc .custom-block.warning,
+.vp-doc .custom-block.caution {
+  --callout: #b7791f;
+}
+
+.dark .vp-doc .custom-block.warning,
+.dark .vp-doc .custom-block.caution {
+  --callout: #e5b567;
+}
+
+.vp-doc .custom-block.danger {
+  --callout: #d92d20;
+}
+
+.vp-doc .custom-block p {
+  margin: 8px 0 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.vp-doc .custom-block .custom-block-title,
+.vp-doc .custom-block summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  color: var(--text-title);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vp-doc .custom-block .custom-block-title::before,
+.vp-doc .custom-block summary::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  background: var(--callout);
+}
+
+.vp-doc .custom-block a {
+  color: var(--text-title);
+}
+
+.vp-doc .custom-block div[class*='language-'] {
+  margin: 12px 0 0;
+}
+
+/* ---- the footer of the article: edit link, last updated, previous and next --------------------- */
+.VPDocFooter {
+  border-top: 1px solid var(--stroke);
+}
+
+.VPDocFooter .edit-link-button {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.VPDocFooter .last-updated {
+  color: var(--text-muted);
+}
+
+.VPDocFooter .pager-link {
+  padding: 16px 18px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  transition: border-color 0.18s;
+}
+
+.VPDocFooter .pager-link:hover {
+  border-color: var(--accent-text);
+}
+
+.VPDocFooter .pager-link .desc {
+  color: var(--text-muted);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.VPDocFooter .pager-link .title {
+  color: var(--text-title);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ---- the outline -------------------------------------------------------------------------------- */
+/* the line height stays 32px: the default theme places the outline marker from it */
+.VPDocAsideOutline .outline-title {
+  color: var(--text-muted);
+  font: 500 12px/32px var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.VPDocAsideOutline .outline-link {
+  color: var(--text-body);
+  font-size: 13.5px;
+  font-weight: 400;
+}
+
+.VPDocAsideOutline .outline-link:hover {
+  color: var(--text-title);
+}
+
+.VPDocAsideOutline .outline-link.active {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+/* the default theme fades the outline into the bottom of the window with a fixed curtain; it would lie over the footer */
+.VPDoc .aside-curtain {
+  display: none;
+}
+
+/* ---- the local bar of a narrow screen ----------------------------------------------------------- */
+.VPLocalNav {
+  border-bottom: 1px solid var(--stroke);
+}
+
+.VPLocalNav .menu,
+.VPLocalNav .outline-btn {
+  color: var(--text-body);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.VPLocalNav .menu:hover,
+.VPLocalNav .outline-btn:hover {
+  color: var(--text-title);
+}

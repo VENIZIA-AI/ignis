@@ -13,7 +13,7 @@ Automatic request logging middleware that assigns a UUID request ID to every req
 | **Component** | `RequestTrackerComponent` |
 | **Middleware** | `RequestSpyMiddleware` |
 | **Utility** | `NetworkUtility.getIncomingIp()` |
-| **Runtimes** | Both (Bun and Node.js) |
+| **Runtime** | Bun |
 
 #### Import Paths
 ```typescript
@@ -80,7 +80,7 @@ async parseBody(opts: { req: TContext['req'] }): Promise<unknown>
 ### Understand the client IP resolution order
 | Priority | Source | Notes |
 |----------|--------|-------|
-| 1 | `NetworkUtility.getIncomingIp(context)` | Native connection info - `hono/bun` on Bun, `@hono/node-server/conninfo` on Node.js |
+| 1 | `NetworkUtility.getIncomingIp(context)` | Native connection info - `hono/bun` |
 | 2 | `x-real-ip` header | Set by reverse proxies (e.g., Nginx `proxy_set_header X-Real-IP`) |
 | 3 | `x-forwarded-for` header | Standard proxy header |
 | 4 | `'unknown'` | Logged when none of the above resolve - the request still proceeds |

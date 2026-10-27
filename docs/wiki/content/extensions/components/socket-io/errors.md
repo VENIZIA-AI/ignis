@@ -15,23 +15,18 @@ Every error condition the Socket.IO component and its two helpers can raise, plu
 | Method | Condition | Error message |
 |---|---|---|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind SocketIOComponent"` |
-| `binding()` | Unsupported runtime | `"[SocketIOComponent] Unsupported runtime: <runtime>"` |
 | `resolveBindings()` | `REDIS_CONNECTION` fails `isRedisHelper()` | `"Invalid instance of redisConnection..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
-| `registerNodeHook()` | HTTP server not available | `"[SocketIOComponent] HTTP server not available for Node.js runtime!"` |
 
 ### Server helper errors
 
 | Method | Condition | Error message |
 |---|---|---|
-| `setRuntime()` | Node.js runtime, `server` missing | `"[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!"` |
 | `setRuntime()` | Bun runtime, `engine` missing | `"[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!"` |
 | `setRuntime()` | Unknown runtime | `"[SocketIOServerHelper] Unsupported runtime!"` |
 | `initRedisClients()` | `redisConnection` is falsy | `"Invalid redis connection to config socket.io adapter!"` |
-| `initIOServer()` | Node.js, `server` missing at configure time | `"[DANGER] Invalid HTTP server instance to init Socket.io server!"` |
 | `initIOServer()` | Bun, `engine` missing at configure time | `"[DANGER] Invalid @socket.io/bun-engine instance to init Socket.io server!"` |
 | `initIOServer()` | Unknown runtime at configure time | `"[configure] Unsupported runtime: <runtime>"` |
-| `getEngine()` | Runtime is not Bun | `"[getEngine] Engine is only available for Bun runtime!"` |
 | `on()` | `topic` is empty | `"[on] Invalid topic to start binding handler"` |
 | `on()` | `handler` is falsy | `"[on] Invalid event handler \| topic: <topic>"` |
 | `on()` | IO server not initialized | `"[on] IOServer is not initialized yet!"` |

@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { isApplicationError, MessageCode } from '../index';
-import { spawnSyncBounded } from './spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 /** `MessageCode.build` must throw `ApplicationError`, not the module-private fallback `Error` -
  * the shape a bundler silently keeps only when the registration lives in the package entry. */

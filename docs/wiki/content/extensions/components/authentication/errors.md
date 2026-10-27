@@ -107,7 +107,7 @@ Shared by `JWSTokenService`, `JWKSIssuerTokenService`, and `JWKSVerifierTokenSer
 | `[JWKSIssuerTokenService] JWKS not initialized yet. Call getJWKSAsync() instead.` | 500 | `getJWKS` | Sync `getJWKS()` called before lazy init completed | Use `await getJWKSAsync()` instead |
 
 > [!WARNING]
-> File read errors are not wrapped. With `JWKSKeyDrivers.FILE`, `readFile()` errors (`ENOENT`, `EACCES`, ...) surface as raw Node.js filesystem errors during initialization - they are not caught and re-thrown as `getError()`.
+> File read errors are not wrapped. With `JWKSKeyDrivers.FILE`, `readFile()` errors (`ENOENT`, `EACCES`, ...) surface as raw filesystem errors during initialization - they are not caught and re-thrown as `getError()`.
 
 ## JWKSVerifierTokenService (runtime)
 

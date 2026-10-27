@@ -1,11 +1,11 @@
 # @venizia/ignis
 
-The IGNIS server framework for Bun and Node.js. Install this package to build a REST API: it brings
-the application class, controllers, repositories, the built-in components, and the Bun or Node server
+The IGNIS server framework for Bun (>= 1.4). Install this package to build a REST API: it brings
+the application class, controllers, repositories, the built-in components, and the Bun server
 that runs them.
 
-IGNIS takes its application model from LoopBack 4 - an IoC container with binding keys, components,
-and the controller, service, repository, datasource layering - and runs it on Hono. Drizzle ORM builds
+IGNIS gives a Hono server an application model: an IoC container with binding keys, components,
+and the controller, service, repository, datasource layering. Drizzle ORM builds
 the SQL. Zod schemas, through `@hono/zod-openapi`, validate each request and generate the OpenAPI
 document.
 
@@ -17,8 +17,7 @@ bun add @scalar/hono-api-reference   # the API explorer UI in the example
 ```
 
 The first line is the package and its required peers. Every other peer is optional - install the
-one a component or a database driver needs (see [Entry points](#entry-points)). On Node.js, add
-`@hono/node-server`.
+one a component or a database driver needs (see [Entry points](#entry-points)).
 
 In your `tsconfig.json`, set these two flags directly in `compilerOptions`:
 
@@ -101,7 +100,7 @@ Three things to notice:
   first component that injects the application fails the boot.
 - `preConfigure()` is where you register components, controllers, services, repositories and
   datasources by hand. The `ignis-artifacts` generator in `@venizia/ignis-boot` can write that list
-  for you at build time.
+  for you at build time, and on Bun `@venizia/ignis-boot/auto` builds it at start.
 
 ## Built-in components
 
@@ -173,3 +172,16 @@ Top of the chain. Depends on `@venizia/ignis-kernel`, `@venizia/ignis-connectors
 IGNIS is 0.x: a minor version can break. Pin exact versions and read the changelog before upgrading.
 
 MIT licensed - see [LICENSE.md](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

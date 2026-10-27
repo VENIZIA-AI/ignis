@@ -1,5 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { ConstClassesCommand } from './const-classes';
+import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
 import { migrateModelSettings } from './model-settings';
 
@@ -8,11 +10,14 @@ const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
 Moves @model settings to the grouped shape and skipMigrate to migration.use.
 
   --write    write the changed files (without it, nothing is written)
-  --check    dry run that exits 1 when anything would change (for CI)
+  --check    dry run that exits 1 when anything would change or is left untouched (for CI)
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the
 files git knows (tracked, or untracked and not ignored), so ignored folders are never touched.`;
+
+/** A file that can hold a `@model` call: the decorator, an aliased import of it, or `ns.model(`. */
+const MODEL_TEXT = /@model\b|\bmodel\s+as\s+\w+|\.model\(/;
 
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
@@ -39,18 +44,27 @@ class CodemodFlags {
  * `devz codemod model-settings [paths...] [--write | --check]`: moves `@model` settings from the
  * flat keys (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) to `query` and `access`,
  * and `skipMigrate` to `migration.use`. It is a dry run unless `--write` is given: it lists what
- * would change. `--check` is the same dry run, and exits 1 when anything would change.
+ * would change. `--check` is the same dry run, and exits 1 when anything would change or is
+ * left untouched (an untouched model still throws when its decorator runs).
  */
 export class CodemodCommand {
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { args } = opts;
 
-    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(USAGE);
-      return 0;
+    const [name, ...rest] = args;
+
+    if (name === 'drop-redundant-casts') {
+      return DropRedundantCastsCommand.run({ root: opts.root, args: rest });
     }
 
-    const [name, ...rest] = args;
+    if (name === 'const-classes') {
+      return ConstClassesCommand.run({ root: opts.root, args: rest });
+    }
+
+    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
+      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}`);
+      return 0;
+    }
 
     if (name !== 'model-settings') {
       console.error(`devz codemod: unknown codemod "${name ?? ''}"\n${USAGE}`);
@@ -92,10 +106,18 @@ export class CodemodCommand {
     let reportCount = 0;
 
     for (const target of targets) {
-      for (const file of CodemodFiles.collect({ target })) {
+      const files = CodemodFiles.collect({ target });
+
+      if (files.length === 0 && paths.length > 0) {
+        console.warn(
+          `devz codemod: no source files under "${relative(opts.root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
+        );
+      }
+
+      for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!source.includes('@model')) {
+        if (!MODEL_TEXT.test(source)) {
           continue;
         }
 
@@ -130,6 +152,12 @@ export class CodemodCommand {
       console.log(`Nothing was written. Run again with ${CodemodFlags.WRITE} to apply.`);
     }
 
-    return isCheck && changedCount > 0 ? 1 : 0;
+    if (isCheck && changedCount === 0 && reportCount > 0) {
+      console.log(
+        'Nothing to rewrite, but the models above throw when the decorator runs: fix them by hand.',
+      );
+    }
+
+    return isCheck && (changedCount > 0 || reportCount > 0) ? 1 : 0;
   }
 }

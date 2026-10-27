@@ -20,7 +20,7 @@ generated file inventory.
 | `packages/inversion/src/modules/metadata/injectors.ts` | Where `@inject` metadata is recorded and later read during constructor/property resolution. |
 | `packages/kernel/src/base/applications/abstract.ts` | `AbstractApplication` - extends `Container`; container, config, host/port resolution and lifecycle hooks. No router, no server, no `process` access. |
 | `packages/kernel/src/base/applications/rest.ts` | `RestApplication` - adds the `OpenAPIHono` router on top of `AbstractApplication`, still without a listening server. |
-| `packages/core-server/src/base/applications/server.ts` | `ServerApplication` - the only layer that binds a socket (`Bun.serve` / `@hono/node-server`), and the layer that restores env and cwd defaults. |
+| `packages/core-server/src/base/applications/server.ts` | `ServerApplication` - the only layer that binds a socket (`Bun.serve`), and the layer that restores env and cwd defaults. |
 | `packages/core-server/src/base/applications/base.ts` | `BaseApplication` - the boot-aware application base combining all mixins and the lifecycle phases. |
 | `packages/kernel/src/common/bindings.ts` | `BindingNamespaces` and `CoreBindings` const-classes - every namespace and core binding key in one place. |
 | `packages/boot/src/generator/scanner.ts` | `ArtifactScanner.getInstance().scan({ root, ignore })` - the AST walk that finds every decorated artifact class. |

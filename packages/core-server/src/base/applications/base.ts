@@ -20,7 +20,7 @@ import type {
   ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
-import { HTTP, RuntimeModules, isEmpty } from '@venizia/ignis-helpers/common';
+import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   createSecretsHelper,
@@ -31,6 +31,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { serveStatic } from 'hono/bun';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
@@ -282,30 +283,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
 
-    switch (this.runtime) {
-      case RuntimeModules.BUN: {
-        const { serveStatic } = require('hono/bun');
-        server.use(restPath, serveStatic({ root: folderPath }));
-        break;
-      }
-      case RuntimeModules.NODE: {
-        try {
-          const { serveStatic } = require('@hono/node-server/serve-static');
-          server.use(restPath, serveStatic({ root: folderPath }));
-        } catch (error) {
-          this.logger.for(this.static.name).error('Failed to serve static file | Error: %s', error);
-          throw getError({
-            message: `[static] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
-          });
-        }
-        break;
-      }
-      default: {
-        throw getError({
-          message: '[static] Invalid server runtime to config static loader!',
-        });
-      }
-    }
+    server.use(restPath, serveStatic({ root: folderPath }));
 
     this.logger
       .for(this.static.name)

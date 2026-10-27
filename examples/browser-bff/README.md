@@ -126,3 +126,16 @@ the dev server wrote.
 
 - [`@venizia/ignis-worker`](../../packages/core-worker) - the Worker host and transports
 - [PGlite quickstart](../pglite-quickstart) - the same controllers behind an HTTP server
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

@@ -13,7 +13,7 @@ import {
 } from '@/modules/socket/socket-io';
 import { afterEach, describe, expect, mock, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-import { createServer, type Server as HTTPServer } from 'node:http';
+import { createServer } from 'node:http';
 import { Server as IOServer, type Socket as IOSocket } from 'socket.io';
 import { io as connectClient } from 'socket.io-client';
 
@@ -132,8 +132,8 @@ const createHelper = (opts?: Partial<TSocketIOServerOptions>) => {
 
   const helper = new SocketIOServerHelper({
     identifier: 'test-io-server',
-    runtime: RuntimeModules.NODE,
-    server: {} as AnyType as HTTPServer,
+    runtime: RuntimeModules.BUN,
+    engine: {},
     serverOptions: {},
     redisConnection,
     authenticateFn: () => true,
@@ -161,10 +161,8 @@ afterEach(async () => {
 });
 
 describe('SocketIOServerHelper | constructor', () => {
-  test('rejects a NODE runtime without an HTTP server', () => {
-    expect(() =>
-      createHelper({ runtime: RuntimeModules.NODE, server: undefined as AnyType as HTTPServer }),
-    ).toThrow(/Invalid HTTP server/);
+  test('rejects the Node runtime: IGNIS runs on Bun only', () => {
+    expect(() => createHelper({ runtime: 'node' } as AnyType)).toThrow(/Unsupported runtime/);
   });
 
   test('rejects a BUN runtime without an engine', () => {
@@ -211,9 +209,11 @@ describe('SocketIOServerHelper | constructor', () => {
     expect(helper['defaultRooms']).toEqual(['room-a']);
   });
 
-  test('getEngine() is only valid for the BUN runtime', () => {
-    const { helper } = createHelper();
-    expect(() => helper.getEngine()).toThrow(/only available for Bun runtime/);
+  test('getEngine() returns the @socket.io/bun-engine instance it was given', () => {
+    const engine = {};
+    const { helper } = createHelper({ runtime: RuntimeModules.BUN, engine });
+
+    expect(helper.getEngine()).toBe(engine);
   });
 });
 

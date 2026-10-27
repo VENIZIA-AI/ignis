@@ -27,7 +27,7 @@ import {
 import { MailService } from '@/components/mail/services';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { FakeMailTransport } from './fakes';
-import { spawnSyncBounded } from '../spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 const PATH_REFUSED = 'core.mail.attachment_path_refused';
 const TOO_LARGE = 'core.mail.attachment_too_large';

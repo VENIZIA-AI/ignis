@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import path from 'node:path';
-import { spawnSyncBounded } from './spawn.helper';
+import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
 /**
  * A bundler may evaluate a split chunk holding decorated code before the `reflect-metadata` module

@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Shareable development configurations for TypeScript projects: oxlint presets with per-rule builders, the ESLint naming-convention rule, the legacy ESLint flat config, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages.",
   "keywords": [
     "build-tools",
@@ -83,9 +83,17 @@
       "types": "./dist/linters/oxlint-presets.d.ts",
       "default": "./dist/linters/oxlint-presets.js"
     },
+    "./checks": {
+      "types": "./dist/checks/index.d.ts",
+      "default": "./dist/checks/index.js"
+    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "default": "./dist/testing/index.js"
+    },
+    "./testing/tmpdir-preload": {
+      "types": "./dist/testing/tmpdir-preload.d.ts",
+      "default": "./dist/testing/tmpdir-preload.js"
     },
     "./tsconfig.base.json": "./src/tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./src/tsconfig/tsconfig.common.json",

@@ -94,7 +94,7 @@ await mailService.send({
 
 ### Attachments
 
-Pass the bytes as `content` - a `Buffer`, a `Uint8Array`, a string, a Node `Readable` or a web `ReadableStream`:
+Pass the bytes as `content` - a `Buffer`, a `Uint8Array`, a string, a `Readable` or a web `ReadableStream`:
 
 ```typescript
 await this.mailService.send({

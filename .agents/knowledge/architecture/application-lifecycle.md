@@ -23,12 +23,11 @@ base is a four-class chain split across two packages:
 |---|---|---|
 | `AbstractApplication extends Container` | `packages/kernel/src/base/applications/abstract.ts` | config normalisation, project root, post-start/post-stop hooks, `init()` and `registerCoreBindings()`. No router, no server. |
 | `RestApplication` | `packages/kernel/src/base/applications/rest.ts` | the two `OpenAPIHono` instances, `getServer()`, `getRootRouter()`, `inspectRoutes()`, and the `APPLICATION_SERVER` / `APPLICATION_ROOT_ROUTER` bindings. |
-| `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `startNodeModule`, `start()`, `stop()`. |
+| `ServerApplication` | `packages/core-server/src/base/applications/server.ts` | the only layer that touches a socket: `getServerHost/Port/Address`, `startBunModule`, `start()`, `stop()`. |
 | `BaseApplication` | `packages/core-server/src/base/applications/base.ts` | the configuration sequence, secrets. |
 
 The cut is deliberate. The first two layers are browser-pure and ship in `@venizia/ignis-kernel`, so
-a Worker or a gRPC-only host can extend `RestApplication` without pulling in `Bun.serve` or
-`@hono/node-server`. `packages/core-server/src/base/applications/index.ts` re-exports the kernel classes, so
+a Worker or a gRPC-only host can extend `RestApplication` without pulling in `Bun.serve`. `packages/core-server/src/base/applications/index.ts` re-exports the kernel classes, so
 `@venizia/ignis` consumers see no change.
 
 The outermost order is `new Application({ scope, config })` -> `init()` -> `start()`. Artifacts come
@@ -46,7 +45,7 @@ async start() {
   await this.setupMiddlewares();
   const server = this.getServer();
   server.route(this.configs.path.base, this.rootRouter);
-  // ... startBunModule() or startNodeModule() by detected runtime
+  // ... startBunModule()
   await this.executePostStartHooks();
 }
 ```
@@ -105,6 +104,8 @@ server application is:
     resolves every service and repository binding once, collects every failure and throws one error
     listing all of them, so a made-up `@inject` key - or a dependency some `when` excluded - fails the
     boot rather than the first request that needs it.
+    The work is `assertBindingsResolve` from `@venizia/ignis-inversion` (namespaces `services` and
+    `repositories`); the error carries `extra.missing`, a record of missing key to the bindings that need it.
 16. `validateScopeFilterSupport()` - refuses to start when a model declares `settings.access`
     somewhere it cannot take effect. Runs last, so a model registered by a component is covered too.
 
@@ -164,13 +165,11 @@ silently do not exist.
 
 ## Starting and stopping
 
-`start()`, `stop()`, `startBunModule()` and `startNodeModule()` all live on `ServerApplication`.
-`RuntimeModules.detect()` picks Bun or Node. The Node path imports `@hono/node-server` dynamically
-and resolves from the listening callback rather than from `serve()`'s synchronous return - only then
-is the socket actually bound and an OS-assigned port (config port `0`) known. `stop()` runs the
+`start()`, `stop()` and `startBunModule()` all live on `ServerApplication`. IGNIS runs on Bun >= 1.4
+only: `start()` calls `assertBunRuntime()` first and throws `IGNIS requires Bun >= 1.4 (running on
+<runtime>)` on any other runtime, before any hook, datasource or socket is touched. `stop()` runs the
 post-stop hooks, then `stopServer()`, then `closeDataSources()` in a `finally`: datasources close even
-when the server fails to, and that error still rejects `stop()`. `stopServer()` bridges Node's
-callback-based `close()` into a promise, or `stop()` would resolve while the socket is still bound.
+when the server fails to, and that error still rejects `stop()`.
 
 `closeDataSources()` lives on the kernel's `RestApplication`, so `WorkerApplication.stop()` calls the
 same one. It closes the datasources the boot configured (`registeredBindings['datasources']`), logs

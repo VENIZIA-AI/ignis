@@ -8,12 +8,10 @@ covers macOS, Linux, and Windows through WSL2.
 | Tool | Version | Required | Why |
 |------|---------|----------|-----|
 | **Bun** | >= 1.4 | Yes | Installs packages and runs every build; IGNIS never uses npm, yarn, or pnpm |
-| **PostgreSQL** | >= 14 | Yes | Primary database; the repository system assumes Drizzle + `pg` |
+| **PostgreSQL** | Any supported version | For the CRUD tutorial | A server database. PGlite and SQLite run in-process and need no install |
 | **VS Code** | Latest | Optional | Best editor support, through the Oxc and ESLint extensions |
 
-> IGNIS apps can also run on Node.js 18+ in production, through `@hono/node-server`. That is a
-> deployment choice, not a setup choice - Bun still installs packages and runs every command in
-> this guide.
+> IGNIS runs on Bun >= 1.4 only. `ServerApplication.start()` throws on any other runtime.
 
 ## Preconditions
 
@@ -34,9 +32,11 @@ Reload your shell, then confirm the version:
 bun --version   # >= 1.4
 ```
 
-## Step 2: Install PostgreSQL
+## Step 2: Install PostgreSQL (for the CRUD tutorial)
 
-Install and start the server for your OS.
+The quickstart and the installation tutorial need no database, so skip this step until the CRUD tutorial. To avoid installing a server at all, use [PGlite](../core-concepts/persistent/pglite) or [SQLite](../core-concepts/persistent/sqlite) instead.
+
+Install and start the server for your OS. The commands below install version 14; any supported version works.
 
 macOS:
 
@@ -97,10 +97,10 @@ The tools do not look inside `.configs/` on their own, so the settings point at 
 
 ```bash
 bun --version                   # >= 1.4
-psql my_app_db -c "SELECT 1;"   # returns 1
+psql my_app_db -c "SELECT 1;"   # returns 1 (only if you installed PostgreSQL)
 ```
 
-Both commands must succeed before you continue.
+The first command must succeed before you continue.
 
 ## Troubleshooting
 

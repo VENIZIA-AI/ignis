@@ -294,7 +294,7 @@ const migrated = [...MetadataRegistry.getInstance().getAllModels()]
 console.log(migrated.join('\n'));
 ```
 
-Feed that list to whatever builds your `drizzle-kit` schema file. `examples/vert` lists its tables by hand in `src/migration-schema.ts`, and that is the simplest way. The registry entry also carries the old `skipMigrate` field, derived as `!migration.use`, for tooling that still reads it; it is removed in 0.4.4.
+Feed that list to whatever builds your `drizzle-kit` schema file. `examples/vert` lists its tables by hand in `src/migration-schema.ts`, and that is the simplest way. The registry entry carries `migration: { use }`; the old `skipMigrate` field is gone.
 
 ## Model Template
 

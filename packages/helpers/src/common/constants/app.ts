@@ -7,23 +7,16 @@ export class Defaults {
   static readonly QUERY_OFFSET = 0;
 }
 
+/** IGNIS runs on Bun only: `detect()` answers `'bun'` there and `undefined` anywhere else (a browser, another runtime). */
 export class RuntimeModules {
-  static readonly NODE = 'node';
   static readonly BUN = 'bun';
 
-  static detect(): TRuntimeModule {
-    if (typeof Bun !== 'undefined') {
-      return RuntimeModules.BUN;
-    }
-    return RuntimeModules.NODE;
+  static detect(): TRuntimeModule | undefined {
+    return typeof Bun !== 'undefined' ? RuntimeModules.BUN : undefined;
   }
 
   static isBun(): boolean {
     return RuntimeModules.detect() === RuntimeModules.BUN;
-  }
-
-  static isNode(): boolean {
-    return RuntimeModules.detect() === RuntimeModules.NODE;
   }
 }
 export type TRuntimeModule = TConstValue<typeof RuntimeModules>;

@@ -27,12 +27,12 @@ You can pass the same names as flags for scripts: `--project`, `--backend-dir`, 
 
 The command runs these steps in order:
 
-- Writes the monorepo, with a root `.dockerignore` that keeps `.env` files out of every image.
+- Writes the monorepo and copies the IGNIS app, with a root `.dockerignore` that keeps `.env` files out of every image.
 - Installs dependencies.
-- Copies the IGNIS app.
+- Runs `git init -b develop`.
 - Sets up the agent files.
 - Runs the app's checks (typecheck, lint, test).
-- Runs vulcan doctor.
+- Runs `vulcan doctor` and the knowledge-bundle check.
 
 ## 2. Run it
 
@@ -65,6 +65,7 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./Makefile
 ./README.md
 ./bun.lock
+./bunfig.toml
 ./package.json
 ./services/core-api/.configs/builders/Dockerfile
 ./services/core-api/.configs/builders/compile.ts
@@ -75,6 +76,7 @@ The command produces this tree, plus the files of the coding agents on your mach
 ./services/core-api/.env.example
 ./services/core-api/package.json
 ./services/core-api/src/application.ts
+./services/core-api/src/boot.test.ts
 ./services/core-api/src/controllers/hello.controller.ts
 ./services/core-api/src/index.ts
 ./services/core-api/src/smoke.test.ts
@@ -130,6 +132,7 @@ export class HelloController extends BaseRestController {
 ```
 
 - `services/core-api/src/index.ts` - initializes and starts the application.
+- `services/core-api/src/boot.test.ts` - proves the application boots, with no database, port or network: it calls `assertApplicationBoots` from `@venizia/ignis/testing`.
 - `services/core-api/src/smoke.test.ts` - exercises the running server with an end-to-end smoke test.
 - `services/core-api/.env.example` - lists every `APP_ENV_*` key the app reads (application, server, logger), each with a comment. Copy it to `.env` for a local run: bun loads `.env` on start.
 - `services/core-api/.configs/lints/.ignore`, `.configs/formatters/.ignore` - paths `devz lint` skips, one pattern per line. They ship with comments only.
@@ -157,7 +160,7 @@ docker build -f services/core-api/.configs/builders/Dockerfile -t core-api \
 docker run -p 3000:3000 core-api
 ```
 
-The project needs a commit first: `git init && git add -A && git commit -m init`. See [Docker deployment](/best-practices/deployment-strategies#docker-deployment-recommended) for the build arguments.
+The project needs a first commit: `git add -A && git commit -m init`. See [Docker deployment](/best-practices/deployment-strategies#docker-deployment-recommended) for the build arguments.
 
 ## 5. Add more apps
 
@@ -175,5 +178,5 @@ A frontend needs `--api <app>` (the backend it calls) or `--no-api`. Run `vulcan
 - Add a database: [Building a CRUD API](../tutorials/building-a-crud-api.md)
 - Add lint, formatting, and build scripts: [Complete Installation](../tutorials/complete-installation.md)
 - Add more routes and methods: [REST Controllers](../core-concepts/rest-controllers.md)
-- Ship a single-file binary: [Registering artifacts](../core-concepts/application/bootstrapping.md#compiling-with-bun-build-compile)
+- Ship a single-file binary: [Compiling with `bun build --compile`](../core-concepts/application/bootstrapping.md#compiling-with-bun-build-compile)
 - Understand the application lifecycle: [Core Concepts: Application](../core-concepts/application/)

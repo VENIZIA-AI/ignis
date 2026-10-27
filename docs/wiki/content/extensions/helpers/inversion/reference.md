@@ -33,14 +33,16 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 | Package | `@venizia/ignis-inversion` |
 | Classes | `Container`, `BaseContainer`, `AbstractContainer`, `Binding`, `MetadataRegistry` |
 | Decorators | `@inject` |
-| Runtimes | Both Bun and Node.js |
-| Build | Dual CJS + ESM |
+| Runtimes | Bun, and a browser or Web Worker |
+| Build | ES modules only |
 
 ### Import paths
 
 ```typescript
 import {
   Container,
+  assertBindingsResolve,
+  verifyBindings,
   Binding,
   MetadataRegistry,
   metadataRegistry,
@@ -396,6 +398,45 @@ container.bind({ key: 'workers.EmailWorker' }).toClass(EmailWorker).setTags('bac
 const serviceBindings = container.findByTag({ tag: 'services' });
 const filtered = container.findByTag({ tag: 'services', exclude: ['services.InternalService'] });
 ```
+
+## Verifying a Container
+
+`verifyBindings` resolves every binding of the namespaces you name, collects every failure and returns them. `assertBindingsResolve` does the same and throws one error. Both are plain functions exported from `@venizia/ignis-inversion`:
+
+```typescript
+import { assertBindingsResolve, verifyBindings } from '@venizia/ignis-inversion';
+
+const result = verifyBindings({
+  container,
+  namespaces: ['services', 'repositories'],
+  skip: [LegacyMailer, 'services.Metrics'],
+});
+
+result.verified; // keys that resolved
+result.failures; // [{ key, message, missingKey?, unregisteredClass?, error }]
+result.unmatchedSkips; // skip entries that matched no binding
+
+assertBindingsResolve({ container, namespaces: ['services'], scope: 'startup' });
+```
+
+| Option | Required | Meaning |
+|--------|----------|---------|
+| `container` | yes | The container to verify |
+| `namespaces` | yes | A binding is in a namespace when its key is `<namespace>.<name>`: `Binding` tags it with that first segment. A namespace that holds a dot is not supported |
+| `skip` | no | Bindings left unresolved: a class (exact, not a subclass), a class name or a binding key. A string that equals the class name of several bindings skips them all |
+| `scope` | `assertBindingsResolve` only | The bracket label of the error message |
+
+A failure names the binding that could not resolve (`key`, who needs the missing thing) and what is missing: `missingKey` for an injected key nobody bound, `unregisteredClass` for an injected class nobody registered. A constructor that throws its own error carries neither. `error` is the thrown object, unchanged.
+
+`assertBindingsResolve` throws when a binding failed or a `skip` entry matched nothing (a typo must not skip silently):
+
+```text
+[startup] 1 binding(s) cannot be resolved | services.Invoice: Binding key: services.Tax is not bounded in context!
+```
+
+The error's `extra` is `{ failures, missing, unmatchedSkips }`. `missing` is a plain record that maps each missing key or class name to the bindings that needed it, for example `{ 'services.Tax': ['services.Invoice'] }`. Nothing is logged and nothing is changed in the container.
+
+The kernel's `verifyBindings` boot step (`bootChecks.binding.doVerify`), `assertApplicationBoots` and ARDOR's boot helper all call it.
 
 ## Utilities
 

@@ -1,7 +1,7 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.4.3",
-  "description": "Lightweight, high-performance Dependency Injection and Inversion of Control container for TypeScript (~350 lines). Features decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, tag-based discovery, and reflect-metadata integration. Inspired by LoopBack 4 and InversifyJS but simpler. Zero framework lock-in — works standalone or with Ignis.",
+  "version": "0.4.4",
+  "description": "A small, standalone Dependency Injection and Inversion of Control container for TypeScript. Features decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, tag-based discovery, and reflect-metadata integration. Zero framework lock-in — works standalone or with Ignis.",
   "keywords": [
     "architecture",
     "binding",
@@ -21,13 +21,10 @@
     "injectable",
     "injection",
     "injector",
-    "inversify",
-    "inversify-alternative",
     "inversion-of-control",
     "ioc",
     "ioc-container",
     "lightweight",
-    "loopback",
     "loose-coupling",
     "metadata",
     "nodejs",
@@ -43,7 +40,6 @@
     "tag-discovery",
     "testability",
     "transient",
-    "tsyringe-alternative",
     "typescript",
     "venizia"
   ],
@@ -70,18 +66,14 @@
     "!**/*.tsbuildinfo"
   ],
   "sideEffects": [
-    "./dist/cjs/index.js",
     "./dist/esm/index.js"
   ],
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/cjs/index.d.ts",
+  "main": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "types": "./dist/esm/index.d.ts",
+      "default": "./dist/esm/index.js"
     },
     "./package.json": "./package.json"
   },

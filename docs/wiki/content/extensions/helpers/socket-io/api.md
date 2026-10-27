@@ -35,7 +35,7 @@ Exhaustive reference for `SocketIOServerHelper` and `SocketIOClientHelper`. For 
 SocketIOServerHelper (extends BaseHelper)
   |
   |-- constructor(opts)
-  |     |-- setRuntime(opts)                  # validates `server` (Node) or `engine` (Bun)
+  |     |-- setRuntime(opts)                  # validates `engine`
   |     +-- initRedisClients(opts.redisConnection)
   |           |-- redisPub = duplicateClient()
   |           |-- redisSub = duplicateClient()
@@ -109,15 +109,14 @@ Extends `BaseHelper`. Manages a `socket.io` server with a Redis adapter, authent
 
 #### `constructor(opts: TSocketIOServerOptions)`
 
-Validates the runtime-specific `server` (Node) or `engine` (Bun) field. Duplicates the provided `redisConnection` into three independent clients (`redisPub`, `redisSub`, `redisEmitter`). Does **not** start the IO server - call `configure()` to complete initialization.
+Validates the `engine` field. Duplicates the provided `redisConnection` into three independent clients (`redisPub`, `redisSub`, `redisEmitter`). Does **not** start the IO server - call `configure()` to complete initialization.
 
 **Throws:**
 
 | Message | Condition |
 |---------|-----------|
-| `[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!` | `runtime: 'node'` and `server` is falsy |
 | `[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!` | `runtime: 'bun'` and `engine` is falsy |
-| `[SocketIOServerHelper] Unsupported runtime!` | `runtime` is neither `'node'` nor `'bun'` |
+| `[SocketIOServerHelper] Unsupported runtime!` | `runtime` is not `'bun'` |
 | `Invalid redis connection to config socket.io adapter!` | `redisConnection` is falsy |
 
 #### `configure(): Promise<void>`
@@ -125,7 +124,7 @@ Validates the runtime-specific `server` (Node) or `engine` (Bun) field. Duplicat
 1. Registers `error` listeners on all three duplicated Redis clients (logged, not thrown)
 2. Kicks off `connect()` on any client still in `'wait'` status
 3. `await Promise.all([waitForRedisReady(redisPub), waitForRedisReady(redisSub), waitForRedisReady(redisEmitter)])`
-4. Creates the `IOServer` - `new IOServer(server, serverOptions)` for Node.js, or `new IOServer()` followed by `io.bind(engine)` for Bun
+4. Creates the `IOServer` - `new IOServer()` followed by `io.bind(engine)`
 5. Attaches the Redis adapter via `@socket.io/redis-adapter`
 6. Creates the Redis emitter via `@socket.io/redis-emitter`
 7. Registers the `'connection'` handler
@@ -149,8 +148,6 @@ io.of('/admin').on('connection', socket => {
 #### `getEngine(): any`
 
 Returns the Bun engine instance.
-
-**Throws:** `'[getEngine] Engine is only available for Bun runtime!'` - `runtime` is not `'bun'`
 
 #### `getClients(opts?: { id?: string }): ISocketIOClient | Map<string, ISocketIOClient> | undefined`
 
@@ -547,10 +544,10 @@ interface IOptions extends SocketOptions {
 
 ### `TSocketIOServerOptions`
 
-Discriminated union on `runtime`.
+The only variant is Bun.
 
 ```typescript
-type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServerBunOptions;
+type TSocketIOServerOptions = ISocketIOServerBunOptions;
 
 interface ISocketIOServerBaseOptions {
   identifier: string;
@@ -563,11 +560,6 @@ interface ISocketIOServerBaseOptions {
   authenticateFn: TSocketIOAuthenticateFn;
   validateRoomFn?: TSocketIOValidateRoomFn;
   clientConnectedFn?: TSocketIOClientConnectedFn;
-}
-
-interface ISocketIOServerNodeOptions extends ISocketIOServerBaseOptions {
-  runtime: 'node';
-  server: HTTPServer; // node:http Server
 }
 
 interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
@@ -622,9 +614,8 @@ SocketIOClientStates.isValid('invalid');       // false
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!` | `server` missing/falsy with `runtime: 'node'` | Pass a valid `http.Server` instance |
 | `[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!` | `engine` missing/falsy with `runtime: 'bun'` | Pass a valid `@socket.io/bun-engine` `Server` instance |
-| `[SocketIOServerHelper] Unsupported runtime!` | `runtime` is neither `'node'` nor `'bun'` | Use `RuntimeModules.NODE`, `RuntimeModules.BUN`, or `RuntimeModules.detect()` |
+| `[SocketIOServerHelper] Unsupported runtime!` | `runtime` is not `'bun'` | Use `RuntimeModules.BUN` |
 | `Invalid redis connection to config socket.io adapter!` | `redisConnection` missing, `null`, or `undefined` | Pass a valid `IRedisHelper` (e.g. `RedisSingleHelper`, `RedisClusterHelper`) |
 | `[on] Invalid topic to start binding handler` | Empty/falsy `topic` passed to `on()` | Provide a non-empty string topic |
 | `[on] IOServer is not initialized yet!` | `on()` called before `configure()` completed | `await configure()` before registering handlers |

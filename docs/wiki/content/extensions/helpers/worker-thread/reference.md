@@ -36,7 +36,7 @@ Exhaustive reference for the worker-thread classes, every constructor option, ev
 |------|-------|
 | **Package** | `@venizia/ignis-helpers` |
 | **Peer Dependency** | None (uses built-in `node:worker_threads`) |
-| **Runtimes** | Node.js (uses `node:worker_threads` and `node:os`) |
+| **Runtime** | Bun (uses its `node:worker_threads` and `node:os`) |
 
 ### Import paths
 
@@ -126,7 +126,7 @@ const worker = new BaseWorkerHelper<MyMessageType>({
 |--------|------|---------|-------------|
 | `identifier` | `string` | - | A unique name for this worker instance, used as the `BaseHelper` identifier and in log output. Required. |
 | `path` | `string \| URL` | - | Path to the worker script file, passed directly to `new Worker()`. Required. |
-| `options` | `WorkerOptions` (Node.js) | - | Passed directly to `new Worker()`. Required. Supports `workerData`, `transferList`, `env`, etc. |
+| `options` | `WorkerOptions` | - | Passed directly to `new Worker()`. Required. Supports `workerData`, `transferList`, `env`, etc. |
 | `scope` | `string` | `'BaseWorkerHelper'` | Accepted but currently ignored - the constructor always sets the logger scope to `BaseWorkerHelper.name`, not `opts.scope`. |
 | `eventHandlers` | `Partial<Pick<IWorker<MessageType>, 'onOnline' \| 'onExit' \| 'onError' \| 'onMessage' \| 'onMessageError'>>` | `undefined` | Optional overrides for lifecycle event callbacks. Any handler not provided falls back to default logging behavior. |
 
@@ -429,6 +429,6 @@ const pool = new WorkerPoolHelper({ ignoreMaxWarning: true });
 
 - [Worker Thread overview](/extensions/helpers/worker-thread/) - introduction and the most common tasks
 - [Queue Helper](/extensions/helpers/queue/) - message-queue processing as an alternative to worker threads
-- [Node.js Worker Threads](https://nodejs.org/api/worker_threads.html) - official `worker_threads` documentation
+- [Worker Threads](https://nodejs.org/api/worker_threads.html) - the `node:worker_threads` documentation, an API Bun implements
 - [MessagePort API](https://nodejs.org/api/worker_threads.html#class-messageport) - underlying port communication
 - [Transferable Objects](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects) - zero-copy data transfer

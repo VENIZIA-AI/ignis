@@ -37,7 +37,7 @@ imported from a file that might not exist.
 
 - `@venizia/ignis-boot` and `@venizia/dev-configs` in the application. `@venizia/ignis-boot/build-info`
   imports no TypeScript, so importing it at run time does not pull the scanner into the bundle.
-- The resolver runs under **bun**. It asks `git` through Bun Shell.
+- The resolver runs under **bun**. It asks `git` with `execFile`, no shell.
 
 ## How it works
 
@@ -54,7 +54,7 @@ never type it.
 application's `getAppInfo()`, so each application in a process keeps its own name and version.
 
 The registry is a `globalThis` slot keyed by `Symbol.for`, so two copies of the package in one
-process - an ESM import beside a CommonJS require - still see one stamp.
+process (say, two versions nested by a package manager) still see one stamp.
 
 ## 1. Bake it at compile
 
@@ -124,12 +124,6 @@ pipeline forgot shows up as a word you can grep for, never as an absent key.
 A `bun build --compile` binary ships no `node_modules`, no `.git` and no readable `package.json`, and
 a Distroless image has no `git` to spawn. That is why the compile bakes the stamp: the binary never
 looks for any of them. The git fallback is for a run from source, where `.git` is there.
-
-## Running under Node
-
-The resolver asks `git` through `Bun.$`. Under plain **Node** that is undefined, so the
-`git`-derived fields read `unspecified` and the start still succeeds rather than throwing. Export the
-CI variables above when a Node run has to be exact.
 
 ## A frontend or a shell build
 

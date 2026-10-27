@@ -11,8 +11,9 @@
  * Refs: w3.org/TR/WCAG21 · webaim.org/resources/contrastchecker
  *       designsystems.com/space-grids-and-layouts · baymard.com/blog/line-length-readability
  *
- * Usage: import in `theme/index.ts` BEFORE style.css. The --vp-* mappings make
- * it drop-in for VitePress; the --ig-* tokens are the canonical primitives.
+ * Usage: import in `theme/index.ts` BEFORE style.css. The --ig-* tokens are the primitives of the
+ * home page and the content pages; the neutrals and the fonts point at the shared theme
+ * (theme/shared/tokens.css), and the VitePress mapping is theme/shared/vp-map.css.
  * ============================================================================= */
 
 :root {
@@ -28,8 +29,8 @@
     radial-gradient(680px 420px at 92% 6%, rgba(229,181,103,.12), transparent 62%);
 
   /* ---- Typography : scale = 16 × 1.25^n ------------------------------------ */
-  --ig-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --ig-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ig-font-sans: var(--font-sans);
+  --ig-font-mono: var(--font-mono);
   --ig-fs-caption: 0.75rem; /* 12px - labels, captions, badges               */
   --ig-fs-sm: 0.875rem; /* 14px - secondary, tables, inline code         */
   --ig-fs-body: 1rem; /* 16px - BASE body / docs prose                 */
@@ -75,54 +76,23 @@
   --ig-toc-w: 240px; /* right "on this page" */
   --ig-gutter: var(--ig-s7); /* 48px - column gap / page padding */
 
-  /* ===========================================================================
-   * SEMANTIC - LIGHT THEME (VitePress default :root)
-   * On #FFFFFF: text 17:1 · text-2 8:1 · text-3 5.8:1 · rose(link) 4.54:1 (AA).
-   * Light-theme accent text MUST use --ig-rose (coral/gold are too light → large only).
-   * ========================================================================= */
-  --ig-bg: #FFFFFF;
-  --ig-surface: #FAF8F9;
-  --ig-border: rgba(20, 12, 16, .10);
-  --ig-text: #1A1418;
-  --ig-text-2: #514A50;
-  --ig-text-3: #6E646A;
+  /* ---- Semantic: the neutrals and the link colour are the shared theme's (tokens.css, product.css);
+   *      the primary is still the brand rose of the home page. ------------------------------ */
+  --ig-bg: var(--bg);
+  --ig-surface: var(--bg-soft);
+  --ig-border: var(--stroke);
+  --ig-text: var(--text-title);
+  --ig-text-2: var(--text-body);
+  --ig-text-3: var(--text-muted);
   --ig-faint: #9A9097; /* large/decorative only */
-  --ig-link: var(--ig-rose); /* 4.54:1 on white - AA  */
+  --ig-link: var(--accent-text);
   --ig-primary: var(--ig-rose);
   --ig-on-primary: #FFFFFF; /* 4.54:1 on rose - AA   */
-
-  /* ---- VitePress mapping --------------------------------------------------- */
-  --vp-c-brand-1: var(--ig-link);
-  --vp-c-brand-2: var(--ig-rose-deep);
-  --vp-c-brand-3: var(--ig-primary);
-  --vp-c-bg: var(--ig-bg);
-  --vp-c-bg-alt: var(--ig-surface);
-  --vp-c-bg-soft: var(--ig-surface);
-  --vp-c-text-1: var(--ig-text);
-  --vp-c-text-2: var(--ig-text-2);
-  --vp-c-text-3: var(--ig-text-3);
-  --vp-button-brand-bg: var(--ig-primary);
-  --vp-button-brand-text: var(--ig-on-primary);
-  --vp-button-brand-hover-bg: var(--ig-rose-deep);
-  --vp-home-hero-name-background: var(--ig-gradient);
-  --vp-font-family-base: var(--ig-font-sans);
-  --vp-font-family-mono: var(--ig-font-mono);
 }
 
-/* ===========================================================================
- * SEMANTIC - DARK THEME
- * On #0B0A0C: text 16.2:1 · text-2 8.84:1 · text-3 5.34:1 · rose-lt(link) 7.04:1.
- * Dark-theme accent text MUST use --ig-rose-lt (rose #AF5F5F is 4.35:1 → fill/large only).
- * ========================================================================= */
+/* The dark values of the neutrals and the link come from the shared tokens; only these two stay here. */
 .dark {
-  --ig-bg: #0B0A0C;
-  --ig-surface: #131114;
-  --ig-border: rgba(255, 255, 255, .09);
-  --ig-text: #EDE7EA;
-  --ig-text-2: #B4ABB0;
-  --ig-text-3: #8C828A;
   --ig-faint: #6E646A; /* 3.48:1 - large/decorative only */
-  --ig-link: var(--ig-rose-lt); /* 7.04:1 on dark - AAA           */
   --ig-primary: var(--ig-rose);
   --ig-on-primary: #FFFFFF; /* 4.54:1 on rose - AA            */
 }

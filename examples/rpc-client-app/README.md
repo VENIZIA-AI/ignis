@@ -42,3 +42,16 @@ bun run compile    # bun check, then vite build - fails where the client no long
 | `bun x vite preview` | Serve `dist/`, with the same `/api` forwarding |
 | `bun run generate` | Rewrite `src/api/schema.d.ts` from the running server |
 | `bun run typecheck` / `bun run lint` | `bun check` / `eslint .` |
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>IGNIS is built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

@@ -108,7 +108,7 @@ const [result] = await storage.upload({
 
 ### Download a file
 
-`getObject()` returns a Node.js `Readable` on every backend, so piping to a response or a write stream works identically.
+`getObject()` returns a `Readable` stream on every backend, so piping to a response or a write stream works identically.
 
 ```typescript
 const fileStream = await storage.getObject({

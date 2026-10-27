@@ -10,11 +10,57 @@ import type {
   IServerApplicationConfigs,
   IServerRuntimeConfigs,
   IShutdownSignalsOptions,
-  TNodeServerInstance,
 } from './common';
 
 /** Lives here, not in the kernel: `Bun.serve` resolves only through `@types/bun`, and emitting `Bun` into the kernel's published `.d.ts` would force that dependency on every browser consumer of `@venizia/ignis-kernel`. This package legitimately has Bun types - it is the layer that calls `Bun.serve`. */
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
+
+const MINIMUM_BUN = { major: 1, minor: 4 };
+
+/** What the process runs on. `Bun` is the one global that tells the runtimes apart, and it cannot be hidden in a test, so the guard reads this snapshot instead. */
+export interface IRuntimeSnapshot {
+  /** `Bun.version`, set only under Bun. */
+  bunVersion?: string;
+  /** `process.release.name` and `process.version` of a runtime that is not Bun (`node`, `v24.14.0`). */
+  otherName?: string;
+  otherVersion?: string;
+}
+
+export const readRuntimeSnapshot = (): IRuntimeSnapshot => ({
+  bunVersion: RuntimeModules.isBun() ? Bun.version : undefined,
+  otherName: globalThis.process?.release?.name,
+  otherVersion: globalThis.process?.version,
+});
+
+const describeRuntime = (opts: { runtime: IRuntimeSnapshot }): string => {
+  const { bunVersion, otherName, otherVersion } = opts.runtime;
+
+  if (bunVersion !== undefined) {
+    return `bun ${bunVersion}`;
+  }
+
+  return otherName ? `${otherName} ${otherVersion ?? ''}`.trim() : 'an unknown runtime';
+};
+
+/**
+ * IGNIS runs on Bun 1.4 or later, and nothing else. One refusal at the top of `start()`, before any
+ * hook, datasource or socket is touched, replaces a failure that would otherwise surface halfway
+ * through startup.
+ */
+export const assertBunRuntime = (opts: { runtime?: IRuntimeSnapshot } = {}): void => {
+  const runtime = opts.runtime ?? readRuntimeSnapshot();
+
+  if (runtime.bunVersion !== undefined) {
+    const [major = 0, minor = 0] = runtime.bunVersion.split('.').map(Number);
+    if (major > MINIMUM_BUN.major || (major === MINIMUM_BUN.major && minor >= MINIMUM_BUN.minor)) {
+      return;
+    }
+  }
+
+  throw getError({
+    message: `IGNIS requires Bun >= ${MINIMUM_BUN.major}.${MINIMUM_BUN.minor} (running on ${describeRuntime({ runtime })})`,
+  });
+};
 
 const DEFAULT_SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
@@ -51,7 +97,7 @@ const resolveServerPort = (opts: { candidates: Array<number | string | undefined
   return DEFAULT_SERVER_PORT;
 };
 
-/** Adds the listening server (`Bun.serve` / `@hono/node-server`) on top of `RestApplication` - the only layer that touches a socket, so it is the layer that stays out of the browser-pure kernel. */
+/** Adds the listening server (`Bun.serve`) on top of `RestApplication` - the only layer that touches a socket, so it is the layer that stays out of the browser-pure kernel. */
 export abstract class ServerApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -60,9 +106,9 @@ export abstract class ServerApplication<
   extends RestApplication<AppEnv, AppSchema, BasePath>
   implements IServerApplication<AppEnv, AppSchema, BasePath>
 {
-  /** Which runtime is underneath, and the socket once one is bound. Both live here, not on `RestApplication`: a browser Worker has neither, and `RuntimeModules.detect()` answers `'node'` there. */
+  /** Which runtime is underneath, and the socket once one is bound. Both live here, not on `RestApplication`: a browser Worker has neither. `start()` refuses to run unless this is Bun. */
   protected runtime = RuntimeModules.detect();
-  protected serverInstance?: TBunServerInstance | TNodeServerInstance;
+  protected serverInstance?: TBunServerInstance;
 
   /** Widened by this layer, which is the only one that binds a socket. Assigned by the base constructor - `declare` so no field initializer runs here and overwrites it with `undefined`. */
   declare protected configs: IServerApplicationConfigs;
@@ -125,22 +171,17 @@ export abstract class ServerApplication<
     };
   }
 
-  getServerInstance<
-    T extends TBunServerInstance | TNodeServerInstance = TBunServerInstance | TNodeServerInstance,
-  >(): T | undefined {
+  /** What `start()` checks. A seam for the guard's test: the `Bun` global cannot be hidden from inside Bun. */
+  protected getRuntimeSnapshot(): IRuntimeSnapshot {
+    return readRuntimeSnapshot();
+  }
+
+  getServerInstance<T extends TBunServerInstance = TBunServerInstance>(): T | undefined {
     return this.serverInstance as T | undefined;
   }
 
   protected startBunModule() {
     return new Promise((resolve, reject) => {
-      if (this.runtime !== RuntimeModules.BUN) {
-        return reject(
-          getError({
-            message: `[startBunModule] Invalid runtime to start server | runtime: ${this.runtime} | required: ${RuntimeModules.BUN}`,
-          }),
-        );
-      }
-
       const port = this.getServerPort();
       const host = this.getServerHost();
       const server = this.getServer();
@@ -174,83 +215,16 @@ export abstract class ServerApplication<
     });
   }
 
-  protected startNodeModule() {
-    return new Promise((resolve, reject) => {
-      if (this.runtime !== RuntimeModules.NODE) {
-        return reject(
-          getError({
-            message: `[startNodeModule] Invalid runtime to start server | runtime: ${this.runtime} | required: ${RuntimeModules.NODE}`,
-          }),
-        );
-      }
-
-      const port = this.getServerPort();
-      const host = this.getServerHost();
-      const server = this.getServer();
-      const ignored = Object.keys(this.getServerRuntimeOptions());
-      if (ignored.length > 0) {
-        this.logger
-          .for(this.startNodeModule.name)
-          .warn('configs.server is Bun-only | ignored on node: %s', ignored.join(', '));
-      }
-
-      import('@hono/node-server')
-        .then((module) => {
-          const { serve } = module;
-
-          // Resolve from the listening callback, not serve()'s synchronous return - only then is the socket bound and the OS-assigned port (config port `0`) known.
-          const rs = serve({ fetch: server.fetch, port, hostname: host }, (info) => {
-            this.configs.port = info.port;
-            this.inspectRoutes();
-            this.logger
-              .for(this.start.name)
-              .info('Server STARTED | Address: %s | Info: %j', this.getServerAddress(), info);
-            this.logger
-              .for(this.start.name)
-              .info(
-                'Log folder: %s',
-                path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-              );
-
-            this.serverInstance = rs;
-            resolve(rs);
-          });
-        })
-        .catch((error) => {
-          this.logger
-            .for(this.start.name)
-            .error('Failed to import @hono/node-server | Error: %s', error);
-          reject(
-            getError({
-              message: `[start] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
-            }),
-          );
-        });
-    });
-  }
-
   async start() {
+    assertBunRuntime({ runtime: this.getRuntimeSnapshot() });
+
     await this.initialize();
     await this.setupMiddlewares();
 
     const server = this.getServer();
     server.route(this.configs.path.base, this.rootRouter);
 
-    switch (this.runtime) {
-      case RuntimeModules.BUN: {
-        await this.startBunModule();
-        break;
-      }
-      case RuntimeModules.NODE: {
-        await this.startNodeModule();
-        break;
-      }
-      default: {
-        throw getError({
-          message: '[start] Invalid runtimeModule to start server instance!',
-        });
-      }
-    }
+    await this.startBunModule();
 
     await this.executePostStartHooks();
   }
@@ -358,31 +332,7 @@ export abstract class ServerApplication<
       return;
     }
 
-    switch (this.runtime) {
-      case RuntimeModules.BUN: {
-        await instance.stop();
-        break;
-      }
-      case RuntimeModules.NODE: {
-        // `close()` is callback-based: without this bridge stop() resolves while the socket is still bound, so an immediate restart races the previous listener.
-        await new Promise<void>((resolve, reject) => {
-          instance.close((error?: Error) => {
-            if (error) {
-              reject(error);
-              return;
-            }
-
-            resolve();
-          });
-        });
-        break;
-      }
-      default: {
-        throw getError({
-          message: '[stop] Invalid runtimeModule to stop server instance!',
-        });
-      }
-    }
+    await instance.stop();
 
     this.serverInstance = undefined;
     this.logger.for(this.stop.name).info('Server STOPPED');

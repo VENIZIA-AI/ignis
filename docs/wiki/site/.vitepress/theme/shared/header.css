@@ -1,0 +1,322 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The header: a flat bar on a hairline, the version chip, the menu links, the search button, the theme
+ * toggle as an icon, the GitHub icon and the Venizia wordmark between hairline dividers, and the
+ * ecosystem switcher. It restyles the default theme's .VPNavBar; the structure is the default theme's.
+ */
+
+/*
+ * One rule under the header, at one height, across the full width. The default theme draws it in two
+ * pieces one pixel apart (the title's own border above the sidebar column, the divider row below the
+ * bar beside it) and starts the second one a few pixels off the sidebar edge when a scrollbar narrows
+ * the sidebar. Here only the divider row draws it, from the left edge to the right, and the sidebar's
+ * vertical rule starts below it (doc.css), so the two meet at a corner without a gap or an overlap.
+ */
+.VPNavBar {
+  backdrop-filter: none;
+}
+
+.VPNavBar .divider-line {
+  background-color: var(--stroke);
+}
+
+@media (min-width: 960px) {
+  /* the class is doubled to outweigh the default theme's scoped selectors */
+  html .VPNavBar.has-sidebar .divider.divider {
+    padding-left: 0;
+  }
+
+  html .VPNavBarTitle.has-sidebar .title.title {
+    border-bottom-color: transparent;
+  }
+}
+
+.VPNavBarTitle .title {
+  gap: 0;
+  color: var(--text-title);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.site-version {
+  margin-left: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0;
+}
+
+.VPNavBarMenuLink {
+  color: var(--text-body);
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.18s;
+}
+
+.VPNavBarMenuLink:hover {
+  color: var(--text-title);
+}
+
+.VPNavBarMenuLink.active {
+  color: var(--accent-text);
+}
+
+/* the search: an outlined 4px button with the shortcut keys in hairline boxes */
+@media (min-width: 768px) {
+  .VPNavBarSearch .DocSearch-Button {
+    height: 36px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    background: transparent;
+  }
+
+  .VPNavBarSearch .DocSearch-Button:hover {
+    border-color: var(--stroke-strong);
+    background: transparent;
+  }
+}
+
+.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Placeholder,
+.VPNavBarSearch .DocSearch-Button .DocSearch-Search-Icon {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* The two keys are separate boxes on one baseline with a small gap. The default theme joins them into one
+   box (a left half and a right half, the first with its font size at 0 and its text drawn by ::after,
+   a 2px margin on top), which our border and radius turned into two overlapping boxes with the K raised. */
+.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Keys {
+  gap: 4px;
+}
+
+.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key,
+.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key + .DocSearch-Button-Key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 6px;
+  height: 22px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  font: 500 11px/1 var(--font-mono);
+}
+
+.VPNavBarSearch .DocSearch-Button .DocSearch-Button-Key:first-child::after {
+  font: 500 11px/1 var(--font-mono);
+}
+
+.VPSocialLink {
+  color: var(--text-body);
+  transition: color 0.25s;
+}
+
+.VPSocialLink:hover {
+  color: var(--text-title);
+}
+
+/* ---- One colour for every divider in the header ------------------------------------------------- */
+/* VitePress draws its nav dividers in --vp-c-divider, which is faint beside the icons, above all in
+   the mobile menu. They all read this one property instead, so the logo divider below matches. The
+   value sits between --vp-c-text-3 (heavy as a line under every menu link) and --vp-c-divider:
+   about 3.5:1 on the dark background and 3.2:1 on white. */
+:root {
+  --venizia-nav-divider: color-mix(in srgb, var(--vp-c-text-3) 65%, var(--vp-c-divider));
+}
+
+/* The vertical lines between the nav menu, the theme toggle and the social links. */
+.VPNavBar .menu + .translations::before,
+.VPNavBar .menu + .appearance::before,
+.VPNavBar .menu + .social-links::before,
+.VPNavBar .translations + .appearance::before,
+.VPNavBar .appearance + .social-links::before {
+  background-color: var(--venizia-nav-divider);
+}
+
+/* The lines inside the "..." menu and between the links of the mobile menu. */
+.VPNavBarExtra .VPMenu .group + .group,
+.VPNavBarExtra .VPMenu .group + .item,
+.VPNavScreen .VPNavScreenMenuLink,
+.VPNavScreen .VPNavScreenMenuGroup {
+  border-color: var(--venizia-nav-divider);
+}
+
+/* ---- Venizia wordmark in the header ------------------------------------------------------------- */
+/* A social link is a 36px square; the wordmark is 119:28.9, so it gets its own width. The right
+   padding is the 8px a square icon keeps beside its glyph. */
+.VPSocialLinks .VPSocialLink[aria-label='Venizia'] {
+  width: auto;
+  padding: 0 8px 0 0;
+}
+
+/* The divider VitePress draws between the nav menu and the social links, 1px by 24px. The
+   GitHub box keeps 8px beside its glyph, so 8px here makes 16px on this side, the same as between
+   the theme-toggle divider and GitHub. The wordmark gets 16px on the other side of the divider. */
+.VPSocialLinks .VPSocialLink[aria-label='Venizia']::before {
+  flex-shrink: 0;
+  margin: 0 16px 0 8px;
+  width: 1px;
+  height: 24px;
+  background-color: var(--venizia-nav-divider);
+  content: '';
+}
+
+.VPSocialLinks .VPSocialLink[aria-label='Venizia'] > svg {
+  width: 74px;
+  height: 18px;
+}
+
+/* ---- the ecosystem switcher: IGNIS, ARDOR, VULCAN and Venizia, from the header ------------------- */
+.eco {
+  position: relative;
+  display: none;
+  align-items: center;
+  margin-left: 12px;
+}
+
+@media (min-width: 768px) {
+  .eco {
+    display: flex;
+  }
+}
+
+.eco-btn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: none;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: color 0.25s;
+}
+
+.eco-btn:hover,
+.eco-btn[aria-expanded='true'] {
+  color: var(--text-title);
+}
+
+.eco-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.eco-pop {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: -8px;
+  z-index: 60;
+  width: min(360px, calc(100vw - 32px));
+  padding: var(--space-3);
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius);
+  background: var(--bg);
+  white-space: normal;
+}
+
+.eco-title {
+  margin: 0 0 var(--space-2);
+  padding: 4px 8px;
+  color: var(--text-muted);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.eco-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eco-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px 8px;
+  border-radius: var(--radius);
+  color: var(--text-body);
+  text-decoration: none;
+  transition: background-color 0.18s;
+}
+
+.eco-item:hover {
+  background: var(--bg-soft);
+}
+
+.eco-item[aria-current='true'] {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.eco-logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 32px;
+}
+
+.eco-logo img {
+  width: 20px;
+  height: 26px;
+}
+
+.eco-logo--word svg {
+  width: 56px;
+  height: auto;
+  color: var(--text-title);
+}
+
+.eco-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.eco-text b {
+  color: var(--text-title);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.eco-text span {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.eco-here {
+  flex: none;
+  margin-left: auto;
+  align-self: flex-start;
+  padding: 3px 7px;
+  border: 1px solid var(--accent-text);
+  border-radius: var(--radius);
+  color: var(--accent-text);
+  font: 500 10px/1.2 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* in the mobile menu the same list is a plain block under the links */
+.eco-sheet {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--venizia-nav-divider);
+}
+
+.eco-sheet .eco-item {
+  padding: 12px 0;
+}
+
+.eco-sheet .eco-title {
+  padding-left: 0;
+}

@@ -1,0 +1,2 @@
+# The shared wiki theme is compared byte for byte (SHARED.json), so git must not convert it.
+docs/wiki/site/.vitepress/theme/shared/** -text

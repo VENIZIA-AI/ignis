@@ -61,7 +61,7 @@ function connect(opts: { host: string; onReady?: () => ValueOrPromise<void> }) {
 
 ### Detect the current runtime
 
-`RuntimeModules.detect()` returns `'bun'` when `typeof Bun !== 'undefined'`, `'node'` otherwise.
+`RuntimeModules.detect()` returns `'bun'` when `typeof Bun !== 'undefined'`, `undefined` otherwise.
 
 ```typescript
 import { RuntimeModules } from '@venizia/ignis-helpers';
@@ -78,7 +78,7 @@ if (RuntimeModules.isBun()) {
 ```typescript
 import { TConstValue, RuntimeModules } from '@venizia/ignis-helpers';
 
-type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'node' | 'bun'
+type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'bun'
 ```
 
 ### Resolve a value that may be eager or lazy, sync or async

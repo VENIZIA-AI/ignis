@@ -12,6 +12,10 @@ TEST_PACKAGES := $(filter-out $(NO_TEST),$(PACKAGES))
 PURE := inversion filter helpers kernel connectors core-worker
 
 TEST_TARGETS := $(addprefix test-,$(PACKAGES))
+# The browser-purity engine is `devz check purity` (packages/dev-configs); this repository only owns the claims.
+DEVZ := bun packages/dev-configs/dist/cli/index.js
+PURITY := $(DEVZ) check purity --claims scripts/checks/purity/manifest.ts
+
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
@@ -45,7 +49,7 @@ tmp-leak-check:
 	bun scripts/checks/tmp-leak/cli.ts verify || status=1; \
 	exit $$status
 
-# The repository gate scripts' own regression tests (module-cycles, split-report, wiki-source-links,
+# The repository gate scripts' own regression tests (wiki-source-links,
 # wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
@@ -58,7 +62,7 @@ test-scripts:
 # ----------------------------------------------------------------------------
 purity:
 	@echo "🔍 Checking browser purity for all claimed entries..."
-	@bun scripts/checks/purity/cli.ts
+	@$(PURITY)
 
 # Checks that read the built dist, so they run after a build, never in test-scripts.
 build-checks:
@@ -82,11 +86,11 @@ examples-check:
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
-	@bun test scripts/checks/purity/__tests__
+	@bun test scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks
 
 $(addprefix purity-,$(PURE)): purity-%:
 	@echo "🔍 Checking browser purity for $(call PKG_NAME,$*)..."
-	@bun scripts/checks/purity/cli.ts $*
+	@$(PURITY) $*
 
 $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 	@echo "ℹ️  No browser-pure entry claimed for this package - skipping."
@@ -95,8 +99,8 @@ $(addprefix purity-,$(filter-out $(PURE),$(PACKAGES))):
 # CLEAN-INSTALL TARGETS
 # Packs each package, installs it ALONE into an empty project with only its required peers plus the
 # ones scripts/checks/clean-install/manifest.ts grants a sub-path, and loads every published sub-path under
-# Bun, Node ESM, Node CJS and a browser build - hoisted and isolated. The workspace hoists every
-# optional peer, so a leak is invisible anywhere else. Needs a build first, and `node` on PATH.
+# Bun and a browser build - hoisted and isolated. The workspace hoists every optional peer, so a
+# leak is invisible anywhere else. Needs a build first.
 # ----------------------------------------------------------------------------
 # A sandbox below the repository would resolve the repository's own node_modules, so this gate (and
 # only this one) keeps its sandboxes in the system temp and removes them when it ends.

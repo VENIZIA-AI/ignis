@@ -1,12 +1,12 @@
 ---
 title: Socket.IO Component
-description: Wires SocketIOServerHelper into the app lifecycle for Node.js and Bun, with Redis-backed horizontal scaling and a mandatory authentication handshake
+description: Wires SocketIOServerHelper into the app lifecycle on Bun, with Redis-backed horizontal scaling and a mandatory authentication handshake
 difficulty: intermediate
 ---
 
 # Socket.IO Component
 
-`SocketIOComponent` registers a [`SocketIOServerHelper`](/extensions/helpers/socket-io/) on your application once the server starts. It runs on both Node.js and Bun, and scales across instances through a Redis adapter. Every client must authenticate before it can send or receive anything.
+`SocketIOComponent` registers a [`SocketIOServerHelper`](/extensions/helpers/socket-io/) on your application once the server starts. It runs on Bun, and scales across instances through a Redis adapter. Every client must authenticate before it can send or receive anything.
 
 > [!TIP]
 > Bun-only and don't need Socket.IO's handshake protocol? The [WebSocket Component](../websocket/) is a lighter alternative.
@@ -48,7 +48,7 @@ Socket.IO needs a running server, but components initialize before the server ex
 | Mechanism | What happens |
 |---|---|
 | Post-start hook | `binding()` runs during `initialize()`, resolves bindings, and registers a hook. The hook builds `SocketIOServerHelper` and binds it to `SOCKET_IO_INSTANCE` only after `start()` runs. |
-| Runtime detection | `RuntimeModules.detect()` picks Node.js (Socket.IO attaches to `node:http.Server` directly) or Bun (`@socket.io/bun-engine` is dynamically imported and wired into `server.reload()`). See the [runtime comparison](./api#runtime-specific-behavior). |
+| Bun engine | `@socket.io/bun-engine` is dynamically imported and wired into `server.reload()`. See the [Bun details](./api#runtime-specific-behavior). |
 | Redis fan-out | The connection you bind is never consumed directly. The helper calls `duplicateClient()` three times: a pub/sub pair for the Redis adapter, and a third client for the Redis emitter. |
 | Mandatory authentication | Every client starts `unauthorized`. It must emit `authenticate` within `authenticateTimeout` (default 10s) or it gets disconnected. Success joins the client to the default rooms and starts a keep-alive ping. |
 | Opt-in rooms | No `VALIDATE_ROOM_HANDLER` bound means every `join` request is rejected. That's security-by-default, not a bug. |

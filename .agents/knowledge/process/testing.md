@@ -33,7 +33,7 @@ tags: [process, test, bun]
 6. `make lint` / `make lint-all` are separate from testing - they run oxlint, ESLint (naming convention only) and `bun fmt`, not
    `bun test`. The pre-commit hook (`.githooks/pre-commit`) runs `make lint-all`, and nothing else.
    `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
-   script (`scripts/checks/purity/cli.ts`) that bundles each manifest entry with `bun build
+   script (`devz check purity`, from `@venizia/dev-configs`) that bundles each manifest entry with `bun build
    --target=browser` and inspects the metafile, so it reads `dist/` and needs a build first. CI runs
    it right after the lint step - but CI itself is `workflow_dispatch` only now, so nothing runs it
    on a push or a pull request, and no hook does either. Running the purity gate and the test suite before
@@ -51,6 +51,13 @@ tags: [process, test, bun]
    clean-install gate's `ignis-clean-install-*` sandbox (a sandbox below the repository would resolve
    the repository `node_modules`): it is removed in a `finally`, and the gate lists it as allowed
    rather than ignoring it (`TmpLeak.ALLOWED_SYSTEM_PATHS`).
+8. An application's boot is proved without infrastructure by `assertApplicationBoots` from
+   `@venizia/ignis/testing` (`packages/core-server/src/testing/assert-application-boots.ts`). It wraps
+   `registerDynamicBindings` and `getBootSequence` on one instance, skips the `configure()` of datasources
+   (and of the components in `skipComponents`) and the two secrets steps, never calls `start()`, rethrows
+   boot's own error, and after boot runs `assertBindingsResolve` from `@venizia/ignis-inversion` over services and
+   repositories (`skipBindings` leaves some out; the kernel's own step is off for the run). It adds a duplicate-route check of its own, because
+   boot has none. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.
 
 ## Related
 

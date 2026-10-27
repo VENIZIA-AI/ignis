@@ -37,7 +37,7 @@ expect(executor['delayedJobs'].size).toBe(1);
 
 The build's type-check gate runs against `tsconfig.json`, which includes `src/__tests__`. One
 broken test file - even someone else's in-progress, untracked one - fails the build for the
-**entire package**, even though the emit step reads `.configs/builders/tsconfig.build.json` and keeps tests out of
+**entire package**, even though the emit step reads `.configs/builders/tsconfig.build.json` (the one build program) and keeps tests out of
 `dist/`. Before trusting a red build here, check `git status` for untracked test files that might
 be the real cause.
 
@@ -63,7 +63,7 @@ refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) br
 task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
 `await expectRejection({ task, message })` or `expect(await rejectionOf(task)).toBeInstanceOf(Error)`
 from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and BANA (issue #187; the per-package
-copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. `rejectionOf` throws when the task resolves. `expectRejection` compares the
+copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. The same entry exports `spawnSyncBounded` (a `Bun.spawnSync` with a kill-on-timeout bound, 120 s by default: a sync spawn blocks the worker thread, so bun's own test timeout cannot fire) and `useRepoTmp`; `@venizia/dev-configs/testing/tmpdir-preload` is the `[test] preload` that points TMPDIR at `<repo>/.agents/local/tmp/tests` for a bare `bun test` (VULCAN uses it). Packages here import `spawnSyncBounded` from it; the five `spawn.helper.ts` copies are gone. `rejectionOf` throws when the task resolves. `expectRejection` compares the
 message as a string on purpose: bun 1.4.2 `toMatchObject` with an asymmetric matcher
 (`expect.stringMatching`) overwrites the matched property on the object it checks, so a later
 `error.message` read returns the matcher - a test that reads the same error twice then fails with

@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Layout: [monorepo layout](/overview/monorepo-layout.md).
 
-**1096 source files across 9 packages.**
+**1116 source files across 9 packages.**
 
 ## boot  (26 source files)
 
@@ -23,27 +23,28 @@ generated:
 | `vite/` | 2 |
 | `clis/` | 1 |
 
-## connectors  (233 source files)
+## connectors  (240 source files)
 
 | Subsystem | Files |
 |---|---|
 | `relational/` | 141 |
 | `search/` | 78 |
 | `http/` | 7 |
-| `common/` | 4 |
+| `common/` | 6 |
+| `raw-sql/` | 5 |
 | `testing/` | 2 |
 
 ## core-server  (208 source files)
 
 | Subsystem | Files |
 |---|---|
-| `components/` | 163 |
+| `components/` | 162 |
 | `base/` | 21 |
 | `connectors/` | 14 |
 | `common/` | 3 |
 | `utilities/` | 3 |
 | `helpers/` | 2 |
-| `testing/` | 1 |
+| `testing/` | 2 |
 
 ## core-worker  (20 source files)
 
@@ -53,14 +54,15 @@ generated:
 | `applications/` | 4 |
 | `envelope/` | 4 |
 
-## dev-configs  (37 source files)
+## dev-configs  (50 source files)
 
 | Subsystem | Files |
 |---|---|
 | `linters/` | 26 |
-| `cli/` | 6 |
+| `cli/` | 9 |
+| `checks/` | 7 |
+| `testing/` | 5 |
 | `compilers/` | 2 |
-| `testing/` | 2 |
 
 ## filter  (9 source files)
 
@@ -77,18 +79,18 @@ generated:
 | `common/` | 17 |
 | `utilities/` | 11 |
 
-## inversion  (34 source files)
+## inversion  (35 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 28 |
+| `modules/` | 29 |
 | `common/` | 5 |
 
-## kernel  (216 source files)
+## kernel  (215 source files)
 
 | Subsystem | Files |
 |---|---|
-| `base/` | 179 |
+| `base/` | 178 |
 | `helpers/` | 24 |
 | `common/` | 8 |
 | `utilities/` | 2 |

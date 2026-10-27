@@ -142,18 +142,56 @@ generated:
 - `UnusedArgsModes` class
 - `UnusedVarsScopes` class
 
-### `@venizia/dev-configs/testing` (2)
+### `@venizia/dev-configs/checks` (26)
+
+- `assertBrowserEsmEntry` const
+- `assertNoWorkspaceExternal` const
+- `buildManifest` const
+- `checkPurity` const
+- `deriveEntries` const
+- `findCatalogProblems` const
+- `GLOBAL_PATTERNS` const
+- `ICatalogOptions` interface
+- `ICatalogProblem` interface
+- `ICatalogReport` interface
+- `IPurityClaim` interface
+- `IPurityEntry` interface
+- `IPurityOptions` interface
+- `IPurityReport` interface
+- `IPurityResult` interface
+- `IPurityRowVerdict` interface
+- `ModuleGraph` class
+- `probeEntry` const
+- `ProbeSeverities` class
+- `PURITY_SCRATCH_DIR` const
+- `PurityVerdicts` class
+- `runModuleCycles` const
+- `SplitReport` class
+- `stripBundlerPathComments` const
+- `TProbeSeverity` type
+- `TPurityVerdict` type
+
+### `@venizia/dev-configs/testing` (7)
 
 - `expectRejection` const
+- `findRepositoryRoot` const
 - `rejectionOf` const
+- `REPO_TMP_DIRECTORY` const
+- `SPAWN_TIMEOUT_MS` const
+- `spawnSyncBounded` const
+- `useRepoTmp` const
+
+### `@venizia/dev-configs/testing/tmpdir-preload` (0)
+
 
 ## inversion
 
-### `@venizia/ignis-inversion` (71)
+### `@venizia/ignis-inversion` (77)
 
 - `AbstractContainer` class
 - `AnyType` type
 - `ApplicationError` class
+- `assertBindingsResolve` const
 - `BaseContainer` class
 - `BaseHelper` class
 - `Binding` class
@@ -166,8 +204,10 @@ generated:
 - `fromError` const
 - `getError` const
 - `IBinding` interface
+- `IBindingFailure` interface
 - `IBindingKeyRecord` interface
 - `IBindingTag` interface
+- `IBindingVerification` interface
 - `IContainer` interface
 - `IErrorKeyRegistry` interface
 - `IInjectMetadata` interface
@@ -178,6 +218,7 @@ generated:
 - `isClass` const
 - `isClassProvider` const
 - `isEmpty` const
+- `IVerifyBindingsOptions` interface
 - `Logger` class
 - `MessageCode` class
 - `MessageTemplate` class
@@ -195,6 +236,7 @@ generated:
 - `TBindingProvider` type
 - `TBindingResolverValue` type
 - `TBindingScope` type
+- `TBindingSkip` type
 - `TBindingValueType` type
 - `TClass` type
 - `TConstructor` type
@@ -222,6 +264,7 @@ generated:
 - `TValueOrResolver` type
 - `ValueOf` type
 - `ValueOrPromise` type
+- `verifyBindings` const
 
 ## filter
 
@@ -1003,7 +1046,7 @@ generated:
 - `TTemporalUnit` type
 - `TTemporalWrittenDateStyle` type
 
-### `@venizia/ignis-helpers/socket-io` (17)
+### `@venizia/ignis-helpers/socket-io` (16)
 
 - `IHandshake` interface
 - `IOptions` interface
@@ -1011,7 +1054,6 @@ generated:
 - `ISocketIOClientOptions` interface
 - `ISocketIOServerBaseOptions` interface
 - `ISocketIOServerBunOptions` interface
-- `ISocketIOServerNodeOptions` interface
 - `SocketIOClientHelper` class
 - `SocketIOClientStates` class
 - `SocketIOConstants` class
@@ -1228,7 +1270,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (435)
+### `@venizia/ignis-kernel` (434)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1377,7 +1419,6 @@ generated:
 - `IDataSourceMetadata` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelMetadata` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
 - `IdSchemaTypes` class
@@ -1734,8 +1775,9 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (130)
+### `@venizia/ignis-connectors` (132)
 
+- `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
 - `AbstractSearchDataSource` class
 - `assertScopeFilterSupported` const
@@ -1754,6 +1796,7 @@ generated:
 - `getCachedColumns` const
 - `getIdType` const
 - `IAliasInfo` interface
+- `IConnectorDriver` interface
 - `ICountOptions` interface
 - `IDefinedEntity` interface
 - `IEntity` interface
@@ -1891,6 +1934,17 @@ generated:
 - `THttpQuery` type
 - `THttpReadShape` type
 - `THttpRepositoryOptions` type
+
+### `@venizia/ignis-connectors/raw-sql` (8)
+
+- `BaseRawSqlDataSource` class
+- `BaseRawSqlRepository` class
+- `IRawSqlConnector` interface
+- `IRawSqlResult` interface
+- `RawSqlEntity` class
+- `TRawSqlDriver` type
+- `TRawSqlQuery` type
+- `TRawSqlSchema` type
 
 ### `@venizia/ignis-connectors/relational` (76)
 
@@ -2382,7 +2436,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1072)
+### `@venizia/ignis` (1073)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2425,6 +2479,7 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
+- `assertBunRuntime` const
 - `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
@@ -2711,7 +2766,6 @@ generated:
 - `IDefinedEntity` interface
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
-- `IDeprecatedModelMetadata` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
 - `idParamsSchema` const
@@ -2844,6 +2898,7 @@ generated:
 - `IRetryContext` interface
 - `IRpcMetadata` interface
 - `IRpcRegistration` interface
+- `IRuntimeSnapshot` interface
 - `isApplicationError` const
 - `isClass` const
 - `isClassProvider` const
@@ -3012,6 +3067,7 @@ generated:
 - `readDeclarative` const
 - `readFormBody` const
 - `readResultRows` const
+- `readRuntimeSnapshot` const
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `REDACTED` const
@@ -3275,7 +3331,6 @@ generated:
 - `TModelType` type
 - `TMultipartStorage` type
 - `TNodePredicate` type
-- `TNodeServerInstance` type
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
@@ -4042,13 +4097,16 @@ generated:
 - `SearchControllerFactory` class
 - `TSearchScopeResolver` type
 
-### `@venizia/ignis/testing` (8)
+### `@venizia/ignis/testing` (11)
 
+- `assertApplicationBoots` const
+- `IAssertApplicationBootsOptions` interface
 - `IPostgresTransactionDoubleOptions` interface
 - `ISqliteTransactionDoubleOptions` interface
 - `ITransactionDoubleOptions` interface
 - `PostgresTransactionDouble` class
 - `SqliteTransactionDouble` class
+- `TBootProbeTarget` type
 - `TransactionDouble` class
 - `TransactionStates` class
 - `TTransactionState` type

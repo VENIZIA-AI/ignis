@@ -14,5 +14,5 @@
     "noEmit": true
   },
   "include": ["./**/*.ts"],
-  "exclude": ["./checks/purity/__tests__/fixtures"]
+  "exclude": []
 }

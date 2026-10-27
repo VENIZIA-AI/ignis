@@ -50,7 +50,7 @@ export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string 
 ```
 
 `RuntimeModules` in `packages/helpers/src/common/constants/app.ts` uses the same pattern for
-`NODE` / `BUN`, with a `detect()` static method attached directly to the class.
+`BUN`, with a `detect()` static method attached directly to the class.
 
 ## Related
 

@@ -4,10 +4,8 @@
  * an empty project, each package ALONE with its required peers plus the optional peers the manifest
  * grants that sub-path - under both the hoisted and the isolated linker.
  *
- * Four checks per sub-path: `import()` under Bun, `import()` and `require()` under Node, and a
- * `bun build --target=browser` for every entry the purity gate claims. A sub-path the manifest
- * lists under `importedAfter` also loads under Bun from one ESM entry, followed by those peers,
- * `ORDER_RUNS` times. Inside the workspace every optional peer resolves, so a leak there is
+ * Two checks per sub-path: `import()` under Bun, and a `bun build --target=browser` for every entry
+ * the purity gate claims. Inside the workspace every optional peer resolves, so a leak there is
  * invisible; here it fails on the line that pulls it.
  *
  * Usage: bun scripts/checks/clean-install/cli.ts [package ...] [--keep]
@@ -29,14 +27,6 @@ import type { IInstallRow } from './manifest';
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 const WORKSPACE_SCOPE = '@venizia/';
 const LINKERS = ['hoisted', 'isolated'];
-const TYPELESS_PACKAGE_WARNING = 'MODULE_TYPELESS_PACKAGE_JSON';
-
-/**
- * Runs of the `bun-order` entry per sandbox: the load race it guards crashes only some runs. At the
- * lowest rate measured on the old core-server (19 in 30), one run per linker let it through about
- * one gate run in 7; five let it through about one in 20,000.
- */
-const ORDER_RUNS = 5;
 
 interface ICheckResult {
   name: string;
@@ -278,41 +268,6 @@ const pack = async (opts: {
   return tarballs;
 };
 
-/**
- * Loads the sub-path, then the peers an application imports after it, from one static ESM entry
- * under Bun - `runs` times, stopping at the first failure, since a load race fails only some runs.
- */
-export const checkImportOrder = async (opts: {
-  row: IInstallRow;
-  sandbox: string;
-  runs: number;
-}): Promise<ICheckResult> => {
-  const { row, sandbox, runs } = opts;
-  const specifiers = [row.specifier, ...row.importedAfter];
-  const orderFile = join(sandbox, `order-${row.subpath.replace(/[^a-z0-9]/gi, '_')}.mjs`);
-  writeFileSync(
-    orderFile,
-    [
-      ...specifiers.map((specifier, index) => `import * as loaded${index} from '${specifier}';`),
-      `console.log(${specifiers.map((_, index) => `Object.keys(loaded${index}).length`).join(', ')});`,
-      '',
-    ].join('\n'),
-  );
-
-  for (let runNumber = 1; runNumber <= runs; runNumber += 1) {
-    const result = await run({ command: ['bun', relative(sandbox, orderFile)], cwd: sandbox });
-    if (!result.ok) {
-      return {
-        name: 'bun-order',
-        ok: false,
-        detail: `run ${runNumber}/${runs}: ${firstErrorLine(result)}`,
-      };
-    }
-  }
-
-  return { name: 'bun-order', ok: true, detail: '' };
-};
-
 /** Entry file (repo-relative) -> the externals the purity gate grants it, for browser-claimed entries. */
 const browserClaims = (): Map<string, string[]> =>
   new Map(
@@ -331,8 +286,8 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
         Object.values(readPackageManifest({ package: directory }).exports ?? {}).some(
           (target) =>
             typeof target === 'object' &&
-            target.import !== undefined &&
-            join('packages', directory, target.import) === entry,
+            target.default !== undefined &&
+            join('packages', directory, target.default) === entry,
         ),
       ),
     );
@@ -340,7 +295,7 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
 /** Repository-relative file a row's `import()` loads. */
 const rowEntry = (opts: { row: IInstallRow }): string | undefined => {
   const target = readPackageManifest({ package: opts.row.package }).exports?.[opts.row.subpath];
-  const file = typeof target === 'string' ? target : (target?.import ?? target?.default);
+  const file = typeof target === 'string' ? target : target?.default;
   return file ? join('packages', opts.row.package, file) : undefined;
 };
 
@@ -354,38 +309,10 @@ const checkRow = async (opts: {
 
   const attempt = async (name: string, command: string[]): Promise<ICheckResult> => {
     const result = await run({ command, cwd: sandbox });
-    // Node loads an unmarked `.js` as CommonJS, fails, then parses it again as ESM: it works, costs a
-    // second parse per file, and prints this warning into every consumer's log.
-    if (result.ok && result.output.includes(TYPELESS_PACKAGE_WARNING)) {
-      return {
-        name,
-        ok: false,
-        detail: `${TYPELESS_PACKAGE_WARNING}: dist/esm carries no "type": "module"`,
-      };
-    }
     return { name, ok: result.ok, detail: result.ok ? '' : firstErrorLine(result) };
   };
 
   checks.push(attempt('bun', ['bun', '-e', `await import('${row.specifier}')`]));
-
-  // One static ESM graph, the sub-path first, as an application that uses both writes it.
-  if (row.importedAfter.length > 0) {
-    checks.push(checkImportOrder({ row, sandbox, runs: ORDER_RUNS }));
-  }
-
-  if (!row.bunOnly) {
-    checks.push(
-      attempt('node-esm', [
-        'node',
-        '--input-type=module',
-        '-e',
-        `await import('${row.specifier}')`,
-      ]),
-    );
-    if (row.hasRequire) {
-      checks.push(attempt('node-cjs', ['node', '-e', `require('${row.specifier}')`]));
-    }
-  }
 
   const entryPath = rowEntry({ row });
   const externals = entryPath ? browser.get(entryPath) : undefined;
@@ -416,13 +343,6 @@ const main = async (): Promise<number> => {
   const args = process.argv.slice(2);
   const keep = args.includes('--keep');
   const tokens = args.filter((arg) => !arg.startsWith('--'));
-
-  const nodeVersion = await run({ command: ['node', '--version'], cwd: REPOSITORY_ROOT });
-  if (!nodeVersion.ok) {
-    throw new Error(
-      '[clean-install] `node` is not on PATH - the Node checks cannot run, and skipping them would pass for the wrong reason',
-    );
-  }
 
   const claims =
     tokens.length > 0
@@ -530,10 +450,10 @@ const main = async (): Promise<number> => {
         failures.push(`${manifest.name} [${linker}] lock-pin: ${problem}`);
       }
 
-      // Node prints the typeless-package warning only OUTSIDE node_modules, so a consumer never sees it
-      // while paying the second parse - the marker file is checked directly instead.
+      // A consumer reads `type` and `sideEffects` from the nearest package.json, so the marker file is
+      // checked directly.
       const exportsImportIntoEsm = Object.values(manifest.exports ?? {}).some(
-        (target) => typeof target === 'object' && target.import?.startsWith('./dist/esm/'),
+        (target) => typeof target === 'object' && target.default?.startsWith('./dist/esm/'),
       );
       if (exportsImportIntoEsm) {
         const markerPath = join(

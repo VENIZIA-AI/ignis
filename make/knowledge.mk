@@ -4,7 +4,7 @@
 .PHONY: split-report wiki-links-check wiki-anchors-check
 
 split-report:
-	@bun scripts/checks/split-report.ts
+	@$(DEVZ) check split-report --dist dist/esm
 
 wiki-links-check:
 	@bun scripts/wiki/wiki-source-links.ts

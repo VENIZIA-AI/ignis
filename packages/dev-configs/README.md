@@ -61,7 +61,7 @@ The two options in `compilerOptions` repeat the base on purpose - see
 
 ### Browser and React projects
 
-The presets above target a Bun or Node backend. Code that runs in a browser swaps each one for its
+The presets above target a Bun backend. Code that runs in a browser swaps each one for its
 browser version. A React project swaps it for the React version, which builds on the browser one.
 
 | Tool | Backend | Browser | React |
@@ -179,7 +179,7 @@ limit (V-C-02) is `venizia/max-params-own`, an error.
 ### namingConventionConfigs
 
 `namingConventionConfigs` (type `Linter.Config[]`) sets only `@typescript-eslint/naming-convention`, with
-the 15 LoopBack 4 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
+its 15 selectors. It targets `.ts`, `.tsx`, `.mts` and `.cts`, and ignores `dist`, `build`,
 `coverage`, `*.d.ts` and plain JavaScript. ESLint does not report unused disable comments in this
 config, because oxlint owns the other rules.
 
@@ -412,3 +412,16 @@ The root of the chain, with no IGNIS dependency: **dev-configs** -> inversion ->
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/dev-configs)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/dev-configs is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

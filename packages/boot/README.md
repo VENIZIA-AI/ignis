@@ -1,6 +1,6 @@
 # @venizia/ignis-boot
 
-Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes, and `BuildInfoStamp` stamps the build. Install it as a devDependency of the application, or as a dependency if production runs the source unbundled.
+Build-time tools for an IGNIS application: `ignis-artifacts` writes one static file that registers your decorated classes (on Bun, `@venizia/ignis-boot/auto` builds the same list in memory at start instead), and `BuildInfoStamp` stamps the build. Install it as a devDependency of the application, or as a dependency if production runs the source unbundled.
 
 ## Install
 
@@ -146,9 +146,9 @@ The resolver reads each field from the environment first (first non-blank key wi
 
 | Binary | File |
 |---|---|
-| `ignis-artifacts` | `dist/cjs/clis/artifacts.js` |
+| `ignis-artifacts` | `dist/esm/clis/artifacts.js` |
 
-The package ships CommonJS and ESM builds. The programmatic API mirrors the CLI:
+The package ships ES modules. The programmatic API mirrors the CLI:
 
 ```typescript
 import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
@@ -160,7 +160,7 @@ const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifa
 
 `dev-configs -> inversion -> {filter, helpers} -> {boot, kernel} -> connectors -> {core-worker, core-server}`. Boot depends on `@venizia/ignis-helpers` only; no IGNIS package depends on boot, so the application declares it.
 
-The generated index replaces the runtime booters IGNIS once took from LoopBack 4, which globbed the file system at startup.
+The generated index replaces a run-time scan of the file system at startup.
 
 ## Links
 
@@ -172,3 +172,16 @@ The generated index replaces the runtime booters IGNIS once took from LoopBack 4
 - [Source](https://github.com/VENIZIA-AI/ignis/blob/main/packages/boot)
 
 MIT licensed - see [LICENSE.md](./LICENSE.md).
+
+---
+
+<p align="center">
+  <a href="https://venizia.ai">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://venizia.ai/assets/logo-white.svg">
+      <img src="https://venizia.ai/assets/logo.svg" alt="VENIZIA" height="28">
+    </picture>
+  </a>
+  <br>
+  <sub>@venizia/ignis-boot is part of IGNIS, built and maintained by <a href="https://venizia.ai">VENIZIA</a>.</sub>
+</p>

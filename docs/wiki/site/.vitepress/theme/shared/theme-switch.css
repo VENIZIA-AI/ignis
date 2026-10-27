@@ -1,0 +1,103 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The light and dark switch: the whole page cross-fades in 200ms, and nothing moves across the screen.
+ * With View Transitions the old and the new page are two images that fade (the default root
+ * cross-fade, set to 200ms below); without the API a temporary `theme-fade` class fades the colours; with
+ * reduced motion the switch is instant (toggle-appearance.ts). The toggle is an icon button: the sun and
+ * the moon stay in it and cross-fade with a small turn.
+ */
+
+/* ---- the toggle: the default switch restyled as an icon button ---------------------------------- */
+html .VPSwitch.VPSwitchAppearance {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-body);
+  transition: color 0.25s !important;
+}
+
+html .VPSwitch.VPSwitchAppearance:hover {
+  color: var(--text-title);
+}
+
+html .VPSwitchAppearance .check,
+html.dark .VPSwitchAppearance .check {
+  position: static;
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  transform: none !important;
+}
+
+html .VPSwitchAppearance .icon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 0;
+  overflow: visible;
+  color: inherit;
+}
+
+html .VPSwitchAppearance .icon .sun,
+html .VPSwitchAppearance .icon .moon {
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  transition:
+    transform 0.4s var(--ease-out),
+    opacity 0.25s ease;
+}
+
+html .VPSwitchAppearance .icon .moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+html.dark .VPSwitchAppearance .icon .sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
+}
+
+html.dark .VPSwitchAppearance .icon .moon {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- View Transitions: the browser's default cross-fade of the root, 200ms ---------------------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 200ms;
+  animation-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ---- the fallback: fade colours only while the class is on, never a permanent transition -------- */
+.theme-fade,
+.theme-fade *,
+.theme-fade *::before,
+.theme-fade *::after {
+  transition:
+    background-color var(--fade, 0.2s) ease,
+    color var(--fade, 0.2s) ease,
+    border-color var(--fade, 0.2s) ease,
+    fill var(--fade, 0.2s) ease,
+    stroke var(--fade, 0.2s) ease,
+    --dot var(--fade, 0.2s) ease,
+    --glow var(--fade, 0.2s) ease !important;
+}

@@ -4,7 +4,7 @@
 
 # Every catalogued dependency is referenced as "catalog:" (root workspaces.catalog), none drifted.
 catalog-check:
-	@bun scripts/checks/check-catalog.ts
+	@$(DEVZ) check catalog --glob 'examples/*/package.json' --glob 'docs/*/package.json'
 
 # Writes packages/core-server/dist/presets from the template, with this workspace's versions.
 # Run it after core-server builds: the build empties dist.

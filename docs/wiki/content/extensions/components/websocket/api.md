@@ -24,7 +24,7 @@ Every binding key, configuration option, callback signature, and internal mechan
 | Component class | `WebSocketComponent` |
 | Server helper | [`WebSocketServerHelper`](/extensions/helpers/websocket/) |
 | Emitter helper | `WebSocketEmitter` (standalone Redis publisher) |
-| Runtimes | Bun only - throws on Node.js |
+| Runtime | Bun (IGNIS runs on Bun only) |
 | Scaling | Redis Pub/Sub (`ioredis` - single or Cluster) |
 
 ## Import paths
@@ -301,14 +301,7 @@ Registers the `websocket-initialize` post-start hook:
 
 ### Runtime check
 
-Runs at the top of `binding()`, before anything else:
-
-```typescript
-const runtime = RuntimeModules.detect();
-if (runtime === RuntimeModules.NODE) {
-  throw getError({ message: '[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime.' });
-}
-```
+The component has no runtime check of its own. `ServerApplication.start()` throws `IGNIS requires Bun >= 1.4 (running on <runtime>)` on any other runtime, before `binding()` runs.
 
 ### Bun WebSocket handler
 
@@ -412,5 +405,5 @@ export class Application extends BaseApplication {
 - [Usage & Examples](./usage) - injecting the helper, `WebSocketEmitter`, wire protocol, client tracking, delivery strategy
 - [Error Reference](./errors) - error conditions and troubleshooting
 - [WebSocketServerHelper](/extensions/helpers/websocket/) - helper API documentation
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Socket.IO Component](../socket-io/) - the Socket.IO alternative
 - [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference

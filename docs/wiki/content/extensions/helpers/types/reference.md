@@ -35,7 +35,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 | DI container getter types, the `configure()` interface | [DI and Lifecycle Types](#di-and-lifecycle-types) |
 | JSX component prop types | [JSX Types](#jsx-types) |
 | Query pagination defaults, the application name | [Defaults](#defaults) |
-| Detecting Bun vs Node at runtime | [RuntimeModules](#runtimemodules) |
+| Detecting the Bun runtime | [RuntimeModules](#runtimemodules) |
 | Schema data type constants | [DataTypes](#datatypes) |
 | HTTP headers, methods, status codes | [HTTP](#http) |
 | gRPC methods, headers, status codes | [GRPC](#grpc) |
@@ -228,7 +228,7 @@ type TNumberConstValue<T extends TClass<any>> = Extract<ValueOf<T>, number> & {}
 type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | number> & {};
 ```
 
-The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'node' | 'bun'`, not `string`.
+The `& {}` keeps the union literal: a value copied into an object literal, a `let` or an inferred generic stays `'bun'`, not `string`.
 
 | Type | Meaning | Use |
 |------|---------|-----|
@@ -237,7 +237,7 @@ The `& {}` keeps the union literal: a value copied into an object literal, a `le
 | `TConstValue<T>` | The string-or-number-valued subset of `ValueOf<T>` | The common case - deriving a union type from a const class (`RuntimeModules`, `MimeTypes`) |
 
 ```typescript
-type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'node' | 'bun'
+type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'bun'
 type TMimeTypes = TConstValue<typeof MimeTypes>;          // 'unknown' | 'image' | 'video' | 'text'
 ```
 
@@ -422,24 +422,21 @@ Application-wide defaults for query pagination and application naming. `APPLICAT
 
 ```typescript
 class RuntimeModules {
-  static readonly NODE = 'node';
   static readonly BUN = 'bun';
 
-  static detect(): TRuntimeModule;
+  static detect(): TRuntimeModule | undefined;
   static isBun(): boolean;
-  static isNode(): boolean;
 }
 
-type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'node' | 'bun'
+type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'bun'
 ```
 
 Runtime detection utility.
 
 | Method | Behavior |
 |---|---|
-| `detect()` | Returns `'bun'` if `typeof Bun !== 'undefined'`, else `'node'` |
+| `detect()` | Returns `'bun'` if `typeof Bun !== 'undefined'`, else `undefined` |
 | `isBun()` | Calls `detect()` and compares to `'bun'` - no caching, runs the check every time |
-| `isNode()` | Calls `detect()` and compares to `'node'` - no caching, runs the check every time |
 
 ### DataTypes
 
@@ -580,13 +577,7 @@ The headers IGNIS adds, for a CORS configuration that lists headers by hand - sp
 > [!IMPORTANT]
 > All `HTTP.Methods.*` tokens are lowercase. `@hono/zod-openapi` route definitions accept no other case.
 
-Every IGNIS network fetcher uppercases the method at the wire boundary, via `method.toUpperCase()`. But undici, Node's `fetch` implementation, only normalizes six of the eight methods on its own:
-
-| Undici normalizes it on its own | Undici does not |
-|---|---|
-| `delete`, `get`, `head`, `options`, `post`, `put` | `patch`, `query` |
-
-A lowercase `patch` or `query` sent as-is travels verbatim over Node, and the server rejects it. Bun's `fetch` uppercases every method, which hides the bug until the app runs on Node.
+Every IGNIS network fetcher uppercases the method at the wire boundary, via `method.toUpperCase()`.
 
 #### HTTP.Protocols
 
