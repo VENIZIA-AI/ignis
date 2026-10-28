@@ -13,6 +13,7 @@ tags: [process, release, ci]
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
 - [The two jobs and their guards](#the-two-jobs-and-their-guards)
+- [Trusted publishing (no npm token)](#trusted-publishing-no-npm-token)
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
 - [Steps](#steps)
 - [Related](#related)
@@ -61,17 +62,49 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 ## The two jobs and their guards
 
 The workflow has two jobs. `test` holds no secret and has read-only permissions: it builds, runs the checks
-below and the package's unit tests (`make test-$PACKAGE`), and runs the preset smoke against the VULCAN
+below, the package's unit tests (`make test-$PACKAGE`) and the repository scripts' tests (`make test-scripts`, which hold the guards below), and runs the preset smoke against the VULCAN
 version the repository declares in `devDependencies` (never `latest`). `release` `needs: test`, runs only
-from `develop` (`if: github.ref == 'refs/heads/develop'`), is the only job with `contents: write`, and is the
-only one that reads the registry token, in the publish and the dist-tag steps. Both check out
-`${{ github.sha }}`, the dispatched commit, never a branch name, and the run name carries it. Bun is an
-exact version and every action is pinned by a full commit with its tag in a comment.
+from `develop` (`if: github.ref == 'refs/heads/develop'`), is the only job with `contents: write` and
+`id-token: write`, and names the environment `npm-release`. It holds no registry token and no secret: the
+publish and the dist-tag steps sign in through npm trusted publishing (see
+[Trusted publishing](#trusted-publishing-no-npm-token)). Both check out
+`${{ github.sha }}`, the dispatched commit, never a branch name, and the run name carries it. Bun and Node
+are exact versions, the Node setup does not cache, and every action is pinned by a full commit with its tag in a comment.
 
 `scripts/release/release-workflow.ts` reads the workflow and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request.
+mutation in that test, in the same pull request. The guards for trusted publishing are `no-npm-token` (no
+`secrets.` reference and no npm token name in any step), `environment-on-release`, `oidc-on-release-only`,
+`node-exact-no-cache`, `npm-exact-and-asserted`, `publish-tarball-with-provenance` (`bun publish` appears
+nowhere, the pack step uses `bun pm pack`, the `npm publish` command carries `--provenance` and the tarball)
+and `tarball-sha256-checked` (recorded at the pack step, checked before the publish step sets `IS_PUBLISHED` and before `npm publish`), `tarball-version-checked` (the packed version is the version the run releases) and `script-tests-run`. The guards read commands with comments stripped, and `no-npm-token` reads the whole file, the top-level `env` included, and names the line. `scripts/release/__tests__/release-repository.test.ts` keeps every published
+`package.json` naming this repository, which provenance requires.
+
+## Trusted publishing (no npm token)
+
+The release job holds no npm token. It has `id-token: write` (it alone), installs an exact npm that is new
+enough to publish and to move a dist-tag over OIDC (the one that ships with Node is older) and asserts it,
+and npm exchanges the job's identity for a short-lived publish credential. For that, each of the nine
+packages has a **trusted publisher** on npmjs.com (package Settings, Trusted Publisher, GitHub Actions):
+organisation `VENIZIA-AI`, repository `ignis`, workflow filename `package-release.yml`, environment
+`npm-release`, and the allowed actions `npm publish` and `npm dist-tag`. The nine packages are
+`@venizia/dev-configs`, `@venizia/ignis-inversion`, `@venizia/ignis-filter`, `@venizia/ignis-helpers`,
+`@venizia/ignis-boot`, `@venizia/ignis-kernel`, `@venizia/ignis-connectors`, `@venizia/ignis` (`core-server`)
+and `@venizia/ignis-worker` (`core-worker`).
+
+- npm does not validate an entry when it is saved: a typo shows only at that package's first publish. Each
+  package is its own run, so a bad entry fails that run before anything is published and the chain stops
+  there; fix the entry and dispatch again.
+- A publish needs the repository, the packages and the `repository.url` of every `package.json` to match
+  this repository (`git+https://github.com/VENIZIA-AI/ignis.git`, with the package's `directory`).
+- The environment's reviewers and ref rule are GitHub settings that only the owner writes. A run waits at
+  the environment for an approval before any step of the release job starts; `release.ts` keeps watching.
+- Only `bun pm pack` resolves `catalog:` and `workspace:` while packing; `npm publish` of a bun-packed
+  tarball keeps that. The release packs once, after the version bump and the preset, records the sha256 of
+  the tarball, and the publish step checks it again before it publishes that very file.
+- The repository secret that held the old token is already deleted. After the first release over trusted
+  publishing has passed, the owner sets each package's Publishing access to disallow tokens and revokes the old token.
 
 ## The prebuilt atlas index of this repository
 
@@ -96,7 +129,7 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
    built, and is not currently republished through this workflow.
 3. `bun run --filter "@venizia/*" force-update "highest"` runs BEFORE `bun install`, and over the
    WHOLE workspace rather than the one package being released.
-   - It skips a sibling of this repository: manifests name siblings `workspace:*`, which `bun publish` writes as the sibling's exact version in the tarball (a caret let a fresh install pair one release with the next release's sibling), while development keeps linking the workspace copy. An exact version in the manifest would stop linking the moment the sibling bumps.
+   - It skips a sibling of this repository: manifests name siblings `workspace:*`, which `bun pm pack` writes as the sibling's exact version in the tarball (a caret let a fresh install pair one release with the next release's sibling), while development keeps linking the workspace copy. An exact version in the manifest would stop linking the moment the sibling bumps.
    - Before the install, because `force-update` rewrites the internal version ranges and an install
      that ran first has already resolved the old ones. When a sibling has moved past a declared
      range, that range no longer covers the workspace copy, so bun downloads the published tarball
@@ -126,30 +159,33 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
    peers the manifest grants each sub-path, and loads every published sub-path under Bun - plus a browser build for every entry the purity gate
    claims - with both the hoisted and the isolated linker. The workspace hoists every
    optional peer, so a sub-path that leaks one looks fine everywhere else. CI runs `make clean-install` for every
-   package. The release workflow still sets up Node 24, only to write the npm auth and run `npm version`.
+   package. The release workflow still sets up Node, only to run `npm` (`version`, `publish`, `dist-tag`).
 6. Build artifacts are validated against the package's own `exports` map: every file any condition
    names must exist. The list is never hand-written. The hand-written one it replaced named a few
    packages and went stale the day more were added.
 7. Three dependency gates then run, still before anything is bumped or pushed. `make catalog-check`
-   asserts the workspace catalog has not drifted. A policy step greps this workflow file to confirm
-   the publish step still says `bun publish`. The package is then packed ONCE with `bun pm pack`,
-   and two checks read that one manifest: it must carry no unresolved `catalog:` or `workspace:`
+   asserts the workspace catalog has not drifted. The package is then packed with `bun pm pack` in the
+   `test` job, and two checks read that manifest: it must carry no unresolved `catalog:` or `workspace:`
    protocol, and every runtime dependency must resolve to a real published version on the registry.
+   That the release publishes a bun-packed tarball, and never `bun publish`, is a guard of
+   `release-workflow.ts`, not a step.
 8. Version bump: `cd $PACKAGE_PATH && npm version $BUILD_MODE --no-git-tag-version
    --workspaces-update=false`. Then `git fetch origin && git checkout develop && git pull origin
    develop`, so the commit later lands on the latest `develop` rather than the checkout's stale ref.
-9. Publishes, BEFORE any git write: `bun publish --access public --tag <dist-tag> --ignore-scripts`
-    from the package directory. It must be `bun publish`, never `npm publish`: bun resolves the
-    `catalog:` / `workspace:` protocol while packing, whereas npm ships it verbatim into the tarball
-    and the published manifest is then uninstallable for every consumer. Auth is passed as
-    `NPM_CONFIG_TOKEN` rather than `NODE_AUTH_TOKEN`, because bun ignores the `.npmrc` that
-    `actions/setup-node` writes and reads neither `NODE_AUTH_TOKEN` nor `BUN_AUTH_TOKEN`.
+9. Packs and publishes, BEFORE any git write. The step "Pack and checksum the release tarball" runs
+    `bun pm pack` once into `$TARBALLS/<package>.tgz`, rejects an unresolved `catalog:` / `workspace:`
+    protocol in the packed manifest and records the sha256. The step "Publish to NPM" checks that sha256
+    and runs `npm publish "$TARBALLS/$PACKAGE.tgz" --access public --tag <dist-tag> --ignore-scripts
+    --provenance`. Bun packs because only bun resolves the protocols while packing; npm publishes because bun has
+    no trusted publishing and `npm publish` of a tarball ships the manifest as packed. There is no
+    token in the step: npm signs in with the job's identity and writes the provenance. It prints
+    `+ <name>@<version>`, the line `release.ts` reads as proof of a publish.
     `patch|minor|major` publish under the `latest` npm tag; any `pre*` mode publishes under `next`.
     `--ignore-scripts` is used because the build already ran in step 5. `IS_PUBLISHED` is set BEFORE
     the publish command, so a publish that succeeded and lost its response is still reported.
 10. Best-effort: tries to move the `highest` npm dist-tag to the version just published (publishes
     are monotonic, so the latest publish is always the highest version); failure here is logged but
-    does not fail the job.
+    does not fail the job. This step and the next-tag sync also sign in through the job's identity.
 11. Only now does git change: commit `package.json` as `chore(<package>): release v<version>
     [<build_mode>]`, push to `develop`, then tag `<package>-v<version>` and push the tag. The push
     rebases and retries once, because `develop` can move between the sync and the push.

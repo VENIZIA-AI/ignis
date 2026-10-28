@@ -61,11 +61,13 @@ A dependency shared by two or more workspaces is pinned ONCE in the root `worksp
 each workspace references it as `"dep": "catalog:"`. Bump the root entry and every workspace moves
 together.
 
-**The release pipeline MUST publish with `bun publish`.** Only bun resolves `catalog:` while packing;
-`npm publish` ships it verbatim and the manifest is unresolvable for every consumer. Releases
-0.1.1-9 / -6 / -4 broke exactly this way, before the pipeline was switched. Two gates protect it in
-`.github/workflows/package-release.yml`: `make catalog-check`, and a packed-manifest check that
-asserts the publisher is still bun and that the tarball carries no unresolved protocol.
+**The release pipeline MUST pack with `bun pm pack`.** Only bun resolves `catalog:` while packing;
+`npm pack` ships it verbatim and the manifest is unresolvable for every consumer. Releases
+0.1.1-9 / -6 / -4 broke exactly this way, before the pipeline was switched. The release then publishes
+that tarball with `npm publish --provenance`, because bun has no trusted publishing. Three gates protect
+it in `.github/workflows/package-release.yml`: `make catalog-check`, a packed-manifest check that the
+tarball carries no unresolved protocol, and the release-workflow guard (`release-workflow.ts`) that fails
+when `bun publish` returns or the pack step stops using bun.
 
 Rules:
 

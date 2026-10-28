@@ -12,12 +12,20 @@ export class ReleaseWorkflowGuards {
   static readonly TEST_JOB_HOLDS_NO_SECRET = 'test-job-holds-no-secret';
   static readonly VULCAN_PINNED = 'vulcan-pinned';
   static readonly BUN_EXACT = 'bun-exact';
-  static readonly TOKEN_STEPS_ONLY = 'token-steps-only';
+  static readonly NO_NPM_TOKEN = 'no-npm-token';
+  static readonly ENVIRONMENT_ON_RELEASE = 'environment-on-release';
+  static readonly OIDC_ON_RELEASE_ONLY = 'oidc-on-release-only';
+  static readonly NODE_EXACT_NO_CACHE = 'node-exact-no-cache';
+  static readonly NPM_EXACT_AND_ASSERTED = 'npm-exact-and-asserted';
+  static readonly PUBLISH_TARBALL_WITH_PROVENANCE = 'publish-tarball-with-provenance';
+  static readonly TARBALL_SHA256_CHECKED = 'tarball-sha256-checked';
   static readonly CHECKOUT_AT_DISPATCHED_COMMIT = 'checkout-at-dispatched-commit';
   static readonly NO_BRANCH_SYNC = 'no-branch-sync';
   static readonly RUN_NAME_CARRIES_COMMIT = 'run-name-carries-commit';
   static readonly ACTIONS_PINNED_BY_COMMIT = 'actions-pinned-by-commit';
   static readonly UNIT_TESTS_RUN = 'unit-tests-run';
+  static readonly SCRIPT_TESTS_RUN = 'script-tests-run';
+  static readonly TARBALL_VERSION_CHECKED = 'tarball-version-checked';
 
   static readonly SCHEME_SET = new Set<string>([
     this.DEVELOP_ONLY,
@@ -27,12 +35,20 @@ export class ReleaseWorkflowGuards {
     this.TEST_JOB_HOLDS_NO_SECRET,
     this.VULCAN_PINNED,
     this.BUN_EXACT,
-    this.TOKEN_STEPS_ONLY,
+    this.NO_NPM_TOKEN,
+    this.ENVIRONMENT_ON_RELEASE,
+    this.OIDC_ON_RELEASE_ONLY,
+    this.NODE_EXACT_NO_CACHE,
+    this.NPM_EXACT_AND_ASSERTED,
+    this.PUBLISH_TARBALL_WITH_PROVENANCE,
+    this.TARBALL_SHA256_CHECKED,
     this.CHECKOUT_AT_DISPATCHED_COMMIT,
     this.NO_BRANCH_SYNC,
     this.RUN_NAME_CARRIES_COMMIT,
     this.ACTIONS_PINNED_BY_COMMIT,
     this.UNIT_TESTS_RUN,
+    this.SCRIPT_TESTS_RUN,
+    this.TARBALL_VERSION_CHECKED,
   ]);
 }
 
@@ -69,14 +85,21 @@ const TEST_JOB = 'test';
 const DEVELOP_CONDITION = "github.ref == 'refs/heads/develop'";
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
-const TOKEN_REFERENCE = 'secrets.NPM_ACCESS_TOKEN';
+const RELEASE_ENVIRONMENT = 'npm-release';
+const NPM_TOKEN_NAMES = ['NPM_ACCESS_TOKEN', 'NPM_CONFIG_TOKEN', 'NODE_AUTH_TOKEN'];
+const SECRET_REFERENCE = 'secrets.';
+const EXACT_NPM = /npm install (?:--global|-g) npm@(\d+\.\d+\.\d+)(?:\s|$)/;
+/** The first npm that moves a dist-tag over OIDC; publishing needs 11.5.1. */
+const MINIMUM_NPM = '11.21.0';
+const INSTALL_NPM_STEP = 'Install the npm that publishes';
+const PACK_STEP = 'Pack and checksum the release tarball';
+const PUBLISH_STEP = 'Publish to NPM';
+const TARBALL_PATH = '"$TARBALLS/$PACKAGE.tgz"';
 
-/** The steps allowed to read the registry token: they publish, or move a dist-tag. */
-export const TOKEN_STEP_NAMES: ReadonlySet<string> = new Set([
-  'Publish to NPM',
-  'Tag highest version on NPM',
-  'Keep next at or above latest',
-]);
+/** A comment names the commands without running them: every guard on a command reads the text without them. */
+const withoutComments = (text: string): string => text.replace(/(^|[ \t])#.*$/gm, '');
+
+const commandsOf = (step: IWorkflowStep | undefined): string => withoutComments(step?.run ?? '');
 
 const stepsOf = (job: IWorkflowJob | undefined): IWorkflowStep[] => job?.steps ?? [];
 
@@ -184,18 +207,118 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     );
   }
 
-  for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
-    for (const step of stepsOf(job)) {
-      if (
-        JSON.stringify(step).includes(TOKEN_REFERENCE) &&
-        !TOKEN_STEP_NAMES.has(step.name ?? '')
-      ) {
-        violate(
-          ReleaseWorkflowGuards.TOKEN_STEPS_ONLY,
-          `the registry token is read in '${step.name}' (${jobName}); only ${[...TOKEN_STEP_NAMES].join(', ')} may read it`,
-        );
-      }
+  const hasOidc = (permissions: unknown): boolean =>
+    typeof permissions === 'object' && permissions !== null && 'id-token' in permissions;
+  if (
+    typeof releasePermissions !== 'object' ||
+    releasePermissions?.['id-token'] !== 'write' ||
+    hasOidc(defaults) ||
+    hasOidc(testPermissions)
+  ) {
+    violate(
+      ReleaseWorkflowGuards.OIDC_ON_RELEASE_ONLY,
+      `only the '${RELEASE_JOB}' job may hold \`id-token\`, and it must state \`id-token: write\`: that is what the trusted publisher signs in with`,
+    );
+  }
+
+  if (release?.environment !== RELEASE_ENVIRONMENT) {
+    violate(
+      ReleaseWorkflowGuards.ENVIRONMENT_ON_RELEASE,
+      `the '${RELEASE_JOB}' job must name \`environment: ${RELEASE_ENVIRONMENT}\`: its reviewers and ref rule are what a run waits on, and the trusted publisher names it`,
+    );
+  }
+
+  for (const [index, line] of withoutComments(text).split('\n').entries()) {
+    const leaked = [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name));
+    if (leaked !== undefined) {
+      violate(
+        ReleaseWorkflowGuards.NO_NPM_TOKEN,
+        `line ${index + 1} names \`${leaked}\`; the release holds no secret and no npm token, it publishes through trusted publishing`,
+      );
     }
+  }
+
+  const nodeSteps = Object.values(workflow.jobs ?? {})
+    .flatMap(stepsOf)
+    .filter((step) => step.uses?.startsWith('actions/setup-node@'));
+  if (
+    nodeSteps.length === 0 ||
+    nodeSteps.some(
+      (step) =>
+        !EXACT_VERSION.test(String(step.with?.['node-version'] ?? '')) ||
+        step.with?.['package-manager-cache'] !== false,
+    )
+  ) {
+    violate(
+      ReleaseWorkflowGuards.NODE_EXACT_NO_CACHE,
+      'every setup-node step must state an exact `node-version` (x.y.z) and `package-manager-cache: false`',
+    );
+  }
+
+  const releaseSteps = stepsOf(release);
+  const stepNamed = (name: string): IWorkflowStep | undefined =>
+    releaseSteps.find((step) => step.name === name);
+  const install = stepNamed(INSTALL_NPM_STEP);
+  const pack = stepNamed(PACK_STEP);
+  const publishCommands = commandsOf(stepNamed(PUBLISH_STEP));
+  const packCommands = commandsOf(pack);
+
+  const installedNpm = EXACT_NPM.exec(commandsOf(install))?.[1];
+  if (
+    installedNpm === undefined ||
+    Bun.semver.order(installedNpm, MINIMUM_NPM) < 0 ||
+    !commandsOf(install).includes('npm --version')
+  ) {
+    violate(
+      ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
+      `'${INSTALL_NPM_STEP}' must install an exact npm of at least ${MINIMUM_NPM} and assert it with \`npm --version\``,
+    );
+  }
+
+  for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
+    for (const step of stepsOf(job).filter((entry) => commandsOf(entry).includes('bun publish'))) {
+      violate(
+        ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+        `'${step.name}' (${jobName}) runs \`bun publish\`; bun has no trusted publishing, npm publishes a tarball bun packed`,
+      );
+    }
+  }
+
+  const publishLine =
+    publishCommands.split('\n').find((line) => line.includes('npm publish')) ?? '';
+  if (!publishLine.includes('--provenance') || !publishLine.includes(TARBALL_PATH)) {
+    violate(
+      ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      `'${PUBLISH_STEP}' must run \`npm publish --provenance\` on \`${TARBALL_PATH}\``,
+    );
+  }
+
+  if (!packCommands.includes('bun pm pack')) {
+    violate(
+      ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      `'${PACK_STEP}' must pack with \`bun pm pack\`: only bun resolves \`catalog:\` and \`workspace:\`, npm ships them verbatim`,
+    );
+  }
+
+  const checkAt = publishCommands.indexOf('sha256sum --check');
+  const flagAt = publishCommands.indexOf('IS_PUBLISHED=true');
+  if (
+    !packCommands.includes('sha256sum') ||
+    checkAt < 0 ||
+    checkAt > publishCommands.indexOf('npm publish') ||
+    (flagAt >= 0 && checkAt > flagAt)
+  ) {
+    violate(
+      ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      `'${PACK_STEP}' must record the sha256 of the tarball and '${PUBLISH_STEP}' must check it before it sets IS_PUBLISHED and before \`npm publish\`: what is published is what was packed`,
+    );
+  }
+
+  if (!/\[ "\$PACKED_VERSION" = "\$NEW_VERSION" \]/.test(packCommands)) {
+    violate(
+      ReleaseWorkflowGuards.TARBALL_VERSION_CHECKED,
+      `'${PACK_STEP}' must compare the version inside the tarball with the \`NEW_VERSION\` this run releases`,
+    );
   }
 
   const checkouts = Object.values(workflow.jobs ?? {})
@@ -245,6 +368,14 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     violate(
       ReleaseWorkflowGuards.UNIT_TESTS_RUN,
       `the '${TEST_JOB}' job must run the package's unit tests (\`make test-$PACKAGE\`)`,
+    );
+  }
+
+  const scriptTests = stepsOf(test).some((step) => commandsOf(step).includes('make test-scripts'));
+  if (!scriptTests) {
+    violate(
+      ReleaseWorkflowGuards.SCRIPT_TESTS_RUN,
+      `the '${TEST_JOB}' job must run the repository scripts' tests (\`make test-scripts\`): they hold these guards`,
     );
   }
 
