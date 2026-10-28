@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkReleaseWorkflow, ReleaseWorkflowGuards, TOKEN_STEP_NAMES } from '../release-workflow';
+import { checkReleaseWorkflow, ReleaseWorkflowGuards } from '../release-workflow';
 
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
 const WORKFLOW = readFileSync(resolve(ROOT, '.github/workflows/package-release.yml'), 'utf8');
@@ -29,7 +29,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(13);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(19);
   });
 });
 
@@ -73,10 +73,114 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       everywhere: true,
     },
     {
-      guard: ReleaseWorkflowGuards.TOKEN_STEPS_ONLY,
+      guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
       find: '      - name: Version bump\n',
       replace:
         '      - name: Version bump\n        env:\n          LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
+      find: '      - name: Keep next at or above latest\n',
+      replace:
+        '      - name: Keep next at or above latest\n        env:\n          NODE_AUTH_TOKEN: x\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
+      find: '          echo "IS_PUBLISHED=true" >> $GITHUB_ENV\n',
+      replace:
+        '          echo "IS_PUBLISHED=true" >> $GITHUB_ENV\n          export NPM_CONFIG_TOKEN=x\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.ENVIRONMENT_ON_RELEASE,
+      find: '    environment: npm-release\n',
+      replace: '',
+    },
+    {
+      guard: ReleaseWorkflowGuards.OIDC_ON_RELEASE_ONLY,
+      find: '      id-token: write\n',
+      replace: '',
+    },
+    {
+      guard: ReleaseWorkflowGuards.OIDC_ON_RELEASE_ONLY,
+      find: '    name: Test\n    runs-on: ubuntu-26.04\n    permissions:\n      contents: read\n',
+      replace:
+        '    name: Test\n    runs-on: ubuntu-26.04\n    permissions:\n      contents: read\n      id-token: write\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.OIDC_ON_RELEASE_ONLY,
+      find: '\npermissions:\n  contents: read\n',
+      replace: '\npermissions:\n  contents: read\n  id-token: write\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.NODE_EXACT_NO_CACHE,
+      find: 'node-version: 24.22.1',
+      replace: "node-version: '24'",
+      everywhere: true,
+    },
+    {
+      guard: ReleaseWorkflowGuards.NODE_EXACT_NO_CACHE,
+      find: 'package-manager-cache: false',
+      replace: 'package-manager-cache: true',
+      everywhere: true,
+    },
+    {
+      guard: ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
+      find: '11.21.1',
+      replace: 'latest',
+      everywhere: true,
+    },
+    {
+      guard: ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
+      find: '11.21.1',
+      replace: '11.19.1',
+      everywhere: true,
+    },
+    {
+      guard: ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
+      find: 'npm --version',
+      replace: 'true',
+      everywhere: true,
+    },
+    {
+      guard: ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
+      find: '- name: Install the npm that publishes',
+      replace: '- name: Install an npm',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      find: '--provenance',
+      replace: '',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      find: 'npm publish "',
+      replace: 'echo "',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      find: '"$TARBALLS/$PACKAGE.tgz" --access public',
+      replace: '. --access public',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      find: 'bun pm pack --quiet --filename',
+      replace: 'npm pack --quiet --filename',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      find: '      - name: Tag highest version on NPM\n',
+      replace:
+        '      - name: Publish again\n        run: bun publish --access public\n\n      - name: Tag highest version on NPM\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      find: 'sha256sum --check',
+      replace: 'true',
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      find: 'sha256sum *.tgz > SHA256SUMS',
+      replace: 'true',
     },
     {
       guard: ReleaseWorkflowGuards.CHECKOUT_AT_DISPATCHED_COMMIT,
@@ -109,8 +213,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
   ];
 
-  test('the table names every guard once', () => {
-    expect(MUTATIONS.map((mutation) => mutation.guard).sort()).toEqual(
+  test('the table names every guard', () => {
+    expect([...new Set(MUTATIONS.map((mutation) => mutation.guard))].sort()).toEqual(
       [...ReleaseWorkflowGuards.SCHEME_SET].sort(),
     );
   });
@@ -124,12 +228,11 @@ describe('one mutation per guard: removing the guard from a copy fails the check
   }
 });
 
-describe('the registry token', () => {
-  test('is read only in the steps that publish or move a dist-tag', () => {
-    expect([...TOKEN_STEP_NAMES].sort()).toEqual([
-      'Keep next at or above latest',
-      'Publish to NPM',
-      'Tag highest version on NPM',
-    ]);
+describe('the release holds no registry token', () => {
+  test('no step of the committed workflow reads a secret or names an npm token', () => {
+    const jobs = JSON.stringify((Bun.YAML.parse(WORKFLOW) as { jobs: unknown }).jobs);
+
+    expect(jobs).not.toMatch(/secrets\./);
+    expect(jobs).not.toMatch(/NPM_ACCESS_TOKEN|NPM_CONFIG_TOKEN|NODE_AUTH_TOKEN/);
   });
 });

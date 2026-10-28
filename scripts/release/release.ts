@@ -284,7 +284,7 @@ const waitForCompletion = (opts: { runId: string }): Promise<string> =>
 /**
  * A green workflow is not proof of a publish: a run can put a version on npm and still fail
  * afterwards, and a green run whose publish silently did nothing is exactly what this catches. The
- * proof is the run's own publish line, `+ <name>@<version>` from `bun publish` - not the registry,
+ * proof is the run's own publish line, `+ <name>@<version>` that the publish step prints - not the registry,
  * whose metadata shows a new version 3 to 16 minutes late (measured 2026-10-15), which made every
  * chain wait that long per package.
  */

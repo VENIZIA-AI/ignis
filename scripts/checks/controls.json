@@ -133,7 +133,7 @@
     {
       "gate": "release workflow guards",
       "file": "scripts/release/__tests__/release-workflow.test.ts",
-      "titlePattern": "no violation|names every guard once",
+      "titlePattern": "no violation|names every guard",
       "min": 2
     },
     {

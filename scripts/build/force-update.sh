@@ -38,7 +38,7 @@ for pkg in $PACKAGES; do
     echo "[$pkg] pinned by the root workspaces.catalog, SKIP..."
     continue
   fi
-  # A sibling of this repository is `workspace:*`: `bun publish` writes its exact version into the tarball.
+  # A sibling of this repository is `workspace:*`: `bun pm pack` writes its exact version into the tarball.
   case "$CURRENT" in
     workspace:*)
       echo "[$pkg] workspace sibling, SKIP..."

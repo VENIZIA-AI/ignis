@@ -3,6 +3,11 @@
   "version": "0.4.4",
   "description": "Datasource and repository connectors for the IGNIS framework: the engine-neutral relational and search tiers, plus Postgres, SQLite, PGlite, Typesense and Meilisearch behind sub-paths.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/connectors"
+  },
   "files": [
     "README.md",
     "LICENSE.md",
