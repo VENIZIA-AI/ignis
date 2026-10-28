@@ -8,3 +8,7 @@ export * from './purity/manifest';
 export * from './purity/probe';
 export * from './purity/run';
 export * from './split-report';
+export * from './test-controls';
+export * from './test-dead-code';
+export * from './test-mutate';
+export * from './test-weight';

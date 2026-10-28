@@ -131,7 +131,13 @@ const normalizePath = (path: string): string => {
 /** The helper's own check: IGNIS mounts a method and path twice without complaint, and the first one wins. */
 const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void => {
   const { application } = opts;
-  const mounted = new Map<string, string[]>();
+  // signature -> controller key -> how many times that controller declares it
+  const mounted = new Map<string, Map<string, number>>();
+  const record = (signature: string, key: string, declarations: number): void => {
+    const owners = mounted.get(signature) ?? new Map<string, number>();
+    owners.set(key, Math.max(owners.get(key) ?? 0, declarations));
+    mounted.set(signature, owners);
+  };
 
   for (const binding of application.findByTag<AbstractRestController>({
     tag: BindingNamespaces.CONTROLLER,
@@ -149,23 +155,45 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
       key: binding.key,
       isOptional: true,
     });
+    // Hono's `routes` has one entry PER HANDLER (a validator, an authenticate and the handler of one route are three
+    // entries with the same method and path), so an entry is not a declaration: a controller counts once per signature.
     for (const route of instance?.getRouter().routes ?? []) {
       if (route.method === NON_ROUTE_METHOD) {
         continue;
       }
 
-      const signature = `${route.method} ${normalizePath(`${metadata.path}/${route.path}`)}`;
-      mounted.set(signature, [...(mounted.get(signature) ?? []), binding.key]);
+      record(`${route.method} ${normalizePath(`${metadata.path}/${route.path}`)}`, binding.key, 1);
+    }
+
+    // What the router cannot show: one controller declaring a method and path twice. Decorated routes are one
+    // metadata entry per declaration, so those are counted there.
+    const declared = new Map<string, number>();
+    for (const route of MetadataRegistry.getInstance()
+      .getRoutes({ target: (target as TClass<AnyType>).prototype })
+      ?.values() ?? []) {
+      const signature = `${String(route.method).toUpperCase()} ${normalizePath(`${metadata.path}/${route.path}`)}`;
+      declared.set(signature, (declared.get(signature) ?? 0) + 1);
+    }
+    for (const [signature, declarations] of declared) {
+      record(signature, binding.key, declarations);
     }
   }
 
-  const duplicates = [...mounted.entries()].filter(([, keys]) => keys.length > 1);
+  const duplicates = [...mounted.entries()].filter(
+    ([, owners]) =>
+      owners.size > 1 || [...owners.values()].some((declarations) => declarations > 1),
+  );
   if (duplicates.length === 0) {
     return;
   }
 
   const lines = duplicates.map(
-    ([signature, keys]) => `${signature} | controllers: ${keys.join(', ')}`,
+    ([signature, owners]) =>
+      `${signature} | controllers: ${[...owners]
+        .map(([key, declarations]) =>
+          declarations > 1 ? `${key} (declared ${declarations} times)` : key,
+        )
+        .join(', ')}`,
   );
   fail(
     `${duplicates.length} route(s) are mounted more than once, and only the first one answers | ${lines.join(' ; ')} | This is the helper's own check (IGNIS boot does not detect it); pass { routes: false } to turn it off`,
@@ -173,12 +201,14 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
 };
 
 /**
- * Proves an IGNIS application boots, without real infrastructure: it runs the application's own boot
- * sequence (`init()` then `initialize()`) and never calls `start()`, so no socket is opened and no
- * post-start hook runs.
+ * Proves an IGNIS application boots, without a datasource connection, a socket or a secrets provider:
+ * it runs the application's own boot sequence (`init()` then `initialize()`) and never calls `start()`,
+ * so no socket is opened and no post-start hook runs.
  *
  * Datasources are bound and resolved but not configured, unless named in `keepDataSources`; the
- * secrets steps are skipped; every other step and every component runs as in a real boot. When the
+ * secrets steps are skipped; every other step and every component runs as in a real boot. A component
+ * that opens Redis, Kafka or S3 in `binding()` therefore runs for real: name it in `skipComponents`.
+ * When the boot fails inside a component, one warning names it; the rejection is still the original error. When the
  * boot fails, the rejection is the original error. The application stays booted and is returned;
  * a failed boot leaves a half-booted instance, so build a new one rather than reuse it.
  *
@@ -230,6 +260,8 @@ export const assertApplicationBoots = async <Application extends BaseApplication
   const skippedSteps = new Set<string>(skipSteps);
   const patches: IPatch[] = [];
   let sweepsSeen = 0;
+  // The components whose `configure()` is running, innermost last: when the boot rejects, the last one is where it failed.
+  const configuringComponents: string[] = [];
 
   const neutralise = async (opts: {
     namespace: string;
@@ -267,12 +299,23 @@ export const assertApplicationBoots = async <Application extends BaseApplication
   const wrappedRegister = async (opts: IDynamicBindingsOptions): Promise<void> => {
     sweepsSeen += 1;
     const userBefore = opts.onBeforeConfigure;
+    const userAfter = opts.onAfterConfigure;
 
     return originalRegisterDynamicBindings.call(target, {
       ...opts,
       onBeforeConfigure: async ({ binding }) => {
         await neutralise({ namespace: opts.namespace, binding });
+        if (opts.namespace === BindingNamespaces.COMPONENT) {
+          const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
+          configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
+        }
         await userBefore?.({ binding });
+      },
+      onAfterConfigure: async ({ binding, instance }) => {
+        if (opts.namespace === BindingNamespaces.COMPONENT) {
+          configuringComponents.pop();
+        }
+        await userAfter?.({ binding, instance });
       },
     });
   };
@@ -349,6 +392,17 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     }
 
     return target;
+  } catch (error) {
+    const failing = configuringComponents.at(-1);
+    if (failing) {
+      target.logger
+        .for('assertApplicationBoots')
+        .warn(
+          `The boot failed inside component ${failing} | If it needs infrastructure, skipComponents: ['${failing}'] skips it, and skipBindings lists the services that depend on it`,
+        );
+    }
+
+    throw error;
   } finally {
     for (const patch of patches.reverse()) {
       patch.restore();

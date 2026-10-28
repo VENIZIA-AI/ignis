@@ -7,7 +7,7 @@
       "devDependencies": {
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
-        "@venizia/vulcan": "0.4.4",
+        "@venizia/vulcan": "0.4.6",
         "typescript": "catalog:",
       },
     },
@@ -345,9 +345,9 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "bin": {
-        "ignis-artifacts": "./dist/cjs/clis/artifacts.js",
+        "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
@@ -368,7 +368,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -413,7 +413,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -495,7 +495,7 @@
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -518,7 +518,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
@@ -550,7 +550,7 @@
     },
     "packages/filter": {
       "name": "@venizia/ignis-filter",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "zod": "catalog:",
@@ -567,7 +567,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -653,7 +653,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "reflect-metadata": "catalog:",
       },
@@ -669,7 +669,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.4.3",
+      "version": "0.4.4",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -1473,11 +1473,11 @@
 
     "@venizia/ignis-worker": ["@venizia/ignis-worker@workspace:packages/core-worker"],
 
-    "@venizia/vulcan": ["@venizia/vulcan@0.4.4", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.4", "@venizia/vulcan-okf": "0.4.4", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-ezMn1/wjwxmDjdwPjZSDGB9cA1rY77BC1U7uLpOkQttMXblrQ++UhgBae0r2pz5oLFo67itCfWhxcLL1StXeWg=="],
+    "@venizia/vulcan": ["@venizia/vulcan@0.4.6", "", { "dependencies": { "@clack/prompts": "1.8.1", "@venizia/vulcan-atlas": "0.4.6", "@venizia/vulcan-okf": "0.4.6", "zod": "^4.6.7" }, "bin": { "vulcan": "src/cli.ts" } }, "sha512-MEXXyF3RbIFJNtCOCfvI1NwSN6yQPb1/erSXCQUhZHjw11CPIm6ALNm9HxzNdaYKPk6aD5gCTerdlLwauYvODg=="],
 
-    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.4", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-py3f3RXSo+DFUK0KWFafeu9wWMjYzHBnZ34ZfSxc0LKWbykVh/PzXhXa9xr9zgKFqu1ugVtsyz6Vk3HDjn3Zuw=="],
+    "@venizia/vulcan-atlas": ["@venizia/vulcan-atlas@0.4.6", "", { "dependencies": { "typescript": "^6.0.3", "zod": "^4.6.7" }, "bin": { "vulcan-atlas": "dist/cjs/cli.js" } }, "sha512-u/Q15x19TXR9WYRjE9V74Gd0+dSmVegiHcGmCe0xyBkwgLjkFeLfxeCC2Gvr89r0WAV4aG6ga6zv7UIcXLGtgA=="],
 
-    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.4", "", { "dependencies": { "cytoscape": "^3.34.4", "cytoscape-fcose": "^2.2.0" }, "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-JHgzNjol4TIabvgyjBcMegr2FNwX/B5HOETpeG31z6I2/cDDq7nD9Wg+VG5BrkyxWH3JpdRG0DDDRPqzx+XAlA=="],
+    "@venizia/vulcan-okf": ["@venizia/vulcan-okf@0.4.6", "", { "dependencies": { "cytoscape": "^3.34.4", "cytoscape-fcose": "^2.2.0" }, "bin": { "vulcan-okf": "src/cli.ts" } }, "sha512-44fwjdF59DqAdNWbxN12Z3z9KhyY/9/g0TqOeORAH8U3QOt85Xo+Z+D4FtTvO56LbX/PQ4TuOyPgxdpnz8fjmQ=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@6.1.2", "", { "dependencies": { "@rolldown/pluginutils": "^1.0.1" }, "peerDependencies": { "@rolldown/plugin-babel": "^0.1.7 || ^0.2.0", "babel-plugin-react-compiler": "^1.0.0", "oxc-transform-react": "^0.152.0", "vite": "^8.0.0" }, "optionalPeers": ["@rolldown/plugin-babel", "babel-plugin-react-compiler", "oxc-transform-react"] }, "sha512-fhJNGUdscQa4HkI0xFxwonWyhnVReCPDbXI7FH7jmzpnVCrFQI7PRrhWecO263610vOrs9tr2Y4xcf8uAdFxbw=="],
 

@@ -145,6 +145,47 @@ class SecondDuplicateController extends BaseRestController {
   }
 }
 
+/** A route with a validated request: Hono registers one route entry per handler, so this route has more than one entry. */
+@controller({ path: '/orders' })
+class ValidatedController extends BaseRestController {
+  constructor() {
+    super({ scope: ValidatedController.name });
+  }
+
+  override binding(): ValueOrPromise<void> {}
+
+  @get({
+    configs: {
+      path: '/:id',
+      request: { params: z.object({ id: z.string() }) },
+      responses: okResponse,
+    },
+  })
+  one(context: AnyType) {
+    return context.json({ hit: 'one' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+
+/** One controller that declares the same method and path twice: a real duplicate. */
+@controller({ path: '/twice' })
+class SelfDuplicateController extends BaseRestController {
+  constructor() {
+    super({ scope: SelfDuplicateController.name });
+  }
+
+  override binding(): ValueOrPromise<void> {}
+
+  @get({ configs: { path: '/same', responses: okResponse } })
+  first(context: AnyType) {
+    return context.json({ hit: 'first' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @get({ configs: { path: '/same', responses: okResponse } })
+  second(context: AnyType) {
+    return context.json({ hit: 'second' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+
 /** A component that needs infrastructure: its `binding()` only counts. */
 class CountingComponent extends BaseComponent {
   constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) application: BaseApplication) {
@@ -155,6 +196,37 @@ class CountingComponent extends BaseComponent {
     calls.component += 1;
   }
 }
+
+/** The error a component raises while it binds, kept so a test can tell the original rejection from a wrapped one. */
+const BINDING_FAILURE = new Error('cannot reach the broker');
+
+/** A component that needs infrastructure and fails while it binds, as one that connects to Redis or Kafka does. */
+class ThrowingComponent extends BaseComponent {
+  constructor(@inject({ key: CoreBindings.APPLICATION_INSTANCE }) application: BaseApplication) {
+    super({ scope: ThrowingComponent.name, initDefault: { enable: true, container: application } });
+  }
+
+  override binding(): ValueOrPromise<void> {
+    throw BINDING_FAILURE;
+  }
+}
+
+/** Records what an application logs, so a test can read the lines of one level. */
+const recordLogs = (application: BaseApplication): Array<{ level: string; message: string }> => {
+  const lines: Array<{ level: string; message: string }> = [];
+  const recorder: AnyType = {
+    for: () => recorder,
+    log: () => {},
+  };
+  for (const level of ['debug', 'info', 'warn', 'error']) {
+    recorder[level] = (...args: unknown[]) => {
+      lines.push({ level, message: args.map(String).join(' ') });
+    };
+  }
+
+  application.logger = recorder;
+  return lines;
+};
 
 /** A component that contributes a datasource while it binds. */
 class ContributingComponent extends BaseComponent {
@@ -460,6 +532,72 @@ describe('assertApplicationBoots - datasources and components', () => {
   });
 });
 
+describe('assertApplicationBoots - a failing component names the way out', () => {
+  const planned = () => new PlannedApplication({ ...FULL, components: [ThrowingComponent] });
+
+  test('a boot that fails inside a component logs one line naming skipComponents, and rejects with the original error', async () => {
+    const application = planned();
+    const lines = recordLogs(application);
+
+    const error = await assertApplicationBoots(application).catch((caught: unknown) => caught);
+    const hints = lines.filter((line) => line.message.includes('skipComponents'));
+
+    expect(error).toBe(BINDING_FAILURE);
+    expect(hints).toHaveLength(1);
+    expect(hints[0].message).toContain("skipComponents: ['ThrowingComponent']");
+  });
+
+  test('with a skipped component before it, the hint names the component that failed', async () => {
+    const application = new PlannedApplication({
+      ...FULL,
+      components: [CountingComponent, ThrowingComponent],
+    });
+    const lines = recordLogs(application);
+
+    const error = await assertApplicationBoots(application, {
+      skipComponents: [CountingComponent],
+    }).catch((caught: unknown) => caught);
+    const hints = lines.filter((line) => line.message.includes('skipComponents'));
+
+    expect(error).toBe(BINDING_FAILURE);
+    expect(hints).toHaveLength(1);
+    expect(hints[0].message).toContain("skipComponents: ['ThrowingComponent']");
+  });
+
+  test('a component that finished before a later failure is not blamed', async () => {
+    const application = new PlannedApplication({
+      controllers: [BrokenController],
+      components: [CountingComponent],
+    });
+    const lines = recordLogs(application);
+
+    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
+  });
+
+  test('a boot that fails outside a component logs no hint', async () => {
+    const application = new PlannedApplication({ controllers: [BrokenController] });
+    const lines = recordLogs(application);
+
+    await assertApplicationBoots(application).catch((caught: unknown) => caught);
+
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
+  });
+
+  test('a component named in skipComponents is skipped, so the boot passes and nothing is hinted', async () => {
+    const application = planned();
+    const lines = recordLogs(application);
+
+    const booted = await assertApplicationBoots(application, {
+      skipComponents: [ThrowingComponent],
+    });
+
+    expect(booted).toBe(application);
+    expect(lines.filter((line) => line.message.includes('skipComponents'))).toHaveLength(0);
+  });
+});
+
 describe('assertApplicationBoots - steps and secrets', () => {
   test('C13 without skipSteps the two secrets steps do not run', async () => {
     await assertApplicationBoots(new PlannedApplication(FULL));
@@ -584,6 +722,23 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
     const booted = await assertApplicationBoots(application, { routes: false });
 
     expect(booted).toBe(application);
+  });
+
+  test('a route with a validated request chain is one route, not a duplicate of itself', async () => {
+    const application = new PlannedApplication({ controllers: [ValidatedController] });
+
+    expect(await assertApplicationBoots(application)).toBe(application);
+  });
+
+  test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {
+    const error = await assertApplicationBoots(
+      new PlannedApplication({ controllers: [SelfDuplicateController] }),
+    ).catch((caught: unknown) => caught);
+    const message = String(error);
+
+    expect(message).toContain('1 route(s) are mounted more than once');
+    expect(message).toContain('GET /twice/same');
+    expect(message.split('GET /twice/same').length - 1).toBe(1);
   });
 
   test('C27 distinct paths on one controller are not duplicates', async () => {

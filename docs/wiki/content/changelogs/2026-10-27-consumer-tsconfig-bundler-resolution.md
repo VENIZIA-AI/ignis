@@ -35,4 +35,4 @@ Every app and library that extends `@venizia/dev-configs/tsconfig.common.json` o
 
 ## Known dual-copy hazards
 
-These IGNIS loaders still call `require` for a peer that ships both a CommonJS and an ES module build. If your code imports the same peer, you hold two copies, so do not compare their classes with `instanceof`: `bullmq` (queue helper), `socket.io-client` (socket client helper), the `@connectrpc` peers (gRPC adapter). `ioredis`, `nodemailer`, `mailgun.js` and the SES client are CommonJS only and have one copy. Converting these loaders is planned for the next release.
+These IGNIS loaders still call `require` for a peer that ships both a CommonJS and an ES module build. If your code imports the same peer, you hold two copies, so do not compare their classes with `instanceof`: `bullmq` (queue helper), `socket.io-client` (socket client helper), the `@connectrpc` peers (gRPC adapter). `ioredis`, `nodemailer`, `mailgun.js` and the SES client are CommonJS only and have one copy. Resolved in 0.4.5: see [ModuleUtility.load resolves the ES module copy, and preload registers it](./2026-10-28-module-load-es-copy-and-preload).

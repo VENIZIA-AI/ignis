@@ -59,11 +59,11 @@
   --win-stroke: #ffffff1a;
   --win-text: #ffffffd9;
   --win-muted: #ffffff80;
-  --win-key: #c4a7ff;
+  --win-key: var(--accent-on-dark);
   --win-str: #a5e3a0;
   --win-com: #ffffff66;
-  --win-fn: #8ec5ff;
-  --win-type: #ffd08a;
+  --win-fn: color-mix(in srgb, var(--accent-on-dark) 30%, #ffffff);
+  --win-type: color-mix(in srgb, var(--accent-on-dark) 55%, #ffffff);
   /* The Venizia wordmark, exactly as the official logo files: #12141A on light, white on dark (venizia-logo.ts). */
   --venizia-wordmark: #12141a;
 }

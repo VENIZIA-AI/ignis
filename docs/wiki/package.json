@@ -44,6 +44,7 @@
     "!content/changelogs",
     "!**/*.tsbuildinfo"
   ],
+  "type": "module",
   "publishConfig": {
     "access": "public"
   },

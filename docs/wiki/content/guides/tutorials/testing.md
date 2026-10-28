@@ -62,6 +62,8 @@ The helper runs `init()` and `initialize()`, never `start()`: no socket opens an
 | `allowNoControllers` | `false` | An application that registered no controller is rejected, because an empty artifact index would otherwise pass |
 | `routes` | `true` | The helper's own check that no method and path is mounted twice. IGNIS boot does not detect that |
 
+**Components run for real.** The helper stubs datasource connections, the secrets provider and the socket, nothing else. A component's `binding()` registers the services and controllers the check then resolves, so it must run. A component that opens Redis, Kafka or S3 there needs a name in `skipComponents`; what it would have registered is then missing, so list the services that depend on it in `skipBindings`. When a boot fails inside a component, the helper logs one warning that names it (`skipComponents: ['RedisComponent']`); the rejection stays the original error.
+
 The first argument is a built application or a function that returns one. Pass a function when a test boots the same application more than once: a second call on the same instance is rejected, also after a failed first call.
 
 Verification runs after the last boot step, so if `validateScopeFilterSupport` also fails, that error comes first. What it catches: an unregistered injection, a missing binding, a bad component wiring, a duplicate route, an application with no controller. What it does not catch: a wrong database URL or password, a migration, anything `start()` does, or code of your own that opens a connection while it boots. `printStartUpInfo`, `validateEnvs` and `registerDefaultMiddlewares` still run, so a test supplies the environment variables its application needs.

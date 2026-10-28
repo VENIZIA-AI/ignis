@@ -19,7 +19,7 @@ PURITY := $(DEVZ) check purity --claims scripts/checks/purity/manifest.ts
 PURITY_TARGETS := $(addprefix purity-,$(PACKAGES))
 CLEAN_INSTALL_TARGETS := $(addprefix clean-install-,$(PACKAGES))
 
-.PHONY: test-all test-scripts build-checks examples-check purity purity-test clean-install tmp-leak-check \
+.PHONY: test-all test-scripts build-checks examples-check purity purity-test controls-check clean-install tmp-leak-check \
         $(TEST_TARGETS) $(PURITY_TARGETS) $(CLEAN_INSTALL_TARGETS)
 
 # ----------------------------------------------------------------------------
@@ -49,11 +49,11 @@ tmp-leak-check:
 	bun scripts/checks/tmp-leak/cli.ts verify || status=1; \
 	exit $$status
 
-# The repository gate scripts' own regression tests (wiki-source-links,
-# wiki-anchors, release-args, clean-install) - same reasoning as purity-test, nothing else runs them.
+# The repository gate scripts' own regression tests (release, preset, checks, build) - same reasoning as
+# purity-test, nothing else runs them.
 test-scripts:
 	@echo "🔍 Running the repository gate scripts' regression tests..."
-	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__ scripts/wiki/__tests__
+	@bun test scripts/release/__tests__ scripts/preset/__tests__ scripts/checks/__tests__ scripts/build/__tests__
 
 # ----------------------------------------------------------------------------
 # PURITY TARGETS
@@ -84,6 +84,11 @@ examples-check:
 
 # The probe's own regression tests. They live outside every package, so `cd packages/<x> && bun test`
 # never discovers them - without this target nothing runs the tests that guard the CI gate.
+# Every positive control a gate relies on is still a test (scripts/checks/controls.json): a deleted control
+# would let its gate pass for the wrong reason. Reads the test files, no run needed; needs dev-configs built.
+controls-check:
+	@$(DEVZ) check test-controls scripts/checks/controls.json
+
 purity-test:
 	@echo "🔍 Running the purity probe's regression tests..."
 	@bun test scripts/checks/purity/__tests__ packages/dev-configs/src/__tests__/checks

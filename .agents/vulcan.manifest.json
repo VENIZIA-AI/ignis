@@ -95,8 +95,8 @@
     "project": ".agents/rules.md",
     "base": {
       "V-W-01": "e5aa2a56",
-      "V-W-02": "fc20aa8b",
-      "V-W-03": "80b547ef",
+      "V-W-02": "cfecfb70",
+      "V-W-03": "f5e0ca7d",
       "V-W-04": "2bf7c80e",
       "V-W-06": "c670fdae",
       "V-S-01": "37e8ac4e",
@@ -144,6 +144,11 @@
       "V-C-17": "6d50fbc3",
       "V-C-18": "aaf8d03c",
       "V-C-19": "673df173"
+    }
+  },
+  "atlas": {
+    "index": {
+      "keys": ["sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q="]
     }
   }
 }

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { AnyType } from '@/common/types';
 import { LoggerFactory } from '@/modules/logger';
 import { getError } from '@/modules/error';
@@ -69,7 +70,30 @@ export class ModuleUtility {
     }
   }
 
-  /** Loads the module. Use this everywhere except a constructor, which cannot await. */
+  /**
+   * The file `module` resolves to from the project root under the ES module conditions (`import`), so
+   * the peer is the very instance an application's own `import` of it gets. `undefined` when it does not
+   * resolve there or the runtime has no resolver: the caller falls back to a plain `import()`.
+   */
+  private static resolveEsmFile(opts: { module: string }): string | undefined {
+    if (typeof Bun === 'undefined') {
+      return undefined;
+    }
+
+    try {
+      const file = Bun.resolveSync(opts.module, this.getProjectRoot());
+      return path.isAbsolute(file) ? file : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Loads the module as an ES module, resolved from the project root: a peer that ships both builds
+   * (`bullmq`, `socket.io-client`) is loaded as the copy the application's own `import` gets, not a second
+   * one. A module handed over with {@link register} wins; one that does not resolve from the project root is
+   * imported by name as before. Use this everywhere except a constructor, which cannot await - see {@link preload}.
+   */
   static async load<T = AnyType>(opts: { module: string }): Promise<T> {
     const { module } = opts;
 
@@ -78,13 +102,36 @@ export class ModuleUtility {
     }
 
     try {
-      return (await import(module)) as T;
+      const file = this.resolveEsmFile({ module });
+      return (await import(file === undefined ? module : pathToFileURL(file).href)) as T;
     } catch (error) {
       throw this.fail({ method: 'load', module, error });
     }
   }
 
-  /** Sync twin of {@link load}, for a constructor or any path that cannot await. */
+  /**
+   * The explicit register path for what a constructor needs: loads each module with {@link load} and
+   * registers it, so the synchronous {@link loadSync} returns that ES module copy afterwards. Call it once
+   * at the entrypoint, before the helpers are constructed. A module already registered is kept; every module
+   * is loaded before any is registered, so one that is missing registers nothing.
+   */
+  static async preload(opts: { modules: Array<string> }): Promise<void> {
+    const loaded: Record<string, AnyType> = {};
+
+    for (const module of opts.modules) {
+      // `load` answers from the registry first, so a module the application handed over comes back as itself.
+      loaded[module] = await this.load({ module });
+    }
+
+    this.register({ modules: loaded });
+  }
+
+  /**
+   * Sync twin of {@link load}, for a constructor or any path that cannot await. It resolves with
+   * `require`, so a peer that ships both builds comes back as its CommonJS copy - a second instance next to
+   * the one an application's `import` holds, and `instanceof` across the two fails. `await preload(...)` at the
+   * entrypoint registers the ES module copy first, and this returns that.
+   */
   static loadSync<T = AnyType>(opts: { module: string }): T {
     const { module } = opts;
 

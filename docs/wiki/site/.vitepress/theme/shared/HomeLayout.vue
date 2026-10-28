@@ -31,7 +31,7 @@ const relOf = (href: string) => (isExternal(href) ? 'noopener noreferrer' : unde
   <div ref="root" class="vh">
     <section class="hero">
       <div class="wrap">
-        <div>
+        <div class="hero-head">
           <div class="eyebrow"><i></i>{{ content.eyebrow }}</div>
           <h1>
             <span v-for="(line, index) in content.title[0]" :key="line" class="ln"
@@ -42,6 +42,8 @@ const relOf = (href: string) => (isExternal(href) ? 'noopener noreferrer' : unde
               ></span
             >
           </h1>
+        </div>
+        <div class="hero-copy">
           <p class="lede reveal">{{ content.lede }}</p>
           <p v-if="content.ledeNote" class="lede-note reveal">{{ content.ledeNote }}</p>
           <InstallBox

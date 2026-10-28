@@ -10,20 +10,19 @@ import { GRPC, HTTP } from '@venizia/ignis-helpers/common';
 import { ModuleUtility } from '@venizia/ignis-helpers';
 import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { createRequire } from 'node:module';
-import path from 'node:path';
 import type { TRouteContext } from '@venizia/ignis-kernel';
 import type { AbstractGrpcController } from './abstract';
 import type { IConnectAdapterResult, IConnectRpcModule, IRpcRegistration } from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
+const CONNECT_RPC_PROTOCOL_MODULE = '@connectrpc/connect/protocol';
 
 type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   request: RequestType,
   context: HandlerContext,
 ) => ValueOrPromise<ResponseType>;
 
-/** Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps via createRequire, wraps handlers into ConnectRPC's signature, dispatches through a Hono middleware, and isolates request-scoped context with AsyncLocalStorage. */
+/** Bridges IGNIS gRPC controllers with ConnectRPC: loads the peer deps with `ModuleUtility.load` (the ES module copy an application's own import gets), wraps handlers into ConnectRPC's signature, dispatches through a Hono middleware, and isolates request-scoped context with AsyncLocalStorage. */
 export class GrpcRequestAdapter<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
@@ -55,29 +54,29 @@ export class GrpcRequestAdapter<
       ConfigurableOptions
     >;
     interceptors?: unknown[];
-    module?: IConnectRpcModule;
+    module: IConnectRpcModule;
   }) {
     super({ scope: GrpcRequestAdapter.name });
 
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
+    this.createConnectRouter = opts.module.connect.createConnectRouter;
+    this.protocol = opts.module.protocol;
+  }
 
-    if (opts.module) {
-      this.createConnectRouter = opts.module.connect.createConnectRouter;
-      this.protocol = opts.module.protocol;
-      return;
-    }
+  /**
+   * The ConnectRPC peers, loaded as ES modules from the project root (or taken from `ModuleUtility.register`,
+   * which is what a compiled binary has). A missing peer rejects with the error that names what to install.
+   */
+  private static async loadModule(): Promise<IConnectRpcModule> {
+    ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES, allowRegistered: true });
 
-    /** Resolves peer deps under the application's project root at runtime - nothing to resolve against in a compiled binary, which is what `module` is for. */
-    const appRequire = createRequire(path.join(ModuleUtility.getProjectRoot(), 'node_modules'));
+    const [connect, protocol] = await Promise.all([
+      ModuleUtility.load<IConnectRpcModule['connect']>({ module: CONNECT_RPC_MODULES[0] }),
+      ModuleUtility.load<IConnectRpcModule['protocol']>({ module: CONNECT_RPC_PROTOCOL_MODULE }),
+    ]);
 
-    this.createConnectRouter = appRequire('@connectrpc/connect').createConnectRouter;
-    const proto = appRequire('@connectrpc/connect/protocol');
-
-    this.protocol = {
-      universalServerRequestFromFetch: proto.universalServerRequestFromFetch,
-      universalServerResponseToFetch: proto.universalServerResponseToFetch,
-    };
+    return { connect, protocol };
   }
 
   /** Wraps IGNIS RPC registrations into ConnectRPC's (request, context) => response signature. */
@@ -201,10 +200,7 @@ export class GrpcRequestAdapter<
     interceptors?: unknown[];
     module?: IConnectRpcModule;
   }): Promise<IConnectAdapterResult<RouteEnv, BasePath>> {
-    // The adapter resolves the peer itself, so a `ModuleUtility.register` entry could not satisfy it - only a real install or a handed-over `module` can.
-    if (!opts.module) {
-      ModuleUtility.assertInstalled({ modules: CONNECT_RPC_MODULES });
-    }
+    const module = opts.module ?? (await GrpcRequestAdapter.loadModule());
 
     const adapter = new GrpcRequestAdapter<
       RouteEnv,
@@ -212,7 +208,7 @@ export class GrpcRequestAdapter<
       BasePath,
       ServiceType,
       ConfigurableOptions
-    >(opts);
+    >({ ...opts, module });
 
     const routerOpts: Record<string, unknown> = {};
     if (adapter.interceptors?.length) {

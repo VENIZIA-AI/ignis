@@ -11,6 +11,7 @@
 import { useData } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import { computed } from 'vue';
+import ChangelogEntryHead from './ChangelogEntryHead.vue';
 import EcosystemSwitcher from './EcosystemSwitcher.vue';
 import type { THomeContent, TSiteInfo } from './home-types';
 import SiteFooter from './SiteFooter.vue';
@@ -22,6 +23,9 @@ provideThemeSwitch();
 
 const { Layout } = DefaultTheme;
 const { page } = useData();
+const isChangelogEntry = computed(() =>
+  /^changelogs\/\d{4}-\d{2}-\d{2}-/.test(page.value.relativePath),
+);
 const homeOnHome = computed(() =>
   page.value.relativePath === 'index.md' ? (props.home ?? null) : null,
 );
@@ -37,6 +41,9 @@ const homeOnHome = computed(() =>
     </template>
     <template #nav-screen-content-after>
       <EcosystemSwitcher :current="site.id" variant="sheet" />
+    </template>
+    <template #doc-before>
+      <ChangelogEntryHead v-if="isChangelogEntry" />
     </template>
     <template #layout-bottom>
       <SiteFooter :site="site" :home="homeOnHome" />
