@@ -24,6 +24,8 @@ export class ReleaseWorkflowGuards {
   static readonly RUN_NAME_CARRIES_COMMIT = 'run-name-carries-commit';
   static readonly ACTIONS_PINNED_BY_COMMIT = 'actions-pinned-by-commit';
   static readonly UNIT_TESTS_RUN = 'unit-tests-run';
+  static readonly SCRIPT_TESTS_RUN = 'script-tests-run';
+  static readonly TARBALL_VERSION_CHECKED = 'tarball-version-checked';
 
   static readonly SCHEME_SET = new Set<string>([
     this.DEVELOP_ONLY,
@@ -45,6 +47,8 @@ export class ReleaseWorkflowGuards {
     this.RUN_NAME_CARRIES_COMMIT,
     this.ACTIONS_PINNED_BY_COMMIT,
     this.UNIT_TESTS_RUN,
+    this.SCRIPT_TESTS_RUN,
+    this.TARBALL_VERSION_CHECKED,
   ]);
 }
 
@@ -91,6 +95,11 @@ const INSTALL_NPM_STEP = 'Install the npm that publishes';
 const PACK_STEP = 'Pack and checksum the release tarball';
 const PUBLISH_STEP = 'Publish to NPM';
 const TARBALL_PATH = '"$TARBALLS/$PACKAGE.tgz"';
+
+/** A comment names the commands without running them: every guard on a command reads the text without them. */
+const withoutComments = (text: string): string => text.replace(/(^|[ \t])#.*$/gm, '');
+
+const commandsOf = (step: IWorkflowStep | undefined): string => withoutComments(step?.run ?? '');
 
 const stepsOf = (job: IWorkflowJob | undefined): IWorkflowStep[] => job?.steps ?? [];
 
@@ -219,16 +228,13 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     );
   }
 
-  for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
-    for (const step of stepsOf(job)) {
-      const stepText = JSON.stringify(step);
-      const leaked = [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => stepText.includes(name));
-      if (leaked !== undefined) {
-        violate(
-          ReleaseWorkflowGuards.NO_NPM_TOKEN,
-          `'${step.name}' (${jobName}) names \`${leaked}\`; the release holds no secret and no npm token, it publishes through trusted publishing`,
-        );
-      }
+  for (const [index, line] of withoutComments(text).split('\n').entries()) {
+    const leaked = [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name));
+    if (leaked !== undefined) {
+      violate(
+        ReleaseWorkflowGuards.NO_NPM_TOKEN,
+        `line ${index + 1} names \`${leaked}\`; the release holds no secret and no npm token, it publishes through trusted publishing`,
+      );
     }
   }
 
@@ -254,13 +260,14 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     releaseSteps.find((step) => step.name === name);
   const install = stepNamed(INSTALL_NPM_STEP);
   const pack = stepNamed(PACK_STEP);
-  const publishCommand = stepNamed(PUBLISH_STEP)?.run ?? '';
+  const publishCommands = commandsOf(stepNamed(PUBLISH_STEP));
+  const packCommands = commandsOf(pack);
 
-  const installedNpm = EXACT_NPM.exec(install?.run ?? '')?.[1];
+  const installedNpm = EXACT_NPM.exec(commandsOf(install))?.[1];
   if (
     installedNpm === undefined ||
     Bun.semver.order(installedNpm, MINIMUM_NPM) < 0 ||
-    !(install?.run ?? '').includes('npm --version')
+    !commandsOf(install).includes('npm --version')
   ) {
     violate(
       ReleaseWorkflowGuards.NPM_EXACT_AND_ASSERTED,
@@ -269,7 +276,7 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
   }
 
   for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
-    for (const step of stepsOf(job).filter((entry) => entry.run?.includes('bun publish'))) {
+    for (const step of stepsOf(job).filter((entry) => commandsOf(entry).includes('bun publish'))) {
       violate(
         ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
         `'${step.name}' (${jobName}) runs \`bun publish\`; bun has no trusted publishing, npm publishes a tarball bun packed`,
@@ -277,28 +284,40 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     }
   }
 
-  if (
-    !publishCommand.includes('npm publish') ||
-    !publishCommand.includes('--provenance') ||
-    !publishCommand.includes(TARBALL_PATH)
-  ) {
+  const publishLine =
+    publishCommands.split('\n').find((line) => line.includes('npm publish')) ?? '';
+  if (!publishLine.includes('--provenance') || !publishLine.includes(TARBALL_PATH)) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
       `'${PUBLISH_STEP}' must run \`npm publish --provenance\` on \`${TARBALL_PATH}\``,
     );
   }
 
-  if (!(pack?.run ?? '').includes('bun pm pack')) {
+  if (!packCommands.includes('bun pm pack')) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
       `'${PACK_STEP}' must pack with \`bun pm pack\`: only bun resolves \`catalog:\` and \`workspace:\`, npm ships them verbatim`,
     );
   }
 
-  if (!(pack?.run ?? '').includes('sha256sum') || !publishCommand.includes('sha256sum --check')) {
+  const checkAt = publishCommands.indexOf('sha256sum --check');
+  const flagAt = publishCommands.indexOf('IS_PUBLISHED=true');
+  if (
+    !packCommands.includes('sha256sum') ||
+    checkAt < 0 ||
+    checkAt > publishCommands.indexOf('npm publish') ||
+    (flagAt >= 0 && checkAt > flagAt)
+  ) {
     violate(
       ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
-      `'${PACK_STEP}' must record the sha256 of the tarball and '${PUBLISH_STEP}' must check it: what is published is what was packed`,
+      `'${PACK_STEP}' must record the sha256 of the tarball and '${PUBLISH_STEP}' must check it before it sets IS_PUBLISHED and before \`npm publish\`: what is published is what was packed`,
+    );
+  }
+
+  if (!/\[ "\$PACKED_VERSION" = "\$NEW_VERSION" \]/.test(packCommands)) {
+    violate(
+      ReleaseWorkflowGuards.TARBALL_VERSION_CHECKED,
+      `'${PACK_STEP}' must compare the version inside the tarball with the \`NEW_VERSION\` this run releases`,
     );
   }
 
@@ -349,6 +368,14 @@ export const checkReleaseWorkflow = (opts: { text: string }): IReleaseWorkflowVi
     violate(
       ReleaseWorkflowGuards.UNIT_TESTS_RUN,
       `the '${TEST_JOB}' job must run the package's unit tests (\`make test-$PACKAGE\`)`,
+    );
+  }
+
+  const scriptTests = stepsOf(test).some((step) => commandsOf(step).includes('make test-scripts'));
+  if (!scriptTests) {
+    violate(
+      ReleaseWorkflowGuards.SCRIPT_TESTS_RUN,
+      `the '${TEST_JOB}' job must run the repository scripts' tests (\`make test-scripts\`): they hold these guards`,
     );
   }
 

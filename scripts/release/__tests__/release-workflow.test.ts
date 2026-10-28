@@ -19,6 +19,17 @@ const mutate = (opts: { find: string; replace: string; everywhere?: boolean }): 
   return WORKFLOW.replaceAll(opts.find, () => opts.replace);
 };
 
+/** Several swaps applied in order to one copy: a guard about ORDER needs a piece removed and put back elsewhere. */
+const mutateMany = (edits: Array<{ find: string; replace: string }>): string =>
+  edits.reduce((current, edit) => {
+    const hits = current.split(edit.find).length - 1;
+    if (hits !== 1) {
+      throw new Error(`mutation anchor occurs ${hits} times: ${edit.find.slice(0, 60)}`);
+    }
+
+    return current.replace(edit.find, () => edit.replace);
+  }, WORKFLOW);
+
 const guardsOf = (text: string): string[] => [
   ...new Set(checkReleaseWorkflow({ text }).map((violation) => violation.guard)),
 ];
@@ -29,12 +40,15 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(19);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(21);
   });
 });
 
 describe('one mutation per guard: removing the guard from a copy fails the check', () => {
-  const MUTATIONS: Array<{ guard: string; find: string; replace: string; everywhere?: boolean }> = [
+  const MUTATIONS: Array<
+    | { guard: string; find: string; replace: string; everywhere?: boolean }
+    | { guard: string; edits: Array<{ find: string; replace: string }> }
+  > = [
     {
       guard: ReleaseWorkflowGuards.DEVELOP_ONLY,
       find: "    if: github.ref == 'refs/heads/develop'\n",
@@ -183,6 +197,69 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       replace: 'true',
     },
     {
+      guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
+      find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
+      replace:
+        '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n',
+    },
+    {
+      guard: ReleaseWorkflowGuards.SCRIPT_TESTS_RUN,
+      find: 'make test-scripts',
+      replace: 'echo skipped',
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_VERSION_CHECKED,
+      find: '[ "$PACKED_VERSION" = "$NEW_VERSION" ]',
+      replace: 'true',
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_TARBALL_WITH_PROVENANCE,
+      edits: [
+        { find: '--ignore-scripts --provenance', replace: '--ignore-scripts' },
+        {
+          find: "          # Trusted publishing: no token; npm signs in with this job's identity and writes the provenance.\n",
+          replace: '          # npm publish "$TARBALLS/$PACKAGE.tgz" --provenance\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      edits: [
+        {
+          find: '(cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)',
+          replace: '# sha256sum --check',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      edits: [
+        {
+          find: '          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)\n',
+          replace: '',
+        },
+        {
+          find: '          echo "+ $PACKAGE_NAME@$NEW_VERSION"\n',
+          replace:
+            '          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)\n          echo "+ $PACKAGE_NAME@$NEW_VERSION"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARBALL_SHA256_CHECKED,
+      edits: [
+        {
+          find: '          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)\n',
+          replace: '',
+        },
+        {
+          find: '          echo "IS_PUBLISHED=true" >> $GITHUB_ENV\n',
+          replace:
+            '          echo "IS_PUBLISHED=true" >> $GITHUB_ENV\n          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)\n',
+        },
+      ],
+    },
+    {
       guard: ReleaseWorkflowGuards.CHECKOUT_AT_DISPATCHED_COMMIT,
       find: 'ref: ${{ github.sha }}',
       replace: 'ref: develop',
@@ -221,7 +298,7 @@ describe('one mutation per guard: removing the guard from a copy fails the check
 
   for (const mutation of MUTATIONS) {
     test(`${mutation.guard}: removed, the check names it`, () => {
-      const guards = guardsOf(mutate(mutation));
+      const guards = guardsOf('edits' in mutation ? mutateMany(mutation.edits) : mutate(mutation));
 
       expect(guards).toContain(mutation.guard);
     });
@@ -229,10 +306,36 @@ describe('one mutation per guard: removing the guard from a copy fails the check
 });
 
 describe('the release holds no registry token', () => {
-  test('no step of the committed workflow reads a secret or names an npm token', () => {
-    const jobs = JSON.stringify((Bun.YAML.parse(WORKFLOW) as { jobs: unknown }).jobs);
+  const withoutComments = (text: string): string => text.replace(/(^|[ \t])#.*$/gm, '');
 
-    expect(jobs).not.toMatch(/secrets\./);
-    expect(jobs).not.toMatch(/NPM_ACCESS_TOKEN|NPM_CONFIG_TOKEN|NODE_AUTH_TOKEN/);
+  test('the committed workflow, comments aside, reads no secret and names no npm token', () => {
+    expect(withoutComments(WORKFLOW)).not.toMatch(
+      /secrets\.|NPM_ACCESS_TOKEN|NPM_CONFIG_TOKEN|NODE_AUTH_TOKEN/,
+    );
+  });
+
+  test('a comment that names the token is not a token', () => {
+    const commented = mutate({
+      find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
+      replace:
+        '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  # secrets.NPM_ACCESS_TOKEN is gone\n',
+    });
+
+    expect(checkReleaseWorkflow({ text: commented })).toEqual([]);
+  });
+
+  test('the violation names the line it read', () => {
+    const leaked = mutate({
+      find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
+      replace:
+        '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n',
+    });
+    const line = leaked.split('\n').findIndex((entry) => entry.includes('LEAK:')) + 1;
+
+    expect(
+      checkReleaseWorkflow({ text: leaked })
+        .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
+        .map((violation) => violation.message),
+    ).toEqual([expect.stringContaining(`line ${line}`)]);
   });
 });

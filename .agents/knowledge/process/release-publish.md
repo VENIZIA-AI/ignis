@@ -62,7 +62,7 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 ## The two jobs and their guards
 
 The workflow has two jobs. `test` holds no secret and has read-only permissions: it builds, runs the checks
-below and the package's unit tests (`make test-$PACKAGE`), and runs the preset smoke against the VULCAN
+below, the package's unit tests (`make test-$PACKAGE`) and the repository scripts' tests (`make test-scripts`, which hold the guards below), and runs the preset smoke against the VULCAN
 version the repository declares in `devDependencies` (never `latest`). `release` `needs: test`, runs only
 from `develop` (`if: github.ref == 'refs/heads/develop'`), is the only job with `contents: write` and
 `id-token: write`, and names the environment `npm-release`. It holds no registry token and no secret: the
@@ -77,8 +77,8 @@ expects the check to name it (listed in `scripts/checks/controls.json`). Change 
 mutation in that test, in the same pull request. The guards for trusted publishing are `no-npm-token` (no
 `secrets.` reference and no npm token name in any step), `environment-on-release`, `oidc-on-release-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted`, `publish-tarball-with-provenance` (`bun publish` appears
-nowhere, the pack step uses `bun pm pack`, the publish step runs `npm publish --provenance` on the tarball)
-and `tarball-sha256-checked`. `scripts/release/__tests__/release-repository.test.ts` keeps every published
+nowhere, the pack step uses `bun pm pack`, the `npm publish` command carries `--provenance` and the tarball)
+and `tarball-sha256-checked` (recorded at the pack step, checked before the publish step sets `IS_PUBLISHED` and before `npm publish`), `tarball-version-checked` (the packed version is the version the run releases) and `script-tests-run`. The guards read commands with comments stripped, and `no-npm-token` reads the whole file, the top-level `env` included, and names the line. `scripts/release/__tests__/release-repository.test.ts` keeps every published
 `package.json` naming this repository, which provenance requires.
 
 ## Trusted publishing (no npm token)
@@ -103,8 +103,8 @@ and `@venizia/ignis-worker` (`core-worker`).
 - Only `bun pm pack` resolves `catalog:` and `workspace:` while packing; `npm publish` of a bun-packed
   tarball keeps that. The release packs once, after the version bump and the preset, records the sha256 of
   the tarball, and the publish step checks it again before it publishes that very file.
-- After a release has passed, the owner deletes the repository secret holding the old token and sets each
-  package's Publishing access to disallow tokens.
+- The repository secret that held the old token is already deleted. After the first release over trusted
+  publishing has passed, the owner sets each package's Publishing access to disallow tokens and revokes the old token.
 
 ## The prebuilt atlas index of this repository
 

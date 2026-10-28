@@ -373,6 +373,11 @@ jobs:
             echo "No test target for $PACKAGE"
           fi
 
+      # The repository scripts' own tests, the release workflow guards among them: a develop head that dropped a
+      # guard (the provenance flag, the checksum, the token rule) stops here, before a version is cut.
+      - name: Test the repository scripts
+        run: make test-scripts
+
   # ---------------------------------------------------------------------------------------------
   # RELEASE - needs the test job, runs only from develop, and is the only job with write access.
   # It holds no registry token: npm trusted publishing signs in with the job's own identity.
@@ -494,6 +499,32 @@ jobs:
         if: ${{ env.PACKAGE == 'core-server' }}
         run: bun scripts/preset/vulcan-preset.ts
 
+      # The file that gets published, packed once, after the version bump and the preset. Only `bun pm pack`
+      # resolves `catalog:` and `workspace:` while packing (npm ships them verbatim and breaks every consumer), so
+      # bun packs and npm publishes this very file after checking its sha256. The manifest inside it must carry no
+      # unresolved protocol and the version this run releases.
+      - name: Pack and checksum the release tarball
+        run: |
+          rm -rf "$TARBALLS"
+          mkdir -p "$TARBALLS"
+
+          (cd $PACKAGE_PATH && bun pm pack --quiet --filename "$TARBALLS/$PACKAGE.tgz" > /dev/null)
+
+          tar -xzOf "$TARBALLS/$PACKAGE.tgz" package/package.json > "$RUNNER_TEMP/published-manifest.json"
+
+          if grep -qE '"(catalog|workspace):' "$RUNNER_TEMP/published-manifest.json"; then
+            echo "ERROR: an unresolved catalog:/workspace: protocol survives into the packed manifest"
+            exit 1
+          fi
+
+          PACKED_VERSION=$(jq -r .version "$RUNNER_TEMP/published-manifest.json")
+          [ "$PACKED_VERSION" = "$NEW_VERSION" ] \
+            || { echo "ERROR: the tarball is $PACKED_VERSION, this run releases $NEW_VERSION"; exit 1; }
+
+          (cd "$TARBALLS" && sha256sum *.tgz > SHA256SUMS)
+
+          echo "    ✓ packed $PACKAGE_NAME@$NEW_VERSION"
+
       # -------------------------------------------------------------------------
       # PUBLISH - deliberately ahead of every git write
       # -------------------------------------------------------------------------
@@ -504,28 +535,12 @@ jobs:
       # inverse - the publish lands and the follow-up push fails - which is both safe and loud:
       # develop keeps the old version, so the next release retries this one and the registry refuses
       # it as a duplicate.
-      # The file that gets published, packed once, after the version bump and the preset. Only `bun pm pack`
-      # resolves `catalog:` and `workspace:` while packing (npm ships them verbatim and breaks every consumer), so
-      # bun packs and npm publishes this very file after checking its sha256. The manifest inside it must carry no
-      # unresolved protocol.
-      - name: Pack and checksum the release tarball
-        run: |
-          rm -rf "$TARBALLS"
-          mkdir -p "$TARBALLS"
-
-          (cd $PACKAGE_PATH && bun pm pack --quiet --filename "$TARBALLS/$PACKAGE.tgz" > /dev/null)
-
-          if tar -xzOf "$TARBALLS/$PACKAGE.tgz" package/package.json | grep -qE '"(catalog|workspace):'; then
-            echo "ERROR: an unresolved catalog:/workspace: protocol survives into the packed manifest"
-            exit 1
-          fi
-
-          (cd "$TARBALLS" && sha256sum *.tgz > SHA256SUMS)
-
-          echo "    ✓ packed $PACKAGE_NAME@$NEW_VERSION"
-
       - name: Publish to NPM
         run: |
+          # What is published is what was packed: the same file, byte for byte. A mismatch stops here,
+          # before any publish was attempted.
+          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)
+
           case $BUILD_MODE in
             patch|minor|major) NPM_TAG="latest" ;;
             *)                 NPM_TAG="next" ;;
@@ -538,9 +553,6 @@ jobs:
           # what those reports have to assume.
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
           echo "NPM_TAG=$NPM_TAG" >> $GITHUB_ENV
-
-          # What is published is what was packed: the same file, byte for byte.
-          (cd "$TARBALLS" && sha256sum --check --quiet SHA256SUMS)
 
           # Trusted publishing: no token; npm signs in with this job's identity and writes the provenance.
           # --ignore-scripts: the build above already ran, so the prepublishOnly rebuild is skipped.
