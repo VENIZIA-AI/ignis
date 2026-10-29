@@ -23,6 +23,7 @@ import {
 } from './release-constants';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { ReleaseRegistry } from './release-registry';
+import { ReleaseVersion } from './release-version';
 import { waitForTarball } from './release-tarballs';
 
 export interface ICommandResult {
@@ -188,7 +189,7 @@ export class ReleaseRun {
     });
 
     if (onDisk !== entry.from) {
-      return this.settle({ entry, dir, packageName, onDisk, ports, outcome });
+      return this.settle({ entry, mode, dir, packageName, onDisk, ports, outcome });
     }
 
     // The bump first: the target version decides whether this package is already on npm.
@@ -305,22 +306,25 @@ export class ReleaseRun {
 
   /**
    * The package is not at the version the plan started from. Either an earlier dispatch of this plan released it
-   * (its version is above `from`, it is on npm, and its tag is on origin: nothing to do; the tag is missing: write
-   * it), or the plan is stale and nothing may be published.
+   * (its version is exactly the target `from` gives with the mode, it is on npm, and its tag is on origin: nothing
+   * to do; the tag is missing: write it), or the plan is stale and nothing may be published. A higher version that
+   * this plan did not produce is stale too.
    */
   private static async settle(opts: {
     entry: IPlanEntry;
+    mode: TReleaseMode;
     dir: string;
     packageName: string;
     onDisk: string;
     ports: IReleasePorts;
     outcome: (state: TReleaseState, version: string) => IReleaseOutcome;
   }): Promise<IReleaseOutcome> {
-    const { entry, dir, packageName, onDisk, ports, outcome } = opts;
+    const { entry, mode, dir, packageName, onDisk, ports, outcome } = opts;
 
-    if (Bun.semver.order(onDisk, entry.from) < 0) {
+    const target = ReleaseVersion.next({ from: entry.from, mode });
+    if (onDisk !== target) {
       throw new Error(
-        `${dir} is at ${onDisk}, below the ${entry.from} the plan started from: the plan is stale, nothing is published`,
+        `${dir} is at ${onDisk}, not the ${entry.from} the plan started from and not the ${target} it would release (${mode}): the plan is stale, nothing is published`,
       );
     }
     if (!(await ports.registry.isPublished({ packageName, version: onDisk }))) {
