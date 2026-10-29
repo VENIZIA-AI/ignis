@@ -7,6 +7,8 @@ export class AstNodeTypes {
   static readonly ARROW_FUNCTION_EXPRESSION = 'ArrowFunctionExpression';
   static readonly EXPORT_NAMED_DECLARATION = 'ExportNamedDeclaration';
   static readonly UNION_TYPE = 'TSUnionType';
+  static readonly AWAIT_EXPRESSION = 'AwaitExpression';
+  static readonly RETURN_STATEMENT = 'ReturnStatement';
 }
 
 /** The ESLint namespace the house rules live under: `venizia/<rule>`. */

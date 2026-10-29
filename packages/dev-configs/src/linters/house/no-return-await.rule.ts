@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AwaitSupport } from './await-support';
-import { HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
 
 const FUNCTION_TYPES = new Set([
   'FunctionDeclaration',
@@ -46,11 +46,15 @@ export class NoReturnAwaitRule {
       const { sourceCode } = context;
       const taken = new Map<unknown, Set<string>>();
 
-      const reportAwait = (opts: { reported: Rule.Node; awaitNode: Rule.Node; statement?: Rule.Node }) => {
+      const reportAwait = (opts: {
+        reported: Rule.Node;
+        awaitNode: Rule.Node;
+        statement?: Rule.Node;
+      }) => {
         const argument = readField({ node: opts.awaitNode, key: 'argument' });
         const argumentText =
-          argument && nodeType({ node: argument }) !== 'SequenceExpression'
-            ? sourceCode.getText(argument as Rule.Node)
+          AwaitSupport.isNode(argument) && nodeType({ node: argument }) !== 'SequenceExpression'
+            ? sourceCode.getText(argument)
             : undefined;
 
         context.report({
@@ -86,16 +90,16 @@ export class NoReturnAwaitRule {
       };
 
       return {
-        ReturnStatement: (node) => {
+        [AstNodeTypes.RETURN_STATEMENT]: (node: Rule.Node) => {
           const argument = readField({ node, key: 'argument' });
-          if (nodeType({ node: argument }) === 'AwaitExpression') {
-            reportAwait({ reported: node, awaitNode: argument as Rule.Node, statement: node });
+          if (AwaitSupport.isNode(argument) && nodeType({ node: argument }) === 'AwaitExpression') {
+            reportAwait({ reported: node, awaitNode: argument, statement: node });
           }
         },
-        ArrowFunctionExpression: (node) => {
+        [AstNodeTypes.ARROW_FUNCTION_EXPRESSION]: (node: Rule.Node) => {
           const body = readField({ node, key: 'body' });
-          if (nodeType({ node: body }) === 'AwaitExpression') {
-            reportAwait({ reported: node, awaitNode: body as Rule.Node });
+          if (AwaitSupport.isNode(body) && nodeType({ node: body }) === 'AwaitExpression') {
+            reportAwait({ reported: node, awaitNode: body });
           }
         },
       };

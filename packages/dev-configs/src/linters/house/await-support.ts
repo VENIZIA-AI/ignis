@@ -44,6 +44,13 @@ export class AwaitSupport {
     return readField({ node: opts.node, key: 'parent' });
   }
 
+  /** An ESTree node of the lint run: it has a `type` and a `range`. */
+  static isNode(value: unknown): value is Rule.Node {
+    return (
+      nodeType({ node: value }) !== undefined && AwaitSupport.rangeOf({ node: value }) !== undefined
+    );
+  }
+
   static rangeOf(opts: { node: unknown }): [number, number] | undefined {
     const range = readField({ node: opts.node, key: 'range' });
     return Array.isArray(range) && typeof range[0] === 'number' && typeof range[1] === 'number'
@@ -66,7 +73,10 @@ export class AwaitSupport {
       if (FUNCTION_TYPES.has(type) || type === 'ChainExpression') {
         return undefined;
       }
-      if (type === 'ConditionalExpression' && readField({ node: ancestor, key: 'test' }) !== child) {
+      if (
+        type === 'ConditionalExpression' &&
+        readField({ node: ancestor, key: 'test' }) !== child
+      ) {
         return undefined;
       }
       if (type === 'LogicalExpression' && readField({ node: ancestor, key: 'left' }) !== child) {
@@ -81,12 +91,15 @@ export class AwaitSupport {
       }
       if (type.endsWith('Statement') || type === 'VariableDeclaration') {
         const head = HEAD_FIELD[type];
-        const isHead = type === 'VariableDeclaration' || readField({ node: ancestor, key: head }) === child;
+        const isHead =
+          type === 'VariableDeclaration' || readField({ node: ancestor, key: head }) === child;
         const outer = AwaitSupport.parentOf({ node: ancestor });
 
-        return isHead && STATEMENT_LISTS.has(nodeType({ node: outer }) ?? '') && (type === 'VariableDeclaration' || head !== undefined)
-          ? (ancestor as Rule.Node)
-          : undefined;
+        const isListed =
+          STATEMENT_LISTS.has(nodeType({ node: outer }) ?? '') &&
+          (type === 'VariableDeclaration' || head !== undefined);
+
+        return isHead && isListed && AwaitSupport.isNode(ancestor) ? ancestor : undefined;
       }
 
       child = ancestor;
@@ -100,42 +113,40 @@ export class AwaitSupport {
     const { node } = opts;
     const type = nodeType({ node }) ?? '';
     const pure = (child: unknown) => AwaitSupport.isPure({ node: child });
+    const field = (key: string) => readField({ node, key });
     const all = (key: string) => {
       const list = readField({ node, key });
       return Array.isArray(list) && list.every((entry) => entry === null || pure(entry));
     };
 
-    if (PURE_LEAVES.has(type) || type.startsWith('TS') && !['TSAsExpression', 'TSNonNullExpression', 'TSSatisfiesExpression'].includes(type)) {
+    if (
+      PURE_LEAVES.has(type) ||
+      (type.startsWith('TS') &&
+        !['TSAsExpression', 'TSNonNullExpression', 'TSSatisfiesExpression'].includes(type))
+    ) {
       return true;
     }
 
-    switch (type) {
-      case 'TemplateLiteral':
-        return all('expressions');
-      case 'MemberExpression':
-        return pure(readField({ node, key: 'object' })) && pure(readField({ node, key: 'property' }));
-      case 'ArrayExpression':
-        return all('elements');
-      case 'ObjectExpression':
-        return all('properties');
-      case 'Property':
-        return pure(readField({ node, key: 'key' })) && pure(readField({ node, key: 'value' }));
-      case 'SpreadElement':
-        return pure(readField({ node, key: 'argument' }));
-      case 'UnaryExpression':
-        return readField({ node, key: 'operator' }) !== 'delete' && pure(readField({ node, key: 'argument' }));
-      case 'BinaryExpression':
-      case 'LogicalExpression':
-        return pure(readField({ node, key: 'left' })) && pure(readField({ node, key: 'right' }));
-      case 'ConditionalExpression':
-        return ['test', 'consequent', 'alternate'].every((key) => pure(readField({ node, key })));
-      case 'TSAsExpression':
-      case 'TSNonNullExpression':
-      case 'TSSatisfiesExpression':
-        return pure(readField({ node, key: 'expression' }));
-      default:
-        return false;
-    }
+    const parts = new Map<string, () => boolean>([
+      ['TemplateLiteral', () => all('expressions')],
+      ['MemberExpression', () => pure(field('object')) && pure(field('property'))],
+      ['ArrayExpression', () => all('elements')],
+      ['ObjectExpression', () => all('properties')],
+      ['Property', () => pure(field('key')) && pure(field('value'))],
+      ['SpreadElement', () => pure(field('argument'))],
+      ['UnaryExpression', () => field('operator') !== 'delete' && pure(field('argument'))],
+      ['BinaryExpression', () => pure(field('left')) && pure(field('right'))],
+      ['LogicalExpression', () => pure(field('left')) && pure(field('right'))],
+      [
+        'ConditionalExpression',
+        () => ['test', 'consequent', 'alternate'].every((key) => pure(field(key))),
+      ],
+      ['TSAsExpression', () => pure(field('expression'))],
+      ['TSNonNullExpression', () => pure(field('expression'))],
+      ['TSSatisfiesExpression', () => pure(field('expression'))],
+    ]);
+
+    return parts.get(type)?.() ?? false;
   }
 
   /**
@@ -181,16 +192,19 @@ export class AwaitSupport {
   }
 
   /** The nearest function or the program that holds `node`: the scope a new name must be free in. */
-  static scopeNodeOf(opts: { node: unknown }): Rule.Node {
-    let current = opts.node;
+  static scopeNodeOf(opts: { node: Rule.Node }): Rule.Node {
+    let current: Rule.Node = opts.node;
     let parent = AwaitSupport.parentOf({ node: current });
 
     while (parent && !FUNCTION_TYPES.has(nodeType({ node: parent }) ?? '')) {
+      if (!AwaitSupport.isNode(parent)) {
+        break;
+      }
       current = parent;
       parent = AwaitSupport.parentOf({ node: current });
     }
 
-    return (parent ?? current) as Rule.Node;
+    return AwaitSupport.isNode(parent) ? parent : current;
   }
 
   /**
@@ -198,7 +212,7 @@ export class AwaitSupport {
    * and that this lint pass has not handed out already: two fixes of one pass must not declare the same name.
    */
   static freshName(opts: {
-    node: unknown;
+    node: Rule.Node;
     base: string;
     sourceCode: SourceCode;
     taken: Map<unknown, Set<string>>;

@@ -103,4 +103,3 @@ export const asyncStyleConfigs: Linter.Config[] = [
     },
   },
 ];
-
