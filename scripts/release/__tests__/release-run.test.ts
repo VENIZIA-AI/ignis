@@ -440,6 +440,44 @@ describe('ReleaseRun.execute: what stops a package before it publishes', () => {
     expect(world.calls.some((call) => call.startsWith('npm publish'))).toBe(false);
   });
 
+  test('a package at a published, tagged version that is not the target of this plan', async () => {
+    const world = new FakeWorld();
+    world.disk.get('kernel')!.version = '0.4.9';
+    world.origin.set('kernel', '0.4.9');
+    world.npm.add('@venizia/ignis-kernel@0.4.9');
+    world.tags.set('kernel-v0.4.9', 'kernel-v0.4.9');
+
+    await expect(execute({ world, plan: entries('kernel') })).rejects.toThrow(
+      /0\.4\.6.*stale|stale.*0\.4\.6/,
+    );
+    expect(world.calls.some((call) => call.startsWith('npm publish'))).toBe(false);
+    expect(world.logs.filter((line) => line.startsWith('= '))).toEqual([]);
+  });
+
+  test('the same package at the target of the plan is skipped', async () => {
+    const world = new FakeWorld();
+    world.disk.get('kernel')!.version = '0.4.6';
+    world.origin.set('kernel', '0.4.6');
+    world.npm.add('@venizia/ignis-kernel@0.4.6');
+    world.tags.set('kernel-v0.4.6', 'kernel-v0.4.6');
+
+    const outcomes = await execute({ world, plan: entries('kernel') });
+
+    expect(outcomes.map((outcome) => outcome.state)).toEqual(['skipped']);
+  });
+
+  test('the target depends on the mode: 0.4.6 is not the target of a minor', async () => {
+    const world = new FakeWorld();
+    world.disk.get('kernel')!.version = '0.4.6';
+    world.origin.set('kernel', '0.4.6');
+    world.npm.add('@venizia/ignis-kernel@0.4.6');
+    world.tags.set('kernel-v0.4.6', 'kernel-v0.4.6');
+
+    await expect(execute({ world, plan: entries('kernel'), mode: 'minor' })).rejects.toThrow(
+      /0\.5\.0/,
+    );
+  });
+
   test('a package whose version in git is above the plan but not on npm', async () => {
     const world = new FakeWorld();
     world.disk.get('kernel')!.version = '0.4.6';
