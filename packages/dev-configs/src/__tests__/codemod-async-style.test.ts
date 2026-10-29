@@ -267,6 +267,26 @@ describe('devz codemod async-style', () => {
     expect(warnings).toEqual([]);
   });
 
+  test('a disable directive for another rule is kept, though that rule is not run here', async () => {
+    const directive = '  // eslint-disable-next-line venizia/no-new-error -- a reason';
+    const source = [
+      'export const run = async () => {',
+      directive,
+      "  throw new Error('x');",
+      '};',
+      'export const read = async () => {',
+      '  return await f();',
+      '};',
+      '',
+    ].join('\n');
+    write('src/a.ts', source);
+    commit();
+
+    expect(await code(['--write'])).toBe(0);
+    expect(read('src/a.ts')).toContain(directive);
+    expect(read('src/a.ts')).toContain('return f();');
+  });
+
   test('a file that does not parse is reported, not thrown', async () => {
     write('src/a.ts', 'export const run = async () => { await ;\n');
     commit();

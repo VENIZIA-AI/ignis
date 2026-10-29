@@ -71,7 +71,13 @@ export class AsyncStyle {
     const { asyncStyleConfigs } = await import('../../linters/house/index.js');
 
     return [
-      { files: ['**/*.{ts,tsx,mts,cts}'], languageOptions: { parser: tseslint.parser } },
+      {
+        files: ['**/*.{ts,tsx,mts,cts}'],
+        languageOptions: { parser: tseslint.parser },
+        // Only two rules run here, so a `// eslint-disable-next-line` for any other rule looks unused and
+        // ESLint's fixer would delete it. A codemod never touches a directive.
+        linterOptions: { reportUnusedDisableDirectives: 'off' },
+      },
       ...asyncStyleConfigs,
     ];
   }
