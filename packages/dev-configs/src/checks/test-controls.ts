@@ -45,7 +45,8 @@ export const listTestTitles = async (opts: {
   source: string;
   fileName?: string;
 }): Promise<string[]> => {
-  const typescript: typeof ts = (await import('typescript')).default;
+  const result = await import('typescript');
+  const typescript: typeof ts = result.default;
   const file = typescript.createSourceFile(
     opts.fileName ?? 'file.test.ts',
     opts.source,

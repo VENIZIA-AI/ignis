@@ -60,7 +60,8 @@ interface IManifest {
 /** Reads the root catalog and every manifest the options name, and reports everything wrong with their ranges. */
 export const findCatalogProblems = async (opts: ICatalogOptions = {}): Promise<ICatalogReport> => {
   const { root = process.cwd(), globs = [], presetPrefix, pinned = [] } = opts;
-  const rootJson: IManifest = JSON.parse(await Bun.file(join(root, 'package.json')).text());
+  const result = await Bun.file(join(root, 'package.json')).text();
+  const rootJson: IManifest = JSON.parse(result);
   const catalog: Record<string, string> = rootJson.workspaces?.catalog ?? {};
 
   if (Object.keys(catalog).length === 0) {
@@ -82,7 +83,8 @@ export const findCatalogProblems = async (opts: ICatalogOptions = {}): Promise<I
     let json: IManifest;
 
     try {
-      json = JSON.parse(await Bun.file(join(root, file)).text());
+      const result2 = await Bun.file(join(root, file)).text();
+      json = JSON.parse(result2);
     } catch (error) {
       problems.push({
         file,

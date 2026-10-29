@@ -160,8 +160,10 @@ describe('a compiled binary', () => {
         .split('\n')
         .filter(Boolean);
     };
-    expect(await order({ out: 'out-default' })).toEqual(['evaluated', 'imported', 'resolved']);
-    expect(await order({ lazyIndex: true, out: 'out-lazy' })).toEqual([
+    const result2 = await order({ out: 'out-default' });
+    expect(result2).toEqual(['evaluated', 'imported', 'resolved']);
+    const result3 = await order({ lazyIndex: true, out: 'out-lazy' });
+    expect(result3).toEqual([
       'imported',
       'evaluated',
       'resolved',

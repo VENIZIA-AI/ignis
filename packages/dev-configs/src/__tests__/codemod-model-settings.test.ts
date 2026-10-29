@@ -400,20 +400,24 @@ describe('devz codemod model-settings - the command', () => {
   test('without --check, left-untouched models do not change the exit code', async () => {
     write('src/a.model.ts', '@model({ settings: shared })\nclass A {}\n');
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings'] });
+    expect(result).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result2).toBe(0);
   });
 
   test('--check exits 0 when nothing would change', async () => {
     write('src/a.model.ts', model('{ query: { limit: { default: 5 } } }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result).toBe(0);
   });
 
   test('without --write it is a dry run: lists the change, writes nothing, exits 0', async () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings'] });
+    expect(result).toBe(0);
 
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
     expect(logs.join('\n')).toContain('would change');
@@ -423,10 +427,12 @@ describe('devz codemod model-settings - the command', () => {
   test('--write writes the files and exits 0; a second run changes nothing', async () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
     expect(read('src/a.model.ts')).toBe(model('{ query: { limit: { default: 5 } } }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result2).toBe(0);
   });
 
   test('paths limit the run to those files or folders', async () => {
@@ -445,7 +451,8 @@ describe('devz codemod model-settings - the command', () => {
     write('src/types.d.ts', model('{ defaultLimit: 5 }'));
     write('src/plain.ts', 'export const settings = { defaultLimit: 5 };\n');
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--check'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--check'] });
+    expect(result).toBe(0);
   });
 
   test('untouched cases are printed with file, line and column', async () => {
@@ -467,7 +474,8 @@ describe('devz codemod model-settings - the command', () => {
     write('generated/b.model.ts', model('{ defaultLimit: 6 }'));
     write('src/c.model.ts', model('{ defaultLimit: 7 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
 
     expect(read('.agents/local/worktrees/other/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
     expect(read('generated/b.model.ts')).toBe(model('{ defaultLimit: 6 }'));
@@ -502,7 +510,8 @@ describe('devz codemod model-settings - the command', () => {
     execFileSync('git', ['init', '-q'], { cwd: join(root, 'vendor') });
     write('vendor/src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write'] })).toBe(0);
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write'] });
+    expect(result).toBe(0);
 
     expect(read('vendor/src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
   });
@@ -516,7 +525,8 @@ describe('devz codemod model-settings - the command', () => {
       ['model-settings', '-h', '--write'],
     ]) {
       logs.length = 0;
-      expect(await CodemodCommand.run({ root, args })).toBe(0);
+      const result = await CodemodCommand.run({ root, args });
+      expect(result).toBe(0);
       expect(logs.join('\n')).toContain('Usage: devz codemod model-settings');
     }
 
@@ -531,7 +541,8 @@ describe('devz codemod model-settings - the command', () => {
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
     for (const flag of ['--halp', '--dry-run', '-w']) {
-      expect(await CodemodCommand.run({ root, args: ['model-settings', flag, '--write'] })).toBe(2);
+      const result = await CodemodCommand.run({ root, args: ['model-settings', flag, '--write'] });
+      expect(result).toBe(2);
     }
 
     expect(errors.join('\n')).toContain('unknown option "--halp"');
@@ -542,7 +553,8 @@ describe('devz codemod model-settings - the command', () => {
     spyOn(console, 'error').mockImplementation(() => {});
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    expect(await CodemodCommand.run({ root, args: ['model-settings', '--write', '--check'] })).toBe(
+    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write', '--check'] });
+    expect(result).toBe(
       2,
     );
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
@@ -567,7 +579,8 @@ describe('devz codemod model-settings - the command', () => {
       errors.push(args.join(' '));
     });
 
-    expect(await CodemodCommand.run({ root, args: ['nope'] })).toBe(2);
+    const result = await CodemodCommand.run({ root, args: ['nope'] });
+    expect(result).toBe(2);
     expect(errors.join('\n')).toContain('Usage: devz codemod model-settings');
   });
 });

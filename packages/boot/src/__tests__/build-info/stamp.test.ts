@@ -145,7 +145,8 @@ describe('a bundle compiled with BuildInfoStamp.define', () => {
   test('carries the stamp it was compiled with, ignoring the run environment', async () => {
     pinEnvironment();
 
-    const stamp = await bundleAndRun({ name: 'baked', define: await BuildInfoStamp.define() });
+    const result = await BuildInfoStamp.define();
+    const stamp = await bundleAndRun({ name: 'baked', define: result });
 
     expect(stamp.commit).toBe('feedfacecafe');
     expect(stamp.branch).toBe('pinned');
