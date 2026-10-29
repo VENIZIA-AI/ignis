@@ -35,8 +35,9 @@ tags: [process, release, ci]
   because the registry lists a version minutes before its file is downloadable; the release is reported done only then.
 - **A run that stopped is continued by sending the same plan:** `bun scripts/release/release.ts --plan <the printed plan>
   --mode <mode> --issue <N> --yes`. A package already released is skipped, one that is on npm without its release commit or
-  tag gets them without a second publish, and a package whose version in git is not the one the plan started from stops the
-  run before anything is published (the plan is stale). Do not plan again after a stop: a package that only cascaded from a
+  tag gets them without a second publish, and a package whose version in git is neither the one the plan started from nor
+  the exact version the plan would release from it (the target `npm version <mode>` gives) stops the run before anything is
+  published (the plan is stale), even when that other version is on npm and tagged. Do not plan again after a stop: a package that only cascaded from a
   sibling the first run released would drop out of the plan.
 - A sweep without package names releases each package with source changes AND every package that depends on
   one, transitively (the plan says why): the published manifests pin internal dependencies exactly, so a
