@@ -584,7 +584,7 @@ const main = async (): Promise<void> => {
       `kind=${plan.kind}`,
       `branch=${plan.branch}`,
       `headline=${plan.headline}`,
-      `targets=${plan.targets.map((entry) => `${entry.name}@${entry.target}`).join(',')}`,
+      `targets=${plan.targets.map((entry) => `${entry.name}=${entry.target}`).join(',')}`,
     ];
     for (const line of outputs) {
       console.log(line);

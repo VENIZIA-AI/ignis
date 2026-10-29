@@ -1,3 +1,5 @@
+import { ReleasePublishCondition } from './release-publish-condition';
+
 /**
  * Reads `.github/workflows/package-release.yml` and `scripts/release/release-run.ts` and reports which guards of
  * the release are missing. The workflow is where the release's safety lives (who may write, who holds the publish
@@ -9,7 +11,7 @@
  * not read from text: `release-run.test.ts` runs it against a fake and mutates it.
  */
 export class ReleaseWorkflowGuards {
-  static readonly DEVELOP_ONLY = 'develop-only';
+  static readonly REF_BY_KIND = 'ref-by-kind';
   static readonly READ_ONLY_DEFAULT = 'read-only-default';
   static readonly WRITE_ON_PUBLISH_ONLY = 'write-on-publish-only';
   static readonly GATES_NEEDED = 'gates-needed';
@@ -36,9 +38,16 @@ export class ReleaseWorkflowGuards {
   static readonly PUBLISH_RUNS_THE_LOOP = 'publish-runs-the-loop';
   static readonly NO_INTERPOLATION_IN_RUN = 'no-interpolation-in-run';
   static readonly PUBLISH_TIMEOUT = 'publish-timeout';
+  static readonly APPROVE_FOR_STABLE_ONLY = 'approve-for-stable-only';
+  static readonly PUBLISH_AFTER_APPROVE = 'publish-after-approve';
+  static readonly STABLE_REFUSES_MOVED_BRANCHES = 'stable-refuses-moved-branches';
+  static readonly PLAN_TRIES_THE_MERGE_BACK = 'plan-tries-the-merge-back';
+  static readonly MERGE_BACK_FROM_A_COPY = 'merge-back-from-a-copy';
+  static readonly TARGET_BRANCH_BY_KIND = 'target-branch-by-kind';
+  static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
 
   static readonly SCHEME_SET = new Set<string>([
-    this.DEVELOP_ONLY,
+    this.REF_BY_KIND,
     this.READ_ONLY_DEFAULT,
     this.WRITE_ON_PUBLISH_ONLY,
     this.GATES_NEEDED,
@@ -65,6 +74,13 @@ export class ReleaseWorkflowGuards {
     this.PUBLISH_RUNS_THE_LOOP,
     this.NO_INTERPOLATION_IN_RUN,
     this.PUBLISH_TIMEOUT,
+    this.APPROVE_FOR_STABLE_ONLY,
+    this.PUBLISH_AFTER_APPROVE,
+    this.STABLE_REFUSES_MOVED_BRANCHES,
+    this.PLAN_TRIES_THE_MERGE_BACK,
+    this.MERGE_BACK_FROM_A_COPY,
+    this.TARGET_BRANCH_BY_KIND,
+    this.NO_FORCE_OR_TAG_MOVE,
   ]);
 }
 
@@ -74,6 +90,7 @@ export interface IReleaseWorkflowViolation {
 }
 
 interface IWorkflowStep {
+  id?: string;
   name?: string;
   uses?: string;
   run?: string;
@@ -83,6 +100,7 @@ interface IWorkflowStep {
 }
 
 interface IWorkflowJob {
+  name?: string;
   needs?: string | string[];
   if?: string;
   permissions?: Record<string, string> | string;
@@ -98,6 +116,7 @@ interface IWorkflow {
   'run-name'?: string;
   on?: { workflow_dispatch?: { inputs?: Record<string, { default?: unknown }> } };
   permissions?: Record<string, string> | string;
+  env?: Record<string, unknown>;
   jobs?: Record<string, IWorkflowJob>;
 }
 
@@ -105,8 +124,14 @@ const PLAN_JOB = 'plan';
 const TEST_JOB = 'test';
 const SCRIPTS_JOB = 'scripts';
 const PUBLISH_JOB = 'publish';
+const APPROVE_JOB = 'approve';
 const GATE_JOBS = [PLAN_JOB, TEST_JOB, SCRIPTS_JOB];
-const DEVELOP_CONDITION = "github.ref == 'refs/heads/develop'";
+const STABLE_CONDITION = "${{ needs.plan.outputs.kind == 'stable' }}";
+const APPROVAL_ENVIRONMENT = 'release-approval';
+const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan';
+const TRIAL_STEP = 'Try the merge back into develop';
+const MERGE_BACK_STEP = 'Merge main back into develop';
+const REPORT_STEP = 'Report - published, merge back not done';
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
@@ -121,6 +146,22 @@ const RELEASE_COMMAND = 'bun scripts/release/release-run.ts run';
 const PLAN_INPUTS = ['build_mode', 'issue', 'plan'];
 const MATRIX_EXPRESSION = '${{ fromJSON(needs.plan.outputs.matrix) }}';
 const BUILD_COMMAND = 'make core-server core-worker boot';
+/** A git command that rewrites or removes history a release has already made public. */
+const DESTRUCTIVE_GIT: Array<{ name: string; pattern: RegExp }> = [
+  {
+    name: 'a forced push',
+    pattern: /\bgit\b[^\n]*?\bpush\b[^\n]*(?:--force|--force-with-lease|\s-f\b|\s\+\S)/,
+  },
+  {
+    name: 'a push that deletes a ref',
+    pattern: /\bgit\b[^\n]*?\bpush\b[^\n]*(?:--delete|\s-d\b|\s:\S)/,
+  },
+  {
+    name: 'a tag moved or deleted',
+    pattern: /\bgit\b[^\n]*?\btag\b[^\n]*(?:\s-f\b|--force|\s-d\b|--delete)/,
+  },
+  { name: 'a branch deleted', pattern: /\bgit\b[^\n]*?\bbranch\b[^\n]*(?:\s-D\b|\s-d\b|--delete)/ },
+];
 const MINIMUM_TIMEOUT = 180;
 const MAXIMUM_TIMEOUT = 360;
 
@@ -172,10 +213,15 @@ export const checkReleaseWorkflow = (opts: {
   const scripts = jobs[SCRIPTS_JOB];
   const publish = jobs[PUBLISH_JOB];
 
-  if (publish?.if?.replaceAll(/\s+/g, ' ').trim() !== DEVELOP_CONDITION) {
+  const planStep = stepsOf(plan).find((step) => commandsOf(step).includes('release-run.ts plan'));
+  if (
+    planStep === undefined ||
+    workflow.env?.BUILD_MODE !== '${{ github.event.inputs.build_mode }}' ||
+    (publish?.if ?? '').includes('github.ref')
+  ) {
     violate(
-      ReleaseWorkflowGuards.DEVELOP_ONLY,
-      `the '${PUBLISH_JOB}' job must carry \`if: ${DEVELOP_CONDITION}\``,
+      ReleaseWorkflowGuards.REF_BY_KIND,
+      `the ref is checked by the plan job, not by a hard-coded branch: '${PLAN_JOB}' must run \`release-run.ts plan\` with the \`BUILD_MODE\` of the dispatch (the plan reads GITHUB_REF and refuses a ref that is not the branch of the kind), and the '${PUBLISH_JOB}' condition must not name a ref`,
     );
   }
 
@@ -206,11 +252,13 @@ export const checkReleaseWorkflow = (opts: {
     );
   }
 
-  const missingGates = GATE_JOBS.filter((name) => !needsOf(publish).includes(name));
+  const missingGates = [...GATE_JOBS, APPROVE_JOB].filter(
+    (name) => !needsOf(publish).includes(name),
+  );
   if (missingGates.length > 0) {
     violate(
       ReleaseWorkflowGuards.GATES_NEEDED,
-      `the '${PUBLISH_JOB}' job must \`needs\` every gate job: missing ${missingGates.join(', ')}`,
+      `the '${PUBLISH_JOB}' job must \`needs\` every gate job and the approval: missing ${missingGates.join(', ')}`,
     );
   }
 
@@ -426,12 +474,15 @@ export const checkReleaseWorkflow = (opts: {
     plan.environment !== undefined ||
     plan.outputs?.matrix === undefined ||
     plan.outputs?.plan === undefined ||
+    plan.outputs?.kind === undefined ||
+    plan.outputs?.branch === undefined ||
+    plan.outputs?.headline === undefined ||
     !needsOf(test).includes(PLAN_JOB) ||
     !needsOf(scripts).includes(PLAN_JOB)
   ) {
     violate(
       ReleaseWorkflowGuards.PLAN_JOB_FIRST,
-      `the '${PLAN_JOB}' job must run first with no environment, output \`matrix\` and \`plan\`, and the '${TEST_JOB}' and '${SCRIPTS_JOB}' jobs must \`needs\` it`,
+      `the '${PLAN_JOB}' job must run first with no environment, output \`matrix\`, \`plan\`, \`kind\`, \`branch\` and \`headline\`, and the '${TEST_JOB}' and '${SCRIPTS_JOB}' jobs must \`needs\` it`,
     );
   }
 
@@ -459,15 +510,24 @@ export const checkReleaseWorkflow = (opts: {
 
   const publishSteps = stepsOf(publish);
   const release = publishSteps.find((step) => step.name === RELEASE_STEP);
+  const afterLoop =
+    release === undefined ? [] : publishSteps.slice(publishSteps.indexOf(release) + 1);
   if (
     !release ||
     commandsOf(release).trim() !== RELEASE_COMMAND ||
     release.env?.PLAN !== '${{ needs.plan.outputs.plan }}' ||
-    publishSteps[publishSteps.length - 1] !== release
+    afterLoop.some((step) => step.name !== MERGE_BACK_STEP && step.name !== REPORT_STEP)
   ) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
-      `'${RELEASE_STEP}' must be the last step of '${PUBLISH_JOB}', run \`${RELEASE_COMMAND}\` and take \`PLAN\` from the plan job's output`,
+      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${MERGE_BACK_STEP}' and '${REPORT_STEP}'`,
+    );
+  }
+
+  if (release?.env?.TARGET_BRANCH !== '${{ needs.plan.outputs.branch }}') {
+    violate(
+      ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
+      `'${RELEASE_STEP}' must take \`TARGET_BRANCH\` from \`needs.plan.outputs.branch\`: the branch of the kind, never a literal`,
     );
   }
 
@@ -485,6 +545,132 @@ export const checkReleaseWorkflow = (opts: {
       ReleaseWorkflowGuards.PUBLISH_TIMEOUT,
       `the '${PUBLISH_JOB}' job must state \`timeout-minutes\` between ${MINIMUM_TIMEOUT} and ${MAXIMUM_TIMEOUT}: nine publishes, each followed by a wait of up to fifteen minutes`,
     );
+  }
+
+  // The approval: one job names the environment, it exists for a stable only, it follows every gate, it holds no
+  // permission and it runs nothing but an echo.
+  const approvers = Object.entries(jobs)
+    .filter(([, job]) => job.environment === APPROVAL_ENVIRONMENT)
+    .map(([name]) => name);
+  const approve = jobs[APPROVE_JOB];
+  const approveSteps = stepsOf(approve);
+  if (
+    approvers.length !== 1 ||
+    approvers[0] !== APPROVE_JOB ||
+    approve?.if?.trim() !== STABLE_CONDITION ||
+    [...GATE_JOBS].some((name) => !needsOf(approve).includes(name)) ||
+    typeof approve?.permissions !== 'object' ||
+    Object.keys(approve.permissions).length > 0 ||
+    approveSteps.length !== 1 ||
+    approveSteps[0].uses !== undefined ||
+    !(approveSteps[0].run ?? '').trim().startsWith('echo ') ||
+    !String(approve.name ?? '').includes('needs.plan.outputs.headline')
+  ) {
+    violate(
+      ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      `exactly one job ('${APPROVE_JOB}') names \`environment: ${APPROVAL_ENVIRONMENT}\`; it runs only for a stable (\`if: ${STABLE_CONDITION}\`), \`needs\` ${GATE_JOBS.join(', ')}, states \`permissions: {}\`, runs one echo step and carries \`needs.plan.outputs.headline\` in its name`,
+    );
+  }
+
+  // The publish condition is evaluated, not read: a prerelease publishes with the approval skipped, a stable only
+  // after it succeeded, and nothing publishes after a failed or cancelled dependency.
+  const failures = ReleasePublishCondition.failures({ condition: publish?.if ?? '' });
+  if (failures.length > 0) {
+    violate(
+      ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      `the '${PUBLISH_JOB}' condition is wrong for: ${failures.join('; ')}`,
+    );
+  }
+
+  // A stable is approved against the branches the plan saw; the refusal comes before anything changes a file,
+  // writes git or publishes.
+  const moved = publishSteps.find((step) => step.name === MOVED_BRANCHES_STEP);
+  const firstMutation = publishSteps.findIndex((step) =>
+    /bun install|force-update|make |release-run\.ts|git push|git commit|npm publish/.test(
+      commandsOf(step),
+    ),
+  );
+  if (
+    !moved ||
+    moved.if?.trim() !== STABLE_CONDITION ||
+    moved.env?.PLAN_DEVELOP_SHA !== '${{ needs.plan.outputs.develop_sha }}' ||
+    !commandsOf(moved).includes('[ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]') ||
+    !commandsOf(moved).includes('[ "$(git rev-parse origin/develop)" != "$PLAN_DEVELOP_SHA" ]') ||
+    (commandsOf(moved).match(/\bexit 1\b/g) ?? []).length < 2 ||
+    (firstMutation >= 0 && publishSteps.indexOf(moved) > firstMutation)
+  ) {
+    violate(
+      ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
+      `'${MOVED_BRANCHES_STEP}' must run for a stable, compare origin/main with the dispatched commit and origin/develop with the plan's \`develop_sha\`, and come before the first step that changes a file, writes git or publishes`,
+    );
+  }
+
+  // The plan job tries the merge before the approval, with the versions of the plan and without the lockfile.
+  const trial = stepsOf(plan).find((step) => step.name === TRIAL_STEP);
+  const planCheckout = stepsOf(plan).find((step) => step.uses?.startsWith('actions/checkout@'));
+  if (
+    !trial ||
+    trial.if?.trim() !== "${{ steps.plan.outputs.kind == 'stable' }}" ||
+    !commandsOf(trial).includes('scripts/release/merge-back.ts trial') ||
+    !commandsOf(trial).includes('--versions "$TARGETS"') ||
+    !commandsOf(trial).includes('--lock keep') ||
+    trial.env?.TARGETS !== '${{ steps.plan.outputs.targets }}' ||
+    String(plan?.outputs?.develop_sha ?? '') !== `\${{ steps.${trial.id}.outputs.develop_sha }}` ||
+    planCheckout?.with?.['fetch-depth'] !== 0
+  ) {
+    violate(
+      ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      `the '${PLAN_JOB}' job must check out the full history, run '${TRIAL_STEP}' for a stable (\`merge-back.ts trial --versions "$TARGETS" --lock keep\`) and output that step's \`develop_sha\``,
+    );
+  }
+
+  // The merge back runs once, for a stable, after the loop, from a copy of the script made first, in a worktree of
+  // develop of its own.
+  const merge = publishSteps.find((step) => step.name === MERGE_BACK_STEP);
+  const mergeCommands = commandsOf(merge);
+  const mergeOrder = [
+    'cp scripts/release/merge-back.ts "$RUNNER_TEMP/merge-back.ts"',
+    'git worktree add --detach "$RUNNER_TEMP/develop-merge" origin/develop',
+    'bun "$RUNNER_TEMP/merge-back.ts" apply --repo "$RUNNER_TEMP/develop-merge" --from "$RELEASE_SHA"',
+    'git -C "$RUNNER_TEMP/develop-merge" push origin HEAD:develop',
+  ].map((needle) => mergeCommands.indexOf(needle));
+  if (
+    !merge ||
+    merge.if?.trim() !== STABLE_CONDITION ||
+    mergeOrder.some(
+      (position, index) => position < 0 || (index > 0 && position < mergeOrder[index - 1]),
+    ) ||
+    release === undefined ||
+    publishSteps.indexOf(merge) < publishSteps.indexOf(release) ||
+    /git checkout develop|git switch develop/.test(mergeCommands)
+  ) {
+    violate(
+      ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
+      `'${MERGE_BACK_STEP}' must run for a stable after '${RELEASE_STEP}': copy merge-back.ts first, add a detached worktree of origin/develop, run the copy with \`apply --repo\` on that worktree and push from it; the checkout is never switched to develop`,
+    );
+  }
+
+  // Nothing force-pushes, moves or deletes a tag, or deletes a branch: a published version is never chased.
+  for (const [jobName, job] of Object.entries(jobs)) {
+    for (const step of stepsOf(job)) {
+      for (const { name } of DESTRUCTIVE_GIT.filter((entry) =>
+        entry.pattern.test(commandsOf(step)),
+      )) {
+        violate(
+          ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+          `'${step.name}' (${jobName}) makes ${name}; a release never rewrites or removes what it has published`,
+        );
+      }
+    }
+  }
+  const gitArrays = [...runner.matchAll(/\[\s*'git'[^\]]*\]/g)].map((match) => match[0]);
+  for (const array of gitArrays) {
+    if (/'(?:--force|--force-with-lease|-f|--delete|-d|-D)'|'[+:]\S*'/.test(array)) {
+      violate(
+        ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+        `release-run.ts runs a git command that forces, moves or deletes: ${array.replace(/\s+/g, ' ')}`,
+      );
+    }
   }
 
   return violations;

@@ -39,9 +39,17 @@ on:
 # dies at runtime on a symbol that exists only in this repository.
 
 # Read-only by default. The job that pushes the release commits and the tags states its own write access; the jobs
-# that plan and test hold no secret and cannot write. The release publishes only when every gate passed and only
-# from develop, and every job works on the dispatched commit (`github.sha`), so the plan, the tests, the run name
-# and the publish all name the same code.
+# that plan and test hold no secret and cannot write. The release publishes only when every gate passed, and every
+# job works on the dispatched commit (`github.sha`), so the plan, the tests, the run name and the publish all name
+# the same code.
+#
+# Two kinds of run, decided by the build_mode. A prerelease (prerelease, prepatch, preminor, premajor) is dispatched
+# on develop, commits its releases to develop and publishes under `next`; it asks nobody. A stable (patch, minor,
+# major) is dispatched on main, commits its releases to main and publishes under `latest`; it waits for ONE approval,
+# and after the click runs to the end: publish, tag, and the merge of main back into develop. `plan` refuses a ref
+# that is not the kind's branch and a plan that is not the scope of the mode, and for a stable it tries the merge back
+# before anyone is asked to approve. `approve` is the one human stop (environment release-approval) and exists for a
+# stable only. `publish` runs after `approve` succeeded, or after it was skipped because the plan says prerelease.
 permissions:
   contents: read
 
@@ -73,14 +81,21 @@ jobs:
       matrix: ${{ steps.plan.outputs.matrix }}
       plan: ${{ steps.plan.outputs.plan }}
       kind: ${{ steps.plan.outputs.kind }}
+      # The branch the release commits go to: main for a stable, develop for a prerelease.
       branch: ${{ steps.plan.outputs.branch }}
+      # What the approver reads in the name of the approval, and the versions the merge trial applied.
+      headline: ${{ steps.plan.outputs.headline }}
+      targets: ${{ steps.plan.outputs.targets }}
+      # The head of develop the merge trial read (empty for a prerelease): the publish job stops if develop moved.
+      develop_sha: ${{ steps.trial.outputs.develop_sha }}
 
     steps:
+      # Full history: the merge trial of a stable needs the branches and their common ancestor.
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: 0
           persist-credentials: false
 
       # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.
@@ -94,6 +109,16 @@ jobs:
         env:
           PLAN: ${{ inputs.plan }}
         run: bun scripts/release/release-run.ts plan
+
+      # A stable only: the merge of main back into develop, tried in throwaway worktrees with the versions of this plan
+      # before anyone is asked to approve. A merge that would stop stops here. IGNIS's release commits touch package.json
+      # only, so the lockfile is left alone.
+      - name: Try the merge back into develop
+        id: trial
+        if: ${{ steps.plan.outputs.kind == 'stable' }}
+        env:
+          TARGETS: ${{ steps.plan.outputs.targets }}
+        run: bun scripts/release/merge-back.ts trial --versions "$TARGETS" --lock keep
 
   # ---------------------------------------------------------------------------------------------
   # TEST - one job per package of the plan; no secret, no write access: everything that must pass before a
@@ -375,18 +400,48 @@ jobs:
         run: make test-scripts
 
   # ---------------------------------------------------------------------------------------------
-  # PUBLISH - needs every gate, runs only from develop, and is the only job with write access.
+  # APPROVE - the one human stop, for a stable only: the plan says so, and the job is skipped for a prerelease. It
+  # needs every gate, so the owner never approves a release that fails them, and its name carries what the run would
+  # publish. The environment release-approval holds the reviewer and its ref rule (main only); its settings are
+  # GitHub's, not this file's, and this line is what makes the job subject to them. The job holds no permission and
+  # runs nothing but an echo: the approval is the click.
+  # ---------------------------------------------------------------------------------------------
+  approve:
+    name: Approve ${{ needs.plan.outputs.headline }}
+    needs: [plan, test, scripts]
+    if: ${{ needs.plan.outputs.kind == 'stable' }}
+    runs-on: ubuntu-26.04
+    environment: release-approval
+    permissions: {}
+
+    steps:
+      - name: Approved
+        run: echo "approved - $HEADLINE"
+        env:
+          HEADLINE: ${{ needs.plan.outputs.headline }}
+
+  # ---------------------------------------------------------------------------------------------
+  # PUBLISH - needs every gate and the approval of a stable, and is the only job with write access.
   # It holds no registry token: npm trusted publishing signs in with the job's own identity.
   # ---------------------------------------------------------------------------------------------
   publish:
     name: NPM Release
-    needs: [plan, test, scripts]
-    if: github.ref == 'refs/heads/develop'
+    needs: [plan, test, scripts, approve]
+    # A prerelease has no approval, so `approve` is skipped for it and publish still runs; a stable runs only after
+    # `approve` succeeded. A skipped `approve` on a stable stops it. A job whose `needs` was skipped is skipped
+    # unless its `if` says otherwise, so both cases are written out; a failed or cancelled dependency stops it too.
+    # scripts/release/release-publish-condition.ts evaluates this expression over its cases.
+    if: >-
+      ${{ !cancelled() && needs.plan.result == 'success' && needs.test.result == 'success'
+      && needs.scripts.result == 'success'
+      && (needs.approve.result == 'success'
+      || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}
     runs-on: ubuntu-26.04
     # Nine publishes, each followed by a wait of up to fifteen minutes for its tarball, plus the build.
     timeout-minutes: 240
-    # The environment holds the release's ref rule (develop and main). Its settings are GitHub's, not this file's;
-    # this line is what makes the job subject to them, and what a trusted publisher on npmjs.com names.
+    # The environment holds the publish identity's ref rule (develop and main). It has no reviewers: the owner's
+    # approval is the `approve` job's, and only a stable has one. Its settings are GitHub's, not this file's; this
+    # line is what makes the job subject to them, and what a trusted publisher on npmjs.com names.
     environment: npm-release
     # `id-token` is what trusted publishing signs with: npm exchanges the job's identity for a short-lived publish
     # credential. Only this job has it.
@@ -399,8 +454,9 @@ jobs:
       # SETUP
       # -------------------------------------------------------------------------
       # The dispatched commit, never a branch name: the tests, the run name and the publish see one commit. The
-      # release commits are pushed to develop one at a time with a plain push; a push that is rejected (develop
-      # moved) stops the run, and dispatching the same plan again records what is missing.
+      # release commits are pushed to the branch of the kind (main for a stable, develop for a prerelease) one at a
+      # time with a plain push; a push that is rejected (the branch moved) stops the run, and dispatching the same plan
+      # again records what is missing.
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -425,6 +481,26 @@ jobs:
         run: |
           git config user.name "venizia-ci"
           git config user.email "developer@venizia.ai"
+
+      # A stable is approved against what the plan saw: main where the dispatch left it, and the head of develop the
+      # merge trial read. Either moving means the approved merge is not the one that would run, so nothing is
+      # published; it is checked before the first step that changes a file, writes git or publishes.
+      - name: Refuse a stable when a branch moved since the plan
+        if: ${{ needs.plan.outputs.kind == 'stable' }}
+        env:
+          PLAN_DEVELOP_SHA: ${{ needs.plan.outputs.develop_sha }}
+        run: |
+          git fetch --quiet origin main develop
+
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "ERROR | main moved since this run was dispatched ($GITHUB_SHA, now $(git rev-parse origin/main)) - nothing is published"
+            exit 1
+          fi
+
+          if [ "$(git rev-parse origin/develop)" != "$PLAN_DEVELOP_SHA" ]; then
+            echo "ERROR | develop moved since the plan tested the merge back ($PLAN_DEVELOP_SHA, now $(git rev-parse origin/develop)) - nothing is published; dispatch again"
+            exit 1
+          fi
 
       # Trusted publishing needs npm 11.5.1 or later to publish and 11.21.0 or later to move a dist-tag; the npm
       # that ships with this Node is older. An exact version, never `latest`, asserted.
@@ -460,3 +536,39 @@ jobs:
           TARGET_BRANCH: ${{ needs.plan.outputs.branch }}
           RELEASE_ISSUE: ${{ inputs.issue }}
         run: bun scripts/release/release-run.ts run
+
+      # -------------------------------------------------------------------------
+      # MERGE BACK (a stable only)
+      # -------------------------------------------------------------------------
+      # main now holds every release commit and their tags; develop gets them by one merge of the last release commit,
+      # so main never holds a commit develop lacks. The plan job tried this merge before the approval; the first step
+      # of this job checked develop had not moved since. develop is checked out in a worktree of its own and this
+      # checkout stays on the release commit (it may be dirty by design: the install edits manifests that no release
+      # commit includes). The script runs from a copy made first, from main: the file that was tested and approved, so
+      # no file of develop (a bunfig.toml, a .env) configures what runs. A merge that is more than versions stops, and
+      # the report below says how to finish it.
+      - name: Merge main back into develop
+        if: ${{ needs.plan.outputs.kind == 'stable' }}
+        run: |
+          RELEASE_SHA="$(git rev-parse HEAD)"
+          echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"
+          git fetch --quiet origin develop
+
+          if git merge-base --is-ancestor "$RELEASE_SHA" origin/develop; then
+            echo "merge back: develop already holds $RELEASE_SHA - skipped"
+            exit 0
+          fi
+
+          cp scripts/release/merge-back.ts "$RUNNER_TEMP/merge-back.ts"
+          git worktree add --detach "$RUNNER_TEMP/develop-merge" origin/develop
+          bun "$RUNNER_TEMP/merge-back.ts" apply --repo "$RUNNER_TEMP/develop-merge" --from "$RELEASE_SHA" --message "Merge main into develop (stable release)"
+          git -C "$RUNNER_TEMP/develop-merge" push origin HEAD:develop
+
+      # Reported, never repaired: the packages are on npm and their commits and tags are on main.
+      - name: Report - published, merge back not done
+        if: ${{ failure() && env.MERGE_BACK_STARTED == 'true' }}
+        run: |
+          echo "WARNING | every package of the plan is published, committed and tagged on main, but main is not merged back into develop"
+          echo "  the usual cause is a conflict that is more than a version; read the merge step above"
+          echo "  finish it: dispatch the same plan again on main - it publishes nothing, tags nothing and merges back (a new run, a new approval)"
+          echo "  or by hand: merge origin/main into develop in a worktree of develop, resolve, commit and push"
