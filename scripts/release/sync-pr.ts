@@ -1,7 +1,8 @@
 /**
- * Copied from VULCAN (scripts/release/sync-pr.ts at fe4c6771, VENIZIA-AI/vulcan) with two changes: IGNIS releases a
- * tag per package (`kernel-v0.4.9-1`), so the version is read from the package the tag names, and the branch names
- * are local constants. The `Closes #N` list of the pull request is not here yet.
+ * Copied from VULCAN (scripts/release/sync-pr.ts at fe4c6771, with the `Closes #N` list of 409f683) with two changes:
+ * IGNIS releases a tag per package (`kernel-v0.4.9-1`), so the version is read from the package the tag names, and
+ * the branch names are local constants. Of VULCAN's github-release.ts only `ISSUE_TOKENS` and `fencedLines` are
+ * taken, as members of this class.
  *
  * The Sync PR of the release flow: `main` takes the exact commit of the prerelease BANA gated, never whatever
  * `develop` has become since.
@@ -10,7 +11,9 @@
  *   bun scripts/release/sync-pr.ts verify --tag <prerelease tag>
  *
  * `open` checks the tag (a prerelease, on develop's history, with main inside its history), pushes the branch
- * `sync/<tag>` at the tag's commit and opens the pull request into `main` from it. The owner merges it; this
+ * `sync/<tag>` at the tag's commit and opens the pull request into `main` from it, with one `Closes #N` for each
+ * issue the commits it brings serve (feature pull requests say `Refs #N`: the issues close here, when the
+ * Sync merges into the default branch). The owner merges it; this
  * script never merges. `verify` runs after the merge: the tree of `main` must equal the tree of the tag.
  *
  * It pushes a branch and opens a pull request: run it on the owner's word.
@@ -33,6 +36,13 @@ export class ReleaseSyncPr {
   static readonly BRANCH_PREFIX = 'sync/';
   static readonly DEVELOP = 'develop';
   static readonly MAIN = 'main';
+  /** The unspaced run of `[#N]` tokens a subject opens with: `[#42][#44] ...` serves two issues. */
+  static readonly ISSUE_TOKENS = /^(?:\[#\d+\])+/;
+
+  /** A fenced list: a line in it cannot ping anyone, close an issue or break the markdown. */
+  static fencedLines(opts: { lines: string[] }): string[] {
+    return ['```text', ...opts.lines.map((line) => line.replaceAll('```', "'''")), '```'];
+  }
 
   /** The `package.json` of the package a tag `<folder>-v<version>` is of, or `undefined` for any other name. */
   static versionFileOf(opts: { tag: string }): string | undefined {
@@ -118,22 +128,36 @@ export class ReleaseSyncPr {
     return `Sync main: prerelease ${opts.version}`;
   }
 
+  /**
+   * The issues the commits serve, from the leading `[#N]` tokens of their subjects (`[#42][#44] ...` serves two):
+   * each once, in ascending order. A subject with no leading token serves none.
+   */
+  static issuesOf(opts: { subjects: string[] }): number[] {
+    const numbers = opts.subjects.flatMap((subject) => {
+      const leading = ReleaseSyncPr.ISSUE_TOKENS.exec(subject)?.[0] ?? '';
+
+      return [...leading.matchAll(/\d+/g)].map((match) => Number(match[0]));
+    });
+
+    return [...new Set(numbers)].sort((first, second) => first - second);
+  }
+
   static bodyOf(opts: {
     tag: string;
     version: string;
     commit: string;
     subjects: string[];
   }): string {
+    const issues = ReleaseSyncPr.issuesOf({ subjects: opts.subjects });
+
     return [
       `Sync main with the prerelease ${opts.version}: the exact commit of the tag \`${opts.tag}\` (${opts.commit.slice(0, 7)}), not the tip of develop.`,
       'Merge with a plain merge commit. After the merge the tree of main equals the tree of the tag (`bun scripts/release/sync-pr.ts verify`).',
       '',
       `Brings ${opts.subjects.length} commit${opts.subjects.length === 1 ? '' : 's'}:`,
       '',
-      // In a fence, so a subject cannot ping anyone, close an issue or break the markdown.
-      '```text',
-      ...opts.subjects.map((subject) => subject.replaceAll('```', "'''")),
-      '```',
+      ...ReleaseSyncPr.fencedLines({ lines: opts.subjects }),
+      ...(issues.length === 0 ? [] : ['', ...issues.map((issue) => `Closes #${issue}`)]),
       '',
     ].join('\n');
   }
