@@ -427,7 +427,8 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     const { bucket, object, source, contentType } = opts;
     const body =
       source instanceof Response || source instanceof Request ? source : new Response(source);
-    const buffer = Buffer.from(await body.arrayBuffer());
+    const result = await body.arrayBuffer();
+    const buffer = Buffer.from(result);
 
     await this.writeObject({
       bucket,

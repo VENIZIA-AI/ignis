@@ -123,7 +123,8 @@ export class MinioHelper extends BaseStorageHelper {
     const { bucket, object, options } = opts;
 
     try {
-      return await this.client.getObject(bucket.name, object.key, options);
+      const result = await this.client.getObject(bucket.name, object.key, options);
+      return result;
     } catch (error) {
       throw this.asStorageError({ error, operation: 'getObject', bucket, object });
     }

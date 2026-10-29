@@ -43,12 +43,14 @@ const gzippedSize = async (opts: { name: string; source: string }): Promise<numb
     throw new Error(`[uuid-bundle-budget] bun build failed | stderr: ${build.stderr.toString()}`);
   }
 
-  return Bun.gzipSync(await Bun.file(outfile).bytes(), { level: 9 }).length;
+  const result = await Bun.file(outfile).bytes();
+  return Bun.gzipSync(result, { level: 9 }).length;
 };
 
 describe('the ./uuid subpath bundle budget', () => {
   beforeAll(async () => {
-    probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-uuid-budget-'));
+    const result = await mkdtemp(path.join(tmpdir(), 'ignis-uuid-budget-'));
+    probeDirectory = result;
   });
 
   afterAll(async () => {

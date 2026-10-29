@@ -137,17 +137,22 @@ describe('AbstractSecretsHelper', () => {
 
   test('getBundle caches within TTL and re-fetches after expiry', async () => {
     ctx.provider.fetchScript = [{ value: { A: '1' } }, { value: { A: '2' } }];
-    expect(await ctx.provider.getBundle({ path: 'p' })).toEqual({ A: '1' });
-    expect(await ctx.provider.getBundle({ path: 'p' })).toEqual({ A: '1' }); // cached
+    const result = await ctx.provider.getBundle({ path: 'p' });
+    expect(result).toEqual({ A: '1' });
+    const result2 = await ctx.provider.getBundle({ path: 'p' });
+    expect(result2).toEqual({ A: '1' }); // cached
     expect(ctx.provider.fetchCount).toBe(1);
     ctx.clock.current = 200_000;
-    expect(await ctx.provider.getBundle({ path: 'p' })).toEqual({ A: '2' }); // re-fetched
+    const result3 = await ctx.provider.getBundle({ path: 'p' });
+    expect(result3).toEqual({ A: '2' }); // re-fetched
   });
 
   test('get returns keyed value or defaultValue', async () => {
     ctx.provider.fetchScript = [{ value: { USER: 'app' } }];
-    expect(await ctx.provider.get({ path: 'p', key: 'USER' })).toBe('app');
-    expect(await ctx.provider.get({ path: 'p', key: 'MISSING', defaultValue: 'd' })).toBe('d');
+    const result = await ctx.provider.get({ path: 'p', key: 'USER' });
+    expect(result).toBe('app');
+    const result2 = await ctx.provider.get({ path: 'p', key: 'MISSING', defaultValue: 'd' });
+    expect(result2).toBe('d');
   });
 
   test('renew success reschedules with NO rotation event', async () => {
@@ -365,9 +370,11 @@ describe('AbstractSecretsHelper', () => {
       { value: { password: 'p2' }, lease: { leaseId: 'L2', ttlSeconds: 10, renewable: false } },
     ];
     // Prime the static cache from the same path.
-    expect(await ctx.provider.get({ path: 'db', key: 'password' })).toBe('p1');
+    const result = await ctx.provider.get({ path: 'db', key: 'password' });
+    expect(result).toBe('p1');
     await ctx.provider.lease({ path: 'db', key: 'datasources.postgres' });
     await ctx.timers.fireAll(); // rotate -> fetch p2
-    expect(await ctx.provider.get({ path: 'db', key: 'password' })).toBe('p2'); // not stale
+    const result2 = await ctx.provider.get({ path: 'db', key: 'password' });
+    expect(result2).toBe('p2'); // not stale
   });
 });

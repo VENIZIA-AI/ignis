@@ -69,7 +69,8 @@ const runProbe = async (opts: { name: string; script: string }): Promise<IProbeR
 };
 
 beforeAll(async () => {
-  probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-bundler-probe-'));
+  const result = await mkdtemp(path.join(tmpdir(), 'ignis-bundler-probe-'));
+  probeDirectory = result;
 });
 
 afterAll(async () => {

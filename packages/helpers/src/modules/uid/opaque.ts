@@ -134,14 +134,16 @@ export class OpaqueUidHelper extends BaseHelper {
   }): Promise<string> {
     const { head, isAvailable, maxAttempts, attempt, id, verdict } = opts;
 
-    if (await verdict) {
+    const result = await verdict;
+    if (result) {
       return id;
     }
 
     for (let next = attempt + 1; next <= maxAttempts; next++) {
       const candidate = `${head}${this.randomBody()}`;
 
-      if (await isAvailable(candidate)) {
+      const result2 = await isAvailable(candidate);
+      if (result2) {
         return candidate;
       }
     }

@@ -19,7 +19,8 @@ export const readFormBody = async (opts: {
   req: { formData: () => Promise<FormData> };
 }): Promise<FormData> => {
   try {
-    return await opts.req.formData();
+    const result = await opts.req.formData();
+    return result;
   } catch (error) {
     throw getError({
       error: RequestBodyErrors.BODY_MALFORMED,

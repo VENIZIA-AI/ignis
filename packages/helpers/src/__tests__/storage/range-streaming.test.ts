@@ -97,14 +97,16 @@ describe('BaseStorageHelper.getObjectStream - the range fallback', () => {
     const helper = new CountingHelper(['abcde', 'fghij', 'klmno']);
     const stream = await helper.getObjectStream({ ...location, range: { start: 3, end: 8 } });
 
-    expect(await readAll(stream)).toBe('defghi');
+    const result = await readAll(stream);
+    expect(result).toBe('defghi');
   });
 
   test('an open-ended range runs to the end of the object', async () => {
     const helper = new CountingHelper(['abcde', 'fghij']);
     const stream = await helper.getObjectStream({ ...location, range: { start: 7 } });
 
-    expect(await readAll(stream)).toBe('hij');
+    const result = await readAll(stream);
+    expect(result).toBe('hij');
   });
 
   test('stops reading the backend once the range is covered', async () => {

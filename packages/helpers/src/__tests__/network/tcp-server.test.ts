@@ -187,7 +187,8 @@ describe('NetworkTcpServer - lifecycle and client registry', () => {
     expect(data).toBe('ping');
 
     server.emit({ clientId: id, payload: 'pong' });
-    expect(await echoed.promise).toBe('pong');
+    const result = await echoed.promise;
+    expect(result).toBe('pong');
   });
 
   test('a disconnecting client fires onClientClose and is removed from the registry', async () => {
@@ -284,7 +285,8 @@ describe('NetworkTcpServer - authentication flow', () => {
       closed.resolve();
     });
 
-    expect(await payload.promise).toBe('Unauthorized Client');
+    const result = await payload.promise;
+    expect(result).toBe('Unauthorized Client');
     await closed.promise;
   });
 

@@ -57,7 +57,8 @@ describe('ModuleUtility - a peer that ships an ES module and a CommonJS build', 
   test('load resolves through the project root with the import condition: the ES module copy a consumer gets', async () => {
     useRoot();
 
-    expect((await ModuleUtility.load<{ flavour: string }>({ module: name })).flavour).toBe('esm');
+    const result = await ModuleUtility.load<{ flavour: string }>({ module: name });
+    expect(result.flavour).toBe('esm');
   });
 
   test('preload registers the ES module copy, so the synchronous path returns it afterwards', async () => {

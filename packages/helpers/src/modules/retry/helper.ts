@@ -97,7 +97,8 @@ export class RetryHelper extends BaseHelper {
     });
 
     try {
-      return await Promise.race([Promise.resolve().then(execution), timeoutPromise]);
+      const result = await Promise.race([Promise.resolve().then(execution), timeoutPromise]);
+      return result;
     } finally {
       clearTimeout(timer);
     }
@@ -393,7 +394,8 @@ export class RetryHelper extends BaseHelper {
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       RetryHelper.throwIfAborted({ operation, signal });
 
-      lastResult = await execution({ attempt, signal });
+      const result2 = await execution({ attempt, signal });
+      lastResult = result2;
       if (until(lastResult)) {
         return lastResult;
       }

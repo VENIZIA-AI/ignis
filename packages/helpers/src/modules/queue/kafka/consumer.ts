@@ -196,11 +196,12 @@ export class KafkaConsumerHelper<
     this.logger.info('[start] Starting consumer | Topics: %j', opts.topics);
 
     this.consumeStartOptions = opts;
-    this.stream = await this.client.consume({
+    const result = await this.client.consume({
       topics: opts.topics,
       mode: opts.mode ?? KafkaDefaults.CONSUME_MODE,
       fallbackMode: opts.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
     });
+    this.stream = result;
 
     // Successful consume() means we're freshly joined to the group; clear any stale-session flag set during initial broker negotiation (e.g. a transient BROKER_DISCONNECT during bootstrap).
     this.sessionLikelyStale = false;
@@ -474,11 +475,12 @@ export class KafkaConsumerHelper<
     }
 
     try {
-      this.stream = await this.client.consume({
+      const result = await this.client.consume({
         topics: this.consumeStartOptions.topics,
         mode: this.consumeStartOptions.mode ?? KafkaDefaults.CONSUME_MODE,
         fallbackMode: this.consumeStartOptions.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
       });
+      this.stream = result;
 
       // Always attached, hook or not, like the listener in start(): a stream 'error' with ZERO listeners is rethrown by EventEmitter and takes the process down.
       const reconnectedStream = this.stream;

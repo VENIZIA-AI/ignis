@@ -30,20 +30,22 @@ const loadsAxios = async (specifier: string): Promise<boolean> => {
 
 describe('axios stays an optional peer - no eager import from the barrels', () => {
   test('the network barrel loads zero axios modules', async () => {
-    expect(await loadsAxios('./src/modules/network/index.ts')).toBe(false);
+    const result = await loadsAxios('./src/modules/network/index.ts');
+    expect(result).toBe(false);
   });
 
   test('the http-request barrel loads zero axios modules', async () => {
-    expect(await loadsAxios('./src/modules/network/http-request/index.ts')).toBe(false);
+    const result = await loadsAxios('./src/modules/network/http-request/index.ts');
+    expect(result).toBe(false);
   });
 
   test('the fetcher barrel loads zero axios modules', async () => {
-    expect(await loadsAxios('./src/modules/network/http-request/fetcher/index.ts')).toBe(false);
+    const result = await loadsAxios('./src/modules/network/http-request/fetcher/index.ts');
+    expect(result).toBe(false);
   });
 
   test('the axios sub-path DOES load axios - the escape hatch works', async () => {
-    expect(await loadsAxios('./src/modules/network/http-request/fetcher/axios-fetcher.ts')).toBe(
-      true,
-    );
+    const result = await loadsAxios('./src/modules/network/http-request/fetcher/axios-fetcher.ts');
+    expect(result).toBe(true);
   });
 });

@@ -262,7 +262,8 @@ describe('BullMQHelper — role dispatch, worker hooks, close', () => {
     });
 
     const worker: FakeBullWorker = helper.worker as AnyType;
-    expect(await worker.processor(buildJob())).toBeUndefined();
+    const result = await worker.processor(buildJob());
+    expect(result).toBeUndefined();
   });
 
   test('completed/failed hooks receive the job and are reported on rejection', async () => {

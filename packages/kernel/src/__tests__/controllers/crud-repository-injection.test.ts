@@ -73,7 +73,8 @@ class SiblingItemController extends ItemCrudController {}
 const countThrough = async (opts: { controller: ItemController }) => {
   const router = await opts.controller.configure();
   const response = await router.request(`/count?where=${encodeURIComponent('{}')}`);
-  return { status: response.status, body: await response.json() };
+  const result = await response.json();
+  return { status: response.status, body: result };
 };
 
 describe('defineCrudController injects the repository named in repository.name', () => {
@@ -81,7 +82,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(ItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'named'.length },
     });
@@ -91,7 +93,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(ExplicitItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'explicit-one'.length },
     });
@@ -101,7 +104,8 @@ describe('defineCrudController injects the repository named in repository.name',
     const container = buildContainer();
     const resolved = container.resolve(SiblingItemController);
 
-    expect(await countThrough({ controller: resolved })).toEqual({
+    const result = await countThrough({ controller: resolved });
+    expect(result).toEqual({
       status: 200,
       body: { count: 'named'.length },
     });

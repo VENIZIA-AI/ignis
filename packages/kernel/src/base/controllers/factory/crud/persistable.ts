@@ -36,12 +36,14 @@ export abstract class PersistableCrudController<
     const rs = await this.measure({
       scope: 'create',
       args: data,
-      task: async () =>
-        this.respond<TDataObject>({
+      task: async () => {
+        const payload = await this.repository.create({ data });
+        return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
-          payload: await this.repository.create({ data }),
-        }),
+          payload,
+        });
+      },
     });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Created);
@@ -73,12 +75,14 @@ export abstract class PersistableCrudController<
     const rs = await this.measure({
       scope: 'updateById',
       args: { id, data },
-      task: async () =>
-        this.respond<TDataObject>({
+      task: async () => {
+        const payload = await this.repository.updateById({ id, data });
+        return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
-          payload: await this.repository.updateById({ id, data }),
-        }),
+          payload,
+        });
+      },
     });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -108,12 +112,14 @@ export abstract class PersistableCrudController<
     const rs = await this.measure({
       scope: 'updateBy',
       args: { where, data },
-      task: async () =>
-        this.respond<Array<TDataObject>>({
+      task: async () => {
+        const payload = await this.repository.updateBy({ where, data });
+        return this.respond<Array<TDataObject>>({
           context,
           format: ResponseFormats.ARRAY,
-          payload: await this.repository.updateBy({ where, data }),
-        }),
+          payload,
+        });
+      },
     });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -127,12 +133,14 @@ export abstract class PersistableCrudController<
     const rs = await this.measure({
       scope: 'deleteById',
       args: { id },
-      task: async () =>
-        this.respond<TDataObject>({
+      task: async () => {
+        const payload = await this.repository.deleteById({ id });
+        return this.respond<TDataObject>({
           context,
           format: ResponseFormats.OBJECT,
-          payload: await this.repository.deleteById({ id }),
-        }),
+          payload,
+        });
+      },
     });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -159,12 +167,14 @@ export abstract class PersistableCrudController<
     const rs = await this.measure({
       scope: 'deleteBy',
       args: { where },
-      task: async () =>
-        this.respond<Array<TDataObject>>({
+      task: async () => {
+        const payload = await this.repository.deleteBy({ where });
+        return this.respond<Array<TDataObject>>({
           context,
           format: ResponseFormats.ARRAY,
-          payload: await this.repository.deleteBy({ where }),
-        }),
+          payload,
+        });
+      },
     });
 
     return context.json(rs, HTTP.ResultCodes.RS_2.Ok);

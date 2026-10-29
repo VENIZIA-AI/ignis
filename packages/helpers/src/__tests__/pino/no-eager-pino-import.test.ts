@@ -30,14 +30,17 @@ const loadsPino = async (specifier: string): Promise<boolean> => {
 
 describe('pino stays an optional peer - no eager import from the barrels', () => {
   test('the root barrel loads zero pino modules', async () => {
-    expect(await loadsPino('./src/index.ts')).toBe(false);
+    const result = await loadsPino('./src/index.ts');
+    expect(result).toBe(false);
   });
 
   test('the logger barrel loads zero pino modules', async () => {
-    expect(await loadsPino('./src/modules/logger/index.ts')).toBe(false);
+    const result = await loadsPino('./src/modules/logger/index.ts');
+    expect(result).toBe(false);
   });
 
   test('a literal pino import DOES load pino - the spy is live (positive control)', async () => {
-    expect(await loadsPino('pino')).toBe(true);
+    const result = await loadsPino('pino');
+    expect(result).toBe(true);
   });
 });

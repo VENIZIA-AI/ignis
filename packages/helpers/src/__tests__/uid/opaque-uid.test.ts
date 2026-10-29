@@ -217,7 +217,8 @@ describe('OpaqueUidHelper - isAvailable', () => {
     const pending = new OpaqueUidHelper().nextId({ isAvailable: async () => true });
 
     expect(typeof (pending as PromiseLike<string>).then).toBe('function');
-    expect(await pending).toHaveLength(6);
+    const result = await pending;
+    expect(result).toHaveLength(6);
   });
 
   test('an async check redraws the same way, and awaits every verdict', async () => {

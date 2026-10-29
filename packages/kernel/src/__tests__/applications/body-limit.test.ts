@@ -26,12 +26,14 @@ const buildServer = async (opts: { middlewares?: IApplicationConfigs['middleware
   await application['registerDefaultMiddlewares']();
 
   const server = application.getServer();
-  server.post('/echo', async (context) =>
-    context.json({ length: (await context.req.text()).length }),
-  );
-  server.post('/upload/file', async (context) =>
-    context.json({ length: (await context.req.text()).length }),
-  );
+  server.post('/echo', async (context) => {
+    const text = await context.req.text();
+    return context.json({ length: text.length });
+  });
+  server.post('/upload/file', async (context) => {
+    const text = await context.req.text();
+    return context.json({ length: text.length });
+  });
 
   return server;
 };
@@ -77,7 +79,8 @@ describe('configs.middlewares.bodyLimit', () => {
     const response = await post({ server, path: '/echo', body: LARGE_BODY });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ length: LARGE_BODY.length });
+    const result = await response.json();
+    expect(result).toEqual({ length: LARGE_BODY.length });
   });
 
   test('a declared length over maxSize is a 413 in the error envelope, with its code', async () => {
@@ -88,7 +91,8 @@ describe('configs.middlewares.bodyLimit', () => {
     const response = await post({ server, path: '/echo', body: LARGE_BODY });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
-    expect(JSON.stringify(await response.json())).toContain(BODY_TOO_LARGE_CODE);
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain(BODY_TOO_LARGE_CODE);
   });
 
   test('a chunked body over maxSize is a 413 too', async () => {
@@ -99,7 +103,8 @@ describe('configs.middlewares.bodyLimit', () => {
     const response = await postChunked({ server, path: '/echo', body: LARGE_BODY });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
-    expect(JSON.stringify(await response.json())).toContain(BODY_TOO_LARGE_CODE);
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain(BODY_TOO_LARGE_CODE);
   });
 
   test('a body within maxSize reaches the handler intact, chunked or not', async () => {
@@ -110,8 +115,10 @@ describe('configs.middlewares.bodyLimit', () => {
     const declared = await post({ server, path: '/echo', body: LARGE_BODY });
     const chunked = await postChunked({ server, path: '/echo', body: LARGE_BODY });
 
-    expect(await declared.json()).toEqual({ length: LARGE_BODY.length });
-    expect(await chunked.json()).toEqual({ length: LARGE_BODY.length });
+    const result = await declared.json();
+    expect(result).toEqual({ length: LARGE_BODY.length });
+    const result2 = await chunked.json();
+    expect(result2).toEqual({ length: LARGE_BODY.length });
   });
 
   test('enable: false registers nothing', async () => {
@@ -151,7 +158,8 @@ describe('configs.middlewares.bodyLimit', () => {
     const response = await post({ server, path: '/echo', body: LARGE_BODY });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
-    expect(await response.json()).toEqual({ custom: true });
+    const result = await response.json();
+    expect(result).toEqual({ custom: true });
   });
 
   test('a maxSize that is not a non-negative number is refused at boot, naming the key', async () => {
@@ -201,9 +209,10 @@ const bootApplication = async (opts: {
   await application.initialize();
 
   const server = application.getServer();
-  server.post('/echo', async (context) =>
-    context.json({ length: (await context.req.text()).length }),
-  );
+  server.post('/echo', async (context) => {
+    const text = await context.req.text();
+    return context.json({ length: text.length });
+  });
 
   return server;
 };
@@ -262,9 +271,8 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
     };
     await application['registerDefaultMiddlewares']();
 
-    expect(String(await toRefusal(application.initialize()))).toContain(
-      'configs.middlewares.bodyLimit',
-    );
+    const result = await toRefusal(application.initialize());
+    expect(String(result)).toContain('configs.middlewares.bodyLimit');
   });
 
   test('a disabled limit assigned late installs nothing either way, so the boot goes on', async () => {
@@ -286,6 +294,7 @@ describe('configs.middlewares.bodyLimit is read once, before staticConfigure()',
     application.lateHook = 'staticConfigure';
     application.lateMiddlewares = { bodyLimit: { enable: true, maxSize: 1024 } };
 
-    expect(await toRefusal(application.initialize())).toBeUndefined();
+    const result = await toRefusal(application.initialize());
+    expect(result).toBeUndefined();
   });
 });

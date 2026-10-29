@@ -36,7 +36,11 @@ const probe = async (): Promise<void> => {
       plugins: [platformaticRequirePlugin()],
     });
 
-    const code = built.success ? await built.outputs[0].text() : '';
+    let code = '';
+    if (built.success) {
+      const text = await built.outputs[0].text();
+      code = text;
+    }
 
     console.log(
       JSON.stringify({
