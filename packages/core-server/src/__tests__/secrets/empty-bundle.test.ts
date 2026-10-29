@@ -56,6 +56,7 @@ describe('hydrateSecrets empty-bundle handling', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    expect(await app.hydrateSecrets()).toBeUndefined();
+    const result = await app.hydrateSecrets();
+    expect(result).toBeUndefined();
   });
 });

@@ -244,7 +244,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       });
 
       expect(response.status).toBe(HTTP.ResultCodes.RS_4.NotFound);
-      expect(JSON.stringify(await response.json())).toContain(OBJECT_NOT_FOUND_CODE);
+      const result = await response.json();
+      expect(JSON.stringify(result)).toContain(OBJECT_NOT_FOUND_CODE);
       expect(helper.calls).toEqual([]);
       expect(
         helper.hasObject({ bucket: { name: 'images' }, object: { key: 'tenant-b/photo.jpg' } }),
@@ -281,7 +282,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const router = await mount({ helper, controller: { keyPrefix: 'inventory/material-images' } });
 
     const uploaded = await upload({ router, labels: { folderPath: 'shop/2024' } });
-    const [result] = (await uploaded.json()) as Array<{ object: { key: string } }>;
+    const uploadedBody = await uploaded.json();
+    const [result] = uploadedBody as Array<{ object: { key: string } }>;
     const served = await router.request(objectPath({ route: 'objects', key: result.object.key }));
 
     expect(result.object.key).toBe('inventory/material-images/shop/2024/photo.jpg');
@@ -294,7 +296,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
 
     const response = await router.request('/assets/objects');
-    const names = ((await response.json()) as Array<{ name: string }>).map((item) => item.name);
+    const result = await response.json();
+    const names = (result as Array<{ name: string }>).map((item) => item.name);
 
     expect(names).toEqual(['tenant-a/photo.jpg']);
   });
@@ -321,7 +324,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const response = await router.request('/assets/objects?prefix=tenant-b/');
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual([]);
+    const result = await response.json();
+    expect(result).toEqual([]);
     expect(helper.calls).toEqual([]);
   });
 
@@ -330,7 +334,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const router = await mount({ helper, controller: { keyPrefix: 'tenant-a' } });
 
     const response = await upload({ router, labels: { folderPath: 'photos' } });
-    const [result] = (await response.json()) as Array<{ object: { key: string } }>;
+    const responseBody = await response.json();
+    const [result] = responseBody as Array<{ object: { key: string } }>;
 
     expect(result.object.key).toBe('tenant-a/photos/photo.jpg');
   });
@@ -348,7 +353,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     });
 
     const response = await upload({ router });
-    const [result] = (await response.json()) as Array<{ object: { key: string } }>;
+    const responseBody = await response.json();
+    const [result] = responseBody as Array<{ object: { key: string } }>;
 
     expect(offered).toEqual(['tenant-a/photo.jpg']);
     expect(result.object.key).toBe('tenant-a/generated.jpg');
@@ -365,9 +371,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const response = await upload({ router });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-    expect(JSON.stringify(await response.json())).toContain(
-      'core.static_asset.object_key_out_of_scope',
-    );
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain('core.static_asset.object_key_out_of_scope');
     expect(storageMethods(helper)).not.toContain('writeObject');
   });
 
@@ -386,9 +391,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
     const response = await router.request('/assets/objects', { method: 'POST', body: form });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-    expect(JSON.stringify(await response.json())).toContain(
-      'core.static_asset.object_key_out_of_scope',
-    );
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain('core.static_asset.object_key_out_of_scope');
     expect(storageMethods(helper)).not.toContain('writeObject');
     expect(
       helper.hasObject({ bucket: { name: 'images' }, object: { key: 'tenant-a/first.jpg' } }),
@@ -424,7 +428,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ files: [{ fileName: 'a.png' }] }),
     });
-    const [policy] = (await policyResponse.json()) as Array<{
+    const policyBody = await policyResponse.json();
+    const [policy] = policyBody as Array<{
       objectName: string;
       commitToken: string;
     }>;
@@ -435,7 +440,8 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ commitToken: policy.commitToken }),
     });
-    const committed = (await commitResponse.json()) as { object: { key: string } };
+    const result = await commitResponse.json();
+    const committed = result as { object: { key: string } };
 
     expect(policy.objectName).toStartWith('pending/tenant-a/');
     expect(helper.calls.find((call) => call.method === 'presignPost')?.args['keyPrefix']).toBe(
@@ -452,9 +458,10 @@ describe('controller.keyPrefix scopes every key the controller touches', () => {
       const router = await mount({ helper, controller });
 
       const response = await upload({ router, fileName: 'evil/x.jpg' });
+      const result = await response.json();
       answers.push({
         status: response.status,
-        text: JSON.stringify(await response.json()),
+        text: JSON.stringify(result),
         methods: storageMethods(helper),
       });
     }
@@ -580,7 +587,8 @@ describe('extra.maxBytes refuses a declared length before the body is read', () 
     } satisfies RequestInit & { duplex: 'half' });
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.ContentTooLarge);
-    expect(JSON.stringify(await response.json())).toContain('core.static_asset.upload_too_large');
+    const result = await response.json();
+    expect(JSON.stringify(result)).toContain('core.static_asset.upload_too_large');
     expect(state.pulled).toBe(0);
   });
 
@@ -642,7 +650,8 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const body = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const body = result as Record<string, AnyType>;
 
     expect(response.status).toBe(200);
     expect(body).toMatchObject({
@@ -699,7 +708,8 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const body = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const body = result as Record<string, AnyType>;
 
     expect(body).toMatchObject({
       success: true,
@@ -763,7 +773,8 @@ describe('recreate-metalink refreshes every row of the pair, or creates one the 
     const router = await mount({ helper, metaLink: toMetaLinkConfig({ repository }) });
 
     const response = await router.request('/assets/meta-links/photo.jpg', { method: 'PUT' });
-    const body = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const body = result as Record<string, AnyType>;
 
     expect(body).toMatchObject({ action: MetaLinkRecreateActions.REFRESHED, count: 2 });
     expect(repository.updateCalls).toEqual(['updateAll', 'updateById', 'updateById']);

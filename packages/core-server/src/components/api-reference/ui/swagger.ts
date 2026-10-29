@@ -11,7 +11,8 @@ export class SwaggerUIProvider extends BaseHelper implements IUIProvider {
     let swaggerModule: typeof import('@hono/swagger-ui');
 
     try {
-      swaggerModule = await import('@hono/swagger-ui');
+      const result = await import('@hono/swagger-ui');
+      swaggerModule = result;
     } catch (error) {
       this.logger
         .for(this.render.name)

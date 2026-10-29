@@ -144,7 +144,8 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       domainId: '9',
     });
 
-    expect(await loadDomains()).toEqual(['Merchant_9']);
+    const result = await loadDomains();
+    expect(result).toEqual(['Merchant_9']);
   });
 
   test('a null type yields NULL, which downstream reads as ANY_MEMBER', async () => {
@@ -162,7 +163,8 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
     });
 
     // NULL, not the literal - `buildGrantLines` is what turns it into ANY_MEMBER.
-    expect(await loadDomains()).toEqual([null]);
+    const result = await loadDomains();
+    expect(result).toEqual([null]);
   });
 
   test('a scope literal passes through without an id appended', async () => {
@@ -179,7 +181,8 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       domainId: null,
     });
 
-    expect(await loadDomains()).toEqual([AuthorizationDomainScopes.SYSTEM_WIDE]);
+    const result = await loadDomains();
+    expect(result).toEqual([AuthorizationDomainScopes.SYSTEM_WIDE]);
   });
 
   test('an assign_role carries its domain token too', async () => {
@@ -194,7 +197,8 @@ describe('ScopedCasbinAdapter domain token, built in SQL from the stored pair', 
       domainId: '3',
     });
 
-    expect(await loadDomains()).toEqual(['Organizer_3']);
+    const result = await loadDomains();
+    expect(result).toEqual(['Organizer_3']);
   });
 
   /** The other statement the adapter issues - three aliases, two self-joins, and no coverage until now. */
@@ -321,7 +325,8 @@ describe('the domain closure handed to resolveDomainEdges', () => {
 
     // The assignment carries Organizer_X, yet the hook never sees it: the closure is MEMBERSHIP, not
     // the domains a role was assigned at.
-    expect(await load()).toEqual([['Merchant_B']]);
+    const result = await load();
+    expect(result).toEqual([['Merchant_B']]);
   });
 
   test('joining the parent domain is what puts it in the closure', async () => {
@@ -329,6 +334,7 @@ describe('the domain closure handed to resolveDomainEdges', () => {
     await insertJoinDomain({ targetType: 'Merchant', targetId: 'B' });
     await insertJoinDomain({ targetType: 'Organizer', targetId: 'X' });
 
-    expect(await load()).toEqual([['Merchant_B', 'Organizer_X']]);
+    const result = await load();
+    expect(result).toEqual([['Merchant_B', 'Organizer_X']]);
   });
 });

@@ -103,7 +103,8 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
 
     try {
-      return await this.doVerify(token);
+      const result = await this.doVerify(token);
+      return result;
     } catch (error) {
       // No log here - `cause` carries the reason (JWTExpired, signature mismatch) to the error handler, which logs the request once. An expired token is the caller's problem, hence `warn`.
       throw getError({
@@ -133,7 +134,8 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     const signer = await this.getSigner({ payload, getTokenExpiresFn, claims });
 
     try {
-      const rs = await signer.sign(await this.getSigningKey());
+      const result = await this.getSigningKey();
+      const rs = await signer.sign(result);
       return rs;
     } catch (error) {
       this.logger.for(this.generate.name).error('Failed to generate token | Error: %s', error);

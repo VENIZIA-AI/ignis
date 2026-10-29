@@ -120,7 +120,8 @@ describe('MailService - sendBatch', () => {
 
   test('an empty batch resolves to an empty result list', async () => {
     const { service } = buildService();
-    expect(await service.sendBatch([])).toEqual([]);
+    const result = await service.sendBatch([]);
+    expect(result).toEqual([]);
   });
 });
 
@@ -172,7 +173,8 @@ describe('MailService - verify', () => {
     const transport = new FakeMailTransport({ verifyResult: false });
     const { service } = buildService({ transport });
 
-    expect(await service.verify()).toBe(false);
+    const result = await service.verify();
+    expect(result).toBe(false);
   });
 
   test('a throwing verification is wrapped as VERIFICATION_FAILED', async () => {

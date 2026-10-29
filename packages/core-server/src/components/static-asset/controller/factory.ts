@@ -691,7 +691,7 @@ export class AssetControllerFactory extends BaseHelper {
                       }
                     : options?.normalizeNameFn;
 
-                uploaded = await helper.upload({
+                const result = await helper.upload({
                   bucket: { name: bucketName },
                   files: modifiedFiles,
                   normalizeNameFn,
@@ -699,6 +699,7 @@ export class AssetControllerFactory extends BaseHelper {
                   // Without this the helper re-validates against its own hard default of 2, so an app configured for a deeper tree spools the body and only then fails inside the helper.
                   maxFolderDepth: objectKeyMaxDepth,
                 });
+                uploaded = result;
               } finally {
                 this.removeSpoolFiles({ paths: spoolPaths });
               }
@@ -887,7 +888,8 @@ export class AssetControllerFactory extends BaseHelper {
               configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
             }).to({
               handler: async (ctx) => {
-                if (!(await directUpload.authorize({ context: ctx }))) {
+                const result = await directUpload.authorize({ context: ctx });
+                if (!result) {
                   throw getError({ error: StaticAssetErrors.UPLOAD_NOT_AUTHORIZED });
                 }
 

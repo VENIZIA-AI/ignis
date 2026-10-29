@@ -110,7 +110,8 @@ describe('criterion 3 - the configured claim wins, and per-token claims are expl
     const service = buildService({ sign: { audience: 'inventory' } });
     const payload = { ...basePayload(), aud: 'attacker-chosen' } as IJWTTokenPayload;
 
-    const claims = decodeJwt(await service.generate({ payload }));
+    const result = await service.generate({ payload });
+    const claims = decodeJwt(result);
     expect(claims.aud).toBe('inventory');
   });
 
@@ -118,7 +119,8 @@ describe('criterion 3 - the configured claim wins, and per-token claims are expl
     const service = buildService({ sign: { issuer: 'identity' } });
     const payload = { ...basePayload(), iss: 'not-identity' } as IJWTTokenPayload;
 
-    const claims = decodeJwt(await service.generate({ payload }));
+    const result = await service.generate({ payload });
+    const claims = decodeJwt(result);
     expect(claims.iss).toBe('identity');
   });
 
@@ -137,11 +139,12 @@ describe('criterion 3 - the configured claim wins, and per-token claims are expl
   });
 
   test('a per-token claim is not needed for the common case', async () => {
-    const claims = decodeJwt(
-      await buildService({ sign: { issuer: 'identity', audience: 'inventory' } }).generate({
-        payload: basePayload(),
-      }),
-    );
+    const result = await buildService({
+      sign: { issuer: 'identity', audience: 'inventory' },
+    }).generate({
+      payload: basePayload(),
+    });
+    const claims = decodeJwt(result);
 
     expect(claims.iss).toBe('identity');
     expect(claims.aud).toBe('inventory');
@@ -169,7 +172,8 @@ describe('the other verify knobs reach jose', () => {
     const service = buildService({ verify: { maxTokenAge: '600 seconds' } });
     const token = await service.generate({ payload: basePayload() });
 
-    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(1);
+    const result = await service.verify({ type: 'Bearer', token });
+    expect(result.userId).toBe(1);
   });
 
   test('an algorithms allowlist refuses an alg it does not list', async () => {

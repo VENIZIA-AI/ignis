@@ -200,7 +200,11 @@ export class GrpcRequestAdapter<
     interceptors?: unknown[];
     module?: IConnectRpcModule;
   }): Promise<IConnectAdapterResult<RouteEnv, BasePath>> {
-    const module = opts.module ?? (await GrpcRequestAdapter.loadModule());
+    let module = opts.module;
+    if (!module) {
+      const loaded = await GrpcRequestAdapter.loadModule();
+      module = loaded;
+    }
 
     const adapter = new GrpcRequestAdapter<
       RouteEnv,

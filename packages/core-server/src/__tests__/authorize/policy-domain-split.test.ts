@@ -128,22 +128,28 @@ describe('policyDefinitionDomainShapeCheck against a real Postgres', () => {
   });
 
   test('rejects a typed domain with no id - the direction a one-way CHECK would miss', async () => {
-    expect(await insertRejection({ domainType: 'Merchant', domainId: null })).toBeDefined();
+    const result = await insertRejection({ domainType: 'Merchant', domainId: null });
+    expect(result).toBeDefined();
   });
 
   test('rejects an id with no type', async () => {
-    expect(await insertRejection({ domainType: null, domainId: 'm1' })).toBeDefined();
+    const result = await insertRejection({ domainType: null, domainId: 'm1' });
+    expect(result).toBeDefined();
   });
 
   test('rejects a scope literal carrying an id', async () => {
-    expect(
-      await insertRejection({ domainType: AuthorizationDomainScopes.SYSTEM_WIDE, domainId: 'm1' }),
-    ).toBeDefined();
+    const result = await insertRejection({
+      domainType: AuthorizationDomainScopes.SYSTEM_WIDE,
+      domainId: 'm1',
+    });
+    expect(result).toBeDefined();
   });
 
   test('rejects ANY_MEMBER outright - null is the only spelling', async () => {
-    expect(
-      await insertRejection({ domainType: AuthorizationDomainScopes.ANY_MEMBER, domainId: null }),
-    ).toBeDefined();
+    const result = await insertRejection({
+      domainType: AuthorizationDomainScopes.ANY_MEMBER,
+      domainId: null,
+    });
+    expect(result).toBeDefined();
   });
 });

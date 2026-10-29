@@ -338,7 +338,8 @@ describe('assertApplicationBoots - the boot path', () => {
   test('C3 a correct application resolves with that same application', async () => {
     const application = new PlannedApplication(FULL);
 
-    expect(await assertApplicationBoots(application)).toBe(application);
+    const result = await assertApplicationBoots(application);
+    expect(result).toBe(application);
   });
 
   test('C3 a factory is accepted, sync or async', async () => {
@@ -355,7 +356,8 @@ describe('assertApplicationBoots - the boot path', () => {
     const response = await application.getRootRouter().request('/accounts/');
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ hit: 'list' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'list' });
   });
 
   test('C5 a service injecting an unregistered key fails even though no controller references it', async () => {
@@ -399,7 +401,8 @@ describe('assertApplicationBoots - the shared verification core', () => {
     for (const skip of [OrphanService, 'OrphanService', 'services.OrphanService']) {
       const application = new PlannedApplication(ORPHANED);
 
-      expect(await assertApplicationBoots(application, { skipBindings: [skip] })).toBe(application);
+      const result = await assertApplicationBoots(application, { skipBindings: [skip] });
+      expect(result).toBe(application);
     }
   });
 
@@ -419,15 +422,15 @@ describe('assertApplicationBoots - the shared verification core', () => {
       },
     });
 
-    expect(await assertApplicationBoots(application, { skipBindings: [OrphanService] })).toBe(
-      application,
-    );
+    const result = await assertApplicationBoots(application, { skipBindings: [OrphanService] });
+    expect(result).toBe(application);
   });
 
   test('I6 verifyBindings: false skips the verification and a skipBindings name is then not checked', async () => {
     const application = new PlannedApplication(ORPHANED);
 
-    expect(await assertApplicationBoots(application, { verifyBindings: false })).toBe(application);
+    const result = await assertApplicationBoots(application, { verifyBindings: false });
+    expect(result).toBe(application);
   });
 
   test('I9 the verification runs after validateScopeFilterSupport, so its error comes first when both fail', async () => {
@@ -727,7 +730,8 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
   test('a route with a validated request chain is one route, not a duplicate of itself', async () => {
     const application = new PlannedApplication({ controllers: [ValidatedController] });
 
-    expect(await assertApplicationBoots(application)).toBe(application);
+    const result = await assertApplicationBoots(application);
+    expect(result).toBe(application);
   });
 
   test('one controller declaring the same method and path twice is a duplicate, reported once', async () => {

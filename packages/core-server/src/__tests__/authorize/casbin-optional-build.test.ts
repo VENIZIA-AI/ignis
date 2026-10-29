@@ -9,10 +9,13 @@ const ABSENT = 'casbin-not-installed';
 const withoutCasbin: BunPlugin = {
   name: 'without-casbin',
   setup: (build) => {
-    build.onLoad({ filter: /[\\/]authorize[\\/].*\.ts$/ }, async (args) => ({
-      contents: (await Bun.file(args.path).text()).replaceAll("'casbin'", `'${ABSENT}'`),
-      loader: 'ts',
-    }));
+    build.onLoad({ filter: /[\\/]authorize[\\/].*\.ts$/ }, async (args) => {
+      const source = await Bun.file(args.path).text();
+      return {
+        contents: source.replaceAll("'casbin'", `'${ABSENT}'`),
+        loader: 'ts',
+      };
+    });
     build.onResolve({ filter: /^[^./]/ }, (args) =>
       args.path === ABSENT ? undefined : { path: args.path, external: true },
     );

@@ -237,7 +237,13 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     }
   }
 
-  const target = typeof application === 'function' ? await application() : application;
+  let target: Application;
+  if (typeof application === 'function') {
+    const built = await application();
+    target = built;
+  } else {
+    target = application;
+  }
 
   if (
     bootedApplications.has(target) ||

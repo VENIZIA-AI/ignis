@@ -42,11 +42,12 @@ export class MailService extends BaseService implements IMailService {
 
       // The one place the attachment policy applies: every transport receives bytes, never a path.
       if (message.attachments) {
-        emailMessage.attachments = await resolveMailAttachments({
+        const result2 = await resolveMailAttachments({
           attachments: message.attachments,
           attachmentRoot: this.options.attachmentRoot,
           maxBytes: this.options.maxAttachmentBytes ?? MailDefaults.MAX_ATTACHMENT_BYTES,
         });
+        emailMessage.attachments = result2;
       }
 
       this.logger.for(this.send.name).debug('Sending email to: %s', emailMessage.to);
@@ -92,7 +93,8 @@ export class MailService extends BaseService implements IMailService {
 
       const tasks = messages.map((message) => async () => {
         try {
-          return await this.send(message);
+          const result = await this.send(message);
+          return result;
         } catch (error) {
           return {
             success: false,
@@ -168,7 +170,8 @@ export class MailService extends BaseService implements IMailService {
         ...options,
       };
 
-      return await this.send(message);
+      const result = await this.send(message);
+      return result;
     } catch (error) {
       this.logger.for(this.sendTemplate.name).error('Error sending template email: %s', error);
       throw error;

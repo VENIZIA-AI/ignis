@@ -35,11 +35,13 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
     extractable: true,
   });
 
+  const result = await exportPKCS8(privateKey);
+  const result2 = await exportSPKI(publicKey);
   const keys = {
     driver: 'text' as const,
     format: 'pem' as const,
-    private: await exportPKCS8(privateKey),
-    public: await exportSPKI(publicKey),
+    private: result,
+    public: result2,
   };
 
   const signer = new ServiceAssertionSignerService({
@@ -50,7 +52,10 @@ const buildStack = async (opts: { resolvePrincipal: IServiceAuthOptions['resolve
 
   const server = Bun.serve({
     port: 0,
-    fetch: async () => Response.json(await signer.getPublicJWKS()),
+    fetch: async () => {
+      const jwks = await signer.getPublicJWKS();
+      return Response.json(jwks);
+    },
   });
 
   const options: IServiceAuthOptions = {

@@ -40,9 +40,11 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
       assertMailBodyIsText({ message });
 
       // No root: MailService resolved paths already; one that reaches here is refused, not read.
-      const attachments = message.attachments
-        ? await resolveMailAttachments({ attachments: message.attachments })
-        : undefined;
+      let attachments: Awaited<ReturnType<typeof resolveMailAttachments>> | undefined;
+      if (message.attachments) {
+        const resolved = await resolveMailAttachments({ attachments: message.attachments });
+        attachments = resolved;
+      }
 
       const mailOptions = {
         from: message.from,

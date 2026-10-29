@@ -233,7 +233,8 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
     const response = await restController.getRouter().request('/get-route');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await response.json()).toEqual({ hit: 'get' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'get' });
   });
 
   test('a TC39-shaped decorator call registers nothing on the method and is recorded, not swallowed', () => {
@@ -261,17 +262,20 @@ describe('Route registration - decorator, imperative, fluent', () => {
     expect(mounted).toContain('GET /decorated');
 
     const imperative = await restController.getRouter().request('/imperative');
-    expect(await imperative.json()).toEqual({ hit: 'imperative' });
+    const result = await imperative.json();
+    expect(result).toEqual({ hit: 'imperative' });
 
     const fluent = await restController.getRouter().request('/fluent', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id: 'abc' }),
     });
-    expect(await fluent.json()).toEqual({ hit: 'fluent:abc' });
+    const result2 = await fluent.json();
+    expect(result2).toEqual({ hit: 'fluent:abc' });
 
     const decorated = await restController.getRouter().request('/decorated');
-    expect(await decorated.json()).toEqual({ hit: 'decorated' });
+    const result3 = await decorated.json();
+    expect(result3).toEqual({ hit: 'decorated' });
   });
 
   test('configure() is idempotent - a second call does not re-register routes', async () => {
@@ -293,7 +297,8 @@ describe('Route registration - decorator, imperative, fluent', () => {
     expect(duplicates.length).toBeGreaterThan(1);
 
     const response = await restController.getRouter().request('/dup');
-    expect(await response.json()).toEqual({ hit: 'first' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'first' });
   });
 
   test('a static decorator route wins over an inherited CRUD param route on the same path segment', async () => {
@@ -305,7 +310,8 @@ describe('Route registration - decorator, imperative, fluent', () => {
     const response = await restController.getRouter().request('/unsubscribe');
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await response.json()).toEqual({ hit: 'unsubscribe' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'unsubscribe' });
   });
 
   test('a decorator PARAM route does NOT swallow the generated static routes of its CRUD base', async () => {
@@ -316,10 +322,12 @@ describe('Route registration - decorator, imperative, fluent', () => {
 
     const count = await restController.getRouter().request('/count?where=%7B%7D');
     expect(count.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await count.json()).toEqual({ count: 1 });
+    const result = await count.json();
+    expect(result).toEqual({ count: 1 });
 
     const byId = await restController.getRouter().request('/9');
     expect(byId.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await byId.json()).toEqual({ hit: 'customFindById' });
+    const result2 = await byId.json();
+    expect(result2).toEqual({ hit: 'customFindById' });
   });
 });
