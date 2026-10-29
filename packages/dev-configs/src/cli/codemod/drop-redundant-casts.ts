@@ -198,7 +198,7 @@ class TypecheckSession {
 
   getProgram(): ts.Program {
     if (!this.program) {
-       
+      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error('[TypecheckSession][getProgram] check() has not run yet');
     }
 
@@ -349,7 +349,7 @@ export class RedundantCasts {
     const read = typescript.readConfigFile(tsconfigPath, typescript.sys.readFile);
 
     if (read.error) {
-       
+      // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
         `[loadProject] cannot read ${tsconfigPath} | ${typescript.flattenDiagnosticMessageText(read.error.messageText, '\n')}`,
       );
