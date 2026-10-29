@@ -13,7 +13,7 @@ tags: [process, release, ci]
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
-- [The four jobs and their guards](#the-four-jobs-and-their-guards)
+- [The five jobs and their guards](#the-five-jobs-and-their-guards)
 - [Trusted publishing (no npm token)](#trusted-publishing-no-npm-token)
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
 - [Steps](#steps)
@@ -87,19 +87,34 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 
 `@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app` and `vulcan.presets.lib` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has two kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`) and `presets/lib` (`--lib <name>`, a shared library: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib also gets the app's `.configs/` and its lint and clean scripts at build time. `scripts/preset/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app` and `dist/presets/lib`, named by `vulcan.presets.app` and `vulcan.presets.lib`; the release loop runs it after the `core-server` bump, so the preset names the release it ships in. `make preset-smoke` (`scripts/preset/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
 
-## The four jobs and their guards
+## The five jobs and their guards
 
 The workflow takes a `plan` (`name@version,...`: the package folders and the version each has now), a `build_mode`
-(default `prerelease`) and an `issue`, and runs four jobs. `plan` holds no secret and no environment: it validates the
-input (known names, semver, no duplicate), orders it in dependency order and outputs it; every other job takes that
-output, never the raw input, and no `run:` step interpolates `${{ }}`. `test` is a matrix, one job per package of the
+(default `prerelease`) and an `issue`, and runs five jobs. `plan` holds no secret and no environment: it validates the
+input (known names, semver, no duplicate), orders it in dependency order, refuses a ref that is not the branch of the kind
+(`GITHUB_REF`; see [Two kinds of release](#two-kinds-of-release)) and a stable plan that is not the scope of the mode, and
+outputs the plan, the `kind`, the `branch`, a `headline` (`<n> packages, up to <highest target>`) and the `targets`; every
+other job takes that output, never the raw input, and no `run:` step interpolates `${{ }}`. For a stable it also checks out
+the full history and tries the merge of `main` back into `develop` in throwaway worktrees
+(`merge-back.ts trial --versions <dir=version,...> --lock keep`), so a merge that would stop stops before anyone is asked;
+its `develop_sha` is the head of `develop` the trial read. `test` is a matrix, one job per package of the
 plan, with read-only permissions and no secret: it builds, runs the checks in the steps below, the package's unit tests
 (`make test-$PACKAGE`) and the preset smoke for `core-server` against the VULCAN version the repository declares in
 `devDependencies` (never `latest`). `scripts` runs the repository scripts' tests once (`make test-scripts`, which hold the
-guards below). `publish` `needs` all three, runs only from `develop` (`if: github.ref == 'refs/heads/develop'`), is the
-only job with `contents: write` and `id-token: write`, names the environment `npm-release`, has a `timeout-minutes`
-(nine publishes, each followed by a wait of up to fifteen minutes), builds once and runs the loop
-(`scripts/release/release-run.ts run`). It holds no registry token and no secret: the publish and the dist-tag
+guards below). `approve` exists for a stable only (`if` on the plan's kind), `needs` the three jobs above so nobody
+approves a run that fails a gate, names the environment `release-approval` (reviewer: the owner; `main` only), holds no
+permission and runs one echo; the click is the approval, its name carries the `headline`, and nothing waits for a second
+one. `publish` `needs` all four and runs after `approve` succeeded, or after it was skipped because the plan says
+prerelease and `plan`, `test` and `scripts` succeeded, under `!cancelled()` (the guard evaluates the written `if` over its
+cases). It is the only job with `contents: write` and `id-token: write`, names the environment `npm-release` (no
+reviewers), has a `timeout-minutes` (nine publishes, each followed by a wait of up to fifteen minutes), builds once and
+runs the loop (`scripts/release/release-run.ts run`, with `TARGET_BRANCH` from the plan). A stable first refuses to start
+when `main` is not the dispatched commit or `develop` is not the `develop_sha` the trial read, before any step changes a
+file, writes git or publishes. After the loop a stable merges once: it copies `merge-back.ts` out of the checkout, adds a
+detached worktree of `origin/develop`, runs the copy with `apply --repo` on it and pushes `develop` from it. The runner's
+checkout stays on the last release commit and may be dirty (the install edits manifests that no release commit
+includes). A stop there is continued by dispatching the same plan again on `main`: a new run with a new approval, which
+publishes and tags nothing and merges back. It holds no registry token and no secret: the publish and the dist-tag
 steps sign in through npm trusted publishing (see [Trusted publishing](#trusted-publishing-no-npm-token)). Every job checks out
 `${{ github.sha }}`, the dispatched commit, never a branch name, and the run name carries it. Bun and Node are exact
 versions, the Node setup does not cache, and every action is pinned by a full commit with its tag in a comment.
@@ -107,12 +122,17 @@ versions, the Node setup does not cache, and every action is pinned by a full co
 `scripts/release/release-workflow.ts` reads the workflow and the loop and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request. There are 27. The ones for trusted publishing are `no-npm-token` (no
+mutation in that test, in the same pull request. There are 34. The ones for trusted publishing are `no-npm-token` (no
 `secrets.` reference and no npm token name in the workflow or in the loop), `environment-on-publish`, `oidc-on-publish-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted` and `publish-tarball-with-provenance` (`bun publish` appears nowhere, the loop
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
 `one-plan-input`, `default-mode-prerelease`, `plan-job-first`, `matrix-over-plan`, `build-once`, `publish-runs-the-loop`,
-`no-interpolation-in-run`, `publish-timeout`, `gates-needed`, `gate-jobs-hold-no-secret` and `write-on-publish-only`. The guards
+`no-interpolation-in-run`, `publish-timeout`, `gates-needed`, `gate-jobs-hold-no-secret` and `write-on-publish-only`. The ones
+for the two kinds are `ref-by-kind` (the plan job, not a literal branch, checks the ref), `approve-for-stable-only` (one job
+names `release-approval`, for a stable, after the gates, `permissions: {}`, one echo, the headline in its name),
+`publish-after-approve` (the `if` is evaluated over its cases, `scripts/release/release-publish-condition.ts`),
+`stable-refuses-moved-branches`, `plan-tries-the-merge-back`, `merge-back-from-a-copy`, `target-branch-by-kind` and
+`no-force-or-tag-move` (no force push, no tag moved or deleted, no branch deleted, in the workflow or in the loop). The guards
 read commands with comments stripped, and `no-npm-token` names the file and the line. What the loop does with the tarball (the
 sha256 recorded and checked again before the publish, the version inside it, the pins of the siblings, the order of every
 call, the skip and heal states) is not a text guard: `scripts/release/__tests__/release-run.test.ts` runs the loop against a

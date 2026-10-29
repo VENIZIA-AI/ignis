@@ -47,7 +47,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(27);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(34);
   });
 });
 
@@ -60,8 +60,21 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     runner?: IEdit[];
   }> = [
     {
-      guard: ReleaseWorkflowGuards.DEVELOP_ONLY,
-      edits: [{ find: "    if: github.ref == 'refs/heads/develop'\n", replace: '' }],
+      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      edits: [
+        {
+          find: '${{ !cancelled() && needs.plan.result',
+          replace: "${{ github.ref == 'refs/heads/develop' && !cancelled() && needs.plan.result",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      edits: [{ find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.REF_BY_KIND,
+      edits: [{ find: 'run: bun scripts/release/release-run.ts plan', replace: 'run: echo plan' }],
     },
     {
       guard: ReleaseWorkflowGuards.READ_ONLY_DEFAULT,
@@ -87,7 +100,12 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.GATES_NEEDED,
-      edits: [{ find: '    needs: [plan, test, scripts]\n', replace: '    needs: [plan, test]\n' }],
+      edits: [
+        {
+          find: '    needs: [plan, test, scripts, approve]\n',
+          replace: '    needs: [plan, test, approve]\n',
+        },
+      ],
     },
     {
       guard: ReleaseWorkflowGuards.GATE_JOBS_HOLD_NO_SECRET,
@@ -367,6 +385,266 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     {
       guard: ReleaseWorkflowGuards.PUBLISH_TIMEOUT,
       edits: [{ find: 'timeout-minutes: 240\n', replace: '' }],
+    },
+    // The approval.
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        {
+          find: "    if: ${{ needs.plan.outputs.kind == 'stable' }}\n    runs-on: ubuntu-26.04\n    environment: release-approval\n",
+          replace: '    runs-on: ubuntu-26.04\n    environment: release-approval\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        {
+          find: '    name: Approve ${{ needs.plan.outputs.headline }}\n    needs: [plan, test, scripts]\n',
+          replace:
+            '    name: Approve ${{ needs.plan.outputs.headline }}\n    needs: [plan, test]\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        {
+          find: '    name: Approve ${{ needs.plan.outputs.headline }}\n',
+          replace: '    name: Approve the release\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        {
+          find: '    environment: release-approval\n    permissions: {}\n',
+          replace: '    environment: release-approval\n    permissions:\n      contents: read\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        {
+          find: '          HEADLINE: ${{ needs.plan.outputs.headline }}\n',
+          replace:
+            '          HEADLINE: ${{ needs.plan.outputs.headline }}\n      - name: More\n        run: echo more\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.APPROVE_FOR_STABLE_ONLY,
+      edits: [
+        { find: '    environment: npm-release\n', replace: '    environment: release-approval\n' },
+      ],
+    },
+    // The publish condition, evaluated over its cases.
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      edits: [{ find: "      && needs.scripts.result == 'success'\n", replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      edits: [
+        {
+          find: "      || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}",
+          replace: "      || needs.approve.result == 'skipped') }}",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      edits: [{ find: '${{ !cancelled() && needs.plan.result', replace: '${{ needs.plan.result' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      edits: [{ find: " && needs.test.result == 'success'", replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_AFTER_APPROVE,
+      edits: [
+        {
+          find: "      && (needs.approve.result == 'success'\n",
+          replace: "      && (needs.approve.result != 'failure'\n",
+        },
+      ],
+    },
+    // A stable is refused when a branch moved.
+    {
+      guard: ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
+      edits: [
+        {
+          find: "      - name: Refuse a stable when a branch moved since the plan\n        if: ${{ needs.plan.outputs.kind == 'stable' }}\n",
+          replace: '      - name: Refuse a stable when a branch moved since the plan\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
+      edits: [
+        {
+          find: 'if [ "$(git rev-parse origin/develop)" != "$PLAN_DEVELOP_SHA" ]; then',
+          replace: 'if false; then',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
+      edits: [
+        {
+          find: 'if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then',
+          replace: 'if false; then',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.STABLE_REFUSES_MOVED_BRANCHES,
+      edits: [
+        {
+          find: '      - name: Setup Git\n',
+          replace:
+            '      - name: Install early\n        run: bun install\n\n      - name: Setup Git\n',
+        },
+      ],
+    },
+    // The merge trial in the plan job.
+    {
+      guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      edits: [
+        {
+          find: '        run: bun scripts/release/merge-back.ts trial --versions "$TARGETS" --lock keep',
+          replace: '        run: echo skipped',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      edits: [
+        {
+          find: '--versions "$TARGETS" --lock keep',
+          replace: '--versions "$TARGETS" --lock regenerate',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      edits: [
+        {
+          find: '      develop_sha: ${{ steps.trial.outputs.develop_sha }}\n',
+          replace: '      develop_sha: ${{ steps.plan.outputs.develop_sha }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      edits: [
+        {
+          find: "          fetch-depth: 0\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.4'\n\n      - name: Plan the release",
+          replace:
+            "          fetch-depth: 1\n          persist-credentials: false\n\n      # Exact, so a new bun cannot change what a release does. Raising it is a pull request of its own.\n      - name: Setup Bun\n        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0\n        with:\n          bun-version: '1.4.4'\n\n      - name: Plan the release",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_TRIES_THE_MERGE_BACK,
+      edits: [
+        {
+          find: "        id: trial\n        if: ${{ steps.plan.outputs.kind == 'stable' }}\n",
+          replace: '        id: trial\n',
+        },
+      ],
+    },
+    // The merge back.
+    {
+      guard: ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
+      edits: [
+        {
+          find: '          cp scripts/release/merge-back.ts "$RUNNER_TEMP/merge-back.ts"\n',
+          replace: '',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
+      edits: [
+        {
+          find: 'bun "$RUNNER_TEMP/merge-back.ts" apply --repo "$RUNNER_TEMP/develop-merge"',
+          replace: 'bun scripts/release/merge-back.ts apply --repo "$RUNNER_TEMP/develop-merge"',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
+      edits: [
+        {
+          find: '          git worktree add --detach "$RUNNER_TEMP/develop-merge" origin/develop\n',
+          replace: '          git switch develop\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
+      edits: [
+        {
+          find: "      - name: Merge main back into develop\n        if: ${{ needs.plan.outputs.kind == 'stable' }}\n",
+          replace: '      - name: Merge main back into develop\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
+      edits: [
+        {
+          find: '          TARGET_BRANCH: ${{ needs.plan.outputs.branch }}\n',
+          replace: '          TARGET_BRANCH: develop\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.TARGET_BRANCH_BY_KIND,
+      edits: [{ find: '          TARGET_BRANCH: ${{ needs.plan.outputs.branch }}\n', replace: '' }],
+    },
+    // Nothing is forced, moved or deleted.
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      edits: [
+        {
+          find: '          git -C "$RUNNER_TEMP/develop-merge" push origin HEAD:develop\n',
+          replace:
+            '          git -C "$RUNNER_TEMP/develop-merge" push --force origin HEAD:develop\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      edits: [
+        {
+          find: '          git fetch --quiet origin develop\n\n          if git merge-base',
+          replace:
+            '          git tag -f stable HEAD\n          git fetch --quiet origin develop\n\n          if git merge-base',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      runner: [
+        {
+          find: "['git', 'push', 'origin', tag]",
+          replace: "['git', 'push', '--force', 'origin', tag]",
+          everywhere: true,
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      runner: [
+        {
+          find: "['git', 'tag', '-a', tag, '-m', `${packageName} v${onDisk}`, sha.trim()]",
+          replace: "['git', 'tag', '-f', tag, sha.trim()]",
+        },
+      ],
     },
   ];
 
