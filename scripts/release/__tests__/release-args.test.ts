@@ -19,14 +19,14 @@ describe('parseReleaseArgs', () => {
       'kernel',
       '--mode',
       'patch',
-      '--chain-released',
-      'dev-configs,inversion',
+      '--plan',
+      'kernel@0.4.5,connectors@0.4.5',
       '--issue',
       '80',
     ]);
 
     expect(parsed.named).toEqual(['kernel']);
-    expect(parsed.seeded).toEqual(['dev-configs', 'inversion']);
+    expect(parsed.plan).toBe('kernel@0.4.5,connectors@0.4.5');
   });
 
   test('defaults: prerelease, no issue, nothing named', () => {
@@ -34,7 +34,7 @@ describe('parseReleaseArgs', () => {
       isDryRun: false,
       isConfirmed: false,
       mode: 'prerelease',
-      seeded: [],
+      plan: undefined,
       issue: undefined,
       named: [],
     });
@@ -44,6 +44,10 @@ describe('parseReleaseArgs', () => {
     const parsed = parseReleaseArgs(['--dry-run', '--yes']);
 
     expect([parsed.isDryRun, parsed.isConfirmed]).toEqual([true, true]);
+  });
+
+  test('--chain-released is gone: one run needs no list of what an earlier run published', () => {
+    expect(parseReleaseArgs(['--chain-released', 'dev-configs']).named).toEqual(['dev-configs']);
   });
 
   test('an --issue that is not a number throws', () => {
