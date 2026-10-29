@@ -265,9 +265,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.NO_BRANCH_SYNC,
       runner: [
         {
-          find: "await ports.run({ command: ['git', 'push', 'origin', 'HEAD:develop'] });",
+          find: "await ports.run({ command: ['git', 'push', 'origin', `HEAD:${branch}`] });",
           replace:
-            "await ports.run({ command: ['git', 'pull', '--rebase', 'origin', 'develop'] });\n      await ports.run({ command: ['git', 'push', 'origin', 'HEAD:develop'] });",
+            "await ports.run({ command: ['git', 'pull', '--rebase', 'origin', branch] });\n      await ports.run({ command: ['git', 'push', 'origin', `HEAD:${branch}`] });",
         },
       ],
     },

@@ -72,6 +72,8 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       plan: ${{ steps.plan.outputs.plan }}
+      kind: ${{ steps.plan.outputs.kind }}
+      branch: ${{ steps.plan.outputs.branch }}
 
     steps:
       - name: Checkout
@@ -455,5 +457,6 @@ jobs:
       - name: Release the plan
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
+          TARGET_BRANCH: ${{ needs.plan.outputs.branch }}
           RELEASE_ISSUE: ${{ inputs.issue }}
         run: bun scripts/release/release-run.ts run

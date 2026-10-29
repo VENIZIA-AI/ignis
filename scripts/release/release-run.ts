@@ -13,14 +13,13 @@
  * A re-dispatch of the same plan is safe: a package already released (its tag on origin) is skipped, one that
  * is on npm without its commit or tag gets them without a second publish, and a stale plan stops the run.
  * Nothing here rebases: a rejected push stops the run, and the next dispatch records what is missing.
+ *
+ * The mode decides the kind: a prerelease releases from `develop` and its release commits go to `develop`, a stable
+ * (`patch`, `minor`, `major`) from `main` and to `main`. The dist-tag of a package follows its own version.
  */
 import { appendFileSync } from 'node:fs';
-import {
-  ReleaseModes,
-  ReleaseOrder,
-  type TNpmDistTag,
-  type TReleaseMode,
-} from './release-constants';
+import { ReleaseModes, ReleaseOrder, type TReleaseMode } from './release-constants';
+import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { ReleaseRegistry } from './release-registry';
 import { ReleaseVersion } from './release-version';
@@ -58,6 +57,9 @@ export interface IReleaseOutcome {
   state: TReleaseState;
 }
 
+/** A version or range that names a prerelease: `0.4.9-1`, `^1.0.0-rc.2`. */
+const PRERELEASE_IN_RANGE = /\d+\.\d+\.\d+-[0-9A-Za-z]/;
+
 interface IPackedManifest {
   version?: string;
   dependencies?: Record<string, string>;
@@ -90,8 +92,9 @@ export class ReleaseRun {
     version: string;
     siblings: ReadonlyMap<string, string>;
     pending: ReadonlySet<string>;
+    kind: TReleaseKind;
   }): string[] {
-    const { text, version, siblings, pending } = opts;
+    const { text, version, siblings, pending, kind } = opts;
     const problems: string[] = [];
 
     if (/"(catalog|workspace):/.test(text)) {
@@ -105,6 +108,12 @@ export class ReleaseRun {
 
     for (const field of [manifest.dependencies, manifest.peerDependencies]) {
       for (const [name, range] of Object.entries(field ?? {})) {
+        if (kind === ReleaseKinds.STABLE && PRERELEASE_IN_RANGE.test(range)) {
+          problems.push(
+            `${name} is pinned ${range}: a stable release never ships against a prerelease`,
+          );
+        }
+
         const expected = siblings.get(name);
         if (expected === undefined) {
           continue;
@@ -123,11 +132,20 @@ export class ReleaseRun {
   static async execute(opts: {
     entries: ReadonlyArray<IPlanEntry>;
     mode: TReleaseMode;
+    /** The branch the release commits go to; it must be the branch of the mode's kind. */
+    branch: 'develop' | 'main';
     issue?: string;
     tarballs: string;
     ports: IReleasePorts;
   }): Promise<IReleaseOutcome[]> {
-    const { entries, mode, issue, tarballs, ports } = opts;
+    const { entries, mode, branch, issue, tarballs, ports } = opts;
+
+    const expected = ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode }) });
+    if (branch !== expected) {
+      throw new Error(
+        `a ${mode} release pushes to ${expected}, not ${branch}: nothing is published`,
+      );
+    }
 
     await ports.run({ command: ['rm', '-rf', tarballs] });
     await ports.run({ command: ['mkdir', '-p', tarballs] });
@@ -144,7 +162,16 @@ export class ReleaseRun {
       }
 
       outcomes.push(
-        await this.releaseOne({ entry, mode, issue, tarballs, ports, directories, pendingNames }),
+        await this.releaseOne({
+          entry,
+          mode,
+          branch,
+          issue,
+          tarballs,
+          ports,
+          directories,
+          pendingNames,
+        }),
       );
     }
 
@@ -170,13 +197,14 @@ export class ReleaseRun {
   private static async releaseOne(opts: {
     entry: IPlanEntry;
     mode: TReleaseMode;
+    branch: 'develop' | 'main';
     issue?: string;
     tarballs: string;
     ports: IReleasePorts;
     directories: ReadonlyArray<string>;
     pendingNames: ReadonlySet<string>;
   }): Promise<IReleaseOutcome> {
-    const { entry, mode, issue, tarballs, ports, directories, pendingNames } = opts;
+    const { entry, mode, branch, issue, tarballs, ports, directories, pendingNames } = opts;
     const dir = entry.name;
     const cwd = `packages/${dir}`;
     const { log } = ports;
@@ -200,9 +228,17 @@ export class ReleaseRun {
     const { version } = await ports.readManifest({ dir });
     const tag = `${dir}-v${version}`;
 
+    // The plan job computed the target without running npm; what npm gave must be that, or nothing is published.
+    const target = ReleaseVersion.next({ from: entry.from, mode });
+    if (version !== target) {
+      throw new Error(
+        `npm version ${mode} gave ${dir} ${version}, the plan expected ${target}: nothing is published`,
+      );
+    }
+
     if (await ports.registry.isPublished({ packageName, version })) {
       log(`${packageName}@${version} is already on npm - recording it without publishing`);
-      await this.record({ dir, packageName, version, mode, issue, ports, published: true });
+      await this.record({ dir, packageName, version, mode, branch, issue, ports, published: true });
       log(`${ReleaseMarkers.RELEASED} ${packageName}@${version}`);
       return outcome('healed', version);
     }
@@ -235,6 +271,7 @@ export class ReleaseRun {
       version,
       siblings,
       pending: pendingNames,
+      kind: ReleaseKinds.ofMode({ mode }),
     });
 
     // Every sibling this package ships against is already on npm: one released earlier in this run (its tarball
@@ -265,7 +302,7 @@ export class ReleaseRun {
 
     // Trusted publishing: no token; npm signs in with the job's identity and writes the provenance.
     // --ignore-scripts: the build already ran, so the prepublishOnly rebuild is skipped.
-    const npmTag = ReleaseModes.toDistTag({ mode });
+    const npmTag = ReleaseTargets.distTagOf({ version });
     try {
       await ports.run({
         command: [
@@ -294,10 +331,10 @@ export class ReleaseRun {
       packageName,
       version,
       mode,
+      branch,
       issue,
       ports,
       published: true,
-      npmTag: npmTag as TNpmDistTag,
     });
 
     log(`    ${tag}`);
@@ -379,15 +416,15 @@ export class ReleaseRun {
     packageName: string;
     version: string;
     mode: TReleaseMode;
+    branch: 'develop' | 'main';
     issue?: string;
     ports: IReleasePorts;
     published: boolean;
-    npmTag?: TNpmDistTag;
   }): Promise<void> {
-    const { dir, packageName, version, mode, issue, ports } = opts;
+    const { dir, packageName, version, mode, branch, issue, ports } = opts;
     const cwd = `packages/${dir}`;
     const tag = `${dir}-v${version}`;
-    const npmTag = opts.npmTag ?? ReleaseModes.toDistTag({ mode });
+    const npmTag = ReleaseTargets.distTagOf({ version });
     const state = { committed: false, tagged: false };
 
     try {
@@ -433,7 +470,7 @@ export class ReleaseRun {
       const subject = `${issue ? `[#${issue}] ` : ''}chore(${dir}): release v${version} [${mode}]`;
       await ports.run({ command: ['git', 'add', 'package.json'], cwd });
       await ports.run({ command: ['git', 'commit', '-m', subject], cwd });
-      await ports.run({ command: ['git', 'push', 'origin', 'HEAD:develop'] });
+      await ports.run({ command: ['git', 'push', 'origin', `HEAD:${branch}`] });
       state.committed = true;
 
       await ports.run({ command: ['git', 'tag', '-a', tag, '-m', `${packageName} v${version}`] });
@@ -441,7 +478,7 @@ export class ReleaseRun {
       state.tagged = true;
     } catch (error) {
       const missing = [
-        state.committed ? undefined : 'its release commit (develop does not record the version)',
+        state.committed ? undefined : `its release commit (${branch} does not record the version)`,
         state.tagged ? undefined : `its tag ${tag}`,
       ].filter(Boolean);
       ports.log(
@@ -523,26 +560,52 @@ const main = async (): Promise<void> => {
 
   const entries = ReleasePlanInput.parse({ text: process.env.PLAN ?? '' });
 
+  const mode = process.env.BUILD_MODE ?? '';
+  if (!ReleaseModes.isValid(mode)) {
+    throw new Error(
+      `BUILD_MODE must be one of ${[...ReleaseModes.SCHEME_SET].join(', ')}, got: ${mode}`,
+    );
+  }
+
   if (command === 'plan') {
-    const matrix = JSON.stringify({ package: entries.map((entry) => entry.name) });
-    const line = `matrix=${matrix}`;
-    console.log(line);
-    console.log(`plan=${ReleasePlanInput.format({ entries })}`);
+    const versions = new Map<string, string>();
+    const { readManifest } = realPorts();
+    for (const dir of ReleaseOrder.NAMES) {
+      const found = await readManifest({ dir }).catch(() => undefined);
+      if (found) {
+        versions.set(dir, found.version);
+      }
+    }
+
+    const plan = ReleaseTargets.plan({ entries, mode, ref: process.env.GITHUB_REF, versions });
+    const outputs = [
+      `matrix=${JSON.stringify({ package: entries.map((entry) => entry.name) })}`,
+      `plan=${ReleasePlanInput.format({ entries })}`,
+      `kind=${plan.kind}`,
+      `branch=${plan.branch}`,
+      `headline=${plan.headline}`,
+      `targets=${plan.targets.map((entry) => `${entry.name}@${entry.target}`).join(',')}`,
+    ];
+    for (const line of outputs) {
+      console.log(line);
+    }
+    console.log(['', ...plan.summary].join('\n'));
     if (process.env.GITHUB_OUTPUT) {
+      appendFileSync(process.env.GITHUB_OUTPUT, `${outputs.join('\n')}\n`);
+    }
+    if (process.env.GITHUB_STEP_SUMMARY) {
       appendFileSync(
-        process.env.GITHUB_OUTPUT,
-        `${line}\nplan=${ReleasePlanInput.format({ entries })}\n`,
+        process.env.GITHUB_STEP_SUMMARY,
+        `### ${plan.kind} release: ${plan.headline}\n\n${plan.summary.join('\n')}\n`,
       );
     }
     return;
   }
 
   if (command === 'run') {
-    const mode = process.env.BUILD_MODE ?? '';
-    if (!ReleaseModes.isValid(mode)) {
-      throw new Error(
-        `BUILD_MODE must be one of ${[...ReleaseModes.SCHEME_SET].join(', ')}, got: ${mode}`,
-      );
+    const branch = process.env.TARGET_BRANCH;
+    if (branch !== 'develop' && branch !== 'main') {
+      throw new Error(`TARGET_BRANCH must be develop or main, got: ${branch ?? 'nothing'}`);
     }
     const tarballs = process.env.TARBALLS;
     if (!tarballs) {
@@ -552,6 +615,7 @@ const main = async (): Promise<void> => {
     await ReleaseRun.execute({
       entries,
       mode,
+      branch,
       issue: process.env.RELEASE_ISSUE || undefined,
       tarballs,
       ports: realPorts(),
