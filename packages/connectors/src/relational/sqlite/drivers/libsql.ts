@@ -108,7 +108,8 @@ export class LibSqlDriver<
     // The bare pool error names only a timeout; on one connection the cause is almost always an
     // unreleased transaction, so say so where the caller reads it.
     try {
-      client = await this.slot.acquire();
+      const result2 = await this.slot.acquire();
+      client = result2;
     } catch (error) {
       throw getError({
         message: `[${LibSqlDriver.name}][acquire] Could not borrow the single libsql connection | ${(error as Error)?.message ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,

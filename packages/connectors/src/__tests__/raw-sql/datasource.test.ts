@@ -51,9 +51,8 @@ describe('BaseRawSqlDataSource - wiring', () => {
 
     expect(dataSource.getSchema()).toEqual({});
     expect(dataSource.getCapabilities()).toEqual({ transactions: false });
-    expect(String(await captureRejection(() => dataSource.beginTransaction()))).toMatch(
-      /not supported/i,
-    );
+    const result = await captureRejection(() => dataSource.beginTransaction());
+    expect(String(result)).toMatch(/not supported/i);
   });
 
   test('a custom driver wired by hand replaces the metadata driver', () => {
@@ -89,7 +88,8 @@ describe('BaseRawSqlDataSource - close', () => {
   test('a datasource that was never configured closes without touching anything', async () => {
     const dataSource = new FakeDataSource();
 
-    expect(await captureRejection(() => dataSource.close())).toBeUndefined();
+    const result = await captureRejection(() => dataSource.close());
+    expect(result).toBeUndefined();
   });
 });
 

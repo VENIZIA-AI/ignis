@@ -68,9 +68,11 @@ export abstract class AbstractSearchController<
   async search(opts: { context: TRouteContext<RouteEnv> }) {
     const { context } = opts;
     const body = context.req.valid<TSearchInput>('json');
-    const input = this.searchScope
-      ? await applySearchScope({ resolve: this.searchScope, context, input: body })
-      : body;
+    let input = body;
+    if (this.searchScope) {
+      const scoped = await applySearchScope({ resolve: this.searchScope, context, input: body });
+      input = scoped;
+    }
 
     const rs = await this.measure({
       scope: 'search',

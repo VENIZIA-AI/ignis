@@ -415,7 +415,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.getDocument.name,
       run: async () => {
-        const document = (await this.client.index(collection).getDocument(id)) as T;
+        const result = await this.client.index(collection).getDocument(id);
+        const document = result as T;
         return document;
       },
       tolerate: this.notFoundTolerance({
@@ -465,7 +466,13 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const primaryKey = await this.resolvePrimaryKey({ collection });
     const id = (document as Record<string, unknown>)[primaryKey];
 
-    if (id !== undefined && (await this.documentExists({ collection, id: String(id) }))) {
+    let isExisting = false;
+    if (id !== undefined) {
+      const exists = await this.documentExists({ collection, id: String(id) });
+      isExisting = exists;
+    }
+
+    if (isExisting) {
       throw getError({
         error: SearchErrors.ALREADY_EXISTS,
         message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
@@ -534,7 +541,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const primaryKey = await this.resolvePrimaryKey({ collection });
 
     // Meilisearch's updateDocuments is add-or-update, so a missing id would silently upsert while the neutral contract (and Typesense) throws 404 - existence is checked before any write.
-    if (!(await this.documentExists({ collection, id }))) {
+    const result = await this.documentExists({ collection, id });
+    if (!result) {
       SearchConnectorInternal.throwNotFoundError({
         method: this.updateDocument.name,
         subject: `Document '${id}' in collection '${collection}'`,

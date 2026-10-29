@@ -34,9 +34,11 @@ describe('TypesenseConnector documents', () => {
 
   test('deleteDocument returns true; false on 404', async () => {
     const ok = makeHelper();
-    expect(await ok.helper.deleteDocument({ collection: 'products', id: '1' })).toBe(true);
+    const result = await ok.helper.deleteDocument({ collection: 'products', id: '1' });
+    expect(result).toBe(true);
     const missing = makeHelper({ throwOn: { 'documents.delete': { httpStatus: 404 } } });
-    expect(await missing.helper.deleteDocument({ collection: 'products', id: '9' })).toBe(false);
+    const result2 = await missing.helper.deleteDocument({ collection: 'products', id: '9' });
+    expect(result2).toBe(false);
   });
 
   test('importDocuments batches by batchSize and aggregates counts', async () => {
@@ -76,9 +78,11 @@ describe('TypesenseConnector documents', () => {
 
   test('deleteByFilter returns num_deleted', async () => {
     const { helper, fake } = makeHelper({ numDeleted: 7 });
-    expect(
-      await helper.deleteByFilter({ collection: 'products', filterBy: 'status:=archived' }),
-    ).toBe(7);
+    const result = await helper.deleteByFilter({
+      collection: 'products',
+      filterBy: 'status:=archived',
+    });
+    expect(result).toBe(7);
     const delCall = fake.calls.find((c) => c.op === 'documents.delete');
     const expected: Record<string, unknown> = {};
     expected['filter_by'] = 'status:=archived';
@@ -101,7 +105,8 @@ describe('TypesenseConnector documents', () => {
 
   test('exportDocuments returns JSONL string', async () => {
     const { helper } = makeHelper({ exportResult: '{"id":"1"}\n{"id":"2"}' });
-    expect(await helper.exportDocuments({ collection: 'products' })).toContain('"id":"1"');
+    const result = await helper.exportDocuments({ collection: 'products' });
+    expect(result).toContain('"id":"1"');
   });
 
   test('importDocuments treats batchSize <= 0 as the default (no hang)', async () => {

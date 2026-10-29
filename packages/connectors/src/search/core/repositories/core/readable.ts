@@ -106,12 +106,14 @@ export class ReadableSearchRepository<
 
     // No round-trip for an absorbing where: with no filterBy the engine would happily return the
     // whole collection, which is the opposite of what the filter asked for.
-    const result = query.matchNone
-      ? { hits: [], found: 0 }
-      : await this.connector.search<TDocument>({
-          collection: this.collectionName,
-          params: this.queryDialect.toWireParams({ query }),
-        });
+    let result: Pick<ISearchResult<TDocument>, 'hits' | 'found'> = { hits: [], found: 0 };
+    if (!query.matchNone) {
+      const searched = await this.connector.search<TDocument>({
+        collection: this.collectionName,
+        params: this.queryDialect.toWireParams({ query }),
+      });
+      result = searched;
+    }
 
     const { hits, found } = result;
 
@@ -147,10 +149,11 @@ export class ReadableSearchRepository<
 
     // `retry` is handled above so it is absent here; TFindOneOptions's retry generic (TNullable<R>)
     // does not unify with find's own (Array<R>), hence the options-only cast.
-    const results = (await this.find<R, F>({
+    const result = await this.find<R, F>({
       filter: { ...filter, limit: 1 },
       options: options as TFindOptions<IExtraOptions, TRow<TDocument, R, F>>,
-    })) as Array<TRow<TDocument, R, F>>;
+    });
+    const results = result as Array<TRow<TDocument, R, F>>;
 
     return results[0] ?? null;
   }

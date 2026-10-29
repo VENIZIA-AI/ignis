@@ -44,13 +44,15 @@ describe('TypesenseConnector synonym sets', () => {
         },
       },
     });
-    expect(await present.helper.getSynonymSet({ name: 'products_synonyms' })).toEqual([
+    const result = await present.helper.getSynonymSet({ name: 'products_synonyms' });
+    expect(result).toEqual([
       { id: 'shoe', synonyms: ['shoe', 'sneaker'] },
       { id: 'shoe-oneway', synonyms: ['sneaker'], root: 'shoe' },
     ]);
 
     const absent = makeHelper({ throwOn: { 'synonymSets.retrieve': { httpStatus: 404 } } });
-    expect(await absent.helper.getSynonymSet({ name: 'nope' })).toBeNull();
+    const result2 = await absent.helper.getSynonymSet({ name: 'nope' });
+    expect(result2).toBeNull();
   });
 
   test('listSynonymSets returns the set names', async () => {
@@ -66,15 +68,18 @@ describe('TypesenseConnector synonym sets', () => {
 
   test('listSynonymSets returns an empty array when there are none', async () => {
     const { helper } = makeHelper();
-    expect(await helper.listSynonymSets()).toEqual([]);
+    const result = await helper.listSynonymSets();
+    expect(result).toEqual([]);
   });
 
   test('deleteSynonymSet returns true on success, false on 404', async () => {
     const ok = makeHelper();
-    expect(await ok.helper.deleteSynonymSet({ name: 'products_synonyms' })).toBe(true);
+    const result = await ok.helper.deleteSynonymSet({ name: 'products_synonyms' });
+    expect(result).toBe(true);
 
     const missing = makeHelper({ throwOn: { 'synonymSets.delete': { httpStatus: 404 } } });
-    expect(await missing.helper.deleteSynonymSet({ name: 'nope' })).toBe(false);
+    const result2 = await missing.helper.deleteSynonymSet({ name: 'nope' });
+    expect(result2).toBe(false);
   });
 
   test('linkSynonymSets patches the collection with synonym_sets', async () => {

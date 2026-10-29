@@ -42,7 +42,8 @@ export const applySearchScope = async <RouteEnv extends Env = Env>(opts: {
 
   let scope: Awaited<ReturnType<TSearchScopeResolver<RouteEnv>>>;
   try {
-    scope = await resolve({ context });
+    const result = await resolve({ context });
+    scope = result;
   } catch (error) {
     throw refuse({
       statusCode: HTTP.ResultCodes.RS_4.Forbidden,

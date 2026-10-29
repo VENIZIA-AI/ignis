@@ -284,7 +284,9 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
   let router: AnyType;
 
   beforeAll(async () => {
-    ({ repository, close } = await tier.open());
+    const opened = await tier.open();
+    repository = opened.repository;
+    close = opened.close;
 
     const RouteController = ControllerFactory.defineCrudController({
       entity: tier.entity,
@@ -368,7 +370,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     });
 
     expect(status).toBe(200);
-    expect(await readRow({ id: 'forged-patch' })).toMatchObject({
+    const result = await readRow({ id: 'forged-patch' });
+    expect(result).toMatchObject({
       code: 'AFTER',
       createdBy: 42,
       modifiedBy: 43,
@@ -387,7 +390,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     });
 
     expect(status).toBe(200);
-    expect(await readRow({ id: 'forged-bulk' })).toMatchObject({
+    const result = await readRow({ id: 'forged-bulk' });
+    expect(result).toMatchObject({
       code: 'BULK-AFTER',
       createdBy: 42,
       modifiedBy: 44,
@@ -397,13 +401,12 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
   test('a body without the audit keys still creates and updates', async () => {
     signIn({ userId: 45 });
 
-    expect(await send({ method: 'POST', path: '/', body: { id: 'plain', code: 'PLAIN' } })).toBe(
-      201,
-    );
-    expect(await send({ method: 'PATCH', path: '/plain', body: { code: 'PLAIN-AFTER' } })).toBe(
-      200,
-    );
-    expect(await readRow({ id: 'plain' })).toMatchObject({
+    const result = await send({ method: 'POST', path: '/', body: { id: 'plain', code: 'PLAIN' } });
+    expect(result).toBe(201);
+    const result2 = await send({ method: 'PATCH', path: '/plain', body: { code: 'PLAIN-AFTER' } });
+    expect(result2).toBe(200);
+    const result3 = await readRow({ id: 'plain' });
+    expect(result3).toMatchObject({
       code: 'PLAIN-AFTER',
       createdBy: 45,
       modifiedBy: 45,
@@ -424,7 +427,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
     });
 
     expect(status).toBe(200);
-    expect(await readRow({ id: 'renamed' })).toBeNull();
+    const result = await readRow({ id: 'renamed' });
+    expect(result).toBeNull();
     const row = await readRow({ id: 'echoed' });
     expect(row).toMatchObject({ code: 'ECHO-AFTER', createdBy: 42, modifiedBy: 46 });
     expect(row?.modifiedAt).not.toBe(stored?.modifiedAt);
@@ -453,7 +457,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
         const response = await request({ method: 'PATCH', path: `/${id}`, body });
 
         expect(response.status).toBe(400);
-        expect(await response.json()).toMatchObject({
+        const result = await response.json();
+        expect(result).toMatchObject({
           normalized: { code: 'core.request.nothing_to_update' },
         });
         expect(updateById).not.toHaveBeenCalled();
@@ -461,7 +466,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
         updateById.mockRestore();
       }
 
-      expect(await readRow({ id })).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
+      const result2 = await readRow({ id });
+      expect(result2).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
     },
   );
 
@@ -481,7 +487,8 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
       });
 
       expect(response.status).toBe(400);
-      expect(await response.json()).toMatchObject({
+      const result = await response.json();
+      expect(result).toMatchObject({
         normalized: { code: 'core.request.nothing_to_update' },
       });
       expect(updateBy).not.toHaveBeenCalled();
@@ -489,6 +496,7 @@ describe.each(ROUTE_TIERS)('a generated CRUD route on $name stamps the signed-in
       updateBy.mockRestore();
     }
 
-    expect(await readRow({ id })).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
+    const result2 = await readRow({ id });
+    expect(result2).toMatchObject({ code: 'KEEP', createdBy: 42, modifiedBy: 42 });
   });
 });

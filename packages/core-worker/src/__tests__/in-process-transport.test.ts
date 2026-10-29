@@ -95,7 +95,8 @@ describe('InProcessBffTransport drives a real app.fetch()', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ message: 'hello worker' });
+    const result = await response.json();
+    expect(result).toEqual({ message: 'hello worker' });
   });
 
   test('an unregistered path still resolves through app.fetch(), as a 404', async () => {

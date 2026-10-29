@@ -219,7 +219,8 @@ describe('defineEntity keeps the compiler strict', () => {
   beforeAll(async () => {
     // Inside `__tests__`, so the production build - which excludes `**/__tests__` - never sees a
     // probe a crash left behind.
-    probeDirectory = await mkdtemp(path.join(PACKAGE_ROOT, 'src/__tests__/.type-probe-'));
+    const result2 = await mkdtemp(path.join(PACKAGE_ROOT, 'src/__tests__/.type-probe-'));
+    probeDirectory = result2;
 
     const probeEntries = [...Object.entries(PROBES), [CANARY, CANARY_BODY]];
     await Promise.all(

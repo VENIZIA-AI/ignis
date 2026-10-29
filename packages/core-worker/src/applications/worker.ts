@@ -74,7 +74,8 @@ export abstract class WorkerApplication<
     try {
       const request = BffEnvelope.decodeRequest({ envelope });
       const response = await this.getServer().fetch(request);
-      responseEnvelope = await BffEnvelope.encodeResponse({ response, id: envelope.id });
+      const result = await BffEnvelope.encodeResponse({ response, id: envelope.id });
+      responseEnvelope = result;
     } catch (error) {
       logger.error('Failed to handle worker message | id: %s | error: %s', envelope.id, error);
       failure = error;

@@ -96,7 +96,8 @@ describe('a relational entity reports the audit keys its columns stamp', () => {
   });
 
   test('a NOT NULL createdBy with no default stays in the POST body, so a client can supply it', async () => {
-    expect(await toCreateBody({ entity: HandDeclaredRow })).toMatchObject({
+    const result = await toCreateBody({ entity: HandDeclaredRow });
+    expect(result).toMatchObject({
       content: {
         'application/json': {
           schema: { properties: { createdBy: {} }, required: ['id', 'createdBy'] },

@@ -284,23 +284,27 @@ describe('Postgres - a JSON-path key renders a qualified column', () => {
 
 describe('Postgres - a JSON-path key runs on a join with a same-named column', () => {
   test('control: the join itself runs', async () => {
-    expect(await selectJoinedOrderIds({})).toEqual({ ids: [1, 2, 3, 4] });
+    const result = await selectJoinedOrderIds({});
+    expect(result).toEqual({ ids: [1, 2, 3, 4] });
   });
 
   test('where on a JSON path, text extraction', async () => {
-    expect(await selectJoinedOrderIds({ where: { 'metadata.tier': 'gold' } })).toEqual({
+    const result = await selectJoinedOrderIds({ where: { 'metadata.tier': 'gold' } });
+    expect(result).toEqual({
       ids: [1, 2, 4],
     });
   });
 
   test('where on a JSON path, numeric-cast branch', async () => {
-    expect(await selectJoinedOrderIds({ where: { 'metadata.priority': { gt: 3 } } })).toEqual({
+    const result = await selectJoinedOrderIds({ where: { 'metadata.priority': { gt: 3 } } });
+    expect(result).toEqual({
       ids: [2, 3, 4],
     });
   });
 
   test('order by a JSON path', async () => {
-    expect(await selectJoinedOrderIds({ order: ['metadata.priority DESC'] })).toEqual({
+    const result = await selectJoinedOrderIds({ order: ['metadata.priority DESC'] });
+    expect(result).toEqual({
       ids: [2, 4, 3, 1],
     });
   });

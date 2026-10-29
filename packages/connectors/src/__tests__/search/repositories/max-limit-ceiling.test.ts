@@ -151,7 +151,8 @@ describe('page-size ceiling - it applies wherever a caller-supplied limit reache
   test('count() carries no limit, so the ceiling has nothing to say about it', async () => {
     const { repository } = buildRepository(DefaultCeilingDocument);
 
-    expect(await repository.count({ where: { status: 'active' } })).toEqual({ count: 0 });
+    const result = await repository.count({ where: { status: 'active' } });
+    expect(result).toEqual({ count: 0 });
   });
 });
 

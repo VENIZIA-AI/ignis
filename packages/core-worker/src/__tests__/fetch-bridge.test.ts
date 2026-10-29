@@ -8,10 +8,15 @@ const createRecordingTransport = () => {
 
   const transport: IBffTransport = {
     fetch: async ({ request }) => {
+      let body = '';
+      if (request.body) {
+        const text = await request.text();
+        body = text;
+      }
       seen.push({
         url: request.url,
         method: request.method,
-        body: request.body ? await request.text() : '',
+        body,
       });
       return new Response('from-bff', { status: 200 });
     },
@@ -27,9 +32,14 @@ const createCarrier = () => {
   const carrier = {
     fetch: (async (input: RequestInfo | URL, init?: RequestInit) => {
       const request = new Request(input, init);
+      let body = '';
+      if (request.body) {
+        const text = await request.text();
+        body = text;
+      }
       networkCalls.push({
         url: request.url,
-        body: request.body ? await request.text() : '',
+        body,
       });
       return new Response('from-network', { status: 200 });
     }) as unknown as typeof globalThis.fetch,
@@ -47,7 +57,8 @@ describe('installBffFetch', () => {
 
     const response = await carrier.fetch('https://app.test/api/notes');
 
-    expect(await response.text()).toBe('from-bff');
+    const result = await response.text();
+    expect(result).toBe('from-bff');
     expect(seen).toHaveLength(1);
     expect(seen[0]!.url).toBe('https://app.test/api/notes');
 
@@ -62,7 +73,8 @@ describe('installBffFetch', () => {
 
     const response = await carrier.fetch('https://app.test/assets/logo.svg');
 
-    expect(await response.text()).toBe('from-network');
+    const result = await response.text();
+    expect(result).toBe('from-network');
     expect(seen).toHaveLength(0);
     expect(networkCalls).toHaveLength(1);
 
@@ -216,7 +228,8 @@ describe('installBffFetch - which requests it claims', () => {
 
     const response = await carrier.fetch('https://api.example.com/api/users');
 
-    expect(await response.text()).toBe('from-network');
+    const result = await response.text();
+    expect(result).toBe('from-network');
     expect(seen).toHaveLength(0);
     expect(networkCalls).toHaveLength(1);
 

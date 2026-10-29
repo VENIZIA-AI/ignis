@@ -98,7 +98,8 @@ for (const { engine, begin, dataSource } of ENGINES) {
 
       const transaction = await dataSource().beginTransaction();
 
-      expect(await captureRejection({ task: transaction.commit() })).toBe(error);
+      const result = await captureRejection({ task: transaction.commit() });
+      expect(result).toBe(error);
       await transaction.rollback();
 
       expect(recorder.releases).toEqual([{ isDestroyed: true }]);
@@ -111,7 +112,8 @@ for (const { engine, begin, dataSource } of ENGINES) {
 
       const transaction = await dataSource().beginTransaction();
 
-      expect(await captureRejection({ task: transaction.rollback() })).toBe(error);
+      const result = await captureRejection({ task: transaction.rollback() });
+      expect(result).toBe(error);
       expect(recorder.releases).toEqual([{ isDestroyed: true }]);
     });
 

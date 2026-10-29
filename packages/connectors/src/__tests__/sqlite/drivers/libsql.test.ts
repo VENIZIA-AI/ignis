@@ -63,7 +63,8 @@ describe('LibSqlDriver - against a real in-memory libsql database', () => {
     const commit = await connection.execute({ statement: 'COMMIT' });
     connection.release();
 
-    const rows = (await client.execute('SELECT id FROM serialisation_probe ORDER BY id')).rows;
+    const result = await client.execute('SELECT id FROM serialisation_probe ORDER BY id');
+    const rows = result.rows;
 
     expect({ begin: begin.count, insert: insert.count, commit: commit.count }).toEqual({
       begin: 0,

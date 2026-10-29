@@ -116,7 +116,8 @@ const typeCheckProductionGraphWith = async ({
       }),
     );
 
-    return await run({ command: [TSC, '--noEmit', '-p', configPath] });
+    const result = await run({ command: [TSC, '--noEmit', '-p', configPath] });
+    return result;
   } finally {
     rmSync(configPath, { force: true });
   }
@@ -282,7 +283,8 @@ describe('browser purity is enforced at author time', () => {
     let findings: string[] = [];
 
     beforeAll(async () => {
-      findings = await lintAs({ path: PRODUCTION_PATH, source: IMPURE_SOURCE });
+      const result = await lintAs({ path: PRODUCTION_PATH, source: IMPURE_SOURCE });
+      findings = result;
     }, TIMEOUT_MS);
 
     for (const { label, marker } of IMPURITY_MARKERS) {

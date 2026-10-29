@@ -176,10 +176,12 @@ const probeServer = async (opts: { path: string }): Promise<IProbedResponse> => 
     NODE_ENV: 'production',
   });
 
+  const body: Record<string, any> = await response.json();
+
   return {
     status: response.status,
     contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE),
-    body: (await response.json()) as Record<string, any>,
+    body,
   };
 };
 

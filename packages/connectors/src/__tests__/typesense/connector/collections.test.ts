@@ -75,9 +75,11 @@ describe('TypesenseConnector collections', () => {
 
   test('deleteCollection returns true on success, false on 404', async () => {
     const ok = makeHelper();
-    expect(await ok.helper.deleteCollection({ name: 'products' })).toBe(true);
+    const result = await ok.helper.deleteCollection({ name: 'products' });
+    expect(result).toBe(true);
     const missing = makeHelper({ throwOn: { 'collections.delete': { httpStatus: 404 } } });
-    expect(await missing.helper.deleteCollection({ name: 'nope' })).toBe(false);
+    const result2 = await missing.helper.deleteCollection({ name: 'nope' });
+    expect(result2).toBe(false);
   });
 
   test('upsertAlias calls aliases().upsert with collection_name', async () => {
@@ -121,11 +123,13 @@ describe('TypesenseConnector collections', () => {
     const present = makeHelper({
       aliasByName: { products: aliasResponse },
     });
-    expect(await present.helper.getAlias({ name: 'products' })).toEqual({
+    const result = await present.helper.getAlias({ name: 'products' });
+    expect(result).toEqual({
       name: 'products',
       collection: 'products_v2',
     });
     const absent = makeHelper({ throwOn: { 'aliases.retrieve': { httpStatus: 404 } } });
-    expect(await absent.helper.getAlias({ name: 'nope' })).toBeNull();
+    const result2 = await absent.helper.getAlias({ name: 'nope' });
+    expect(result2).toBeNull();
   });
 });

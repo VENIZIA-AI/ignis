@@ -164,7 +164,8 @@ export const runRepositoryConformance = (opts: {
     });
 
     test('findById() resolves null for an absent id rather than throwing', async () => {
-      expect(await repository.findById({ id: 999_999 })).toBeNull();
+      const result = await repository.findById({ id: 999_999 });
+      expect(result).toBeNull();
     });
 
     test('find() applies a where, an order and a limit', async () => {
@@ -216,10 +217,12 @@ export const runRepositoryConformance = (opts: {
     });
 
     test('find() still serves a limit of zero and a limit at the ceiling', async () => {
-      expect(await repository.find<IConformanceRow>({ filter: { limit: 0 } })).toEqual([]);
-      expect(
-        await repository.find<IConformanceRow>({ filter: { limit: DEFAULT_MAX_LIMIT } }),
-      ).toHaveLength(SEED.length);
+      const result = await repository.find<IConformanceRow>({ filter: { limit: 0 } });
+      expect(result).toEqual([]);
+      const result2 = await repository.find<IConformanceRow>({
+        filter: { limit: DEFAULT_MAX_LIMIT },
+      });
+      expect(result2).toHaveLength(SEED.length);
     });
 
     test('find() composes nested operators inside a logical group', async () => {
@@ -234,8 +237,10 @@ export const runRepositoryConformance = (opts: {
     });
 
     test('count() honours its where', async () => {
-      expect(await repository.count({ where: {} })).toEqual({ count: 3 });
-      expect(await repository.count({ where: { tenant: 'acme' } })).toEqual({ count: 2 });
+      const result = await repository.count({ where: {} });
+      expect(result).toEqual({ count: 3 });
+      const result2 = await repository.count({ where: { tenant: 'acme' } });
+      expect(result2).toEqual({ count: 2 });
     });
 
     test('updateById() returns the updated row', async () => {
@@ -259,7 +264,8 @@ export const runRepositoryConformance = (opts: {
       });
 
       expect(updated).toEqual({ count: 2, data: null });
-      expect(await repository.count({ where: { score: 99 } })).toEqual({ count: 2 });
+      const result = await repository.count({ where: { score: 99 } });
+      expect(result).toEqual({ count: 2 });
     });
 
     test('updateAll() matching nothing reports zero and changes nothing', async () => {
@@ -270,15 +276,18 @@ export const runRepositoryConformance = (opts: {
       });
 
       expect(updated.count).toBe(0);
-      expect(await repository.count({ where: { score: 99 } })).toEqual({ count: 0 });
+      const result = await repository.count({ where: { score: 99 } });
+      expect(result).toEqual({ count: 0 });
     });
 
     test('deleteById() removes the row and it stops being readable', async () => {
       const deleted = await repository.deleteById({ id: seededIds.beta });
 
       expect(deleted.count).toBe(1);
-      expect(await repository.findById({ id: seededIds.beta })).toBeNull();
-      expect(await repository.count({ where: {} })).toEqual({ count: 2 });
+      const result = await repository.findById({ id: seededIds.beta });
+      expect(result).toBeNull();
+      const result2 = await repository.count({ where: {} });
+      expect(result2).toEqual({ count: 2 });
     });
 
     test('deleteAll() reports a truthful count for a multi-row match without RETURNING', async () => {
@@ -288,7 +297,8 @@ export const runRepositoryConformance = (opts: {
       });
 
       expect(deleted).toEqual({ count: 2, data: null });
-      expect(await repository.count({ where: {} })).toEqual({ count: 1 });
+      const result = await repository.count({ where: {} });
+      expect(result).toEqual({ count: 1 });
     });
 
     test("a caller's where is MERGED with the model's defaultFilter, never substituted for it", async () => {
@@ -302,9 +312,12 @@ export const runRepositoryConformance = (opts: {
     });
 
     test('the defaultFilter also scopes findById() and count()', async () => {
-      expect(await scopedRepository.findById({ id: seededIds.gamma })).toBeNull();
-      expect(await scopedRepository.findById({ id: seededIds.alpha })).not.toBeNull();
-      expect(await scopedRepository.count({ where: {} })).toEqual({ count: 2 });
+      const result = await scopedRepository.findById({ id: seededIds.gamma });
+      expect(result).toBeNull();
+      const result2 = await scopedRepository.findById({ id: seededIds.alpha });
+      expect(result2).not.toBeNull();
+      const result3 = await scopedRepository.count({ where: {} });
+      expect(result3).toEqual({ count: 2 });
     });
 
     test('shouldSkipDefaultFilter escapes the scope explicitly', async () => {
@@ -339,7 +352,8 @@ export const runRepositoryConformance = (opts: {
       expect('secret' in updated.data).toBe(false);
 
       // The column is excluded from the projection, not from the row: a filter on it still matches.
-      expect(await repository.count({ where: { secret: 'zeta-secret' } })).toEqual({ count: 1 });
+      const result = await repository.count({ where: { secret: 'zeta-secret' } });
+      expect(result).toEqual({ count: 1 });
     });
 
     test('a committed transaction persists its writes', async () => {
@@ -351,7 +365,8 @@ export const runRepositoryConformance = (opts: {
       });
       await transaction.commit();
 
-      expect(await repository.count({ where: { name: 'committed' } })).toEqual({ count: 1 });
+      const result = await repository.count({ where: { name: 'committed' } });
+      expect(result).toEqual({ count: 1 });
     });
 
     test('a rolled-back transaction persists nothing', async () => {
@@ -363,7 +378,8 @@ export const runRepositoryConformance = (opts: {
       });
       await transaction.rollback();
 
-      expect(await repository.count({ where: { name: 'rolled-back' } })).toEqual({ count: 0 });
+      const result = await repository.count({ where: { name: 'rolled-back' } });
+      expect(result).toEqual({ count: 0 });
     });
 
     test(
@@ -381,11 +397,13 @@ export const runRepositoryConformance = (opts: {
             });
 
           if (!capabilities.rowLocking) {
-            expectNotSupported(await captureRejection(execution));
+            const result = await captureRejection(execution);
+            expectNotSupported(result);
             return;
           }
 
-          expect(await execution()).toHaveLength(2);
+          const result2 = await execution();
+          expect(result2).toHaveLength(2);
         } finally {
           await transaction.rollback();
         }
@@ -401,11 +419,13 @@ export const runRepositoryConformance = (opts: {
           repository.find<IConformanceRow>({ filter: { where: { name: { regexp: '^al' } } } });
 
         if (!capabilities.regexp) {
-          expectNotSupported(await captureRejection(execution));
+          const result = await captureRejection(execution);
+          expectNotSupported(result);
           return;
         }
 
-        expect((await execution()).map((row) => row.name)).toEqual(['alpha']);
+        const result2 = await execution();
+        expect(result2.map((row) => row.name)).toEqual(['alpha']);
       },
     );
 
@@ -513,11 +533,13 @@ export const runRepositoryConformance = (opts: {
           });
 
         if (!capabilities.arrayOperators) {
-          expectNotSupported(await captureRejection(execution));
+          const result = await captureRejection(execution);
+          expectNotSupported(result);
           return;
         }
 
-        expect((await execution()).map((row) => row.name)).toEqual(['alpha', 'beta']);
+        const result2 = await execution();
+        expect(result2.map((row) => row.name)).toEqual(['alpha', 'beta']);
       },
     );
 
@@ -621,13 +643,15 @@ export const runRepositoryConformance = (opts: {
 
         // The engine's own message rides on `cause`; the driver wraps it in "Failed query: ...".
         if (capabilities.jsonPathRaisesOnScalarRoot) {
-          expect(await captureRejection(execution)).toMatchObject({
+          const result = await captureRejection(execution);
+          expect(result).toMatchObject({
             cause: { message: 'cannot set path in scalar' },
           });
           return;
         }
 
-        expect<unknown>(await execution()).toEqual({ count: 1, metadata: 5 });
+        const result2 = await execution();
+        expect<unknown>(result2).toEqual({ count: 1, metadata: 5 });
       },
     );
   });

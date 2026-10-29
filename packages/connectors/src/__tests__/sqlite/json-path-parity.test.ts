@@ -106,15 +106,18 @@ describe('SqliteFilterBuilder - a numeric JSON path component addresses BOTH rea
   // '{counts,0}'` is 9, and so is the array form. Row 1 is the object
   // key, row 2 the array element; before the fix only row 2 matched.
   test('the object key AND the array element match, as they both do on Postgres', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts.0': { gt: 5 } })).toEqual([1, 2]);
+    const result = await selectMatchingIds({ 'metadata.counts.0': { gt: 5 } });
+    expect(result).toEqual([1, 2]);
   });
 
   test('the object reading participates rather than matching everything', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts.0': { lt: 5 } })).toEqual([3]);
+    const result = await selectMatchingIds({ 'metadata.counts.0': { lt: 5 } });
+    expect(result).toEqual([3]);
   });
 
   test('the bracket spelling parses to the same path and answers the same', async () => {
-    expect(await selectMatchingIds({ 'metadata.counts[0]': { gt: 5 } })).toEqual([1, 2]);
+    const result = await selectMatchingIds({ 'metadata.counts[0]': { gt: 5 } });
+    expect(result).toEqual([1, 2]);
   });
 
   test('a non-numeric component keeps emitting a single extraction', () => {

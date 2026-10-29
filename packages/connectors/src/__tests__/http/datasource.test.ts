@@ -230,7 +230,8 @@ describe('request() answers raw, with auth and retry intact', () => {
     const response = await dataSource.request({ paths: ['reports', 'export'] });
 
     expect(response.headers.get('content-disposition')).toContain('export.csv');
-    expect(await response.text()).toContain('col-a');
+    const result = await response.text();
+    expect(result).toContain('col-a');
   });
 
   test('it carries the token, and retries once on 401', async () => {
@@ -252,7 +253,8 @@ describe('request() answers raw, with auth and retry intact', () => {
     stubFetch([{ status: 404 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
 
-    expect((await dataSource.request({ paths: ['nope'] })).status).toBe(404);
+    const result = await dataSource.request({ paths: ['nope'] });
+    expect(result.status).toBe(404);
   });
 });
 

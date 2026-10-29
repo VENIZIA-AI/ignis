@@ -156,7 +156,8 @@ describe('Relational close()', () => {
   test('a datasource that never built a client has nothing to close', async () => {
     const dataSource = new DriverNamedDataSource();
 
-    expect(await dataSource.close()).toBeUndefined();
+    const result = await dataSource.close();
+    expect(result).toBeUndefined();
   });
 
   test('a client no driver can wrap is drained directly', async () => {
