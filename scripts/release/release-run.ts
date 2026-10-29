@@ -8,6 +8,7 @@
  *
  *   bun scripts/release/release-run.ts plan                   # validate PLAN, print the matrix for the test jobs
  *   bun scripts/release/release-run.ts run                    # release PLAN with BUILD_MODE (the publish job)
+ *   bun scripts/release/release-run.ts registry <manifest>    # every dependency of a packed manifest is served by npm (a test job)
  *
  * A re-dispatch of the same plan is safe: a package already released (its tag on origin) is skipped, one that
  * is on npm without its commit or tag gets them without a second publish, and a stale plan stops the run.
@@ -491,7 +492,31 @@ const realPorts = (): IReleasePorts => ({
 });
 
 const main = async (): Promise<void> => {
-  const [command] = Bun.argv.slice(2);
+  const [command, manifestPath] = Bun.argv.slice(2);
+
+  if (command === 'registry') {
+    if (!manifestPath) {
+      throw new Error('usage: release-run.ts registry <packed package.json>');
+    }
+    const manifest = (await Bun.file(manifestPath).json()) as {
+      dependencies?: Record<string, string>;
+    };
+    const dependencies = manifest.dependencies ?? {};
+    const missing = await ReleaseRegistry.findMissing({ dependencies });
+    if (missing.length > 0) {
+      console.error('ERROR: the packed manifest depends on something the registry cannot serve:');
+      for (const entry of missing) {
+        console.error(`  - ${entry}`);
+      }
+      process.exit(1);
+    }
+
+    console.log(
+      `    ✓ all ${Object.keys(dependencies).length} runtime dependencies resolve on the registry`,
+    );
+    return;
+  }
+
   const entries = ReleasePlanInput.parse({ text: process.env.PLAN ?? '' });
 
   if (command === 'plan') {
@@ -530,7 +555,7 @@ const main = async (): Promise<void> => {
     return;
   }
 
-  throw new Error(`usage: release-run.ts plan | run (got: ${command ?? 'nothing'})`);
+  throw new Error(`usage: release-run.ts plan | run | registry (got: ${command ?? 'nothing'})`);
 };
 
 if (import.meta.main) {
