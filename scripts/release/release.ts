@@ -5,7 +5,7 @@
  *   bun scripts/release/release.ts                      # every changed package and every package that depends on one, in order
  *   bun scripts/release/release.ts kernel connectors    # these and everything after the first of them, still ordered
  *   bun scripts/release/release.ts --dry-run            # print the plan, dispatch nothing
- *   bun scripts/release/release.ts --mode patch         # default is prerelease
+ *   bun scripts/release/release.ts --mode patch         # default is prerelease; patch, minor, major release from main
  *   bun scripts/release/release.ts --yes                # skip the confirmation prompt
  *   bun scripts/release/release.ts --issue 80           # prefix every release commit with [#80]
  *   bun scripts/release/release.ts --plan <plan> --yes  # send a plan as printed, to continue a run that stopped
@@ -14,17 +14,20 @@
  * one that is on npm without its commit or tag gets them, the rest are released. The plan is printed on every
  * run as a ready `--plan` value, because planning again from git would drop a package that only cascaded from a
  * sibling the first run released.
+ *
+ * The mode decides the kind. A prerelease (`prerelease`, `prepatch`, `preminor`, `premajor`) releases from `develop`
+ * and plans what changed. A stable (`patch`, `minor`, `major`) releases from `main` and plans the scope the mode
+ * defines (a patch promotes every prerelease, a minor or a major moves all nine); no package is named for it.
  */
 
 import { parseReleaseArgs } from './release-args';
 import { ReleaseDispatch } from './release-dispatch';
 import { ReleaseModes, ReleaseOrder } from './release-constants';
+import { ReleaseKinds, ReleaseTargets } from './release-kind';
 import { planFullSweep } from './release-plan';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { type IPublishedPackage, waitForTarballs } from './release-tarballs';
 import { type IRunStatus, watchRun } from './release-watch';
-
-const BRANCH = ReleaseDispatch.REF;
 
 interface IPackageState {
   name: string;
@@ -165,7 +168,12 @@ const collectState = async (opts: {
  * at. The workflow checks out the BRANCH, not the local HEAD, so anything uncommitted or unpushed is
  * simply not in the release.
  */
-const assertReleasable = async (opts: { isDryRun: boolean }): Promise<void> => {
+const assertReleasable = async (opts: {
+  isDryRun: boolean;
+  branch: 'develop' | 'main';
+}): Promise<void> => {
+  const expected = opts.branch;
+
   // Reported rather than thrown on a dry run: it publishes nothing, and it is most useful WHILE the
   // tree is still dirty - refusing to plan a release until the work is committed is backwards.
   const complain = (message: string): void => {
@@ -181,8 +189,8 @@ const assertReleasable = async (opts: { isDryRun: boolean }): Promise<void> => {
   await run({ command: ['git', 'fetch', 'origin', '--quiet'] });
 
   const { stdout: branch } = await run({ command: ['git', 'rev-parse', '--abbrev-ref', 'HEAD'] });
-  if (branch !== BRANCH) {
-    complain(`On '${branch}', not '${BRANCH}'. The workflow releases from '${BRANCH}'.`);
+  if (branch !== expected) {
+    complain(`On '${branch}', not '${expected}'. The workflow releases from '${expected}'.`);
   }
 
   const { stdout: dirty } = await run({ command: ['git', 'status', '--porcelain'] });
@@ -193,16 +201,16 @@ const assertReleasable = async (opts: { isDryRun: boolean }): Promise<void> => {
   }
 
   const { stdout: counts } = await run({
-    command: ['git', 'rev-list', '--left-right', '--count', `HEAD...origin/${BRANCH}`],
+    command: ['git', 'rev-list', '--left-right', '--count', `HEAD...origin/${expected}`],
   });
   const [ahead, behind] = counts.split(/\s+/).map(Number);
 
   if (ahead > 0) {
-    complain(`${ahead} commit(s) not pushed. The workflow builds origin/${BRANCH}; push first.`);
+    complain(`${ahead} commit(s) not pushed. The workflow builds origin/${expected}; push first.`);
   }
   if (behind > 0) {
     complain(
-      `${behind} commit(s) behind origin/${BRANCH}. Pull first, or you will read stale versions.`,
+      `${behind} commit(s) behind origin/${expected}. Pull first, or you will read stale versions.`,
     );
   }
 };
@@ -310,7 +318,15 @@ const main = async (): Promise<void> => {
     throw new Error('--plan carries its own packages: do not name packages next to it');
   }
 
-  await assertReleasable({ isDryRun });
+  const kind = ReleaseKinds.ofMode({ mode });
+  const branch = ReleaseKinds.branchOf({ kind });
+  if (kind === ReleaseKinds.STABLE && named.length > 0) {
+    throw new Error(
+      `a ${mode} release has a fixed scope: do not name packages (${named.join(', ')})`,
+    );
+  }
+
+  await assertReleasable({ isDryRun, branch });
 
   // A name means "from here on": the package and everything after it in the chain, so a consumer
   // never gets a new package beside a stale one that depends on it.
@@ -337,6 +353,17 @@ const main = async (): Promise<void> => {
       distTag: ReleaseModes.toDistTag({ mode }),
     });
     plan = entries.map((entry) => everyState.find((state) => state.name === entry.name)!);
+  } else if (kind === ReleaseKinds.STABLE) {
+    // The scope of the mode, read from the versions in this checkout of main: the workflow works it out again.
+    const everyState = await collectState({
+      names: ReleaseOrder.NAMES,
+      distTag: ReleaseModes.toDistTag({ mode }),
+    });
+    entries = ReleaseTargets.scopeOf({
+      mode,
+      versions: new Map(everyState.map((state) => [state.name, state.localVersion])),
+    });
+    plan = entries.map((entry) => everyState.find((state) => state.name === entry.name)!);
   } else {
     // An explicit request is honoured as given. A full sweep releases what changed AND every package
     // that depends on it: the published manifests pin internal dependencies exactly, so a package left
@@ -355,16 +382,37 @@ const main = async (): Promise<void> => {
   }
 
   if (plan.length === 0) {
-    console.log('Nothing to release - no package has source changes since its last release.');
+    console.log(
+      kind === ReleaseKinds.STABLE
+        ? 'Nothing to release - no package has a prerelease part to promote.'
+        : 'Nothing to release - no package has source changes since its last release.',
+    );
     return;
+  }
+
+  if (kind === ReleaseKinds.STABLE) {
+    const everyState = await collectState({
+      names: ReleaseOrder.NAMES,
+      distTag: ReleaseModes.toDistTag({ mode }),
+    });
+    const problems = ReleaseTargets.checkScope({
+      mode,
+      entries,
+      versions: new Map(everyState.map((state) => [state.name, state.localVersion])),
+    });
+    if (problems.length > 0) {
+      throw new Error(`the plan is refused:\n  - ${problems.join('\n  - ')}`);
+    }
   }
 
   console.log(`Release plan (${mode}), in dependency order:\n`);
   for (const state of plan) {
     const changed =
-      state.changedFiles === Number.POSITIVE_INFINITY
-        ? 'never released'
-        : `${state.changedFiles} file(s)`;
+      kind === ReleaseKinds.STABLE
+        ? ''
+        : state.changedFiles === Number.POSITIVE_INFINITY
+          ? 'never released'
+          : `${state.changedFiles} file(s)`;
     const cascade = cascadedFrom.get(state.name);
     const why = cascade
       ? `  (no source change: depends on ${cascade.join(', ')}, pinned exactly)`
@@ -372,6 +420,10 @@ const main = async (): Promise<void> => {
     console.log(
       `  ${state.name.padEnd(13)} ${state.localVersion.padEnd(10)} npm:${(state.publishedVersion ?? '-').padEnd(10)} ${changed}${why}`,
     );
+  }
+  console.log(`\nWhat the run gives each package (${kind}, from ${branch}):\n`);
+  for (const line of ReleaseTargets.tableOf({ targets: ReleaseTargets.of({ entries, mode }) })) {
+    console.log(`  ${line}`);
   }
   console.log(
     `\nOne run for all of it. To continue it after a stop: bun scripts/release/release.ts ${ReleaseDispatch.planFlag({ entries })} --mode ${mode}${issue ? ` --issue ${issue}` : ''} --yes`,
@@ -404,7 +456,7 @@ const main = async (): Promise<void> => {
 
   // The workflow pushes its own release commits. Without this the operator reads a repo that disagrees
   // with the registry.
-  await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', BRANCH] });
+  await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', branch] });
 
   // The workflow is green and the packument lists the versions, but a tarball can answer 404 for
   // minutes after that, and an install of the train fails in that window. Done means installable.

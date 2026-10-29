@@ -1,4 +1,5 @@
 import type { TReleaseMode } from './release-constants';
+import { ReleaseKinds } from './release-kind';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 
 export interface IReleaseOutcomeLine {
@@ -13,9 +14,11 @@ export class ReleaseDispatch {
 
   /**
    * Named on every dispatch. `gh workflow run` without `--ref` runs the workflow file of the repository's
-   * default branch, which is `main` once that setting changes; this release runs from `develop`.
+   * default branch, which is `main` once that setting changes. A prerelease runs from `develop`, a stable from `main`.
    */
-  static readonly REF = 'develop';
+  static refOf(opts: { mode: TReleaseMode }): 'develop' | 'main' {
+    return ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode }) });
+  }
 
   /** The arguments of the one `gh` call that starts the whole release. */
   static buildArgs(opts: {
@@ -30,7 +33,7 @@ export class ReleaseDispatch {
       'run',
       this.WORKFLOW,
       '--ref',
-      this.REF,
+      this.refOf({ mode }),
       '-f',
       `plan=${ReleasePlanInput.format({ entries })}`,
       '-f',
