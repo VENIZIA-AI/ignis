@@ -14,6 +14,14 @@ describe('decideNextTag', () => {
     expect(decideNextTag({ latest: '0.3.1', next: '0.3.2-0' }).move).toBe(false);
   });
 
+  test('a stable that is below a newer prerelease keeps that next (0.4.9 against 0.4.10-0)', () => {
+    expect(decideNextTag({ latest: '0.4.9', next: '0.4.10-0' }).move).toBe(false);
+  });
+
+  test('a stable that overtakes the prerelease it came from moves next to itself (0.4.9 over 0.4.9-3)', () => {
+    expect(decideNextTag({ latest: '0.4.9', next: '0.4.9-3' }).move).toBe(true);
+  });
+
   test('equal versions are kept', () => {
     expect(decideNextTag({ latest: '0.3.1', next: '0.3.1' }).move).toBe(false);
   });

@@ -101,7 +101,7 @@ generated:
 | `make purity-inversion` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-kernel` | - | Gate: one package's browser-pure entries. Needs a build. |
 | `make purity-test` | - | Run the purity probe's own regression tests. |
-| `make release` | - | Dispatch the release workflow once for the whole plan, e.g. ARGS="kernel --mode patch --yes"; ARGS="--plan <printed plan> --yes" continues a run that stopped. |
+| `make release` | - | Dispatch the release workflow once for the whole plan, e.g. ARGS="kernel --mode prerelease --yes"; a stable (patch, minor, major) releases from main with its own scope: ARGS="--mode patch --dry-run"; ARGS="--plan <printed plan> --yes" continues a run that stopped. |
 | `make release-plan` | - | Print the release plan (dependency order), dispatch nothing. |
 | `make setup-hooks` | - | Configure git to use .githooks directory. |
 | `make split-report` | - | Report hub files, stray types, missing barrels, long files, cycles (informational). |

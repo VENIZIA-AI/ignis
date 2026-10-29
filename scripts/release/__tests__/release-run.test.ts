@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { TReleaseMode } from '../release-constants';
+import { ReleaseKinds } from '../release-kind';
 import type { IPlanEntry } from '../release-plan-input';
 import { type IReleasePorts, ReleaseRun } from '../release-run';
 
@@ -32,8 +33,13 @@ class FakeWorld {
     protocolLeak: new Set<string>(),
     stalePin: new Set<string>(),
     corruptSha: false,
+    wrongBump: new Set<string>(),
   };
   publishes: string[] = [];
+  /** The branch of every `git push origin HEAD:<branch>`, in order. */
+  pushedTo: string[] = [];
+  /** The `--tag` of every `npm publish`, by package. */
+  distTags = new Map<string, string>();
   private shaReads = 0;
 
   constructor() {
@@ -154,7 +160,9 @@ class FakeWorld {
     const pkg = this.disk.get(dir);
 
     if (tool === 'npm' && verb === 'version' && pkg) {
-      pkg.version = FakeWorld.bump({ version: pkg.version, mode: command[2] });
+      pkg.version = this.faults.wrongBump.has(dir)
+        ? '9.9.9'
+        : FakeWorld.bump({ version: pkg.version, mode: command[2] });
       return ok(pkg.version);
     }
     if (tool === 'bun' && verb === 'pm' && pkg) {
@@ -184,6 +192,7 @@ class FakeWorld {
       }
       this.npm.add(key);
       this.publishes.push(key);
+      this.distTags.set(key, command[command.indexOf('--tag') + 1]);
       return ok(`+ ${key}`);
     }
     if (tool === 'npm' && verb === 'view') {
@@ -206,6 +215,7 @@ class FakeWorld {
       return ok();
     }
     if (tool === 'git' && verb === 'push' && command[3]?.startsWith('HEAD')) {
+      this.pushedTo.push(command[3].replace('HEAD:', ''));
       const last = [...this.commits].reverse().find((commit) => !commit.pushed);
       if (last && this.faults.pushFor.has(last.dir)) {
         return fail('push rejected: develop moved');
@@ -262,11 +272,15 @@ const execute = (opts: {
   world: FakeWorld;
   plan?: IPlanEntry[];
   mode?: TReleaseMode;
+  branch?: 'develop' | 'main';
   issue?: string;
 }) =>
   ReleaseRun.execute({
     entries: opts.plan ?? entries('helpers', 'kernel', 'connectors'),
     mode: opts.mode ?? 'patch',
+    branch:
+      opts.branch ??
+      ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode ?? 'patch' }) }),
     issue: opts.issue ?? '638',
     tarballs: TARBALLS,
     ports: opts.world.ports(),
@@ -313,6 +327,7 @@ describe('ReleaseRun.execute: a clean run', () => {
     await ReleaseRun.execute({
       entries: entries('helpers'),
       mode: 'patch',
+      branch: 'main',
       tarballs: TARBALLS,
       ports: world.ports(),
     });
@@ -352,7 +367,7 @@ describe('ReleaseRun.execute: a clean run', () => {
       'npm dist-tag add @venizia/ignis-kernel@0.4.6 highest',
       'sync-next-tag.ts --published @venizia/ignis-kernel@0.4.6 --tag latest',
       '[kernel] git commit',
-      'git push origin HEAD:develop',
+      'git push origin HEAD:main',
       'git tag -a kernel-v0.4.6',
       'git push origin kernel-v0.4.6',
     ].map((text) => indexOfCall(world, text));
@@ -624,17 +639,119 @@ describe('ReleaseRun.execute: dispatching the same plan again', () => {
   });
 });
 
+describe('ReleaseRun.execute: a stable and a prerelease', () => {
+  /** The three packages as `main` has them right after a Sync: prereleases of 0.4.6. */
+  const prereleased = (world: FakeWorld, version = '0.4.6-1'): IPlanEntry[] => {
+    for (const dir of ['helpers', 'kernel', 'connectors']) {
+      world.disk.get(dir)!.version = version;
+      world.origin.set(dir, version);
+      world.npm.add(`${world.disk.get(dir)!.name}@${version}`);
+    }
+
+    return ['helpers', 'kernel', 'connectors'].map((name) => ({ name, from: version }));
+  };
+
+  test('a stable promotes each prerelease, pushes every release commit to main and publishes under latest', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    const outcomes = await execute({ world, plan, mode: 'patch' });
+
+    expect(outcomes.map((outcome) => `${outcome.name}:${outcome.version}`)).toEqual([
+      'helpers:0.4.6',
+      'kernel:0.4.6',
+      'connectors:0.4.6',
+    ]);
+    expect(world.pushedTo.filter((branch) => branch !== 'develop')).toEqual([
+      'main',
+      'main',
+      'main',
+    ]);
+    expect(world.pushedTo).not.toContain('develop');
+    expect([...world.distTags.values()]).toEqual(['latest', 'latest', 'latest']);
+    expect([...world.tags.keys()]).toEqual([
+      'helpers-v0.4.6',
+      'kernel-v0.4.6',
+      'connectors-v0.4.6',
+    ]);
+  });
+
+  test('a prerelease pushes to develop and publishes under next', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world, '0.4.6-0');
+
+    await execute({ world, plan, mode: 'prerelease' });
+
+    expect(world.pushedTo).toEqual(['develop', 'develop', 'develop']);
+    expect([...world.distTags.values()]).toEqual(['next', 'next', 'next']);
+    expect(world.npm.has('@venizia/ignis-kernel@0.4.6-1')).toBe(true);
+  });
+
+  test('the dist-tag follows the version of the package: a minor and a prepatch', async () => {
+    const minor = new FakeWorld();
+    await execute({ world: minor, plan: entries('kernel'), mode: 'minor' });
+    expect(minor.distTags.get('@venizia/ignis-kernel@0.5.0')).toBe('latest');
+  });
+
+  test('a stable asks to keep next at or above latest, with the stable it published', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+
+    await execute({ world, plan, mode: 'patch' });
+
+    expect(world.calls).toContain(
+      'bun scripts/release/sync-next-tag.ts --published @venizia/ignis-kernel@0.4.6 --tag latest',
+    );
+  });
+
+  test('refuses a branch that is not the branch of the mode, before anything is touched', async () => {
+    const world = new FakeWorld();
+
+    await expect(execute({ world, mode: 'patch', branch: 'develop' })).rejects.toThrow(
+      /pushes to main/,
+    );
+    await expect(execute({ world, mode: 'prerelease', branch: 'main' })).rejects.toThrow(
+      /pushes to develop/,
+    );
+    expect(world.calls).toEqual([]);
+  });
+
+  test('stops before publishing when npm gives another version than the plan expects', async () => {
+    const world = new FakeWorld();
+    world.faults.wrongBump.add('kernel');
+
+    await expect(execute({ world, plan: entries('kernel') })).rejects.toThrow(/9\.9\.9.*0\.4\.6/);
+    expect(world.calls.some((call) => call.startsWith('npm publish'))).toBe(false);
+  });
+
+  test('a push rejected on main stops the run and never rebases', async () => {
+    const world = new FakeWorld();
+    const plan = prereleased(world);
+    world.faults.pushFor.add('kernel');
+
+    await expect(execute({ world, plan, mode: 'patch' })).rejects.toThrow(/push/);
+
+    expect(world.calls.some((call) => /git (pull|rebase|fetch)/.test(call))).toBe(false);
+    expect(world.logs.join('\n')).toMatch(/main does not record the version/);
+  });
+});
+
 describe('ReleaseRun.checkManifest', () => {
   const siblings = new Map([
     ['@venizia/ignis-kernel', '0.4.6'],
     ['@venizia/ignis-helpers', '0.4.6'],
   ]);
-  const check = (manifest: Record<string, unknown>, pending: string[] = []) =>
+  const check = (
+    manifest: Record<string, unknown>,
+    pending: string[] = [],
+    kind: 'prerelease' | 'stable' = 'prerelease',
+  ) =>
     ReleaseRun.checkManifest({
       text: JSON.stringify(manifest),
       version: '0.4.6',
       siblings,
       pending: new Set(pending),
+      kind,
     });
 
   test('is empty for a manifest that pins its siblings to the workspace and carries the target version', () => {
@@ -644,6 +761,29 @@ describe('ReleaseRun.checkManifest', () => {
         dependencies: { '@venizia/ignis-kernel': '0.4.6', zod: '^4.0.0' },
         peerDependencies: { '@venizia/ignis-helpers': '0.4.6' },
       }),
+    ).toEqual([]);
+  });
+
+  test('a stable refuses any dependency or peer dependency that names a prerelease', () => {
+    const stable = (manifest: Record<string, unknown>) => check(manifest, [], 'stable');
+
+    expect(
+      stable({ version: '0.4.6', dependencies: { '@venizia/ignis-kernel': '0.4.6-1' } }),
+    ).toHaveLength(2);
+    expect(stable({ version: '0.4.6', dependencies: { zod: '^4.0.0-beta.1' } })).toHaveLength(1);
+    expect(stable({ version: '0.4.6', peerDependencies: { react: '19.0.0-rc.1' } })[0]).toContain(
+      'never ships against a prerelease',
+    );
+  });
+
+  test('a prerelease may pin a prerelease, and a stable may pin stable versions', () => {
+    expect(check({ version: '0.4.6', dependencies: { zod: '^4.0.0-beta.1' } })).toEqual([]);
+    expect(
+      check(
+        { version: '0.4.6', dependencies: { '@venizia/ignis-kernel': '0.4.6', zod: '^4.0.0' } },
+        [],
+        'stable',
+      ),
     ).toEqual([]);
   });
 

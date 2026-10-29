@@ -9,6 +9,7 @@ tags: [process, release, ci]
 <!-- okf:generated:contents start -->
 **Contents**
 
+- [Two kinds of release](#two-kinds-of-release)
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
@@ -19,16 +20,36 @@ tags: [process, release, ci]
 - [Related](#related)
 <!-- okf:generated:contents end -->
 
+## Two kinds of release
+
+The mode decides the kind (`scripts/release/release-kind.ts`): `prerelease`, `prepatch`, `preminor` and `premajor` are a
+prerelease, `patch`, `minor` and `major` are a stable (`npm version patch` over `0.4.9-3` gives the stable `0.4.9`, so a
+run cannot mix kinds).
+
+| | Prerelease | Stable |
+|---|---|---|
+| Dispatched on and released from | `develop` | `main` |
+| Release commits go to | `develop` | `main` |
+| Plan | what changed since each package's last release, plus the packages that depend on them | the scope of the mode, never named: a `patch` promotes every package that has a prerelease part, a `minor` or a `major` moves all nine (they must share one MAJOR.MINOR) |
+| npm dist-tag | `next` | `latest` |
+
+The dist-tag follows the version of each package (a prerelease part means `next`), not the mode. The plan job refuses a ref
+that is not the kind's branch, and a stable plan whose scope is not the mode's (a package left out, a patch over a stable
+package, a plan whose `from` is not the version on `main`); a package already released by an earlier dispatch of the same
+plan does not count against the scope. `release.ts --dry-run` prints version now, target and dist-tag for each package. The
+loop computes each target without npm (`ReleaseVersion.next`, checked against `npm version`) and stops before publishing if
+npm gives another version, and a stable run refuses a packed manifest that pins a prerelease.
+
 ## Before a chain release
 
 - Pass `--issue <N>` - the release issue - so the commits a release makes (the workflow's
   `chore(<package>): release v...`) lead with `[#N]` like every other commit. The workflow takes
   it as its optional `issue` input.
-- Release from `develop` through `bun scripts/release/release.ts` (`--dry-run` first): it plans the packages, prints
+- Release a prerelease from `develop` through `bun scripts/release/release.ts` (`--dry-run` first): it plans the packages, prints
   the plan as a ready `--plan` value and dispatches this workflow ONCE, with the plan. The workflow releases the packages
   in dependency order (dev-configs, inversion, filter, helpers, boot, kernel, connectors, core-worker, core-server) in
   that one run. The script refuses an unpushed or non-`develop` checkout because the workflow releases the commit it was
-  dispatched on, and it names `--ref develop` on every dispatch (the default branch is not where this release runs). It
+  dispatched on, and it names `--ref` on every dispatch (`develop` for a prerelease, `main` for a stable; the default branch is not where a release runs). It
   watches the run with no time limit (`scripts/release/release-watch.ts`), reads one line per package of the plan from the log
   (`+ <name>@<version>`: published by this run; `= <name>@<version>`: already released), and then waits until the tarball
   of every released version answers 200 (`scripts/release/release-tarballs.ts`, up to fifteen minutes each, in parallel),

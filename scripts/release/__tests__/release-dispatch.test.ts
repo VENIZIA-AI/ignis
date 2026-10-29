@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { TReleaseMode } from '../release-constants';
 import { ReleaseDispatch } from '../release-dispatch';
 
 const ENTRIES = [
@@ -8,13 +9,13 @@ const ENTRIES = [
 ];
 
 describe('ReleaseDispatch.buildArgs', () => {
-  test('is one workflow run on develop with the whole plan in one input', () => {
+  test('is one workflow run with the whole plan in one input', () => {
     expect(ReleaseDispatch.buildArgs({ entries: ENTRIES, mode: 'patch', issue: '638' })).toEqual([
       'workflow',
       'run',
       'package-release.yml',
       '--ref',
-      'develop',
+      'main',
       '-f',
       'plan=helpers@0.4.5,kernel@0.4.5,connectors@0.4.5',
       '-f',
@@ -37,9 +38,16 @@ describe('ReleaseDispatch.buildArgs', () => {
   });
 
   test('always names its ref, so a default branch other than develop changes nothing', () => {
-    const args = ReleaseDispatch.buildArgs({ entries: ENTRIES, mode: 'patch' });
+    const refOf = (mode: TReleaseMode) => {
+      const args = ReleaseDispatch.buildArgs({ entries: ENTRIES, mode });
+      return args[args.indexOf('--ref') + 1];
+    };
 
-    expect(args[args.indexOf('--ref') + 1]).toBe('develop');
+    expect(refOf('prerelease')).toBe('develop');
+    expect(refOf('prepatch')).toBe('develop');
+    expect(refOf('patch')).toBe('main');
+    expect(refOf('minor')).toBe('main');
+    expect(refOf('major')).toBe('main');
   });
 });
 
