@@ -12,9 +12,11 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (45)
+### `@venizia/dev-configs` (49)
 
 - `AstNodeTypes` class
+- `asyncStyleConfigs` const
+- `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
 - `ConstClassValuesRule` class
@@ -33,10 +35,12 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `nodeType` const
+- `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
 - `NoNewErrorRule` class
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
+- `NoReturnAwaitRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
@@ -64,9 +68,11 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (44)
+### `@venizia/dev-configs/linters` (48)
 
 - `AstNodeTypes` class
+- `asyncStyleConfigs` const
+- `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
 - `EqeqeqModes` class
@@ -84,10 +90,12 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `nodeType` const
+- `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
 - `NoNewErrorRule` class
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
+- `NoReturnAwaitRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
