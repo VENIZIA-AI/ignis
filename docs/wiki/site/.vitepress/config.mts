@@ -511,6 +511,7 @@ const config = defineConfig({
                   link: '/best-practices/code-style-standards/constants-configuration',
                 },
                 { text: 'Control Flow', link: '/best-practices/code-style-standards/control-flow' },
+                { text: 'Async Style', link: '/best-practices/code-style-standards/async-style' },
                 {
                   text: 'Advanced Patterns',
                   link: '/best-practices/code-style-standards/advanced-patterns',
