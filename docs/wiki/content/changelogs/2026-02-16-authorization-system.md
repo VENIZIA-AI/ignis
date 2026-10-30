@@ -1,6 +1,6 @@
 ---
 title: Authorization System & Auth Module Refactor
-description: Enforcer-based authorization with RBAC, voters, Casbin integration, filtered adapters, and comprehensive auth module restructuring
+description: IGNIS now has a pluggable authorization system with role shortcuts, voters and Casbin support, and route configs use a new IAuthRouteConfig type.
 packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 ---
 
@@ -8,112 +8,74 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 
 ## Authorization System & Auth Module Refactor
 
-This release introduces a complete authorization system alongside a major restructuring of the authentication module. The authorization system supports Casbin integration and custom enforcers, following the same registry-based architecture as authentication.
+**In one line.** You can now protect routes with an `authorize` setting backed by role shortcuts, custom voters or a Casbin policy engine, using the same registry setup as authentication.
 
-> [!NOTE]
-> **2026-02-25 Update:** Major refactoring -- removed `DefaultAuthorizationEnforcer` and `AbilityBuilder`, moved enforcer options to co-locate with registry registration, added `BaseFilteredAdapter` and `DrizzleCasbinAdapter`, introduced `CasbinRuleVariants` constants, simplified `IAuthorizeOptions`, merged authorization flow from 8 steps to 7.
+## What changed
 
-## Overview
+- **Authorization on routes.** Route configs and the CRUD controller factory accept `authorize`, with per-route overrides and `authorize: { skip: true }`.
+- **Role shortcuts and voters.** `alwaysAllowRoles` and `allowedRoles` decide without calling an enforcer. Voters add custom ALLOW or DENY logic. Rules are cached per request.
+- **Casbin enforcer.** `CasbinAuthorizationEnforcer` uses the `casbin` library, an optional peer dependency.
+- **Filtered adapters.** `BaseFilteredAdapter` and `DrizzleCasbinAdapter` load user-scoped policies (read-only, raw SQL through Drizzle). `CasbinRuleVariants` holds the rule-type constants.
+- **Enforcer options live with the registration.** Class, name, type and options are given together to `AuthorizationEnforcerRegistry.register()`, and `IAuthorizeOptions` is simplified. `DefaultAuthorizationEnforcer` and `AbilityBuilder` are removed.
+- **Role helper.** `AuthorizationRoles.SUPER_ADMIN.identifier` gives `'999_super-admin'`, and `AuthorizationRoles.ADMIN.isHigherThan({ target: AuthorizationRoles.USER })` compares roles by priority.
 
-- **Authorization System**: Enforcer-based authorization with voter pattern, rules caching, and role shortcuts
-- **Casbin Enforcer**: Integration with the `casbin` library for policy-engine-based authorization (optional peer dep)
-- **Filtered Adapters**: `BaseFilteredAdapter` (template method) + `DrizzleCasbinAdapter` (raw SQL via Drizzle) for loading user-scoped policies
-- **Registry-based Registration**: Enforcer class, name, type, and options co-located in `AuthorizationEnforcerRegistry.register()`
-- **Auth Module Restructure**: Consistent file organization across authenticate and authorize modules
-- **Import Cleanup**: Replaced barrel `@/` imports with specific file paths to prevent circular dependencies
-- **Helpers Rename**: `packages/helpers/src/helpers/` renamed to `packages/helpers/src/modules/`
-- **Terminology Update**: `requirement` renamed to `spec`, `abilities` renamed to `rules` throughout the authorization module
+## Who is affected
 
-## Breaking Changes
+- **Code using `IAuthenticateRouteConfig`.** Rename it to `IAuthRouteConfig`.
+- **Code using the old `authorize: { requirement: ... }` shape.** Move to the new spec shape (see Breaking changes).
+- **Everyone else.** Authorization is opt-in; nothing changes until you register `AuthorizeComponent`.
+
+## Breaking changes
 
 > [!WARNING]
-> This section contains changes that require migration or manual updates to existing code.
-
-### 1. `IAuthenticateRouteConfig` Replaced by `IAuthRouteConfig`
-
-The route config interface now supports both authentication and authorization:
+> Custom controllers that extend `IAuthenticateRouteConfig`, and code that uses `requirement`, must be updated.
 
 **Before:**
+
 ```typescript
 import { IAuthenticateRouteConfig } from '@venizia/ignis';
 
-interface MyRouteConfig extends IAuthenticateRouteConfig {
-  // authenticate only
-}
+interface MyRouteConfig extends IAuthenticateRouteConfig {}
+
+authorize: { requirement: { action: 'read', resource: 'Article' } }
 ```
 
 **After:**
+
 ```typescript
-import { IAuthRouteConfig } from '@venizia/ignis';
+import { IAuthRouteConfig, AuthorizationActions } from '@venizia/ignis';
 
 interface MyRouteConfig extends IAuthRouteConfig {
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
-```
-
-### 2. Helpers Source Directory Rename
-
-**Before:**
-```
-packages/helpers/src/helpers/
-```
-
-**After:**
-```
-packages/helpers/src/modules/
-```
-
-Internal imports changed from `@/helpers/...` to `@/modules/...`. External imports via `@venizia/ignis-helpers` are **unaffected**.
-
-### 3. Authorization Terminology: `requirement` to `spec`
-
-**Before:**
-```typescript
-authorize: { requirement: { action: 'read', resource: 'Article' } }
-```
-
-**After:**
-```typescript
-import { AuthorizationActions } from '@venizia/ignis';
 
 authorize: { action: AuthorizationActions.READ, resource: 'Article' }
 // or
 authorize({ spec: { action: AuthorizationActions.READ, resource: 'Article' } })
 ```
 
-## New Features
+Terminology also changed: `requirement` is now `spec`, and `abilities` is now `rules`.
 
-### Authorization System
+The helpers source directory `packages/helpers/src/helpers/` was renamed to `packages/helpers/src/modules/` (internal imports `@/helpers/...` became `@/modules/...`). Imports through `@venizia/ignis-helpers` are unaffected.
 
-**Files:** `packages/core-server/src/components/auth/authorize/`
+If you import from internal framework paths instead of `@venizia/ignis`, replace barrel imports with the specific file, for example `@/base/controllers` becomes `@/base/controllers/common/types`.
 
-**Problem:** IGNIS had authentication but no authorization. Developers needed to implement their own permission checking logic.
+## Details
 
-**Solution:** A pluggable enforcer-based authorization system that integrates seamlessly with the existing authentication middleware chain. Setup is a three-step process: bind global options, register the component, then register enforcers via the registry.
+Set up authorization in three steps:
 
 ```typescript
-import {
-  AuthorizeComponent,
-  AuthorizeBindingKeys,
-  AuthorizationEnforcerRegistry,
-  AuthorizationEnforcerTypes,
-  CasbinAuthorizationEnforcer,
-  CasbinEnforcerModelDrivers,
-  DrizzleCasbinAdapter,
-  IAuthorizeOptions,
-} from '@venizia/ignis';
-
-// Step 1: Global options (simplified - no enforcer-specific config)
+// Step 1: global options
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
   defaultDecision: 'deny',
   alwaysAllowRoles: ['999_super-admin'],
 });
 
-// Step 2: Register component
+// Step 2: register the component
 this.component(AuthorizeComponent);
 
-// Step 3: Register enforcer(s) with co-located options
+// Step 3: register enforcers with their options
 AuthorizationEnforcerRegistry.getInstance().register({
   container: this,
   enforcers: [{
@@ -129,256 +91,19 @@ AuthorizationEnforcerRegistry.getInstance().register({
 });
 ```
 
-**Benefits:**
-- Role-based shortcuts (`alwaysAllowRoles`, `allowedRoles`)
-- Voter pattern for custom authorization logic
-- Rules caching per-request on Hono context
-- CRUD factory integration with per-route overrides
-- Casbin integration as optional peer dependency
-- Filtered adapter pattern for loading user-scoped policies
-- Registry-based enforcer registration with co-located options
-
-### Authorization Middleware Pipeline (7 Steps)
-
-| Step | Action | Short-circuits? |
-|------|--------|-----------------|
-| 1 | Check `SKIP_AUTHORIZATION` flag | Yes |
-| 2 | Get authenticated user | Yes (401) |
-| 3 | Check role-based shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Yes |
-| 4 | Execute voters | Yes (DENY/ALLOW) |
-| 5 | Resolve enforcer | No |
-| 6 | Build/cache rules | No |
-| 7 | Evaluate via enforcer | Yes (403) |
-
-### CRUD Factory Authorization Support
+Add `authorize` to a route:
 
 ```typescript
-import { AuthorizationActions } from '@venizia/ignis';
-
-ControllerFactory.defineCrudController({
-  entity: Article,
-  repository: { name: 'ArticleRepository' },
-  controller: { name: 'ArticleController', basePath: '/articles' },
-  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  authorize: { action: AuthorizationActions.READ, resource: 'Article' },
-  routes: {
-    find: { authenticate: { skip: true } },           // Public
-    count: { authorize: { skip: true } },              // Skip authz only
-    // Every write route declares its own authorize (a read spec is refused on them since 0.4.2)
-    create: { authorize: { action: AuthorizationActions.CREATE, resource: 'Article' } },
-    updateById: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
-    updateBy: { authorize: { action: AuthorizationActions.UPDATE, resource: 'Article' } },
-    deleteById: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
-    deleteBy: { authorize: { action: AuthorizationActions.DELETE, resource: 'Article' } },
-  },
-});
-```
-
-### Shared AbstractAuthRegistry
-
-**File:** `packages/core-server/src/components/auth/base/abstract-auth-registry.ts`
-
-Both `AuthenticationStrategyRegistry` and `AuthorizationEnforcerRegistry` now extend a shared `AbstractAuthRegistry<T>` base class, eliminating duplicate registration/resolution logic.
-
-### AuthorizationRole Value Object
-
-**File:** `packages/core-server/src/components/auth/authorize/models/authorization-role.model.ts`
-
-Priority-based role comparison with identifier formatting:
-
-```typescript
-import { AuthorizationRoles } from '@venizia/ignis';
-
-AuthorizationRoles.SUPER_ADMIN.identifier;  // '999_super-admin'
-AuthorizationRoles.ADMIN.isHigherThan({ target: AuthorizationRoles.USER }); // true
-```
-
-## Refactoring
-
-### Auth Module Restructure
-
-Both authenticate and authorize modules now follow a consistent internal structure:
-
-```
-auth/
-├── authenticate/
-│   ├── common/          # Constants, keys, types
-│   ├── controllers/     # Auth controller factory
-│   ├── middlewares/      # authenticate() middleware
-│   ├── providers/       # AuthenticationProvider
-│   ├── services/        # JWTTokenService, BasicTokenService
-│   ├── strategies/      # JWT, Basic strategies + registry
-│   └── index.ts
-├── authorize/
-│   ├── adapters/        # BaseFilteredAdapter, DrizzleCasbinAdapter
-│   ├── common/          # Constants (CasbinRuleVariants, etc.), keys, types
-│   ├── enforcers/       # CasbinAuthorizationEnforcer + registry
-│   ├── middlewares/      # authorize() middleware
-│   ├── models/          # AuthorizationRole
-│   ├── providers/       # AuthorizationProvider
-│   └── index.ts
-├── base/                # AbstractAuthRegistry (shared)
-└── models/              # Entity column helpers (User, Role, etc.)
-```
-
-### Circular Import Prevention
-
-All barrel `@/` imports within the auth module and controller files were replaced with specific file path imports:
-
-**Before:**
-```typescript
-import { IAuthRouteConfig, TContext } from '@/base/controllers';
-import { getError } from '@/helpers';
-```
-
-**After:**
-```typescript
-import { IAuthRouteConfig, TContext } from '@/base/controllers/common/types';
-import { getError } from '@venizia/ignis-helpers';
-```
-
-**Pattern applied across 22+ files** -- prevents circular dependency chains caused by barrel re-exports.
-
-### Singleton Convenience Functions
-
-Moved standalone `authenticate()` and `authorize()` functions from provider modules to middleware modules for clearer separation:
-
-```
-authenticate/providers/ → authenticate/middlewares/authenticate.middleware.ts
-authorize/providers/    → authorize/middlewares/authorize.middleware.ts
-```
-
-## Files Changed
-
-### Core Package (`packages/core-server`) -- New Files
-
-| File | Changes |
-|------|---------|
-| `src/components/auth/authorize/common/constants.ts` | Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationRoles, AuthorizationEnforcerTypes, CasbinEnforcerCachedDrivers, CasbinEnforcerModelDrivers, CasbinRuleVariants constants |
-| `src/components/auth/authorize/common/keys.ts` | AuthorizeBindingKeys (OPTIONS, ALWAYS_ALLOW_ROLES, enforcerOptions(name)) |
-| `src/components/auth/authorize/common/types.ts` | IAuthorizationEnforcer, IAuthorizationSpec, IAuthorizeOptions, ICasbinEnforcerOptions, TAuthorizationVoter, TAuthorizeFn |
-| `src/components/auth/authorize/common/index.ts` | Barrel export for common |
-| `src/components/auth/authorize/adapters/base-filtered.ts` | BaseFilteredAdapter -- abstract template method pattern for casbin FilteredAdapter |
-| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | DrizzleCasbinAdapter -- Drizzle-based read-only FilteredAdapter with raw SQL |
-| `src/components/auth/authorize/component.ts` | AuthorizeComponent -- validates options, binds alwaysAllowRoles |
-| `src/components/auth/authorize/enforcers/enforcer-registry.ts` | AuthorizationEnforcerRegistry singleton with type-discriminated register() |
-| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | CasbinAuthorizationEnforcer (optional peer dep, injects options from registry) |
-| `src/components/auth/authorize/middlewares/authorize.middleware.ts` | authorize() standalone function |
-| `src/components/auth/authorize/providers/authorization.provider.ts` | AuthorizationProvider -- middleware factory |
-| `src/components/auth/authorize/models/authorization-role.model.ts` | AuthorizationRole value object |
-| `src/components/auth/base/abstract-auth-registry.ts` | AbstractAuthRegistry shared base class |
-| `src/__tests__/authorize/authorize.test.ts` | 45 authorization tests |
-
-### Core Package (`packages/core-server`) -- Modified Files
-
-| File | Changes |
-|------|---------|
-| `src/base/controllers/abstract.ts` | Added authorize middleware injection in getRouteConfigs() and getJSXRouteConfigs() |
-| `src/base/controllers/common/types.ts` | IAuthRouteConfig -- added authorize field, TRouteAuthorizeConfig type |
-| `src/base/controllers/factory/definition.ts` | resolveRouteAuthorize() for CRUD factory authorization |
-| `src/base/controllers/factory/controller.ts` | authorize support in defineControllerRouteConfigs() |
-| `src/components/auth/authenticate/strategies/strategy-registry.ts` | Refactored to extend AbstractAuthRegistry |
-| `src/components/auth/authenticate/index.ts` | Updated barrel exports |
-| `src/components/auth/index.ts` | Added authorize, base, and models exports |
-| `src/base/metadata/routes.ts` | Updated IAuthRouteConfig references |
-
-### Helpers Package (`packages/helpers`)
-
-| File | Changes |
-|------|---------|
-| `src/helpers/` → `src/modules/` | Directory rename -- 59 internal import paths updated |
-| `src/index.ts` | Updated barrel export path |
-| `package.json` | Updated 7 sub-export paths in exports field |
-
-### Tests
-
-| File | Changes |
-|------|---------|
-| `src/__tests__/authorize/authorize.test.ts` | 45 tests covering: DefaultAuthorizationEnforcer, CasbinAuthorizationEnforcer, AuthorizationProvider middleware, AbilityBuilder, AuthorizationRole, voters, conditions, role shortcuts |
-
-## Migration Guide
-
-> [!NOTE]
-> Follow these steps if you're upgrading from a previous version.
-
-### Step 1: Update `IAuthenticateRouteConfig` References
-
-If you used `IAuthenticateRouteConfig` in custom controllers, rename to `IAuthRouteConfig`:
-
-```typescript
-// Before
-import { IAuthenticateRouteConfig } from '@venizia/ignis';
-
-// After
-import { IAuthRouteConfig } from '@venizia/ignis';
-```
-
-### Step 2: Add Authorization (Optional)
-
-If you want authorization, follow the three-step setup:
-
-```typescript
-import {
-  AuthorizeBindingKeys,
-  AuthorizeComponent,
-  AuthorizationEnforcerRegistry,
-  AuthorizationEnforcerTypes,
-  CasbinAuthorizationEnforcer,
-  CasbinEnforcerModelDrivers,
-  IAuthorizeOptions,
-} from '@venizia/ignis';
-
-// Step 1: Bind global options (simplified - no enforcer-specific config)
-this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  defaultDecision: 'deny',
-  alwaysAllowRoles: ['999_super-admin'],
-});
-
-// Step 2: Register component
-this.component(AuthorizeComponent);
-
-// Step 3: Register enforcer(s) with co-located options
-AuthorizationEnforcerRegistry.getInstance().register({
-  container: this,
-  enforcers: [{
-    enforcer: CasbinAuthorizationEnforcer,
-    name: 'casbin',
-    type: AuthorizationEnforcerTypes.CASBIN,
-    options: {
-      model: { driver: CasbinEnforcerModelDrivers.FILE, definition: './security/model.conf' },
-      cached: { use: false },
-    },
-  }],
-});
-```
-
-### Step 3: Add Authorization to Routes
-
-Add `authorize` to route configs:
-
-```typescript
-import { AuthorizationActions } from '@venizia/ignis';
-
 this.defineRoute({
   configs: {
     path: '/',
     method: 'get',
     authenticate: { strategies: [Authentication.STRATEGY_JWT] },
     authorize: { action: AuthorizationActions.READ, resource: 'Article' },
-    // ...
   },
   handler: async (context) => { ... },
 });
 ```
 
-### Step 4: Update Internal Imports (If Extending Framework)
-
-If you import from internal paths (not `@venizia/ignis`), update barrel imports to specific files:
-
-```typescript
-// Before
-import { TContext } from '@/base/controllers';
-
-// After
-import { TContext } from '@/base/controllers/common/types';
-```
+- **Check order.** A route with `SKIP_AUTHORIZATION` skips everything; otherwise the user must be authenticated (401), then role shortcuts and voters can decide, and finally the enforcer evaluates (403).
+- **CRUD factory.** Use `authorize: { skip: true }` on a route to skip only authorization. Every write route (`create`, `updateById`, `updateBy`, `deleteById`, `deleteBy`) declares its own `authorize`; a read spec is refused on them since 0.4.2.

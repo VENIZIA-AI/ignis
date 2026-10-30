@@ -1,6 +1,6 @@
 ---
 title: dev-configs House Rules and Type-Only Imports
-description: "Two house ESLint rules - at most 5 positional parameters, errors through getError - and consistent-type-imports in the base oxlint preset."
+description: "Two house ESLint rules (at most 5 positional parameters, errors through getError) and consistent-type-imports in the base oxlint preset."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -21,10 +21,10 @@ export default houseConfigs; // reactHouseConfigs in a React project
 
 ## What changed
 
-- **`venizia/max-params-own`.** A function you write takes at most 5 positional parameters; beyond that, one options object. Not counted: a callback passed inline to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts.
+- **`venizia/max-params-own`.** A function you write takes at most 5 positional parameters; beyond that, use one options object. Not counted: a callback passed inline to a call or a JSX prop, a signature a declared type fixes, a constructor whose parameters are all `@inject`. A hook callback counts.
 - **`venizia/no-new-error`.** Throw through `getError` (or an `ApplicationError`), never `new Error(...)`. Tests are exempt.
-- **`typescript/consistent-type-imports` in the base oxlint preset.** A type is imported with `import type` / `import { type X }`. Under Bun, a value import of a type in a decorated class fails at load with `Export named 'X' not found`; now lint catches it. `oxlint --fix` rewrites them.
-- **Builder options.** `PreferNullishCoalescingRule.build({ ignorePrimitives })` and `NoUnusedVarsRule.build({ argsIgnorePattern, ... })`.
+- **`typescript/consistent-type-imports`** is in the base oxlint preset. Import a type with `import type` or `import { type X }`. Under Bun, a value import of a type in a decorated class fails at load with `Export named 'X' not found`; lint now catches it, and `oxlint --fix` rewrites them.
+- **Builder options:** `PreferNullishCoalescingRule.build({ ignorePrimitives })` and `NoUnusedVarsRule.build({ argsIgnorePattern, ... })`.
 
 ## Who is affected
 

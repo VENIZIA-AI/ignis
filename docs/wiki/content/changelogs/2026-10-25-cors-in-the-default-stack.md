@@ -1,6 +1,6 @@
 ---
 title: CORS Is Installed First, So Framework Errors Carry Its Headers
-description: "configs.middlewares.cors now installs Hono's cors() as the first middleware, before the request id and the body limit. A 413 from the body limit, and any other early framework response, is readable from a browser."
+description: "configs.middlewares.cors now installs Hono's cors() as the first middleware, so a 413 from the body limit and other early framework responses are readable from a browser."
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -16,7 +16,7 @@ packages: ['@venizia/ignis-kernel']
 
 - **`configs.middlewares.cors` is read.** It was typed (`ICORSOptions`) but nothing used it. When it is set and `enable !== false`, the application installs Hono's `cors()` as the first middleware of the default stack, before the request id and the body limit. With no `cors` config, nothing is installed, as before.
 - **Early responses carry the headers.** The body-limit `413`, a `400` for a body the request spy cannot parse, and the error envelope all leave with the headers.
-- **A preflight is unchanged.** `OPTIONS` is answered by `cors()` with `204` and the allow headers; the body limit never sees it.
+- **A preflight is unchanged.** `OPTIONS` is answered by `cors()` with `204` and the allow headers.
 - **Boot validation.** The application refuses to start when `origin` is missing or empty, or when `credentials: true` is combined with the origin `'*'`.
 
 ```typescript

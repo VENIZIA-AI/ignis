@@ -1,6 +1,6 @@
 ---
 title: Empty Env Values Are Allowed By Default
-description: validateEnvs no longer refuses to boot over an empty environment value. Set ALLOW_EMPTY_ENV_VALUE to false or 0 to turn the check back on.
+description: validateEnvs no longer refuses to boot over an empty environment value; set ALLOW_EMPTY_ENV_VALUE to false or 0 to turn the check back on.
 packages: ['@venizia/ignis']
 ---
 
@@ -10,61 +10,36 @@ packages: ['@venizia/ignis']
 
 <Badge type="danger" text="Breaking" />
 
-**In one line.** `validateEnvs()` used to throw on the first prefixed env name whose value was empty,
-and you opted out with `ALLOW_EMPTY_ENV_VALUE`. The default is now the other way round.
+**In one line.** `validateEnvs()` used to throw on the first prefixed env name whose value was empty, and you opted out with `ALLOW_EMPTY_ENV_VALUE`. The default is now the other way round.
+
+## What changed
 
 | `ALLOW_EMPTY_ENV_VALUE` | Behaviour |
 |---|---|
-| unset | Empty values allowed. `validateEnvs` skips. **This is the default** |
+| unset | Empty values allowed. This is the default |
 | blank (`ALLOW_EMPTY_ENV_VALUE=`) | Reads as unset, so allowed |
 | `false` or `0` | Every prefixed key must be non-empty. Boot throws on the first that is not |
 | anything else | Allowed |
 
-## Why the default moved
+- **Why.** `applicationEnvironment.get()` now treats `KEY=` as missing and falls back to `defaultValue` (see [An Env Read Now Does What It Promises](./2026-09-12-env-reads-what-it-promises)), so the empty value is handled where it is read.
+- **The startup banner** reports which way it resolved.
+- **No declaration needed.** `ALLOW_EMPTY_ENV_VALUE` and `APPLICATION_ENV_PREFIX` are both optional and are read straight off `process.env`. They do not carry the `APP_ENV` prefix, so do not add them to `EnvironmentKeys`; a read through `AppEnvs.get()` would answer `undefined` forever. Unset, you get `APP_ENV` as the prefix and empty values allowed.
 
-Earlier today `applicationEnvironment.get()` learned that
-[a present-but-empty line means missing](./2026-09-12-env-reads-what-it-promises): `KEY=` now falls
-back to `defaultValue`. An empty value is handled where it is read.
+## Who is affected
 
-That made the boot check redundant and then actively unhelpful. It refused to start an application
-over a value the reader would have resolved a millisecond later, and it did so for **every** prefixed
-name, including the ones that are conventions rather than requirements. Refusing to boot is a strong
-move; it should be something a host asks for.
+- **You relied on boot failing when an env value was empty.** It no longer does. Set `ALLOW_EMPTY_ENV_VALUE=false` to keep that behaviour.
+- **You already set `ALLOW_EMPTY_ENV_VALUE` to something truthy.** Nothing changes. You can delete the line.
+- **Everyone else.** Nothing. A populated value has always passed.
 
-Nothing stops you asking:
+## Breaking changes
+
+> [!WARNING]
+> Anyone who relied on the boot failure over an empty env value.
+
+**Before:** an empty prefixed value threw at boot unless `ALLOW_EMPTY_ENV_VALUE` was truthy.
+
+**After:** empty values pass unless you set:
 
 ```bash
 ALLOW_EMPTY_ENV_VALUE=false
 ```
-
-The startup banner reports which way it resolved, so the log says what the host chose rather than
-leaving you to infer it.
-
-## Neither bootstrap variable needs declaring
-
-Both `ALLOW_EMPTY_ENV_VALUE` and `APPLICATION_ENV_PREFIX` are optional, and neither belongs in
-`EnvironmentKeys`.
-
-Putting them there would be a trap. Neither carries the `APP_ENV` prefix, so `applicationEnvironment`
-never holds them, and a read through `AppEnvs.get()` answers `undefined` forever.
-`APPLICATION_ENV_PREFIX` could not work that way regardless: it is the value that builds the filter,
-so reading it through its own filter is circular. Both are read straight off `process.env`, which is
-the one legitimate exception to the "do not read `process.env` directly" rule.
-
-Leave them unset and you get `APP_ENV` as the prefix and empty values allowed.
-
-## Who is affected
-
-**You relied on boot failing when an env value was empty.** It no longer does. Set
-`ALLOW_EMPTY_ENV_VALUE=false` to keep that behaviour. This is the only reason this entry is marked
-breaking.
-
-**You already set `ALLOW_EMPTY_ENV_VALUE` to something truthy.** Nothing changes. You can delete the
-line - it is the default now.
-
-**Everything else.** Nothing. A populated value has always passed and still does.
-
-**Files:**
-
-- [`packages/core-server/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/base/applications/base.ts) - `validateEnvs`, `printStartUpInfo`
-- [`packages/core-server/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/common/environments.ts) - `EnvironmentKeys`

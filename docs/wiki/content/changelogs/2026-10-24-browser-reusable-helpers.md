@@ -1,6 +1,6 @@
 ---
 title: The Fetcher and the Socket.IO Client Run in a Browser
-description: "NodeFetcher encodes JSON bodies, merges default headers, and takes query-string options; the socket.io client has a browser-pure entry. No existing behavior changes except two bug fixes."
+description: "NodeFetcher encodes JSON bodies, merges default headers and takes query-string options, and the socket.io client has a browser-pure entry."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -28,10 +28,10 @@ await request.getNetworkService().post({
 ## What changed
 
 - **JSON bodies.** `NodeFetcher` JSON-encodes a plain object or an array. A string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream` passes through; `null` or `undefined` sends no body.
-- **Query-string options.** `toQueryString` takes `nullish: 'empty' | 'skip'` and `nested: 'drop' | 'json'`. `'json'` sends an object or an array as one JSON parameter (`ids=%5B1%2C2%5D`), the shape a JSON filter travels in. `NodeFetcher` and `NodeFetchNetworkRequest` take them as `queryString`. The defaults are unchanged: `node:querystring`'s behavior.
-- **`getWorker()`.** `NodeFetcher.getWorker()` returns the global `fetch`; it returned `undefined`.
-- **Logger type.** The fetchers' logger parameter is `TFetcherLogger = Pick<ILogger, 'debug' | 'info'>`, so a host logger with only those two methods is accepted. `NodeFetcher` logs one line at `debug` (it was `info`) and calls the logger directly instead of `logger.for(...)`. With no logger it logs nothing and builds no default logger, so a browser never reaches the node-only provider.
-- **Browser socket client.** `@venizia/ignis-helpers/socket-io/client` exports `SocketIOClientHelper` with nothing node in its graph; you pass `socket.io-client` as `module`. The browser-purity gate claims the entry. `@venizia/ignis-helpers/socket-io` keeps the class name and API and finds the module itself when `module` is omitted.
+- **Query-string options.** `toQueryString` takes `nullish: 'empty' | 'skip'` and `nested: 'drop' | 'json'`. `'json'` sends an object or an array as one JSON parameter (`ids=%5B1%2C2%5D`). `NodeFetcher` and `NodeFetchNetworkRequest` take them as `queryString`. The defaults are unchanged.
+- **`getWorker()`.** `NodeFetcher.getWorker()` returns the global `fetch`; it returned `undefined`. `AbstractNetworkFetchableHelper` takes an optional `worker` in its constructor.
+- **Logger type.** The fetchers' logger parameter is `TFetcherLogger = Pick<ILogger, 'debug' | 'info'>`. `NodeFetcher` logs its request line at `debug` (it was `info`). With no logger it logs nothing.
+- **Browser socket client.** `@venizia/ignis-helpers/socket-io/client` exports `SocketIOClientHelper` with nothing node in its graph; you pass `socket.io-client` as `module`. `@venizia/ignis-helpers/socket-io` keeps the class name and API and finds the module itself when `module` is omitted.
 
 ## Who is affected
 
@@ -39,8 +39,3 @@ await request.getNetworkService().post({
 - **A `NodeFetcher` with `defaultConfigs.headers`.** Bug fix: a call that passed no `headers` erased the defaults, so the default `content-type` and any default token were not sent. It now keeps them. A call that passes `headers` still replaces the defaults, as before.
 - **A caller that passed a plain-object body to `NodeFetcher`.** Bug fix: `fetch` received the object and sent `[object Object]`; it is now JSON.
 - **Anything reading `info` lines from `NodeFetcher`.** The request line is now `debug`.
-
-## Details
-
-- `AbstractNetworkFetchableHelper` takes an optional `worker` in its constructor.
-- The local-server test (`node-fetcher-local-server.test.ts`) drives the fetcher end to end: JSON body, JSON filter in the query, default content type, timeout and the caller's signal.

@@ -1,6 +1,6 @@
 ---
 title: After 0.4.3 - What Changed and How to Upgrade
-description: "Every change since 0.4.3 in one table, grouped by Security, Behavior changes, Features, Fixes and Docs, with an ordered upgrade checklist: update the packages, then read the rest. IGNIS 0.4.4 runs on Bun >= 1.4 and ships ESM only."
+description: "Every user-facing change since 0.4.3 in one table, with an ordered upgrade checklist. IGNIS 0.4.4 runs on Bun >= 1.4 and ships ESM only."
 packages:
   [
     '@venizia/dev-configs',
@@ -32,18 +32,14 @@ Each row links the entry with the details.
 | Security | After a failed `onSecretRotated()` a datasource kept the rotated `user` and `password` in its settings when those keys were not there before. The restore now removes them | [Failed rotation left credentials in settings](/changelogs/2026-10-26-secret-rotation-failure-leaks-credentials) |
 | Behavior change | The `dev-configs` tsconfig presets use `module: esnext` and `moduleResolution: bundler`, so a package whose `type` is unset typechecks against the ES-module-only IGNIS packages | [Consumers resolve IGNIS through bundler resolution](/changelogs/2026-10-27-consumer-tsconfig-bundler-resolution) |
 | Breaking | `skipMigrate` is removed from `@model`; the decorator throws on it and names `migration: { use: false }`. `devz codemod model-settings` rewrites it | [skipMigrate is removed](/changelogs/2026-10-26-skipmigrate-removed) |
-| Behavior change | `devz codemod model-settings --check` exits 1 while a model is left untouched, and reports `@model(options)` and aliased decorators | [devz codemod --check](/changelogs/2026-10-26-devz-codemod-check-fails-on-untouched) |
+| Behavior change | `devz codemod model-settings --check` exits 1 while a model is left untouched, and reports `@model(options)` and aliased decorators | [devz codemod](/changelogs/2026-10-26-devz-codemod) |
 | Feature | `@venizia/ignis-connectors/raw-sql`: a datasource and repository base for an engine that runs SQL text and returns rows | [Raw SQL datasource](/changelogs/2026-10-26-raw-sql-datasource) |
 | Feature | `devz check catalog`, `devz check module-cycles` and `devz check split-report` run the catalog guard, the cycle list and the split report from dev-configs | [devz check catalog, module-cycles, split-report](/changelogs/2026-10-27-dev-configs-check-catalog-cycles-split) |
 | Feature | `@venizia/dev-configs/testing` adds `spawnSyncBounded` and `useRepoTmp`, and `@venizia/dev-configs/testing/tmpdir-preload` keeps a bare `bun test` out of the system temp (as `--preload` in a package's test script, or from the root) | [dev-configs testing export](/changelogs/2026-10-27-dev-configs-testing-spawn-tmpdir) |
-| Feature | `devz check purity --claims <file>` and the `@venizia/dev-configs/checks` export run the browser-purity gate from dev-configs, so a repository keeps only its claims | [devz check purity](/changelogs/2026-10-27-dev-configs-check-purity) |
-| Feature | `assertApplicationBoots` in `@venizia/ignis/testing` runs an application's real boot with no database, port or network, on a shared `verifyBindings` check in `@venizia/ignis-inversion`. New apps get `src/boot.test.ts` | [assertApplicationBoots](/changelogs/2026-10-27-assert-application-boots) |
-| Feature | `devz codemod drop-redundant-casts` removes the `as X` casts the compiler no longer needs | [drop-redundant-casts](/changelogs/2026-10-26-devz-codemod-drop-redundant-casts) |
-| Feature | `devz codemod const-classes` turns a string-literal union in an exported type into a const class | [const-classes](/changelogs/2026-10-26-devz-codemod-const-classes) |
+| Feature | `devz check purity --claims <file>` and the `@venizia/dev-configs/checks` export run the browser-purity gate from dev-configs | [devz check purity](/changelogs/2026-10-27-dev-configs-check-purity) |
+| Feature | `assertApplicationBoots` in `@venizia/ignis/testing` runs an application's real boot with no database, port or network. New apps get `src/boot.test.ts` | [assertApplicationBoots](/changelogs/2026-10-28-assert-application-boots) |
+| Feature | `devz codemod drop-redundant-casts` removes the `as X` casts the compiler no longer needs, and `devz codemod const-classes` turns a string-literal union in an exported type into a const class | [devz codemod](/changelogs/2026-10-26-devz-codemod) |
 | Fix | `enable` is optional on middleware options; the middleware types say what is installed; `devz codemod` names a path it cannot read | [middleware enable and codemod empty path](/changelogs/2026-10-26-middleware-enable-optional-and-codemod-empty-path) |
-| Docs | The package READMEs carry the Venizia credit, the root README is short, the licence files name Venizia Co., Ltd. | [READMEs, licences and company name](/changelogs/2026-10-26-readmes-license-and-company-name) |
-| Docs | The wiki's claims were checked against the code | [Wiki claims checked](/changelogs/2026-10-26-wiki-claims-checked-against-the-code) |
-| Docs | The wiki has a new look: header, ecosystem switcher, light and dark switch, home page, footer | [The wiki has a new look](/changelogs/2026-10-26-wiki-new-look) |
 
 ## Upgrade checklist
 
@@ -72,8 +68,8 @@ bunx devz codemod const-classes          # lists the string unions it would turn
 
 ## Who is affected
 
-- **Apps that rotate database credentials.** Step 7; the security entry says who should care.
+- **Apps that rotate database credentials.** Step 7.
 - **Scripts that call `devz codemod --check`.** Step 4.
-- **Apps with a model that sets `skipMigrate`, or tooling that reads `metadata.skipMigrate`.** Step 3; the entry has the replacement.
-- **Apps that want the boot test.** Step 6; the entry has the file.
+- **Apps with a model that sets `skipMigrate`, or tooling that reads `metadata.skipMigrate`.** Step 3.
+- **Apps that want the boot test.** Step 6.
 - **Everyone else.** Update the packages together; no other change is needed.

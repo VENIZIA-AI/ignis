@@ -1,6 +1,6 @@
 ---
 title: Performance Optimizations
-description: Repository layer performance improvements reducing GC pressure and improving query speed
+description: Simple repository find() queries are about 15-20 percent faster and the repository layer allocates less, with no API change.
 packages: ['@venizia/ignis']
 ---
 
@@ -8,124 +8,15 @@ packages: ['@venizia/ignis']
 
 ## Performance Optimizations
 
-This update focuses on performance improvements for the repository layer, reducing GC pressure and improving query execution speed.
+**In one line.** Repository queries run faster and use less memory; nothing in your code changes.
 
-## Overview
+## What changed
 
-- **WeakMap Cache**: `FilterBuilder` now caches `getTableColumns()` results.
-- **Core API for Flat Queries**: `ReadableRepository` uses faster Drizzle Core API when possible.
-- **Static schemaFactory Singleton**: `BaseEntity` shares a single `schemaFactory` instance across all entities.
-- **Async/Await Refactor**: Removed redundant Promise wrappers from repository methods.
+- **Simple `find()` queries are about 15-20% faster.** A query with no relations and no field selection now goes through Drizzle's Core API instead of the Query API, automatically.
+- **Filters reuse column metadata.** `FilterBuilder` caches the table columns per schema instead of reading them on every filter operation. The cache lets a schema be garbage collected when nothing refers to it.
+- **Entities share one schema factory.** `BaseEntity` creates it once, on first use, instead of once per entity instance.
+- **Fewer Promise wrappers.** Repository methods no longer wrap an existing promise in `new Promise()`, which saves microtask queue entries and gives cleaner stack traces.
 
-## Performance Improvements
+## Who is affected
 
-### 1. WeakMap Cache for Filter Builder
-
-**File:** `packages/core-server/src/base/repositories/operators/filter.ts`
-
-**Problem:** `getTableColumns()` was called on every filter operation, causing repeated reflection overhead.
-
-**Solution:** Added static WeakMap cache that stores column metadata per schema.
-
-```typescript
-export class FilterBuilder extends BaseHelper {
-  // Static cache shared across all instances
-  private static columnCache = new WeakMap<
-    TTableSchemaWithId,
-    ReturnType<typeof getTableColumns>
-  >();
-
-  private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
-    let columns = FilterBuilder.columnCache.get(schema);
-    if (!columns) {
-      columns = getTableColumns(schema);
-      FilterBuilder.columnCache.set(schema, columns);
-    }
-    return columns;
-  }
-}
-```
-
-**Benefits:**
-- First call: `getTableColumns(schema)` → cached
-- Subsequent calls: Retrieved from WeakMap (O(1) lookup)
-- WeakMap allows garbage collection when schema is no longer referenced
-
-### 2. Core API for Flat Queries
-
-**File:** `packages/core-server/src/base/repositories/core/readable.ts`
-
-**Problem:** All queries used Drizzle's Query API, which has overhead for relational mapping even when not needed.
-
-**Solution:** Automatically use Drizzle Core API for flat queries (no relations, no field selection).
-
-```typescript
-// Automatic optimization - no code changes needed
-const users = await repo.find({
-  filter: {
-    where: { status: 'active' },
-    limit: 10,
-    order: ['createdAt DESC'],
-  }
-});
-// Uses: db.select().from(table).where(...).orderBy(...).limit(10)
-```
-
-| Scenario | Improvement |
-|----------|-------------|
-| Simple `find()` queries | ~15-20% faster |
-
-### 3. Static schemaFactory Singleton
-
-**File:** `packages/core-server/src/base/models/base.ts`
-
-**Problem:** New `schemaFactory` was created for every `BaseEntity` instance, causing memory overhead.
-
-**Solution:** Lazy singleton pattern shared across all instances.
-
-```typescript
-// After - shared singleton
-private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
-protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
-  return (BaseEntity._schemaFactory ??= createSchemaFactory());
-}
-```
-
-**Benefits:**
-- Single instance for all entities
-- Lazy initialization (created on first use)
-- Reduced memory footprint
-
-### 4. Async/Await Refactor
-
-**Files:** `packages/core-server/src/base/repositories/core/readable.ts`, `packages/core-server/src/base/repositories/core/persistable.ts`
-
-**Problem:** Every CRUD method wrapped existing promises in `new Promise()`.
-
-**Solution:** Direct async/await.
-
-```typescript
-// After - Clean and efficient
-const count = await this.connector.$count(this.entity.schema, where);
-return { count };
-```
-
-**Benefits:**
-- Eliminates extra microtask queue entries
-- Reduces ~200-400 bytes memory per Promise on V8
-- Cleaner stack traces for debugging
-
-## Files Changed
-
-### Core Package (`packages/core-server`)
-
-| File | Changes |
-|------|---------|
-| `src/base/repositories/operators/filter.ts` | WeakMap cache for `getTableColumns()` |
-| `src/base/repositories/core/readable.ts` | Core API optimization, async/await refactor |
-| `src/base/repositories/core/persistable.ts` | Async/await refactor |
-| `src/base/models/base.ts` | Static schemaFactory singleton |
-
-## No Breaking Changes
-
-All changes are internal optimizations. No API changes or migration required.
+- **Everyone using repositories.** No action needed: these are internal optimizations, with no API change and no migration.

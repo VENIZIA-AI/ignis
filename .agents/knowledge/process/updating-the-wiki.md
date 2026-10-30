@@ -6,6 +6,14 @@ resource: docs/wiki
 tags: [process, docs, wiki]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Steps](#steps)
+- [What the changelog records](#what-the-changelog-records)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## Steps
 
 1. Know the difference: `docs/wiki/` is the human-facing documentation site, a VitePress site built
@@ -21,7 +29,8 @@ tags: [process, docs, wiki]
    datasources - plus `utilities/` and `configuration/`), `extensions/` (the per-component,
    per-helper and atlas references, under `extensions/components/`, `extensions/helpers/` and
    `extensions/atlas/`), `best-practices/` (architecture, testing, deployment), `changelogs/`
-   (feature announcements - indexed by atlas as their own `changelog` corpus).
+   (what changed for the people who use the published packages - indexed by atlas as their own
+   `changelog` corpus; see [what the changelog records](#what-the-changelog-records)).
 3. To add a new doc page: create the `.md` file under the right `content/` subdirectory, then add
    it to the VitePress sidebar config at `docs/wiki/site/.vitepress/config.mts` - a page that
    exists but isn't in the sidebar config is unreachable from site navigation. This is enforced,
@@ -74,6 +83,31 @@ tags: [process, docs, wiki]
    VitePress piece the shared CSS overrides is gone. `.gitattributes` marks the folder `-text` so git
    converts no byte. Keep `bun fmt` off it: `make lint-wiki` still checks it. What stays ours:
    `product.css`, `home-content.ts`, `design-tokens.css`, `theme/index.ts`, `config.mts`.
+
+## What the changelog records
+
+The changelog records only what affects the people who install and use the published `@venizia/*` packages.
+Internal work is not recorded. A pull request with only internal changes gets no entry, and no guard asks for one.
+
+**Write an entry** when a change alters what a user of the published packages sees or does:
+
+- a new feature, API, option or config key;
+- changed behaviour or a breaking change, with its upgrade step;
+- a bug fix a user could hit;
+- a security fix;
+- a deprecation or a removal.
+
+**Write no entry** for internal work: release tooling, CI and workflows, guards and gates; refactors and code
+sweeps with no change a user can see; tests; agent rules and skills; internal docs and knowledge pages; repository
+hygiene. A tool users run themselves (`devz`, a lint rule a user turns on, a codemod) is user-facing: it gets an
+entry.
+
+An entry is short and says the user's benefit first: one plain sentence, what changed, who is affected and what they
+do about it, and the upgrade step of a breaking change. Several changes to one topic are one entry. The template is
+`docs/wiki/content/changelogs/template.md`.
+
+An entry is attached to the first release made on or after its date (`vulcan x atlas releases`), so date it on or
+after the day the release that carries it is made.
 
 ## Related
 

@@ -1,16 +1,16 @@
 ---
 title: WorkerApplication Gains configs.projectRoot; BaseKafkaHelper Turns protected
-description: IWorkerApplicationConfigs gains an optional projectRoot, and WorkerApplication.getProjectRoot() resolves it the way ServerApplication does, minus the node_modules check a browser Worker cannot make. BaseKafkaHelper's connectedBrokers, onBrokerConnect, and onBrokerDisconnect turn protected, matching KafkaConsumerHelper.
+description: WorkerApplication accepts an optional projectRoot, and three BaseKafkaHelper members become protected so a subclass can extend it.
 packages: ['@venizia/ignis-worker', '@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-09-07
 
-## WorkerApplication: configs.projectRoot
+## Worker project root and an extendable Kafka helper
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** `WorkerApplication` gets the same `projectRoot` seam `ServerApplication` has - minus the filesystem check a browser Worker cannot make.
+**In one line.** `WorkerApplication` gets the same `projectRoot` setting `ServerApplication` has, and `BaseKafkaHelper` can be extended instead of forked.
 
 ```typescript
 export const configs: IWorkerApplicationConfigs = {
@@ -19,35 +19,19 @@ export const configs: IWorkerApplicationConfigs = {
 };
 ```
 
-### The problem it solves
-
-`WorkerApplication` inherited the kernel's default `getProjectRoot()`, which returns an empty string and never calls `ModuleUtility.setProjectRoot()`. A worker host built for a non-cwd peer root - the same case `configs.projectRoot` solved for `ServerApplication` on 2026-09-06 - had no seam to set it.
-
-## BaseKafkaHelper: protected, not private
-
-<Badge type="tip" text="New Feature" />
-
-**In one line.** `connectedBrokers`, `onBrokerConnect`, and `onBrokerDisconnect` turn `protected`, so a subclass can extend `BaseKafkaHelper` instead of forking it - `KafkaConsumerHelper` made this same change on 2026-09-06.
-
-### The problem it solves
-
-A consumer needed to override broker-connect handling and read the connected-broker set from a subclass. `KafkaConsumerHelper` already made every member `protected` for exactly this; `BaseKafkaHelper` itself still kept three of them `private`.
-
 ## What changed
 
-| Symbol | Change | Package |
-|---|---|---|
-| `IWorkerApplicationConfigs` | New; extends the kernel's `IApplicationConfigs` with an optional `projectRoot` | core-worker |
-| `WorkerApplication.getProjectRoot()` | Returns `configs.projectRoot ?? globalThis.process?.cwd?.() ?? ''`; binds `CoreBindings.APPLICATION_PROJECT_ROOT`; shares the value with `ModuleUtility` | core-worker |
-| `ProjectRootRegistry` | New; the `globalThis`-slot half of `ModuleUtility.setProjectRoot()`/`getProjectRoot()`, with no Node import, reachable from `@venizia/ignis-helpers/core` | helpers |
-| `BaseKafkaHelper` | `connectedBrokers`, `onBrokerConnect`, `onBrokerDisconnect` turn `protected` | helpers |
-
-- Unlike `ServerApplication`, `WorkerApplication` never warns about a missing `node_modules`: a browser Worker has no filesystem to check, and reaching for `node:fs` would bundle a Node builtin straight into it. It also never reads a bare `process.cwd()` - a real browser Worker has no such global - reading it defensively through `globalThis.process?.cwd?.()` instead, which resolves to `''` there.
-- `ModuleUtility.setProjectRoot()`/`getProjectRoot()` keep their exact signatures; they now delegate to `ProjectRootRegistry` internally, so every existing caller is unaffected.
-- `protected` here is an extension seam, not a stable contract between minor versions.
+- **`configs.projectRoot` on `WorkerApplication`.** `IWorkerApplicationConfigs` extends `IApplicationConfigs` with an optional `projectRoot`. `getProjectRoot()` returns `configs.projectRoot`, then the current directory, then an empty string.
+- **No `node_modules` check.** Unlike `ServerApplication`, `WorkerApplication` never warns about a missing `node_modules`, because a browser Worker has no filesystem to check.
+- **`ProjectRootRegistry`.** New, reachable from `@venizia/ignis-helpers/core`, with no Node import. `ModuleUtility.setProjectRoot()` and `getProjectRoot()` keep their signatures, so existing callers are unaffected.
+- **`BaseKafkaHelper` is extendable.** `connectedBrokers`, `onBrokerConnect` and `onBrokerDisconnect` turn `protected`, matching `KafkaConsumerHelper`.
 
 ## Who is affected
 
 - **A worker host built for a non-cwd peer root.** Set `configs.projectRoot`; nothing else changes.
 - **Consumers that forked `BaseKafkaHelper` to reach a formerly private member.** Extend the class instead, and delete the fork.
 - **Everyone else.** No action needed.
+
+## Details
+
+- `protected` here is an extension seam, not a stable contract between minor versions.

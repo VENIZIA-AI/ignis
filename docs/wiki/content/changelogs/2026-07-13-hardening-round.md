@@ -1,6 +1,6 @@
 ---
 title: Security and Reliability Hardening - SQL Injection, Filter Scope, and 11 More Fixes
-description: A full audit across the framework closed a live SQL injection in array filters and two ways a default filter's scope could be bypassed. It also fixed hidden fields leaking from search results, plus ten other bugs in errors, logging, uploads, and boot.
+description: A SQL injection in array filters and two ways to bypass a default filter are closed, hidden fields no longer leak from search results, and several errors, logging, upload and boot bugs are fixed.
 packages: ['@venizia/ignis', '@venizia/ignis-boot', '@venizia/ignis-helpers', '@venizia/ignis-inversion']
 ---
 
@@ -10,51 +10,46 @@ packages: ['@venizia/ignis', '@venizia/ignis-boot', '@venizia/ignis-helpers', '@
 
 <Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** A security and reliability audit closed a live SQL injection and two ways a default filter's scope could be bypassed. Ten other bugs across search, logging, uploads, and boot are fixed alongside them. Two of the fixes change existing behavior.
-
-## The problem it solves
-
-A framework-wide audit found a query path that built SQL by string-concatenating filter values instead of binding them. It also found a `where` clause that could widen a repository's built-in scope instead of narrowing it. Both are closed here, along with ten smaller bugs the same audit turned up.
+**In one line.** A live SQL injection and two default-filter bypasses are closed, and ten other bugs across search, logging, uploads and boot are fixed. Two fixes change existing behavior.
 
 ## What changed
 
-### Security
+Security:
 
-- **SQL injection through array filters, closed.** The `overlaps` and `contains` operators built raw SQL by string-concatenating filter values instead of binding them. A crafted array value could run arbitrary SQL.
-- **Default filters can no longer be widened by a caller.** A repository with a built-in scope (for example, a soft-delete filter) could previously be bypassed by passing an `or` clause. Filters now compose with the default instead of overriding it.
-- **Search results now hide the fields they're told to hide.** `hiddenProperties` (for example, `password`) was already enforced for Postgres reads. The Typesense and Meilisearch connectors were returning those fields anyway.
-- **Underlying dependency errors no longer leak onto the wire.** A wrapped connector error could previously expose the raw driver message in the HTTP response's `extra` field. It is now only visible in development.
+- **SQL injection through array filters.** The `overlaps` and `contains` operators concatenated filter values into raw SQL, so a crafted array value could run arbitrary SQL. Values are now bound.
+- **Default filters can no longer be widened.** A repository with a built-in scope (for example soft-delete) could be bypassed by passing an `or` clause. Filters now compose with the default instead of overriding it.
+- **Search results hide hidden fields.** `hiddenProperties` (for example `password`) was enforced for Postgres reads, but the Typesense and Meilisearch connectors returned those fields.
+- **Dependency errors no longer leak.** A wrapped connector error could expose the raw driver message in the HTTP response's `extra` field. It is now visible only in development.
 
-### Bug fixes
+Bug fixes:
 
-- **`deleteAll({})` no longer wipes the whole collection.** Calling it with no arguments used to delete every row. Now it throws, and truncation requires saying so explicitly. See Breaking changes.
-- **A constructor missing `@inject` now fails immediately at boot**, with a message naming the class and parameter. Previously it caused a confusing mis-wired dependency somewhere else. See Breaking changes.
-- **Meilisearch errors are now classified correctly.** A bug in error-shape detection could misread a normal "does this already exist" check on `create()`. It looked like the search engine being down.
-- **A rejected email is now retried, not marked as delivered.** An SMTP rejection was previously treated as a successful queue job, so the message silently disappeared with no retry.
-- **Logs no longer drop the error you're printing.** `logger.debug('failed: %j', error)` used to print `{}` for an `Error`.
-- **Nested objects now log past one level.** The same `%j` bug logged nested objects as `[Object]` instead of their contents.
-- **Uploads can no longer escape their target folder.**
-- **Legitimately empty (zero-byte) files are now accepted**, instead of rejected.
+- **`deleteAll({})` no longer wipes the collection.** It used to delete every row; now it throws.
+- **A constructor parameter missing `@inject` fails at boot**, with a message naming the class and parameter.
+- **Meilisearch errors are classified correctly.** A normal "does this already exist" check on `create()` could look like the search engine being down.
+- **A rejected email is retried.** An SMTP rejection was treated as a successful queue job, so the message vanished.
+- **Logs keep the error.** `logger.debug('failed: %j', error)` printed `{}` for an `Error`, and nested objects logged as `[Object]`.
+- **Uploads cannot escape their target folder.** The static-asset controller also no longer double-decodes, which could turn an encoded `%2F` in a filename into a path separator.
+- **Zero-byte files are accepted.**
 
-### Enhancements
+Enhancements:
 
-- **`NODE_ENV=dev` now behaves like a development environment.** It previously fell through to sanitized production-style error responses.
-- **Boot now reports what actually happened.** The boot report used to be empty.
-- **The report now lists the booters that ran**, per-phase timing, and total duration.
+- **`NODE_ENV=dev` behaves like development.** It used to fall through to sanitized production-style errors.
+- **The boot report is no longer empty.** It lists the booters that ran, per-phase timing and total duration.
 
 ## Who is affected
 
-- **Every application in production.** The SQL injection fix, the filter-scope fixes, and the search hidden-fields fix apply automatically - no action needed.
-- **Anyone calling `deleteAll({})` expecting it to truncate the collection.** Breaking - see below.
-- **Anyone with a constructor that mixes `@inject`-decorated and undecorated parameters.** This was already unsupported; it now fails loudly at boot instead of silently mis-wiring dependencies. See below.
-- **Anyone logging errors with `%j`.** Switch to `%s`, or the error's message and stack are dropped from the log line.
-- **Anyone relying on an empty `or: []` filter matching every row.** It now correctly matches none.
-- **Anyone running with `NODE_ENV=dev`.** You now get development-style error responses (stack traces, cause). Use `alpha` or `staging` if you wanted sanitized responses.
-- **Everyone else** - no action needed; the remaining fixes apply automatically.
+- **Every production app.** The security fixes apply automatically.
+- **Code that calls `deleteAll({})`, mixes `@inject` and plain constructor parameters, logs errors with `%j`, relies on `or: []` matching every row, or runs with `NODE_ENV=dev`.** See breaking changes.
 
 ## Breaking changes
 
-**1. `deleteAll({})` now throws instead of truncating.**
+| If you | Then |
+|---|---|
+| call `deleteAll({})` expecting a truncate | pass `options: { force: true }` |
+| have a constructor mixing `@inject` and plain parameters | decorate every parameter |
+| log errors with `%j` | switch to `%s`, or the error's message and stack are dropped |
+| rely on `or: []` matching every row | it now matches none |
+| set `NODE_ENV=dev` and expected sanitized errors | use `alpha` or `staging` instead |
 
 ```typescript
 await repository.deleteAll({ where: { status: 'archived' } }); // scoped - unchanged
@@ -62,7 +57,7 @@ await repository.deleteAll({ options: { force: true } });      // whole collecti
 await repository.deleteAll({});                                 // now throws
 ```
 
-**2. Every constructor parameter of a container-instantiated class must carry `@inject`.**
+Every constructor parameter of a container-instantiated class must carry `@inject`. Mixing was never supported; it now fails at boot:
 
 ```
 [UserService] Constructor parameter 1 has no @inject | Every parameter of a
@@ -70,31 +65,7 @@ container-instantiated class must be decorated - the container cannot supply
 an undecorated one
 ```
 
-Mixing decorated and undecorated constructor parameters was never supported. Decorate every parameter.
-
-| If you | Then |
-|---|---|
-| call `deleteAll({})` expecting a truncate | pass `options: { force: true }` |
-| have a constructor mixing `@inject` and plain parameters | decorate every parameter |
-| log errors with `%j` | switch to `%s` |
-| rely on `or: []` matching every row | it now matches none |
-| set `NODE_ENV=dev` and expected sanitized errors | use `alpha` or `staging` instead |
-
-## Details
-
-- Every fix in this round was written test-first, then mutation-checked: the fix was reverted and the test confirmed to fail. Several existing tests were found to stay green even against the broken code and were corrected first.
-- The array-filter fix keeps operator names as framework constants (never user input). It binds only the values, preserving the previous element-type behavior via an explicit cast.
-- The uploads fix also removes a double-decode in the static-asset controller. That double-decode could turn an encoded `%2F` in a filename into a real path separator.
-
-| Metric | Value |
-|---|---|
-| Bugs closed | 13 |
-| SQL injections closed | 1 |
-| Tests passing | 2714 (inversion 96, helpers 1014, boot 81, core 1523) |
-
-Zero lint findings and zero type errors span all four packages. All nine examples type-check. The dual CJS + ESM build of `inversion` is intact.
-
 ## See also
 
-- [Default Filter reference](/references/base/filter-system/default-filter) - how `defaultFilter` composes with a caller's `where`
-- [Array Operators reference](/references/base/filter-system/array-operators) - the parameterized `overlaps`/`contains`/`containedBy` behavior this fix put in place
+- [Default Filter reference](/references/base/filter-system/default-filter)
+- [Array Operators reference](/references/base/filter-system/array-operators)

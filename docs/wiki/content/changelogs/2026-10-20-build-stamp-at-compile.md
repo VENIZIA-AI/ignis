@@ -1,6 +1,6 @@
 ---
 title: The Build Stamp Is Baked at Compile and Resolved From Git at Start
-description: "BuildInfoStamp bakes the commit, branch and build time into the binary, a run from source reads them from git, and the ignis-build-info CLI and its generated file are gone."
+description: "BuildInfoStamp bakes the commit, branch and build time into the binary and reads them from git when running from source, so the ignis-build-info CLI and its generated file are gone."
 packages: ['@venizia/dev-configs', '@venizia/ignis-boot']
 ---
 
@@ -29,14 +29,15 @@ await BuildInfoStamp.register();
 
 ## What changed
 
-- **`BuildInfoStamp` in `@venizia/ignis-boot/build-info`.** `define()` returns the `define` record for a compile. `register()` uses the baked stamp when the compile defined it, else resolves it from git through `BuildInfoResolver`, then calls `BuildInfoRegistry.set`. It sets `commit`, `branch` and `builtAt`; `service` and `version` stay with `getAppInfo()`.
-- **`BunCompiler.compile` takes `define`.** It is a `Record<string, string>` passed to `Bun.build`, so a compile script can bake any constant.
+- **`BuildInfoStamp` in `@venizia/ignis-boot/build-info`.** `define()` returns the `define` record for a compile. `register()` uses the baked stamp when the compile defined it, else resolves it from git through `BuildInfoResolver`. It sets `commit`, `branch` and `builtAt`; `service` and `version` stay with `getAppInfo()`.
+- **`BunCompiler.compile` takes `define`.** A `Record<string, string>` passed to `Bun.build`, so a compile script can bake any constant.
 - **`ignis-build-info` is removed.** The bin, `BuildInfoEmitter`, `generateBuildInfo`, `BuildInfoFormats`, `IBuildInfoOptions`, `IBuildInfoResult` and `TBuildInfoFormat` are gone. `BuildInfoResolver` and `BuildInfoEnvironmentKeys` stay.
+- **CI variables are unchanged.** The resolver reads the same variables as before (`APP_ENV_BUILD_*`, `APP_BUILD_*`, then provider names). Export them in the step that compiles.
 
 ## Who is affected
 
-- **A service that runs `ignis-build-info generate` and imports `_build_info`.** Follow the steps below. The old recipe breaks as soon as you update `@venizia/ignis-boot`, because the bin no longer exists.
-- **A frontend or shell build that used `--format json`.** Write the record from `BuildInfoResolver` in your build script. The guide shows it.
+- **A service that runs `ignis-build-info generate` and imports `_build_info`.** Follow the steps below. The old recipe breaks as soon as you update `@venizia/ignis-boot`.
+- **A frontend or shell build that used `--format json`.** Write the record from `BuildInfoResolver` in your build script.
 - **A service that never stamped its build.** No action needed.
 
 ## Breaking changes
@@ -70,16 +71,4 @@ import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 await BuildInfoStamp.register();
 ```
 
-## Details
-
-- **Why the file went.** The generated, gitignored file left a clean checkout unable to typecheck, test or boot until something generated it. The compile now carries the stamp, and a run from source asks git, so there is nothing to generate and nothing to forget.
-- **The name is shared.** `define()` returns `{ IGNIS_BUILD_INFO: '<JSON>' }` and `register()` reads that name. `BuildInfoStamp.GLOBAL_NAME` holds it. A test bundles a real entrypoint and runs it to prove they agree.
-- **No scanner in your binary.** `@venizia/ignis-boot/build-info` imports no TypeScript.
-- **CI variables.** The resolver reads the same variables as before (`APP_ENV_BUILD_*`, `APP_BUILD_*`, then provider names). Export them in the step that compiles.
-
 See [Stamping a build](/guides/core-concepts/application/build-info) for the full how-to.
-
-| File | Package |
-|------|---------|
-| `src/build-info/stamp.ts` | boot |
-| `src/compilers/bun.ts` | dev-configs |

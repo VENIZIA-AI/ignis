@@ -1,6 +1,6 @@
 ---
 title: tsconfig Follows Bun, and the App Compile Type-Checks
-description: "The shared tsconfig adds isolatedModules, moduleDetection force and noImplicitReturns; BunCompiler.compile({ check }) stops on a type error."
+description: "The shared tsconfig adds isolatedModules, moduleDetection force and noImplicitReturns, and BunCompiler.compile({ check }) stops on a type error."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -24,10 +24,10 @@ await BunCompiler.compile({ entrypoint: './src/index.ts', check: true });
 // error TS2322: Type 'string' is not assignable to type 'number'. -> no binary
 ```
 
-## Not taken, and why
+## Not taken
 
 - `verbatimModuleSyntax` and `module: "Preserve"` for the framework packages: their CommonJS build fails under both.
-- `noUncheckedIndexedAccess` everywhere: about 1.200 existing errors; on only where it is clean.
+- `noUncheckedIndexedAccess` everywhere: it stays on only where the code is clean.
 
 ## Who is affected
 

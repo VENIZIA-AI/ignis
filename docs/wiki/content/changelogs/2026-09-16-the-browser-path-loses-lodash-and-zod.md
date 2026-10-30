@@ -1,60 +1,24 @@
 ---
 title: The Browser Path Loses lodash, and utilities Loses zod
-description: "inversion drops lodash for two hand-written functions, and the OpenAPI schema builders leave utilities/. kernel/metadata goes from 20 KB gzipped to 13.9 KB."
+description: "A browser bundle of @venizia/ignis-kernel/metadata drops from 20 KB to 13.9 KB gzipped, and every kernel peer dependency is now optional."
 packages: ['@venizia/ignis', '@venizia/ignis-kernel']
 ---
 
 # Changelog - 2026-09-16
 
-## `@venizia/ignis-kernel/metadata`: 20 KB → 13.9 KB gzipped
+## `@venizia/ignis-kernel/metadata`: 20 KB to 13.9 KB gzipped
 
 <Badge type="tip" text="Fix" />
 
-Two changes, same target: what a browser-side consumer pays for.
+**In one line.** A browser-side consumer of IGNIS pays for less: no lodash, no zod on the utilities path, and no forced server peers.
 
-## `inversion` no longer depends on lodash
+## What changed
 
-It used exactly two functions - `omit` in `app-error.ts`, `isEmpty` in the binding constants - for
-24 KB of bundle. Both are now in `common/utilities.ts`, and `lodash` is out of the package manifest
-so it cannot drift back in unnoticed.
-
-The replacements were checked against lodash on the shapes actually passed, not assumed equivalent:
-`isEmpty` is only ever called on a `string`, where it agrees with `!value` on every case including
-`null` and `undefined`; `omit` is only ever called with a flat key list, never a nested path.
-
-## `utilities/` no longer carries zod
-
-`jsx.utility.ts` and `schema.utility.ts` were OpenAPI schema builders sitting in a barrel whose name
-promised nothing of the sort. `z.object()` and `z.string()` run at module load, so every bundle that
-touched `utilities/` carried the whole of zod.
-
-They are `base/controllers/common/html-response.ts` and `.../schema-builders.ts` now, beside the
-REST surface they belong to. Both are re-exported from the same barrels, so no import path changes.
-
-## Every kernel peer is optional now
-
-`hono` and `@hono/zod-openapi` were required peers, so a consumer importing only `./metadata` was
-still told to install a server HTTP framework. They join `casbin`, `drizzle-orm` and `jose` as
-optional.
-
-Nothing is lost at install time: `@venizia/ignis` (core-server) declares both as **required** peers
-already, so a REST application that forgets one is still warned by the package it actually depends
-on. The kernel is the layer that genuinely does not need them.
-
-## Guarded
-
-`browser-weight.test.ts` now covers three entries - `Container`, `./metadata`, and `utilities/` -
-and fails on zod reaching any of them. zod is browser-**pure**, so the purity gate never had an
-opinion; weight and reachability need their own measurement.
+- **`inversion` no longer depends on lodash.** It used two functions (`omit`, `isEmpty`), now written by hand, and `lodash` is out of the package manifest.
+- **`utilities/` no longer carries zod.** The OpenAPI schema builders moved next to the REST surface they belong to. Both are re-exported from the same barrels, so no import path changes.
+- **Every kernel peer is optional.** `hono` and `@hono/zod-openapi` join `casbin`, `drizzle-orm` and `jose` as optional peers, so importing only `./metadata` no longer asks you to install a server HTTP framework. `@venizia/ignis` still declares both as required, so a REST application that forgets one is still warned.
 
 ## Who is affected
 
-**You bundle IGNIS for a browser.** Smaller, with no change to what you import.
-
-**Everyone else.** Nothing - same exports, same behaviour.
-
-**Files:**
-
-- [`packages/inversion/src/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/utilities.ts) - `omit`
-- [`packages/kernel/src/utilities/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/index.ts)
-- [`packages/kernel/package.json`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/package.json) - `peerDependenciesMeta`
+- **You bundle IGNIS for a browser.** Smaller, with no change to what you import.
+- **Everyone else.** Nothing - same exports, same behaviour.
