@@ -139,8 +139,10 @@ describe('NetworkTlsTcpServer / NetworkTlsTcpClient - real handshake', () => {
 
     client.emit({ payload: 'ping' });
 
-    expect(await serverReceived.promise).toBe('ping');
-    expect(await clientReceived.promise).toBe('echo:ping');
+    const result = await serverReceived.promise;
+    expect(result).toBe('ping');
+    const result2 = await clientReceived.promise;
+    expect(result2).toBe('echo:ping');
 
     expect(Object.keys(server.getClients()).length).toBe(1);
   });

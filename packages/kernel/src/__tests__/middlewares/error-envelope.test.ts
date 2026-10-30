@@ -106,10 +106,13 @@ const probe = async (opts: {
   const url = `http://ignis.internal${opts.path ?? REQUEST_PATH}`;
   const response = await application.request(new Request(url), undefined, opts.env);
 
+  const json = await response.json();
+  const body = json as Record<string, AnyType>;
+
   return {
     status: response.status,
     contentType: response.headers.get(HTTP.Headers.CONTENT_TYPE),
-    body: (await response.json()) as Record<string, AnyType>,
+    body,
     logger,
   };
 };
@@ -273,7 +276,8 @@ describe('a Hono HTTPException keeps its client status', () => {
       headers: { 'content-type': 'application/json' },
       body: '{"broken":',
     });
-    const body = (await response.json()) as Record<string, AnyType>;
+    const result = await response.json();
+    const body = result as Record<string, AnyType>;
 
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
     expect(body.message).toBe('Malformed JSON in request body');

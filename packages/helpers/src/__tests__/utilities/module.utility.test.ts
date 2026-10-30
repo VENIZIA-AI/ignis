@@ -117,7 +117,8 @@ describe('ModuleUtility.register', () => {
   test('serves a registered module to load', async () => {
     ModuleUtility.register({ modules: { [module]: fake } });
 
-    expect(await ModuleUtility.load<typeof fake>({ module })).toBe(fake);
+    const result = await ModuleUtility.load<typeof fake>({ module });
+    expect(result).toBe(fake);
   });
 
   // A registration satisfies assertInstalled only where ModuleUtility itself does the loading.

@@ -153,15 +153,12 @@ export async function buildSignedRequest(opts: {
   ].join('\n');
 
   const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    await sha256Hex({ data: canonicalRequest }),
-  ].join('\n');
+  const result = await sha256Hex({ data: canonicalRequest });
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
 
   const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
-  const signature = toHex({ bytes: await hmacSHA256({ key: signingKey, data: stringToSign }) });
+  const result2 = await hmacSHA256({ key: signingKey, data: stringToSign });
+  const signature = toHex({ bytes: result2 });
 
   const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
   const contentLength = String(new TextEncoder().encode(body).length);
@@ -306,12 +303,13 @@ export async function buildPostPolicy(opts: {
 
   const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
 
+  const result = await hmacSHA256({ key: signingKey, data: policy });
   return {
     formData: {
       ...fields,
       ...(contentType ? { 'Content-Type': contentType } : {}),
       policy,
-      'x-amz-signature': toHex({ bytes: await hmacSHA256({ key: signingKey, data: policy }) }),
+      'x-amz-signature': toHex({ bytes: result }),
     },
     expiresAt,
   };
@@ -388,15 +386,12 @@ export async function buildPresignedUrl(opts: {
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
-  const stringToSign = [
-    'AWS4-HMAC-SHA256',
-    amzDate,
-    credentialScope,
-    await sha256Hex({ data: canonicalRequest }),
-  ].join('\n');
+  const result = await sha256Hex({ data: canonicalRequest });
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
 
   const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
-  const signature = toHex({ bytes: await hmacSHA256({ key: signingKey, data: stringToSign }) });
+  const result2 = await hmacSHA256({ key: signingKey, data: stringToSign });
+  const signature = toHex({ bytes: result2 });
 
   return `${origin}${canonicalPath}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
 }

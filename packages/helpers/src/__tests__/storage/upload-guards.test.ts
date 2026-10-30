@@ -71,14 +71,16 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
       files: [buildFile({ size: undefined as AnyType })],
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid file size/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid file size/);
     expect(writtenPaths).toHaveLength(0);
   });
 
   test('a NEGATIVE size is still rejected', async () => {
     const task = helper.upload({ bucket: { name: 'assets' }, files: [buildFile({ size: -1 })] });
 
-    expect(await captureError({ task })).toMatch(/Invalid file size/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid file size/);
   });
 
   test('a normalizeNameFn escaping the bucket is rejected before anything is written', async () => {
@@ -89,7 +91,8 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
       normalizeNameFn: () => '../../../etc/cron.d/pwn',
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid normalized object name/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid normalized object name/);
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -112,7 +115,8 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
       maxFolderDepth: 4,
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid folder path/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid folder path/);
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -122,7 +126,8 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
       files: [buildFile({ folderPath: 'a/b/c' })],
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid folder path/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid folder path/);
   });
 
   test('a well-formed normalizeNameFn output still writes', async () => {

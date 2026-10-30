@@ -16,11 +16,12 @@ beforeAll(() => {
         return new Response('late');
       }
 
+      const body = await req.text();
       return Response.json({
         method: req.method,
         search: url.search,
         contentType: req.headers.get('content-type'),
-        body: await req.text(),
+        body,
       });
     },
   });
@@ -51,7 +52,8 @@ describe('NodeFetchNetworkRequest against a local server', () => {
       params: { filter, skipped: undefined },
       body: { name: 'lamp' } as never,
     });
-    const received = (await rs.json()) as {
+    const result = await rs.json();
+    const received = result as {
       method: string;
       search: string;
       contentType: string | null;

@@ -139,7 +139,8 @@ describe('HashiCorpVaultHelper', () => {
       client: fakeClient(),
     });
     await provider.configure();
-    expect(await provider.getBundle({ path: 'secret/data/app' })).toEqual({
+    const result = await provider.getBundle({ path: 'secret/data/app' });
+    expect(result).toEqual({
       APP_ENV_X: 'kv-value',
     });
   });

@@ -173,10 +173,12 @@ describe('MQTTClientHelper — hooks, subscribe/publish guards, teardown', () =>
 
     client.connected = true;
 
-    expect(await helper.subscribe({ topics: ['a', 'b'] })).toEqual(['a', 'b']);
+    const result = await helper.subscribe({ topics: ['a', 'b'] });
+    expect(result).toEqual(['a', 'b']);
     expect(client.subscribed).toEqual(['a', 'b']);
 
-    expect(await helper.publish({ topic: 'a', message: 'x' })).toEqual({
+    const result2 = await helper.publish({ topic: 'a', message: 'x' });
+    expect(result2).toEqual({
       topic: 'a',
       message: 'x',
     });

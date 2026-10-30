@@ -31,13 +31,13 @@ const winstonState = async (body: string): Promise<string> => {
 
 describe('single-provider loading - winston stays unloaded until it is the chosen one', () => {
   test('the root barrel loads zero winston modules', async () => {
-    expect(await winstonState(`await import('./src/index.ts');`)).toBe('WINSTON_ABSENT');
+    const result = await winstonState(`await import('./src/index.ts');`);
+    expect(result).toBe('WINSTON_ABSENT');
   });
 
   test('the logger barrel loads zero winston modules', async () => {
-    expect(await winstonState(`await import('./src/modules/logger/index.ts');`)).toBe(
-      'WINSTON_ABSENT',
-    );
+    const result = await winstonState(`await import('./src/modules/logger/index.ts');`);
+    expect(result).toBe('WINSTON_ABSENT');
   });
 
   test('creating loggers (factory + facades) still loads zero winston modules', async () => {
@@ -46,7 +46,8 @@ describe('single-provider loading - winston stays unloaded until it is the chose
       LoggerFactory.getLogger(['ProbeScope']);
       ApplicationLogger.get('ProbeScope').for('method');
     `;
-    expect(await winstonState(body)).toBe('WINSTON_ABSENT');
+    const result = await winstonState(body);
+    expect(result).toBe('WINSTON_ABSENT');
   });
 
   test('an app on another provider logs WITHOUT ever loading winston', async () => {
@@ -62,7 +63,8 @@ describe('single-provider loading - winston stays unloaded until it is the chose
       early.info('routed to the registered provider');
       LoggerFactory.getLogger(['CreatedAfterUse']).error('also routed');
     `;
-    expect(await winstonState(body)).toBe('WINSTON_ABSENT');
+    const result = await winstonState(body);
+    expect(result).toBe('WINSTON_ABSENT');
   });
 
   test('the lazy default DOES load winston at the first unregistered log call (positive control)', async () => {
@@ -70,6 +72,7 @@ describe('single-provider loading - winston stays unloaded until it is the chose
       const { LoggerFactory } = await import('./src/index.ts');
       LoggerFactory.getLogger(['DefaultProbe']).info('first line triggers the default');
     `;
-    expect(await winstonState(body)).toBe('WINSTON_LOADED');
+    const result = await winstonState(body);
+    expect(result).toBe('WINSTON_LOADED');
   });
 });

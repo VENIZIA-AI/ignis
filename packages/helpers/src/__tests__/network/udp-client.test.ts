@@ -177,7 +177,8 @@ describe('NetworkUdpClient - bind and round trip', () => {
 
     client.getClient()!.send('from-helper', peerPort, '127.0.0.1');
 
-    expect(await peerReceived.promise).toBe('from-helper');
+    const result = await peerReceived.promise;
+    expect(result).toBe('from-helper');
   });
 
   test('disconnect() closes the socket, fires onClosed and is safe to repeat', async () => {

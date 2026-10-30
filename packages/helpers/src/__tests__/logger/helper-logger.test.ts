@@ -192,7 +192,8 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
   test('two copies of the module in one process still warn once', async () => {
     // A second file is a second module instance - what a process holding the CJS and ESM builds has.
     const copy = path.resolve(PACKAGE_ROOT, 'src/modules/logger/.slot-copy-probe.ts');
-    await Bun.write(copy, await Bun.file(SLOT_SOURCE).text());
+    const result = await Bun.file(SLOT_SOURCE).text();
+    await Bun.write(copy, result);
     try {
       expect(countWarnings({ modules: [SLOT_SOURCE, copy] })).toBe(1);
     } finally {

@@ -117,9 +117,10 @@ export abstract class ReadableCrudController<
       scope: 'findById',
       args: filter,
       task: async () => {
-        const record = scopedWhere
-          ? await this.repository.findOne({ filter: { ...filter, where: scopedWhere } })
-          : await this.repository.findById({ id, filter });
+        const lookup = scopedWhere
+          ? this.repository.findOne({ filter: { ...filter, where: scopedWhere } })
+          : this.repository.findById({ id, filter });
+        const record = await lookup;
 
         return this.respond<TDataObject>({
           context,

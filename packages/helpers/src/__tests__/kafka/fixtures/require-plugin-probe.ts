@@ -40,13 +40,14 @@ const probe = async (): Promise<void> => {
     }
 
     const executed = spawnSyncBounded({ cmd: [outfile] });
+    const outputBytes = await Bun.file(outfile).bytes();
     console.log(
       JSON.stringify({
         success: built.success,
         exitCode: executed.exitCode,
         stdout: executed.stdout.toString().trim(),
         stderr: executed.stderr.toString().trim(),
-        hasBareSpecifier: Buffer.from(await Bun.file(outfile).bytes()).includes(BARE_SPECIFIER),
+        hasBareSpecifier: Buffer.from(outputBytes).includes(BARE_SPECIFIER),
       }),
     );
   } finally {

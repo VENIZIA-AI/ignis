@@ -36,13 +36,15 @@ describe('MinioHelper - the deprecated backend still meets the storage contract'
       },
     });
 
-    expect(await helper.hasBucket({ bucket: { name: '../escape' } })).toBe(false);
+    const result = await helper.hasBucket({ bucket: { name: '../escape' } });
+    expect(result).toBe(false);
     expect(asked).toBe(false);
   });
 
   test('hasBucket asks the server for a valid name', async () => {
     const helper = buildHelper({ bucketExists: async () => true });
-    expect(await helper.hasBucket({ bucket: { name: 'assets' } })).toBe(true);
+    const result = await helper.hasBucket({ bucket: { name: 'assets' } });
+    expect(result).toBe(true);
   });
 
   test('getObject turns a missing key into the catalogued 404', async () => {
@@ -75,9 +77,11 @@ describe('MinioHelper - the deprecated backend still meets the storage contract'
   test('getObject returns the driver stream untouched', async () => {
     const source = Readable.from(['payload']);
     const helper = buildHelper({ getObject: async () => source });
-    expect(
-      await helper.getObject({ bucket: { name: 'assets' }, object: { key: 'here.png' } }),
-    ).toBe(source);
+    const result = await helper.getObject({
+      bucket: { name: 'assets' },
+      object: { key: 'here.png' },
+    });
+    expect(result).toBe(source);
   });
 
   test('getStat turns a missing key into the catalogued 404', async () => {
@@ -102,7 +106,8 @@ describe('MinioHelper - the deprecated backend still meets the storage contract'
       },
     });
 
-    expect(await helper.listObjects({ bucket: { name: 'assets' }, maxKeys: 0 })).toEqual([]);
+    const result = await helper.listObjects({ bucket: { name: 'assets' }, maxKeys: 0 });
+    expect(result).toEqual([]);
     expect(listed).toBe(false);
   });
 
@@ -125,6 +130,7 @@ describe('MinioHelper - the deprecated backend still meets the storage contract'
     const entries = Array.from({ length: 3 }, (_, index) => ({ name: `object-${index}.png` }));
     const helper = buildHelper({ listObjects: () => Readable.from(entries, { objectMode: true }) });
 
-    expect(await helper.listObjects({ bucket: { name: 'assets' } })).toHaveLength(3);
+    const result = await helper.listObjects({ bucket: { name: 'assets' } });
+    expect(result).toHaveLength(3);
   });
 });

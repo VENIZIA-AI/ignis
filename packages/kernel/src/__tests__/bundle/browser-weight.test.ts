@@ -24,7 +24,9 @@ const bundle = async (entrypoint: string) => {
   }
 
   const [output] = built.outputs;
-  return { bytes: (await output.arrayBuffer()).byteLength, text: await output.text() };
+  const result = await output.arrayBuffer();
+  const result2 = await output.text();
+  return { bytes: result.byteLength, text: result2 };
 };
 
 describe('importing Container alone stays cheap in a browser bundle', () => {

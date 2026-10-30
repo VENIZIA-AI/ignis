@@ -117,14 +117,15 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       // domain-less spec inherited the tenant domain a PREVIOUS spec had written - silently
       // widening a check that should have run at SYSTEM_WIDE. The context is still set, for
       // observability, but nothing decides on it.
-      const domainScope =
-        spec.domain || options?.domainResolver
-          ? await resolveRequestDomain({
-              spec,
-              context: asTypedContext(context),
-              options,
-            })
-          : undefined;
+      let domainScope: Awaited<ReturnType<typeof resolveRequestDomain>> | undefined;
+      if (spec.domain || options?.domainResolver) {
+        const resolvedDomain = await resolveRequestDomain({
+          spec,
+          context: asTypedContext(context),
+          options,
+        });
+        domainScope = resolvedDomain;
+      }
       context.set(Authorization.DOMAIN, domainScope);
 
       // Keyed by enforcer. The slot used to hold one rule set for the whole request, so a second
@@ -148,10 +149,11 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           });
         }
 
-        rules = await enforcer.buildRules({
+        const result = await enforcer.buildRules({
           user: user as { principalType: string } & IAuthUser,
           context: asTypedContext(context),
         });
+        rules = result;
         rulesByEnforcer.set(resolvedName, rules);
         context.set(Authorization.RULES, rulesByEnforcer);
       }

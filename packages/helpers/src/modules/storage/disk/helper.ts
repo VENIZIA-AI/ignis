@@ -74,7 +74,8 @@ export class DiskHelper extends BaseStorageHelper {
     const { target } = opts;
 
     try {
-      return await fsp.stat(target);
+      const result = await fsp.stat(target);
+      return result;
     } catch (error) {
       if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') {
         this.logger.warn(
@@ -89,7 +90,8 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   private async exists(opts: { target: string }): Promise<boolean> {
-    return (await this.statOrNull(opts)) !== null;
+    const result = await this.statOrNull(opts);
+    return result !== null;
   }
 
   /** One `stat` answers existence and type. */
@@ -103,7 +105,8 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   async getBuckets(): Promise<IBucketInfo[]> {
-    if (!(await this.exists({ target: this.basePath }))) {
+    const result = await this.exists({ target: this.basePath });
+    if (!result) {
       return [];
     }
 
@@ -151,7 +154,8 @@ export class DiskHelper extends BaseStorageHelper {
 
     const bucketPath = this.getBucketPath(opts);
 
-    if (await this.exists({ target: bucketPath })) {
+    const result = await this.exists({ target: bucketPath });
+    if (result) {
       throw getError({
         message: `[createBucket] Bucket already exists | name: ${name}`,
       });
@@ -172,7 +176,8 @@ export class DiskHelper extends BaseStorageHelper {
 
     const bucketPath = this.getBucketPath(opts);
 
-    if (!(await this.exists({ target: bucketPath }))) {
+    const result = await this.exists({ target: bucketPath });
+    if (!result) {
       throw getError({
         message: `[removeBucket] Bucket does not exist | name: ${name}`,
       });
@@ -206,7 +211,8 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    if (!(await this.exists({ target: objectPath }))) {
+    const result = await this.exists({ target: objectPath });
+    if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
         message: `[getObject] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
@@ -223,7 +229,8 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object, range } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    if (!(await this.exists({ target: objectPath }))) {
+    const result = await this.exists({ target: objectPath });
+    if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
         message: `[getObjectStream] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
@@ -263,7 +270,8 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, object } = opts;
     const objectPath = this.resolveObjectPath({ bucket, object });
 
-    if (!(await this.exists({ target: objectPath }))) {
+    const result = await this.exists({ target: objectPath });
+    if (!result) {
       throw getError({
         error: StorageErrors.OBJECT_NOT_FOUND,
         message: `[removeObject] Object not found | bucket: ${bucket.name} | key: ${object.key}`,
@@ -297,7 +305,8 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const bucketPath = this.getBucketPath({ bucket });
-    if (!(await this.exists({ target: bucketPath }))) {
+    const result = await this.exists({ target: bucketPath });
+    if (!result) {
       return [];
     }
 

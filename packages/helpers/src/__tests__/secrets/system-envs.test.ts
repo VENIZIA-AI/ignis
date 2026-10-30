@@ -5,7 +5,8 @@ describe('SystemEnvsHelper', () => {
   test('get reads from process.env', async () => {
     process.env.APP_ENV_SECRETS_PROBE = 'from-env';
     const provider = new SystemEnvsHelper({});
-    expect(await provider.get({ path: 'ignored', key: 'APP_ENV_SECRETS_PROBE' })).toBe('from-env');
+    const result = await provider.get({ path: 'ignored', key: 'APP_ENV_SECRETS_PROBE' });
+    expect(result).toBe('from-env');
   });
 
   test('lease throws NotSupported', async () => {
@@ -20,9 +21,8 @@ describe('SystemEnvsHelper - an inherited property name is not a secret', () => 
     async (key) => {
       const provider = new SystemEnvsHelper({});
 
-      expect(await provider.get({ path: 'ignored', key, defaultValue: 'fallback' })).toBe(
-        'fallback',
-      );
+      const result = await provider.get({ path: 'ignored', key, defaultValue: 'fallback' });
+      expect(result).toBe('fallback');
     },
   );
 });

@@ -49,7 +49,8 @@ describe('UrlIngest.fetchGuarded - the redirect walk', () => {
       url: 'https://cdn.example.com/a.png',
       policy: publicPolicy,
     });
-    expect(await response.text()).toBe('bytes');
+    const result = await response.text();
+    expect(result).toBe('bytes');
   });
 
   test('re-checks every hop - a redirect into a private address is refused', async () => {

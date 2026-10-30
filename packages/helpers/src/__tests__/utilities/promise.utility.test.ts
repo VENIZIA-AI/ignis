@@ -96,7 +96,8 @@ describe('executePromiseWithLimit', () => {
   });
 
   test('an empty task list resolves to an empty array', async () => {
-    expect(await executePromiseWithLimit({ tasks: [], limit: 5 })).toEqual([]);
+    const result = await executePromiseWithLimit({ tasks: [], limit: 5 });
+    expect(result).toEqual([]);
   });
 
   test('rejects a limit below 1 instead of silently degrading to serial execution', async () => {

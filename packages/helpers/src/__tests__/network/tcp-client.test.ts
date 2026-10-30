@@ -95,8 +95,10 @@ describe('NetworkTcpClient - connection round trip', () => {
 
     client.emit({ payload: 'ping' });
 
-    expect(await serverReceived.promise).toBe('ping');
-    expect(await clientReceived.promise).toBe('echo:ping');
+    const result = await serverReceived.promise;
+    expect(result).toBe('ping');
+    const result2 = await clientReceived.promise;
+    expect(result2).toBe('echo:ping');
   });
 
   test('a configured encoding hands onData a STRING instead of a Buffer', async () => {

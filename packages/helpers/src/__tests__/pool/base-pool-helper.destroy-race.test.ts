@@ -51,7 +51,8 @@ describe('BasePoolHelper - destroy() while a create() is still in flight', () =>
     await Bun.sleep(10);
 
     await pool.destroy();
-    expect(await acquiring).toBe('rejected');
+    const result = await acquiring;
+    expect(result).toBe('rejected');
 
     finishCreate();
     await Bun.sleep(30);

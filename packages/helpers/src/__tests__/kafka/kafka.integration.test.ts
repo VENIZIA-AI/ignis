@@ -132,11 +132,8 @@ describe('KafkaAdminHelper (live)', () => {
     async () => {
       const topic = freshTopicName();
       await createTopic(topic, 2);
-      const topics = (await withTimeout(
-        admin.getAdmin().listTopics({}),
-        20_000,
-        'listTopics',
-      )) as string[];
+      const result = await withTimeout(admin.getAdmin().listTopics({}), 20_000, 'listTopics');
+      const topics = result as string[];
       expect(topics).toContain(topic);
     },
     TIMEOUT,

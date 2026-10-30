@@ -61,7 +61,8 @@ const runBundled = async (opts: {
 };
 
 beforeAll(async () => {
-  probeDirectory = await mkdtemp(path.join(tmpdir(), 'ignis-bundle-safe-reads-'));
+  const result = await mkdtemp(path.join(tmpdir(), 'ignis-bundle-safe-reads-'));
+  probeDirectory = result;
 });
 
 afterAll(async () => {

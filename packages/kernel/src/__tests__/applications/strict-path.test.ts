@@ -33,16 +33,21 @@ describe('RestApplication - trailing-slash strictness', () => {
   test('path.isStrict: false answers the trailing-slash variant of the base and of a route', async () => {
     const config = { path: { base: '/api', isStrict: false } };
 
-    expect(await requestStatus({ config, path: '/api/' })).toBe(200);
-    expect(await requestStatus({ config, path: '/api/users/' })).toBe(200);
+    const result = await requestStatus({ config, path: '/api/' });
+    expect(result).toBe(200);
+    const result2 = await requestStatus({ config, path: '/api/users/' });
+    expect(result2).toBe(200);
   });
 
   test('path.isStrict: true keeps the trailing-slash variant a different route', async () => {
     const config = { path: { base: '/api', isStrict: true } };
 
-    expect(await requestStatus({ config, path: '/api' })).toBe(200);
-    expect(await requestStatus({ config, path: '/api/users' })).toBe(200);
-    expect(await requestStatus({ config, path: '/api/users/' })).toBe(404);
+    const result = await requestStatus({ config, path: '/api' });
+    expect(result).toBe(200);
+    const result2 = await requestStatus({ config, path: '/api/users' });
+    expect(result2).toBe(200);
+    const result3 = await requestStatus({ config, path: '/api/users/' });
+    expect(result3).toBe(404);
   });
 
   test('a config that still carries the removed strictPath is refused, naming path.isStrict', () => {
@@ -56,6 +61,7 @@ describe('RestApplication - trailing-slash strictness', () => {
   test('a config without path.isStrict stays strict', async () => {
     const config: IApplicationConfigs = JSON.parse('{"path":{"base":"/api"}}');
 
-    expect(await requestStatus({ config, path: '/api/users/' })).toBe(404);
+    const result = await requestStatus({ config, path: '/api/users/' });
+    expect(result).toBe(404);
   });
 });

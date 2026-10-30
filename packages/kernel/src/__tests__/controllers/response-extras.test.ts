@@ -68,7 +68,8 @@ describe('computing the plan', () => {
   test('each value under its name, the group given its keys', async () => {
     const plan = resolve('facets(status),summary');
 
-    expect(await ResponseExtras.compute({ plan, offered })).toEqual({
+    const result = await ResponseExtras.compute({ plan, offered });
+    expect(result).toEqual({
       facets: ['status'],
       summary: 'summary',
       counts: 'counts',

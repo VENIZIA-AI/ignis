@@ -100,7 +100,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       files: [buildFile({ originalName: 'a&b.xlsx' })],
     });
 
-    expect(await captureError({ task })).toBe('[upload] Invalid original file name');
+    const result = await captureError({ task });
+    expect(result).toBe('[upload] Invalid original file name');
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -117,7 +118,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       normalizeNameFn: generateKey,
     });
 
-    expect(await captureError({ task })).toBe('[upload] Invalid original file name');
+    const result = await captureError({ task });
+    expect(result).toBe('[upload] Invalid original file name');
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -128,7 +130,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
       normalizeNameFn: ({ file }) => `imports/${file.originalName}`,
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid normalized object name/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid normalized object name/);
     expect(writtenPaths).toHaveLength(0);
   });
 
@@ -143,7 +146,8 @@ describe('BaseStorageHelper.upload - the original name when the key is generated
         file.originalName === 'second.xlsx' ? '../escape.xlsx' : `imports/${file.originalName}`,
     });
 
-    expect(await captureError({ task })).toMatch(/Invalid normalized object name/);
+    const result = await captureError({ task });
+    expect(result).toMatch(/Invalid normalized object name/);
     expect(writtenPaths).toHaveLength(0);
   });
 });

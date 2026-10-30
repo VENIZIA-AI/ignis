@@ -26,13 +26,11 @@ const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<b
 
 describe('secrets barrel keeps peers optional', () => {
   test('secrets barrel loads zero node-vault modules', async () => {
-    expect(await loadsPeer('./src/modules/secrets/index.ts', '/node_modules/node-vault/')).toBe(
-      false,
-    );
+    const result = await loadsPeer('./src/modules/secrets/index.ts', '/node_modules/node-vault/');
+    expect(result).toBe(false);
   });
   test('secrets barrel loads zero dotenvx modules', async () => {
-    expect(await loadsPeer('./src/modules/secrets/index.ts', '/node_modules/@dotenvx/')).toBe(
-      false,
-    );
+    const result = await loadsPeer('./src/modules/secrets/index.ts', '/node_modules/@dotenvx/');
+    expect(result).toBe(false);
   });
 });

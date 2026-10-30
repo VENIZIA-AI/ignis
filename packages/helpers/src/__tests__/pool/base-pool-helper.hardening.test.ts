@@ -177,7 +177,8 @@ describe('BasePoolHelper — concurrency invariants (white-box)', () => {
     let current = only;
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
-      current = await waiters[i];
+      const result = await waiters[i];
+      current = result;
     }
     expect(order).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
@@ -732,7 +733,8 @@ describe('BasePoolHelper — waiter queue (head-index) correctness', () => {
     let current = only;
     for (let i = 0; i < count; i++) {
       pool.release({ resource: current });
-      current = await waiters[i];
+      const result = await waiters[i];
+      current = result;
     }
     pool.release({ resource: current });
 
