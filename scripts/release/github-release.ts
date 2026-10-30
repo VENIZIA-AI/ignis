@@ -32,6 +32,16 @@ export class GithubReleaseConstants {
   /** The release commit the loop makes per package: `[#N] chore(<dir>): release v<version> [<mode>]`. */
   static readonly RELEASE_COMMIT_SUBJECT = /^(?:\[#\d+\] )?chore\([^)]+\): release v\d\S* \[\w+\]$/;
   static readonly TITLE_PREFIX = 'IGNIS';
+  /** The package a Release is titled by its version alone and may be Latest for: GitHub has one Latest per repository. */
+  static readonly LEADING_DIR = 'core-server';
+  static readonly WIKI_URL = 'https://ignis.venizia.ai';
+  static readonly CHANGELOG_URL = 'https://ignis.venizia.ai/changelogs/';
+  /** `@word` or `@org/team` that is not part of a word, a path or a URL (`a@b`, `/@x`). */
+  static readonly MENTION = /(^|[^\w`/@])@([A-Za-z0-9][\w-]*(?:\/[\w-]+)*)/g;
+  /** `](/path)`: a link to the wiki as the wiki writes it; `](//host)` is not one. */
+  static readonly ROOT_LINK = /\]\(\/(?!\/)/g;
+  /** GitHub refuses a body of 125000 characters or more. */
+  static readonly MAX_BODY_LENGTH = 120_000;
   /** The notes of a stable with no changelog entry: the changelog records what affects users, and nothing did. */
   static readonly NO_USER_CHANGES = 'No change for users of the packages in this release.';
   static readonly USAGE =
@@ -221,6 +231,13 @@ export class GithubRelease {
     });
   }
 
+  /** `IGNIS 0.4.8` for the leading package; any other names itself (`IGNIS kernel 0.4.6`), so two titles never collide. */
+  static titleOf(opts: { target: IGithubReleaseTarget }): string {
+    return opts.target.dir === GithubReleaseConstants.LEADING_DIR
+      ? `${GithubReleaseConstants.TITLE_PREFIX} ${opts.target.version}`
+      : `${GithubReleaseConstants.TITLE_PREFIX} ${opts.target.dir} ${opts.target.version}`;
+  }
+
   /** The highest tag of this package below `version`: of stables only when `stableOnly`, of every kind otherwise. */
   static previousTag(opts: {
     tags: string[];
@@ -302,13 +319,52 @@ export class GithubRelease {
       .trim();
   }
 
+  /**
+   * Text of the wiki as a Release shows it. A bare `@word` or `@org/team` outside code is put in backticks: GitHub
+   * notifies the account or team it names, and a backtick keeps the name readable, which a zero-width space would
+   * not (it would also break a copy of the package name). A root-relative link points at the wiki, which a Release
+   * is not part of. Fenced blocks and code spans are left as they are.
+   */
+  static publicText(opts: { text: string }): string {
+    let fenced = false;
+
+    return opts.text
+      .split('\n')
+      .map((line) => {
+        if (/^\s*(?:```|~~~)/.test(line)) {
+          fenced = !fenced;
+
+          return line;
+        }
+
+        return fenced
+          ? line
+          : line
+              .split(/(`[^`]*`)/)
+              .map((part, index) =>
+                index % 2 === 1
+                  ? part
+                  : part
+                      .replace(GithubReleaseConstants.MENTION, '$1`@$2`')
+                      .replace(
+                        GithubReleaseConstants.ROOT_LINK,
+                        `](${GithubReleaseConstants.WIKI_URL}/`,
+                      ),
+              )
+              .join('');
+      })
+      .join('\n');
+  }
+
   /** The notes of a stable: the entries added since the previous stable, joined; empty when there are none. */
   static stableNotes(opts: { cwd: string; from?: string; to: string; folder: string }): string {
     return GithubRelease.entriesAdded(opts)
       .map((path) => {
         const shown = ReleaseMergeBack.git({ cwd: opts.cwd, args: ['show', `${opts.to}:${path}`] });
 
-        return shown.status === 0 ? GithubRelease.stripEntry({ text: shown.stdout }) : '';
+        return shown.status === 0
+          ? GithubRelease.publicText({ text: GithubRelease.stripEntry({ text: shown.stdout }) })
+          : '';
       })
       .filter((text) => text !== '')
       .join('\n\n');
@@ -383,9 +439,29 @@ export class GithubRelease {
                 ]),
           ];
 
-    return [...sections, '', ...GithubRelease.packagesOf({ packages: opts.packages }), ''].join(
-      '\n',
-    );
+    const packages = GithubRelease.packagesOf({ packages: opts.packages }).join('\n');
+    const head = sections.join('\n');
+    const notice = [
+      '',
+      `... cut: these notes are longer than a GitHub Release can hold. The full changelog: ${GithubReleaseConstants.CHANGELOG_URL}`,
+    ].join('\n');
+    const room = GithubReleaseConstants.MAX_BODY_LENGTH - packages.length - notice.length - 8;
+
+    return head.length <= room
+      ? `${head}\n\n${packages}\n`
+      : `${GithubRelease.cutAtLine({ text: head, max: room })}\n${notice}\n\n${packages}\n`;
+  }
+
+  /**
+   * `text` cut at the last whole line within `max` characters. A fenced block left open is closed, so the cut does
+   * not turn what follows into code.
+   */
+  static cutAtLine(opts: { text: string; max: number }): string {
+    const cut = opts.text.slice(0, opts.max);
+    const kept = cut.slice(0, Math.max(cut.lastIndexOf('\n'), 0));
+    const fences = kept.split('\n').filter((line) => /^\s*(?:```|~~~)/.test(line));
+
+    return fences.length % 2 === 1 ? `${kept}\n${fences.at(-1)?.trim().slice(0, 3)}` : kept;
   }
 
   /**
@@ -500,8 +576,11 @@ export class GithubRelease {
         version: target.version,
       })),
     });
+    // Latest is one per repository, not per package: only the leading package's newest stable may take it.
     const latest =
-      stable && GithubRelease.isNewestStable({ tags, template, version: opts.last.version });
+      stable &&
+      opts.last.dir === GithubReleaseConstants.LEADING_DIR &&
+      GithubRelease.isNewestStable({ tags, template, version: opts.last.version });
 
     if (opts.dryRun) {
       return {
@@ -523,7 +602,7 @@ export class GithubRelease {
           'create',
           opts.tag,
           '--title',
-          `${GithubReleaseConstants.TITLE_PREFIX} ${opts.last.version}`,
+          GithubRelease.titleOf({ target: opts.last }),
           '--notes-file',
           file,
           '--verify-tag',
@@ -539,10 +618,27 @@ export class GithubRelease {
     }
   }
 
+  /**
+   * A message as the log and the run summary show it. A line that starts with `::` is a workflow command (`::add-mask::`),
+   * and the text of `gh`, `git` or an input can hold a newline, so every line break becomes a space. The notes a dry
+   * run prints are many lines by design; each one after the first is indented, so none starts a command.
+   */
+  static printable(opts: { outcome: IGithubReleaseOutcome }): string {
+    return opts.outcome.state === 'planned'
+      ? opts.outcome.message
+          .split(/\r\n|\r|\n/)
+          .map((line, index) => (index === 0 ? line : `  ${line}`))
+          .join('\n')
+      : opts.outcome.message.replace(/[\r\n]+/g, ' ');
+  }
+
   static summaryOf(opts: { outcome: IGithubReleaseOutcome }): string {
-    return ['### GitHub Release', '', `- ${opts.outcome.state}: ${opts.outcome.message}`, ''].join(
-      '\n',
-    );
+    return [
+      '### GitHub Release',
+      '',
+      `- ${opts.outcome.state}: ${GithubRelease.printable(opts)}`,
+      '',
+    ].join('\n');
   }
 
   /**
@@ -608,7 +704,7 @@ export class GithubRelease {
           dryRun: backfill && !opts.args.includes('--yes'),
         });
 
-        console.log(`github-release: ${outcome.state} - ${outcome.message}`);
+        console.log(`github-release: ${outcome.state} - ${GithubRelease.printable({ outcome })}`);
 
         if (summary !== undefined) {
           appendFileSync(summary, GithubRelease.summaryOf({ outcome }));
@@ -617,7 +713,10 @@ export class GithubRelease {
         return outcome.state === 'failed' || outcome.state === 'refused' ? 1 : 0;
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = (error instanceof Error ? error.message : String(error)).replace(
+        /[\r\n]+/g,
+        ' ',
+      );
 
       console.error(`ERROR | ${message}`);
 

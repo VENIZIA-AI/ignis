@@ -47,6 +47,7 @@ export class ReleaseWorkflowGuards {
   static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
   static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
   static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
+  static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -85,6 +86,7 @@ export class ReleaseWorkflowGuards {
     this.NO_FORCE_OR_TAG_MOVE,
     this.PLAN_CHECKS_THE_LABEL,
     this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+    this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
   ]);
 }
 
@@ -139,7 +141,16 @@ const TRIAL_STEP = 'Try the merge back into develop';
 const MERGE_BACK_STEP = 'Merge main back into develop';
 const REPORT_STEP = 'Report - published, merge back not done';
 const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
-const GITHUB_RELEASE_SCRIPT = 'scripts/release/github-release.ts create';
+const GITHUB_RELEASE_COMMAND =
+  'bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"';
+/** The only keys the step has: no `if`, `shell`, `uses`, `with`, `id` or `working-directory` to change what runs or when. */
+const GITHUB_RELEASE_KEYS = ['continue-on-error', 'env', 'name', 'run', 'timeout-minutes'];
+const GITHUB_RELEASE_ENV = ['GH_TOKEN', 'RELEASE_KIND', 'TARGETS'];
+const MAXIMUM_GITHUB_RELEASE_TIMEOUT = 10;
+/** The `gh` and `git` commands scripts/release/github-release.ts may issue: it views and creates, nothing else. */
+const GITHUB_RELEASE_COMMANDS = ['release view', 'release create', 'tag', 'log', 'show'];
+const GITHUB_RELEASE_ARGS = /\bargs:\s*\[\s*'([\w-]+)'(?:,\s*'([\w-]+)')?/g;
+const FORCING_FLAG = /'(?:--force|--force-with-lease|-f|--delete|-d|-D)'/;
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
@@ -181,6 +192,10 @@ const withoutComments = (text: string): string => text.replace(/(^|[ \t])#.*$/gm
 /** The same for the script: a `//` comment that starts a line or follows a space (a URL's `//` follows a colon). */
 const withoutScriptComments = (text: string): string => text.replace(/(^|[ \t])\/\/.*$/gm, '');
 
+/** The same for a script's block comments, which name commands it does not run; the lines keep their numbers. */
+const withoutBlockComments = (text: string): string =>
+  text.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ''));
+
 const commandsOf = (step: IWorkflowStep | undefined): string => withoutComments(step?.run ?? '');
 
 const stepsOf = (job: IWorkflowJob | undefined): IWorkflowStep[] => job?.steps ?? [];
@@ -203,13 +218,14 @@ const hasOidc = (permissions: unknown): boolean =>
 
 /**
  * Every guard that does not hold, empty when the workflow and the loop are as hardened as the release requires.
- * `runnerText` is `scripts/release/release-run.ts`.
+ * `runnerText` is `scripts/release/release-run.ts`, `releaseScriptText` is `scripts/release/github-release.ts`.
  */
 export const checkReleaseWorkflow = (opts: {
   text: string;
   runnerText: string;
+  releaseScriptText: string;
 }): IReleaseWorkflowViolation[] => {
-  const { text, runnerText } = opts;
+  const { text, runnerText, releaseScriptText } = opts;
   const violations: IReleaseWorkflowViolation[] = [];
   const violate = (guard: string, message: string): void => {
     violations.push({ guard, message });
@@ -339,6 +355,10 @@ export const checkReleaseWorkflow = (opts: {
   const tokenScans: Array<{ label: string; lines: string[] }> = [
     { label: 'the workflow', lines: withoutComments(text).split('\n') },
     { label: 'release-run.ts', lines: withoutScriptComments(runnerText).split('\n') },
+    {
+      label: 'github-release.ts',
+      lines: withoutBlockComments(withoutScriptComments(releaseScriptText)).split('\n'),
+    },
   ];
   for (const { label, lines } of tokenScans) {
     for (const [index, line] of lines.entries()) {
@@ -549,7 +569,11 @@ export const checkReleaseWorkflow = (opts: {
   const release = publishSteps.find((step) => step.name === RELEASE_STEP);
   const afterLoop =
     release === undefined ? [] : publishSteps.slice(publishSteps.indexOf(release) + 1);
+  // A step is found by its name: a second step of the same name would be the one that runs unchecked.
+  const names = publishSteps.map((step) => step.name);
+  const repeated = [...new Set(names.filter((name, index) => names.indexOf(name) !== index))];
   if (
+    repeated.length > 0 ||
     !release ||
     commandsOf(release).trim() !== RELEASE_COMMAND ||
     release.env?.PLAN !== '${{ needs.plan.outputs.plan }}' ||
@@ -562,7 +586,7 @@ export const checkReleaseWorkflow = (opts: {
   ) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
-      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${GITHUB_RELEASE_STEP}', '${MERGE_BACK_STEP}' and '${REPORT_STEP}'`,
+      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${GITHUB_RELEASE_STEP}', '${MERGE_BACK_STEP}' and '${REPORT_STEP}'; no two steps of the '${PUBLISH_JOB}' job share a name${repeated.length > 0 ? ` (repeated: ${repeated.join(', ')})` : ''}`,
     );
   }
 
@@ -695,28 +719,55 @@ export const checkReleaseWorkflow = (opts: {
   // The GitHub Release of the run is made once the loop is done and before the merge back, by a step that cannot fail
   // the run, holds no secret (the job's own token, nothing else) and takes the plan and the kind from the plan job.
   const githubRelease = publishSteps.find((step) => step.name === GITHUB_RELEASE_STEP);
-  const githubReleaseCommands = commandsOf(githubRelease);
+  // The step is pinned, not searched: its one command is exactly the call, it has no key that changes what runs or
+  // when (`if`, `shell`, `uses`, `working-directory`), its environment is the three variables and its timeout is short.
   const githubReleasePosition =
     githubRelease === undefined ? -1 : publishSteps.indexOf(githubRelease);
+  const githubReleaseTimeout = githubRelease?.['timeout-minutes'];
   if (
     githubRelease === undefined ||
     release === undefined ||
     merge === undefined ||
     githubReleasePosition < publishSteps.indexOf(release) ||
     githubReleasePosition > publishSteps.indexOf(merge) ||
+    JSON.stringify(Object.keys(githubRelease).sort()) !== JSON.stringify(GITHUB_RELEASE_KEYS) ||
     githubRelease['continue-on-error'] !== true ||
-    typeof githubRelease['timeout-minutes'] !== 'number' ||
+    typeof githubReleaseTimeout !== 'number' ||
+    githubReleaseTimeout < 1 ||
+    githubReleaseTimeout > MAXIMUM_GITHUB_RELEASE_TIMEOUT ||
+    JSON.stringify(Object.keys(githubRelease.env ?? {}).sort()) !==
+      JSON.stringify(GITHUB_RELEASE_ENV) ||
     githubRelease.env?.GH_TOKEN !== '${{ github.token }}' ||
     githubRelease.env?.RELEASE_KIND !== '${{ needs.plan.outputs.kind }}' ||
     githubRelease.env?.TARGETS !== '${{ needs.plan.outputs.targets }}' ||
     JSON.stringify(githubRelease).includes(SECRET_REFERENCE) ||
-    !githubReleaseCommands.includes(GITHUB_RELEASE_SCRIPT) ||
-    !githubReleaseCommands.includes('--targets "$TARGETS"') ||
-    !githubReleaseCommands.includes('--kind "$RELEASE_KIND"')
+    commandsOf(githubRelease).trim() !== GITHUB_RELEASE_COMMAND
   ) {
     violate(
       ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
-      `'${GITHUB_RELEASE_STEP}' must come after '${RELEASE_STEP}' and before '${MERGE_BACK_STEP}', state \`continue-on-error: true\` and a \`timeout-minutes\`, take \`GH_TOKEN\` from \`github.token\` and \`RELEASE_KIND\` and \`TARGETS\` from the plan job's outputs, reference no secret, and run \`${GITHUB_RELEASE_SCRIPT} --targets "$TARGETS" --kind "$RELEASE_KIND"\`: a Release that cannot be made must never fail or undo a publish`,
+      `'${GITHUB_RELEASE_STEP}' must come after '${RELEASE_STEP}' and before '${MERGE_BACK_STEP}', have only the keys ${GITHUB_RELEASE_KEYS.join(', ')} (no \`if\`, \`shell\`, \`uses\` or \`working-directory\`), state \`continue-on-error: true\` and a \`timeout-minutes\` of 1 to ${MAXIMUM_GITHUB_RELEASE_TIMEOUT}, have exactly the variables ${GITHUB_RELEASE_ENV.join(', ')} (\`GH_TOKEN\` from \`github.token\`, the other two from the plan job's outputs), reference no secret, and run exactly \`${GITHUB_RELEASE_COMMAND}\`: a Release that cannot be made must never fail or undo a publish`,
+    );
+  }
+
+  // The script that makes the Release views and creates, nothing else: no `gh release delete`, `edit` or `upload`, no
+  // forcing flag, one process spawn. The `args` it passes are read as text, so a command built another way is noticed
+  // by the count of what it spawns.
+  const releaseScript = withoutBlockComments(withoutScriptComments(releaseScriptText));
+  const releaseScriptCommands = [...releaseScript.matchAll(GITHUB_RELEASE_ARGS)].map((match) =>
+    match[1] === 'release' ? `release ${match[2] ?? ''}` : (match[1] ?? ''),
+  );
+  const strayCommands = releaseScriptCommands.filter(
+    (command) => !GITHUB_RELEASE_COMMANDS.includes(command),
+  );
+  if (
+    strayCommands.length > 0 ||
+    !releaseScriptCommands.includes('release view') ||
+    !releaseScriptCommands.includes('release create') ||
+    (releaseScript.match(/\bBun\.spawn(?:Sync)?\(/g) ?? []).length !== 1
+  ) {
+    violate(
+      ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      `github-release.ts must issue only ${GITHUB_RELEASE_COMMANDS.map((command) => `\`${command}\``).join(', ')}${strayCommands.length > 0 ? ` (also: ${strayCommands.join(', ')})` : ''}, both \`release view\` and \`release create\`, and spawn one process: it never deletes, edits or uploads a release`,
     );
   }
 
@@ -741,6 +792,13 @@ export const checkReleaseWorkflow = (opts: {
         `release-run.ts runs a git command that forces, moves or deletes: ${array.replace(/\s+/g, ' ')}`,
       );
     }
+  }
+
+  if (FORCING_FLAG.test(releaseScript)) {
+    violate(
+      ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      'github-release.ts names a flag that forces or deletes; a release never rewrites or removes what it has published',
+    );
   }
 
   return violations;

@@ -1,4 +1,4 @@
-import { afterAll, describe, expect, test } from 'bun:test';
+import { afterAll, describe, expect, spyOn, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -123,7 +123,11 @@ interface IStubGh {
 }
 
 /** A stand-in for `gh`: records every call, and reads the notes file while it still exists. */
-const stubGh = (opts: { existing?: boolean; createFails?: boolean }): IStubGh => {
+const stubGh = (opts: {
+  existing?: boolean;
+  createFails?: boolean;
+  createStderr?: string;
+}): IStubGh => {
   const calls: string[][] = [];
   let notes = '';
 
@@ -141,7 +145,7 @@ const stubGh = (opts: { existing?: boolean; createFails?: boolean }): IStubGh =>
       notes = readFileSync(args[args.indexOf('--notes-file') + 1], 'utf8');
 
       return opts.createFails === true
-        ? { status: 1, stdout: '', stderr: 'HTTP 422: tag does not exist' }
+        ? { status: 1, stdout: '', stderr: opts.createStderr ?? 'HTTP 422: tag does not exist' }
         : { status: 0, stdout: `https://github.com/x/y/releases/tag/${args[2]}\n`, stderr: '' };
     },
   };
@@ -355,8 +359,7 @@ describe('GithubRelease.create', () => {
     const root = fixture();
     const stub = stubGh({});
 
-    // The tag of the plan's last package is the one `git log` reads. kernel-v0.4.9 is a stable above kernel-v0.4.8, so
-    // kernel 0.4.8 is not the newest of its package, whatever core-server holds; its previous stable is kernel-v0.4.7.
+    // The tag of the plan's last package is the one `git log` reads: the previous stable of kernel is kernel-v0.4.7.
     const outcome = make({
       root,
       targets: [
@@ -369,9 +372,49 @@ describe('GithubRelease.create', () => {
 
     expect(outcome.state).toBe('created');
     expect(stub.created()[2]).toBe('kernel-v0.4.8');
-    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS 0.4.8');
-    expect(stub.created()).toContain('--latest=false');
+    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS kernel 0.4.8');
     expect(stub.notes()).toContain('B body line.');
+  });
+
+  test('Latest belongs to core-server alone: a stable of another package is never Latest, even its own newest', () => {
+    const root = fixture();
+    const newest = stubGh({});
+    const older = stubGh({});
+
+    // kernel-v0.4.9 is the newest stable kernel tag; core-server-v0.4.8 is the newest of its package.
+    make({ root, targets: [{ dir: 'kernel', version: '0.4.9' }], kind: 'stable', stub: newest });
+    make({ root, targets: [{ dir: 'kernel', version: '0.4.8' }], kind: 'stable', stub: older });
+
+    expect(newest.created()).toContain('--latest=false');
+    expect(newest.created()).not.toContain('--latest');
+    expect(older.created()).toContain('--latest=false');
+  });
+
+  test('a title names the package unless the tag is core-server, so two titles never collide', () => {
+    expect(GithubRelease.titleOf({ target: { dir: 'core-server', version: '0.4.7' } })).toBe(
+      'IGNIS 0.4.7',
+    );
+    expect(GithubRelease.titleOf({ target: { dir: 'kernel', version: '0.4.6' } })).toBe(
+      'IGNIS kernel 0.4.6',
+    );
+    expect(GithubRelease.titleOf({ target: { dir: 'core-worker', version: '0.4.8-1' } })).toBe(
+      'IGNIS core-worker 0.4.8-1',
+    );
+  });
+
+  test('a prerelease of another package is still a Pre-release, never Latest, with its own title', () => {
+    const stub = stubGh({});
+
+    make({
+      root: fixture(),
+      targets: [{ dir: 'kernel', version: '0.4.8-1' }],
+      kind: 'prerelease',
+      stub,
+    });
+
+    expect(stub.created()).toContain('--prerelease');
+    expect(stub.created()).not.toContain('--latest');
+    expect(stub.created()[stub.created().indexOf('--title') + 1]).toBe('IGNIS kernel 0.4.8-1');
   });
 
   test('a stable that is not the newest of its package is never marked Latest', () => {
@@ -586,6 +629,112 @@ describe('GithubRelease.create', () => {
   });
 });
 
+describe('GithubRelease.publicText', () => {
+  const ENTRY = [
+    '## skipMigrate is removed from @model',
+    '',
+    'Use `@model({ migration: { use: false } })` or ask @someone; `@venizia/ignis-kernel` stays as it is.',
+    '',
+    '- `@venizia/ignis-kernel` and @venizia/ignis-helpers update together, mail a@b.com or see https://github.com/@x.',
+    '- See [Models](/references/base/models) and [the docs](https://ignis.venizia.ai/guides) and [x](//cdn.test/y).',
+    '',
+    '```ts',
+    '@model({ skipMigrate: true }); // [x](/not/a/link) @inside',
+    '```',
+    '',
+  ].join('\n');
+
+  test('a bare mention outside code is put in backticks, so it cannot notify an account or a team', () => {
+    const text = GithubRelease.publicText({ text: ENTRY });
+
+    expect(text).toContain('## skipMigrate is removed from `@model`');
+    expect(text).toContain('or ask `@someone`;');
+    expect(text).toContain('and `@venizia/ignis-helpers` update together');
+  });
+
+  test('code spans, fenced blocks, e-mail addresses and URLs are left as they are', () => {
+    const text = GithubRelease.publicText({ text: ENTRY });
+
+    expect(text).toContain('Use `@model({ migration: { use: false } })` or');
+    expect(text).toContain('`@venizia/ignis-kernel` stays');
+    expect(text).toContain('mail a@b.com or see https://github.com/@x.');
+    expect(text).toContain(
+      '```ts\n@model({ skipMigrate: true }); // [x](/not/a/link) @inside\n```',
+    );
+  });
+
+  test('a root-relative link points at the wiki; an absolute and a protocol-relative one do not change', () => {
+    const text = GithubRelease.publicText({ text: ENTRY });
+
+    expect(text).toContain('[Models](https://ignis.venizia.ai/references/base/models)');
+    expect(text).toContain('[the docs](https://ignis.venizia.ai/guides)');
+    expect(text).toContain('[x](//cdn.test/y)');
+  });
+
+  test('the notes of a stable carry the neutralised entry, read from the tag', () => {
+    const root = fixture();
+
+    commit({
+      root,
+      message: '[#14] feat(e): entry with a mention',
+      files: { 'docs/changelogs/2026-10-28-e.md': entry({ title: 'Change E', body: ENTRY }) },
+    });
+    tag({ root, name: 'core-server-v0.4.9' });
+
+    const notes = GithubRelease.stableNotes({
+      cwd: root,
+      from: 'core-server-v0.4.8',
+      to: 'core-server-v0.4.9',
+      folder: 'docs/changelogs',
+    });
+
+    expect(notes).toContain('## skipMigrate is removed from `@model`');
+    expect(notes).toContain('(https://ignis.venizia.ai/references/base/models)');
+  });
+});
+
+describe('GithubRelease.bodyOf with notes too long for a Release', () => {
+  const body = (opts: { notes: string }) =>
+    GithubRelease.bodyOf({
+      kind: 'stable',
+      notes: opts.notes,
+      subjects: [],
+      packages: [{ name: '@x/core', version: '0.4.8' }],
+    });
+
+  test('a body of at most 120000 characters is untouched', () => {
+    const notes = 'a line\n'.repeat(1000);
+
+    expect(body({ notes })).toBe(
+      `${notes}\n\n## Packages\n\n- [@x/core@0.4.8](https://www.npmjs.com/package/@x/core/v/0.4.8)\n`,
+    );
+  });
+
+  test('a longer body is cut on a whole line, says so, links to the changelog and keeps the Packages section', () => {
+    const text = body({ notes: 'a line of the notes\n'.repeat(10_000) });
+
+    expect(text.length).toBeLessThanOrEqual(GithubReleaseConstants.MAX_BODY_LENGTH);
+    expect(text).toContain('... cut: these notes are longer than a GitHub Release can hold.');
+    expect(text).toContain('https://ignis.venizia.ai/changelogs/');
+    expect(text.split('\n## Packages\n')[1]).toContain('@x/core@0.4.8');
+    expect(
+      text
+        .split('\n')
+        .filter((line) => line.startsWith('a line of the'))
+        .every((line) => line === 'a line of the notes'),
+    ).toBe(true);
+  });
+
+  test('a cut inside a fenced block closes the fence, so the rest is not turned into code', () => {
+    const text = body({ notes: `\`\`\`text\n${'inside the fence\n'.repeat(10_000)}\`\`\`\n` });
+    const fences = text.split('\n').filter((line) => line.startsWith('```'));
+
+    expect(text.length).toBeLessThanOrEqual(GithubReleaseConstants.MAX_BODY_LENGTH);
+    expect(fences).toHaveLength(2);
+    expect(text.indexOf('... cut:')).toBeGreaterThan(text.lastIndexOf('```'));
+  });
+});
+
 describe('GithubRelease.manifestOf', () => {
   test('names what is missing instead of failing with a bare TypeError', () => {
     const root = scratch();
@@ -625,6 +774,47 @@ describe('GithubRelease.main', () => {
     expect(readFileSync(summary, 'utf8')).toContain('failed');
     expect(run({ args, root: scratch(), stub: stubGh({}), summary: crashed })).toBe(1);
     expect(readFileSync(crashed, 'utf8')).toContain('GitHub Release');
+  });
+
+  test('a line break in what gh says cannot start a workflow command in the log or in the summary', () => {
+    const summary = join(scratch(), 'summary');
+    const logged: string[] = [];
+    const log = spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
+      logged.push(parts.join(' '));
+    });
+
+    writeFileSync(summary, '');
+
+    try {
+      expect(
+        run({
+          args: ['create', '--targets', 'kernel=0.4.8,core-server=0.4.8', '--kind', 'stable'],
+          root: fixture(),
+          stub: stubGh({
+            createFails: true,
+            createStderr: 'HTTP 403\n::add-mask::injected\r\n::stop::',
+          }),
+          summary,
+        }),
+      ).toBe(1);
+    } finally {
+      log.mockRestore();
+    }
+
+    const lines = [...logged.join('\n').split('\n'), ...readFileSync(summary, 'utf8').split('\n')];
+
+    expect(lines.filter((line) => line.startsWith('::'))).toEqual([]);
+    expect(logged.join('\n')).toContain('HTTP 403 ::add-mask::injected ::stop::');
+    expect(readFileSync(summary, 'utf8')).toContain('HTTP 403 ::add-mask::injected ::stop::');
+  });
+
+  test('a dry run keeps its many lines but indents every line after the first, so none starts a command', () => {
+    const printed = GithubRelease.printable({
+      outcome: { state: 'planned', message: 'tag (stable):\n\n::add-mask::x\nbody' },
+    });
+
+    expect(printed.split('\n').filter((line) => line.startsWith('::'))).toEqual([]);
+    expect(printed.split('\n').length).toBe(4);
   });
 
   test('a list of targets the manifest cannot read is a failure in the summary, not a crash of the step', () => {
