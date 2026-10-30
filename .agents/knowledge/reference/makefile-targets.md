@@ -120,7 +120,7 @@ generated:
 | `make test-kernel` | - | Run one package's suite with BUN_TEST_FLAGS. Needs a build. |
 | `make test-scripts` | - | Run the repository gate scripts' own regression tests. |
 | `make tmp-leak-check` | - | test-all and test-scripts, then fail if the run left anything in the system temp or in .agents/local/tmp. |
-| `make update` | `install` | Force update all packages from NPM registry. |
+| `make update` | `install` | Alias of 'install'; to raise one package's deps use 'update-<pkg>'. |
 | `make update-boot` | - | Force update one package's dependencies from NPM. |
 | `make update-connectors` | - | Force update one package's dependencies from NPM. |
 | `make update-core` | `update-core-server` | Force update one package's dependencies from NPM. |

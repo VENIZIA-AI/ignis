@@ -5,7 +5,7 @@
   "description": "IGNIS on PGlite - Postgres compiled to WASM, running in-process with no server",
   "scripts": {
     "server:dev": "NODE_ENV=development APP_ENV_PGLITE_DATA_DIR=./app_data/database/pgdata APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
-    "compile": "sh scripts/compile.sh",
+    "compile": "bun scripts/compile.ts",
     "typecheck": "bun check",
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",

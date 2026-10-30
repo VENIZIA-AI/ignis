@@ -313,7 +313,7 @@ bun run force-update next
 
 **Makefile shortcuts (repo root):**
 ```bash
-make update           # Reinstall deps (postinstall runs force-update)
+make update           # Same as make install (bun install); no force-update
 make update-core      # Update only @venizia/ignis
 make update-helpers   # Update only @venizia/ignis-helpers
 ```

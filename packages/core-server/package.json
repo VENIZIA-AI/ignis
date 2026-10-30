@@ -183,8 +183,7 @@
   },
   "scripts": {
     "test": "bun test ./src",
-    "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {
     "@venizia/ignis-connectors": "workspace:*",
