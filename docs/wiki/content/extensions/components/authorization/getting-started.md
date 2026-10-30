@@ -38,7 +38,7 @@ Read the [Authentication component's entity column helpers](../authentication/us
 
 Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefinition`. It never reads `User` - a request only ever carries `principalType` and `userId`, not a database row.
 
-**`Role`**, via `extraRoleColumns()`:
+**`Role`**, via `AuthModelColumns.buildRole()` (the old names `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns` and `policyDefinitionDomainShapeCheck` are deprecated aliases until 0.5):
 
 | Column | Type | Meaning |
 |---|---|---|
@@ -48,7 +48,7 @@ Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefi
 | `status` | text | Role lifecycle, defaults to `RoleStatuses.ACTIVATED` |
 | `description` | text, nullable | Optional |
 
-**`Permission`**, via `extraPermissionColumns()`:
+**`Permission`**, via `AuthModelColumns.buildPermission()`:
 
 | Column | Type | Meaning |
 |---|---|---|
@@ -59,7 +59,7 @@ Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefi
 | `scope` | text | For example `global` |
 | `parentId` | text or integer | Optional resource nesting |
 
-**`PolicyDefinition`**, via `extraPolicyDefinitionColumns({ idType: 'string' })` - the edge table:
+**`PolicyDefinition`**, via `AuthModelColumns.buildPolicyDefinition({ idType: 'string' })` - the edge table:
 
 | Column | Type | Meaning |
 |---|---|---|
@@ -72,11 +72,11 @@ Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefi
 | `domainId` | text, nullable | The domain node's bare id. Follows `idType`, so `integer` when you leave it at the default |
 | `metadata` | jsonb, nullable | Only subset ("custom") grants use it |
 
-`variant` must be one of exactly seven values by default, owned by `AuthorizationPolicyVariants`: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`. Nothing validates this column on read. A typo or a wrong value does not error - the row just never matches any query, and the grant it was meant to carry silently does not exist. An application storing its own edge type in the same table declares it via `extraPolicyDefinitionColumns({ extraVariants: [...] })` - see the [API reference](/extensions/components/authorization/api#constants).
+`variant` must be one of exactly seven values by default, owned by `AuthorizationPolicyVariants`: `grant`, `assign_role`, `role_inherits`, `join_domain`, `domain_inherits`, `resource_inherits`, `action_inherits`. Nothing validates this column on read. A typo or a wrong value does not error - the row just never matches any query, and the grant it was meant to carry silently does not exist. An application storing its own edge type in the same table declares it via `AuthModelColumns.buildPolicyDefinition({ extraVariants: [...] })` - see the [API reference](/extensions/components/authorization/api#constants).
 
 The domain is two columns, and that is where most hand-written rows go wrong. `domain_type` holds the node type, for example `Organization`. `domain_id` holds the bare id, for example `3fa85f64-5717-4562-b3fc-2c963f66afa6`. The casbin token `<Type>_<id>` is never stored: `ScopedCasbinAdapter` assembles it in SQL every time it reads the row. Write a token into `domain_type` and every domain-scoped check for that row fails.
 
-Only three pairs are legal, and `policyDefinitionDomainShapeCheck()` returns them as CHECK predicate text for your migration:
+Only three pairs are legal, and `AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()` returns them as CHECK predicate text for your migration:
 
 | `domain_type` | `domain_id` | Means |
 |---|---|---|

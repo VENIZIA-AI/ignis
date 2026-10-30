@@ -30,17 +30,17 @@ Before starting, ensure you have:
 
 ## Prove the Application Boots
 
-A controller that injects a service nobody registered passes every unit test of its own and then stops the server at boot. `assertApplicationBoots` runs the application's own boot in a test and fails with the error boot raises. Apps created from the `ignis` preset ship it as `src/boot.test.ts`. An existing app adds the same file:
+A controller that injects a service nobody registered passes every unit test of its own and then stops the server at boot. `ApplicationBootAssertion.assert` runs the application's own boot in a test and fails with the error boot raises. Apps created from the `ignis` preset ship it as `src/boot.test.ts`, written with the old function name `assertApplicationBoots`, which is a deprecated alias of the same method until 0.5. An existing app adds the same file:
 
 ```typescript
 // src/boot.test.ts
 import { describe, expect, test } from 'bun:test';
-import { assertApplicationBoots } from '@venizia/ignis/testing';
+import { ApplicationBootAssertion } from '@venizia/ignis/testing';
 import { application } from '#src/application';
 
 describe('boot', () => {
   test('boots and mounts its routes', async () => {
-    const booted = await assertApplicationBoots(application);
+    const booted = await ApplicationBootAssertion.assert({ application });
 
     // The root router has no base path yet: `start()` mounts it under `/api`.
     const response = await booted.getRootRouter().request('/hello');
@@ -301,7 +301,7 @@ Cover the boundaries alongside the happy path: empty input, duplicate ids, missi
 
 | What to Test | How |
 |--------------|-----|
-| **Boot** | `assertApplicationBoots(application)` from `@venizia/ignis/testing`: every binding and injection resolves, with no database or port |
+| **Boot** | `ApplicationBootAssertion.assert({ application })` from `@venizia/ignis/testing`: every binding and injection resolves, with no database or port |
 | **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls, with no `path.base` prefix |
 | **Services** | Instantiate and call methods directly |
 | **Repositories** | Use DI container, test with real/mock DB |

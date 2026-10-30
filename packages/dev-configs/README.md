@@ -104,7 +104,7 @@ Every IGNIS package and example does.
 | :--- | :--- |
 | `@venizia/dev-configs` | Everything below, re-exported |
 | `@venizia/dev-configs/compilers` | `BunCompiler` |
-| `@venizia/dev-configs/testing` | `rejectionOf`, `expectRejection` - test helpers for a promise that must reject (imports `bun:test`; tests only) |
+| `@venizia/dev-configs/testing` | `RejectionHelper` (`rejectionOf`, `expectRejection`), `SpawnHelper` (`spawnSyncBounded`), `RepoTmp` (`findRoot`, `apply`) - test helpers (imports `bun:test`; tests only). The old function names are deprecated aliases until 0.5 |
 | `@venizia/dev-configs/linters` | `oxlintConfigs`, `OxlintConfigs`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, `namingConventionConfigs`, `reactNamingConventionConfigs`, `houseConfigs`, `reactHouseConfigs`, `eslintConfigs`, `ReactEslintConfigs`, the rule classes and their types |
 | `@venizia/dev-configs/linters/oxlint` | `oxlintConfigs`, `OxlintConfigs`, `IOxlintPresetOptions`, `BrowserOxlintConfigs`, `ReactOxlintConfigs`, `LintIgnore`, the rule classes and their types: everything an oxlint config needs, and nothing that loads ESLint. Loads in milliseconds: `/linters` also loads ESLint and its plugins, which an oxlint config never uses |
 | `@venizia/dev-configs/tsconfig.base.json` | Target and lib ES2025, `module` Node16, strict mode (`noImplicitAny` and `useUnknownInCatchVariables` on) with `strictPropertyInitialization` off (DI-injected properties have no initializer), `noEmitOnError`, tests excluded |

@@ -14,7 +14,7 @@ The recommended pattern is to define the schema and relations as **static proper
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BaseRelationalEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
+import { AuthModelColumns, BaseRelationalEntity, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model()
@@ -22,7 +22,7 @@ export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...extraUserColumns({ idType: 'string' }),
+    ...AuthModelColumns.buildUser({ idType: 'string' }),
   });
 
   // 2. Define relations as a static method (return empty array if none)
@@ -43,7 +43,7 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 | `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
 | `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
 | `generateDataTypeColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
-| `extraUserColumns` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
+| `AuthModelColumns.buildUser` | Auth user fields (the old name `extraUserColumns` is a deprecated alias until 0.5) | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 

@@ -43,35 +43,41 @@ const nameReferencedElsewhere = (opts: { root: string; stem: string; self: strin
   return result.stdout.split('\n').some((line) => line !== '' && line !== opts.self);
 };
 
-export const findDeadTestCode = (opts: { root: string }): IDeadTestCodeCandidate[] => {
-  const tracked = git({ root: opts.root, args: ['ls-files'] }).stdout.split('\n');
-  const support = tracked.filter(
-    (file) =>
-      file.includes('/__tests__/') &&
-      SUPPORT_EXTENSION.test(file) &&
-      !TEST_FILE.test(file) &&
-      !file.endsWith('.d.ts'),
-  );
-  const candidates: IDeadTestCodeCandidate[] = [];
+export class DeadTestCodeCheck {
+  static find(opts: { root: string }): IDeadTestCodeCandidate[] {
+    const tracked = git({ root: opts.root, args: ['ls-files'] }).stdout.split('\n');
+    const support = tracked.filter(
+      (file) =>
+        file.includes('/__tests__/') &&
+        SUPPORT_EXTENSION.test(file) &&
+        !TEST_FILE.test(file) &&
+        !file.endsWith('.d.ts'),
+    );
+    const candidates: IDeadTestCodeCandidate[] = [];
 
-  for (const file of support) {
-    const underTests = file.slice(file.indexOf('/__tests__/') + '/__tests__/'.length);
-    const stem = underTests.split('/').pop()!.replace(SUPPORT_EXTENSION, '');
-    const withoutExtension = underTests.replace(SUPPORT_EXTENSION, '');
+    for (const file of support) {
+      const underTests = file.slice(file.indexOf('/__tests__/') + '/__tests__/'.length);
+      const stem = underTests.split('/').pop()!.replace(SUPPORT_EXTENSION, '');
+      const withoutExtension = underTests.replace(SUPPORT_EXTENSION, '');
 
-    if (
-      nameReferencedElsewhere({ root: opts.root, stem, self: file }) ||
-      referencedElsewhere({ root: opts.root, needle: withoutExtension, self: file })
-    ) {
-      continue;
+      if (
+        nameReferencedElsewhere({ root: opts.root, stem, self: file }) ||
+        referencedElsewhere({ root: opts.root, needle: withoutExtension, self: file })
+      ) {
+        continue;
+      }
+
+      const folder = dirname(underTests);
+      const folderReferenced =
+        folder !== '.' && referencedElsewhere({ root: opts.root, needle: folder, self: file });
+
+      candidates.push({ file, kind: folderReferenced ? 'folder-referenced' : 'unreferenced' });
     }
 
-    const folder = dirname(underTests);
-    const folderReferenced =
-      folder !== '.' && referencedElsewhere({ root: opts.root, needle: folder, self: file });
-
-    candidates.push({ file, kind: folderReferenced ? 'folder-referenced' : 'unreferenced' });
+    return candidates;
   }
+}
 
-  return candidates;
-};
+/** @deprecated Use `DeadTestCodeCheck.find({ root })`. Removed in 0.5. */
+export const findDeadTestCode = (opts: { root: string }): IDeadTestCodeCandidate[] =>
+  DeadTestCodeCheck.find(opts);

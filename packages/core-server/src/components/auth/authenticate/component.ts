@@ -24,7 +24,7 @@ import {
   type TJWKSTokenServiceOptions,
   type TJWTTokenServiceOptions,
 } from '@venizia/ignis-kernel';
-import { defineAuthController, JWKSController } from './controllers';
+import { AuthControllerFactory, JWKSController } from './controllers';
 import { ServiceCertsController } from './controllers/service-certs';
 import {
   BasicTokenService,
@@ -333,7 +333,7 @@ export class AuthenticateComponent extends BaseComponent {
       });
     }
 
-    const AuthController = defineAuthController(restOptions.controllerOpts);
+    const AuthController = AuthControllerFactory.define(restOptions.controllerOpts);
     this.application.controller(AuthController);
 
     this.logger.for(this.defineControllers.name).info('Auth controller registered');

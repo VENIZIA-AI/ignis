@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 
-import { assertBunRuntime, BaseApplication } from '@/base/applications';
+import { BaseApplication, BunRuntimeGuard } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo, IRuntimeSnapshot } from '@/base/applications';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { describe, expect, test } from 'bun:test';
@@ -32,31 +32,33 @@ class GuardedApplication extends BaseApplication {
   setupMiddlewares(): ValueOrPromise<void> {}
 }
 
-describe('assertBunRuntime', () => {
+describe('BunRuntimeGuard.assert', () => {
   test('passes on the Bun that runs this suite', () => {
-    expect(() => assertBunRuntime()).not.toThrow();
+    expect(() => BunRuntimeGuard.assert()).not.toThrow();
   });
 
   test('passes on Bun 1.4.0 and on a later minor and major', () => {
     for (const bunVersion of ['1.4.0', '1.5.2', '2.0.0']) {
-      expect(() => assertBunRuntime({ runtime: { bunVersion } })).not.toThrow();
+      expect(() => BunRuntimeGuard.assert({ runtime: { bunVersion } })).not.toThrow();
     }
   });
 
   test('refuses an older Bun and names it', () => {
-    expect(() => assertBunRuntime({ runtime: { bunVersion: '1.3.9' } })).toThrow(
+    expect(() => BunRuntimeGuard.assert({ runtime: { bunVersion: '1.3.9' } })).toThrow(
       'IGNIS requires Bun >= 1.4 (running on bun 1.3.9)',
     );
   });
 
   test('refuses Node.js and names the runtime and its version', () => {
-    expect(() => assertBunRuntime({ runtime: NODE })).toThrow(
+    expect(() => BunRuntimeGuard.assert({ runtime: NODE })).toThrow(
       'IGNIS requires Bun >= 1.4 (running on node v24.14.0)',
     );
   });
 
   test('refuses a runtime it cannot name', () => {
-    expect(() => assertBunRuntime({ runtime: {} })).toThrow('(running on an unknown runtime)');
+    expect(() => BunRuntimeGuard.assert({ runtime: {} })).toThrow(
+      '(running on an unknown runtime)',
+    );
   });
 });
 

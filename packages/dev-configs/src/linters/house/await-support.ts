@@ -1,5 +1,5 @@
 import type { Rule, SourceCode } from 'eslint';
-import { nodeType, readField } from './common';
+import { AstNode } from './common';
 
 const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
 const FUNCTION_TYPES = new Set([
@@ -41,18 +41,19 @@ const GROUPING_PARENTS = new Set([
 /** The shared parts of the two `await` rules: where a statement can go before another, what may run first, fresh names. */
 export class AwaitSupport {
   static parentOf(opts: { node: unknown }): unknown {
-    return readField({ node: opts.node, key: 'parent' });
+    return AstNode.readField({ node: opts.node, key: 'parent' });
   }
 
   /** An ESTree node of the lint run: it has a `type` and a `range`. */
   static isNode(value: unknown): value is Rule.Node {
     return (
-      nodeType({ node: value }) !== undefined && AwaitSupport.rangeOf({ node: value }) !== undefined
+      AstNode.getType({ node: value }) !== undefined &&
+      AwaitSupport.rangeOf({ node: value }) !== undefined
     );
   }
 
   static rangeOf(opts: { node: unknown }): [number, number] | undefined {
-    const range = readField({ node: opts.node, key: 'range' });
+    const range = AstNode.readField({ node: opts.node, key: 'range' });
     return Array.isArray(range) && typeof range[0] === 'number' && typeof range[1] === 'number'
       ? [range[0], range[1]]
       : undefined;
@@ -68,35 +69,41 @@ export class AwaitSupport {
     let ancestor = AwaitSupport.parentOf({ node: child });
 
     while (ancestor) {
-      const type = nodeType({ node: ancestor }) ?? '';
+      const type = AstNode.getType({ node: ancestor }) ?? '';
 
       if (FUNCTION_TYPES.has(type) || type === 'ChainExpression') {
         return undefined;
       }
       if (
         type === 'ConditionalExpression' &&
-        readField({ node: ancestor, key: 'test' }) !== child
+        AstNode.readField({ node: ancestor, key: 'test' }) !== child
       ) {
         return undefined;
       }
-      if (type === 'LogicalExpression' && readField({ node: ancestor, key: 'left' }) !== child) {
+      if (
+        type === 'LogicalExpression' &&
+        AstNode.readField({ node: ancestor, key: 'left' }) !== child
+      ) {
         return undefined;
       }
       if (
         type === 'AssignmentExpression' &&
-        ['??=', '||=', '&&='].includes(String(readField({ node: ancestor, key: 'operator' }))) &&
-        readField({ node: ancestor, key: 'right' }) === child
+        ['??=', '||=', '&&='].includes(
+          String(AstNode.readField({ node: ancestor, key: 'operator' })),
+        ) &&
+        AstNode.readField({ node: ancestor, key: 'right' }) === child
       ) {
         return undefined;
       }
       if (type.endsWith('Statement') || type === 'VariableDeclaration') {
         const head = HEAD_FIELD[type];
         const isHead =
-          type === 'VariableDeclaration' || readField({ node: ancestor, key: head }) === child;
+          type === 'VariableDeclaration' ||
+          AstNode.readField({ node: ancestor, key: head }) === child;
         const outer = AwaitSupport.parentOf({ node: ancestor });
 
         const isListed =
-          STATEMENT_LISTS.has(nodeType({ node: outer }) ?? '') &&
+          STATEMENT_LISTS.has(AstNode.getType({ node: outer }) ?? '') &&
           (type === 'VariableDeclaration' || head !== undefined);
 
         return isHead && isListed && AwaitSupport.isNode(ancestor) ? ancestor : undefined;
@@ -111,11 +118,11 @@ export class AwaitSupport {
 
   static isPure(opts: { node: unknown }): boolean {
     const { node } = opts;
-    const type = nodeType({ node }) ?? '';
+    const type = AstNode.getType({ node }) ?? '';
     const pure = (child: unknown) => AwaitSupport.isPure({ node: child });
-    const field = (key: string) => readField({ node, key });
+    const field = (key: string) => AstNode.readField({ node, key });
     const all = (key: string) => {
-      const list = readField({ node, key });
+      const list = AstNode.readField({ node, key });
       return Array.isArray(list) && list.every((entry) => entry === null || pure(entry));
     };
 
@@ -169,10 +176,10 @@ export class AwaitSupport {
         return false;
       }
       if (range[0] <= target[0] && target[1] <= range[1]) {
-        const keys = opts.sourceCode.visitorKeys[nodeType({ node }) ?? ''] ?? [];
+        const keys = opts.sourceCode.visitorKeys[AstNode.getType({ node }) ?? ''] ?? [];
 
         return keys.some((key) => {
-          const value = readField({ node, key });
+          const value = AstNode.readField({ node, key });
           const entries = Array.isArray(value) ? value : [value];
 
           return entries.some((entry) => entry && entry !== opts.awaitNode && visit(entry));
@@ -196,7 +203,7 @@ export class AwaitSupport {
     let current: Rule.Node = opts.node;
     let parent = AwaitSupport.parentOf({ node: current });
 
-    while (parent && !FUNCTION_TYPES.has(nodeType({ node: parent }) ?? '')) {
+    while (parent && !FUNCTION_TYPES.has(AstNode.getType({ node: parent }) ?? '')) {
       if (!AwaitSupport.isNode(parent)) {
         break;
       }
@@ -240,10 +247,11 @@ export class AwaitSupport {
     const { awaitNode, sourceCode } = opts;
     const before = sourceCode.getTokenBefore(awaitNode);
     const after = sourceCode.getTokenAfter(awaitNode);
-    const parentType = nodeType({ node: AwaitSupport.parentOf({ node: awaitNode }) }) ?? '';
+    const parentType = AstNode.getType({ node: AwaitSupport.parentOf({ node: awaitNode }) }) ?? '';
     const callee =
       parentType === 'CallExpression' &&
-      readField({ node: AwaitSupport.parentOf({ node: awaitNode }), key: 'callee' }) === awaitNode;
+      AstNode.readField({ node: AwaitSupport.parentOf({ node: awaitNode }), key: 'callee' }) ===
+        awaitNode;
 
     if (
       before?.value === '(' &&

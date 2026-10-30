@@ -1,8 +1,8 @@
 import { afterAll, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { findRepositoryRoot, REPO_TMP_DIRECTORY } from '../../testing/repo-tmp';
-import { spawnSyncBounded } from '../../testing/spawn.helper';
+import { RepoTmp, REPO_TMP_DIRECTORY } from '../../testing/repo-tmp';
+import { SpawnHelper } from '../../testing/spawn.helper';
 
 const SCRATCH = join(__dirname, '../../../../../.agents/local/tmp');
 mkdirSync(SCRATCH, { recursive: true });
@@ -14,7 +14,7 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 
 describe('findRepositoryRoot', () => {
   test('walks up to the nearest folder holding .git', () => {
-    expect(findRepositoryRoot(join(root, 'packages/deep/src'))).toBe(root);
+    expect(RepoTmp.findRoot({ start: join(root, 'packages/deep/src') })).toBe(root);
   });
 
   test('a .git file (a worktree) counts as the marker', () => {
@@ -22,13 +22,13 @@ describe('findRepositoryRoot', () => {
     mkdirSync(join(worktree, 'a'), { recursive: true });
     writeFileSync(join(worktree, '.git'), 'gitdir: elsewhere\n');
 
-    expect(findRepositoryRoot(join(worktree, 'a'))).toBe(worktree);
+    expect(RepoTmp.findRoot({ start: join(worktree, 'a') })).toBe(worktree);
   });
 });
 
 describe('useRepoTmp (in a child process: it replaces Bun.spawn)', () => {
   const run = (opts: { env?: Record<string, string> } = {}) => {
-    const result = spawnSyncBounded({
+    const result = SpawnHelper.spawnSyncBounded({
       cmd: ['bun', join(__dirname, 'fixtures/repo-tmp.script.ts'), root],
       env: { ...process.env, TMPDIR: '/somewhere/else', ...opts.env },
     });

@@ -1,4 +1,4 @@
-import { readResultRows } from '@/utilities';
+import { DrizzleResultUtility } from '@/utilities';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
@@ -28,7 +28,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   /** Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver (node-postgres `{ rows }`, postgres-js the row list itself) - never read `.rows` directly. */
   protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
     const result = await this.connector.execute(opts.statement);
-    return readResultRows<TRow>({ result });
+    return DrizzleResultUtility.readResultRows<TRow>({ result });
   }
 
   /** Load ONLY the policies matching `filter` into `model` (the store is read for one principal). */

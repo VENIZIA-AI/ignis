@@ -1,6 +1,6 @@
 import { AuthorizationActions } from '@venizia/ignis-kernel';
 import { AuthorizationPolicyBuilder, GrantBuilder } from '@venizia/ignis-kernel';
-import { extraPolicyDefinitionColumns } from '@/components/auth/models/entities/policy-definition.model';
+import { AuthModelColumns } from '@/components/auth/models/entities/columns';
 import { pgTable } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'bun:test';
 
@@ -132,13 +132,13 @@ describe('GrantBuilder.validateCustomGrantOps', () => {
 /** Backs both the runtime pgTable check below and the compile-time pin further down. */
 const defaultPolicyDefinitionTable = pgTable(
   'policy_definitions_default',
-  extraPolicyDefinitionColumns(),
+  AuthModelColumns.buildPolicyDefinition(),
 );
 type TDefaultPolicyDefinitionInsert = typeof defaultPolicyDefinitionTable.$inferInsert;
 
 const extendedPolicyDefinitionTable = pgTable(
   'policy_definitions_extended',
-  extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] }),
+  AuthModelColumns.buildPolicyDefinition({ idType: 'string', extraVariants: ['merchant_role'] }),
 );
 type TExtendedPolicyDefinitionInsert = typeof extendedPolicyDefinitionTable.$inferInsert;
 
@@ -147,25 +147,27 @@ type TMerchantPolicyMetadata = { ops: string[]; issuedBy: string };
 
 const customMetadataPolicyDefinitionTable = pgTable(
   'policy_definitions_custom_metadata',
-  extraPolicyDefinitionColumns<{ idType: 'string' }, TMerchantPolicyMetadata>({ idType: 'string' }),
+  AuthModelColumns.buildPolicyDefinition<{ idType: 'string' }, TMerchantPolicyMetadata>({
+    idType: 'string',
+  }),
 );
 type TCustomMetadataInsert = typeof customMetadataPolicyDefinitionTable.$inferInsert;
 
-describe('extraPolicyDefinitionColumns', () => {
+describe('AuthModelColumns.buildPolicyDefinition', () => {
   it('declares a metadata column for number ids', () => {
-    const columns = extraPolicyDefinitionColumns({ idType: 'number' });
+    const columns = AuthModelColumns.buildPolicyDefinition({ idType: 'number' });
 
     expect(columns.metadata).toBeDefined();
   });
 
   it('declares a metadata column for string ids', () => {
-    const columns = extraPolicyDefinitionColumns({ idType: 'string' });
+    const columns = AuthModelColumns.buildPolicyDefinition({ idType: 'string' });
 
     expect(columns.metadata).toBeDefined();
   });
 
   it('declares every column, and no longer the concatenated domain token', () => {
-    const columns = extraPolicyDefinitionColumns({ idType: 'string' });
+    const columns = AuthModelColumns.buildPolicyDefinition({ idType: 'string' });
 
     const names = [
       'variant',
@@ -186,7 +188,7 @@ describe('extraPolicyDefinitionColumns', () => {
   });
 
   it('accepts a declared extra variant alongside the default seven, at runtime', () => {
-    const columns = extraPolicyDefinitionColumns({
+    const columns = AuthModelColumns.buildPolicyDefinition({
       idType: 'string',
       extraVariants: ['merchant_role'],
     });

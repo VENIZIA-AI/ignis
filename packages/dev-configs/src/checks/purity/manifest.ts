@@ -12,7 +12,7 @@ export interface IPurityEntry {
    * field remap, which the downstream app's bundler (Vite, ...) honours and `bun build` does not.
    * Never for the repository's own source: an external hides that file from the module graph
    * entirely, so using it on our own code would let a real leak through unseen rather than prove
-   * anything pure. Enforced by {@link assertNoWorkspaceExternal}, not left to this comment alone.
+   * anything pure. Enforced by {@link PurityManifest.assertNoWorkspaceExternal}, not left to this comment alone.
    */
   external?: string[];
   /**
@@ -70,37 +70,6 @@ const purityError = (message: string): Error => new Error(message);
 /** `types` describes the entry, it is not a runtime target; `./package.json` is not code. */
 const NON_RUNTIME_CONDITION = 'types';
 const NON_CODE_SUBPATH = './package.json';
-
-/**
- * A code-level guard, not just the JSDoc on `external`: it is an escape hatch from this gate, and a
- * hatch with no lock is one bad edit away from hiding a real leak - `external: ['@venizia/ignis-helpers']`
- * on a red entry would silently turn it green by removing the exact root-barrel import this gate
- * exists to catch from the module graph, rather than proving it absent.
- *
- * A plain `Error`, not `getError`: the engine runs from the repository root through `devz`, outside
- * every workspace package, and has no logger to resolve.
- */
-export const assertNoWorkspaceExternal = (
-  manifest: IPurityEntry[],
-  workspaceScope: string = DEFAULT_WORKSPACE_SCOPE,
-): IPurityEntry[] => {
-  for (const row of manifest) {
-    const specifiers = row.external ?? [];
-    for (const specifier of specifiers) {
-      if (!specifier.startsWith(workspaceScope)) {
-        continue;
-      }
-
-      throw purityError(
-        `[purity][manifest] Entry '${row.label}' externalises '${specifier}', a workspace package ` +
-          `| \`external\` may only exempt THIRD-PARTY packaging, never the repository's own code - doing so ` +
-          `would hide the exact leak this gate exists to catch`,
-      );
-    }
-  }
-
-  return manifest;
-};
 
 type TExportsTarget = string | Record<string, string>;
 
@@ -165,151 +134,214 @@ const buildLabel = (opts: {
   return isSoleTarget ? base : `${base} [${condition}]`;
 };
 
-/**
- * Exported for the tests, which have to drive a claim that no longer matches its package's
- * `exports` map - the staleness guard is the whole point of deriving, and it cannot be asserted
- * through a built manifest, which by construction is never stale.
- */
-export const deriveEntries = (opts: { claim: IPurityClaim; root: string }): IPurityEntry[] => {
-  const { claim, root } = opts;
-  const exportsMap = readExportsMap({ root, package: claim.package });
-  const published = Object.keys(exportsMap).filter((subpath) => subpath !== NON_CODE_SUBPATH);
+/** Derives the rows of the purity gate from the `exports` map of each claimed package, then runs the guards on them. */
+export class PurityManifest {
+  /**
+   * A code-level guard, not just the JSDoc on `external`: it is an escape hatch from this gate, and a
+   * hatch with no lock is one bad edit away from hiding a real leak - `external: ['@venizia/ignis-helpers']`
+   * on a red entry would silently turn it green by removing the exact root-barrel import this gate
+   * exists to catch from the module graph, rather than proving it absent.
+   *
+   * A plain `Error`, not `getError`: the engine runs from the repository root through `devz`, outside
+   * every workspace package, and has no logger to resolve.
+   */
+  static assertNoWorkspaceExternal(opts: {
+    manifest: IPurityEntry[];
+    workspaceScope?: string;
+  }): IPurityEntry[] {
+    const { manifest, workspaceScope = DEFAULT_WORKSPACE_SCOPE } = opts;
 
-  const subpathsList = claim.subpaths ?? [];
-  for (const subpath of subpathsList) {
-    if (published.includes(subpath)) {
-      continue;
+    for (const row of manifest) {
+      const specifiers = row.external ?? [];
+      for (const specifier of specifiers) {
+        if (!specifier.startsWith(workspaceScope)) {
+          continue;
+        }
+
+        throw purityError(
+          `[purity][manifest] Entry '${row.label}' externalises '${specifier}', a workspace package ` +
+            `| \`external\` may only exempt THIRD-PARTY packaging, never the repository's own code - doing so ` +
+            `would hide the exact leak this gate exists to catch`,
+        );
+      }
     }
 
-    throw purityError(
-      `[purity][manifest] '${claim.package}' claims '${subpath}', which its \`exports\` map no longer ` +
-        `publishes | Published: ${published.join(', ')} - a renamed sub-path must not silently drop its row`,
-    );
+    return manifest;
   }
 
-  const claimExternalKeys = Object.keys(claim.external ?? {});
-  for (const subpath of claimExternalKeys) {
-    if (published.includes(subpath)) {
-      continue;
-    }
+  /**
+   * Public for the tests, which have to drive a claim that no longer matches its package's
+   * `exports` map - the staleness guard is the whole point of deriving, and it cannot be asserted
+   * through a built manifest, which by construction is never stale.
+   */
+  static deriveEntries(opts: { claim: IPurityClaim; root: string }): IPurityEntry[] {
+    const { claim, root } = opts;
+    const exportsMap = readExportsMap({ root, package: claim.package });
+    const published = Object.keys(exportsMap).filter((subpath) => subpath !== NON_CODE_SUBPATH);
 
-    throw purityError(
-      `[purity][manifest] '${claim.package}' declares \`external\` for '${subpath}', which its ` +
-        `\`exports\` map no longer publishes | An external that outlives its entry is a waiver ` +
-        `nobody is reading`,
-    );
-  }
-
-  const claimed = claim.subpaths ?? published;
-
-  const claimImpureKeys = Object.keys(claim.impure ?? {});
-  for (const subpath of claimImpureKeys) {
-    if (claimed.includes(subpath)) {
-      continue;
-    }
-
-    throw purityError(
-      `[purity][manifest] '${claim.package}' waives '${subpath}' as impure, but that sub-path is not ` +
-        `claimed | Claimed: ${claimed.join(', ')} - a waiver against nothing is one nobody is reading`,
-    );
-  }
-
-  const entries: IPurityEntry[] = [];
-
-  for (const subpath of claimed) {
-    const targets = listConditionTargets(exportsMap[subpath]!);
-
-    const conditions = claim.impure?.[subpath] ?? [];
-    for (const condition of conditions) {
-      if (targets.some((target) => target.condition === condition)) {
+    const subpathsList = claim.subpaths ?? [];
+    for (const subpath of subpathsList) {
+      if (published.includes(subpath)) {
         continue;
       }
 
       throw purityError(
-        `[purity][manifest] '${claim.package}' waives '${subpath}' under condition '${condition}', ` +
-          `which its \`exports\` map does not publish | Published: ${targets.map((t) => t.condition).join(', ')}`,
+        `[purity][manifest] '${claim.package}' claims '${subpath}', which its \`exports\` map no longer ` +
+          `publishes | Published: ${published.join(', ')} - a renamed sub-path must not silently drop its row`,
       );
     }
 
-    for (const { condition, file } of targets) {
-      entries.push({
-        label: buildLabel({
-          package: claim.package,
-          subpath,
-          condition,
-          isSoleTarget: targets.length === 1,
-        }),
-        package: claim.package,
-        entry: join('packages', claim.package, file),
-        ...(claim.external?.[subpath] ? { external: claim.external[subpath] } : {}),
-        ...(claim.impure?.[subpath]?.includes(condition) ? { expectImpure: true } : {}),
-      });
+    const claimExternalKeys = Object.keys(claim.external ?? {});
+    for (const subpath of claimExternalKeys) {
+      if (published.includes(subpath)) {
+        continue;
+      }
+
+      throw purityError(
+        `[purity][manifest] '${claim.package}' declares \`external\` for '${subpath}', which its ` +
+          `\`exports\` map no longer publishes | An external that outlives its entry is a waiver ` +
+          `nobody is reading`,
+      );
     }
+
+    const claimed = claim.subpaths ?? published;
+
+    const claimImpureKeys = Object.keys(claim.impure ?? {});
+    for (const subpath of claimImpureKeys) {
+      if (claimed.includes(subpath)) {
+        continue;
+      }
+
+      throw purityError(
+        `[purity][manifest] '${claim.package}' waives '${subpath}' as impure, but that sub-path is not ` +
+          `claimed | Claimed: ${claimed.join(', ')} - a waiver against nothing is one nobody is reading`,
+      );
+    }
+
+    const entries: IPurityEntry[] = [];
+
+    for (const subpath of claimed) {
+      const targets = listConditionTargets(exportsMap[subpath]!);
+
+      const conditions = claim.impure?.[subpath] ?? [];
+      for (const condition of conditions) {
+        if (targets.some((target) => target.condition === condition)) {
+          continue;
+        }
+
+        throw purityError(
+          `[purity][manifest] '${claim.package}' waives '${subpath}' under condition '${condition}', ` +
+            `which its \`exports\` map does not publish | Published: ${targets.map((t) => t.condition).join(', ')}`,
+        );
+      }
+
+      for (const { condition, file } of targets) {
+        entries.push({
+          label: buildLabel({
+            package: claim.package,
+            subpath,
+            condition,
+            isSoleTarget: targets.length === 1,
+          }),
+          package: claim.package,
+          entry: join('packages', claim.package, file),
+          ...(claim.external?.[subpath] ? { external: claim.external[subpath] } : {}),
+          ...(claim.impure?.[subpath]?.includes(condition) ? { expectImpure: true } : {}),
+        });
+      }
+    }
+
+    return entries;
   }
 
-  return entries;
-};
+  /**
+   * A browser claim is only honest if a browser bundler can actually consume the entry. A CommonJS
+   * entry forces every consumer into a workaround, so the claim carries the obligation: every claimed
+   * sub-path must publish its runtime entries below `esmEntryPrefix`. Checked here rather than trusted
+   * to a comment, for the same reason as {@link PurityManifest.assertNoWorkspaceExternal} - the failure is otherwise
+   * invisible until someone tries to bundle the package downstream.
+   */
+  static assertBrowserEsmEntry(opts: {
+    claims: IPurityClaim[];
+    root: string;
+    esmEntryPrefix: string;
+  }): IPurityClaim[] {
+    const { claims, root, esmEntryPrefix } = opts;
 
-/**
- * A browser claim is only honest if a browser bundler can actually consume the entry. A CommonJS
- * entry forces every consumer into a workaround, so the claim carries the obligation: every claimed
- * sub-path must publish its runtime entries below `esmEntryPrefix`. Checked here rather than trusted
- * to a comment, for the same reason as {@link assertNoWorkspaceExternal} - the failure is otherwise
- * invisible until someone tries to bundle the package downstream.
- */
+    for (const claim of claims) {
+      const exportsMap = readExportsMap({ root, package: claim.package });
+      const claimed =
+        claim.subpaths ?? Object.keys(exportsMap).filter((s) => s !== NON_CODE_SUBPATH);
+
+      for (const subpath of claimed) {
+        const target = exportsMap[subpath];
+
+        const runtimeTargets =
+          typeof target === 'object' && target !== null
+            ? Object.entries(target)
+                .filter(([condition]) => condition !== NON_RUNTIME_CONDITION)
+                .map(([, file]) => file)
+            : [];
+
+        if (
+          runtimeTargets.length > 0 &&
+          runtimeTargets.every((file) => file.startsWith(esmEntryPrefix))
+        ) {
+          continue;
+        }
+
+        throw purityError(
+          `[purity][manifest] '${claim.package}' claims browser purity for '${subpath}' but its runtime ` +
+            `entry is not in ${esmEntryPrefix.replace(/^\.\//, '')} | A browser bundler needs an ES module, so the claim ` +
+            `cannot be consumed - build the package as ES modules`,
+        );
+      }
+    }
+
+    return claims;
+  }
+
+  /** The rows of a whole repository: every claim derived from its package's `exports`, then the guards. */
+  static build(opts: {
+    claims: IPurityClaim[];
+    root: string;
+    options?: IPurityOptions;
+  }): IPurityEntry[] {
+    const { claims, root, options = {} } = opts;
+    const { esmEntryPrefix, workspaceScope = DEFAULT_WORKSPACE_SCOPE } = options;
+
+    const checked =
+      esmEntryPrefix === undefined
+        ? claims
+        : PurityManifest.assertBrowserEsmEntry({ claims, root, esmEntryPrefix });
+
+    return PurityManifest.assertNoWorkspaceExternal({
+      manifest: checked.flatMap((claim) => PurityManifest.deriveEntries({ claim, root })),
+      workspaceScope,
+    });
+  }
+}
+
+/** @deprecated Use `PurityManifest.assertNoWorkspaceExternal({ manifest, workspaceScope })`. Removed in 0.5. */
+export const assertNoWorkspaceExternal = (
+  manifest: IPurityEntry[],
+  workspaceScope: string = DEFAULT_WORKSPACE_SCOPE,
+): IPurityEntry[] => PurityManifest.assertNoWorkspaceExternal({ manifest, workspaceScope });
+
+/** @deprecated Use `PurityManifest.deriveEntries({ claim, root })`. Removed in 0.5. */
+export const deriveEntries = (opts: { claim: IPurityClaim; root: string }): IPurityEntry[] =>
+  PurityManifest.deriveEntries(opts);
+
+/** @deprecated Use `PurityManifest.assertBrowserEsmEntry({ claims, root, esmEntryPrefix })`. Removed in 0.5. */
 export const assertBrowserEsmEntry = (opts: {
   claims: IPurityClaim[];
   root: string;
   esmEntryPrefix: string;
-}): IPurityClaim[] => {
-  const { claims, root, esmEntryPrefix } = opts;
+}): IPurityClaim[] => PurityManifest.assertBrowserEsmEntry(opts);
 
-  for (const claim of claims) {
-    const exportsMap = readExportsMap({ root, package: claim.package });
-    const claimed = claim.subpaths ?? Object.keys(exportsMap).filter((s) => s !== NON_CODE_SUBPATH);
-
-    for (const subpath of claimed) {
-      const target = exportsMap[subpath];
-
-      const runtimeTargets =
-        typeof target === 'object' && target !== null
-          ? Object.entries(target)
-              .filter(([condition]) => condition !== NON_RUNTIME_CONDITION)
-              .map(([, file]) => file)
-          : [];
-
-      if (
-        runtimeTargets.length > 0 &&
-        runtimeTargets.every((file) => file.startsWith(esmEntryPrefix))
-      ) {
-        continue;
-      }
-
-      throw purityError(
-        `[purity][manifest] '${claim.package}' claims browser purity for '${subpath}' but its runtime ` +
-          `entry is not in ${esmEntryPrefix.replace(/^\.\//, '')} | A browser bundler needs an ES module, so the claim ` +
-          `cannot be consumed - build the package as ES modules`,
-      );
-    }
-  }
-
-  return claims;
-};
-
-/** The rows of a whole repository: every claim derived from its package's `exports`, then the guards. */
+/** @deprecated Use `PurityManifest.build({ claims, root, options })`. Removed in 0.5. */
 export const buildManifest = (opts: {
   claims: IPurityClaim[];
   root: string;
   options?: IPurityOptions;
-}): IPurityEntry[] => {
-  const { claims, root, options = {} } = opts;
-  const { esmEntryPrefix, workspaceScope = DEFAULT_WORKSPACE_SCOPE } = options;
-
-  const checked =
-    esmEntryPrefix === undefined ? claims : assertBrowserEsmEntry({ claims, root, esmEntryPrefix });
-
-  return assertNoWorkspaceExternal(
-    checked.flatMap((claim) => deriveEntries({ claim, root })),
-    workspaceScope,
-  );
-};
+}): IPurityEntry[] => PurityManifest.build(opts);

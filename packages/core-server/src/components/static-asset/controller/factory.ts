@@ -37,7 +37,7 @@ import {
   type TUploadQuery,
   WHITELIST_HEADERS,
 } from '../common';
-import { buildCommitToken, MetaLinkRecreateActions, readCommitToken } from '../common';
+import { AssetCommitToken, MetaLinkRecreateActions } from '../common';
 import { buildAssetDefinitions } from './base.definition';
 import {
   assertKeyInScope,
@@ -77,19 +77,13 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
-/** Names any label a caller put in the query - where the upload routes refuse it. */
-export const findLabelsInQuery = (opts: {
-  query: Record<string, string>;
-  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
-
 /** Refused before the body is read: a route that ignored them would store an unlabelled row. */
 const refuseLabelsInQuery = (opts: {
   query: Record<string, string>;
   names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
   reason?: string;
 }): void => {
-  const names = findLabelsInQuery(opts);
+  const names = AssetControllerFactory.findLabelsInQuery(opts);
   if (names.length > 0) {
     throw getError({
       error: StaticAssetErrors.LABELS_IN_QUERY,
@@ -143,23 +137,6 @@ const resolveBucket = async (opts: {
   return resolveValueAsync({ value: configured });
 };
 
-/** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
-export const buildObjectLink = (
-  opts: IObjectLocation & {
-    basePath: string;
-    hasConfiguredBucket?: boolean;
-    rawObjectPath?: boolean;
-  },
-): string => {
-  const { basePath, bucket, object } = opts;
-  const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
-
-  const bucketSegment = hasConfiguredBucket ? '' : `/buckets/${bucket.name}`;
-  const objectSegment = rawObjectPath ? object.key : encodeObjectPath(object.key);
-
-  return `${basePath}${bucketSegment}/objects/${objectSegment}`;
-};
-
 /** Mirrors `BaseStorageHelper.normalizeObjectName`, which is protected: `resolveObjectName` is offered the very name the helper would otherwise have written. */
 const defaultObjectName: (opts: { file: TUploadNaming }) => string = ({ file }) => {
   const { originalName, folderPath } = file;
@@ -170,25 +147,6 @@ const defaultObjectName: (opts: { file: TUploadNaming }) => string = ({ file }) 
   }
 
   return `${folderPath.toLowerCase().replace(/ /g, '_')}/${normalizedFileName}`;
-};
-
-/**
- * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
- * the API origin is stored XSS. Exported so a hand-written route makes the same decision - the
- * backend's own content-type is dropped by `WHITELIST_HEADERS`.
- */
-export const resolveServedContentType = (opts: {
-  helper: IStorageHelper;
-  object: IObjectRef;
-}): { contentType: string; isRenderable: boolean } => {
-  const { helper, object } = opts;
-  const candidate = helper.getMimeType({ filename: object.key }).toLowerCase().split(';')[0].trim();
-
-  if (!RENDERABLE_CONTENT_TYPES.has(candidate)) {
-    return { contentType: HTTP.HeaderValues.APPLICATION_OCTET_STREAM, isRenderable: false };
-  }
-
-  return { contentType: candidate, isRenderable: true };
 };
 
 /**
@@ -251,6 +209,54 @@ export class AssetControllerFactory extends BaseHelper {
     super({ scope: AssetControllerFactory.name });
   }
 
+  /** Names any label a caller put in the query - where the upload routes refuse it. */
+  static findLabelsInQuery(opts: {
+    query: Record<string, string>;
+    names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
+  }): string[] {
+    return (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
+  }
+
+  /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
+  static buildObjectLink(
+    opts: IObjectLocation & {
+      basePath: string;
+      hasConfiguredBucket?: boolean;
+      rawObjectPath?: boolean;
+    },
+  ): string {
+    const { basePath, bucket, object } = opts;
+    const { hasConfiguredBucket = false, rawObjectPath = false } = opts;
+
+    const bucketSegment = hasConfiguredBucket ? '' : `/buckets/${bucket.name}`;
+    const objectSegment = rawObjectPath ? object.key : encodeObjectPath(object.key);
+
+    return `${basePath}${bucketSegment}/objects/${objectSegment}`;
+  }
+
+  /**
+   * The served type comes from the object NAME, never the backend or the uploader: a renderable type on
+   * the API origin is stored XSS. Public so a hand-written route makes the same decision - the
+   * backend's own content-type is dropped by `WHITELIST_HEADERS`.
+   */
+  static resolveServedContentType(opts: { helper: IStorageHelper; object: IObjectRef }): {
+    contentType: string;
+    isRenderable: boolean;
+  } {
+    const { helper, object } = opts;
+    const candidate = helper
+      .getMimeType({ filename: object.key })
+      .toLowerCase()
+      .split(';')[0]
+      .trim();
+
+    if (!RENDERABLE_CONTENT_TYPES.has(candidate)) {
+      return { contentType: HTTP.HeaderValues.APPLICATION_OCTET_STREAM, isRenderable: false };
+    }
+
+    return { contentType: candidate, isRenderable: true };
+  }
+
   static defineAssetController(opts: IAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
     const { resolveObjectName, defineRoutesBefore, defineExtraRoutes } = opts;
@@ -287,7 +293,7 @@ export class AssetControllerFactory extends BaseHelper {
     const shapedLinkFn =
       hasConfiguredBucket || rawObjectPath
         ? (linkOptions: IObjectLocation) =>
-            buildObjectLink({
+            AssetControllerFactory.buildObjectLink({
               basePath: normalizedBasePath,
               bucket: linkOptions.bucket,
               object: linkOptions.object,
@@ -444,7 +450,10 @@ export class AssetControllerFactory extends BaseHelper {
               const { size, metadata } = fileStat;
               applyMetadataHeaders({ ctx, metadata });
 
-              const served = resolveServedContentType({ helper, object: { key: objectName } });
+              const served = AssetControllerFactory.resolveServedContentType({
+                helper,
+                object: { key: objectName },
+              });
               ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);
               ctx.header('x-content-type-options', 'nosniff');
               // Sandboxed even when renderable, so an unforeseen renderable type cannot reach this origin.
@@ -527,7 +536,10 @@ export class AssetControllerFactory extends BaseHelper {
               applyMetadataHeaders({ ctx, metadata });
 
               // Download always attaches, so the served type only has to be honest, never renderable.
-              const served = resolveServedContentType({ helper, object: { key: objectName } });
+              const served = AssetControllerFactory.resolveServedContentType({
+                helper,
+                object: { key: objectName },
+              });
               ctx.header(HTTP.Headers.CONTENT_TYPE, served.contentType);
               ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
 
@@ -920,7 +932,7 @@ export class AssetControllerFactory extends BaseHelper {
                   policies.push({
                     ...policy,
                     objectName,
-                    commitToken: buildCommitToken({
+                    commitToken: AssetCommitToken.build({
                       payload: {
                         bucket: bucketName,
                         key: objectName,
@@ -957,7 +969,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 // Verified BEFORE any storage call. That is what keeps this route from being a name
                 // prober: a forged token fails without a round trip, so timing says nothing.
-                const payload = readCommitToken({
+                const payload = AssetCommitToken.read({
                   token: commitToken,
                   secretKey: directUpload.secretKey,
                 });
@@ -997,7 +1009,7 @@ export class AssetControllerFactory extends BaseHelper {
                       );
                   });
 
-                const link = buildObjectLink({
+                const link = AssetControllerFactory.buildObjectLink({
                   basePath: normalizedBasePath,
                   bucket: bucketRef,
                   object,
@@ -1098,7 +1110,7 @@ export class AssetControllerFactory extends BaseHelper {
 
                 const link = options?.normalizeLinkFn
                   ? options.normalizeLinkFn({ bucket: bucketRef, object })
-                  : buildObjectLink({
+                  : AssetControllerFactory.buildObjectLink({
                       basePath: normalizedBasePath,
                       bucket: bucketRef,
                       object,
@@ -1172,3 +1184,25 @@ export class AssetControllerFactory extends BaseHelper {
     return GeneratedStaticAssetController;
   }
 }
+
+/** @deprecated Use `AssetControllerFactory.findLabelsInQuery({ query, names })`. Removed in 0.5. */
+export const findLabelsInQuery = (opts: {
+  query: Record<string, string>;
+  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
+}): string[] => AssetControllerFactory.findLabelsInQuery(opts);
+
+/** @deprecated Use `AssetControllerFactory.buildObjectLink({ basePath, bucket, object, ... })`. Removed in 0.5. */
+export const buildObjectLink = (
+  opts: IObjectLocation & {
+    basePath: string;
+    hasConfiguredBucket?: boolean;
+    rawObjectPath?: boolean;
+  },
+): string => AssetControllerFactory.buildObjectLink(opts);
+
+/** @deprecated Use `AssetControllerFactory.resolveServedContentType({ helper, object })`. Removed in 0.5. */
+export const resolveServedContentType = (opts: {
+  helper: IStorageHelper;
+  object: IObjectRef;
+}): { contentType: string; isRenderable: boolean } =>
+  AssetControllerFactory.resolveServedContentType(opts);

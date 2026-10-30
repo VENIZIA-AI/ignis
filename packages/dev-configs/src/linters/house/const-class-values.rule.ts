@@ -1,25 +1,30 @@
 import type { Linter, Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /** Utility types whose type argument is a set of keys, not an enumerable value: `Pick<T, 'a' | 'b'>`. */
 const KEY_SET_TYPES = new Set(['Pick', 'Omit', 'Extract', 'Exclude', 'Record']);
 
 /** The union is a type argument of a key-set utility type, or the key range of a mapped type. */
 const isKeySet = (opts: { node: unknown }): boolean => {
-  const parent = readField({ node: opts.node, key: 'parent' });
+  const parent = AstNode.readField({ node: opts.node, key: 'parent' });
 
-  if (nodeType({ node: parent }) === 'TSMappedType') {
+  if (AstNode.getType({ node: parent }) === 'TSMappedType') {
     return true;
   }
 
-  if (nodeType({ node: parent }) !== 'TSTypeParameterInstantiation') {
+  if (AstNode.getType({ node: parent }) !== 'TSTypeParameterInstantiation') {
     return false;
   }
 
-  const reference = readField({ node: parent, key: 'parent' });
-  const name = readField({ node: readField({ node: reference, key: 'typeName' }), key: 'name' });
-  return nodeType({ node: reference }) === 'TSTypeReference' && KEY_SET_TYPES.has(String(name));
+  const reference = AstNode.readField({ node: parent, key: 'parent' });
+  const name = AstNode.readField({
+    node: AstNode.readField({ node: reference, key: 'typeName' }),
+    key: 'name',
+  });
+  return (
+    AstNode.getType({ node: reference }) === 'TSTypeReference' && KEY_SET_TYPES.has(String(name))
+  );
 };
 
 /** The statement of the module that holds the node: the node's last ancestor before `Program`. */
@@ -27,8 +32,8 @@ const topLevelStatement = (opts: { node: unknown }): unknown => {
   let current = opts.node;
 
   while (current) {
-    const parent = readField({ node: current, key: 'parent' });
-    if (nodeType({ node: parent }) === 'Program') {
+    const parent = AstNode.readField({ node: current, key: 'parent' });
+    if (AstNode.getType({ node: parent }) === 'Program') {
       return current;
     }
     current = parent;
@@ -40,14 +45,16 @@ const topLevelStatement = (opts: { node: unknown }): unknown => {
 const isStringLiteral = (opts: { member: unknown }): boolean => {
   const { member } = opts;
   return (
-    nodeType({ node: member }) === 'TSLiteralType' &&
-    typeof readField({ node: readField({ node: member, key: 'literal' }), key: 'value' }) ===
-      'string'
+    AstNode.getType({ node: member }) === 'TSLiteralType' &&
+    typeof AstNode.readField({
+      node: AstNode.readField({ node: member, key: 'literal' }),
+      key: 'value',
+    }) === 'string'
   );
 };
 
 const isNullish = (opts: { member: unknown }): boolean => {
-  const type = nodeType({ node: opts.member });
+  const type = AstNode.getType({ node: opts.member });
   return type === 'TSNullKeyword' || type === 'TSUndefinedKeyword';
 };
 
@@ -75,18 +82,21 @@ export class ConstClassValuesRule {
     },
     create: (context) => {
       const options: unknown = context.options[0];
-      const configured = readField({ node: options, key: 'namePattern' });
+      const configured = AstNode.readField({ node: options, key: 'namePattern' });
       const namePattern = typeof configured === 'string' ? new RegExp(configured) : undefined;
 
       const isNamed = (opts: { statement: unknown; node: unknown }) => {
         const { statement, node } = opts;
-        const declaration = readField({ node: statement, key: 'declaration' });
-        const name = readField({ node: readField({ node: declaration, key: 'id' }), key: 'name' });
+        const declaration = AstNode.readField({ node: statement, key: 'declaration' });
+        const name = AstNode.readField({
+          node: AstNode.readField({ node: declaration, key: 'id' }),
+          key: 'name',
+        });
 
         return (
           namePattern === undefined ||
-          (nodeType({ node: declaration }) === 'TSTypeAliasDeclaration' &&
-            readField({ node: declaration, key: 'typeAnnotation' }) === node &&
+          (AstNode.getType({ node: declaration }) === 'TSTypeAliasDeclaration' &&
+            AstNode.readField({ node: declaration, key: 'typeAnnotation' }) === node &&
             typeof name === 'string' &&
             namePattern.test(name))
         );
@@ -94,7 +104,7 @@ export class ConstClassValuesRule {
 
       return {
         [AstNodeTypes.UNION_TYPE]: (node: Rule.Node) => {
-          const members = readField({ node, key: 'types' });
+          const members = AstNode.readField({ node, key: 'types' });
           if (!Array.isArray(members)) {
             return;
           }
@@ -105,7 +115,7 @@ export class ConstClassValuesRule {
           }
 
           const statement = topLevelStatement({ node });
-          const statementType = nodeType({ node: statement });
+          const statementType = AstNode.getType({ node: statement });
           const isExported =
             statementType === AstNodeTypes.EXPORT_NAMED_DECLARATION ||
             statementType === 'ExportDefaultDeclaration';

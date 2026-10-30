@@ -63,15 +63,12 @@ import {
   BasicTokenService,
 
   // Controllers
-  defineAuthController,
+  AuthControllerFactory,
   JWKSController,
   authenticate,
 
   // Entity column helpers
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
+  AuthModelColumns,
   UserStatuses,
   UserTypes,
   RoleStatuses,
@@ -158,7 +155,7 @@ Bearer token service hierarchy:
 | `defineJWKSAuth(opts)` | Switches on `mode`.<br>**Issuer:** validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`.<br>**Verifier:** validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
 | `defineServiceAuth(opts)` | Validates `name` and `resolvePrincipal`, registers the verifier and the `service` strategy. With `keys` present it also registers the signer and mounts the certs route. Absent options: does nothing |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
-| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` and registers the generated controller |
+| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `AuthControllerFactory.define()` and registers the generated controller |
 | `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
 
 > [!NOTE]
@@ -570,7 +567,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 ## Controller factory
 
-`defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
+`AuthControllerFactory.define(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime. The old name `defineAuthController` is a deprecated alias until 0.5.
 
 **File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 
@@ -620,7 +617,7 @@ type TPolicyDefinitionCommonColumns<
 
 Both are generic. `extraVariants` declares app-owned edge kinds that live in the same table, and `Metadata` types the `metadata` column - it defaults to `TSubsetGrantMetadata` (`{ ops: string[] }`), what subset grants write.
 
-`subjectId`, `targetId` and `domainId` are not in the common shape. `extraPolicyDefinitionColumns` adds all three per `idType`, as `text` or `integer`. The domain lives in two columns, `domainType` and `domainId`, never one - see [Usage & Examples](./usage#entity-column-helpers).
+`subjectId`, `targetId` and `domainId` are not in the common shape. `AuthModelColumns.buildPolicyDefinition` adds all three per `idType`, as `text` or `integer`. The domain lives in two columns, `domainType` and `domainId`, never one - see [Usage & Examples](./usage#entity-column-helpers).
 
 ## File structure
 
@@ -650,7 +647,7 @@ packages/kernel/src/base/auth/
 packages/core-server/src/components/auth/
 ├── authenticate/
 │   ├── controllers/
-│   │   ├── factory.ts            # defineAuthController() + JWTTokenPayloadSchema
+│   │   ├── factory.ts            # AuthControllerFactory + JWTTokenPayloadSchema
 │   │   ├── jwks/                 # JWKSController + route config
 │   │   └── service-certs/        # ServiceCertsController + route config
 │   ├── services/
@@ -663,7 +660,7 @@ packages/core-server/src/components/auth/
 │   ├── strategies/                      # JWSAuthenticationStrategy, JWKS*, BasicAuthenticationStrategy, ServiceAuthenticationStrategy
 │   └── component.ts                     # AuthenticateComponent
 └── models/
-    └── entities/                        # extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns
+    └── entities/                        # columns.ts (AuthModelColumns) + the model types
 ```
 
 ## See also

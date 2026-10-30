@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AwaitSupport } from './await-support';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /**
  * `venizia/no-inline-await`. `await` stands alone: as a whole statement (`await f();`) or as the whole initializer
@@ -33,16 +33,16 @@ export class NoInlineAwaitRule {
       return {
         [AstNodeTypes.AWAIT_EXPRESSION]: (node: Rule.Node) => {
           const parent = AwaitSupport.parentOf({ node });
-          const parentType = nodeType({ node: parent });
+          const parentType = AstNode.getType({ node: parent });
           const isWhole =
             (parentType === 'ExpressionStatement' &&
-              readField({ node: parent, key: 'expression' }) === node) ||
+              AstNode.readField({ node: parent, key: 'expression' }) === node) ||
             (parentType === 'VariableDeclarator' &&
-              readField({ node: parent, key: 'init' }) === node);
+              AstNode.readField({ node: parent, key: 'init' }) === node);
           const isReturned =
             (parentType === 'ReturnStatement' || parentType === 'ArrowFunctionExpression') &&
-            (readField({ node: parent, key: 'argument' }) === node ||
-              readField({ node: parent, key: 'body' }) === node);
+            (AstNode.readField({ node: parent, key: 'argument' }) === node ||
+              AstNode.readField({ node: parent, key: 'body' }) === node);
 
           if (isWhole || isReturned) {
             return;

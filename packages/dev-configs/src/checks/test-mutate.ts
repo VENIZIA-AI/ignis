@@ -199,77 +199,88 @@ const withMutants = <T>(opts: {
   return apply(0);
 };
 
-/** Replays every line; never throws for a green survivor (that is a result), only for an unusable ledger. */
+export class TestMutateCheck {
+  /** Replays every line; never throws for a green survivor (that is a result), only for an unusable ledger. */
+  static replayLedger(opts: { root: string; ledger: ILedger; scratch?: string }): ILedgerResult[] {
+    const root = resolve(opts.root);
+    const scratch = opts.scratch ?? join(root, '.agents/local/tmp');
+    const results: ILedgerResult[] = [];
+
+    for (const line of opts.ledger.mutants) {
+      const { survivorRed, candidateRed } = withMutants({
+        root,
+        mutant: line.mutant,
+        scratch,
+        id: line.id,
+        action: () => ({
+          survivorRed: runIsRed({ root, file: line.survivor, name: line.survivorName }),
+          candidateRed: runIsRed({ root, file: line.candidate, name: line.candidateName }),
+        }),
+      });
+      const result: ILedgerResult = { id: line.id, survivorRed, candidateRed, ok: true };
+      const expectation = line.expectCandidate ?? 'red';
+
+      if (!survivorRed) {
+        result.ok = false;
+        result.problem =
+          'the survivor stayed green under the mutant: it does not cover the behaviour';
+      } else if (expectation === 'red' && !candidateRed) {
+        result.ok = false;
+        result.problem =
+          'the candidate stayed green under the mutant: record it as vacuous with a second mutant, or pick a mutant it checks';
+      } else if (expectation === 'vacuous') {
+        if (!line.secondMutant) {
+          result.ok = false;
+          result.problem = 'a vacuous line needs a secondMutant';
+        } else if (candidateRed) {
+          result.ok = false;
+          result.problem = 'the candidate went red under the mutant: it is not vacuous';
+        } else {
+          const greenUnderSecond = !withMutants({
+            root,
+            mutant: line.secondMutant,
+            scratch,
+            id: `${line.id}-second`,
+            action: () => runIsRed({ root, file: line.candidate, name: line.candidateName }),
+          });
+          result.candidateGreenUnderSecond = greenUnderSecond;
+
+          if (!greenUnderSecond) {
+            result.ok = false;
+            result.problem = 'the candidate went red under the second mutant: it is not vacuous';
+          }
+        }
+      }
+
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  /** The report lines of a replay, one per ledger line and a closing tally. */
+  static formatLedgerResults(opts: { results: ILedgerResult[] }): string[] {
+    const { results } = opts;
+    const lines = results.map(
+      (result) =>
+        `${result.ok ? 'ok  ' : 'FAIL'} ${result.id}: survivor ${result.survivorRed ? 'red' : 'GREEN'}, candidate ${result.candidateRed ? 'red' : 'green'}${result.problem ? ` | ${result.problem}` : ''}`,
+    );
+    const failed = results.filter((result) => !result.ok).length;
+    lines.push(
+      `\n[test-mutate] ${results.length - failed}/${results.length} ledger lines hold${failed ? `, ${failed} do not` : ''}.`,
+    );
+
+    return lines;
+  }
+}
+
+/** @deprecated Use `TestMutateCheck.replayLedger({ root, ledger, scratch })`. Removed in 0.5. */
 export const replayLedger = (opts: {
   root: string;
   ledger: ILedger;
   scratch?: string;
-}): ILedgerResult[] => {
-  const root = resolve(opts.root);
-  const scratch = opts.scratch ?? join(root, '.agents/local/tmp');
-  const results: ILedgerResult[] = [];
+}): ILedgerResult[] => TestMutateCheck.replayLedger(opts);
 
-  for (const line of opts.ledger.mutants) {
-    const { survivorRed, candidateRed } = withMutants({
-      root,
-      mutant: line.mutant,
-      scratch,
-      id: line.id,
-      action: () => ({
-        survivorRed: runIsRed({ root, file: line.survivor, name: line.survivorName }),
-        candidateRed: runIsRed({ root, file: line.candidate, name: line.candidateName }),
-      }),
-    });
-    const result: ILedgerResult = { id: line.id, survivorRed, candidateRed, ok: true };
-    const expectation = line.expectCandidate ?? 'red';
-
-    if (!survivorRed) {
-      result.ok = false;
-      result.problem =
-        'the survivor stayed green under the mutant: it does not cover the behaviour';
-    } else if (expectation === 'red' && !candidateRed) {
-      result.ok = false;
-      result.problem =
-        'the candidate stayed green under the mutant: record it as vacuous with a second mutant, or pick a mutant it checks';
-    } else if (expectation === 'vacuous') {
-      if (!line.secondMutant) {
-        result.ok = false;
-        result.problem = 'a vacuous line needs a secondMutant';
-      } else if (candidateRed) {
-        result.ok = false;
-        result.problem = 'the candidate went red under the mutant: it is not vacuous';
-      } else {
-        const greenUnderSecond = !withMutants({
-          root,
-          mutant: line.secondMutant,
-          scratch,
-          id: `${line.id}-second`,
-          action: () => runIsRed({ root, file: line.candidate, name: line.candidateName }),
-        });
-        result.candidateGreenUnderSecond = greenUnderSecond;
-
-        if (!greenUnderSecond) {
-          result.ok = false;
-          result.problem = 'the candidate went red under the second mutant: it is not vacuous';
-        }
-      }
-    }
-
-    results.push(result);
-  }
-
-  return results;
-};
-
-export const formatLedgerResults = (results: ILedgerResult[]): string[] => {
-  const lines = results.map(
-    (result) =>
-      `${result.ok ? 'ok  ' : 'FAIL'} ${result.id}: survivor ${result.survivorRed ? 'red' : 'GREEN'}, candidate ${result.candidateRed ? 'red' : 'green'}${result.problem ? ` | ${result.problem}` : ''}`,
-  );
-  const failed = results.filter((result) => !result.ok).length;
-  lines.push(
-    `\n[test-mutate] ${results.length - failed}/${results.length} ledger lines hold${failed ? `, ${failed} do not` : ''}.`,
-  );
-
-  return lines;
-};
+/** @deprecated Use `TestMutateCheck.formatLedgerResults({ results })`. Removed in 0.5. */
+export const formatLedgerResults = (results: ILedgerResult[]): string[] =>
+  TestMutateCheck.formatLedgerResults({ results });

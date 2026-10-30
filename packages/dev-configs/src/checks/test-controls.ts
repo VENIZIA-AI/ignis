@@ -35,102 +35,108 @@ export interface IControlsReport {
   problems: IControlProblem[];
 }
 
-/**
- * The titles in a test file: the first string argument of `test`, `it`, `describe` and of the
- * second call of `test.each(rows)('title', ...)`, with their `.only`/`.skip`/`.if(...)` forms.
- * A `test.each` title is returned as written (`%s` and all): the registry patterns are regular
- * expressions, so the expansion does not matter.
- */
-export const listTestTitles = async (opts: {
-  source: string;
-  fileName?: string;
-}): Promise<string[]> => {
-  const result = await import('typescript');
-  const typescript: typeof ts = result.default;
-  const file = typescript.createSourceFile(
-    opts.fileName ?? 'file.test.ts',
-    opts.source,
-    typescript.ScriptTarget.Latest,
-    true,
-  );
-  const titles: string[] = [];
-  const RUNNERS = new Set(['test', 'it', 'describe']);
+export class TestControlsCheck {
+  /**
+   * The titles in a test file: the first string argument of `test`, `it`, `describe` and of the
+   * second call of `test.each(rows)('title', ...)`, with their `.only`/`.skip`/`.if(...)` forms.
+   * A `test.each` title is returned as written (`%s` and all): the registry patterns are regular
+   * expressions, so the expansion does not matter.
+   */
+  static async listTitles(opts: { source: string; fileName?: string }): Promise<string[]> {
+    const result = await import('typescript');
+    const typescript: typeof ts = result.default;
+    const file = typescript.createSourceFile(
+      opts.fileName ?? 'file.test.ts',
+      opts.source,
+      typescript.ScriptTarget.Latest,
+      true,
+    );
+    const titles: string[] = [];
+    const RUNNERS = new Set(['test', 'it', 'describe']);
 
-  const rootName = (expression: ts.Expression): string | undefined => {
-    if (typescript.isIdentifier(expression)) {
-      return expression.text;
-    }
+    const rootName = (expression: ts.Expression): string | undefined => {
+      if (typescript.isIdentifier(expression)) {
+        return expression.text;
+      }
 
-    if (typescript.isPropertyAccessExpression(expression)) {
-      return rootName(expression.expression);
-    }
+      if (typescript.isPropertyAccessExpression(expression)) {
+        return rootName(expression.expression);
+      }
 
-    if (typescript.isCallExpression(expression)) {
-      return rootName(expression.expression);
-    }
+      if (typescript.isCallExpression(expression)) {
+        return rootName(expression.expression);
+      }
 
-    return undefined;
-  };
+      return undefined;
+    };
 
-  const visit = (node: ts.Node): void => {
-    if (typescript.isCallExpression(node)) {
-      const first = node.arguments[0];
-      const root = rootName(node.expression);
+    const visit = (node: ts.Node): void => {
+      if (typescript.isCallExpression(node)) {
+        const first = node.arguments[0];
+        const root = rootName(node.expression);
 
-      if (
-        root !== undefined &&
-        RUNNERS.has(root) &&
-        first &&
-        (typescript.isStringLiteral(first) || typescript.isNoSubstitutionTemplateLiteral(first))
-      ) {
-        titles.push(first.text);
+        if (
+          root !== undefined &&
+          RUNNERS.has(root) &&
+          first &&
+          (typescript.isStringLiteral(first) || typescript.isNoSubstitutionTemplateLiteral(first))
+        ) {
+          titles.push(first.text);
+        }
+      }
+
+      typescript.forEachChild(node, visit);
+    };
+
+    visit(file);
+
+    return titles;
+  }
+
+  /** Checks every entry of the registry against the test files it names. */
+  static async run(opts: { root: string; controls: IControlEntry[] }): Promise<IControlsReport> {
+    const problems: IControlProblem[] = [];
+
+    for (const entry of opts.controls) {
+      const path = join(opts.root, entry.file);
+      if (!existsSync(path)) {
+        problems.push({
+          entry,
+          message: `the ${entry.kind === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
+        });
+        continue;
+      }
+
+      if (entry.kind === 'file') {
+        continue;
+      }
+
+      const titles = await TestControlsCheck.listTitles({
+        source: readFileSync(path, 'utf8'),
+        fileName: entry.file,
+      });
+      const pattern = new RegExp(entry.titlePattern ?? '');
+      const matched = titles.filter((title) => pattern.test(title)).length;
+      const min = entry.min ?? 1;
+
+      if (matched < min) {
+        problems.push({
+          entry,
+          message: `${matched} title(s) match /${entry.titlePattern ?? ''}/ in ${entry.file}, ${min} required | the control of gate '${entry.gate}' is gone or renamed`,
+        });
       }
     }
 
-    typescript.forEachChild(node, visit);
-  };
+    return { checked: opts.controls.length, problems };
+  }
+}
 
-  visit(file);
+/** @deprecated Use `TestControlsCheck.listTitles({ source, fileName })`. Removed in 0.5. */
+export const listTestTitles = (opts: { source: string; fileName?: string }): Promise<string[]> =>
+  TestControlsCheck.listTitles(opts);
 
-  return titles;
-};
-
-/** Checks every entry of the registry against the test files it names. */
-export const checkControls = async (opts: {
+/** @deprecated Use `TestControlsCheck.run({ root, controls })`. Removed in 0.5. */
+export const checkControls = (opts: {
   root: string;
   controls: IControlEntry[];
-}): Promise<IControlsReport> => {
-  const problems: IControlProblem[] = [];
-
-  for (const entry of opts.controls) {
-    const path = join(opts.root, entry.file);
-    if (!existsSync(path)) {
-      problems.push({
-        entry,
-        message: `the ${entry.kind === 'file' ? 'negative fixture' : 'test file'} ${entry.file} does not exist`,
-      });
-      continue;
-    }
-
-    if (entry.kind === 'file') {
-      continue;
-    }
-
-    const titles = await listTestTitles({
-      source: readFileSync(path, 'utf8'),
-      fileName: entry.file,
-    });
-    const pattern = new RegExp(entry.titlePattern ?? '');
-    const matched = titles.filter((title) => pattern.test(title)).length;
-    const min = entry.min ?? 1;
-
-    if (matched < min) {
-      problems.push({
-        entry,
-        message: `${matched} title(s) match /${entry.titlePattern ?? ''}/ in ${entry.file}, ${min} required | the control of gate '${entry.gate}' is gone or renamed`,
-      });
-    }
-  }
-
-  return { checked: opts.controls.length, problems };
-};
+}): Promise<IControlsReport> => TestControlsCheck.run(opts);

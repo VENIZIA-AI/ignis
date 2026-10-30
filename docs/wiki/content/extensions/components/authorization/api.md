@@ -542,10 +542,10 @@ All constant classes follow the same pattern: static readonly values + `SCHEME_S
 
 `isValidAction(input)` / `isValidRule(input)` check membership; `ACTION_SCHEME_SET` / `RULE_SCHEME_SET` hold the sets.
 
-The `variant` column's TypeScript type (`extraPolicyDefinitionColumns` in [`policy-definition.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/policy-definition.model.ts)) is closed to these seven values by default - `extraPolicyDefinitionColumns()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
+The `variant` column's TypeScript type (`AuthModelColumns.buildPolicyDefinition` in [`columns.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities/columns.ts); the old name `extraPolicyDefinitionColumns` is a deprecated alias until 0.5) is closed to these seven values by default - `AuthModelColumns.buildPolicyDefinition()`. An application with its own edge type stored in the same table declares it explicitly, and only that call site's column type widens:
 
 ```typescript
-extraPolicyDefinitionColumns({ idType: 'string', extraVariants: ['merchant_role'] });
+AuthModelColumns.buildPolicyDefinition({ idType: 'string', extraVariants: ['merchant_role'] });
 ```
 
 `ScopedCasbinAdapter` never selects an undeclared variant - it is purely the application's own data alongside the seven above.

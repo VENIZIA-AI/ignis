@@ -6,7 +6,7 @@ import { Binding } from '@venizia/ignis-kernel';
 import { type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { StaticAssetComponentBindingKeys, type TStaticAssetsComponentOptions } from './common';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from './models';
-import { AssetControllerFactory, buildObjectLink } from './controller';
+import { AssetControllerFactory } from './controller';
 
 /** `Schema` is the MetaLink table the application binds. It has to live on the CLASS, not only on the options: `component(Ctor, { options })` infers the options from the class, so a class pinned to the shipped table can only carry options for that table. */
 export class StaticAssetComponent<
@@ -64,7 +64,7 @@ export class StaticAssetComponent<
               extra?.normalizeLinkFn ??
               // The link follows the URL shape the controller serves: `{objectName}` is one Hono path segment unless `rawObjectPath` widens it, and a configured bucket leaves the path.
               ((linkOptions) =>
-                buildObjectLink({
+                AssetControllerFactory.buildObjectLink({
                   basePath: controller.basePath,
                   bucket: linkOptions.bucket,
                   object: linkOptions.object,

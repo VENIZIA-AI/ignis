@@ -36,33 +36,39 @@ export const readAffectedRowCount = (opts: { result: unknown }): number => {
   });
 };
 
-/** Rows returned by `connector.execute(...)`. */
-export const readResultRows = <TRow>(opts: { result: unknown }): TRow[] => {
-  const { result } = opts;
+export class DrizzleResultUtility {
+  /** Rows returned by `connector.execute(...)`. */
+  static readResultRows<TRow>(opts: { result: unknown }): TRow[] {
+    const { result } = opts;
 
-  if (result === null || result === undefined) {
-    return [];
-  }
+    if (result === null || result === undefined) {
+      return [];
+    }
 
-  // postgres-js: the result IS the row list.
-  if (Array.isArray(result)) {
-    return result as TRow[];
-  }
+    // postgres-js: the result IS the row list.
+    if (Array.isArray(result)) {
+      return result as TRow[];
+    }
 
-  if (typeof result !== 'object') {
+    if (typeof result !== 'object') {
+      throw getError({
+        message: `[readResultRows] Unrecognized driver result | expected pg.QueryResult or postgres-js RowList | got: ${typeof result}`,
+      });
+    }
+
+    // node-postgres: pg.QueryResult.
+    const { rows } = result as { rows?: unknown };
+
+    if (Array.isArray(rows)) {
+      return rows as TRow[];
+    }
+
     throw getError({
-      message: `[readResultRows] Unrecognized driver result | expected pg.QueryResult or postgres-js RowList | got: ${typeof result}`,
+      message: `[readResultRows] Unrecognized driver result | expected an array (postgres-js) or a 'rows' array (node-postgres) | got keys: ${Object.keys(result).join(', ')}`,
     });
   }
+}
 
-  // node-postgres: pg.QueryResult.
-  const { rows } = result as { rows?: unknown };
-
-  if (Array.isArray(rows)) {
-    return rows as TRow[];
-  }
-
-  throw getError({
-    message: `[readResultRows] Unrecognized driver result | expected an array (postgres-js) or a 'rows' array (node-postgres) | got keys: ${Object.keys(result).join(', ')}`,
-  });
-};
+/** @deprecated Use `DrizzleResultUtility.readResultRows({ result })`. Removed in 0.5. */
+export const readResultRows = <TRow>(opts: { result: unknown }): TRow[] =>
+  DrizzleResultUtility.readResultRows<TRow>(opts);

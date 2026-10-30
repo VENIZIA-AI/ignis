@@ -49,7 +49,7 @@ The whole RBAC state is a graph. Nodes are User / Role / Permission / Domain; ev
 
 The `variant` column's TypeScript type is closed to these seven values by default. An app can store
 its own edge kind in the same table - `ScopedCasbinAdapter` never selects an undeclared variant, so
-it is purely the app's data - by declaring it via `extraPolicyDefinitionColumns({ extraVariants: [...] })`
+it is purely the app's data - by declaring it via `AuthModelColumns.buildPolicyDefinition({ extraVariants: [...] })` (`extraPolicyDefinitionColumns` is a deprecated alias until 0.5)
 in `packages/core-server/src/components/auth/models/entities/policy-definition.model.ts`. `effect`
 does not get the same treatment: its value is read by Casbin's own effect evaluator, not merely
 filtered on, so an undeclared value there is a correctness risk, not a harmless unselected row.
@@ -140,7 +140,7 @@ Three states, and NULL is one of them:
   the ambiguity the split removes. `AuthorizationPolicyBuilder` normalises it to null, so a caller
   passing the literal produces `domain: 'ANY_MEMBER'` with `domainType: null` - the ONE intended
   divergence, and a backfill diff must not read it as drift.
-- **`policyDefinitionDomainShapeCheck()` returns CHECK predicate TEXT, not a Drizzle `SQL`**: a
+- **`AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()` (alias `policyDefinitionDomainShapeCheck`) returns CHECK predicate TEXT, not a Drizzle `SQL`**: a
   column reference in a `sql` template renders schema-qualified, which is invalid in a table-level
   CHECK. It is two-way on purpose - half a constraint admits half the broken rows.
 - **The `IS NOT NULL` guard in its last branch is load-bearing, not redundant.** A NULL `domain_type`

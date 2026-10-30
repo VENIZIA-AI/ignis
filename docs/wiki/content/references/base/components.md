@@ -572,7 +572,7 @@ import {
   TJWTTokenServiceOptions,
 } from './common';
 import { BasicTokenService, JWSTokenService } from './services';
-import { defineAuthController } from './controllers';
+import { AuthControllerFactory } from './controllers';
 
 export class AuthenticateComponent extends BaseComponent {
   constructor(
@@ -637,7 +637,7 @@ export class AuthenticateComponent extends BaseComponent {
         });
       }
 
-      this.application.controller(defineAuthController(restOptions.controllerOpts));
+      this.application.controller(AuthControllerFactory.define(restOptions.controllerOpts));
     }
   }
 }

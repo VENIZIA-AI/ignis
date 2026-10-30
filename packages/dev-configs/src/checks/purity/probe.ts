@@ -64,7 +64,7 @@ export type TProbeSeverity = Extract<
  * gate cry wolf on a dependency; the unguarded `process.` and `globalThis.process.` forms stay
  * fatal, and those are the ones that are unambiguously browser-breaking.
  *
- * Exported for `probe.test.ts` to assert against directly, alongside {@link stripBundlerPathComments}.
+ * Exported for `probe.test.ts` to assert against directly, alongside {@link PurityProbe.stripBundlerPathComments}.
  */
 export const GLOBAL_PATTERNS: Array<{
   name: string;
@@ -114,15 +114,6 @@ export const GLOBAL_PATTERNS: Array<{
  * information, so it cannot tell a path comment from code - stripped before matching.
  */
 const BUNDLER_PATH_COMMENT = /^\/\/ [\w@./-]+\.(?:c|m)?js$/gm;
-
-/**
- * Exported so `probe.test.ts` can assert against the literal collision string directly, without
- * spawning `bun build` - a fixture whose OWN entry-path comment happens to reproduce the collision
- * is not something a filename choice can be relied on to keep reproducing.
- */
-export const stripBundlerPathComments = (text: string): string => {
-  return text.replace(BUNDLER_PATH_COMMENT, '');
-};
 
 interface IMetafileImport {
   path: string;
@@ -241,7 +232,7 @@ const findUnresolvedExternalSpecifiers = (opts: {
 
 /**
  * Reads and removes the metafile unconditionally. Returns `undefined` rather than throwing -
- * `probeEntry` reports on every entry it is given rather than aborting the run of the other five.
+ * `PurityProbe.probeEntry` reports on every entry it is given rather than aborting the run of the other five.
  */
 const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   try {
@@ -256,123 +247,147 @@ const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   }
 };
 
-/**
- * The CLI, not `Bun.build()`: the in-process bundler resolves this workspace's symlinked
- * dependencies to directories and dies on them.
- */
-export const probeEntry = async (opts: {
-  entry: string;
-  cwd: string;
-  external?: string[];
-  /** Defaults to {@link PURITY_SCRATCH_DIR} under `cwd`. */
-  scratchDir?: string;
-}): Promise<IPurityResult> => {
-  const { entry, cwd, external = [], scratchDir = join(cwd, PURITY_SCRATCH_DIR) } = opts;
-  await mkdir(scratchDir, { recursive: true });
-  const metafilePath = join(scratchDir, `purity-${randomUUID()}.json`);
-
-  // `--env=disable`: Bun inlines `process.env.NODE_ENV` as a compile-time string constant by
-  // default, regardless of whether the read is reachable. That erases the very read this probe
-  // exists to catch, and the erasure depends on the ambient `NODE_ENV` the probe happens to run
-  // under - the same failure shape as the undetected leak this gate was built to prevent.
-  const externalArgs = external.flatMap((specifier) => ['--external', specifier]);
-  const proc = Bun.spawn(
-    [
-      'bun',
-      'build',
-      entry,
-      '--target=browser',
-      '--format=esm',
-      '--env=disable',
-      `--metafile=${metafilePath}`,
-      ...externalArgs,
-    ],
-    { cwd, stdout: 'pipe', stderr: 'pipe' },
-  );
-
-  const [stdout, stderr, exitCode] = await Promise.all([
-    new Response(proc.stdout).text(),
-    new Response(proc.stderr).text(),
-    proc.exited,
-  ]);
-
-  if (exitCode !== 0) {
-    await rm(metafilePath, { force: true });
-    return {
-      entry,
-      ok: false,
-      sizeBytes: 0,
-      builtins: [],
-      globals: [],
-      guardedGlobals: [],
-      external,
-      buildError: stderr.trim(),
-    };
+export class PurityProbe {
+  /**
+   * Public so `probe.test.ts` can assert against the literal collision string directly, without
+   * spawning `bun build` - a fixture whose OWN entry-path comment happens to reproduce the collision
+   * is not something a filename choice can be relied on to keep reproducing.
+   */
+  static stripBundlerPathComments(opts: { text: string }): string {
+    return opts.text.replace(BUNDLER_PATH_COMMENT, '');
   }
 
-  const metafile = await readMetafile(metafilePath);
-  if (!metafile) {
+  /**
+   * The CLI, not `Bun.build()`: the in-process bundler resolves this workspace's symlinked
+   * dependencies to directories and dies on them.
+   */
+  static async probeEntry(opts: {
+    entry: string;
+    cwd: string;
+    external?: string[];
+    /** Defaults to {@link PURITY_SCRATCH_DIR} under `cwd`. */
+    scratchDir?: string;
+  }): Promise<IPurityResult> {
+    const { entry, cwd, external = [], scratchDir = join(cwd, PURITY_SCRATCH_DIR) } = opts;
+    await mkdir(scratchDir, { recursive: true });
+    const metafilePath = join(scratchDir, `purity-${randomUUID()}.json`);
+
+    // `--env=disable`: Bun inlines `process.env.NODE_ENV` as a compile-time string constant by
+    // default, regardless of whether the read is reachable. That erases the very read this probe
+    // exists to catch, and the erasure depends on the ambient `NODE_ENV` the probe happens to run
+    // under - the same failure shape as the undetected leak this gate was built to prevent.
+    const externalArgs = external.flatMap((specifier) => ['--external', specifier]);
+    const proc = Bun.spawn(
+      [
+        'bun',
+        'build',
+        entry,
+        '--target=browser',
+        '--format=esm',
+        '--env=disable',
+        `--metafile=${metafilePath}`,
+        ...externalArgs,
+      ],
+      { cwd, stdout: 'pipe', stderr: 'pipe' },
+    );
+
+    const [stdout, stderr, exitCode] = await Promise.all([
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+      proc.exited,
+    ]);
+
+    if (exitCode !== 0) {
+      await rm(metafilePath, { force: true });
+      return {
+        entry,
+        ok: false,
+        sizeBytes: 0,
+        builtins: [],
+        globals: [],
+        guardedGlobals: [],
+        external,
+        buildError: stderr.trim(),
+      };
+    }
+
+    const metafile = await readMetafile(metafilePath);
+    if (!metafile) {
+      return {
+        entry,
+        ok: false,
+        sizeBytes: stdout.length,
+        builtins: [],
+        globals: [],
+        guardedGlobals: [],
+        external,
+        buildError: 'Could not read the bun build metafile - the probe result is not trustworthy',
+      };
+    }
+
+    const builtins = findBuiltinSpecifiers(metafile);
+    const reachesDevConfigs = Object.keys(metafile.inputs).some((inputPath) =>
+      DEV_CONFIGS_PATH.test(inputPath),
+    );
+    const unresolvedExternals = findUnresolvedExternalSpecifiers({
+      metafile,
+      builtins: new Set(builtins),
+      requestedExternal: new Set(external),
+    });
+    const scannableText = PurityProbe.stripBundlerPathComments({ text: stdout });
+    const matched = GLOBAL_PATTERNS.filter((g) => g.pattern.test(scannableText));
+    const globals = matched.filter((g) => g.severity === ProbeSeverities.ERROR).map((g) => g.name);
+    const guardedGlobals = matched
+      .filter((g) => g.severity === ProbeSeverities.GUARDED)
+      .map((g) => g.name);
+
+    if (builtins.length > 0 || unresolvedExternals.length > 0 || reachesDevConfigs) {
+      const reasons: string[] = [];
+      if (reachesDevConfigs) {
+        reasons.push(
+          'reaches @venizia/dev-configs, which is Bun-only tooling and never a browser dependency',
+        );
+      }
+      if (builtins.length > 0) {
+        reasons.push(`node builtin import(s): ${builtins.join(', ')}`);
+      }
+      if (unresolvedExternals.length > 0) {
+        reasons.push(`unresolved external import(s): ${unresolvedExternals.join(', ')}`);
+      }
+
+      return {
+        entry,
+        ok: false,
+        sizeBytes: stdout.length,
+        builtins,
+        globals,
+        guardedGlobals,
+        external,
+        buildError: reasons.join(' | '),
+      };
+    }
+
     return {
       entry,
-      ok: false,
-      sizeBytes: stdout.length,
-      builtins: [],
-      globals: [],
-      guardedGlobals: [],
-      external,
-      buildError: 'Could not read the bun build metafile - the probe result is not trustworthy',
-    };
-  }
-
-  const builtins = findBuiltinSpecifiers(metafile);
-  const reachesDevConfigs = Object.keys(metafile.inputs).some((inputPath) =>
-    DEV_CONFIGS_PATH.test(inputPath),
-  );
-  const unresolvedExternals = findUnresolvedExternalSpecifiers({
-    metafile,
-    builtins: new Set(builtins),
-    requestedExternal: new Set(external),
-  });
-  const scannableText = stripBundlerPathComments(stdout);
-  const matched = GLOBAL_PATTERNS.filter((g) => g.pattern.test(scannableText));
-  const globals = matched.filter((g) => g.severity === ProbeSeverities.ERROR).map((g) => g.name);
-  const guardedGlobals = matched
-    .filter((g) => g.severity === ProbeSeverities.GUARDED)
-    .map((g) => g.name);
-
-  if (builtins.length > 0 || unresolvedExternals.length > 0 || reachesDevConfigs) {
-    const reasons: string[] = [];
-    if (reachesDevConfigs) {
-      reasons.push(
-        'reaches @venizia/dev-configs, which is Bun-only tooling and never a browser dependency',
-      );
-    }
-    if (builtins.length > 0) {
-      reasons.push(`node builtin import(s): ${builtins.join(', ')}`);
-    }
-    if (unresolvedExternals.length > 0) {
-      reasons.push(`unresolved external import(s): ${unresolvedExternals.join(', ')}`);
-    }
-
-    return {
-      entry,
-      ok: false,
+      ok: globals.length === 0,
       sizeBytes: stdout.length,
       builtins,
       globals,
       guardedGlobals,
       external,
-      buildError: reasons.join(' | '),
     };
   }
+}
 
-  return {
-    entry,
-    ok: globals.length === 0,
-    sizeBytes: stdout.length,
-    builtins,
-    globals,
-    guardedGlobals,
-    external,
-  };
-};
+/** @deprecated Use `PurityProbe.stripBundlerPathComments({ text })`. Removed in 0.5. */
+export const stripBundlerPathComments = (text: string): string =>
+  PurityProbe.stripBundlerPathComments({ text });
+
+/** @deprecated Use `PurityProbe.probeEntry({ entry, cwd, external, scratchDir })`. Removed in 0.5. */
+export const probeEntry = (opts: {
+  entry: string;
+  cwd: string;
+  external?: string[];
+  /** Defaults to {@link PURITY_SCRATCH_DIR} under `cwd`. */
+  scratchDir?: string;
+}): Promise<IPurityResult> => PurityProbe.probeEntry(opts);

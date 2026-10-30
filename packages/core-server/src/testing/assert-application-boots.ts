@@ -215,209 +215,218 @@ const assertNoDuplicateRoutes = (opts: { application: BaseApplication }): void =
  * It wraps `registerDynamicBindings` and `getBootSequence` on THIS instance only (an application's
  * own override of either still runs) and restores them whatever happens.
  */
-export const assertApplicationBoots = async <Application extends BaseApplication>(
-  application: Application | (() => Application | Promise<Application>),
-  options: IAssertApplicationBootsOptions = {},
-): Promise<Application> => {
-  const {
-    keepDataSources = [],
-    skipComponents = [],
-    skipSteps = DEFAULT_SKIPPED_STEPS,
-    verifyBindings = true,
-    skipBindings = [],
-    allowNoControllers = false,
-    routes = true,
-  } = options;
+export class ApplicationBootAssertion {
+  static async assert<Application extends BaseApplication>(opts: {
+    application: Application | (() => Application | Promise<Application>);
+    options?: IAssertApplicationBootsOptions;
+  }): Promise<Application> {
+    const { application, options = {} } = opts;
+    const {
+      keepDataSources = [],
+      skipComponents = [],
+      skipSteps = DEFAULT_SKIPPED_STEPS,
+      verifyBindings = true,
+      skipBindings = [],
+      allowNoControllers = false,
+      routes = true,
+    } = options;
 
-  for (const step of skipSteps) {
-    if (!ServerBootSteps.isValid(step)) {
-      fail(
-        `Unknown boot step in skipSteps: '${String(step)}' | Expected one of: ${[...ServerBootSteps.SCHEME_SET].join(', ')}`,
-      );
-    }
-  }
-
-  let target: Application;
-  if (typeof application === 'function') {
-    const built = await application();
-    target = built;
-  } else {
-    target = application;
-  }
-
-  if (
-    bootedApplications.has(target) ||
-    Object.keys(target['registeredBindings'] ?? {}).length > 0
-  ) {
-    fail(
-      `This application instance was already booted | A failed or finished boot leaves registrations behind, so build a new instance (pass a factory) for each call`,
-    );
-  }
-  bootedApplications.add(target);
-
-  for (const name of WRAPPED_METHODS) {
-    if (typeof target[name] !== 'function') {
-      fail(
-        `The kernel method '${name}' is missing on this application | The helper cannot keep a boot offline without it, so it refuses to boot`,
-      );
-    }
-  }
-
-  const skippedSteps = new Set<string>(skipSteps);
-  const patches: IPatch[] = [];
-  let sweepsSeen = 0;
-  // The components whose `configure()` is running, innermost last: when the boot rejects, the last one is where it failed.
-  const configuringComponents: string[] = [];
-
-  const neutralise = async (opts: {
-    namespace: string;
-    binding: Binding<AnyType>;
-  }): Promise<void> => {
-    const { namespace, binding } = opts;
-    const isDataSource = namespace === BindingNamespaces.DATASOURCE;
-    const isComponent = namespace === BindingNamespaces.COMPONENT;
-    if (!isDataSource && !isComponent) {
-      return;
+    for (const step of skipSteps) {
+      if (!ServerBootSteps.isValid(step)) {
+        fail(
+          `Unknown boot step in skipSteps: '${String(step)}' | Expected one of: ${[...ServerBootSteps.SCHEME_SET].join(', ')}`,
+        );
+      }
     }
 
-    const instance = target.get<AnyType>({ key: binding.key, isOptional: false });
-    if (typeof instance?.configure !== 'function') {
-      return;
-    }
-
-    const shouldRun = isDataSource
-      ? matchesTarget({ targets: keepDataSources, binding, instance })
-      : !matchesTarget({ targets: skipComponents, binding, instance });
-    if (shouldRun) {
-      return;
-    }
-
-    patches.push(patchProperty({ object: instance, name: 'configure', value: async () => {} }));
-  };
-
-  const originalRegisterDynamicBindings = target['registerDynamicBindings'] as unknown as (
-    opts: IDynamicBindingsOptions,
-  ) => Promise<void>;
-  const originalGetBootSequence = target['getBootSequence'] as unknown as () => Array<{
-    name: string;
-  }>;
-
-  const wrappedRegister = async (opts: IDynamicBindingsOptions): Promise<void> => {
-    sweepsSeen += 1;
-    const userBefore = opts.onBeforeConfigure;
-    const userAfter = opts.onAfterConfigure;
-
-    return originalRegisterDynamicBindings.call(target, {
-      ...opts,
-      onBeforeConfigure: async ({ binding }) => {
-        await neutralise({ namespace: opts.namespace, binding });
-        if (opts.namespace === BindingNamespaces.COMPONENT) {
-          const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
-          configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
-        }
-        await userBefore?.({ binding });
-      },
-      onAfterConfigure: async ({ binding, instance }) => {
-        if (opts.namespace === BindingNamespaces.COMPONENT) {
-          configuringComponents.pop();
-        }
-        await userAfter?.({ binding, instance });
-      },
-    });
-  };
-
-  patches.push(
-    patchProperty({ object: target, name: 'registerDynamicBindings', value: wrappedRegister }),
-  );
-  patches.push(
-    patchProperty({
-      object: target,
-      name: 'getBootSequence',
-      value: () =>
-        originalGetBootSequence.call(target).filter((step) => !skippedSteps.has(step.name)),
-    }),
-  );
-
-  if ((target['registerDynamicBindings'] as unknown) !== wrappedRegister) {
-    patches.forEach((patch) => patch.restore());
-    fail(
-      `The wrap of 'registerDynamicBindings' did not take effect | Refusing to boot against real infrastructure`,
-    );
-  }
-
-  const configs = target['configs'];
-  const originalBootChecks = configs.bootChecks;
-  const originalBinding = originalBootChecks?.binding;
-  configs.bootChecks = {
-    ...originalBootChecks,
-    binding: {
-      allowManual: originalBinding?.allowManual ?? true,
-      allowOverride: originalBinding?.allowOverride ?? true,
-      doVerify: false,
-    },
-  };
-
-  try {
-    if (!target.isBound({ key: CoreBindings.APPLICATION_INSTANCE })) {
-      target.init();
-    }
-
-    await target.initialize();
-
-    const sweepsExpected = [
-      ServerBootSteps.REGISTER_DATA_SOURCES,
-      ServerBootSteps.REGISTER_COMPONENTS,
-      ServerBootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
-    ].some((step) => !skippedSteps.has(step));
-    if (sweepsExpected && sweepsSeen === 0) {
-      fail(
-        `The boot never went through 'registerDynamicBindings' | The wrap did not take effect, so datasources may have been configured`,
-      );
-    }
-
-    if (verifyBindings) {
-      assertBindingsResolve({
-        container: target,
-        namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
-        skip: skipBindings,
-        scope: 'verifyBindings',
-      });
+    let target: Application;
+    if (typeof application === 'function') {
+      const built = await application();
+      target = built;
+    } else {
+      target = application;
     }
 
     if (
-      !allowNoControllers &&
-      target.findByTag({ tag: BindingNamespaces.CONTROLLER }).length === 0
+      bootedApplications.has(target) ||
+      Object.keys(target['registeredBindings'] ?? {}).length > 0
     ) {
       fail(
-        `The application registered no controller | A boot that registers nothing proves nothing: check the artifact index (for example the AutoArtifacts plugin under 'bun test'), or pass { allowNoControllers: true }`,
+        `This application instance was already booted | A failed or finished boot leaves registrations behind, so build a new instance (pass a factory) for each call`,
+      );
+    }
+    bootedApplications.add(target);
+
+    for (const name of WRAPPED_METHODS) {
+      if (typeof target[name] !== 'function') {
+        fail(
+          `The kernel method '${name}' is missing on this application | The helper cannot keep a boot offline without it, so it refuses to boot`,
+        );
+      }
+    }
+
+    const skippedSteps = new Set<string>(skipSteps);
+    const patches: IPatch[] = [];
+    let sweepsSeen = 0;
+    // The components whose `configure()` is running, innermost last: when the boot rejects, the last one is where it failed.
+    const configuringComponents: string[] = [];
+
+    const neutralise = async (opts: {
+      namespace: string;
+      binding: Binding<AnyType>;
+    }): Promise<void> => {
+      const { namespace, binding } = opts;
+      const isDataSource = namespace === BindingNamespaces.DATASOURCE;
+      const isComponent = namespace === BindingNamespaces.COMPONENT;
+      if (!isDataSource && !isComponent) {
+        return;
+      }
+
+      const instance = target.get<AnyType>({ key: binding.key, isOptional: false });
+      if (typeof instance?.configure !== 'function') {
+        return;
+      }
+
+      const shouldRun = isDataSource
+        ? matchesTarget({ targets: keepDataSources, binding, instance })
+        : !matchesTarget({ targets: skipComponents, binding, instance });
+      if (shouldRun) {
+        return;
+      }
+
+      patches.push(patchProperty({ object: instance, name: 'configure', value: async () => {} }));
+    };
+
+    const originalRegisterDynamicBindings = target['registerDynamicBindings'] as unknown as (
+      opts: IDynamicBindingsOptions,
+    ) => Promise<void>;
+    const originalGetBootSequence = target['getBootSequence'] as unknown as () => Array<{
+      name: string;
+    }>;
+
+    const wrappedRegister = async (opts: IDynamicBindingsOptions): Promise<void> => {
+      sweepsSeen += 1;
+      const userBefore = opts.onBeforeConfigure;
+      const userAfter = opts.onAfterConfigure;
+
+      return originalRegisterDynamicBindings.call(target, {
+        ...opts,
+        onBeforeConfigure: async ({ binding }) => {
+          await neutralise({ namespace: opts.namespace, binding });
+          if (opts.namespace === BindingNamespaces.COMPONENT) {
+            const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
+            configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
+          }
+          await userBefore?.({ binding });
+        },
+        onAfterConfigure: async ({ binding, instance }) => {
+          if (opts.namespace === BindingNamespaces.COMPONENT) {
+            configuringComponents.pop();
+          }
+          await userAfter?.({ binding, instance });
+        },
+      });
+    };
+
+    patches.push(
+      patchProperty({ object: target, name: 'registerDynamicBindings', value: wrappedRegister }),
+    );
+    patches.push(
+      patchProperty({
+        object: target,
+        name: 'getBootSequence',
+        value: () =>
+          originalGetBootSequence.call(target).filter((step) => !skippedSteps.has(step.name)),
+      }),
+    );
+
+    if ((target['registerDynamicBindings'] as unknown) !== wrappedRegister) {
+      patches.forEach((patch) => patch.restore());
+      fail(
+        `The wrap of 'registerDynamicBindings' did not take effect | Refusing to boot against real infrastructure`,
       );
     }
 
-    if (routes) {
-      assertNoDuplicateRoutes({ application: target });
-    }
+    const configs = target['configs'];
+    const originalBootChecks = configs.bootChecks;
+    const originalBinding = originalBootChecks?.binding;
+    configs.bootChecks = {
+      ...originalBootChecks,
+      binding: {
+        allowManual: originalBinding?.allowManual ?? true,
+        allowOverride: originalBinding?.allowOverride ?? true,
+        doVerify: false,
+      },
+    };
 
-    return target;
-  } catch (error) {
-    const failing = configuringComponents.at(-1);
-    if (failing) {
-      target.logger
-        .for('assertApplicationBoots')
-        .warn(
-          `The boot failed inside component ${failing} | If it needs infrastructure, skipComponents: ['${failing}'] skips it, and skipBindings lists the services that depend on it`,
+    try {
+      if (!target.isBound({ key: CoreBindings.APPLICATION_INSTANCE })) {
+        target.init();
+      }
+
+      await target.initialize();
+
+      const sweepsExpected = [
+        ServerBootSteps.REGISTER_DATA_SOURCES,
+        ServerBootSteps.REGISTER_COMPONENTS,
+        ServerBootSteps.REGISTER_CONTRIBUTED_DATA_SOURCES,
+      ].some((step) => !skippedSteps.has(step));
+      if (sweepsExpected && sweepsSeen === 0) {
+        fail(
+          `The boot never went through 'registerDynamicBindings' | The wrap did not take effect, so datasources may have been configured`,
         );
-    }
+      }
 
-    throw error;
-  } finally {
-    for (const patch of patches.reverse()) {
-      patch.restore();
-    }
+      if (verifyBindings) {
+        assertBindingsResolve({
+          container: target,
+          namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
+          skip: skipBindings,
+          scope: 'verifyBindings',
+        });
+      }
 
-    if (originalBootChecks === undefined) {
-      delete configs.bootChecks;
-    } else {
-      configs.bootChecks = originalBootChecks;
+      if (
+        !allowNoControllers &&
+        target.findByTag({ tag: BindingNamespaces.CONTROLLER }).length === 0
+      ) {
+        fail(
+          `The application registered no controller | A boot that registers nothing proves nothing: check the artifact index (for example the AutoArtifacts plugin under 'bun test'), or pass { allowNoControllers: true }`,
+        );
+      }
+
+      if (routes) {
+        assertNoDuplicateRoutes({ application: target });
+      }
+
+      return target;
+    } catch (error) {
+      const failing = configuringComponents.at(-1);
+      if (failing) {
+        target.logger
+          .for('assertApplicationBoots')
+          .warn(
+            `The boot failed inside component ${failing} | If it needs infrastructure, skipComponents: ['${failing}'] skips it, and skipBindings lists the services that depend on it`,
+          );
+      }
+
+      throw error;
+    } finally {
+      for (const patch of patches.reverse()) {
+        patch.restore();
+      }
+
+      if (originalBootChecks === undefined) {
+        delete configs.bootChecks;
+      } else {
+        configs.bootChecks = originalBootChecks;
+      }
     }
   }
-};
+}
+
+/** @deprecated Use `ApplicationBootAssertion.assert({ application, options })`. Removed in 0.5. */
+export const assertApplicationBoots = <Application extends BaseApplication>(
+  application: Application | (() => Application | Promise<Application>),
+  options: IAssertApplicationBootsOptions = {},
+): Promise<Application> => ApplicationBootAssertion.assert({ application, options });

@@ -261,7 +261,7 @@ devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one pac
 | `external` | Third-party specifiers kept out of the bundle for one sub-path. A name that starts with the workspace scope is refused |
 | `impure` | Sub-paths and conditions expected to fail. The waiver is exact: a waived entry that turns out pure fails as a stale waiver |
 
-The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine functions (`buildManifest`, `probeEntry`, `checkPurity`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
+The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine classes (`PurityManifest.build`, `PurityProbe.probeEntry`, `PurityCheck.run`) for a repository that wants them in its own tests. The old function names (`buildManifest`, `probeEntry`, `checkPurity`) are deprecated aliases until 0.5. It is Bun-only tooling, so a browser entry must never import it.
 
 ### Checking browser purity
 
@@ -293,7 +293,7 @@ devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one pac
 | `external` | Third-party specifiers kept out of the bundle for one sub-path. A name that starts with the workspace scope is refused |
 | `impure` | Sub-paths and conditions expected to fail. The waiver is exact: a waived entry that turns out pure fails as a stale waiver |
 
-The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine functions (`buildManifest`, `probeEntry`, `checkPurity`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
+The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine classes (`PurityManifest.build`, `PurityProbe.probeEntry`, `PurityCheck.run`) for a repository that wants them in its own tests. The old function names (`buildManifest`, `probeEntry`, `checkPurity`) are deprecated aliases until 0.5. It is Bun-only tooling, so a browser entry must never import it.
 
 In the IGNIS repository, the Makefile runs each package with its own tools:
 

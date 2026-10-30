@@ -166,7 +166,7 @@ silently do not exist.
 ## Starting and stopping
 
 `start()`, `stop()` and `startBunModule()` all live on `ServerApplication`. IGNIS runs on Bun >= 1.4
-only: `start()` calls `assertBunRuntime()` first and throws `IGNIS requires Bun >= 1.4 (running on
+only: `start()` calls `BunRuntimeGuard.assert()` first (`assertBunRuntime` is a deprecated alias until 0.5) and throws `IGNIS requires Bun >= 1.4 (running on
 <runtime>)` on any other runtime, before any hook, datasource or socket is touched. `stop()` runs the
 post-stop hooks, then `stopServer()`, then `closeDataSources()` in a `finally`: datasources close even
 when the server fails to, and that error still rejects `stop()`.

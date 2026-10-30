@@ -1,4 +1,191 @@
 import type { INamespaceMapping } from '../mapping';
 
-/** The functions of `@venizia/dev-configs` that moved into a class. */
-export const DEV_CONFIGS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [];
+const CHECKS = ['@venizia/dev-configs/checks'];
+const TESTING = ['@venizia/dev-configs/testing'];
+const LINTERS = ['@venizia/dev-configs', '@venizia/dev-configs/linters'];
+
+/**
+ * The functions of `@venizia/dev-configs` that moved into a class. An entry with `keepsOptions` is a
+ * function that already took ONE options object: its class method takes the same one.
+ */
+export const DEV_CONFIGS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
+  {
+    modules: CHECKS,
+    oldName: 'findCatalogProblems',
+    className: 'CatalogCheck',
+    method: 'find',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'runModuleCycles',
+    className: 'ModuleCyclesCheck',
+    method: 'run',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'assertNoWorkspaceExternal',
+    className: 'PurityManifest',
+    method: 'assertNoWorkspaceExternal',
+    params: [{ key: 'manifest' }, { key: 'workspaceScope', optional: true }],
+  },
+  {
+    modules: CHECKS,
+    oldName: 'deriveEntries',
+    className: 'PurityManifest',
+    method: 'deriveEntries',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'assertBrowserEsmEntry',
+    className: 'PurityManifest',
+    method: 'assertBrowserEsmEntry',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'buildManifest',
+    className: 'PurityManifest',
+    method: 'build',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'stripBundlerPathComments',
+    className: 'PurityProbe',
+    method: 'stripBundlerPathComments',
+    params: [{ key: 'text' }],
+  },
+  {
+    modules: CHECKS,
+    oldName: 'probeEntry',
+    className: 'PurityProbe',
+    method: 'probeEntry',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'checkPurity',
+    className: 'PurityCheck',
+    method: 'run',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'listTestTitles',
+    className: 'TestControlsCheck',
+    method: 'listTitles',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'checkControls',
+    className: 'TestControlsCheck',
+    method: 'run',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'findDeadTestCode',
+    className: 'DeadTestCodeCheck',
+    method: 'find',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'replayLedger',
+    className: 'TestMutateCheck',
+    method: 'replayLedger',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'formatLedgerResults',
+    className: 'TestMutateCheck',
+    method: 'formatLedgerResults',
+    params: [{ key: 'results' }],
+  },
+  {
+    modules: CHECKS,
+    oldName: 'analyseJunit',
+    className: 'TestWeightCheck',
+    method: 'analyseJunit',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: CHECKS,
+    oldName: 'formatTestWeight',
+    className: 'TestWeightCheck',
+    method: 'formatReport',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: TESTING,
+    oldName: 'rejectionOf',
+    className: 'RejectionHelper',
+    method: 'rejectionOf',
+    params: [{ key: 'task' }],
+  },
+  {
+    modules: TESTING,
+    oldName: 'expectRejection',
+    className: 'RejectionHelper',
+    method: 'expectRejection',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: TESTING,
+    oldName: 'findRepositoryRoot',
+    className: 'RepoTmp',
+    method: 'findRoot',
+    params: [{ key: 'start', optional: true }],
+  },
+  {
+    modules: TESTING,
+    oldName: 'useRepoTmp',
+    className: 'RepoTmp',
+    method: 'apply',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: TESTING,
+    oldName: 'spawnSyncBounded',
+    className: 'SpawnHelper',
+    method: 'spawnSyncBounded',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: LINTERS,
+    oldName: 'readField',
+    className: 'AstNode',
+    method: 'readField',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: LINTERS,
+    oldName: 'nodeType',
+    className: 'AstNode',
+    method: 'getType',
+    params: [],
+    keepsOptions: true,
+  },
+];

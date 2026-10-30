@@ -26,41 +26,57 @@ export interface IRuntimeSnapshot {
   otherVersion?: string;
 }
 
-export const readRuntimeSnapshot = (): IRuntimeSnapshot => ({
-  bunVersion: RuntimeModules.isBun() ? Bun.version : undefined,
-  otherName: globalThis.process?.release?.name,
-  otherVersion: globalThis.process?.version,
-});
-
-const describeRuntime = (opts: { runtime: IRuntimeSnapshot }): string => {
-  const { bunVersion, otherName, otherVersion } = opts.runtime;
-
-  if (bunVersion !== undefined) {
-    return `bun ${bunVersion}`;
+/** The Bun-only guard: what the process runs on, and the refusal when it is not Bun 1.4 or later. */
+export class BunRuntimeGuard {
+  /** Reads the runtime the process is on. */
+  static readSnapshot(): IRuntimeSnapshot {
+    return {
+      bunVersion: RuntimeModules.isBun() ? Bun.version : undefined,
+      otherName: globalThis.process?.release?.name,
+      otherVersion: globalThis.process?.version,
+    };
   }
 
-  return otherName ? `${otherName} ${otherVersion ?? ''}`.trim() : 'an unknown runtime';
-};
+  private static describeRuntime(opts: { runtime: IRuntimeSnapshot }): string {
+    const { bunVersion, otherName, otherVersion } = opts.runtime;
 
-/**
- * IGNIS runs on Bun 1.4 or later, and nothing else. One refusal at the top of `start()`, before any
- * hook, datasource or socket is touched, replaces a failure that would otherwise surface halfway
- * through startup.
- */
-export const assertBunRuntime = (opts: { runtime?: IRuntimeSnapshot } = {}): void => {
-  const runtime = opts.runtime ?? readRuntimeSnapshot();
-
-  if (runtime.bunVersion !== undefined) {
-    const [major = 0, minor = 0] = runtime.bunVersion.split('.').map(Number);
-    if (major > MINIMUM_BUN.major || (major === MINIMUM_BUN.major && minor >= MINIMUM_BUN.minor)) {
-      return;
+    if (bunVersion !== undefined) {
+      return `bun ${bunVersion}`;
     }
+
+    return otherName ? `${otherName} ${otherVersion ?? ''}`.trim() : 'an unknown runtime';
   }
 
-  throw getError({
-    message: `IGNIS requires Bun >= ${MINIMUM_BUN.major}.${MINIMUM_BUN.minor} (running on ${describeRuntime({ runtime })})`,
-  });
-};
+  /**
+   * IGNIS runs on Bun 1.4 or later, and nothing else. One refusal at the top of `start()`, before any
+   * hook, datasource or socket is touched, replaces a failure that would otherwise surface halfway
+   * through startup.
+   */
+  static assert(opts: { runtime?: IRuntimeSnapshot } = {}): void {
+    const runtime = opts.runtime ?? BunRuntimeGuard.readSnapshot();
+
+    if (runtime.bunVersion !== undefined) {
+      const [major = 0, minor = 0] = runtime.bunVersion.split('.').map(Number);
+      if (
+        major > MINIMUM_BUN.major ||
+        (major === MINIMUM_BUN.major && minor >= MINIMUM_BUN.minor)
+      ) {
+        return;
+      }
+    }
+
+    throw getError({
+      message: `IGNIS requires Bun >= ${MINIMUM_BUN.major}.${MINIMUM_BUN.minor} (running on ${BunRuntimeGuard.describeRuntime({ runtime })})`,
+    });
+  }
+}
+
+/** @deprecated Use `BunRuntimeGuard.readSnapshot()`. Removed in 0.5. */
+export const readRuntimeSnapshot = (): IRuntimeSnapshot => BunRuntimeGuard.readSnapshot();
+
+/** @deprecated Use `BunRuntimeGuard.assert({ runtime })`. Removed in 0.5. */
+export const assertBunRuntime = (opts: { runtime?: IRuntimeSnapshot } = {}): void =>
+  BunRuntimeGuard.assert(opts);
 
 const DEFAULT_SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
@@ -173,7 +189,7 @@ export abstract class ServerApplication<
 
   /** What `start()` checks. A seam for the guard's test: the `Bun` global cannot be hidden from inside Bun. */
   protected getRuntimeSnapshot(): IRuntimeSnapshot {
-    return readRuntimeSnapshot();
+    return BunRuntimeGuard.readSnapshot();
   }
 
   getServerInstance<T extends TBunServerInstance = TBunServerInstance>(): T | undefined {
@@ -216,7 +232,7 @@ export abstract class ServerApplication<
   }
 
   async start() {
-    assertBunRuntime({ runtime: this.getRuntimeSnapshot() });
+    BunRuntimeGuard.assert({ runtime: this.getRuntimeSnapshot() });
 
     await this.initialize();
     await this.setupMiddlewares();

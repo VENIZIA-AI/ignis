@@ -51,7 +51,7 @@ tags: [process, test, bun]
    clean-install gate's `ignis-clean-install-*` sandbox (a sandbox below the repository would resolve
    the repository `node_modules`): it is removed in a `finally`, and the gate lists it as allowed
    rather than ignoring it (`TmpLeak.ALLOWED_SYSTEM_PATHS`).
-8. An application's boot is proved without datasource connections, a socket or a secrets provider by `assertApplicationBoots` from
+8. An application's boot is proved without datasource connections, a socket or a secrets provider by `ApplicationBootAssertion.assert({ application })` (alias `assertApplicationBoots`, deprecated until 0.5) from
    `@venizia/ignis/testing` (`packages/core-server/src/testing/assert-application-boots.ts`). It wraps
    `registerDynamicBindings` and `getBootSequence` on one instance, skips the `configure()` of datasources
    (and of the components in `skipComponents`) and the two secrets steps, never calls `start()`, rethrows

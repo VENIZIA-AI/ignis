@@ -62,7 +62,7 @@ const SECURE_ROUTE = {
 - **Strategies are manual, on purpose.** The component registers *token services* - JWS, JWKS, Basic - never *strategies*. Register strategies yourself after the component, via `AuthenticationStrategyRegistry.getInstance().register(...)`.
 - **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each strategy into the container as a singleton, under the key `authentication.strategy.<name>`. A route's `authenticate.strategies` list references strategies by that same name.
 - **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both run through the same `AuthenticationProvider`, which sets `Authentication.CURRENT_USER` on success. See [Multi-strategy authentication](./usage#multi-strategy-authentication) for what `'any'` and `'all'` mode do.
-- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `defineAuthController()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
+- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `AuthControllerFactory.define()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
 
 **JOSE standards**
 
@@ -143,12 +143,12 @@ const FALLBACK_AUTH_CONFIG = {
 **Add auth entity columns to a Drizzle table.** Spread helper functions into `pgTable()` for User/Role/Permission/PolicyDefinition columns.
 
 ```typescript
-import { extraUserColumns, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis';
+import { AuthModelColumns, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis';
 
 export const users = pgTable('users', {
   ...generateIdColumnDefs(),
   ...generateTzColumnDefs(),
-  ...extraUserColumns(),
+  ...AuthModelColumns.buildUser(),
   username: text('username').unique().notNull(),
 });
 ```

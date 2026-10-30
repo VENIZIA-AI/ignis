@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CheckCommand } from '../../cli/check';
-import { findCatalogProblems } from '../../checks/catalog';
+import { CatalogCheck } from '../../checks/catalog';
 
 const SCRATCH = join(__dirname, '../../../../../.agents/local/tmp');
 mkdirSync(SCRATCH, { recursive: true });
@@ -42,7 +42,7 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    const result = await findCatalogProblems({ root });
+    const result = await CatalogCheck.find({ root });
     expect(result).toEqual({
       problems: [],
       entries: 2,
@@ -59,7 +59,7 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    const { problems } = await findCatalogProblems({ root });
+    const { problems } = await CatalogCheck.find({ root });
 
     expect(problems).toEqual([
       {
@@ -83,8 +83,8 @@ describe('findCatalogProblems', () => {
     };
     const root = workspace({ root: CATALOG, files });
 
-    const without = await findCatalogProblems({ root, globs: ['presets/*/preset.json'] });
-    const withPreset = await findCatalogProblems({
+    const without = await CatalogCheck.find({ root, globs: ['presets/*/preset.json'] });
+    const withPreset = await CatalogCheck.find({
       root,
       globs: ['presets/*/preset.json'],
       presetPrefix: 'presets/',
@@ -103,7 +103,7 @@ describe('findCatalogProblems', () => {
       files: { 'packages/a/package.json': { dependencies: { zod: 'catalog:' } } },
     });
 
-    const { problems } = await findCatalogProblems({ root });
+    const { problems } = await CatalogCheck.find({ root });
 
     expect(problems).toEqual([
       {
@@ -122,7 +122,7 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    const { problems } = await findCatalogProblems({
+    const { problems } = await CatalogCheck.find({
       root,
       globs: ['examples/*/package.json', 'packages/*/package.json'],
     });
@@ -139,14 +139,14 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    const wrong = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
+    const wrong = await CatalogCheck.find({ root, pinned: ['docs/wiki/package.json'] });
     expect(wrong.problems[0].message).toContain('the catalog pins "4.1.0"');
 
     writeFileSync(
       join(root, 'docs/wiki/package.json'),
       JSON.stringify({ dependencies: { hono: '4.1.0' } }),
     );
-    const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
+    const result = await CatalogCheck.find({ root, pinned: ['docs/wiki/package.json'] });
     expect(result.problems).toEqual([]);
   });
 
@@ -158,7 +158,7 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
+    const result = await CatalogCheck.find({ root, pinned: ['docs/wiki/package.json'] });
     expect(result.problems).toEqual([]);
   });
 
@@ -167,7 +167,7 @@ describe('findCatalogProblems', () => {
     mkdirSync(join(root, 'packages/broken'), { recursive: true });
     writeFileSync(join(root, 'packages/broken/package.json'), '{ nope');
 
-    const { problems } = await findCatalogProblems({ root });
+    const { problems } = await CatalogCheck.find({ root });
 
     expect(problems[0].file).toBe('packages/broken/package.json');
     expect(problems[0].message).toStartWith('invalid JSON - ');
@@ -176,7 +176,7 @@ describe('findCatalogProblems', () => {
   test('no workspaces.catalog is reported as such', async () => {
     const root = workspace({ root: { name: 'x' }, files: {} });
 
-    const result = await findCatalogProblems({ root });
+    const result = await CatalogCheck.find({ root });
     expect(result.noCatalog).toBe(true);
   });
 });

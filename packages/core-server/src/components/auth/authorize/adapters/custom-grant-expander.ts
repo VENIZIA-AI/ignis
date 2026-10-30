@@ -1,5 +1,5 @@
 import type { IdType } from '@/base';
-import { readResultRows } from '@/utilities';
+import { DrizzleResultUtility } from '@/utilities';
 import { BaseHelper } from '@venizia/ignis-helpers/core';
 import {
   AuthorizationActions,
@@ -170,7 +170,12 @@ export class CustomGrantExpander extends BaseHelper {
         )}
     `);
 
-    return readResultRows<{ subject: string; method: string; code: string; action: string }>({
+    return DrizzleResultUtility.readResultRows<{
+      subject: string;
+      method: string;
+      code: string;
+      action: string;
+    }>({
       result,
     });
   }

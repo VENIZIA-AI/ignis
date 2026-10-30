@@ -376,7 +376,7 @@ await executor.setProcessor(
 
 - A short numeric code (manual entry: SMS, email)
 - A long base64url token (URL-based verification links)
-- Separate expiries: code via `getExpiryTime(minutes)`, token via `getExpiryTimeInHours(hours)`
+- Separate expiries: code via `MailVerificationUtility.getExpiryTime({ minutes })`, token via `MailVerificationUtility.getExpiryTimeInHours({ hours })`
 - ISO 8601 generation timestamps, `codeAttempts: 0`, `lastCodeSentAt` set to now
 
 **End-to-end verification flow:**

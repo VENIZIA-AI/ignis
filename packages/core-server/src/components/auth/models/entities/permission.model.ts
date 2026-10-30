@@ -1,8 +1,7 @@
-import { getError } from '@venizia/ignis-helpers/core';
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
 import type { NotNull } from 'drizzle-orm';
-import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
-import { integer, text } from 'drizzle-orm/pg-core';
+import type { PgTextBuilderInitial } from 'drizzle-orm/pg-core';
+import { AuthModelColumns } from './columns';
 
 export type TPermissionOptions = {
   idType?: TIdSchemaType;
@@ -18,54 +17,5 @@ export type TPermissionCommonColumns = {
   description: PgTextBuilderInitial<string, [string, ...string[]]>;
 };
 
-type TPermissionColumnDef<Opts extends TPermissionOptions | undefined = undefined> = Opts extends {
-  idType: infer IdType;
-}
-  ? IdType extends 'string'
-    ? TPermissionCommonColumns & {
-        parentId: PgTextBuilderInitial<string, [string, ...string[]]>;
-      }
-    : TPermissionCommonColumns & {
-        parentId: PgIntegerBuilderInitial<string>;
-      }
-  : TPermissionCommonColumns & {
-      parentId: PgIntegerBuilderInitial<string>;
-    };
-
-export const extraPermissionColumns = <Opts extends TPermissionOptions | undefined>(
-  opts?: Opts,
-): TPermissionColumnDef<Opts> => {
-  const { idType = 'number' } = opts ?? {};
-
-  switch (idType) {
-    case 'number': {
-      return {
-        code: text('code').unique().notNull(),
-        name: text('name').notNull(),
-        subject: text('subject').notNull(),
-        method: text('method').notNull(),
-        action: text('action').notNull(),
-        scope: text('scope').notNull(),
-        description: text('description'),
-        parentId: integer('parent_id'),
-      } as TPermissionColumnDef<Opts>;
-    }
-    case 'string': {
-      return {
-        code: text('code').unique().notNull(),
-        name: text('name').notNull(),
-        subject: text('subject').notNull(),
-        method: text('method').notNull(),
-        action: text('action').notNull(),
-        scope: text('scope').notNull(),
-        description: text('description'),
-        parentId: text('parent_id'),
-      } as TPermissionColumnDef<Opts>;
-    }
-    default: {
-      throw getError({
-        message: `[extraPermissionColumns] Invalid idType | idType: ${idType}`,
-      });
-    }
-  }
-};
+/** @deprecated Use `AuthModelColumns.buildPermission(opts)`. Removed in 0.5. */
+export const extraPermissionColumns = AuthModelColumns.buildPermission;

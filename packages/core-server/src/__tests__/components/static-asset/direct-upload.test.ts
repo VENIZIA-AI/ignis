@@ -3,7 +3,7 @@ import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import {
-  buildCommitToken,
+  AssetCommitToken,
   META_LINK_CREATE_FAILED,
   StaticAssetStorageTypes,
 } from '@/components/static-asset/common';
@@ -176,7 +176,7 @@ describe('the upload-commit route', () => {
   test('a forged token is refused without a single storage call', async () => {
     const helper = new FakeStorageHelper();
     const router = await mount({ helper, directUpload: ALLOW });
-    const forged = buildCommitToken({
+    const forged = AssetCommitToken.build({
       payload: { bucket: 'uploads', key: 'pending/x/a.png', expiresAt: Date.now() + 60_000 },
       secretKey: 'not-the-secret',
     });

@@ -405,24 +405,26 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns,
+  AuthModelColumns,
   generateIdColumnDefs, generateTzColumnDefs,
 } from '@venizia/ignis';
 
 export const users = pgTable('users', {
   ...generateIdColumnDefs(),
   ...generateTzColumnDefs(),
-  ...extraUserColumns(),
+  ...AuthModelColumns.buildUser(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...AuthModelColumns.buildRole() });
+export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...AuthModelColumns.buildPermission() });
+export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...AuthModelColumns.buildPolicyDefinition() });
 ```
 
-**`extraUserColumns(opts?: { idType })`**
+The old names `extraUserColumns`, `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns` and `policyDefinitionDomainShapeCheck` still work as deprecated aliases of these methods until 0.5. `devz codemod namespace-functions` moves a call to the class form.
+
+**`AuthModelColumns.buildUser(opts?: { idType })`**
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -433,7 +435,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `lastLoginAt` | `last_login_at` | `timestamp (tz)` | `null` | Last login timestamp |
 | `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-**`extraRoleColumns()`** - no options.
+**`AuthModelColumns.buildRole()`** - no options.
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -443,7 +445,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `priority` | `priority` | `integer` | -- | Lower = higher priority |
 | `status` | `status` | `text` | `RoleStatuses.ACTIVATED` | Role lifecycle status |
 
-**`extraPermissionColumns(opts?: { idType })`**
+**`AuthModelColumns.buildPermission(opts?: { idType })`**
 
 | Column | DB column | Type | Default | Description |
 |--------|-----------|------|---------|-------------|
@@ -456,7 +458,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 | `description` | `description` | `text` | `null` | Optional |
 | `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-**`extraPolicyDefinitionColumns(opts?: { idType })`** - Casbin-style policies mapping subjects to targets.
+**`AuthModelColumns.buildPolicyDefinition(opts?: { idType })`** - Casbin-style policies mapping subjects to targets.
 
 | Column | DB column | Type | Nullable | Description |
 |--------|-----------|------|----------|-------------|
@@ -473,7 +475,7 @@ export const policyDefinitions = pgTable('policy_definitions', { ...generateIdCo
 
 All `idType` options default to `'number'` (`integer` columns). Pass `'string'` for `text` columns - UUID primary keys, for example.
 
-The domain is two columns, never one. Only three pairs are legal: both `null` (every domain the subject belongs to), `'SYSTEM_WIDE'` with a `null` id, or a real type paired with a real id. `policyDefinitionDomainShapeCheck()` returns exactly that as CHECK predicate text for your migration. The casbin `<Type>_<id>` token is not stored - `ScopedCasbinAdapter` assembles it in SQL at read time.
+The domain is two columns, never one. Only three pairs are legal: both `null` (every domain the subject belongs to), `'SYSTEM_WIDE'` with a `null` id, or a real type paired with a real id. `AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()` returns exactly that as CHECK predicate text for your migration. The casbin `<Type>_<id>` token is not stored - `ScopedCasbinAdapter` assembles it in SQL at read time.
 
 `'p'` and `'g'` are Casbin rule prefixes, not `variant` values - each `variant` maps to one of them internally. See the [Authorization component](../authorization/) to build these tables end to end. Its [Usage guide](../authorization/usage) covers policy definitions, domain scoping, and the adapter that reads this table.
 

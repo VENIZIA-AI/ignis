@@ -51,8 +51,7 @@ import {
   AssetIngest,
   BaseMetaLinkModel,
   BaseMetaLinkRepository,
-  buildObjectLink,
-  resolveServedContentType,
+  AssetCommitToken,
   RENDERABLE_CONTENT_TYPES,
   StaticAssetErrors,
   WHITELIST_HEADERS,
@@ -275,7 +274,7 @@ type TStaticAssetExtraOptions = {
 
 ```typescript
 (linkOptions: IObjectLocation) =>
-  buildObjectLink({
+  AssetControllerFactory.buildObjectLink({
     basePath: controller.basePath,
     bucket: linkOptions.bucket,
     object: linkOptions.object,
@@ -284,19 +283,19 @@ type TStaticAssetExtraOptions = {
   });
 ```
 
-`buildObjectLink` is exported, so a hand-written route can build the same link:
+`AssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link. The old function name `buildObjectLink` is a deprecated alias until 0.5.
 
 ```typescript
-const buildObjectLink = (
+static buildObjectLink(
   opts: IObjectLocation & {
     basePath: string;
     hasConfiguredBucket?: boolean;
     rawObjectPath?: boolean;
   },
-) => string;
+): string;
 ```
 
-This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `AssetControllerFactory.buildObjectLink` follows the [URL shapes](#url-shapes) above, so a link always resolves against the routes that controller registered. The `PUT .../meta-links/{objectName}` route builds its fallback link with the same function.
 
 `BaseStorageHelper` has its own backend-specific `normalizeObjectLink()`. It only runs when you call a helper's `upload()` directly, outside the component. Through `StaticAssetComponent`, the component's default `normalizeLinkFn` always takes priority instead.
 
@@ -766,18 +765,18 @@ These correspond to `'content-encoding'`, `'cache-control'`, `'etag'` and `'last
 When streaming a file - both <code v-pre>objects/{objectName}</code> and <code v-pre>download/{objectName}</code> - the controller copies only these keys from the storage metadata onto the response. Every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
 
 > [!WARNING]
-> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
+> `content-type` is **not** on the list, and the served type is never taken from storage metadata or from what the uploader declared. It is derived from the object KEY by `AssetControllerFactory.resolveServedContentType`, because a renderable type that a client chose is stored cross-site scripting on the API origin, and `nosniff` cannot stop a type the server itself declared.
 
 ### Served content type
 
 ```typescript
-const resolveServedContentType = (opts: {
+static resolveServedContentType(opts: {
   helper: IStorageHelper;
   object: IObjectRef;
-}): { contentType: string; isRenderable: boolean } => { /* ... */ };
+}): { contentType: string; isRenderable: boolean };
 ```
 
-`resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
+`AssetControllerFactory.resolveServedContentType` (the old function name `resolveServedContentType` is a deprecated alias until 0.5) runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
 
 | Outcome | `contentType` | `isRenderable` | Response |
 |---|---|---|---|
@@ -793,7 +792,7 @@ All streaming responses also set:
 ```http
 X-Content-Type-Options: nosniff
 Content-Security-Policy: sandbox
-Content-Type: <resolveServedContentType, from the object key>
+Content-Type: <AssetControllerFactory.resolveServedContentType, from the object key>
 Content-Length: <bytes in the response body>
 Content-Disposition: attachment; filename="..."   (always on download; on objects when the type is not renderable)
 Accept-Ranges: bytes                              (objects route, advertised unconditionally)
@@ -843,7 +842,7 @@ const { upload, stat } = await AssetIngest.fromUrl({
   url: 'https://cdn.example.com/logo.png',
   bucket: { name: 'uploads' },
   normalizeLinkFn: ({ bucket, object }) =>
-    buildObjectLink({ basePath: '/assets', bucket, object }),
+    AssetControllerFactory.buildObjectLink({ basePath: '/assets', bucket, object }),
 });
 ```
 

@@ -71,128 +71,141 @@ const CASE = /<testcase name="([^"]*)" classname="([^"]*)" time="([\d.eE+-]+)" f
 const LIGHT_FILE_MILLISECONDS = 100;
 const HEAVY_SHARE = 0.8;
 
-export const analyseJunit = (opts: { reports: ITestWeightInput[] }): ITestWeightReport => {
-  const files: ITestFileWeight[] = [];
-  const names = new Map<string, Set<string>>();
+export class TestWeightCheck {
+  /** Reads the JUnit reports of a test run into one weight report: which files carry the time, and what looks wrong. */
+  static analyseJunit(opts: { reports: ITestWeightInput[] }): ITestWeightReport {
+    const files: ITestFileWeight[] = [];
+    const names = new Map<string, Set<string>>();
 
-  for (const { label, xml } of opts.reports) {
-    const start = files.length;
+    for (const { label, xml } of opts.reports) {
+      const start = files.length;
 
-    for (const match of xml.matchAll(FILE_SUITE)) {
-      files.push({
-        label,
-        file: match[1],
-        milliseconds: Number(match[5]) * 1000,
-        cases: Number(match[2]),
-        assertions: Number(match[3]),
-        skipped: Number(match[4]),
-        slowestCase: '',
-        slowestMilliseconds: 0,
-      });
-    }
-
-    const byFile = new Map(files.slice(start).map((entry) => [entry.file, entry]));
-    for (const match of xml.matchAll(CASE)) {
-      const caseName = decodeEntities(match[1]);
-      const suiteName = decodeEntities(match[2]);
-      const entry = byFile.get(match[4]);
-      const milliseconds = Number(match[3]) * 1000;
-
-      if (entry && milliseconds > entry.slowestMilliseconds) {
-        entry.slowestMilliseconds = milliseconds;
-        entry.slowestCase = caseName;
+      for (const match of xml.matchAll(FILE_SUITE)) {
+        files.push({
+          label,
+          file: match[1],
+          milliseconds: Number(match[5]) * 1000,
+          cases: Number(match[2]),
+          assertions: Number(match[3]),
+          skipped: Number(match[4]),
+          slowestCase: '',
+          slowestMilliseconds: 0,
+        });
       }
 
-      const key = `${suiteName} > ${caseName}`;
-      const where = names.get(key) ?? new Set<string>();
-      where.add(`${label}/${match[4]}`);
-      names.set(key, where);
+      const byFile = new Map(files.slice(start).map((entry) => [entry.file, entry]));
+      for (const match of xml.matchAll(CASE)) {
+        const caseName = decodeEntities(match[1]);
+        const suiteName = decodeEntities(match[2]);
+        const entry = byFile.get(match[4]);
+        const milliseconds = Number(match[3]) * 1000;
+
+        if (entry && milliseconds > entry.slowestMilliseconds) {
+          entry.slowestMilliseconds = milliseconds;
+          entry.slowestCase = caseName;
+        }
+
+        const key = `${suiteName} > ${caseName}`;
+        const where = names.get(key) ?? new Set<string>();
+        where.add(`${label}/${match[4]}`);
+        names.set(key, where);
+      }
     }
-  }
 
-  const heaviest = [...files].sort((left, right) => right.milliseconds - left.milliseconds);
-  const totalMilliseconds = files.reduce((sum, entry) => sum + entry.milliseconds, 0);
+    const heaviest = [...files].sort((left, right) => right.milliseconds - left.milliseconds);
+    const totalMilliseconds = files.reduce((sum, entry) => sum + entry.milliseconds, 0);
 
-  let accumulated = 0;
-  let filesFor80Percent = 0;
-  for (const entry of heaviest) {
-    accumulated += entry.milliseconds;
-    filesFor80Percent += 1;
+    let accumulated = 0;
+    let filesFor80Percent = 0;
+    for (const entry of heaviest) {
+      accumulated += entry.milliseconds;
+      filesFor80Percent += 1;
 
-    if (accumulated >= totalMilliseconds * HEAVY_SHARE) {
-      break;
+      if (accumulated >= totalMilliseconds * HEAVY_SHARE) {
+        break;
+      }
     }
+
+    const light = files.filter((entry) => entry.milliseconds < LIGHT_FILE_MILLISECONDS);
+    const labels = [...new Set(files.map((entry) => entry.label))];
+
+    return {
+      files,
+      totalMilliseconds,
+      totalCases: files.reduce((sum, entry) => sum + entry.cases, 0),
+      totalAssertions: files.reduce((sum, entry) => sum + entry.assertions, 0),
+      totalSkipped: files.reduce((sum, entry) => sum + entry.skipped, 0),
+      perLabel: labels.map((label) => {
+        const own = files.filter((entry) => entry.label === label);
+        return {
+          label,
+          files: own.length,
+          cases: own.reduce((sum, entry) => sum + entry.cases, 0),
+          milliseconds: own.reduce((sum, entry) => sum + entry.milliseconds, 0),
+        };
+      }),
+      heaviest,
+      filesFor80Percent,
+      lightFiles: {
+        count: light.length,
+        milliseconds: light.reduce((sum, entry) => sum + entry.milliseconds, 0),
+      },
+      sameNameAcrossFiles: [...names.entries()]
+        .filter(([, where]) => where.size > 1)
+        .map(([name, where]) => ({ name, files: [...where].sort() })),
+      zeroAssertionFiles: files
+        .filter((entry) => entry.assertions === 0)
+        .map((entry) => entry.file),
+      skippedFiles: files
+        .filter((entry) => entry.skipped > 0)
+        .map((entry) => ({ file: `${entry.label}/${entry.file}`, skipped: entry.skipped })),
+    };
   }
 
-  const light = files.filter((entry) => entry.milliseconds < LIGHT_FILE_MILLISECONDS);
-  const labels = [...new Set(files.map((entry) => entry.label))];
+  /** The report as the lines `devz check test-weight` prints. */
+  static formatReport(opts: { report: ITestWeightReport; top?: number }): string[] {
+    const { report, top = 25 } = opts;
+    const seconds = (milliseconds: number): string => (milliseconds / 1000).toFixed(1);
+    const lines: string[] = [
+      `files ${report.files.length} | cases ${report.totalCases} | assertions ${report.totalAssertions} | skipped ${report.totalSkipped} | sum of file times ${seconds(report.totalMilliseconds)} s`,
+    ];
 
-  return {
-    files,
-    totalMilliseconds,
-    totalCases: files.reduce((sum, entry) => sum + entry.cases, 0),
-    totalAssertions: files.reduce((sum, entry) => sum + entry.assertions, 0),
-    totalSkipped: files.reduce((sum, entry) => sum + entry.skipped, 0),
-    perLabel: labels.map((label) => {
-      const own = files.filter((entry) => entry.label === label);
-      return {
-        label,
-        files: own.length,
-        cases: own.reduce((sum, entry) => sum + entry.cases, 0),
-        milliseconds: own.reduce((sum, entry) => sum + entry.milliseconds, 0),
-      };
-    }),
-    heaviest,
-    filesFor80Percent,
-    lightFiles: {
-      count: light.length,
-      milliseconds: light.reduce((sum, entry) => sum + entry.milliseconds, 0),
-    },
-    sameNameAcrossFiles: [...names.entries()]
-      .filter(([, where]) => where.size > 1)
-      .map(([name, where]) => ({ name, files: [...where].sort() })),
-    zeroAssertionFiles: files.filter((entry) => entry.assertions === 0).map((entry) => entry.file),
-    skippedFiles: files
-      .filter((entry) => entry.skipped > 0)
-      .map((entry) => ({ file: `${entry.label}/${entry.file}`, skipped: entry.skipped })),
-  };
-};
+    for (const row of report.perLabel) {
+      lines.push(
+        `  ${row.label.padEnd(14)} files ${String(row.files).padStart(4)} cases ${String(row.cases).padStart(5)} time ${seconds(row.milliseconds).padStart(7)} s`,
+      );
+    }
 
-/** The report as the lines `devz check test-weight` prints. */
-export const formatTestWeight = (opts: { report: ITestWeightReport; top?: number }): string[] => {
-  const { report, top = 25 } = opts;
-  const seconds = (milliseconds: number): string => (milliseconds / 1000).toFixed(1);
-  const lines: string[] = [
-    `files ${report.files.length} | cases ${report.totalCases} | assertions ${report.totalAssertions} | skipped ${report.totalSkipped} | sum of file times ${seconds(report.totalMilliseconds)} s`,
-  ];
+    lines.push('', `heaviest ${top} files:`);
+    for (const entry of report.heaviest.slice(0, top)) {
+      lines.push(
+        `${entry.milliseconds.toFixed(0).padStart(8)} ms ${String(entry.cases).padStart(5)} cases  slowest ${entry.slowestMilliseconds.toFixed(0).padStart(7)} ms  ${entry.label}/${entry.file}`,
+      );
+    }
 
-  for (const row of report.perLabel) {
     lines.push(
-      `  ${row.label.padEnd(14)} files ${String(row.files).padStart(4)} cases ${String(row.cases).padStart(5)} time ${seconds(row.milliseconds).padStart(7)} s`,
+      '',
+      `80% of the time is in the ${report.filesFor80Percent} heaviest files of ${report.files.length}`,
+      `files under ${LIGHT_FILE_MILLISECONDS} ms: ${report.lightFiles.count}, together ${seconds(report.lightFiles.milliseconds)} s`,
+      `same suite and case name in more than one file: ${report.sameNameAcrossFiles.length}`,
     );
-  }
+    for (const duplicate of report.sameNameAcrossFiles.slice(0, 10)) {
+      lines.push(`  ${duplicate.name.slice(0, 90)} -> ${duplicate.files.join(', ')}`);
+    }
 
-  lines.push('', `heaviest ${top} files:`);
-  for (const entry of report.heaviest.slice(0, top)) {
     lines.push(
-      `${entry.milliseconds.toFixed(0).padStart(8)} ms ${String(entry.cases).padStart(5)} cases  slowest ${entry.slowestMilliseconds.toFixed(0).padStart(7)} ms  ${entry.label}/${entry.file}`,
+      `files with 0 assertions: ${report.zeroAssertionFiles.length}${report.zeroAssertionFiles.length ? ` (${report.zeroAssertionFiles.slice(0, 3).join(', ')})` : ''}`,
+      `files with skipped cases: ${report.skippedFiles.length} (${report.skippedFiles.reduce((sum, entry) => sum + entry.skipped, 0)} cases)`,
     );
+
+    return lines;
   }
+}
 
-  lines.push(
-    '',
-    `80% of the time is in the ${report.filesFor80Percent} heaviest files of ${report.files.length}`,
-    `files under ${LIGHT_FILE_MILLISECONDS} ms: ${report.lightFiles.count}, together ${seconds(report.lightFiles.milliseconds)} s`,
-    `same suite and case name in more than one file: ${report.sameNameAcrossFiles.length}`,
-  );
-  for (const duplicate of report.sameNameAcrossFiles.slice(0, 10)) {
-    lines.push(`  ${duplicate.name.slice(0, 90)} -> ${duplicate.files.join(', ')}`);
-  }
+/** @deprecated Use `TestWeightCheck.analyseJunit({ reports })`. Removed in 0.5. */
+export const analyseJunit = (opts: { reports: ITestWeightInput[] }): ITestWeightReport =>
+  TestWeightCheck.analyseJunit(opts);
 
-  lines.push(
-    `files with 0 assertions: ${report.zeroAssertionFiles.length}${report.zeroAssertionFiles.length ? ` (${report.zeroAssertionFiles.slice(0, 3).join(', ')})` : ''}`,
-    `files with skipped cases: ${report.skippedFiles.length} (${report.skippedFiles.reduce((sum, entry) => sum + entry.skipped, 0)} cases)`,
-  );
-
-  return lines;
-};
+/** @deprecated Use `TestWeightCheck.formatReport({ report, top })`. Removed in 0.5. */
+export const formatTestWeight = (opts: { report: ITestWeightReport; top?: number }): string[] =>
+  TestWeightCheck.formatReport(opts);
