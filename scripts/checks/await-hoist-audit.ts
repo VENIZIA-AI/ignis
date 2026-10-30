@@ -8,7 +8,7 @@
  * on a file it could not parse, 0 when clean, 2 on a usage error.
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Linter, type Rule, type Scope } from 'eslint';
 import tseslint from 'typescript-eslint';
@@ -87,6 +87,8 @@ export interface IAwaitHoistRepositoryReport {
   hoistCount: number;
   findings: IAwaitHoistFinding[];
   failures: IAwaitHoistFailure[];
+  /** Tracked files that are not on disk (deleted in the working tree): skipped, said in a note, never a failure. */
+  missing: string[];
 }
 
 /** A node as the audit reads it; every other field is reached through `AwaitHoistAudit.fieldOf`. */
@@ -579,14 +581,20 @@ export class AwaitHoistAudit {
     const files = AwaitHoistAudit.listFiles({ root: opts.root });
     const findings: IAwaitHoistFinding[] = [];
     const failures: IAwaitHoistFailure[] = [];
+    const missing: string[] = [];
     let hoistCount = 0;
 
     for (const file of files) {
+      // a tracked file deleted in the working tree is not code to audit: noted, not counted, not a failure
+      if (!existsSync(join(opts.root, file))) {
+        missing.push(file);
+        continue;
+      }
+
       let code: string;
       try {
         code = readFileSync(join(opts.root, file), 'utf8');
       } catch (error) {
-        // a tracked file deleted in the working tree: listed as not parsed, never skipped silently
         failures.push({ file, message: `unreadable: ${String(error)}` });
         continue;
       }
@@ -598,7 +606,14 @@ export class AwaitHoistAudit {
       }
     }
 
-    return { root: opts.root, fileCount: files.length, hoistCount, findings, failures };
+    return {
+      root: opts.root,
+      fileCount: files.length - missing.length,
+      hoistCount,
+      findings,
+      failures,
+      missing,
+    };
   }
 
   static countByReason(opts: {
@@ -641,6 +656,11 @@ export class AwaitHoistAudit {
       }
       for (const failure of report.failures) {
         out.push(`  not parsed: ${failure.file} - ${failure.message}`);
+      }
+      if (report.missing.length > 0) {
+        out.push(
+          `  note: ${report.missing.length} tracked file(s) are not on disk (deleted in the working tree) and were skipped: ${report.missing.slice(0, 5).join(', ')}${report.missing.length > 5 ? ', ...' : ''}`,
+        );
       }
     }
 

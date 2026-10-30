@@ -447,6 +447,22 @@ describe('AwaitHoistAudit - repository and CLI', () => {
     expect(cleanRun.stdout).toContain('1 files, 2 await declarators, 0 finding(s), 0 unparsed');
   });
 
+  test('a tracked file that is deleted in the working tree is skipped with a note, not reported as not parsed', () => {
+    const root = makeRepository({
+      files: { 'src/kept.ts': BANA_CORRECT, 'src/gone.ts': 'export const gone = 1;' },
+    });
+
+    rmSync(join(root, 'src/gone.ts'));
+
+    const run = spawnSync('bun', [CLI, root], { encoding: 'utf8' });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain('1 files, 2 await declarators, 0 finding(s), 0 unparsed');
+    expect(run.stdout).toContain('1 tracked file(s) are not on disk');
+    expect(run.stdout).toContain('src/gone.ts');
+    expect(run.stdout).not.toContain('not parsed:');
+  });
+
   test('the CLI refuses no root and an unknown flag', () => {
     expect(spawnSync('bun', [CLI], { encoding: 'utf8' }).status).toBe(2);
     expect(spawnSync('bun', [CLI, '.', '--fix'], { encoding: 'utf8' }).status).toBe(2);
