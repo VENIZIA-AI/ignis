@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist', 'build', '.git']);
 const SOURCE_PATTERN = /\.(?:ts|tsx|mts|cts)$/;
@@ -49,6 +49,43 @@ export class CodemodFiles {
       .filter((path) => !path.split('/').some((segment) => SKIPPED_DIRECTORIES.has(segment)))
       .map((path) => join(target, path))
       .filter((path) => existsSync(path) && statSync(path).isFile());
+  }
+
+  /**
+   * The files under `target` that a write could not be undone with git: changed in the working tree,
+   * staged, or untracked. `undefined` outside a repository or without git, where there is nothing to check.
+   */
+  static dirty(opts: { target: string }): Set<string> | undefined {
+    const { target } = opts;
+    const cwd = statSync(target).isFile() ? dirname(target) : target;
+    const queries = [
+      ['ls-files', '--modified', '--others', '--exclude-standard', '-z'],
+      ['diff', '--cached', '--name-only', '--relative', '-z'],
+    ];
+    const paths = new Set<string>();
+
+    for (const query of queries) {
+      let output: string;
+
+      try {
+        output = execFileSync('git', query, {
+          cwd,
+          encoding: 'utf8',
+          maxBuffer: 256 * 1024 * 1024,
+          stdio: ['ignore', 'pipe', 'ignore'],
+        });
+      } catch {
+        return undefined;
+      }
+
+      for (const path of output.split('\0')) {
+        if (path !== '') {
+          paths.add(join(cwd, path));
+        }
+      }
+    }
+
+    return paths;
   }
 
   /** The directory walk used outside git: skips dot-directories and the build folders. */

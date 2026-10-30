@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
+import { AsyncStyleCommand } from './async-style';
 import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
@@ -61,8 +62,14 @@ export class CodemodCommand {
       return ConstClassesCommand.run({ root: opts.root, args: rest });
     }
 
+    if (name === 'async-style') {
+      return AsyncStyleCommand.run({ root: opts.root, args: rest });
+    }
+
     if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(`${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}`);
+      console.log(
+        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}`,
+      );
       return 0;
     }
 
