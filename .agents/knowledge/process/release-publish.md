@@ -124,7 +124,7 @@ versions, the Node setup does not cache, and every action is pinned by a full co
 `scripts/release/release-workflow.ts` reads the workflow and the loop and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request. There are 37. The ones for trusted publishing are `no-npm-token` (no
+mutation in that test, in the same pull request. There are 38. The ones for trusted publishing are `no-npm-token` (no
 `secrets.` reference and no npm token name in the workflow or in the loop), `environment-on-publish`, `oidc-on-publish-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted` and `publish-tarball-with-provenance` (`bun publish` appears nowhere, the loop
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
@@ -135,12 +135,16 @@ names `release-approval`, for a stable, after the gates, `permissions: {}`, one 
 `publish-after-approve` (the `if` is evaluated over its cases, `scripts/release/release-publish-condition.ts`),
 `stable-refuses-moved-branches`, `plan-tries-the-merge-back`, `merge-back-from-a-copy`, `target-branch-by-kind` and
 `no-force-or-tag-move` (no force push, no tag moved or deleted, no branch deleted, in the workflow, in the loop or in
-`github-release.ts`). The last two hold the GitHub Release of the run (see
+`github-release.ts`). Three hold the GitHub Release of the run (see
 [The GitHub Release of a run](#the-github-release-of-a-run)): `github-release-never-fails-a-publish` pins the step (one
 exact command, only the keys `name`, `continue-on-error`, `timeout-minutes`, `env` and `run`, exactly the three
-variables, a timeout of 1 to 10 minutes, no secret) and `github-release-only-views-and-creates` reads the script (only
-`gh release view` and `gh release create`, one process spawned). `publish-runs-the-loop` also refuses two steps of the
-same name in the job, because a step is found by its name. The guards
+variables, a timeout of 1 to 10 minutes, no secret); `github-release-only-views-and-creates` reads the script (the rule
+itself is enforced at run time, see the section, so the guard pins that `ghOf` checks the arguments before its one
+spawn, that every `gh` and `git` call passes an inline array of words, and that the script has no `fetch`, Bun shell,
+`child_process` or token name); and `publish-environment-is-closed` (no `defaults` anywhere, no `env` on the publish
+job, the workflow `env` is exactly `BUILD_MODE`, `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` and `TARBALLS`, and a publish
+step writes `$GITHUB_ENV` only as `MERGE_BACK_STARTED=true` and `$GITHUB_PATH` never). `publish-runs-the-loop` also
+refuses two steps of the same name in the job, because a step is found by its name. The guards
 read commands with comments stripped, and `no-npm-token` (which reads `github-release.ts` too) names the file and the line. What the loop does with the tarball (the
 sha256 recorded and checked again before the publish, the version inside it, the pins of the siblings, the order of every
 call, the skip and heal states) is not a text guard: `scripts/release/__tests__/release-run.test.ts` runs the loop against a
@@ -183,7 +187,7 @@ Every run, prerelease or stable, ends with ONE GitHub Release, made by `scripts/
 - **Stable:** GitHub has one Latest per repository, so `--latest` only when the last package is `core-server` AND no stable `core-server` tag is above it; every other stable gets `--latest=false`. The body is the user-facing changelog entries added since the previous stable tag of that package (front matter, date heading and badge line removed), or `No change for users of the packages in this release.` when there are none. A bare `@word` or `@org/team` in an entry is put in backticks (a Release notifies the account or team it names), and a root-relative link `](/path)` points at `https://ignis.venizia.ai`.
 - **Limits:** a body over 120000 characters (GitHub's limit is 125000) is cut on a whole line, with a closing line that says so and links to `https://ignis.venizia.ai/changelogs/`; the Packages section stays. A message of `gh` or `git` has its line breaks turned into spaces before it reaches the log or the run summary, so it cannot start a workflow command (`::add-mask::`).
 - **Both end with `## Packages`:** one line per package of THIS run, in release order, `- [<npm name>@<version>](https://www.npmjs.com/package/<npm name>/v/<version>)`. The npm names come from `.agents/vulcan.manifest.json` `packages`, matched by `dir`.
-- **Never a second, never a failure.** A tag that already has a Release is skipped, so dispatching the same plan again makes a missing Release and never a second one. The step has `continue-on-error: true` and a 5-minute timeout, reads no secret (`GH_TOKEN` is the job's own `github.token`, `contents: write` is already there) and reports in the run summary; a failure never fails or undoes a publish. The guards `github-release-never-fails-a-publish` and `github-release-only-views-and-creates` hold all of that. The script refuses the tag `atlas-index`.
+- **Never a second, never a failure.** A tag that already has a Release is skipped, so dispatching the same plan again makes a missing Release and never a second one. The step has `continue-on-error: true` and a 5-minute timeout, reads no secret (`GH_TOKEN` is the job's own `github.token`, `contents: write` is already there) and reports in the run summary; a failure never fails or undoes a publish. The guards `github-release-never-fails-a-publish` and `github-release-only-views-and-creates` hold all of that. The script refuses the tag `atlas-index`, and `ghOf`, the one place a process is spawned, refuses at run time (it throws before spawning, which `create` reports as a failed outcome) any `gh` call that is not `release view` or `release create`, any forcing argument (`--force`, `-f`, `--delete`, `-d`, `-D`, `--cleanup-tag`) and any call that names `atlas-index`. A message line of a dry run starts with `| ` after the first, because the runner trims spaces before it looks for `::`.
 - **By hand:** `bun scripts/release/github-release.ts backfill --tag <tag> [--yes]` makes the Release of one existing tag (a dry run that prints the planned body without `--yes`). The workflow never calls it.
 
 ## The prebuilt atlas index of this repository

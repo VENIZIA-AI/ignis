@@ -69,7 +69,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(37);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(38);
   });
 });
 
@@ -1014,6 +1014,124 @@ describe('one mutation per guard: removing the guard from a copy fails the check
           find: "  static readonly TITLE_PREFIX = 'IGNIS';",
           replace:
             "  static readonly LEAK = 'secrets.TOKEN';\n  static readonly TITLE_PREFIX = 'IGNIS';",
+        },
+      ],
+    },
+    // The rule on `gh` is enforced when ghOf runs; the text guard pins the code that keeps it so.
+    ...[
+      ['arguments from a variable', '{ args: viewArguments }'],
+      ['the shorthand { args }', '{ args }'],
+      ['a spread', "{ args: [...['release', 'delete', tag]] }"],
+      ['a split string', "{ args: 'release delete x'.split(' ') }"],
+      ['a template literal', "{ args: [`release`, 'delete', tag] }"],
+    ].map(([, call]) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {",
+          replace: `      opts.gh(${call});\n      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {`,
+        },
+      ],
+    })),
+    ...[
+      ['a second spawn written with a space', "Bun.spawnSync (['rm', 'x']);"],
+      ['the Bun shell', 'const shell = Bun.$;'],
+      [
+        'fetch with DELETE',
+        "void fetch('https://api.github.com/repos/x/y/releases/1', { method: 'DELETE' });",
+      ],
+    ].map(([, line]) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      const child = Bun.spawnSync(['gh', ...args], {",
+          replace: `      ${line}\n      const child = Bun.spawnSync(['gh', ...args], {`,
+        },
+      ],
+    })),
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "import { tmpdir } from 'node:os';",
+          replace:
+            "import { execFileSync } from 'node:child_process';\nimport { tmpdir } from 'node:os';",
+        },
+      ],
+    },
+    ...['GH_TOKEN', 'GITHUB_TOKEN'].map((name) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "  static readonly TITLE_PREFIX = 'IGNIS';",
+          replace: `  static readonly TOKEN = process.env.${name};\n  static readonly TITLE_PREFIX = 'IGNIS';`,
+        },
+      ],
+    })),
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [{ find: 'GithubRelease.refusalOf({ args })', replace: 'undefined' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      script: [
+        { find: "args: ['tag', '--list']", replace: "args: ['tag', '--list', '+refs/tags/x']" },
+      ],
+    },
+    // The environment the publish steps run in is the one the file shows.
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '    environment: npm-release\n',
+          replace: '    environment: npm-release\n    defaults:\n      run:\n        shell: bash\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '    environment: npm-release\n',
+          replace: '    environment: npm-release\n    env:\n      GH_REPO: attacker/elsewhere\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n',
+          replace: '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n  GH_REPO: attacker/elsewhere\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '\nconcurrency:\n',
+          replace: '\ndefaults:\n  run:\n    shell: bash\n\nconcurrency:\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '          git config user.email "developer@venizia.ai"\n',
+          replace:
+            '          git config user.email "developer@venizia.ai"\n          echo "GH_REPO=attacker/elsewhere" >> "$GITHUB_ENV"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '          git config user.email "developer@venizia.ai"\n',
+          replace:
+            '          git config user.email "developer@venizia.ai"\n          echo "/tmp/bin" >> "$GITHUB_PATH"\n',
         },
       ],
     },

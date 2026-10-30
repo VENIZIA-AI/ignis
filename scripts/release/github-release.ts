@@ -37,7 +37,21 @@ export class GithubReleaseConstants {
   static readonly WIKI_URL = 'https://ignis.venizia.ai';
   static readonly CHANGELOG_URL = 'https://ignis.venizia.ai/changelogs/';
   /** `@word` or `@org/team` that is not part of a word, a path or a URL (`a@b`, `/@x`). */
-  static readonly MENTION = /(^|[^\w`/@])@([A-Za-z0-9][\w-]*(?:\/[\w-]+)*)/g;
+  static readonly MENTION = /(^|[^\w`/@\\])@([A-Za-z0-9][\w-]*(?:\/[\w-]+)*)/g;
+  /** A code span: a run of backticks to the next run of the same length, across a line break inside one block. */
+  static readonly CODE_SPAN = /(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g;
+  /** A line that is a block of its own (heading, table row) or starts one (list item): a code span cannot cross it. */
+  static readonly SINGLE_LINE_BLOCK = /^\s*(?:#{1,6}\s|\|)/;
+  static readonly LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s/;
+  /**
+   * The only `gh` calls the script may make. `ghOf` refuses any other, so a change to the code that builds the
+   * arguments cannot reach `gh release delete`, `edit`, `upload` or `api`. The refused arguments are one string each,
+   * split on a space, so the text guard that looks for a quoted forcing flag does not read this list as one.
+   */
+  static readonly GH_COMMANDS: ReadonlySet<string> = new Set(['release view', 'release create']);
+  static readonly REFUSED_ARGUMENTS: ReadonlySet<string> = new Set(
+    '--force -f --delete -d -D --cleanup-tag'.split(' '),
+  );
   /** `](/path)`: a link to the wiki as the wiki writes it; `](//host)` is not one. */
   static readonly ROOT_LINK = /\]\(\/(?!\/)/g;
   /** GitHub refuses a body of 125000 characters or more. */
@@ -89,8 +103,38 @@ export interface IGithubReleaseOutcome {
 }
 
 export class GithubRelease {
+  /**
+   * Why `gh` is not run with these arguments, or `undefined` when it may be: only `release view` and `release create`,
+   * no forcing argument, and never the tag of the atlas index.
+   */
+  static refusalOf(opts: { args: string[] }): string | undefined {
+    const command = opts.args.slice(0, 2).join(' ');
+    const refused = opts.args.find((argument) =>
+      GithubReleaseConstants.REFUSED_ARGUMENTS.has(argument),
+    );
+
+    if (!GithubReleaseConstants.GH_COMMANDS.has(command)) {
+      return `'gh ${command}' is not 'gh release view' or 'gh release create'`;
+    }
+
+    if (refused !== undefined) {
+      return `the argument '${refused}' forces or deletes`;
+    }
+
+    return opts.args.includes(GithubReleaseConstants.ATLAS_INDEX_TAG)
+      ? `${GithubReleaseConstants.ATLAS_INDEX_TAG} is the release of the atlas index, not of a publish`
+      : undefined;
+  }
+
+  /** The only place a process is spawned. A refused call throws before anything is spawned: a failed outcome. */
   static ghOf(opts: { cwd: string }): TGh {
     return ({ args }) => {
+      const refusal = GithubRelease.refusalOf({ args });
+
+      if (refusal !== undefined) {
+        throw new Error(`gh refused: ${refusal}`);
+      }
+
       const child = Bun.spawnSync(['gh', ...args], {
         cwd: opts.cwd,
         stdout: 'pipe',
@@ -323,37 +367,93 @@ export class GithubRelease {
    * Text of the wiki as a Release shows it. A bare `@word` or `@org/team` outside code is put in backticks: GitHub
    * notifies the account or team it names, and a backtick keeps the name readable, which a zero-width space would
    * not (it would also break a copy of the package name). A root-relative link points at the wiki, which a Release
-   * is not part of. Fenced blocks and code spans are left as they are.
+   * is not part of. Fenced blocks (any length of run, backticks or tildes) and code spans, wrapped over lines too,
+   * are left as they are. Known limits, with no markdown lexer to lean on: an HTML block, an unbalanced backtick
+   * (it can pair with the next one in its block). The 234 dated entries of the changelog folder are checked by a test.
    */
   static publicText(opts: { text: string }): string {
-    let fenced = false;
+    const lines = opts.text.split('\n');
+    const { inside } = GithubRelease.fenceStates({ lines });
+    const out: string[] = [];
+    let block: string[] = [];
+    const flush = (): void => {
+      if (block.length > 0) {
+        out.push(...GithubRelease.outsideCode({ text: block.join('\n') }).split('\n'));
+        block = [];
+      }
+    };
 
-    return opts.text
-      .split('\n')
-      .map((line) => {
-        if (/^\s*(?:```|~~~)/.test(line)) {
-          fenced = !fenced;
-
-          return line;
+    for (const [index, line] of lines.entries()) {
+      if (inside[index]) {
+        flush();
+        out.push(line);
+      } else if (line.trim() === '') {
+        flush();
+        out.push(line);
+      } else if (GithubReleaseConstants.SINGLE_LINE_BLOCK.test(line)) {
+        flush();
+        out.push(...GithubRelease.outsideCode({ text: line }).split('\n'));
+      } else {
+        if (GithubReleaseConstants.LIST_ITEM.test(line)) {
+          flush();
         }
 
-        return fenced
-          ? line
-          : line
-              .split(/(`[^`]*`)/)
-              .map((part, index) =>
-                index % 2 === 1
-                  ? part
-                  : part
-                      .replace(GithubReleaseConstants.MENTION, '$1`@$2`')
-                      .replace(
-                        GithubReleaseConstants.ROOT_LINK,
-                        `](${GithubReleaseConstants.WIKI_URL}/`,
-                      ),
-              )
-              .join('');
-      })
-      .join('\n');
+        block.push(line);
+      }
+    }
+
+    flush();
+
+    return out.join('\n');
+  }
+
+  /** `text` with the mention and link rules applied everywhere but inside a code span. */
+  static outsideCode(opts: { text: string }): string {
+    const change = (part: string): string =>
+      part
+        .replace(GithubReleaseConstants.MENTION, '$1`@$2`')
+        .replace(GithubReleaseConstants.ROOT_LINK, `](${GithubReleaseConstants.WIKI_URL}/`);
+    let result = '';
+    let last = 0;
+
+    for (const span of opts.text.matchAll(GithubReleaseConstants.CODE_SPAN)) {
+      result += change(opts.text.slice(last, span.index)) + span[0];
+      last = span.index + span[0].length;
+    }
+
+    return result + change(opts.text.slice(last));
+  }
+
+  /**
+   * For each line, whether it is part of a fenced block (its fences included), and the run still open at the end. A
+   * fence closes on a run of the same character, at least as long as the opener, with nothing after it.
+   */
+  static fenceStates(opts: { lines: string[] }): { inside: boolean[]; open?: string } {
+    let open: string | undefined;
+    const inside = opts.lines.map((line) => {
+      const fence = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+
+      if (open === undefined) {
+        if (fence?.[1] !== undefined) {
+          open = fence[1];
+        }
+
+        return open !== undefined;
+      }
+
+      if (
+        fence?.[1] !== undefined &&
+        fence[1][0] === open[0] &&
+        fence[1].length >= open.length &&
+        (fence[2] ?? '').trim() === ''
+      ) {
+        open = undefined;
+      }
+
+      return true;
+    });
+
+    return { inside, open };
   }
 
   /** The notes of a stable: the entries added since the previous stable, joined; empty when there are none. */
@@ -459,9 +559,9 @@ export class GithubRelease {
   static cutAtLine(opts: { text: string; max: number }): string {
     const cut = opts.text.slice(0, opts.max);
     const kept = cut.slice(0, Math.max(cut.lastIndexOf('\n'), 0));
-    const fences = kept.split('\n').filter((line) => /^\s*(?:```|~~~)/.test(line));
+    const { open } = GithubRelease.fenceStates({ lines: kept.split('\n') });
 
-    return fences.length % 2 === 1 ? `${kept}\n${fences.at(-1)?.trim().slice(0, 3)}` : kept;
+    return open === undefined ? kept : `${kept}\n${open}`;
   }
 
   /**
@@ -621,13 +721,14 @@ export class GithubRelease {
   /**
    * A message as the log and the run summary show it. A line that starts with `::` is a workflow command (`::add-mask::`),
    * and the text of `gh`, `git` or an input can hold a newline, so every line break becomes a space. The notes a dry
-   * run prints are many lines by design; each one after the first is indented, so none starts a command.
+   * run prints are many lines by design; each one after the first starts with `| `, a character the runner does not
+   * trim before it looks for `::` (it does trim spaces), so none starts a command.
    */
   static printable(opts: { outcome: IGithubReleaseOutcome }): string {
     return opts.outcome.state === 'planned'
       ? opts.outcome.message
           .split(/\r\n|\r|\n/)
-          .map((line, index) => (index === 0 ? line : `  ${line}`))
+          .map((line, index) => (index === 0 ? line : `| ${line}`))
           .join('\n')
       : opts.outcome.message.replace(/[\r\n]+/g, ' ');
   }

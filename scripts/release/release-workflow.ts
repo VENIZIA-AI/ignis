@@ -48,6 +48,7 @@ export class ReleaseWorkflowGuards {
   static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
   static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
   static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
+  static readonly PUBLISH_ENVIRONMENT_IS_CLOSED = 'publish-environment-is-closed';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -87,6 +88,7 @@ export class ReleaseWorkflowGuards {
     this.PLAN_CHECKS_THE_LABEL,
     this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
     this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+    this.PUBLISH_ENVIRONMENT_IS_CLOSED,
   ]);
 }
 
@@ -116,6 +118,7 @@ interface IWorkflowJob {
   outputs?: Record<string, unknown>;
   strategy?: { matrix?: unknown };
   env?: Record<string, unknown>;
+  defaults?: unknown;
   'timeout-minutes'?: unknown;
   steps?: IWorkflowStep[];
 }
@@ -125,6 +128,7 @@ interface IWorkflow {
   on?: { workflow_dispatch?: { inputs?: Record<string, { default?: unknown }> } };
   permissions?: Record<string, string> | string;
   env?: Record<string, unknown>;
+  defaults?: unknown;
   jobs?: Record<string, IWorkflowJob>;
 }
 
@@ -141,6 +145,9 @@ const TRIAL_STEP = 'Try the merge back into develop';
 const MERGE_BACK_STEP = 'Merge main back into develop';
 const REPORT_STEP = 'Report - published, merge back not done';
 const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
+/** The variables of the workflow's own `env`, sorted; the one flag a publish step may write to `$GITHUB_ENV`. */
+const WORKFLOW_ENVIRONMENT = ['BUILD_MODE', 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24', 'TARBALLS'];
+const MERGE_BACK_FLAG_WRITE = 'echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"';
 const GITHUB_RELEASE_COMMAND =
   'bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"';
 /** The only keys the step has: no `if`, `shell`, `uses`, `with`, `id` or `working-directory` to change what runs or when. */
@@ -150,7 +157,18 @@ const MAXIMUM_GITHUB_RELEASE_TIMEOUT = 10;
 /** The `gh` and `git` commands scripts/release/github-release.ts may issue: it views and creates, nothing else. */
 const GITHUB_RELEASE_COMMANDS = ['release view', 'release create', 'tag', 'log', 'show'];
 const GITHUB_RELEASE_ARGS = /\bargs:\s*\[\s*'([\w-]+)'(?:,\s*'([\w-]+)')?/g;
-const FORCING_FLAG = /'(?:--force|--force-with-lease|-f|--delete|-d|-D)'/;
+/** A quoted forcing flag or refspec (`'+main'`, `':tag'`), as the loop's git commands are checked. */
+const FORCING_FLAG = /'(?:--force|--force-with-lease|-f|--delete|-d|-D)'|'[+:]\S*'/;
+/** A call of `gh`, `git` or `mustGit` in github-release.ts: what follows the parenthesis is read as the arguments. */
+const GITHUB_RELEASE_CALL = /(?:\.gh|\.git|\.mustGit|\bgh)\(/g;
+/** What github-release.ts must not use: a way to reach the network, a shell or the tokens other than through `gh`. */
+const FORBIDDEN_IN_RELEASE_SCRIPT: Array<{ name: string; pattern: RegExp }> = [
+  { name: 'fetch', pattern: /\bfetch\s*\(/ },
+  { name: 'the Bun shell', pattern: /Bun\s*\.\s*\$/ },
+  { name: 'child_process', pattern: /child_process/ },
+  { name: 'GH_TOKEN', pattern: /GH_TOKEN/ },
+  { name: 'GITHUB_TOKEN', pattern: /GITHUB_TOKEN/ },
+];
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
@@ -749,25 +767,76 @@ export const checkReleaseWorkflow = (opts: {
     );
   }
 
-  // The script that makes the Release views and creates, nothing else: no `gh release delete`, `edit` or `upload`, no
-  // forcing flag, one process spawn. The `args` it passes are read as text, so a command built another way is noticed
-  // by the count of what it spawns.
+  // The script that makes the Release views and creates, nothing else. The rule is enforced when it runs (`ghOf`
+  // refuses any other `gh` call before it spawns anything; `github-release.test.ts` runs that). This guard pins the
+  // text that keeps it so: every `gh` and `git` call passes its arguments as an inline array that opens with a
+  // quoted word (no variable, spread, shorthand, split or template), `ghOf` checks them before its one spawn, and
+  // nothing else can reach the network or a process.
   const releaseScript = withoutBlockComments(withoutScriptComments(releaseScriptText));
   const releaseScriptCommands = [...releaseScript.matchAll(GITHUB_RELEASE_ARGS)].map((match) =>
     match[1] === 'release' ? `release ${match[2] ?? ''}` : (match[1] ?? ''),
   );
-  const strayCommands = releaseScriptCommands.filter(
-    (command) => !GITHUB_RELEASE_COMMANDS.includes(command),
-  );
-  if (
-    strayCommands.length > 0 ||
-    !releaseScriptCommands.includes('release view') ||
-    !releaseScriptCommands.includes('release create') ||
-    (releaseScript.match(/\bBun\.spawn(?:Sync)?\(/g) ?? []).length !== 1
-  ) {
+  const releaseScriptProblems = releaseScriptCommands
+    .filter((command) => !GITHUB_RELEASE_COMMANDS.includes(command))
+    .map((command) => `issues '${command}'`);
+  const ghOfBody =
+    /static ghOf\([^)]*\): TGh \{([\s\S]*?)\n {2}\}\n/.exec(releaseScript)?.[1] ?? '';
+  const refusalAt = ghOfBody.indexOf('GithubRelease.refusalOf({ args })');
+  const spawnAt = ghOfBody.indexOf("Bun.spawnSync(['gh', ...args]");
+
+  if (refusalAt < 0 || spawnAt < 0 || refusalAt > spawnAt) {
+    releaseScriptProblems.push('ghOf does not check the arguments with refusalOf before it spawns');
+  }
+  for (const command of ['release view', 'release create']) {
+    if (!releaseScriptCommands.includes(command)) {
+      releaseScriptProblems.push(`never issues '${command}'`);
+    }
+  }
+  if ((releaseScript.match(/Bun\s*\.\s*spawn/g) ?? []).length !== 1) {
+    releaseScriptProblems.push('spawns a process other than the one in ghOf');
+  }
+  for (const { name, pattern } of FORBIDDEN_IN_RELEASE_SCRIPT) {
+    if (pattern.test(releaseScript)) {
+      releaseScriptProblems.push(`uses ${name}`);
+    }
+  }
+  for (const call of releaseScript.matchAll(GITHUB_RELEASE_CALL)) {
+    const rest = releaseScript.slice(call.index + call[0].length);
+    const array = /^\s*\{\s*(?:cwd:\s*[\w.]+,\s*)?args:\s*\[\s*'[\w-]+'([^\]]*)\]/.exec(rest);
+
+    if (array === null || (array[1] ?? '').includes('...')) {
+      releaseScriptProblems.push(
+        `calls ${call[0]} with arguments that are not an inline array of words: ${rest.slice(0, 40).replace(/\s+/g, ' ')}`,
+      );
+    }
+  }
+  if (releaseScriptProblems.length > 0) {
     violate(
       ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
-      `github-release.ts must issue only ${GITHUB_RELEASE_COMMANDS.map((command) => `\`${command}\``).join(', ')}${strayCommands.length > 0 ? ` (also: ${strayCommands.join(', ')})` : ''}, both \`release view\` and \`release create\`, and spawn one process: it never deletes, edits or uploads a release`,
+      `github-release.ts must issue only ${GITHUB_RELEASE_COMMANDS.map((command) => `\`${command}\``).join(', ')}, with the arguments of each call written inline and checked by ghOf before its one spawn: it never deletes, edits or uploads a release. Found: ${releaseScriptProblems.join('; ')}`,
+    );
+  }
+
+  // The environment the publish steps run in is the one the file shows: no default shell, no variable set for the whole
+  // job, and a step may not set one for the steps after it (`GH_REPO`, `PATH`) but the one flag the report reads.
+  const workflowEnvironment = Object.keys(workflow.env ?? {}).sort();
+  const environmentWrites = publishSteps.flatMap((step) =>
+    commandsOf(step)
+      .split('\n')
+      .filter((line) => line.includes('GITHUB_ENV') || line.includes('GITHUB_PATH'))
+      .filter((line) => line.trim() !== MERGE_BACK_FLAG_WRITE)
+      .map((line) => `'${step.name}' writes ${line.trim()}`),
+  );
+  if (
+    workflow.defaults !== undefined ||
+    Object.values(jobs).some((job) => job.defaults !== undefined) ||
+    publish?.env !== undefined ||
+    JSON.stringify(workflowEnvironment) !== JSON.stringify(WORKFLOW_ENVIRONMENT) ||
+    environmentWrites.length > 0
+  ) {
+    violate(
+      ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      `no \`defaults\` in the workflow or in a job, no \`env\` on the '${PUBLISH_JOB}' job, the workflow \`env\` holds exactly ${WORKFLOW_ENVIRONMENT.join(', ')}, and the '${PUBLISH_JOB}' steps write \`$GITHUB_ENV\` and \`$GITHUB_PATH\` only as \`${MERGE_BACK_FLAG_WRITE}\`${environmentWrites.length > 0 ? ` (found: ${environmentWrites.join('; ')})` : ''}: a step after the Release must run in the environment the file shows`,
     );
   }
 

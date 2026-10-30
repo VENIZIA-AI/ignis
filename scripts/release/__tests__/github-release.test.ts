@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, spyOn, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import type { IGithubReleaseManifest, IGithubReleaseTarget, TGh } from '../github-release';
 import { GithubRelease, GithubReleaseConstants } from '../github-release';
 import { MergeBackConstants, ReleaseMergeBack } from '../merge-back';
@@ -693,6 +693,155 @@ describe('GithubRelease.publicText', () => {
   });
 });
 
+describe('GithubRelease.publicText over code that wraps and fences of any length', () => {
+  test('a code span wrapped over two lines is code on both, and gains no mention', () => {
+    const text = GithubRelease.publicText({
+      text: 'Use `@model({\n  migration: @inside })` here, or @outside.\n\nNext `a\n\n@paragraph` @after',
+    });
+
+    expect(text).toContain('Use `@model({\n  migration: @inside })` here, or `@outside`.');
+    // A span never crosses a blank line: the stray backtick of one paragraph does not hide the mentions of the next.
+    expect(text).toContain('`@paragraph`');
+    expect(text).toContain('`@after`');
+  });
+
+  test('a span does not run on into the next list item, a heading or a table row', () => {
+    const text = GithubRelease.publicText({
+      text: '- an unbalanced ` tick and @first\n- a `real` span, then @second\n## a heading with @third\n| @fourth | `x` |',
+    });
+
+    expect(text).toContain('`@first`');
+    expect(text).toContain('`@second`');
+    expect(text).toContain('## a heading with `@third`');
+    expect(text).toContain('| `@fourth` | `x` |');
+  });
+
+  test('a four-backtick fence holds a three-backtick line, and a tilde fence holds a backtick one', () => {
+    const text = GithubRelease.publicText({
+      text: '````md\n```ts\n@inside\n```\n@still inside\n````\n@outside\n\n~~~~\n```\n@tilde\n~~~~\n@outside again',
+    });
+
+    expect(text).toContain('```ts\n@inside\n```\n@still inside\n````');
+    expect(text).toContain('````\n`@outside`');
+    expect(text).toContain('~~~~\n```\n@tilde\n~~~~\n`@outside` again');
+  });
+
+  test('an escaped mention is left alone', () => {
+    expect(GithubRelease.publicText({ text: 'write \\@name to show it' })).toBe(
+      'write \\@name to show it',
+    );
+  });
+
+  test('over every dated entry of the changelog folder, no @word outside code survives', () => {
+    const folder = resolve(import.meta.dir, '../../../docs/wiki/content/changelogs');
+    const names = readdirSync(folder).filter((name) =>
+      GithubReleaseConstants.DATED_ENTRY.test(name),
+    );
+    const surviving: string[] = [];
+
+    for (const name of names) {
+      const shown = GithubRelease.publicText({
+        text: GithubRelease.stripEntry({ text: readFileSync(join(folder, name), 'utf8') }),
+      });
+      // The check does not use the code under test: fenced lines out by their markers, then every backtick span.
+      let fenced = false;
+      const outside = shown
+        .split('\n')
+        .filter((line) => {
+          if (/^\s*(?:```|~~~)/.test(line)) {
+            fenced = !fenced;
+
+            return false;
+          }
+
+          return !fenced;
+        })
+        .join('\n')
+        .replace(/(`+)[\s\S]*?\1/g, '');
+
+      for (const mention of outside.matchAll(GithubReleaseConstants.MENTION)) {
+        surviving.push(`${name}: ${mention[0]}`);
+      }
+    }
+
+    expect(names.length).toBeGreaterThan(200);
+    expect(surviving).toEqual([]);
+  });
+});
+
+describe('GithubRelease.cutAtLine', () => {
+  const text = (fence: string) => `intro\n${fence}text\n${'inside\n'.repeat(50)}${fence}\nafter\n`;
+
+  test('closes an open fence with the full run of its opener', () => {
+    for (const fence of ['```', '````', '~~~', '~~~~~']) {
+      const cut = GithubRelease.cutAtLine({ text: text(fence), max: 60 });
+
+      expect(cut.endsWith(`\n${fence}`)).toBe(true);
+      expect(GithubRelease.fenceStates({ lines: cut.split('\n') }).open).toBeUndefined();
+    }
+  });
+
+  test('leaves a cut outside a fence as it is', () => {
+    expect(GithubRelease.cutAtLine({ text: 'one\ntwo\nthree\n', max: 7 })).toBe('one');
+  });
+});
+
+describe('GithubRelease.ghOf refuses at run time what the script must never ask of gh', () => {
+  const gh = GithubRelease.ghOf({ cwd: scratch() });
+
+  test('only release view and release create are allowed', () => {
+    expect(
+      GithubRelease.refusalOf({ args: ['release', 'view', 'x', '--json', 'tagName'] }),
+    ).toBeUndefined();
+    expect(
+      GithubRelease.refusalOf({
+        args: ['release', 'create', 'x', '--verify-tag', '--latest=false'],
+      }),
+    ).toBeUndefined();
+  });
+
+  test('delete, edit, upload, api and a missing command are refused before anything is spawned', () => {
+    for (const args of [
+      ['release', 'delete', 'x', '--yes'],
+      ['release', 'edit', 'x', '--notes', 'y'],
+      ['release', 'upload', 'x', 'file'],
+      ['api', '-X', 'DELETE', 'repos/x/y/releases/1'],
+      ['repo', 'delete', 'x'],
+      ['release'],
+      [],
+    ]) {
+      expect(() => gh({ args })).toThrow('gh refused');
+    }
+  });
+
+  test('a forcing argument is refused on an allowed command', () => {
+    for (const flag of ['--force', '-f', '--delete', '-d', '-D', '--cleanup-tag']) {
+      expect(() => gh({ args: ['release', 'create', 'x', flag] })).toThrow('forces or deletes');
+    }
+  });
+
+  test('the tag of the atlas index is refused on an allowed command', () => {
+    expect(() => gh({ args: ['release', 'view', 'atlas-index'] })).toThrow('atlas index');
+    expect(() => gh({ args: ['release', 'create', 'atlas-index', '--prerelease'] })).toThrow(
+      'atlas index',
+    );
+  });
+
+  test('a refusal that reaches create is a failed outcome with its reason, not an exception', () => {
+    const outcome = GithubRelease.create({
+      cwd: fixture(),
+      targets: SERVER_STABLE,
+      kind: 'stable',
+      gh: () => {
+        throw new Error('gh refused: nope');
+      },
+      scratchRoot: scratch(),
+    });
+
+    expect(outcome).toEqual({ state: 'failed', message: 'gh refused: nope' });
+  });
+});
+
 describe('GithubRelease.bodyOf with notes too long for a Release', () => {
   const body = (opts: { notes: string }) =>
     GithubRelease.bodyOf({
@@ -808,13 +957,15 @@ describe('GithubRelease.main', () => {
     expect(readFileSync(summary, 'utf8')).toContain('HTTP 403 ::add-mask::injected ::stop::');
   });
 
-  test('a dry run keeps its many lines but indents every line after the first, so none starts a command', () => {
+  test('a dry run keeps its many lines but starts every line after the first with "| ", a character the runner does not trim', () => {
     const printed = GithubRelease.printable({
-      outcome: { state: 'planned', message: 'tag (stable):\n\n::add-mask::x\nbody' },
+      outcome: { state: 'planned', message: 'tag (stable):\n\n::add-mask::x\n  ::stop::\nbody' },
     });
+    const lines = printed.split('\n');
 
-    expect(printed.split('\n').filter((line) => line.startsWith('::'))).toEqual([]);
-    expect(printed.split('\n').length).toBe(4);
+    expect(lines.filter((line) => line.trimStart().startsWith('::'))).toEqual([]);
+    expect(lines.slice(1).every((line) => line.startsWith('| '))).toBe(true);
+    expect(lines).toHaveLength(5);
   });
 
   test('a list of targets the manifest cannot read is a failure in the summary, not a crash of the step', () => {
