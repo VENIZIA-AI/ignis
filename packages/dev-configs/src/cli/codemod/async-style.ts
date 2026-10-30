@@ -5,14 +5,19 @@ import { CodemodFiles } from './files';
 
 const USAGE = `Usage: devz codemod async-style [paths...] [--write | --check]
 
-Applies the fixers of two house lint rules, so a repository can sweep them without a lint pass:
+Applies the fixers of three house lint rules, so a repository can sweep them without a lint pass:
 
-  venizia/no-inline-await   \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
-  venizia/no-return-await   \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
+  venizia/no-inline-await         \`expect(await f())\` becomes \`const result = await f(); expect(result)\`
+  venizia/no-return-await         \`return await f()\` becomes \`return f()\` (\`const result = await f(); return result;\` in a try)
+  venizia/no-await-promise-chain  \`const x = await f().catch(() => null)\` becomes
+                                  \`let x; try { x = await f(); } catch (error) { x = null; }\`
 
-It changes only what the fixers can change safely. An \`await\` inside a ternary or logical operand, a loop
-test, an unbraced \`if\` branch, or after a call that may have effects is listed with its file, line and
-rule, and left for you.
+It changes only what the fixers can change safely, and lists the rest with its file, line and rule:
+an \`await\` inside a ternary or logical operand, a loop test, an unbraced \`if\` branch, or after a call
+that may have effects; an awaited \`.then\` or \`.finally\`, a \`.catch\` whose handler has a block body or
+calls something, and an awaited chain that is not the whole initializer of a \`const\` or \`let\`; and
+every venizia/no-silent-catch finding (a handler or catch block that swallows the error), which it never
+fixes: what to log is your decision.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 when anything would change or is left unfixed (for CI)
@@ -25,8 +30,8 @@ files git knows (tracked, or untracked and not ignored), and --write refuses a f
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
 
-/** A file that can hold an `await`. */
-const AWAIT_TEXT = /\bawait\b/;
+/** A file that can hold an `await` or a `catch`. */
+const ASYNC_TEXT = /\b(await|catch)\b/;
 
 class AsyncStyleFlags {
   static readonly WRITE = '--write';
@@ -57,15 +62,15 @@ export interface IAsyncStyleReport {
 export interface IAsyncStyleResult {
   output: string;
   changed: boolean;
-  /** How many findings the fixers removed. */
+  /** How many findings of the original source carried a fix, once the fixers changed it. */
   fixes: number;
   /** What is still reported after every pass. */
   reports: IAsyncStyleReport[];
 }
 
-/** Runs the two async-style rules, and only those, over source text with ESLint's own fixer loop. */
+/** Runs the async-style rules, and only those, over source text with ESLint's own fixer loop. */
 export class AsyncStyle {
-  /** The `Linter` config: the TypeScript parser and the two rules at error, from `asyncStyleConfigs`. */
+  /** The `Linter` config: the TypeScript parser and the rules of `asyncStyleConfigs`, at error. */
   static async createConfig(): Promise<Linter.Config[]> {
     const { default: tseslint } = await import('typescript-eslint');
     const { asyncStyleConfigs } = await import('../../linters/house/index.js');
@@ -74,7 +79,7 @@ export class AsyncStyle {
       {
         files: ['**/*.{ts,tsx,mts,cts}'],
         languageOptions: { parser: tseslint.parser },
-        // Only two rules run here, so a `// eslint-disable-next-line` for any other rule looks unused and
+        // Only the async-style rules run here, so a `// eslint-disable-next-line` for any other rule looks unused and
         // ESLint's fixer would delete it. A codemod never touches a directive.
         linterOptions: { reportUnusedDisableDirectives: 'off' },
       },
@@ -90,13 +95,17 @@ export class AsyncStyle {
     filename: string;
   }): IAsyncStyleResult {
     const { linter, config, source, filename } = opts;
-    const before = linter.verify(source, config, { filename }).length;
+    // A fix can leave a new finding behind (the try/catch of no-await-promise-chain is a silent catch when the
+    // fallback is a constant), so the count is of the fixable findings, not of the findings that went away.
+    const fixable = linter
+      .verify(source, config, { filename })
+      .filter((message) => message.fix !== undefined).length;
     const result = linter.verifyAndFix(source, config, { filename });
 
     return {
       output: result.output,
       changed: result.output !== source,
-      fixes: result.fixed ? Math.max(0, before - result.messages.length) : 0,
+      fixes: result.fixed ? fixable : 0,
       reports: result.messages.map((message) => ({
         line: message.line,
         column: message.column,
@@ -108,9 +117,10 @@ export class AsyncStyle {
 }
 
 /**
- * `devz codemod async-style [paths...] [--write | --check]`: applies the fixers of `no-inline-await`
- * and `no-return-await`. It is a dry run unless `--write` is given. `--check` is the same dry run, and
- * exits 1 when anything would change or is left unfixed.
+ * `devz codemod async-style [paths...] [--write | --check]`: applies the fixers of `no-inline-await`,
+ * `no-return-await` and `no-await-promise-chain`, and lists what is left of those and of `no-silent-catch`.
+ * It is a dry run unless `--write` is given. `--check` is the same dry run, and exits 1 when anything would
+ * change or is left unfixed.
  */
 export class AsyncStyleCommand {
   static readonly USAGE = USAGE;
@@ -173,7 +183,7 @@ export class AsyncStyleCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!AWAIT_TEXT.test(source)) {
+        if (!ASYNC_TEXT.test(source)) {
           continue;
         }
 

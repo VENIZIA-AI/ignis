@@ -9,6 +9,7 @@ export class AstNodeTypes {
   static readonly UNION_TYPE = 'TSUnionType';
   static readonly AWAIT_EXPRESSION = 'AwaitExpression';
   static readonly RETURN_STATEMENT = 'ReturnStatement';
+  static readonly CATCH_CLAUSE = 'CatchClause';
 }
 
 /** The ESLint namespace the house rules live under: `venizia/<rule>`. */
