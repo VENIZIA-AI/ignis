@@ -474,8 +474,17 @@ const main = async (): Promise<void> => {
   const released = await readReleased({ runId, states: plan });
 
   // The workflow pushes its own release commits. Without this the operator reads a repo that disagrees
-  // with the registry.
-  await run({ command: ['git', 'pull', '--ff-only', '--quiet', 'origin', branch] });
+  // with the registry. The release has already published, so a checkout that cannot be fast-forwarded is a warning
+  // with the command to run by hand, never a failed release.
+  for (const command of ReleaseDispatch.syncCommands({ branch })) {
+    const { exitCode } = await run({ command, allowFailure: true });
+    if (exitCode !== 0) {
+      console.warn(
+        `\n  WARNING | the release is done, but \`${command.join(' ')}\` exited ${exitCode}, so this checkout is not at origin/${branch}. Run it by hand: git pull --ff-only origin refs/heads/${branch}`,
+      );
+      break;
+    }
+  }
 
   // The workflow is green and the packument lists the versions, but a tarball can answer 404 for
   // minutes after that, and an install of the train fails in that window. Done means installable.
