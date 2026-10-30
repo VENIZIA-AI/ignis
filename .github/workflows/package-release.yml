@@ -549,6 +549,25 @@ jobs:
         run: bun scripts/release/release-run.ts run
 
       # -------------------------------------------------------------------------
+      # GITHUB RELEASE
+      # -------------------------------------------------------------------------
+      # One Release for the run, on the tag of the last package of the plan (core-server when it is in the plan): a
+      # stable is marked Latest only when it is the newest stable of that package and carries the changelog entries
+      # added since the previous stable (or a line saying there is no change for users, when there is none); a
+      # prerelease is marked Pre-release, never Latest, and lists its commits. A tag that has a Release is skipped, so
+      # dispatching the same plan again makes a missing one and never a second. A failure is reported in the run
+      # summary and never fails or undoes a publish. The script refuses the tag of the atlas index, whose release is
+      # not a publish's. No secret: the job's own token, which has `contents: write`, is all it uses.
+      - name: Create the GitHub Release
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_KIND: ${{ needs.plan.outputs.kind }}
+          TARGETS: ${{ needs.plan.outputs.targets }}
+        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"
+
+      # -------------------------------------------------------------------------
       # MERGE BACK (a stable only)
       # -------------------------------------------------------------------------
       # main now holds every release commit and their tags; develop gets them by one merge of the last release commit,

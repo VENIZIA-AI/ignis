@@ -15,6 +15,7 @@ tags: [process, release, ci]
 - [The VULCAN preset](#the-vulcan-preset)
 - [The five jobs and their guards](#the-five-jobs-and-their-guards)
 - [Trusted publishing (no npm token)](#trusted-publishing-no-npm-token)
+- [The GitHub Release of a run](#the-github-release-of-a-run)
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
 - [Steps](#steps)
 - [Related](#related)
@@ -123,7 +124,7 @@ versions, the Node setup does not cache, and every action is pinned by a full co
 `scripts/release/release-workflow.ts` reads the workflow and the loop and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request. There are 34. The ones for trusted publishing are `no-npm-token` (no
+mutation in that test, in the same pull request. There are 36. The ones for trusted publishing are `no-npm-token` (no
 `secrets.` reference and no npm token name in the workflow or in the loop), `environment-on-publish`, `oidc-on-publish-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted` and `publish-tarball-with-provenance` (`bun publish` appears nowhere, the loop
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
@@ -133,7 +134,9 @@ for the two kinds are `ref-by-kind` (the plan job, not a literal branch, checks 
 names `release-approval`, for a stable, after the gates, `permissions: {}`, one echo, the headline in its name),
 `publish-after-approve` (the `if` is evaluated over its cases, `scripts/release/release-publish-condition.ts`),
 `stable-refuses-moved-branches`, `plan-tries-the-merge-back`, `merge-back-from-a-copy`, `target-branch-by-kind` and
-`no-force-or-tag-move` (no force push, no tag moved or deleted, no branch deleted, in the workflow or in the loop). The guards
+`no-force-or-tag-move` (no force push, no tag moved or deleted, no branch deleted, in the workflow or in the loop). The
+last, `github-release-never-fails-a-publish`, holds the step that makes the GitHub Release of the run (see
+[The GitHub Release of a run](#the-github-release-of-a-run)). The guards
 read commands with comments stripped, and `no-npm-token` names the file and the line. What the loop does with the tarball (the
 sha256 recorded and checked again before the publish, the version inside it, the pins of the siblings, the order of every
 call, the skip and heal states) is not a text guard: `scripts/release/__tests__/release-run.test.ts` runs the loop against a
@@ -166,6 +169,17 @@ and `@venizia/ignis-worker` (`core-worker`).
   package), and the loop checks the pin of every sibling in the packed manifest anyway.
 - The repository secret that held the old token is already deleted. After the first release over trusted
   publishing has passed, the owner sets each package's Publishing access to disallow tokens and revokes the old token.
+
+## The GitHub Release of a run
+
+Every run, prerelease or stable, ends with ONE GitHub Release, made by `scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"` in the step "Create the GitHub Release" of the `publish` job (after "Release the plan", before the merge back). It is uniform with VULCAN and covers new releases only; older tags have none.
+
+- **The tag is the last package's.** A run tags each package `<dir>-v<version>`; the Release goes on the tag of the last package of the plan in release order (`core-server` when it is in the plan), and its title is `IGNIS <version of that package>`. The previous tag and the newest stable are read from the tags of that one package, never from another package's.
+- **Prerelease:** flagged Pre-release, never Latest. The body is `Install: npm install <npm name of the last package>@next`, then the `[#N]` commit subjects since the previous tag of that package (at most 30, in a fenced block, release commits left out).
+- **Stable:** `--latest` only when no stable tag of that package is above it, `--latest=false` otherwise. The body is the user-facing changelog entries added since the previous stable tag of that package (front matter, date heading and badge line removed), or `No change for users of the packages in this release.` when there are none.
+- **Both end with `## Packages`:** one line per package of THIS run, in release order, `- [<npm name>@<version>](https://www.npmjs.com/package/<npm name>/v/<version>)`. The npm names come from `.agents/vulcan.manifest.json` `packages`, matched by `dir`.
+- **Never a second, never a failure.** A tag that already has a Release is skipped, so dispatching the same plan again makes a missing Release and never a second one. The step has `continue-on-error: true` and a 5-minute timeout, reads no secret (`GH_TOKEN` is the job's own `github.token`, `contents: write` is already there) and reports in the run summary; a failure never fails or undoes a publish. The guard `github-release-never-fails-a-publish` holds all of that. The script refuses the tag `atlas-index`.
+- **By hand:** `bun scripts/release/github-release.ts backfill --tag <tag> [--yes]` makes the Release of one existing tag (a dry run that prints the planned body without `--yes`). The workflow never calls it.
 
 ## The prebuilt atlas index of this repository
 
@@ -242,11 +256,14 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
    a plain push to `develop`, then the annotated tag `<package>-v<version>` and its push. The next package starts only
    after that. A push that is rejected (`develop` moved) stops the run: nothing rebases, because a rebase would bring other
    commits into the working tree between two packs while the build ran once on the dispatched commit.
-7. There is no rollback, by design. The publish comes before the git writes, so after any stop git equals the registry
+7. When the loop is done, the step "Create the GitHub Release" makes the Release of the run on the tag of the last package
+   (see [The GitHub Release of a run](#the-github-release-of-a-run)). It cannot fail the run. A stable then merges `main`
+   back into `develop`.
+8. There is no rollback, by design. The publish comes before the git writes, so after any stop git equals the registry
    except for a package that published and could not be recorded; the log names that package and the missing half (the
    release commit, the tag). npm cannot un-publish, and force-pushing `develop` to chase a live version does more damage than
    the gap. Dispatch the same plan again: it records what is missing without publishing twice.
-8. To check whether a release "actually happened": the run's log has a `+` or `=` line per package, the registry serves the
+9. To check whether a release "actually happened": the run's log has a `+` or `=` line per package, the registry serves the
    versions, and `develop` has the `chore(<package>): release v<version> [<build_mode>]` commit and the
    `<package>-v<version>` tag for each.
 

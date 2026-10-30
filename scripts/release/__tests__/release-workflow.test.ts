@@ -41,13 +41,23 @@ const guardsOf = (opts: { text?: string; runnerText?: string }): string[] => [
   ),
 ];
 
+/** The step "Create the GitHub Release" as the workflow has it, to move it in a copy. */
+const GITHUB_RELEASE_STEP_TEXT = ((): string => {
+  const start = WORKFLOW.indexOf('      - name: Create the GitHub Release\n');
+  const end = WORKFLOW.indexOf('\n\n', start);
+
+  return WORKFLOW.slice(start, end + 2);
+})();
+
+const MOVE_GITHUB_RELEASE_STEP: IEdit[] = [{ find: GITHUB_RELEASE_STEP_TEXT, replace: '' }];
+
 describe('the release workflow keeps its guards', () => {
   test('the workflow and the loop as committed have no violation', () => {
     expect(checkReleaseWorkflow({ text: WORKFLOW, runnerText: RUNNER })).toEqual([]);
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(35);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(36);
   });
 });
 
@@ -723,6 +733,86 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         {
           find: "['git', 'tag', '-a', tag, '-m', `${packageName} v${onDisk}`, sha.trim()]",
           replace: "['git', 'tag', '-f', tag, sha.trim()]",
+        },
+      ],
+    },
+    // The GitHub Release of the run.
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '      - name: Create the GitHub Release\n',
+          replace: '      - name: Create nothing\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '        continue-on-error: true\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '        timeout-minutes: 5\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '          GH_TOKEN: ${{ github.token }}\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          GH_TOKEN: ${{ github.token }}\n',
+          replace:
+            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: 'github-release.ts create --targets "$TARGETS" --kind',
+          replace: 'github-release.ts create --kind',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: 'github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"',
+          replace: 'github-release.ts create --targets "$TARGETS"',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          TARGETS: ${{ needs.plan.outputs.targets }}\n        run: bun scripts/release/github-release.ts',
+          replace:
+            '          TARGETS: kernel=1.0.0\n        run: bun scripts/release/github-release.ts',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        ...MOVE_GITHUB_RELEASE_STEP,
+        {
+          find: '      - name: Release the plan\n',
+          replace: `${GITHUB_RELEASE_STEP_TEXT}      - name: Release the plan\n`,
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        ...MOVE_GITHUB_RELEASE_STEP,
+        {
+          find: '      - name: Report - published, merge back not done\n',
+          replace: `${GITHUB_RELEASE_STEP_TEXT}      - name: Report - published, merge back not done\n`,
         },
       ],
     },

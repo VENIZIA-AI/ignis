@@ -46,6 +46,7 @@ export class ReleaseWorkflowGuards {
   static readonly TARGET_BRANCH_BY_KIND = 'target-branch-by-kind';
   static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
   static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
+  static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -83,6 +84,7 @@ export class ReleaseWorkflowGuards {
     this.TARGET_BRANCH_BY_KIND,
     this.NO_FORCE_OR_TAG_MOVE,
     this.PLAN_CHECKS_THE_LABEL,
+    this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
   ]);
 }
 
@@ -99,6 +101,8 @@ interface IWorkflowStep {
   if?: string;
   with?: Record<string, unknown>;
   env?: Record<string, unknown>;
+  'continue-on-error'?: unknown;
+  'timeout-minutes'?: unknown;
 }
 
 interface IWorkflowJob {
@@ -134,6 +138,8 @@ const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan'
 const TRIAL_STEP = 'Try the merge back into develop';
 const MERGE_BACK_STEP = 'Merge main back into develop';
 const REPORT_STEP = 'Report - published, merge back not done';
+const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
+const GITHUB_RELEASE_SCRIPT = 'scripts/release/github-release.ts create';
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
@@ -547,11 +553,16 @@ export const checkReleaseWorkflow = (opts: {
     !release ||
     commandsOf(release).trim() !== RELEASE_COMMAND ||
     release.env?.PLAN !== '${{ needs.plan.outputs.plan }}' ||
-    afterLoop.some((step) => step.name !== MERGE_BACK_STEP && step.name !== REPORT_STEP)
+    afterLoop.some(
+      (step) =>
+        step.name !== GITHUB_RELEASE_STEP &&
+        step.name !== MERGE_BACK_STEP &&
+        step.name !== REPORT_STEP,
+    )
   ) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
-      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${MERGE_BACK_STEP}' and '${REPORT_STEP}'`,
+      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${GITHUB_RELEASE_STEP}', '${MERGE_BACK_STEP}' and '${REPORT_STEP}'`,
     );
   }
 
@@ -678,6 +689,34 @@ export const checkReleaseWorkflow = (opts: {
     violate(
       ReleaseWorkflowGuards.MERGE_BACK_FROM_A_COPY,
       `'${MERGE_BACK_STEP}' must run for a stable after '${RELEASE_STEP}': copy merge-back.ts first, add a detached worktree of origin/develop, run the copy with \`apply --repo\` on that worktree and push from it; the checkout is never switched to develop`,
+    );
+  }
+
+  // The GitHub Release of the run is made once the loop is done and before the merge back, by a step that cannot fail
+  // the run, holds no secret (the job's own token, nothing else) and takes the plan and the kind from the plan job.
+  const githubRelease = publishSteps.find((step) => step.name === GITHUB_RELEASE_STEP);
+  const githubReleaseCommands = commandsOf(githubRelease);
+  const githubReleasePosition =
+    githubRelease === undefined ? -1 : publishSteps.indexOf(githubRelease);
+  if (
+    githubRelease === undefined ||
+    release === undefined ||
+    merge === undefined ||
+    githubReleasePosition < publishSteps.indexOf(release) ||
+    githubReleasePosition > publishSteps.indexOf(merge) ||
+    githubRelease['continue-on-error'] !== true ||
+    typeof githubRelease['timeout-minutes'] !== 'number' ||
+    githubRelease.env?.GH_TOKEN !== '${{ github.token }}' ||
+    githubRelease.env?.RELEASE_KIND !== '${{ needs.plan.outputs.kind }}' ||
+    githubRelease.env?.TARGETS !== '${{ needs.plan.outputs.targets }}' ||
+    JSON.stringify(githubRelease).includes(SECRET_REFERENCE) ||
+    !githubReleaseCommands.includes(GITHUB_RELEASE_SCRIPT) ||
+    !githubReleaseCommands.includes('--targets "$TARGETS"') ||
+    !githubReleaseCommands.includes('--kind "$RELEASE_KIND"')
+  ) {
+    violate(
+      ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      `'${GITHUB_RELEASE_STEP}' must come after '${RELEASE_STEP}' and before '${MERGE_BACK_STEP}', state \`continue-on-error: true\` and a \`timeout-minutes\`, take \`GH_TOKEN\` from \`github.token\` and \`RELEASE_KIND\` and \`TARGETS\` from the plan job's outputs, reference no secret, and run \`${GITHUB_RELEASE_SCRIPT} --targets "$TARGETS" --kind "$RELEASE_KIND"\`: a Release that cannot be made must never fail or undo a publish`,
     );
   }
 
