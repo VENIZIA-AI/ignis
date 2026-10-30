@@ -82,16 +82,101 @@ export class AsyncStyle {
     ];
   }
 
-  /** Fixes `source` (ESLint applies up to ten passes) and returns the text and what is left. `filename` is relative to the linter's `cwd`. */
+  /**
+   * The self-check's config: four scope rules, run on the text before and after the fixers. A hoisted name must be
+   * declared once, shadow nothing, be used after it is declared and be used at all; when the fixers break one of these
+   * the count of that rule goes up, and the file is left as it was.
+   */
+  static async createChecks(): Promise<Linter.Config[]> {
+    const { default: tseslint } = await import('typescript-eslint');
+
+    return [
+      {
+        files: ['**/*.{ts,tsx,mts,cts}'],
+        languageOptions: { parser: tseslint.parser },
+        linterOptions: { reportUnusedDisableDirectives: 'off' },
+        plugins: { '@typescript-eslint': tseslint.plugin as never },
+        rules: {
+          '@typescript-eslint/no-redeclare': 'error',
+          '@typescript-eslint/no-shadow': 'error',
+          '@typescript-eslint/no-use-before-define': [
+            'error',
+            { functions: false, classes: false },
+          ],
+          '@typescript-eslint/no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],
+        },
+      },
+    ];
+  }
+
+  /** What got worse between `source` and `output` by the self-check's rules: empty when nothing did. */
+  static selfCheck(opts: {
+    linter: Linter;
+    checks: Linter.Config[];
+    source: string;
+    output: string;
+    filename: string;
+  }): string[] {
+    const { linter, checks, source, output, filename } = opts;
+    const count = (text: string): Map<string, number> => {
+      const found = new Map<string, number>();
+      for (const message of linter.verify(text, checks, { filename })) {
+        const key = message.ruleId ?? 'parse error';
+        found.set(key, (found.get(key) ?? 0) + 1);
+      }
+
+      return found;
+    };
+    const was = count(source);
+    const now = count(output);
+
+    return [...now]
+      .filter(([rule, total]) => total > (was.get(rule) ?? 0))
+      .map(([rule, total]) => `${rule}: ${was.get(rule) ?? 0} before, ${total} after`);
+  }
+
+  /**
+   * Fixes `source` (ESLint applies up to ten passes) and returns the text and what is left. `filename` is relative to
+   * the linter's `cwd`. The fixed text is checked against the original (`checks`): if it has more redeclarations,
+   * shadowed names, uses before declaration or unused variables than the original, no fix is returned and the file is
+   * reported as `self-check`, so a hoisted name that does not match the expression it replaced never reaches a file.
+   */
   static fix(opts: {
     linter: Linter;
     config: Linter.Config[];
+    checks: Linter.Config[];
     source: string;
     filename: string;
   }): IAsyncStyleResult {
-    const { linter, config, source, filename } = opts;
+    const { linter, config, checks, source, filename } = opts;
     const before = linter.verify(source, config, { filename }).length;
     const result = linter.verifyAndFix(source, config, { filename });
+
+    if (result.output !== source) {
+      const broken = AsyncStyle.selfCheck({
+        linter,
+        checks,
+        source,
+        output: result.output,
+        filename,
+      });
+
+      if (broken.length > 0) {
+        return {
+          output: source,
+          changed: false,
+          fixes: 0,
+          reports: [
+            {
+              line: 1,
+              column: 1,
+              ruleId: 'self-check',
+              message: `the fixers would have made this file worse (${broken.join('; ')}); it is left as it was - fix it by hand`,
+            },
+          ],
+        };
+      }
+    }
 
     return {
       output: result.output,
@@ -154,6 +239,7 @@ export class AsyncStyleCommand {
     }
 
     const config = await AsyncStyle.createConfig();
+    const checks = await AsyncStyle.createChecks();
     const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(root, path));
     let changedCount = 0;
     let fixCount = 0;
@@ -178,7 +264,7 @@ export class AsyncStyleCommand {
         }
 
         const shown = relative(root, file).split('\\').join('/');
-        const result = AsyncStyle.fix({ linter, config, source, filename: shown });
+        const result = AsyncStyle.fix({ linter, config, checks, source, filename: shown });
 
         for (const report of result.reports) {
           reportCount += 1;

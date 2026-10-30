@@ -208,24 +208,49 @@ export class AwaitSupport {
   }
 
   /**
-   * `base`, or `base2`, `base3`... the first word that does not appear in the function (or program) holding `node`
-   * and that this lint pass has not handed out already: two fixes of one pass must not declare the same name.
+   * The outermost function that holds `node` (the program when no function does): the one namespace a hoisted name
+   * must be unique in. A name that is free in the nearest function only could still shadow, or be shadowed by, the
+   * name another fix hoisted in a function around it or a block inside it.
    */
-  static freshName(opts: {
-    node: Rule.Node;
-    base: string;
-    sourceCode: SourceCode;
-    taken: Map<unknown, Set<string>>;
-  }): string {
-    const scope = AwaitSupport.scopeNodeOf({ node: opts.node });
+  static outermostScopeOf(opts: { node: Rule.Node }): Rule.Node {
+    let outermost: Rule.Node | undefined;
+    let current: unknown = opts.node;
+
+    while (AwaitSupport.isNode(current)) {
+      if (FUNCTION_TYPES.has(nodeType({ node: current }) ?? '')) {
+        outermost = current;
+      }
+      current = AwaitSupport.parentOf({ node: current });
+    }
+
+    return outermost ?? AwaitSupport.scopeNodeOf({ node: opts.node });
+  }
+
+  /**
+   * The names handed out in this lint pass, per outermost scope. They are shared by every rule that hoists a name: the
+   * rules run in the same pass over the same text and their fixes are applied together, so two rules that each
+   * remembered their own names both handed out `result`. A `SourceCode` lasts for one pass of one file.
+   */
+  private static readonly PASS_NAMES = new WeakMap<SourceCode, Map<unknown, Set<string>>>();
+
+  /**
+   * `base`, or `base2`, `base3`... the first word that does not appear in the outermost function (or program) holding
+   * `node` and that no rule has handed out already in this lint pass: no two fixes of one pass declare the same name,
+   * and none declares a name that is in scope anywhere around or inside the place it is hoisted to.
+   */
+  static freshName(opts: { node: Rule.Node; base: string; sourceCode: SourceCode }): string {
+    const scope = AwaitSupport.outermostScopeOf({ node: opts.node });
     const text = opts.sourceCode.getText(scope);
-    const reserved = opts.taken.get(scope) ?? new Set<string>();
+    const pass = AwaitSupport.PASS_NAMES.get(opts.sourceCode) ?? new Map<unknown, Set<string>>();
+    const reserved = pass.get(scope) ?? new Set<string>();
+
+    AwaitSupport.PASS_NAMES.set(opts.sourceCode, pass);
 
     for (let index = 1; ; index += 1) {
       const candidate = index === 1 ? opts.base : `${opts.base}${index}`;
       if (!reserved.has(candidate) && !new RegExp(`\\b${candidate}\\b`).test(text)) {
         reserved.add(candidate);
-        opts.taken.set(scope, reserved);
+        pass.set(scope, reserved);
 
         return candidate;
       }
