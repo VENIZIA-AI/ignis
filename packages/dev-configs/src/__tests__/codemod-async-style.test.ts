@@ -101,7 +101,8 @@ describe('devz codemod async-style', () => {
     write('src/a.test.ts', INLINE);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.test.ts')).toBe(INLINE_FIXED);
     expect(logs.join('\n')).toContain('changed  src/a.test.ts  (1 fix(es))');
     expect(logs.join('\n')).toContain(
@@ -113,7 +114,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_AWAIT);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_AWAIT_FIXED);
   });
 
@@ -121,7 +123,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_IN_TRY);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_IN_TRY_FIXED);
   });
 
@@ -129,7 +132,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', TERNARY);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(TERNARY);
     expect(warnings.join('\n')).toContain('src/a.ts:2:');
     expect(warnings.join('\n')).toContain('venizia/no-inline-await');
@@ -142,7 +146,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', `${INLINE}${TERNARY}`);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(`${INLINE_FIXED}${TERNARY}`);
     expect(warnings.join('\n')).toContain('src/a.ts:6:');
     expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 1 left unfixed');
@@ -152,7 +157,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_AWAIT);
     commit();
 
-    expect(await code([])).toBe(0);
+    const result = await code([]);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_AWAIT);
     expect(logs.join('\n')).toContain('would change  src/a.ts  (1 fix(es))');
     expect(logs.join('\n')).toContain('Nothing was written');
@@ -161,21 +167,25 @@ describe('devz codemod async-style', () => {
   test('a dry run reads untracked files too, so it works before the first commit', async () => {
     write('src/a.ts', RETURN_AWAIT);
 
-    expect(await code([])).toBe(0);
+    const result = await code([]);
+    expect(result).toBe(0);
     expect(logs.join('\n')).toContain('would change  src/a.ts');
   });
 
   test('--check exits 1 while a fix is pending or a report is left, and 0 when neither; it writes nothing', async () => {
     write('src/a.ts', RETURN_AWAIT);
     commit();
-    expect(await code(['--check'])).toBe(1);
+    const result = await code(['--check']);
+    expect(result).toBe(1);
     expect(read('src/a.ts')).toBe(RETURN_AWAIT);
 
     write('src/a.ts', TERNARY);
-    expect(await code(['--check'])).toBe(1);
+    const result2 = await code(['--check']);
+    expect(result2).toBe(1);
 
     write('src/a.ts', 'export const value = 1;\n');
-    expect(await code(['--check'])).toBe(0);
+    const result3 = await code(['--check']);
+    expect(result3).toBe(0);
   });
 
   test('a second run changes nothing', async () => {
@@ -183,15 +193,18 @@ describe('devz codemod async-style', () => {
     write('src/b.ts', RETURN_IN_TRY);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     commit();
     logs.length = 0;
 
-    expect(await code(['--write'])).toBe(0);
+    const result2 = await code(['--write']);
+    expect(result2).toBe(0);
     expect(logs.join('\n')).toContain(
       'devz codemod async-style: 0 file(s) changed, 0 fix(es) applied, 0 left unfixed',
     );
-    expect(await code(['--check'])).toBe(0);
+    const result3 = await code(['--check']);
+    expect(result3).toBe(0);
     expect(read('src/a.test.ts')).toBe(INLINE_FIXED);
     expect(read('src/b.ts')).toBe(RETURN_IN_TRY_FIXED);
   });
@@ -206,7 +219,8 @@ describe('devz codemod async-style', () => {
     execFileSync('git', ['add', 'src/c.ts'], { cwd: root });
     write('src/d.ts', RETURN_AWAIT);
 
-    expect(await code(['--write'])).toBe(1);
+    const result = await code(['--write']);
+    expect(result).toBe(1);
     expect(read('src/a.ts')).toBe(`${RETURN_AWAIT}// edited\n`);
     expect(read('src/c.ts')).toBe(RETURN_AWAIT);
     expect(read('src/d.ts')).toBe(RETURN_AWAIT);
@@ -225,7 +239,8 @@ describe('devz codemod async-style', () => {
     write('lib/b.ts', RETURN_AWAIT);
     commit();
 
-    expect(await code(['--write', 'lib'])).toBe(0);
+    const result = await code(['--write', 'lib']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_AWAIT);
     expect(read('lib/b.ts')).toBe(RETURN_AWAIT_FIXED);
   });
@@ -240,7 +255,8 @@ describe('devz codemod async-style', () => {
     write('src/generated/b.ts', RETURN_AWAIT);
     commit();
 
-    expect(await code(['--check'])).toBe(0);
+    const result = await code(['--check']);
+    expect(result).toBe(0);
     expect(logs.join('\n')).toContain('0 file(s) would change');
   });
 
@@ -250,7 +266,8 @@ describe('devz codemod async-style', () => {
     write('src/c.tsx', RETURN_AWAIT);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.mts')).toBe(RETURN_AWAIT_FIXED);
     expect(read('src/b.cts')).toBe(RETURN_AWAIT_FIXED);
     expect(read('src/c.tsx')).toBe(RETURN_AWAIT_FIXED);
@@ -263,7 +280,8 @@ describe('devz codemod async-style', () => {
     );
     commit();
 
-    expect(await code(['--check'])).toBe(0);
+    const result = await code(['--check']);
+    expect(result).toBe(0);
     expect(warnings).toEqual([]);
   });
 
@@ -282,7 +300,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', source);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toContain(directive);
     expect(read('src/a.ts')).toContain('return f();');
   });
@@ -291,7 +310,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', 'export const run = async () => { await ;\n');
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(warnings.join('\n')).toContain('src/a.ts:');
     expect(warnings.join('\n')).toContain('parse error');
   });
@@ -300,10 +320,13 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_AWAIT);
     commit();
 
-    expect(await code(['--help'])).toBe(0);
+    const result = await code(['--help']);
+    expect(result).toBe(0);
     expect(logs.join('\n')).toContain('Usage: devz codemod async-style');
-    expect(await code(['--halp'])).toBe(2);
-    expect(await code(['--write', '--check'])).toBe(2);
+    const result2 = await code(['--halp']);
+    expect(result2).toBe(2);
+    const result3 = await code(['--write', '--check']);
+    expect(result3).toBe(2);
     expect(errors.join('\n')).toContain('unknown option "--halp"');
     expect(read('src/a.ts')).toBe(RETURN_AWAIT);
   });
@@ -311,9 +334,11 @@ describe('devz codemod async-style', () => {
   test('devz codemod dispatches to it, and --help lists it', async () => {
     write('src/a.ts', RETURN_AWAIT);
 
-    expect(await CodemodCommand.run({ root, args: ['async-style', '--check'] })).toBe(1);
+    const result = await CodemodCommand.run({ root, args: ['async-style', '--check'] });
+    expect(result).toBe(1);
     logs.length = 0;
-    expect(await CodemodCommand.run({ root, args: ['--help'] })).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['--help'] });
+    expect(result2).toBe(0);
     expect(logs.join('\n')).toContain('devz codemod async-style');
   });
 });

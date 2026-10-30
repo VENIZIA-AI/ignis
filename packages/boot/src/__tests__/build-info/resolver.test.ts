@@ -75,14 +75,16 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_BUILD_VERSION = 'v9.9.9';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).version).toBe('v9.9.9');
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.version).toBe('v9.9.9');
   });
 
   test('a provider-specific commit variable is read and shortened', async () => {
     process.env.CI_COMMIT_SHA = '0123456789abcdef0123456789abcdef01234567';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).commit).toBe('0123456789ab');
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.commit).toBe('0123456789ab');
   });
 
   test('APP_BUILD_COMMIT wins over a provider variable', async () => {
@@ -90,7 +92,8 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_BUILD_COMMIT = 'bbbbbbbbbbbb';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).commit).toBe('bbbbbbbbbbbb');
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.commit).toBe('bbbbbbbbbbbb');
   });
 
   /** The `APP_ENV_` prefix is what a consumer's own pipeline already exports; it must outrank the rest. */
@@ -100,7 +103,8 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_ENV_BUILD_VERSION = 'from-app-env';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).version).toBe('from-app-env');
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.version).toBe('from-app-env');
   });
 
   test('APP_ENV_BUILD_COMMIT_TAG outranks every other commit variable, and is shortened', async () => {
@@ -109,7 +113,8 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_ENV_BUILD_COMMIT_TAG = '0123456789abcdef';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).commit).toBe('0123456789ab');
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.commit).toBe('0123456789ab');
   });
 
   test('APP_ENV_BUILD_DATE outranks APP_BUILD_DATE', async () => {
@@ -117,9 +122,8 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_ENV_BUILD_DATE = '2026-03-03T00:00:00.000Z';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).builtAt).toBe(
-      '2026-03-03T00:00:00.000Z',
-    );
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.builtAt).toBe('2026-03-03T00:00:00.000Z');
   });
 
   /** A directory with no manifest and no git is exactly a Distroless image; it must not throw. */
@@ -183,8 +187,7 @@ describe('BuildInfoResolver.resolve', () => {
     process.env.APP_BUILD_DATE = '2026-01-01T00:00:00.000Z';
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
-    expect((await BuildInfoResolver.getInstance().resolve({ root })).builtAt).toBe(
-      '2026-01-01T00:00:00.000Z',
-    );
+    const result = await BuildInfoResolver.getInstance().resolve({ root });
+    expect(result.builtAt).toBe('2026-01-01T00:00:00.000Z');
   });
 });

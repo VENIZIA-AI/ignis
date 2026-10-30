@@ -245,7 +245,8 @@ const findUnresolvedExternalSpecifiers = (opts: {
  */
 const readMetafile = async (path: string): Promise<IMetafile | undefined> => {
   try {
-    return JSON.parse(await Bun.file(path).text()) as IMetafile;
+    const result = await Bun.file(path).text();
+    return JSON.parse(result) as IMetafile;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
     console.error(`[purity] Failed to read the build metafile at ${path}: ${reason}`);

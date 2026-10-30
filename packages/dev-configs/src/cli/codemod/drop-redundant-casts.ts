@@ -970,7 +970,8 @@ export class DropRedundantCastsCommand {
 
     let typescript: TTypeScript;
     try {
-      typescript = (await import('typescript')).default;
+      const result2 = await import('typescript');
+      typescript = result2.default;
     } catch {
       console.error('devz codemod: the "typescript" package is required to check your sources');
       return 1;

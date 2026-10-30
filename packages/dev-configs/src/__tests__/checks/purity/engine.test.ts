@@ -350,24 +350,29 @@ describe('devz check purity', () => {
   });
 
   test('exits 0 for a clean tree, 1 for a filter that matches nothing, 2 without --claims', async () => {
-    expect(
-      await CheckCommand.run({ root: claimsRoot, args: ['purity', '--claims', 'claims.ts'] }),
-    ).toBe(0);
-    expect(
-      await CheckCommand.run({
-        root: claimsRoot,
-        args: ['purity', 'nope', '--claims', 'claims.ts'],
-      }),
-    ).toBe(1);
-    expect(await CheckCommand.run({ root: claimsRoot, args: ['purity'] })).toBe(2);
-    expect(await CheckCommand.run({ root: claimsRoot, args: ['nothing'] })).toBe(2);
+    const result = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', '--claims', 'claims.ts'],
+    });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', 'nope', '--claims', 'claims.ts'],
+    });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root: claimsRoot, args: ['purity'] });
+    expect(result3).toBe(2);
+    const result4 = await CheckCommand.run({ root: claimsRoot, args: ['nothing'] });
+    expect(result4).toBe(2);
   }, 60_000);
 
   test('a claims file without PURITY_CLAIMS is refused', async () => {
     writeFileSync(join(claimsRoot, 'empty.ts'), 'export const OTHER = 1;\n');
 
-    expect(
-      await CheckCommand.run({ root: claimsRoot, args: ['purity', '--claims', 'empty.ts'] }),
-    ).toBe(2);
+    const result = await CheckCommand.run({
+      root: claimsRoot,
+      args: ['purity', '--claims', 'empty.ts'],
+    });
+    expect(result).toBe(2);
   });
 });

@@ -265,7 +265,8 @@ describe('drop-redundant-casts', () => {
     test('without --write it is a dry run: it lists the removal, writes nothing and exits 0', async () => {
       write('src/a.ts', redundant);
 
-      expect(await code([])).toBe(0);
+      const result = await code([]);
+      expect(result).toBe(0);
       expect(read('src/a.ts')).toBe(redundant);
       expect(logs.join('\n')).toContain('would remove  src/a.ts');
       expect(logs.join('\n')).toContain('Nothing was written');
@@ -273,29 +274,37 @@ describe('drop-redundant-casts', () => {
 
     test('--check exits 1 while a cast is removable, and 0 when none is', async () => {
       write('src/a.ts', redundant);
-      expect(await code(['--check'])).toBe(1);
+      const result = await code(['--check']);
+      expect(result).toBe(1);
       expect(read('src/a.ts')).toBe(redundant);
 
       write('src/a.ts', "export const tuple = ['a'] as const;\n");
-      expect(await code(['--check'])).toBe(0);
+      const result2 = await code(['--check']);
+      expect(result2).toBe(0);
     });
 
     test('--write writes the file, and a second run finds nothing', async () => {
       write('src/a.ts', redundant);
 
-      expect(await code(['--write'])).toBe(0);
+      const result = await code(['--write']);
+      expect(result).toBe(0);
       expect(read('src/a.ts')).toBe("const name: string = 'x';\nexport const label = name;\n");
-      expect(await code(['--check'])).toBe(0);
+      const result2 = await code(['--check']);
+      expect(result2).toBe(0);
     });
 
     test('--help prints the usage and exits 0, an unknown flag exits 2, --write with --check exits 2', async () => {
       write('src/a.ts', redundant);
 
-      expect(await code(['--help'])).toBe(0);
+      const result = await code(['--help']);
+      expect(result).toBe(0);
       expect(logs.join('\n')).toContain('Usage: devz codemod drop-redundant-casts');
-      expect(await code(['--halp', '--write'])).toBe(2);
-      expect(await code(['--write', '--check'])).toBe(2);
-      expect(await code(['--project'])).toBe(2);
+      const result2 = await code(['--halp', '--write']);
+      expect(result2).toBe(2);
+      const result3 = await code(['--write', '--check']);
+      expect(result3).toBe(2);
+      const result4 = await code(['--project']);
+      expect(result4).toBe(2);
       expect(read('src/a.ts')).toBe(redundant);
     });
 
@@ -314,7 +323,8 @@ describe('drop-redundant-casts', () => {
       rmSync(join(root, 'tsconfig.json'));
       write('src/a.ts', redundant);
 
-      expect(await code([])).toBe(0);
+      const result = await code([]);
+      expect(result).toBe(0);
       expect(warnings.join('\n')).toContain('no tsconfig.json');
       expect(read('src/a.ts')).toBe(redundant);
     });
@@ -322,9 +332,11 @@ describe('drop-redundant-casts', () => {
     test('devz codemod dispatches to it, and --help lists both codemods', async () => {
       write('src/a.ts', redundant);
 
-      expect(await CodemodCommand.run({ root, args: ['drop-redundant-casts', '--check'] })).toBe(1);
+      const result = await CodemodCommand.run({ root, args: ['drop-redundant-casts', '--check'] });
+      expect(result).toBe(1);
       logs.length = 0;
-      expect(await CodemodCommand.run({ root, args: ['--help'] })).toBe(0);
+      const result2 = await CodemodCommand.run({ root, args: ['--help'] });
+      expect(result2).toBe(0);
       expect(logs.join('\n')).toContain('devz codemod model-settings');
       expect(logs.join('\n')).toContain('devz codemod drop-redundant-casts');
     });
@@ -332,17 +344,22 @@ describe('drop-redundant-casts', () => {
     test('--include-tests tries the casts of a test file', async () => {
       write('src/__tests__/a.test.ts', redundant);
 
-      expect(await code(['--check'])).toBe(0);
-      expect(await code(['--check', '--include-tests'])).toBe(1);
+      const result = await code(['--check']);
+      expect(result).toBe(0);
+      const result2 = await code(['--check', '--include-tests']);
+      expect(result2).toBe(1);
     });
 
     test('--project names the tsconfig, in both spellings', async () => {
       write('src/a.ts', redundant);
       writeFileSync(join(root, 'check.tsconfig.json'), TSCONFIG);
 
-      expect(await code(['--check', '--project', 'check.tsconfig.json'])).toBe(1);
-      expect(await code(['--check', '--project=check.tsconfig.json'])).toBe(1);
-      expect(await code(['--check', '--project', '--write'])).toBe(2);
+      const result = await code(['--check', '--project', 'check.tsconfig.json']);
+      expect(result).toBe(1);
+      const result2 = await code(['--check', '--project=check.tsconfig.json']);
+      expect(result2).toBe(1);
+      const result3 = await code(['--check', '--project', '--write']);
+      expect(result3).toBe(2);
     });
 
     test('a git-ignored folder is not read', async () => {
@@ -350,7 +367,8 @@ describe('drop-redundant-casts', () => {
       write('.gitignore', 'src/generated/\n');
       write('src/generated/a.ts', redundant);
 
-      expect(await code(['--write'])).toBe(0);
+      const result = await code(['--write']);
+      expect(result).toBe(0);
       expect(read('src/generated/a.ts')).toBe(redundant);
     });
   });

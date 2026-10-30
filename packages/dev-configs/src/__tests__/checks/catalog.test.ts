@@ -42,7 +42,8 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    expect(await findCatalogProblems({ root })).toEqual({
+    const result = await findCatalogProblems({ root });
+    expect(result).toEqual({
       problems: [],
       entries: 2,
       referenced: 2,
@@ -145,9 +146,8 @@ describe('findCatalogProblems', () => {
       join(root, 'docs/wiki/package.json'),
       JSON.stringify({ dependencies: { hono: '4.1.0' } }),
     );
-    expect(
-      (await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] })).problems,
-    ).toEqual([]);
+    const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
+    expect(result.problems).toEqual([]);
   });
 
   test('a pinned manifest that does not exist is skipped', async () => {
@@ -158,9 +158,8 @@ describe('findCatalogProblems', () => {
       },
     });
 
-    expect(
-      (await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] })).problems,
-    ).toEqual([]);
+    const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
+    expect(result.problems).toEqual([]);
   });
 
   test('invalid JSON in a manifest is a problem, not a crash', async () => {
@@ -177,7 +176,8 @@ describe('findCatalogProblems', () => {
   test('no workspaces.catalog is reported as such', async () => {
     const root = workspace({ root: { name: 'x' }, files: {} });
 
-    expect((await findCatalogProblems({ root })).noCatalog).toBe(true);
+    const result = await findCatalogProblems({ root });
+    expect(result.noCatalog).toBe(true);
   });
 });
 
@@ -192,10 +192,14 @@ describe('devz check catalog', () => {
       files: { 'packages/a/package.json': { dependencies: { zod: '1.0.0', hono: 'catalog:' } } },
     });
 
-    expect(await CheckCommand.run({ root: clean, args: ['catalog'] })).toBe(0);
-    expect(await CheckCommand.run({ root: dirty, args: ['catalog'] })).toBe(1);
-    expect(await CheckCommand.run({ root: clean, args: ['catalog', '--nope', 'x'] })).toBe(2);
-    expect(await CheckCommand.run({ root: clean, args: ['catalog', 'stray'] })).toBe(2);
+    const result = await CheckCommand.run({ root: clean, args: ['catalog'] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({ root: dirty, args: ['catalog'] });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root: clean, args: ['catalog', '--nope', 'x'] });
+    expect(result3).toBe(2);
+    const result4 = await CheckCommand.run({ root: clean, args: ['catalog', 'stray'] });
+    expect(result4).toBe(2);
   });
 });
 
@@ -205,11 +209,15 @@ describe('devz check module-cycles and split-report', () => {
     roots.push(dir);
     writeFileSync(join(dir, 'a.js'), 'export const a = 1;\n');
 
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles'] })).toBe(2);
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', 'x'] })).toBe(
-      2,
-    );
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles', '--dist', dir] })).toBe(0);
+    const result = await CheckCommand.run({ root: dir, args: ['module-cycles'] });
+    expect(result).toBe(2);
+    const result2 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', 'x'],
+    });
+    expect(result2).toBe(2);
+    const result3 = await CheckCommand.run({ root: dir, args: ['module-cycles', '--dist', dir] });
+    expect(result3).toBe(0);
   });
 
   test('module-cycles: exits 1 when the cycles exceed --max', async () => {
@@ -218,20 +226,27 @@ describe('devz check module-cycles and split-report', () => {
     writeFileSync(join(dir, 'a.js'), "import './b.js';\n");
     writeFileSync(join(dir, 'b.js'), "import './a.js';\n");
 
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles', dir] })).toBe(0);
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', '0'] })).toBe(
-      1,
-    );
-    expect(await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', '1'] })).toBe(
-      0,
-    );
+    const result = await CheckCommand.run({ root: dir, args: ['module-cycles', dir] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', '0'],
+    });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', '1'],
+    });
+    expect(result3).toBe(0);
   });
 
   test('split-report: an unknown option is a usage error, and a folder without src/ prints nothing', async () => {
     const dir = mkdtempSync(join(SCRATCH, 'split-'));
     roots.push(dir);
 
-    expect(await CheckCommand.run({ root: dir, args: ['split-report', '--nope', 'x'] })).toBe(2);
-    expect(await CheckCommand.run({ root: dir, args: ['split-report', dir] })).toBe(0);
+    const result = await CheckCommand.run({ root: dir, args: ['split-report', '--nope', 'x'] });
+    expect(result).toBe(2);
+    const result2 = await CheckCommand.run({ root: dir, args: ['split-report', dir] });
+    expect(result2).toBe(0);
   });
 });

@@ -303,7 +303,8 @@ describe('devz codemod const-classes - the command', () => {
   test('without --write it prints the proposal, writes nothing and exits 0', async () => {
     write('src/a.ts', source);
 
-    expect(await code([])).toBe(0);
+    const result = await code([]);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(source);
     expect(logs.join('\n')).toContain(
       "would convert  src/a.ts:1  TMode -> class Modes { READ = 'read', WRITE = 'write' }",
@@ -314,22 +315,27 @@ describe('devz codemod const-classes - the command', () => {
 
   test('--check exits 1 while a union can be converted or is left untouched, and 0 when neither', async () => {
     write('src/a.ts', source);
-    expect(await code(['--check'])).toBe(1);
+    const result = await code(['--check']);
+    expect(result).toBe(1);
 
     write('src/a.ts', "export const run = (mode: 'a' | 'b') => mode;\n");
-    expect(await code(['--check'])).toBe(1);
+    const result2 = await code(['--check']);
+    expect(result2).toBe(1);
     expect(warnings.join('\n')).toContain('src/a.ts:1:');
 
     write('src/a.ts', 'export const value = 1;\n');
-    expect(await code(['--check'])).toBe(0);
+    const result3 = await code(['--check']);
+    expect(result3).toBe(0);
   });
 
   test('--write converts the file, and a second run finds nothing', async () => {
     write('src/a.ts', source);
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toContain('export class Modes {');
-    expect(await code(['--check'])).toBe(0);
+    const result2 = await code(['--check']);
+    expect(result2).toBe(0);
   });
 
   test('the converted file typechecks, and the old literals still fit the type', async () => {
@@ -353,7 +359,8 @@ describe('devz codemod const-classes - the command', () => {
       }),
     );
 
-    expect(await code(['--write', '--import-from', './helpers'])).toBe(0);
+    const result = await code(['--write', '--import-from', './helpers']);
+    expect(result).toBe(0);
 
     const configFile = ts.readConfigFile(join(root, 'tsconfig.json'), ts.sys.readFile);
     const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, root);
@@ -369,7 +376,8 @@ describe('devz codemod const-classes - the command', () => {
   test('--emit-map writes the proposals, and --map applies the edited names', async () => {
     write('src/a.ts', source);
 
-    expect(await code(['--emit-map', 'names.json'])).toBe(0);
+    const result = await code(['--emit-map', 'names.json']);
+    expect(result).toBe(0);
     const emitted = JSON.parse(read('names.json'));
     expect(emitted['src/a.ts#TMode']).toEqual({
       class: 'Modes',
@@ -378,7 +386,8 @@ describe('devz codemod const-classes - the command', () => {
 
     emitted['src/a.ts#TMode'].class = 'FileModes';
     write('names.json', JSON.stringify(emitted));
-    expect(await code(['--write', '--map', 'names.json'])).toBe(0);
+    const result2 = await code(['--write', '--map', 'names.json']);
+    expect(result2).toBe(0);
     expect(read('src/a.ts')).toContain('export class FileModes {');
   });
 
@@ -386,8 +395,10 @@ describe('devz codemod const-classes - the command', () => {
     write('src/a.ts', source);
     write('bad.json', '[1, 2]');
 
-    expect(await code(['--write', '--map', 'bad.json'])).toBe(2);
-    expect(await code(['--write', '--map', 'missing.json'])).toBe(2);
+    const result = await code(['--write', '--map', 'bad.json']);
+    expect(result).toBe(2);
+    const result2 = await code(['--write', '--map', 'missing.json']);
+    expect(result2).toBe(2);
     expect(errors.join('\n')).toContain('cannot read the mapping file');
     expect(read('src/a.ts')).toBe(source);
   });
@@ -395,32 +406,41 @@ describe('devz codemod const-classes - the command', () => {
   test('--help exits 0; an unknown flag, --write with --check and a flag without its value exit 2', async () => {
     write('src/a.ts', source);
 
-    expect(await code(['--help'])).toBe(0);
+    const result = await code(['--help']);
+    expect(result).toBe(0);
     expect(logs.join('\n')).toContain('Usage: devz codemod const-classes');
-    expect(await code(['--halp', '--write'])).toBe(2);
-    expect(await code(['--write', '--check'])).toBe(2);
-    expect(await code(['--map'])).toBe(2);
+    const result2 = await code(['--halp', '--write']);
+    expect(result2).toBe(2);
+    const result3 = await code(['--write', '--check']);
+    expect(result3).toBe(2);
+    const result4 = await code(['--map']);
+    expect(result4).toBe(2);
     expect(read('src/a.ts')).toBe(source);
   });
 
   test('test files are skipped unless --include-tests is given, and ignored folders are never read', async () => {
     write('src/__tests__/a.test.ts', source);
-    expect(await code(['--check'])).toBe(0);
-    expect(await code(['--check', '--include-tests'])).toBe(1);
+    const result = await code(['--check']);
+    expect(result).toBe(0);
+    const result2 = await code(['--check', '--include-tests']);
+    expect(result2).toBe(1);
 
     mkdirSync(join(root, 'src/generated'));
     write('.gitignore', 'src/generated/\n');
     write('src/generated/b.ts', "export type TOther = 'a' | 'b';\n");
     rmSync(join(root, 'src/__tests__/a.test.ts'));
-    expect(await code(['--check'])).toBe(0);
+    const result3 = await code(['--check']);
+    expect(result3).toBe(0);
   });
 
   test('devz codemod dispatches to it, and --help lists all three codemods', async () => {
     write('src/a.ts', source);
 
-    expect(await CodemodCommand.run({ root, args: ['const-classes', '--check'] })).toBe(1);
+    const result = await CodemodCommand.run({ root, args: ['const-classes', '--check'] });
+    expect(result).toBe(1);
     logs.length = 0;
-    expect(await CodemodCommand.run({ root, args: ['--help'] })).toBe(0);
+    const result2 = await CodemodCommand.run({ root, args: ['--help'] });
+    expect(result2).toBe(0);
     expect(logs.join('\n')).toContain('devz codemod model-settings');
     expect(logs.join('\n')).toContain('devz codemod drop-redundant-casts');
     expect(logs.join('\n')).toContain('devz codemod const-classes');

@@ -141,9 +141,12 @@ describe('test-weight', () => {
   test('the command: a missing file is a usage error, a real file prints and exits 0', async () => {
     const root = makeFolder({ 'alpha.xml': alpha });
 
-    expect(await CheckCommand.run({ root, args: ['test-weight', 'nope.xml'] })).toBe(2);
-    expect(await CheckCommand.run({ root, args: ['test-weight'] })).toBe(2);
-    expect(await CheckCommand.run({ root, args: ['test-weight', 'alpha.xml'] })).toBe(0);
+    const result = await CheckCommand.run({ root, args: ['test-weight', 'nope.xml'] });
+    expect(result).toBe(2);
+    const result2 = await CheckCommand.run({ root, args: ['test-weight'] });
+    expect(result2).toBe(2);
+    const result3 = await CheckCommand.run({ root, args: ['test-weight', 'alpha.xml'] });
+    expect(result3).toBe(0);
   });
 });
 
@@ -158,7 +161,8 @@ describe('test-controls', () => {
   `;
 
   test('lists the titles of test, it, describe, test.each and the skip forms', async () => {
-    expect(await listTestTitles({ source: SOURCE })).toEqual([
+    const result = await listTestTitles({ source: SOURCE });
+    expect(result).toEqual([
       'gate X',
       'positive control: a bad entry is refused',
       'positive control: skipped is still a title',
@@ -206,7 +210,8 @@ describe('test-controls', () => {
     const root = makeFolder({ 'fixtures/plain.service.ts': 'export class PlainService {}\n' });
     const entries = [{ gate: 'scanner', file: 'fixtures/plain.service.ts', kind: 'file' as const }];
 
-    expect(await checkControls({ root, controls: entries })).toEqual({ checked: 1, problems: [] });
+    const result = await checkControls({ root, controls: entries });
+    expect(result).toEqual({ checked: 1, problems: [] });
 
     rmSync(join(root, 'fixtures/plain.service.ts'));
     const report = await checkControls({ root, controls: entries });
@@ -231,11 +236,12 @@ describe('test-controls', () => {
       }),
     });
 
-    expect(await CheckCommand.run({ root: good, args: ['test-controls', 'controls.json'] })).toBe(
-      0,
-    );
-    expect(await CheckCommand.run({ root: bad, args: ['test-controls', 'controls.json'] })).toBe(1);
-    expect(await CheckCommand.run({ root: good, args: ['test-controls'] })).toBe(2);
+    const result = await CheckCommand.run({ root: good, args: ['test-controls', 'controls.json'] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({ root: bad, args: ['test-controls', 'controls.json'] });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root: good, args: ['test-controls'] });
+    expect(result3).toBe(2);
   });
 });
 
@@ -439,8 +445,11 @@ describe('test-mutate', () => {
       }),
     );
 
-    expect(await CheckCommand.run({ root, args: ['test-mutate', 'good.json'] })).toBe(0);
-    expect(await CheckCommand.run({ root, args: ['test-mutate', 'bad.json'] })).toBe(1);
-    expect(await CheckCommand.run({ root, args: ['test-mutate'] })).toBe(2);
+    const result = await CheckCommand.run({ root, args: ['test-mutate', 'good.json'] });
+    expect(result).toBe(0);
+    const result2 = await CheckCommand.run({ root, args: ['test-mutate', 'bad.json'] });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({ root, args: ['test-mutate'] });
+    expect(result3).toBe(2);
   }, 120_000);
 });
