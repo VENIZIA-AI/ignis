@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.4.6-0",
+  "version": "0.4.6",
   "description": "TypeScript server framework with decorator-based DI, the repository pattern and a component system, on Hono. Features auto-generated OpenAPI docs, Drizzle ORM type-safe SQL, JWT/Basic authentication, Casbin authorization, convention-based bootstrapping, and pluggable components for health checks, Swagger UI, mail, Socket.IO, and static assets. Built for Bun and Node.js.",
   "keywords": [
     "access-control",
