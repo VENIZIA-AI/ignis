@@ -60,19 +60,7 @@ async listOrders(opts: { context: TRouteContext }) {
 ## Breaking changes
 
 > [!WARNING]
-> The `responseData` option is renamed `payload` on `respond` and `normalizeCountData`.
-
-**Before:**
-
-```typescript
-this.respond({ context, format: 'array', responseData: { count, data } });
-```
-
-**After:**
-
-```typescript
-this.respond({ context, format: ResponseFormats.ARRAY, payload: { count, data } });
-```
+> The `responseData` option is renamed `payload` on `respond` and `normalizeCountData`. See the replacement example under Who is affected.
 
 ## Details
 

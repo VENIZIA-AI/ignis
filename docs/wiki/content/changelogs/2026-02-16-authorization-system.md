@@ -57,6 +57,8 @@ authorize({ spec: { action: AuthorizationActions.READ, resource: 'Article' } })
 
 Terminology also changed: `requirement` is now `spec`, and `abilities` is now `rules`.
 
+The helpers source directory `packages/helpers/src/helpers/` was renamed to `packages/helpers/src/modules/` (internal imports `@/helpers/...` became `@/modules/...`). Imports through `@venizia/ignis-helpers` are unaffected.
+
 If you import from internal framework paths instead of `@venizia/ignis`, replace barrel imports with the specific file, for example `@/base/controllers` becomes `@/base/controllers/common/types`.
 
 ## Details

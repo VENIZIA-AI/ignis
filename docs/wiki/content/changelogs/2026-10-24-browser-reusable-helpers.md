@@ -29,7 +29,7 @@ await request.getNetworkService().post({
 
 - **JSON bodies.** `NodeFetcher` JSON-encodes a plain object or an array. A string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream` passes through; `null` or `undefined` sends no body.
 - **Query-string options.** `toQueryString` takes `nullish: 'empty' | 'skip'` and `nested: 'drop' | 'json'`. `'json'` sends an object or an array as one JSON parameter (`ids=%5B1%2C2%5D`). `NodeFetcher` and `NodeFetchNetworkRequest` take them as `queryString`. The defaults are unchanged.
-- **`getWorker()`.** `NodeFetcher.getWorker()` returns the global `fetch`; it returned `undefined`.
+- **`getWorker()`.** `NodeFetcher.getWorker()` returns the global `fetch`; it returned `undefined`. `AbstractNetworkFetchableHelper` takes an optional `worker` in its constructor.
 - **Logger type.** The fetchers' logger parameter is `TFetcherLogger = Pick<ILogger, 'debug' | 'info'>`. `NodeFetcher` logs its request line at `debug` (it was `info`). With no logger it logs nothing.
 - **Browser socket client.** `@venizia/ignis-helpers/socket-io/client` exports `SocketIOClientHelper` with nothing node in its graph; you pass `socket.io-client` as `module`. `@venizia/ignis-helpers/socket-io` keeps the class name and API and finds the module itself when `module` is omitted.
 

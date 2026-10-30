@@ -1,6 +1,6 @@
 ---
 title: Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave
-description: ScopedCasbinAdapter now loads a principal's policy in one round of four queries with no cache, so you must drop the structuralCache option and add the documented indexes.
+description: ScopedCasbinAdapter now loads a principal's policy in one round of four queries with no cache; drop the structuralCache option if you passed it, and add the documented indexes.
 packages: ['@venizia/ignis']
 ---
 

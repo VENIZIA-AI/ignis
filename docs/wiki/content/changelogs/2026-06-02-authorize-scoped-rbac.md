@@ -10,7 +10,7 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers']
 
 <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Casbin authorization now runs on a generic, configuration-driven adapter with role, resource, action and domain hierarchies, and each request gets its own enforcer, which closes a race on the shared one.
+**In one line.** Casbin authorization now runs on a generic, configuration-driven adapter with role, resource, action and domain hierarchies, and, once you turn on the scoped model (`isScoped`, off by default), each request gets its own enforcer, which closes a race on the shared one.
 
 ## What changed
 

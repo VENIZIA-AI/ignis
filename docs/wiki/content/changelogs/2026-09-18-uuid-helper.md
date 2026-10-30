@@ -28,7 +28,7 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: `orders/${orderId}/refund` }); //
 - **`v4()` and `v7()` live on the same helper.** Use `v7()` for database keys and `v4()` for a public identifier.
 - **`inspect({ value })` reads an id back:** its version, and for a v7 the moment it was minted. `UuidHelper.isValid(value)` is the static check.
 - **`UuidNamespaces`** carries the four RFC 9562 namespaces (`DNS`, `URL`, `OID`, `X500`). If none fit, mint your own with `v4()` once and pin it as a constant.
-- **Works on `http://<lan-ip>` in a browser.** The helper no longer calls `crypto.randomUUID` directly, which is `undefined` outside a secure context. It falls back to `crypto.getRandomValues` and gives the same shape.
+- **Works on `http://<lan-ip>` in a browser.** Nothing calls `crypto.randomUUID` directly any more (a WebSocket client id, a WebSocket server id and the pending object name of a direct upload did), and it is `undefined` outside a secure context. The helper falls back to `crypto.getRandomValues` and gives the same shape.
 
 ## Who is affected
 

@@ -79,7 +79,7 @@ A name holding a lone surrogate (malformed UTF-16) now throws a 400. Before, two
 
 <Badge type="tip" text="Enhancement" />
 
-A `bun build --compile` binary ships without `node_modules`, so an optional peer loaded by name is missing, and the first client throws `[ModuleUtility.loadSync] ioredis is required ...`. This has been true since `ioredis` became lazy in `@venizia/ignis-helpers` 0.2.0-37. Pass the peer in:
+A `bun build --compile` binary ships without `node_modules`, so an optional peer loaded by name is missing, and the first client throws `[ModuleUtility.loadSync] ioredis is required ...`. This has been true since `ioredis` became lazy in `@venizia/ignis-helpers` 0.2.0-37, and every `@venizia/ignis` 0.2.0 prerelease accepts that version, so a fresh install of any of them picks it up. Pass the peer in:
 
 ```typescript
 import * as ioredis from 'ioredis';

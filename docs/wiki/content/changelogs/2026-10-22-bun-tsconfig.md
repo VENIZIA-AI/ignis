@@ -24,6 +24,11 @@ await BunCompiler.compile({ entrypoint: './src/index.ts', check: true });
 // error TS2322: Type 'string' is not assignable to type 'number'. -> no binary
 ```
 
+## Not taken
+
+- `verbatimModuleSyntax` and `module: "Preserve"` for the framework packages: their CommonJS build fails under both.
+- `noUncheckedIndexedAccess` everywhere: it stays on only where the code is clean.
+
 ## Who is affected
 
 A function with a path that returns nothing now fails `noImplicitReturns`. A `const enum` read across files fails `isolatedModules`. Fix the code; the presets already pass.

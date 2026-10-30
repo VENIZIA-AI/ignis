@@ -14,7 +14,7 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **Dotted field names work** in `where` and `order`, for example `merchantName.en` or `zoneName.vi`. Declare them literally: `field.string('merchantName.en', { facet: true, optional: true })`.
+- **Dotted field names work** in `where` and `order`, for example `merchantName.en` or `organizerName.vi`. Declare them literally: `field.string('merchantName.en', { facet: true, optional: true })`.
 - **`order` validates the field name.** An unknown sort field is now a 400 naming the field and the engine, as an unknown `where` field already was. Before, it reached the engine and came back as an infrastructure error.
 - **A nested field cannot be provisioned without its flag.** Declaring a dotted field while `engineOverrides.typesense.enable_nested_fields` is unset throws at compile time, naming the field and what to set.
 

@@ -12,7 +12,7 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **Datasources added by components work.** The application runs `registerDataSources()` again after `registerComponents()`, so a datasource added by a component gets its own `configure()` call.
+- **Datasources added by components work.** The application runs `registerDataSources()` again after `registerComponents()`, so a datasource added by a component gets its own `configure()` call. Other dynamic registrations (a component registering another component, a controller registering a datasource) are not covered yet.
 
 ## Who is affected
 

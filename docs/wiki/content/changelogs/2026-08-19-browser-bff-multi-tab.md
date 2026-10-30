@@ -45,7 +45,7 @@ installBffFetch({ transport: bff, basePath: '/api' });
 | `scope` | `string` | class name | Logger scope |
 
 - The tab holding the Web Locks lock runs the Worker. A closed or crashed tab releases the lock, so promotion needs no heartbeat.
-- A host without `navigator.locks` runs single-tab.
+- A host without `navigator.locks` runs single-tab and loses nothing, because OPFS and locks are both secure-context only.
 
 ## Also in this release - the framework audit
 

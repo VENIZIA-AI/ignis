@@ -22,7 +22,7 @@ packages: ['@venizia/ignis', '@venizia/ignis-docs', '@venizia/ignis-helpers']
 
 ## Who is affected
 
-- **Existing WebSocket servers.** No action needed; without `outboundTransformer` delivery is unchanged.
+- **Existing WebSocket servers.** No action needed; without `outboundTransformer`, `sendToRoom()` and `broadcast()` use Bun pub/sub.
 - **Apps that want end-to-end encrypted messages.** Configure the options below.
 
 ## Details

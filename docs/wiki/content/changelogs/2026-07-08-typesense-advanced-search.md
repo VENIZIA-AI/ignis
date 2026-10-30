@@ -62,4 +62,4 @@ const result = await articleRepository.search({ mode: 'raw', params: { q: 'types
 ## See also
 
 - [Unified Repository & Connectors Architecture](/changelogs/2026-07-05-unified-repository-connectors)
-- [Connectors Consistency Hardening](/changelogs/2026-07-11-connectors-consistency-hardening)
+- [Connectors Consistency Hardening](/changelogs/2026-07-11-connectors-consistency-hardening) - moved engine-specific tuning fields to `engineParams`

@@ -66,7 +66,7 @@ export class NoteController extends BaseCrudController {}
 - **An empty `repository.name` throws** when the controller is defined.
 - **Fixed on the way:** a subclass's `@inject` no longer rewrites the injection list its parent owns, so two subclasses of one generated controller can inject differently.
 - **Bump every `@venizia/*` package of this release together.**
-  - Two subclasses of one generated CRUD or search controller keep separate injections only on the new inversion.
+  - Two subclasses of one generated CRUD or search controller keep separate injections only on the new inversion; on inversion 0.2.0-23 the subclass rewrites its parent's list.
   - A partial bump fails loud: an old kernel next to the new connectors, `@venizia/ignis` or worker throws `errorResponses is not a function` at boot, rejects `stop()`, or fails to link the connectors' search controllers.
   - A partial bump can also fail silent: a new kernel next to old connectors stops reporting the audit keys, so the CRUD routes no longer omit them - writable again, as before this release.
 

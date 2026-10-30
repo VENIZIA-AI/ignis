@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-helpers']
 
 ## What changed
 
-- **Faster writes and reads.** Measured on PGlite with 200k rows: inserts 11-36% faster, primary-key index 15 MB to 11 MB (27% smaller), and `ORDER BY id` paging about 2.5x faster. Generating one id is about 22 ns slower. Lookup by id is unchanged.
+- **Faster writes and reads.** Measured on PGlite with 200k rows: inserts 11-36% faster, primary-key index 15 MB to 11 MB (27% smaller), and `ORDER BY id` paging about 2.5x faster. Generating one id is about 22 ns slower. Lookup by id measured about the same (160-174 ms against 165-189 ms for 2000 lookups).
 - **Runtimes.** Bun uses its native `Bun.randomUUIDv7`; a browser gets the same shape from `crypto.getRandomValues`, with a counter that keeps ids ordered inside one millisecond.
 - **A `generator` you pass still wins.**
 

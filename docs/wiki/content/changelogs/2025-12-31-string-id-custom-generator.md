@@ -37,7 +37,7 @@ generateIdColumnDefs({
 ## Breaking changes
 
 > [!WARNING]
-> Affects code that uses the renamed members or the removed `'uuid'` id type.
+> Affects code that uses the renamed (internal) members or the removed `'uuid'` id type. Most users are not affected.
 
 **Before:**
 ```typescript

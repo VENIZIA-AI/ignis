@@ -75,6 +75,7 @@ packages: ['@venizia/ignis']
 
 ## Details
 
+- `useDriver({ driver, schema? })` sets a datasource's driver and rebuilds its connector in one call. `resolveDatabaseDriver({ client })` detects the client (postgres-js or node-postgres) and loads only the matching driver.
 - `buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION })` returns `{ prepare: false }`, which Supavisor's transaction pool mode requires.
 - After a failed `COMMIT`, `node-postgres` discards the poisoned connection. `postgres-js` cannot, so it returns the connection to its pool.
 

@@ -16,7 +16,7 @@ packages: ['@venizia/ignis-helpers']
 
 - **Secrets providers.** `AbstractSecretsHelper` plus `SystemEnvsHelper`, `HashiCorpVaultHelper` and `DotenvVaultHelper`, chosen with `SecretProviders`. The default is `system-envs`.
 - **Boot-time hydration.** A new `hydrateSecrets()` phase runs between `preConfigure()` and `registerDataSources()`. It merges static secrets into `Envs`, opens dynamic leases and binds the provider at `@app/config` for on-demand reads.
-- **Restart-free rotation.** Each lease in a `lease` entry is wired to its datasource. The PostgreSQL datasource gets an `onSecretRotated()` hook that rebuilds the pool with new credentials and drains the old pool so in-flight transactions finish. Rotation is opt-in per datasource.
+- **Restart-free rotation.** `wireSecretRotatables()` wires each lease in a `lease` entry to its datasource after registration. The PostgreSQL datasource gets an `onSecretRotated()` hook that rebuilds the pool with new credentials and drains the old pool so in-flight transactions finish. Rotation is opt-in per datasource.
 - **Vault token self-renewal.** `HashiCorpVaultHelper` renews its own auth token and re-authenticates if it cannot, so AppRole and Kubernetes deployments keep working past the token TTL.
 - **Fail-closed.** A vault failure crashes the boot in production. Development falls back to `process.env`.
 

@@ -21,7 +21,7 @@ packages: ['@venizia/ignis-helpers']
 
 - **Code that calls AES or RSA `encrypt()` / `decrypt()`.** Update every call (see Migration).
 - **Code that extends `BaseCryptoAlgorithm` or implements `ICryptoAlgorithm`.** Add the extra generic parameter.
-- **Code that only uses the new `ECDH` class.** No action needed.
+- **Code that uses `ECDH`.** It now uses the options-object API and the HKDF info default changed (above); check your calls.
 
 ## Breaking changes
 

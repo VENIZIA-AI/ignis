@@ -16,12 +16,12 @@ packages: ['@venizia/ignis-helpers']
 - **Bun support.** `SocketIOServerHelper` takes `runtime: RuntimeModules.NODE` or `RuntimeModules.BUN`. `SocketIOComponent` detects the runtime itself.
 - **Typed server access.** `getServerInstance<TBunServerInstance>()` and `getServerInstance<TNodeServerInstance>()`.
 - **Room validation.** New `validateRoomFn` (binding key `SocketIOBindingKeys.VALIDATE_ROOM_HANDLER`). It receives `{ socket, rooms }` and returns the allowed rooms. Without it every join is rejected, so a client cannot join arbitrary rooms.
-- **More robust.** `configure()` is now async and waits for Redis. All three Redis connections have `error` handlers, so an unhandled Redis error can no longer crash the process. Server pings use the local socket instead of the Redis emitter.
+- **More robust.** `configure()` is now async and waits for Redis. All three Redis connections have `error` handlers, so Redis errors are no longer unhandled (they could crash the process). Server pings use the local socket instead of the Redis emitter.
 - **Other changes.** New `pingInterval` option (default `30000` ms). `getEngine()` now throws on a non-Bun runtime. `close()` is private; use `shutdown()`. New type aliases `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`.
 
 ## Who is affected
 
-- **Code that constructs `SocketIOServerHelper`.** Add `runtime` (below).
+- **Code that constructs `SocketIOServerHelper`.** Add `runtime` (below). The constructor no longer calls `configure()`, so call `await helper.configure()` yourself.
 - **Code importing `ISocketIOServerOptions` or `TEventHandler`.** Rename the imports.
 - **Clients that use the `join` event.** You must provide `validateRoomFn`, or joins are silently rejected.
 - **Bun users of `SocketIOComponent`.** Install the engine: `bun add @socket.io/bun-engine`. It is an optional peer dependency (`^0.1.0`), imported only when needed. No code changes.

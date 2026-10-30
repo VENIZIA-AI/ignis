@@ -25,7 +25,7 @@ packages: ['@venizia/ignis-kernel']
 ## Breaking changes
 
 > [!WARNING]
-> Affected apps fail at boot until each write route declares its own `authorize`.
+> Affected apps fail at boot until each write route declares its own `authorize`, the controller is `readonly`, or the route is left out of `controller.enabledRoutes`.
 
 The boot error:
 
