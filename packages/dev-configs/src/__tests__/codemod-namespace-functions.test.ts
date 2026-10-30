@@ -516,6 +516,45 @@ describe('NamespaceMappings - the table', () => {
     expect(problems.join('\n')).toContain('the parameter key "b" is listed twice');
     expect(problems.join('\n')).toContain('restKey "a" is also a parameter key');
   });
+
+  test('keepsOptions: a call keeps its arguments, only the callee and the import change', () => {
+    const KEEPS: INamespaceMapping = {
+      modules: ['@venizia/ignis-inversion', '@venizia/ignis-helpers'],
+      oldName: 'isEmpty',
+      className: 'ObjectUtility',
+      method: 'isEmpty',
+      params: [],
+      keepsOptions: true,
+    };
+    const mappings = [KEEPS];
+
+    expect(NamespaceMappings.validate({ mappings })).toEqual([]);
+    expect(
+      NamespaceMappings.validate({ mappings: [{ ...KEEPS, params: [{ key: 'value' }] }] }).join(
+        '\n',
+      ),
+    ).toContain('keepsOptions leaves params empty and restKey unset');
+
+    const result = NamespaceFunctions.rewrite({
+      typescript: ts,
+      fileName: 'a.ts',
+      mappings,
+      source: lines(
+        "import { isEmpty } from '@venizia/ignis-helpers';",
+        'export const a = isEmpty({ value: x });',
+        'export const b = isEmpty?.({ value: y }) || isEmpty(...args);',
+      ),
+    });
+
+    expect(result.output).toBe(
+      lines(
+        "import { ObjectUtility } from '@venizia/ignis-helpers';",
+        'export const a = ObjectUtility.isEmpty({ value: x });',
+        'export const b = ObjectUtility.isEmpty({ value: y }) || ObjectUtility.isEmpty(...args);',
+      ),
+    );
+    expect(result.reports).toEqual([]);
+  });
 });
 
 /** A private folder under the repository's test temp folder, never the system temp. */

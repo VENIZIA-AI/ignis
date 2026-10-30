@@ -51,6 +51,12 @@ export interface INamespaceMapping {
   params: INamespaceMappingParameter[];
   /** The old rest parameter: its arguments are passed as one array under this key. */
   restKey?: string;
+  /**
+   * The old function already takes ONE options object and the method takes the same one, so a call
+   * keeps its arguments and only the callee changes: `isEmpty({ value })` becomes
+   * `ObjectUtility.isEmpty({ value })`. `params` is empty and `restKey` unset for such an entry.
+   */
+  keepsOptions?: boolean;
 }
 
 const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
@@ -112,6 +118,10 @@ export class NamespaceMappings {
         if (keys.has(mapping.restKey)) {
           problems.push(`${label}: restKey "${mapping.restKey}" is also a parameter key`);
         }
+      }
+
+      if (mapping.keepsOptions && (mapping.params.length > 0 || mapping.restKey !== undefined)) {
+        problems.push(`${label}: keepsOptions leaves params empty and restKey unset`);
       }
 
       for (const module of mapping.modules) {
