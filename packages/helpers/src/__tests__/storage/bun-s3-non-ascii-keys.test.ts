@@ -10,7 +10,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { createHash, createHmac } from 'node:crypto';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
-import { buildSignedRequest } from '@/modules/storage/bun-s3/utility';
+import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 
 const CREDENTIALS = { accessKey: 'AKIAEXAMPLE', secretKey: 'test-secret', region: 'us-east-1' };
 const BUCKET = 'uploads';
@@ -241,7 +241,7 @@ describe('BunS3Helper.copyObject - the copy source is URL-encoded', () => {
 
   /** Positive control: the verifier refuses a header that was changed after signing. */
   test('the verifier refuses a copy source sent in a form other than the one signed', async () => {
-    const signed = await buildSignedRequest({
+    const signed = await S3SignatureUtility.buildSignedRequest({
       ...CREDENTIALS,
       method: 'PUT',
       endpoint,

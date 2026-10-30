@@ -2,396 +2,411 @@
 
 import { getError } from '@/modules/error';
 
-const hmacSHA256 = async (opts: {
-  key: Uint8Array<ArrayBuffer> | string;
-  data: string;
-}): Promise<Uint8Array<ArrayBuffer>> => {
-  const { key, data } = opts;
-  const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    rawKey,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
-  return new Uint8Array(signature);
-};
-
-const toHex = (opts: { bytes: Uint8Array }): string =>
-  Array.from(opts.bytes)
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-
-const sha256Hex = async (opts: { data: string }): Promise<string> => {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.data));
-  return toHex({ bytes: new Uint8Array(digest) });
-};
-
-/** SigV4 canonical form needs every reserved character `encodeURIComponent` leaves untouched also percent-encoded. */
-const encodeSigV4Component = (opts: { value: string }): string =>
-  encodeURIComponent(opts.value).replace(
-    /[!'()*]/g,
-    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  );
-
-/** Signing the raw path answers 403 SignatureDoesNotMatch, because `fetch` encodes it on the wire. Separators stay literal. */
-const encodeSigV4Path = (opts: { path: string }): string =>
-  opts.path
-    .split('/')
-    .map((segment) => encodeSigV4Component({ value: segment }))
-    .join('/');
-
-/** `x-amz-copy-source`: S3 URL-decodes it once and splits `?versionId=` off, so a raw `?`, `%` or `+` names another object and a non-Latin-1 key is not a legal header value. */
-export const buildCopySource = (opts: { bucket: string; key: string }): string =>
-  encodeSigV4Path({ path: `/${opts.bucket}/${opts.key}` });
-
-/** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */
-const buildCanonicalQueryString = (query?: Record<string, string>): string => {
-  if (!query) {
-    return '';
+export class S3SignatureUtility {
+  private static async hmacSHA256(opts: {
+    key: Uint8Array<ArrayBuffer> | string;
+    data: string;
+  }): Promise<Uint8Array<ArrayBuffer>> {
+    const { key, data } = opts;
+    const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      rawKey,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(data));
+    return new Uint8Array(signature);
   }
 
-  const keys = Object.keys(query);
-  if (keys.length === 0) {
-    return '';
+  private static toHex(opts: { bytes: Uint8Array }): string {
+    return Array.from(opts.bytes)
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
   }
 
-  return keys
-    .sort()
-    .map(
-      (key) =>
-        `${encodeSigV4Component({ value: key })}=${encodeSigV4Component({ value: query[key] })}`,
-    )
-    .join('&');
-};
-
-/** The SigV4 four-step chain. Each step keys the next, so the final key is bound to date, region and service. */
-const deriveSigningKey = async (opts: {
-  secretKey: string;
-  dateStamp: string;
-  region: string;
-}): Promise<Uint8Array<ArrayBuffer>> => {
-  const { secretKey, dateStamp, region } = opts;
-  const dateKey = await hmacSHA256({ key: `AWS4${secretKey}`, data: dateStamp });
-  const regionKey = await hmacSHA256({ key: dateKey, data: region });
-  const serviceKey = await hmacSHA256({ key: regionKey, data: 's3' });
-  return hmacSHA256({ key: serviceKey, data: 'aws4_request' });
-};
-
-/** `20130524T000000Z` and its `20130524` prefix - the two forms every signature needs. */
-const toAmzDate = (opts: { now: Date }): { amzDate: string; dateStamp: string } => {
-  const amzDate = opts.now
-    .toISOString()
-    .replace(/[-:]/g, '')
-    .replace(/\.\d{3}Z$/, 'Z');
-
-  return { amzDate, dateStamp: amzDate.slice(0, 8) };
-};
-
-export async function buildSignedRequest(opts: {
-  method: string;
-  endpoint: string;
-  path: string;
-  accessKey: string;
-  secretKey: string;
-  region: string;
-  sessionToken?: string;
-  body?: string;
-  query?: Record<string, string>;
-  /** Extra headers to SIGN, not merely to send - anything outside `SignedHeaders` is refused by S3. */
-  headers?: Record<string, string>;
-}): Promise<{ url: string; headers: Record<string, string> }> {
-  const {
-    method,
-    endpoint,
-    path,
-    accessKey,
-    secretKey,
-    region,
-    sessionToken,
-    body = '',
-    query,
-    headers: extraHeaders,
-  } = opts;
-
-  const { amzDate, dateStamp } = toAmzDate({ now: new Date() });
-
-  const canonicalQueryString = buildCanonicalQueryString(query);
-  const canonicalPath = encodeSigV4Path({ path });
-  const baseUrl = `${endpoint.replace(/\/$/, '')}${canonicalPath}`;
-  const url = canonicalQueryString ? `${baseUrl}?${canonicalQueryString}` : baseUrl;
-  const host = new URL(endpoint).host;
-  const payloadHash = await sha256Hex({ data: body });
-
-  const canonicalHeadersMap: Record<string, string> = {
-    host,
-    'x-amz-content-sha256': payloadHash,
-    'x-amz-date': amzDate,
-  };
-  if (sessionToken) {
-    canonicalHeadersMap['x-amz-security-token'] = sessionToken;
+  private static async sha256Hex(opts: { data: string }): Promise<string> {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(opts.data));
+    return S3SignatureUtility.toHex({ bytes: new Uint8Array(digest) });
   }
 
-  const extraHeadersEntries = Object.entries(extraHeaders ?? {});
-  for (const [key, value] of extraHeadersEntries) {
-    canonicalHeadersMap[key.toLowerCase()] = value;
+  /** SigV4 canonical form needs every reserved character `encodeURIComponent` leaves untouched also percent-encoded. */
+  private static encodeSigV4Component(opts: { value: string }): string {
+    return encodeURIComponent(opts.value).replace(
+      /[!'()*]/g,
+      (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+    );
   }
 
-  const sortedKeys = Object.keys(canonicalHeadersMap).sort();
-  const canonicalHeaders = sortedKeys.map((k) => `${k}:${canonicalHeadersMap[k]}\n`).join('');
-  const signedHeaders = sortedKeys.join(';');
-
-  const canonicalRequest = [
-    method,
-    canonicalPath,
-    canonicalQueryString,
-    canonicalHeaders,
-    signedHeaders,
-    payloadHash,
-  ].join('\n');
-
-  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
-  const result = await sha256Hex({ data: canonicalRequest });
-  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
-
-  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
-  const result2 = await hmacSHA256({ key: signingKey, data: stringToSign });
-  const signature = toHex({ bytes: result2 });
-
-  const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-  const contentLength = String(new TextEncoder().encode(body).length);
-
-  return {
-    url,
-    headers: {
-      ...canonicalHeadersMap,
-      Authorization: authHeader,
-      'Content-Length': contentLength,
-    },
-  };
-}
-
-const escapeXmlText = (opts: { value: string }): string =>
-  opts.value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-
-/** `&amp;` decodes LAST - a literal `&lt;` in the source text must not turn into `<` through the `&amp;` step. */
-const unescapeXmlText = (opts: { value: string }): string =>
-  opts.value
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
-
-/** S3's PUT tagging body - no XML dependency, so this is hand-built rather than templated by a library. */
-export const buildTaggingXml = (opts: { tags: Record<string, string> }): string => {
-  const tagEntries = Object.entries(opts.tags)
-    .map(
-      ([key, value]) =>
-        `<Tag><Key>${escapeXmlText({ value: key })}</Key><Value>${escapeXmlText({ value })}</Value></Tag>`,
-    )
-    .join('');
-
-  return `<Tagging><TagSet>${tagEntries}</TagSet></Tagging>`;
-};
-
-/** S3's GET tagging response - hand-parsed rather than a full XML parser; throws rather than returning a half-parsed object. */
-/** The `x-amz-tagging` header: a URL-encoded query string, unlike the XML the tagging API takes. */
-export const buildTaggingHeader = (opts: { tags: Record<string, string> }): string =>
-  Object.entries(opts.tags)
-    .map(
-      ([key, value]) =>
-        `${encodeSigV4Component({ value: key })}=${encodeSigV4Component({ value })}`,
-    )
-    .join('&');
-
-export const parseTaggingXml = (opts: { xml: string }): Record<string, string> => {
-  const { xml } = opts;
-  const trimmed = xml.trim();
-
-  if (/<TagSet\s*\/>/.test(trimmed) || /<TagSet>\s*<\/TagSet>/.test(trimmed)) {
-    return {};
+  /** Signing the raw path answers 403 SignatureDoesNotMatch, because `fetch` encodes it on the wire. Separators stay literal. */
+  private static encodeSigV4Path(opts: { path: string }): string {
+    return opts.path
+      .split('/')
+      .map((segment) => S3SignatureUtility.encodeSigV4Component({ value: segment }))
+      .join('/');
   }
 
-  const tagSetMatch = trimmed.match(/<TagSet>([\s\S]*?)<\/TagSet>/);
-  if (!tagSetMatch) {
-    throw getError({ message: `[parseTaggingXml] Malformed tagging response | body: ${xml}` });
+  /** `x-amz-copy-source`: S3 URL-decodes it once and splits `?versionId=` off, so a raw `?`, `%` or `+` names another object and a non-Latin-1 key is not a legal header value. */
+  static buildCopySource(opts: { bucket: string; key: string }): string {
+    return S3SignatureUtility.encodeSigV4Path({ path: `/${opts.bucket}/${opts.key}` });
   }
 
-  const tags: Record<string, string> = {};
-  const tagMatches = tagSetMatch[1].matchAll(/<Tag>([\s\S]*?)<\/Tag>/g);
-
-  for (const tagMatch of tagMatches) {
-    const keyMatch = tagMatch[1].match(/<Key>([\s\S]*?)<\/Key>/);
-    const valueMatch = tagMatch[1].match(/<Value>([\s\S]*?)<\/Value>/);
-
-    if (!keyMatch || !valueMatch) {
-      throw getError({ message: `[parseTaggingXml] Malformed tag entry | body: ${xml}` });
+  /** Empty or absent query must sign identically to today - callers of getBuckets/createBucket/removeBucket depend on it. */
+  private static buildCanonicalQueryString(opts: { query?: Record<string, string> }): string {
+    const { query } = opts;
+    if (!query) {
+      return '';
     }
 
-    const key = unescapeXmlText({ value: keyMatch[1].trim() });
-    const value = unescapeXmlText({ value: valueMatch[1].trim() });
-    tags[key] = value;
+    const keys = Object.keys(query);
+    if (keys.length === 0) {
+      return '';
+    }
+
+    return keys
+      .sort()
+      .map(
+        (key) =>
+          `${S3SignatureUtility.encodeSigV4Component({ value: key })}=${S3SignatureUtility.encodeSigV4Component({ value: query[key] })}`,
+      )
+      .join('&');
   }
 
-  return tags;
-};
-
-/**
- * A signed POST policy: the form a browser posts straight to S3.
- *
- * This is not a presigned PUT and the difference is the point. A signed PUT binds each header to an
- * EXACT value, so `content-length` names one byte count and never a ceiling - every retry or
- * re-encode becomes an opaque 403. A policy carries `content-length-range`, so "at most N bytes" is
- * expressible at all.
- */
-export async function buildPostPolicy(opts: {
-  bucket: string;
-  keyPrefix: string;
-  maxBytes: number;
-  expiresInSeconds: number;
-  accessKey: string;
-  secretKey: string;
-  region: string;
-  sessionToken?: string;
-  contentType?: string;
-}): Promise<{ formData: Record<string, string>; expiresAt: string }> {
-  const {
-    bucket,
-    keyPrefix,
-    maxBytes,
-    expiresInSeconds,
-    accessKey,
-    secretKey,
-    region,
-    sessionToken,
-    contentType,
-  } = opts;
-
-  const now = new Date();
-  const { amzDate, dateStamp } = toAmzDate({ now });
-  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
-  const credential = `${accessKey}/${credentialScope}`;
-  const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000).toISOString();
-
-  // Every field the browser posts must ALSO be a condition, or S3 refuses the form it just signed.
-  const fields: Record<string, string> = {
-    'x-amz-algorithm': 'AWS4-HMAC-SHA256',
-    'x-amz-credential': credential,
-    'x-amz-date': amzDate,
-    ...(sessionToken ? { 'x-amz-security-token': sessionToken } : {}),
-  };
-
-  const conditions: unknown[] = [
-    { bucket },
-    ['starts-with', '$key', keyPrefix],
-    ['content-length-range', 0, maxBytes],
-    ...Object.entries(fields).map(([key, value]) => ({ [key]: value })),
-    ...(contentType ? [{ 'Content-Type': contentType }] : []),
-  ];
-
-  const policy = Buffer.from(JSON.stringify({ expiration: expiresAt, conditions })).toString(
-    'base64',
-  );
-
-  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
-
-  const result = await hmacSHA256({ key: signingKey, data: policy });
-  return {
-    formData: {
-      ...fields,
-      ...(contentType ? { 'Content-Type': contentType } : {}),
-      policy,
-      'x-amz-signature': toHex({ bytes: result }),
-    },
-    expiresAt,
-  };
-}
-
-/**
- * A presigned URL: the credential travels in the QUERY, so a browser needs no `Authorization` header.
- *
- * `headers` is what `S3Client.presign` cannot do. Anything named there is inside the signature and
- * listed in `X-Amz-SignedHeaders`, so the client must send it back byte for byte. A signature
- * expresses equality and nothing else, so a pinned `content-length` rejects every retry at another
- * size; for a ceiling, use {@link buildPostPolicy}.
- */
-export async function buildPresignedUrl(opts: {
-  method: string;
-  endpoint: string;
-  path: string;
-  accessKey: string;
-  secretKey: string;
-  region: string;
-  sessionToken?: string;
-  expiresInSeconds: number;
-  /** Headers to SIGN. The client must send each one unchanged, or S3 answers 403. */
-  headers?: Record<string, string>;
-  /** A fixed clock, so a signature can be checked against a published test vector. */
-  now?: Date;
-}): Promise<string> {
-  const {
-    method,
-    endpoint,
-    path,
-    accessKey,
-    secretKey,
-    region,
-    sessionToken,
-    expiresInSeconds,
-    headers,
-    now = new Date(),
-  } = opts;
-
-  const { amzDate, dateStamp } = toAmzDate({ now });
-  const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
-  const canonicalPath = encodeSigV4Path({ path });
-  const origin = endpoint.replace(/\/$/, '');
-
-  // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
-  const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
-  const signedEntries = Object.entries(headers ?? {});
-  for (const [key, value] of signedEntries) {
-    canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
+  /** The SigV4 four-step chain. Each step keys the next, so the final key is bound to date, region and service. */
+  private static async deriveSigningKey(opts: {
+    secretKey: string;
+    dateStamp: string;
+    region: string;
+  }): Promise<Uint8Array<ArrayBuffer>> {
+    const { secretKey, dateStamp, region } = opts;
+    const dateKey = await S3SignatureUtility.hmacSHA256({
+      key: `AWS4${secretKey}`,
+      data: dateStamp,
+    });
+    const regionKey = await S3SignatureUtility.hmacSHA256({ key: dateKey, data: region });
+    const serviceKey = await S3SignatureUtility.hmacSHA256({ key: regionKey, data: 's3' });
+    return S3SignatureUtility.hmacSHA256({ key: serviceKey, data: 'aws4_request' });
   }
 
-  const sortedKeys = Object.keys(canonicalHeadersMap).sort();
-  const signedHeaders = sortedKeys.join(';');
+  /** `20130524T000000Z` and its `20130524` prefix - the two forms every signature needs. */
+  private static toAmzDate(opts: { now: Date }): { amzDate: string; dateStamp: string } {
+    const amzDate = opts.now
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}Z$/, 'Z');
 
-  // `X-Amz-SignedHeaders` is itself signed, so the header list has to be settled before the query.
-  const queryParameters: Record<string, string> = {
-    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
-    'X-Amz-Credential': `${accessKey}/${credentialScope}`,
-    'X-Amz-Date': amzDate,
-    'X-Amz-Expires': String(expiresInSeconds),
-    'X-Amz-SignedHeaders': signedHeaders,
-    ...(sessionToken ? { 'X-Amz-Security-Token': sessionToken } : {}),
-  };
-  const canonicalQueryString = buildCanonicalQueryString(queryParameters);
+    return { amzDate, dateStamp: amzDate.slice(0, 8) };
+  }
 
-  // A presigned URL is signed before its body exists, so the payload is excluded by name.
-  const canonicalRequest = [
-    method,
-    canonicalPath,
-    canonicalQueryString,
-    sortedKeys.map((key) => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
-    signedHeaders,
-    'UNSIGNED-PAYLOAD',
-  ].join('\n');
+  static async buildSignedRequest(opts: {
+    method: string;
+    endpoint: string;
+    path: string;
+    accessKey: string;
+    secretKey: string;
+    region: string;
+    sessionToken?: string;
+    body?: string;
+    query?: Record<string, string>;
+    /** Extra headers to SIGN, not merely to send - anything outside `SignedHeaders` is refused by S3. */
+    headers?: Record<string, string>;
+  }): Promise<{ url: string; headers: Record<string, string> }> {
+    const {
+      method,
+      endpoint,
+      path,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      body = '',
+      query,
+      headers: extraHeaders,
+    } = opts;
 
-  const result = await sha256Hex({ data: canonicalRequest });
-  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
+    const { amzDate, dateStamp } = S3SignatureUtility.toAmzDate({ now: new Date() });
 
-  const signingKey = await deriveSigningKey({ secretKey, dateStamp, region });
-  const result2 = await hmacSHA256({ key: signingKey, data: stringToSign });
-  const signature = toHex({ bytes: result2 });
+    const canonicalQueryString = S3SignatureUtility.buildCanonicalQueryString({ query });
+    const canonicalPath = S3SignatureUtility.encodeSigV4Path({ path });
+    const baseUrl = `${endpoint.replace(/\/$/, '')}${canonicalPath}`;
+    const url = canonicalQueryString ? `${baseUrl}?${canonicalQueryString}` : baseUrl;
+    const host = new URL(endpoint).host;
+    const payloadHash = await S3SignatureUtility.sha256Hex({ data: body });
 
-  return `${origin}${canonicalPath}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+    const canonicalHeadersMap: Record<string, string> = {
+      host,
+      'x-amz-content-sha256': payloadHash,
+      'x-amz-date': amzDate,
+    };
+    if (sessionToken) {
+      canonicalHeadersMap['x-amz-security-token'] = sessionToken;
+    }
+
+    const extraHeadersEntries = Object.entries(extraHeaders ?? {});
+    for (const [key, value] of extraHeadersEntries) {
+      canonicalHeadersMap[key.toLowerCase()] = value;
+    }
+
+    const sortedKeys = Object.keys(canonicalHeadersMap).sort();
+    const canonicalHeaders = sortedKeys.map((k) => `${k}:${canonicalHeadersMap[k]}\n`).join('');
+    const signedHeaders = sortedKeys.join(';');
+
+    const canonicalRequest = [
+      method,
+      canonicalPath,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash,
+    ].join('\n');
+
+    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+    const result = await S3SignatureUtility.sha256Hex({ data: canonicalRequest });
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
+
+    const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
+    const result2 = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: stringToSign });
+    const signature = S3SignatureUtility.toHex({ bytes: result2 });
+
+    const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+    const contentLength = String(new TextEncoder().encode(body).length);
+
+    return {
+      url,
+      headers: {
+        ...canonicalHeadersMap,
+        Authorization: authHeader,
+        'Content-Length': contentLength,
+      },
+    };
+  }
+
+  private static escapeXmlText(opts: { value: string }): string {
+    return opts.value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  /** `&amp;` decodes LAST - a literal `&lt;` in the source text must not turn into `<` through the `&amp;` step. */
+  private static unescapeXmlText(opts: { value: string }): string {
+    return opts.value
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, '&');
+  }
+
+  /** S3's PUT tagging body - no XML dependency, so this is hand-built rather than templated by a library. */
+  static buildTaggingXml(opts: { tags: Record<string, string> }): string {
+    const tagEntries = Object.entries(opts.tags)
+      .map(
+        ([key, value]) =>
+          `<Tag><Key>${S3SignatureUtility.escapeXmlText({ value: key })}</Key><Value>${S3SignatureUtility.escapeXmlText({ value })}</Value></Tag>`,
+      )
+      .join('');
+
+    return `<Tagging><TagSet>${tagEntries}</TagSet></Tagging>`;
+  }
+
+  /** The `x-amz-tagging` header: a URL-encoded query string, unlike the XML the tagging API takes. */
+  static buildTaggingHeader(opts: { tags: Record<string, string> }): string {
+    return Object.entries(opts.tags)
+      .map(
+        ([key, value]) =>
+          `${S3SignatureUtility.encodeSigV4Component({ value: key })}=${S3SignatureUtility.encodeSigV4Component({ value })}`,
+      )
+      .join('&');
+  }
+
+  /** S3's GET tagging response - hand-parsed rather than a full XML parser; throws rather than returning a half-parsed object. */
+  static parseTaggingXml(opts: { xml: string }): Record<string, string> {
+    const { xml } = opts;
+    const trimmed = xml.trim();
+
+    if (/<TagSet\s*\/>/.test(trimmed) || /<TagSet>\s*<\/TagSet>/.test(trimmed)) {
+      return {};
+    }
+
+    const tagSetMatch = trimmed.match(/<TagSet>([\s\S]*?)<\/TagSet>/);
+    if (!tagSetMatch) {
+      throw getError({ message: `[parseTaggingXml] Malformed tagging response | body: ${xml}` });
+    }
+
+    const tags: Record<string, string> = {};
+    const tagMatches = tagSetMatch[1].matchAll(/<Tag>([\s\S]*?)<\/Tag>/g);
+
+    for (const tagMatch of tagMatches) {
+      const keyMatch = tagMatch[1].match(/<Key>([\s\S]*?)<\/Key>/);
+      const valueMatch = tagMatch[1].match(/<Value>([\s\S]*?)<\/Value>/);
+
+      if (!keyMatch || !valueMatch) {
+        throw getError({ message: `[parseTaggingXml] Malformed tag entry | body: ${xml}` });
+      }
+
+      const key = S3SignatureUtility.unescapeXmlText({ value: keyMatch[1].trim() });
+      const value = S3SignatureUtility.unescapeXmlText({ value: valueMatch[1].trim() });
+      tags[key] = value;
+    }
+
+    return tags;
+  }
+
+  /**
+   * A signed POST policy: the form a browser posts straight to S3.
+   *
+   * This is not a presigned PUT and the difference is the point. A signed PUT binds each header to an
+   * EXACT value, so `content-length` names one byte count and never a ceiling - every retry or
+   * re-encode becomes an opaque 403. A policy carries `content-length-range`, so "at most N bytes" is
+   * expressible at all.
+   */
+  static async buildPostPolicy(opts: {
+    bucket: string;
+    keyPrefix: string;
+    maxBytes: number;
+    expiresInSeconds: number;
+    accessKey: string;
+    secretKey: string;
+    region: string;
+    sessionToken?: string;
+    contentType?: string;
+  }): Promise<{ formData: Record<string, string>; expiresAt: string }> {
+    const {
+      bucket,
+      keyPrefix,
+      maxBytes,
+      expiresInSeconds,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      contentType,
+    } = opts;
+
+    const now = new Date();
+    const { amzDate, dateStamp } = S3SignatureUtility.toAmzDate({ now });
+    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+    const credential = `${accessKey}/${credentialScope}`;
+    const expiresAt = new Date(now.getTime() + expiresInSeconds * 1000).toISOString();
+
+    // Every field the browser posts must ALSO be a condition, or S3 refuses the form it just signed.
+    const fields: Record<string, string> = {
+      'x-amz-algorithm': 'AWS4-HMAC-SHA256',
+      'x-amz-credential': credential,
+      'x-amz-date': amzDate,
+      ...(sessionToken ? { 'x-amz-security-token': sessionToken } : {}),
+    };
+
+    const conditions: unknown[] = [
+      { bucket },
+      ['starts-with', '$key', keyPrefix],
+      ['content-length-range', 0, maxBytes],
+      ...Object.entries(fields).map(([key, value]) => ({ [key]: value })),
+      ...(contentType ? [{ 'Content-Type': contentType }] : []),
+    ];
+
+    const policy = Buffer.from(JSON.stringify({ expiration: expiresAt, conditions })).toString(
+      'base64',
+    );
+
+    const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
+
+    const result = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: policy });
+    return {
+      formData: {
+        ...fields,
+        ...(contentType ? { 'Content-Type': contentType } : {}),
+        policy,
+        'x-amz-signature': S3SignatureUtility.toHex({ bytes: result }),
+      },
+      expiresAt,
+    };
+  }
+
+  /**
+   * A presigned URL: the credential travels in the QUERY, so a browser needs no `Authorization` header.
+   *
+   * `headers` is what `S3Client.presign` cannot do. Anything named there is inside the signature and
+   * listed in `X-Amz-SignedHeaders`, so the client must send it back byte for byte. A signature
+   * expresses equality and nothing else, so a pinned `content-length` rejects every retry at another
+   * size; for a ceiling, use {@link S3SignatureUtility.buildPostPolicy}.
+   */
+  static async buildPresignedUrl(opts: {
+    method: string;
+    endpoint: string;
+    path: string;
+    accessKey: string;
+    secretKey: string;
+    region: string;
+    sessionToken?: string;
+    expiresInSeconds: number;
+    /** Headers to SIGN. The client must send each one unchanged, or S3 answers 403. */
+    headers?: Record<string, string>;
+    /** A fixed clock, so a signature can be checked against a published test vector. */
+    now?: Date;
+  }): Promise<string> {
+    const {
+      method,
+      endpoint,
+      path,
+      accessKey,
+      secretKey,
+      region,
+      sessionToken,
+      expiresInSeconds,
+      headers,
+      now = new Date(),
+    } = opts;
+
+    const { amzDate, dateStamp } = S3SignatureUtility.toAmzDate({ now });
+    const credentialScope = `${dateStamp}/${region}/s3/aws4_request`;
+    const canonicalPath = S3SignatureUtility.encodeSigV4Path({ path });
+    const origin = endpoint.replace(/\/$/, '');
+
+    // SigV4 compares header values after trimming, so signing an untrimmed one answers 403.
+    const canonicalHeadersMap: Record<string, string> = { host: new URL(origin).host };
+    const signedEntries = Object.entries(headers ?? {});
+    for (const [key, value] of signedEntries) {
+      canonicalHeadersMap[key.toLowerCase()] = String(value).trim();
+    }
+
+    const sortedKeys = Object.keys(canonicalHeadersMap).sort();
+    const signedHeaders = sortedKeys.join(';');
+
+    // `X-Amz-SignedHeaders` is itself signed, so the header list has to be settled before the query.
+    const queryParameters: Record<string, string> = {
+      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+      'X-Amz-Credential': `${accessKey}/${credentialScope}`,
+      'X-Amz-Date': amzDate,
+      'X-Amz-Expires': String(expiresInSeconds),
+      'X-Amz-SignedHeaders': signedHeaders,
+      ...(sessionToken ? { 'X-Amz-Security-Token': sessionToken } : {}),
+    };
+    const canonicalQueryString = S3SignatureUtility.buildCanonicalQueryString({
+      query: queryParameters,
+    });
+
+    // A presigned URL is signed before its body exists, so the payload is excluded by name.
+    const canonicalRequest = [
+      method,
+      canonicalPath,
+      canonicalQueryString,
+      sortedKeys.map((key) => `${key}:${canonicalHeadersMap[key]}\n`).join(''),
+      signedHeaders,
+      'UNSIGNED-PAYLOAD',
+    ].join('\n');
+
+    const result = await S3SignatureUtility.sha256Hex({ data: canonicalRequest });
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, result].join('\n');
+
+    const signingKey = await S3SignatureUtility.deriveSigningKey({ secretKey, dateStamp, region });
+    const result2 = await S3SignatureUtility.hmacSHA256({ key: signingKey, data: stringToSign });
+    const signature = S3SignatureUtility.toHex({ bytes: result2 });
+
+    return `${origin}${canonicalPath}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
+  }
 }
