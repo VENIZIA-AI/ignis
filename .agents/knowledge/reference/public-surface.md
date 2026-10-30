@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (49)
+### `@venizia/dev-configs` (53)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
@@ -20,9 +20,11 @@ generated:
 - `BrowserOxlintConfigs` class
 - `BunCompiler` class
 - `ConstClassValuesRule` class
+- `EffectCleanupConsistencyRule` class
 - `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
+- `HookSupport` class
 - `HOUSE_PLUGIN_NAMESPACE` const
 - `houseConfigs` const
 - `houseEslintPlugin` const
@@ -34,6 +36,7 @@ generated:
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
+- `NoAsyncHookCallbackRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -45,6 +48,7 @@ generated:
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
@@ -68,16 +72,18 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (48)
+### `@venizia/dev-configs/linters` (52)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
 - `AwaitSupport` class
 - `BrowserOxlintConfigs` class
 - `ConstClassValuesRule` class
+- `EffectCleanupConsistencyRule` class
 - `EqeqeqModes` class
 - `EqeqeqRule` class
 - `eslintConfigs` const
+- `HookSupport` class
 - `HOUSE_PLUGIN_NAMESPACE` const
 - `houseConfigs` const
 - `houseEslintPlugin` const
@@ -89,6 +95,7 @@ generated:
 - `MaxParamsOwnRule` class
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
+- `NoAsyncHookCallbackRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -100,6 +107,7 @@ generated:
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const

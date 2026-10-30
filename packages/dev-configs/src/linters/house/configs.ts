@@ -4,7 +4,9 @@ import { JSX_FILES } from '../jsx-files';
 import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ConstClassValuesRule } from './const-class-values.rule';
+import { EffectCleanupConsistencyRule } from './effect-cleanup-consistency.rule';
 import { MaxParamsOwnRule } from './max-params-own.rule';
+import { NoAsyncHookCallbackRule } from './no-async-hook-callback.rule';
 import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
@@ -100,6 +102,27 @@ export const asyncStyleConfigs: Linter.Config[] = [
     rules: {
       [NoInlineAwaitRule.NAME]: NoInlineAwaitRule.build(),
       [NoReturnAwaitRule.NAME]: NoReturnAwaitRule.build(),
+    },
+  },
+];
+
+/**
+ * The hook async rules, opt-in like `asyncStyleConfigs`. Spread it next to `reactHouseConfigs`:
+ *
+ * ```js
+ * export default [...reactHouseConfigs, ...reactAsyncStyleConfigs];
+ * ```
+ *
+ * A hook never gets an async function (`no-async-hook-callback`), and an effect callback returns a cleanup on every
+ * path or on none (`effect-cleanup-consistency`). Hooks live in `.ts` files too, so it covers all source files.
+ */
+export const reactAsyncStyleConfigs: Linter.Config[] = [
+  {
+    files: SOURCE_FILES,
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
+    rules: {
+      [NoAsyncHookCallbackRule.NAME]: NoAsyncHookCallbackRule.build(),
+      [EffectCleanupConsistencyRule.NAME]: EffectCleanupConsistencyRule.build(),
     },
   },
 ];
