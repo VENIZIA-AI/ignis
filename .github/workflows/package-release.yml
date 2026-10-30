@@ -1,5 +1,9 @@
-name: 'NPM Release'
-run-name: 'NPM Release | plan: ${{ inputs.plan }} | build_mode: ${{ inputs.build_mode }} | commit: ${{ github.sha }}'
+name: Release
+# The title of the run. `release.ts` sends `label` (`stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`: kind,
+# versions with their packages, issue, short commit) and the plan job refuses a label that is not what it computed, so
+# the title cannot name a release the run does not make. A dispatch by hand has no label: the title is the mode, the
+# issue and the whole commit (an Actions expression cannot cut it short).
+run-name: "Release · ${{ inputs.label || format('{0}{1} · {2}', inputs.build_mode, inputs.issue && format(' · #{0}', inputs.issue) || '', github.sha) }}"
 
 on:
   workflow_dispatch:
@@ -24,6 +28,11 @@ on:
       issue:
         type: string
         description: 'Issue number the release commits serve (prefixes each with [#N])'
+        required: false
+        default: ''
+      label:
+        type: string
+        description: 'The run title, filled in by scripts/release/release.ts; the plan job refuses one that is not its own (empty = titled by the mode)'
         required: false
         default: ''
 
@@ -108,6 +117,8 @@ jobs:
         id: plan
         env:
           PLAN: ${{ inputs.plan }}
+          RELEASE_ISSUE: ${{ inputs.issue }}
+          RELEASE_LABEL: ${{ inputs.label }}
         run: bun scripts/release/release-run.ts plan
 
       # A stable only: the merge of main back into develop, tried in throwaway worktrees with the versions of this plan

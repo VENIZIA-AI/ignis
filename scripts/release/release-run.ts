@@ -578,6 +578,21 @@ const main = async (): Promise<void> => {
     }
 
     const plan = ReleaseTargets.plan({ entries, mode, ref: process.env.GITHUB_REF, versions });
+
+    // The run title the dispatcher chose (an optional `label`, empty for a dispatch by hand) must be the plan's own.
+    const labelProblems = ReleaseTargets.labelProblems({
+      label: process.env.RELEASE_LABEL,
+      expected: ReleaseTargets.labelOf({
+        kind: plan.kind,
+        targets: plan.targets,
+        issue: process.env.RELEASE_ISSUE,
+        sha: process.env.GITHUB_SHA,
+      }),
+    });
+    if (labelProblems.length > 0) {
+      throw new Error(`the run title is refused:\n  - ${labelProblems.join('\n  - ')}`);
+    }
+
     const outputs = [
       `matrix=${JSON.stringify({ package: entries.map((entry) => entry.name) })}`,
       `plan=${ReleasePlanInput.format({ entries })}`,

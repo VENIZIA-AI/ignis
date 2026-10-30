@@ -163,6 +163,43 @@ export class ReleaseTargets {
     ];
   }
 
+  /**
+   * The run title the dispatcher sends and the plan job checks: `stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`
+   * (the kind, each target version from the highest down with its packages in release order, the issue, the
+   * seven-character commit). A workflow cannot work these out when it names the run, so `release.ts` says them and
+   * `plan` refuses a title that is not what it computes: the title cannot name a version, a package or a commit the
+   * run does not release.
+   */
+  static labelOf(opts: {
+    kind: TReleaseKind;
+    targets: ReadonlyArray<IReleaseTarget>;
+    issue?: string;
+    sha?: string;
+  }): string {
+    const byVersion = new Map<string, string[]>();
+    for (const entry of opts.targets) {
+      byVersion.set(entry.target, [...(byVersion.get(entry.target) ?? []), entry.name]);
+    }
+
+    const versions = [...byVersion.entries()]
+      .sort(([left], [right]) => Bun.semver.order(right, left))
+      .map(([version, names]) => `${version} ${names.join(',')}`)
+      .join('; ');
+    const issue = opts.issue === undefined || opts.issue === '' ? [] : [`#${opts.issue}`];
+    const sha = opts.sha === undefined || opts.sha === '' ? [] : [opts.sha.slice(0, 7)];
+
+    return [opts.kind, versions, ...issue, ...sha].join(' · ');
+  }
+
+  /** Why a label is not the one this plan gives; empty when it is, or when there is none (a dispatch by hand). */
+  static labelProblems(opts: { label: string | undefined; expected: string }): string[] {
+    return opts.label === undefined || opts.label === '' || opts.label === opts.expected
+      ? []
+      : [
+          `the label ${JSON.stringify(opts.label)} is not what the plan computes: ${JSON.stringify(opts.expected)}`,
+        ];
+  }
+
   /** The plan job: refuses a wrong ref or scope with every reason, otherwise says what the run would publish. */
   static plan(opts: {
     entries: ReadonlyArray<IPlanEntry>;

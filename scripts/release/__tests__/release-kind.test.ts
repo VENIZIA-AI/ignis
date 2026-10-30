@@ -252,3 +252,62 @@ describe('ReleaseTargets.plan', () => {
     ).toBe('2 packages, up to 0.4.10');
   });
 });
+
+describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
+  const SHA = 'c84852a7e1d0b6a2f3c9d8e7b6a5f4e3d2c1b0a9';
+  const TARGETS = ReleaseTargets.of({
+    entries: [
+      { name: 'helpers', from: '0.4.5' },
+      { name: 'inversion', from: '0.4.4' },
+      { name: 'kernel', from: '0.4.5' },
+    ],
+    mode: 'prerelease',
+  });
+
+  test('is the kind, each version from the highest down with its packages, the issue and the short commit', () => {
+    expect(
+      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '664', sha: SHA }),
+    ).toBe('prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion · #664 · c84852a');
+  });
+
+  test('the versions are ordered by semver, not by text', () => {
+    const targets = [
+      { name: 'helpers', from: '0.4.9', target: '0.4.10', distTag: 'latest' as const },
+      { name: 'kernel', from: '0.4.8', target: '0.4.9', distTag: 'latest' as const },
+    ];
+
+    expect(ReleaseTargets.labelOf({ kind: 'stable', targets })).toBe(
+      'stable · 0.4.10 helpers; 0.4.9 kernel',
+    );
+  });
+
+  test('no issue and no commit leave their parts out', () => {
+    const label = 'prerelease · 0.4.6-0 helpers,kernel; 0.4.5-0 inversion';
+
+    expect(ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS })).toBe(label);
+    expect(
+      ReleaseTargets.labelOf({ kind: 'prerelease', targets: TARGETS, issue: '', sha: '' }),
+    ).toBe(label);
+  });
+
+  test('labelProblems accepts the expected label and an empty or absent one, and refuses any other', () => {
+    const expected = ReleaseTargets.labelOf({ kind: 'stable', targets: TARGETS, sha: SHA });
+
+    expect(ReleaseTargets.labelProblems({ label: expected, expected })).toEqual([]);
+    expect(ReleaseTargets.labelProblems({ label: '', expected })).toEqual([]);
+    expect(ReleaseTargets.labelProblems({ label: undefined, expected })).toEqual([]);
+    expect(
+      ReleaseTargets.labelProblems({ label: 'stable · 0.4.7 helpers', expected })[0],
+    ).toContain('is not what the plan computes');
+  });
+
+  test('the refusal quotes the label, so a newline or a :: line cannot forge a log line', () => {
+    const [problem] = ReleaseTargets.labelProblems({
+      label: 'x\n::add-mask::y',
+      expected: 'stable',
+    });
+
+    expect(problem).toContain('"x\\n::add-mask::y"');
+    expect(problem).not.toContain('\n');
+  });
+});

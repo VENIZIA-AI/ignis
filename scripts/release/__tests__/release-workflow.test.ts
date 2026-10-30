@@ -47,7 +47,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(34);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(35);
   });
 });
 
@@ -144,9 +144,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
       edits: [
         {
-          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n',
+          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n        run: bun scripts/release/release-run.ts run',
           replace:
-            '          RELEASE_ISSUE: ${{ inputs.issue }}\n          LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n',
+            '          RELEASE_ISSUE: ${{ inputs.issue }}\n          LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n        run: bun scripts/release/release-run.ts run',
         },
       ],
     },
@@ -291,7 +291,37 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT,
-      edits: [{ find: ' | commit: ${{ github.sha }}', replace: '' }],
+      edits: [{ find: ', github.sha) }}"', replace: ", 'unknown') }}\"" }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT,
+      edits: [{ find: 'inputs.label || format(', replace: 'format(' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [{ find: '          RELEASE_LABEL: ${{ inputs.label }}\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '          RELEASE_LABEL: ${{ inputs.label }}\n',
+          replace: '          RELEASE_LABEL: a fixed title\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n          RELEASE_LABEL: ${{ inputs.label }}\n',
+          replace: '          RELEASE_LABEL: ${{ inputs.label }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      runner: [{ find: 'ReleaseTargets.labelProblems({', replace: 'ReleaseTargets.noProblems({' }],
     },
     {
       guard: ReleaseWorkflowGuards.ACTIONS_PINNED_BY_COMMIT,
@@ -705,5 +735,26 @@ describe('the release holds no registry token', () => {
         .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
         .map((violation) => violation.message),
     ).toEqual([expect.stringContaining(`the workflow, line ${line}`)]);
+  });
+});
+
+describe('the run name is one expression over the label and the commit', () => {
+  const RUN_NAME = /^run-name: .*$/m.exec(WORKFLOW)?.[0] ?? '';
+
+  test('the committed run name is found', () => {
+    expect(RUN_NAME).toContain('inputs.label');
+  });
+
+  test('a name that only mentions the label and the commit as text is noticed', () => {
+    for (const runName of [
+      'Release · ${{ inputs.build_mode }} · literal inputs.label github.sha',
+      '${{ inputs.label }} github.sha',
+      'Release · ${{ inputs.build_mode }} · ${{ github.sha }}',
+    ]) {
+      expect(
+        guardsOf({ text: mutate({ find: RUN_NAME, replace: `run-name: "${runName}"` }) }),
+        runName,
+      ).toContain(ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT);
+    }
   });
 });

@@ -20,13 +20,17 @@ export class ReleaseDispatch {
     return ReleaseKinds.branchOf({ kind: ReleaseKinds.ofMode({ mode: opts.mode }) });
   }
 
-  /** The arguments of the one `gh` call that starts the whole release. */
+  /**
+   * The arguments of the one `gh` call that starts the whole release. The run title `label` is sent only when there
+   * is one; the plan job refuses a label that is not the one it computes (`ReleaseTargets.labelOf`).
+   */
   static buildArgs(opts: {
     entries: ReadonlyArray<IPlanEntry>;
     mode: TReleaseMode;
     issue?: string;
+    label?: string;
   }): string[] {
-    const { entries, mode, issue } = opts;
+    const { entries, mode, issue, label } = opts;
 
     return [
       'workflow',
@@ -39,6 +43,7 @@ export class ReleaseDispatch {
       '-f',
       `build_mode=${mode}`,
       ...(issue ? ['-f', `issue=${issue}`] : []),
+      ...(label ? ['-f', `label=${label}`] : []),
     ];
   }
 

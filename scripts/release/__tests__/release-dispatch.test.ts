@@ -109,3 +109,25 @@ describe('ReleaseDispatch.readOutcomes', () => {
     expect(outcomes.get('@venizia/ignis')).toEqual({ marker: '+', version: '0.4.9-1' });
   });
 });
+
+describe('ReleaseDispatch.buildArgs: the run title', () => {
+  test('sends the label as the label input, last', () => {
+    const label = 'stable · 0.4.6 helpers,kernel · #664 · c84852a';
+    const args = ReleaseDispatch.buildArgs({
+      entries: ENTRIES,
+      mode: 'patch',
+      issue: '664',
+      label,
+    });
+
+    expect(args.slice(-2)).toEqual(['-f', `label=${label}`]);
+  });
+
+  test('sends none when the label is empty or absent', () => {
+    for (const label of [undefined, '']) {
+      const args = ReleaseDispatch.buildArgs({ entries: ENTRIES, mode: 'patch', label });
+
+      expect(args.some((arg) => arg.startsWith('label='))).toBe(false);
+    }
+  });
+});
