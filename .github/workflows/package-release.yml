@@ -3,7 +3,7 @@ name: Release
 # versions with their packages, issue, short commit) and the plan job refuses a label that is not what it computed, so
 # the title cannot name a release the run does not make. A dispatch by hand has no label: the title is the mode, the
 # issue and the whole commit (an Actions expression cannot cut it short).
-run-name: "Release · ${{ inputs.label || format('{0}{1} · {2}', inputs.build_mode, inputs.issue && format(' · #{0}', inputs.issue) || '', github.sha) }}"
+run-name: "Release · ${{ inputs.label || format('{0}{1} · {2}', inputs.build_mode, inputs.issue && format(' · {0}{1}', '#', inputs.issue) || '', github.sha) }}"
 
 on:
   workflow_dispatch:

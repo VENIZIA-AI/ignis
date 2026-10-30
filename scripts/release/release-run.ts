@@ -579,13 +579,21 @@ const main = async (): Promise<void> => {
 
     const plan = ReleaseTargets.plan({ entries, mode, ref: process.env.GITHUB_REF, versions });
 
+    // The issue goes into the run title and into every release commit subject: only digits, or nothing.
+    const issue = process.env.RELEASE_ISSUE ?? '';
+    if (!/^\d*$/.test(issue)) {
+      throw new Error(
+        `the issue must be a number or empty, got: ${ReleaseTargets.quote({ value: issue })}`,
+      );
+    }
+
     // The run title the dispatcher chose (an optional `label`, empty for a dispatch by hand) must be the plan's own.
     const labelProblems = ReleaseTargets.labelProblems({
       label: process.env.RELEASE_LABEL,
       expected: ReleaseTargets.labelOf({
         kind: plan.kind,
         targets: plan.targets,
-        issue: process.env.RELEASE_ISSUE,
+        issue,
         sha: process.env.GITHUB_SHA,
       }),
     });

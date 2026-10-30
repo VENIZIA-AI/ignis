@@ -313,12 +313,23 @@ describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
 });
 
 describe('ReleaseTargets.quote: a value in one log line', () => {
-  test('escapes the bidirectional and zero-width characters, which JSON leaves as they are', () => {
-    const hostile = 'a‮b​c⁦d﻿e‏f';
-    const quoted = ReleaseTargets.quote({ value: hostile });
+  /** A string from code points, so that no invisible character sits in this file. */
+  const text = (...codes: number[]): string => String.fromCodePoint(...codes);
 
-    expect(quoted).toBe('"a\\u202eb\\u200bc\\u2066d\\ufeffe\\u200ff"');
-    expect(quoted).not.toMatch(/[​-‏‪-‮⁠-⁯﻿]/);
+  test('escapes what JSON leaves as it is: bidirectional, zero-width, separators and astral characters', () => {
+    expect(
+      ReleaseTargets.quote({ value: `a${text(0x202e)}b${text(0x200b)}c${text(0x2066)}d` }),
+    ).toBe('"a\\u202eb\\u200bc\\u2066d"');
+    expect(ReleaseTargets.quote({ value: text(0xfeff, 0x85, 0x2028, 0x2029, 0x7f, 0xa0) })).toBe(
+      '"\\ufeff\\u0085\\u2028\\u2029\\u007f\\u00a0"',
+    );
+    expect(ReleaseTargets.quote({ value: text(0xe0041, 0x1f600) })).toBe('"\\u{e0041}\\u{1f600}"');
+  });
+
+  test('whatever goes in, only printable ASCII and the middle dot come out', () => {
+    const hostile = text(0x202e, 0x200b, 0x1f600, 0x0a, 0x1b, 0x3164, 0x2800, 0xad);
+
+    expect(ReleaseTargets.quote({ value: `x${hostile}"y"` })).toMatch(/^[\x20-\x7e·]*$/);
   });
 
   test('keeps JSON quoting for a newline and a quote, and leaves plain text and the middle dot alone', () => {
@@ -328,13 +339,20 @@ describe('ReleaseTargets.quote: a value in one log line', () => {
     );
   });
 
+  test('echoes the first 200 characters of a long value and says how many were left out', () => {
+    const quoted = ReleaseTargets.quote({ value: 'x'.repeat(70_000) });
+
+    expect(quoted.length).toBeLessThan(260);
+    expect(quoted).toContain('(69800 more characters)');
+  });
+
   test('a refusal shows a hostile label escaped', () => {
     const [problem] = ReleaseTargets.labelProblems({
-      label: 'stable‮ · 0.4.6',
+      label: `stable${text(0x202e)} · 0.4.6`,
       expected: 'stable · 0.4.6',
     });
 
     expect(problem).toContain('stable\\u202e');
-    expect(problem).not.toContain('‮');
+    expect(problem).not.toContain(text(0x202e));
   });
 });

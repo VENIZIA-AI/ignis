@@ -2,6 +2,9 @@ import { ReleaseModes, ReleaseOrder, type TReleaseMode } from './release-constan
 import { type IPlanEntry } from './release-plan-input';
 import { ReleaseVersion } from './release-version';
 
+/** How much of a refused value is echoed to the log. */
+const LABEL_ECHO_LIMIT = 200;
+
 export type TReleaseKind = 'prerelease' | 'stable';
 
 /** The two kinds of run. The mode decides the kind: `npm version patch|minor|major` always gives a stable version. */
@@ -196,10 +199,18 @@ export class ReleaseTargets {
    * JSON leaves as they are and that change how a log line reads: the bidirectional controls and the zero-width ones.
    */
   static quote(opts: { value: string }): string {
-    return JSON.stringify(opts.value).replaceAll(
-      /[­؜᠎​-‏‪-‮⁠-⁯﻿]/g,
-      (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`,
-    );
+    const shown =
+      opts.value.length > LABEL_ECHO_LIMIT
+        ? `${opts.value.slice(0, LABEL_ECHO_LIMIT)} (${opts.value.length - LABEL_ECHO_LIMIT} more characters)`
+        : opts.value;
+
+    // Everything but printable ASCII and the middle dot of the label is written as an escape.
+    return JSON.stringify(shown).replaceAll(/[^ -~·]/gu, (char) => {
+      const code = char.codePointAt(0) ?? 0;
+      const hex = code.toString(16).padStart(4, '0');
+
+      return code > 0xffff ? `\\u{${hex}}` : `\\u${hex}`;
+    });
   }
 
   /** Why a label is not the one this plan gives; empty when it is, or when there is none (a dispatch by hand). */

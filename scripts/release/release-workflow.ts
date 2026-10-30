@@ -444,8 +444,13 @@ export const checkReleaseWorkflow = (opts: {
     ) &&
     /process\.env\.RELEASE_LABEL/.test(runner) &&
     /ReleaseTargets\.labelProblems/.test(runner) &&
-    // The label is read in two places and no other: the run name and the plan step. A third reader would trust it.
+    // What the check finds must stop the job, and the issue that goes into the title must be digits.
+    /labelProblems\.length > 0\) \{\s*throw /.test(runner) &&
+    /\!\/\^\\d\*\$\/\.test\(issue\)\) \{\s*throw /.test(runner) &&
+    // The label is read in two places and no other: the run name and the plan step. A third reader would trust it,
+    // whatever way it is spelled (`inputs['label']`, the whole `inputs` object as JSON).
     withoutComments(text).split('inputs.label').length - 1 === 2 &&
+    !/inputs\[|toJSON\(\s*(?:github\.event\.)?inputs\b/.test(withoutComments(text)) &&
     // A plan job that may fail and go on would let a refused label through.
     !JSON.stringify(plan).includes('continue-on-error');
   if (!planChecksTheLabel) {
