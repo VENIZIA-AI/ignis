@@ -93,6 +93,6 @@ if (isApplicationError(error)) {
 
 ## See also
 
-- [Repository Mixins reference](/references/base/repositories/mixins)
+- [What moved from the removed repository mixins](/references/base/repositories/advanced#moved-from-the-removed-mixins)
 - [Default Filter reference](/references/base/filter-system/default-filter)
 - [Security and Reliability Hardening](./2026-07-13-hardening-round)

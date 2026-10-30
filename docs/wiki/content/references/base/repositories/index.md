@@ -276,7 +276,6 @@ The connector's readers are exported for a client that talks to the same server 
 - [Relations & Includes](./relations) - eager loading, nested `scope` filters, many-to-many
 - [Advanced Features](./advanced) - transactions, hidden properties, `shouldQueryRange`, performance, read retry
 - [SoftDeletableRepository](./soft-deletable) - soft delete, restore, hard delete
-- [Repository Mixins (Removed)](./mixins) - where `FieldsVisibilityMixin`/`DefaultFilterMixin` behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination
 - [Repositories Guide](/guides/core-concepts/persistent/repositories) - creating repositories step by step
 

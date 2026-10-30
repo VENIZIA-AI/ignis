@@ -418,7 +418,6 @@ const comments = await commentRepository.find({
 
 - [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
 - [Advanced Features](./advanced) - transactions, hidden properties, performance
-- [Repository Mixins (Removed)](./mixins) - where default-filter and fields-visibility behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination
 - [Models - Full Reference](/references/base/models-reference) - `@model`, entity hierarchy, schema enrichers
 - [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - relation definition guide

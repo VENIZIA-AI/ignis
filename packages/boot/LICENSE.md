@@ -46,9 +46,6 @@ This package uses the following open-source libraries:
 |---------|---------|-------------|
 | [@venizia/ignis-helpers](https://github.com/VENIZIA-AI/ignis) | MIT | Ignis utility helpers |
 | [@venizia/ignis-inversion](https://github.com/VENIZIA-AI/ignis) | MIT | Ignis DI/IoC container |
-| [glob](https://github.com/isaacs/node-glob) | ISC | File pattern matching |
-| [reflect-metadata](https://github.com/rbuckton/reflect-metadata) | Apache-2.0 | Metadata reflection API |
-| [zod](https://github.com/colinhacks/zod) | MIT | TypeScript-first schema validation |
 
 ---
 
@@ -63,7 +60,7 @@ Part of the Ignis monorepo:
 | `@venizia/ignis-helpers` | Utility helpers - logging, cron, Redis, queues, storage |
 | `@venizia/ignis-inversion` | Dependency Injection & IoC container |
 | `@venizia/dev-configs` | Shared oxlint, ESLint, TypeScript configurations |
-| `@venizia/ignis-docs` | Documentation and MCP Server |
+| `@venizia/ignis-docs` | Documentation site content |
 
 ---
 

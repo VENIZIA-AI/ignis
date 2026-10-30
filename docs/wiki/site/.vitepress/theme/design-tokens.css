@@ -1,98 +1,14 @@
 /* =============================================================================
- * IGNIS DOCS - DESIGN TOKENS  (source of truth)
+ * IGNIS DOCS - DESIGN TOKENS
  * -----------------------------------------------------------------------------
- * Every value here is grounded in a standard - nothing is set by feel:
- *   · Typography : base 16px, modular scale Major Third 1.25 (Material Design)
- *   · Spacing    : 8-point grid, 4px half-step (Tailwind/Material convention)
- *   · Color      : WCAG 2.1 AA - 4.5:1 normal text, 3:1 large/UI (ratios below)
- *   · Measure    : prose ≤ 70ch (50-75 CPL, 66 optimal - Bringhurst/Baymard)
- *   · Line-height: body 1.6, headings 1.15-1.3
- *
- * Refs: w3.org/TR/WCAG21 · webaim.org/resources/contrastchecker
- *       designsystems.com/space-grids-and-layouts · baymard.com/blog/line-length-readability
- *
- * Usage: import in `theme/index.ts` BEFORE style.css. The --ig-* tokens are the primitives of the
- * home page and the content pages; the neutrals and the fonts point at the shared theme
- * (theme/shared/tokens.css), and the VitePress mapping is theme/shared/vp-map.css.
+ * The brand ramp. The values are copied into product.css (--accent, --accent-2, --accent-on-dark,
+ * --accent-text), which is what the pages read; nothing reads these properties. The file stays because
+ * theme/shared/index.ts imports it under this fixed name. The neutrals and fonts are the shared
+ * theme's (theme/shared/tokens.css).
  * ============================================================================= */
 
 :root {
-  /* ---- Brand ramp (theme-agnostic primitives) ------------------------------ */
   --ig-rose: #AF5F5F; /* primary brand. fills + large accents only       */
   --ig-rose-lt: #C98A8A; /* 7.04:1 on dark - link / accent text (dark theme)*/
-  --ig-rose-deep: #9E5252; /* 5.55:1 white-on - extra-safe button bg          */
   --ig-coral: #D98E6A; /* 7.55:1 on dark - eyebrow, code decorators       */
-  --ig-gold: #E5B567; /* 10.5:1 on dark - accent, code keywords          */
-  --ig-gradient: linear-gradient(115deg, #AF5F5F 0%, #D98E6A 52%, #E5B567 100%);
-  --ig-glow:
-    radial-gradient(720px 440px at 18% -2%, rgba(175,95,95,.26), transparent 60%),
-    radial-gradient(680px 420px at 92% 6%, rgba(229,181,103,.12), transparent 62%);
-
-  /* ---- Typography : scale = 16 × 1.25^n ------------------------------------ */
-  --ig-font-sans: var(--font-sans);
-  --ig-font-mono: var(--font-mono);
-  --ig-fs-caption: 0.75rem; /* 12px - labels, captions, badges               */
-  --ig-fs-sm: 0.875rem; /* 14px - secondary, tables, inline code         */
-  --ig-fs-body: 1rem; /* 16px - BASE body / docs prose                 */
-  --ig-fs-lede: 1.125rem; /* 18px - intro paragraphs                       */
-  --ig-fs-h4: 1.25rem; /* 20px                                          */
-  --ig-fs-h3: 1.5625rem; /* 25px                                          */
-  --ig-fs-h2: 1.9375rem; /* 31px - section heading                        */
-  --ig-fs-h1: 2.4375rem; /* 39px - page heading                           */
-  --ig-fs-display: 3.0625rem; /* 49px                                          */
-  --ig-fs-hero: 3.8125rem; /* 61px - hero only (desktop)                    */
-  --ig-lh-tight: 1.05; /* hero / display                               */
-  --ig-lh-snug: 1.2; /* h1 / h2                                       */
-  --ig-lh-heading: 1.25; /* h3 / h4                                       */
-  --ig-lh-normal: 1.5; /* UI text                                       */
-  --ig-lh-body: 1.6; /* body / docs prose                            */
-  --ig-lh-code: 1.7; /* code blocks                                  */
-
-  /* ---- Spacing : 8-point grid (4px half-step) ------------------------------ */
-  --ig-s1: 4px;
-  --ig-s2: 8px;
-  --ig-s3: 12px;
-  --ig-s4: 16px;
-  --ig-s5: 24px;
-  --ig-s6: 32px;
-  --ig-s7: 48px;
-  --ig-s8: 64px;
-  --ig-s9: 96px;
-
-  /* ---- Radii --------------------------------------------------------------- */
-  --ig-r-sm: 8px; /* buttons, inputs, chips     */
-  --ig-r-md: 12px; /* cards                      */
-  --ig-r-lg: 16px; /* panels, code windows       */
-  --ig-r-xl: 24px; /* hero / CTA panels          */
-  --ig-r-pill: 999px;
-
-  /* ---- Reading measure ----------------------------------------------------- */
-  --ig-measure: 70ch; /* docs prose max width  */
-  --ig-measure-lede: 62ch;
-
-  /* ---- Layout (centered + generous; the header stays full-width) ----------- */
-  --ig-layout-max: 1440px; /* centered container - fills laptops, modest margins on wide screens, no dead-space */
-  --ig-sidebar-w: 272px; /* left nav             */
-  --ig-toc-w: 240px; /* right "on this page" */
-  --ig-gutter: var(--ig-s7); /* 48px - column gap / page padding */
-
-  /* ---- Semantic: the neutrals and the link colour are the shared theme's (tokens.css, product.css);
-   *      the primary is still the brand rose of the home page. ------------------------------ */
-  --ig-bg: var(--bg);
-  --ig-surface: var(--bg-soft);
-  --ig-border: var(--stroke);
-  --ig-text: var(--text-title);
-  --ig-text-2: var(--text-body);
-  --ig-text-3: var(--text-muted);
-  --ig-faint: #9A9097; /* large/decorative only */
-  --ig-link: var(--accent-text);
-  --ig-primary: var(--ig-rose);
-  --ig-on-primary: #FFFFFF; /* 4.54:1 on rose - AA   */
-}
-
-/* The dark values of the neutrals and the link come from the shared tokens; only these two stay here. */
-.dark {
-  --ig-faint: #6E646A; /* 3.48:1 - large/decorative only */
-  --ig-primary: var(--ig-rose);
-  --ig-on-primary: #FFFFFF; /* 4.54:1 on rose - AA            */
 }
