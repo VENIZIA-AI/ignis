@@ -1,5 +1,5 @@
 import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
-import { buildSubqueryCondition } from '@/relational/core/repositories/dialect/internal';
+import { SubqueryUtility } from '@/relational/core/repositories/dialect/internal';
 import { QueryOperators } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -82,9 +82,13 @@ export class PostgresQueryOperators extends QueryOperators {
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.IN_SQL]: (opts: IQueryHandlerOptions) =>
-      buildSubqueryCondition({ ...opts, operator: this.IN_SQL, isNegated: false }),
+      SubqueryUtility.buildSubqueryCondition({ ...opts, operator: this.IN_SQL, isNegated: false }),
     [this.NOT_IN_SQL]: (opts: IQueryHandlerOptions) =>
-      buildSubqueryCondition({ ...opts, operator: this.NOT_IN_SQL, isNegated: true }),
+      SubqueryUtility.buildSubqueryCondition({
+        ...opts,
+        operator: this.NOT_IN_SQL,
+        isNegated: true,
+      }),
     [this.NIN]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return ne(opts.column, opts.value);

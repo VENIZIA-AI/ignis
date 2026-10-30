@@ -149,7 +149,7 @@ non-negative number throws at boot. Over the limit answers `RequestErrors.BODY_T
 (`413 core.request.body_too_large`) unless `onError` is given.
 
 A route whose `request.body.content` declares `multipart/form-data` or
-`application/x-www-form-urlencoded` gets `formBodyReader` (`base/middlewares/form-body/`, not on any
+`application/x-www-form-urlencoded` gets `FormBodyMiddleware.read` (`base/middlewares/form-body/`, not on any
 barrel) appended LAST to its middleware chain, in `AbstractRestController.buildRouteMiddlewares` -
 after authenticate, authorize, and every application middleware. It parses the form through helpers'
 `readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead

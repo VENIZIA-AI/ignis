@@ -1,5 +1,5 @@
 import { model } from '@/base/metadata';
-import { normalizeModelMetadata } from '@/base/metadata/model-metadata';
+import { ModelMetadataUtility } from '@/base/metadata/model-metadata';
 import { AbstractEntity, ModelTypes } from '@/base/models';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { IModelMetadata } from '@/helpers/inversion';
@@ -28,7 +28,7 @@ const declare = (metadata?: IModelMetadata) => {
 };
 
 const normalize = (metadata: IModelMetadata) =>
-  normalizeModelMetadata({ model: 'Probe', metadata });
+  ModelMetadataUtility.normalizeModelMetadata({ model: 'Probe', metadata });
 
 describe('ModelTypes', () => {
   test('is shaped like RepositoryTypes: a value, a set and isValid', () => {

@@ -1,3 +1,4 @@
+import { RecordUtility } from '@/common/internal';
 import type { ISearchResult } from '@/search/core';
 import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
 import { type Meilisearch } from 'meilisearch';
@@ -8,6 +9,17 @@ export class MeilisearchInternal {
   static readonly INDEX_NOT_FOUND = 'index_not_found';
   static readonly INDEX_ALREADY_EXISTS = 'index_already_exists';
   static readonly DOCUMENT_NOT_FOUND = 'document_not_found';
+
+  /** Reserved RESPONSE keys on a hit. Listed explicitly, not by `_` prefix - `_geo` is a stored DOCUMENT field and prefix-stripping would delete it. */
+  private static readonly RESERVED_HIT_KEYS = new Set([
+    '_formatted',
+    '_matchesPosition',
+    '_rankingScore',
+    '_rankingScoreDetails',
+    '_vectors',
+    '_federation',
+    '_geoDistance',
+  ]);
 
   /** A Meilisearch failure arrives in TWO shapes and both must be read: `MeilisearchApiError` (SDK throw - body off `cause`, status off `response.status`, NO top-level `code`) and the flat `task.error` response (not an Error, `code` at top level). Missing either misclassifies a by-design 404 as a 503 engine-down. */
   static getErrorCode(opts: { error: unknown }): string | undefined {
@@ -59,104 +71,92 @@ export class MeilisearchInternal {
   static isAlreadyExistsError(opts: { error: unknown }): boolean {
     return MeilisearchInternal.getErrorCode(opts) === MeilisearchInternal.INDEX_ALREADY_EXISTS;
   }
-}
 
-export const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null;
-};
+  /** Strips Meilisearch's reserved response metadata, leaving the caller's own document intact. */
+  private static extractDocument<TDocument extends object>(opts: {
+    hit: Record<string, unknown>;
+  }): TDocument {
+    const { hit } = opts;
+    const document: Record<string, unknown> = {};
 
-/** Reserved RESPONSE keys on a hit. Listed explicitly, not by `_` prefix - `_geo` is a stored DOCUMENT field and prefix-stripping would delete it. */
-export const RESERVED_HIT_KEYS = new Set([
-  '_formatted',
-  '_matchesPosition',
-  '_rankingScore',
-  '_rankingScoreDetails',
-  '_vectors',
-  '_federation',
-  '_geoDistance',
-]);
+    const hitEntries = Object.entries(hit);
+    for (const [key, value] of hitEntries) {
+      if (MeilisearchInternal.RESERVED_HIT_KEYS.has(key)) {
+        continue;
+      }
 
-/** Strips Meilisearch's reserved response metadata, leaving the caller's own document intact. */
-export const extractDocument = <TDocument extends object>(
-  hit: Record<string, unknown>,
-): TDocument => {
-  const document: Record<string, unknown> = {};
-
-  const hitEntries = Object.entries(hit);
-  for (const [key, value] of hitEntries) {
-    if (RESERVED_HIT_KEYS.has(key)) {
-      continue;
+      document[key] = value;
     }
 
-    document[key] = value;
+    return document as TDocument;
   }
 
-  return document as TDocument;
-};
+  /** Maps a Meilisearch response onto `ISearchResult`: exhaustive `totalHits` preferred over approximate `estimatedTotalHits` (`isFoundExact` says which), wire keys read via bracket access, never identifiers. */
+  static mapSearchResult<TDocument extends object>(opts: {
+    raw: unknown;
+  }): ISearchResult<TDocument> {
+    const { raw } = opts;
 
-/** Maps a Meilisearch response onto `ISearchResult`: exhaustive `totalHits` preferred over approximate `estimatedTotalHits` (`isFoundExact` says which), wire keys read via bracket access, never identifiers. */
-export const mapSearchResult = <TDocument extends object>(
-  raw: unknown,
-): ISearchResult<TDocument> => {
-  if (!isRecord(raw)) {
-    return { found: 0, isFoundExact: true };
+    if (!RecordUtility.isRecord(raw)) {
+      return { found: 0, isFoundExact: true };
+    }
+
+    const totalHits = raw['totalHits'];
+    const isFoundExact = typeof totalHits === 'number';
+    const estimated = raw['estimatedTotalHits'];
+
+    const result: ISearchResult<TDocument> = {
+      found: isFoundExact ? totalHits : typeof estimated === 'number' ? estimated : 0,
+      isFoundExact,
+    };
+
+    if (typeof raw['processingTimeMs'] === 'number') {
+      result.searchTimeMs = raw['processingTimeMs'];
+    }
+
+    if (RecordUtility.isRecord(raw['facetDistribution'])) {
+      result.facetCounts = [raw['facetDistribution']];
+    }
+
+    if (Array.isArray(raw['hits'])) {
+      result.hits = raw['hits'].filter(RecordUtility.isRecord).map((hit) => {
+        const entry: {
+          document: TDocument;
+          highlight?: unknown;
+          score?: number;
+        } = { document: MeilisearchInternal.extractDocument<TDocument>({ hit }) };
+
+        if (hit['_formatted'] !== undefined) {
+          entry.highlight = hit['_formatted'];
+        }
+
+        if (typeof hit['_rankingScore'] === 'number') {
+          entry.score = hit['_rankingScore'];
+        }
+
+        return entry;
+      });
+    }
+
+    return result;
   }
 
-  const totalHits = raw['totalHits'];
-  const isFoundExact = typeof totalHits === 'number';
-  const estimated = raw['estimatedTotalHits'];
+  /** Adapts the SDK client onto the structural view this connector needs. */
+  static adaptClient(opts: { sdk: Meilisearch }): IMeilisearchClientLike {
+    // The SDK's task/index return types carry more detail than this connector reads, so each delegate widens to AnyType at the seam rather than restating the SDK's shapes.
+    const client = opts.sdk as AnyType;
 
-  const result: ISearchResult<TDocument> = {
-    found: isFoundExact ? totalHits : typeof estimated === 'number' ? estimated : 0,
-    isFoundExact,
-  };
-
-  if (typeof raw['processingTimeMs'] === 'number') {
-    result.searchTimeMs = raw['processingTimeMs'];
+    return {
+      index: (uid: string) => client.index(uid),
+      createIndex: (uid: string, options?: unknown) => client.createIndex(uid, options),
+      getIndex: (uid: string) => client.getIndex(uid),
+      getIndexes: () => client.getIndexes(),
+      deleteIndex: (uid: string) => client.deleteIndex(uid),
+      swapIndexes: (pairs: Array<{ indexes: string[] }>) => client.swapIndexes(pairs),
+      // The one real divergence: the SDK exposes getTask under `client.tasks`, not at the root.
+      getTask: (taskUid: number) => client.tasks.getTask(taskUid),
+      health: () => client.health(),
+      multiSearch: (params: unknown) => client.multiSearch(params),
+    };
   }
-
-  if (isRecord(raw['facetDistribution'])) {
-    result.facetCounts = [raw['facetDistribution']];
-  }
-
-  if (Array.isArray(raw['hits'])) {
-    result.hits = raw['hits'].filter(isRecord).map((hit) => {
-      const entry: {
-        document: TDocument;
-        highlight?: unknown;
-        score?: number;
-      } = { document: extractDocument<TDocument>(hit) };
-
-      if (hit['_formatted'] !== undefined) {
-        entry.highlight = hit['_formatted'];
-      }
-
-      if (typeof hit['_rankingScore'] === 'number') {
-        entry.score = hit['_rankingScore'];
-      }
-
-      return entry;
-    });
-  }
-
-  return result;
-};
-
-/** Adapts the SDK client onto the structural view this connector needs. */
-export const adaptClient = (sdk: Meilisearch): IMeilisearchClientLike => {
-  // The SDK's task/index return types carry more detail than this connector reads, so each delegate widens to AnyType at the seam rather than restating the SDK's shapes.
-  const client = sdk as AnyType;
-
-  return {
-    index: (uid: string) => client.index(uid),
-    createIndex: (uid: string, options?: unknown) => client.createIndex(uid, options),
-    getIndex: (uid: string) => client.getIndex(uid),
-    getIndexes: () => client.getIndexes(),
-    deleteIndex: (uid: string) => client.deleteIndex(uid),
-    swapIndexes: (pairs: Array<{ indexes: string[] }>) => client.swapIndexes(pairs),
-    // The one real divergence: the SDK exposes getTask under `client.tasks`, not at the root.
-    getTask: (taskUid: number) => client.tasks.getTask(taskUid),
-    health: () => client.health(),
-    multiSearch: (params: unknown) => client.multiSearch(params),
-  };
-};
+}
