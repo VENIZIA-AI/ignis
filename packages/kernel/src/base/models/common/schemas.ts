@@ -40,60 +40,63 @@ export const ErrorSchema = z
 
 export type TErrorResponse = z.infer<typeof ErrorSchema>;
 
-export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
-  const { idType = 'number' } = opts ?? {};
+/** OpenAPI schema builders for the parts of a route that every controller repeats. */
+export class OpenApiSchemas {
+  static idParams(opts?: { idType: TIdSchemaType }) {
+    const { idType = 'number' } = opts ?? {};
 
-  switch (idType) {
-    case 'number': {
-      return z.object({
-        id: z.number().openapi({
-          param: {
-            name: 'id',
-            in: 'path',
-            description: 'The unique id of the resource',
-          },
-          examples: [1, 2, 3],
-        }),
-      });
-    }
-    case 'string': {
-      return z.object({
-        id: z.string().openapi({
-          param: {
-            name: 'id',
-            in: 'path',
-            description: 'The unique id of the resource',
-          },
-          examples: ['4651e634-a530-4484-9b09-9616a28f35e3', 'some_unique_id'],
-        }),
-      });
-    }
-    default: {
-      throw getError({
-        message: `[idParamsSchema] Invalid input idType | valid: [string | number] | idType: ${idType}`,
-      });
+    switch (idType) {
+      case 'number': {
+        return z.object({
+          id: z.number().openapi({
+            param: {
+              name: 'id',
+              in: 'path',
+              description: 'The unique id of the resource',
+            },
+            examples: [1, 2, 3],
+          }),
+        });
+      }
+      case 'string': {
+        return z.object({
+          id: z.string().openapi({
+            param: {
+              name: 'id',
+              in: 'path',
+              description: 'The unique id of the resource',
+            },
+            examples: ['4651e634-a530-4484-9b09-9616a28f35e3', 'some_unique_id'],
+          }),
+        });
+      }
+      default: {
+        throw getError({
+          message: `[OpenApiSchemas.idParams] Invalid input idType | valid: [string | number] | idType: ${idType}`,
+        });
+      }
     }
   }
-};
 
-export const jsonContent = <T extends z.ZodType>(opts: {
-  schema: T;
-  description: string;
-  required?: boolean;
-}) => {
-  return {
-    description: opts.description,
-    content: { 'application/json': { schema: opts.schema } },
-    required: opts.required,
-  };
-};
+  static requiredString(opts?: { min?: number; max?: number; fixed?: number }) {
+    const { min, max, fixed } = opts ?? {};
+    let rs = z.string().nonempty();
 
-/** The JSON error body of a route, under `4XX` and `5XX` - the range keys OpenAPI accepts. */
-export const errorResponses = () => {
-  const errorResponse = jsonContent({ description: 'Error Response', schema: ErrorSchema });
+    if (min) {
+      rs = rs.min(min);
+    }
 
-  return { '4XX': errorResponse, '5XX': errorResponse };
-};
+    if (max) {
+      rs = rs.max(max);
+    }
+
+    if (fixed) {
+      rs = rs.length(fixed);
+    }
+
+    return rs;
+  }
+}
 
 /** OpenAPI Header Object format */
 type THeaderObject = {
@@ -111,22 +114,105 @@ type TJsonResponseOpts<T extends z.ZodType, H extends TResponseHeaders | undefin
   headers?: H;
 };
 
+/** OpenAPI response builders: the JSON and HTML bodies of a route, and the error bodies every route shares. */
+export class OpenApiResponses {
+  /** Creates HTML content configuration for OpenAPI documentation. */
+  static htmlContent(opts: { description: string; required?: boolean }) {
+    const { description } = opts;
+
+    return {
+      description,
+      content: {
+        'text/html': {
+          schema: z.string().openapi({
+            description: 'HTML content',
+            example: '<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>',
+          }),
+        },
+      },
+      required: opts?.required ?? false,
+    };
+  }
+
+  /** Creates HTML response configuration for OpenAPI documentation. */
+  static htmlResponse(opts: { description: string; required?: boolean }) {
+    return {
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({
+        description: opts.description,
+        required: opts.required,
+      }),
+      ...OpenApiResponses.errorResponses(),
+    };
+  }
+
+  static jsonContent<T extends z.ZodType>(opts: {
+    schema: T;
+    description: string;
+    required?: boolean;
+  }) {
+    return {
+      description: opts.description,
+      content: { 'application/json': { schema: opts.schema } },
+      required: opts.required,
+    };
+  }
+
+  /** The JSON error body of a route, under `4XX` and `5XX` - the range keys OpenAPI accepts. */
+  static errorResponses() {
+    const errorResponse = OpenApiResponses.jsonContent({
+      description: 'Error Response',
+      schema: ErrorSchema,
+    });
+
+    return { '4XX': errorResponse, '5XX': errorResponse };
+  }
+
+  static jsonResponse<
+    ContentSchema extends z.ZodType,
+    HeaderSchema extends TResponseHeaders | undefined = undefined,
+  >(opts: TJsonResponseOpts<ContentSchema, HeaderSchema>) {
+    const baseResponse = OpenApiResponses.jsonContent({
+      required: opts.required,
+      description: opts.description ?? 'Success Response',
+      schema: opts.schema,
+    });
+
+    const successResponse = opts.headers
+      ? { ...baseResponse, headers: opts.headers }
+      : baseResponse;
+
+    return {
+      [HTTP.ResultCodes.RS_2.Ok]: successResponse,
+      ...OpenApiResponses.errorResponses(),
+    };
+  }
+}
+
+/** @deprecated Use OpenApiSchemas.idParams({ idType }). Removed in 0.5. */
+export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
+  return OpenApiSchemas.idParams(opts);
+};
+
+/** @deprecated Use OpenApiResponses.jsonContent({ schema, description, required }). Removed in 0.5. */
+export const jsonContent = <T extends z.ZodType>(opts: {
+  schema: T;
+  description: string;
+  required?: boolean;
+}) => {
+  return OpenApiResponses.jsonContent(opts);
+};
+
+/** @deprecated Use OpenApiResponses.errorResponses(). Removed in 0.5. */
+export const errorResponses = () => {
+  return OpenApiResponses.errorResponses();
+};
+
+/** @deprecated Use OpenApiResponses.jsonResponse({ schema, description, required, headers }). Removed in 0.5. */
 export const jsonResponse = <
   ContentSchema extends z.ZodType,
   HeaderSchema extends TResponseHeaders | undefined = undefined,
 >(
   opts: TJsonResponseOpts<ContentSchema, HeaderSchema>,
 ) => {
-  const baseResponse = jsonContent({
-    required: opts.required,
-    description: opts.description ?? 'Success Response',
-    schema: opts.schema,
-  });
-
-  const successResponse = opts.headers ? { ...baseResponse, headers: opts.headers } : baseResponse;
-
-  return {
-    [HTTP.ResultCodes.RS_2.Ok]: successResponse,
-    ...errorResponses(),
-  };
+  return OpenApiResponses.jsonResponse(opts);
 };

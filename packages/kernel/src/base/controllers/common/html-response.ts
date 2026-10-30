@@ -1,32 +1,11 @@
-import { errorResponses } from '@/base/models/common';
-import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers/common';
+import { OpenApiResponses } from '@/base/models/common';
 
-/** Creates HTML content configuration for OpenAPI documentation. */
+/** @deprecated Use OpenApiResponses.htmlContent({ description, required }). Removed in 0.5. */
 export const htmlContent = (opts: { description: string; required?: boolean }) => {
-  const { description } = opts;
-
-  return {
-    description,
-    content: {
-      'text/html': {
-        schema: z.string().openapi({
-          description: 'HTML content',
-          example: '<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>',
-        }),
-      },
-    },
-    required: opts?.required ?? false,
-  };
+  return OpenApiResponses.htmlContent(opts);
 };
 
-/** Creates HTML response configuration for OpenAPI documentation. */
+/** @deprecated Use OpenApiResponses.htmlResponse({ description, required }). Removed in 0.5. */
 export const htmlResponse = (opts: { description: string; required?: boolean }) => {
-  return {
-    [HTTP.ResultCodes.RS_2.Ok]: htmlContent({
-      description: opts.description,
-      required: opts.required,
-    }),
-    ...errorResponses(),
-  };
+  return OpenApiResponses.htmlResponse(opts);
 };

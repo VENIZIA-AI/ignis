@@ -494,7 +494,7 @@ authorize({
 });
 ```
 
-- **Precedence** (`resolveRequestDomain`): `spec.domain` (resolver, then declarative) -> the global `IAuthorizeOptions.domainResolver` -> `SYSTEM_WIDE`.
+- **Precedence** (`RequestDomainResolver.resolveRequestDomain`): `spec.domain` (resolver, then declarative) -> the global `IAuthorizeOptions.domainResolver` -> `SYSTEM_WIDE`.
 - **Where it lands.** The resolved value is stashed on `Authorization.DOMAIN` and passed to the enforcer as `request.domain`.
 - **No domain = super-admin scope.** A route with no domain source at all enforces `SYSTEM_WIDE` in scoped mode.
 

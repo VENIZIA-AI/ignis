@@ -124,11 +124,29 @@ describe('defineCrudController injects the repository named in repository.name',
   });
 });
 
-describe('registerFactoryRepositoryInjection - the one injection every generated controller uses', () => {
+describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
+  test('the deprecated registerFactoryRepositoryInjection records the same metadata', () => {
+    class OldFormProbeController {}
+    class NewFormProbeController {}
+    const base = {
+      factoryName: 'defineProbeController',
+      controllerName: 'ProbeController',
+      repositoryName: 'ProbeRepository',
+    };
+
+    registerFactoryRepositoryInjection({ target: OldFormProbeController, ...base });
+    ControllerFactory.registerRepositoryInjection({ target: NewFormProbeController, ...base });
+
+    const registry = MetadataRegistry.getInstance();
+    expect(registry.getInjectMetadata({ target: OldFormProbeController })).toEqual(
+      registry.getInjectMetadata({ target: NewFormProbeController }),
+    );
+  });
+
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       target: GeneratedProbeController,
       factoryName: 'defineProbeController',
       controllerName: 'GeneratedProbeController',
@@ -143,7 +161,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
   test('the target is a class - a plain function is a compile error', () => {
     const plainFunction = () => undefined;
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
       target: plainFunction,
       factoryName: 'defineProbeController',
@@ -160,7 +178,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
     class NamelessProbeController {}
 
     expect(() =>
-      registerFactoryRepositoryInjection({
+      ControllerFactory.registerRepositoryInjection({
         target: NamelessProbeController,
         factoryName: 'defineProbeController',
         controllerName: 'NamelessProbeController',

@@ -3,6 +3,7 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { ResponseFormats } from '@/base/controllers/common';
 import type { TRouteContext } from '@/base/controllers/common';
 import { BaseRestController, toContentRange } from '@/base/controllers/rest/base';
+import { buildDataRange, DataRangeUtility } from '@/base/repositories/common/types';
 
 class ItemsController extends BaseRestController {
   constructor() {
@@ -127,13 +128,29 @@ describe('BaseRestController list responses', () => {
     expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records */7');
   });
 
-  test('toContentRange is exported and pure', () => {
-    expect(toContentRange({ range: { start: 0, end: 9, total: 42 }, count: 10 })).toBe(
-      'records 0-9/42',
+  test('DataRangeUtility.toContentRange is exported and pure', () => {
+    expect(
+      DataRangeUtility.toContentRange({ range: { start: 0, end: 9, total: 42 }, count: 10 }),
+    ).toBe('records 0-9/42');
+    expect(
+      DataRangeUtility.toContentRange({ range: { start: 0, end: 0, total: 42 }, count: 0 }),
+    ).toBe('records */42');
+  });
+
+  test('the deprecated toContentRange and buildDataRange answer as the class does', () => {
+    const range = { start: 3, end: 4, total: 7 };
+
+    expect(toContentRange({ range, count: 2 })).toBe(
+      DataRangeUtility.toContentRange({ range, count: 2 }),
     );
-    expect(toContentRange({ range: { start: 0, end: 0, total: 42 }, count: 0 })).toBe(
-      'records */42',
+    expect(buildDataRange({ offset: 3, dataLength: 2, total: 7 })).toEqual(
+      DataRangeUtility.buildDataRange({ offset: 3, dataLength: 2, total: 7 }),
     );
+    expect(buildDataRange({ skip: 5, dataLength: 0, total: 7 })).toEqual({
+      start: 5,
+      end: 5,
+      total: 7,
+    });
   });
 
   test('ResponseFormats is a closed set', () => {

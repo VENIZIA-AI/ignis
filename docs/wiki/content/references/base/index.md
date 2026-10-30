@@ -86,7 +86,7 @@ from a kernel sub-path instead.
 |---|---|---|
 | `@venizia/ignis-kernel` | Everything: applications, controllers, repositories, the REST surface | 161 KB gzipped |
 | `@venizia/ignis-kernel/metadata` | The stereotypes (`service`, `component`, `configuration`, `injectable`, `provide`, `model`, `datasource`, `repository`, `inject`), `BindingNamespaces`, `ArtifactNamespaces`, `ArtifactTypes`, `BindingKeys`, `MetadataRegistry` | **13.9 KB gzipped** |
-| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `buildDataRange`, `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`, `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
+| `@venizia/ignis-kernel/repository` | `AbstractRepository`, `AbstractDataSource`, `AbstractEntity`, the CRUD contract interfaces, `DataRangeUtility` (and the deprecated `buildDataRange`), `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`, `RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `ErrorUtility` (and the deprecated `throwNotSupported`), `SchemaTypes`, and the filter vocabulary - without the OpenAPI layer | **14.7 KB gzipped** |
 
 Both figures are the whole surface (`export *`). Naming what you import tree-shakes further - two
 symbols come to 11.0 KB.

@@ -601,7 +601,7 @@ handler, `RequestSpyMiddleware` and the emoji favicon during `initialize()`. You
 | `AppErrorMiddleware` | no | Global error handler, installed via `onError` |
 | `notFoundHandler` | yes | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | no | Request and response logging with timing |
-| `emojiFavicon` | yes | Serves an emoji as an SVG favicon |
+| `EmojiFaviconMiddleware.create` | yes | Serves an emoji as an SVG favicon (`emojiFavicon` is its deprecated alias) |
 
 Change the favicon through `configs.favicon` and the error wrapper through `configs.error.rootKey`
 rather than re-registering anything.

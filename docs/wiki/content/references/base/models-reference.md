@@ -969,12 +969,14 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 `Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts), [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)
 
-### `idParamsSchema`
+These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names (`idParamsSchema`, `jsonContent`, `jsonResponse`, `errorResponses`, `snakeToCamel`, `toEntityId`) are deprecated aliases that call the method, and are removed in 0.5. `snakeToCamel(shape)` took its argument positionally; the method takes `{ shape }`.
 
-Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions.
+### `OpenApiSchemas.idParams`
+
+Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions. Its old name is `idParamsSchema`.
 
 ```typescript
-idParamsSchema(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
+OpenApiSchemas.idParams(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
 ```
 
 | `idType` | Default | Zod type | Examples |
@@ -984,40 +986,40 @@ idParamsSchema(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber 
 
 Throws for invalid `idType` values.
 
-### `jsonContent`
+### `OpenApiResponses.jsonContent`
 
 Creates an OpenAPI JSON content specification:
 
 ```typescript
-jsonContent<T extends z.ZodType>(opts: {
+OpenApiResponses.jsonContent<T extends z.ZodType>(opts: {
   schema: T;
   description: string;
   required?: boolean;
 }): { description, content: { 'application/json': { schema } }, required? }
 ```
 
-### `jsonResponse`
+### `OpenApiResponses.jsonResponse`
 
 Creates a complete OpenAPI response specification with success and error responses:
 
 ```typescript
-jsonResponse<ContentSchema, HeaderSchema>(opts: {
+OpenApiResponses.jsonResponse<ContentSchema, HeaderSchema>(opts: {
   schema: ContentSchema;
   description?: string;  // Default: 'Success Response'
   required?: boolean;
   headers?: HeaderSchema;
 }): {
   200: { description, content, headers? },
-  ...errorResponses()
+  ...OpenApiResponses.errorResponses()
 }
 ```
 
-### `errorResponses`
+### `OpenApiResponses.errorResponses`
 
 The JSON error body of a route, under the two range keys OpenAPI accepts. `jsonResponse()`, `htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
 
 ```typescript
-errorResponses(): {
+OpenApiResponses.errorResponses(): {
   '4XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } },
   '5XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } }
 }
@@ -1025,12 +1027,12 @@ errorResponses(): {
 
 `ErrorSchema` is the named component `ErrorResponse`, so both keys reference one schema in the generated document.
 
-### `snakeToCamel`
+### `ModelUtility.snakeToCamel`
 
 Converts a Zod schema from snake_case to camelCase, transforming both the schema shape and runtime data. Useful when a database uses snake_case column names but you work in camelCase.
 
 ```typescript
-snakeToCamel<T extends z.ZodRawShape>(shape: T): z.ZodEffects<...>
+ModelUtility.snakeToCamel<T extends z.ZodRawShape>(opts: { shape: T }): z.ZodEffects<...>
 ```
 
 The resulting schema, in order:
@@ -1041,12 +1043,14 @@ The resulting schema, in order:
 
 ```typescript
 import { z } from 'zod';
-import { snakeToCamel } from '@venizia/ignis';
+import { ModelUtility } from '@venizia/ignis';
 
-const userCamelSchema = snakeToCamel({
-  user_id: z.number(),
-  first_name: z.string(),
-  created_at: z.date(),
+const userCamelSchema = ModelUtility.snakeToCamel({
+  shape: {
+    user_id: z.number(),
+    first_name: z.string(),
+    created_at: z.date(),
+  },
 });
 
 const result = userCamelSchema.parse({ user_id: 123, first_name: 'John', created_at: new Date() });

@@ -11,6 +11,7 @@ export {
   component,
   configuration,
   injectable,
+  InjectableUtility,
   pickRegistrationOptions,
   provide,
   service,

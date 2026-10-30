@@ -6,14 +6,14 @@ difficulty: beginner
 
 # JSX/HTML Utility
 
-IGNIS renders HTML pages server-side with Hono's built-in JSX support, and documents those routes for OpenAPI with `htmlContent()` / `htmlResponse()`.
+IGNIS renders HTML pages server-side with Hono's built-in JSX support, and documents those routes for OpenAPI with `OpenApiResponses.htmlContent()` / `OpenApiResponses.htmlResponse()`. The old function names `htmlContent` and `htmlResponse` are deprecated aliases until 0.5.
 
 ## In one example
 
 The smallest real JSX route: a controller that renders a component through `defineJSXRoute`.
 
 ```tsx
-import { BaseRestController, controller, htmlContent, type IControllerOptions } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses, type IControllerOptions } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/' })
@@ -28,7 +28,7 @@ export class ViewController extends BaseRestController {
         path: '/',
         method: 'get',
         responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Home page HTML' }),
+          [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({ description: 'Home page HTML' }),
         },
       },
       handler: context => context.html(<h1>Welcome to IGNIS</h1>),
@@ -42,8 +42,8 @@ No separate JSX renderer is registered - the handler builds a JSX tree and hands
 ## How it works
 
 - **Hono JSX renders to HTML.** A handler returns `context.html(<Component />)`; Hono's built-in JSX runtime turns the tree into an HTML string. IGNIS adds nothing on top of that renderer.
-- **`defineJSXRoute` is `defineRoute` with an HTML default.** It builds route configs through `getJSXRouteConfigs` instead of `getRouteConfigs`, which merges a default `htmlResponse({ description: 'HTML page' })` under whatever `responses` you declare - your own `200` entry overrides the default description.
-- **`htmlContent()` / `htmlResponse()` document `text/html`.** They mirror `jsonContent()` / `jsonResponse()` (see [Schema Utility](./schema.md)) but for HTML: `htmlContent()` builds one OpenAPI content object, `htmlResponse()` wraps it into a full `200` success response plus a JSON error response under `4XX` and `5XX`.
+- **`defineJSXRoute` is `defineRoute` with an HTML default.** It builds route configs through `getJSXRouteConfigs` instead of `getRouteConfigs`, which merges a default `OpenApiResponses.htmlResponse({ description: 'HTML page' })` under whatever `responses` you declare - your own `200` entry overrides the default description.
+- **`OpenApiResponses.htmlContent()` / `OpenApiResponses.htmlResponse()` document `text/html`.** They mirror `OpenApiResponses.jsonContent()` / `OpenApiResponses.jsonResponse()` (see [Schema Utility](./schema.md)) but for HTML: `htmlContent()` builds one OpenAPI content object, `htmlResponse()` wraps it into a full `200` success response plus a JSON error response under `4XX` and `5XX`.
 - **The tsconfig switch is required.** Compiling `.tsx` files with Hono's JSX needs `"jsx": "react-jsx"` and `"jsxImportSource": "hono/jsx"` in `tsconfig.json`.
 
 ## Common tasks
@@ -96,7 +96,7 @@ Pass your own `200` entry in `responses` - it overrides the `defineJSXRoute` def
 
 ```tsx
 responses: {
-  [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Dashboard HTML page' }),
+  [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({ description: 'Dashboard HTML page' }),
 },
 ```
 
@@ -111,7 +111,7 @@ this.defineJSXRoute({
     method: 'get',
     authenticate: { strategies: ['jwt'] },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Admin dashboard' }),
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({ description: 'Admin dashboard' }),
     },
   },
   handler: context => context.html(<AdminDashboard />),

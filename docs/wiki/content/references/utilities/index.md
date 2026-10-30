@@ -7,14 +7,14 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 | Utility | Package | Purpose | Key Functions |
 |---------|---------|---------|---------------|
 | **Duration** | `ignis-helpers` | Duration units and conversion | `DurationUnits`, `DurationMultipliers.toMilliseconds()`, `.parseToMilliseconds()` |
-| **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
+| **JSX** | `ignis` | HTML/JSX responses | `OpenApiResponses.htmlContent()`, `OpenApiResponses.htmlResponse()` |
 | **Module** | `ignis-helpers` | Optional peer loading | `ModuleUtility` |
 | **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
 | **Retry** | `ignis-helpers` | Backoff-driven retries | `RetryHelper` |
-| **Schema** | `ignis` | Zod schema helpers | `jsonContent()`, `jsonResponse()`, `requiredString()`, `idParamsSchema()` |
+| **Schema** | `ignis` | Zod schema helpers | `OpenApiResponses.jsonContent()`, `OpenApiResponses.jsonResponse()`, `OpenApiSchemas.requiredString()`, `OpenApiSchemas.idParams()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
 | **Timing** | `ignis-helpers` | Pause and measure | `sleep()`, `hrTime()` |
 
@@ -50,7 +50,7 @@ Calendar dates - parsing, formatting, adding a month in a time zone - live in [`
 Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) or `@venizia/ignis-helpers` (runtime utilities):
 
 ```typescript
-import { jsonContent, jsonResponse, htmlResponse, requiredString, Statuses } from '@venizia/ignis';
+import { OpenApiResponses, Statuses } from '@venizia/ignis';
 import { sleep, int, float, toBoolean } from '@venizia/ignis-helpers';
 
 // Timing
@@ -62,13 +62,13 @@ const myFloat = float('1,234.567', 2); // 1234.57
 const myBool = toBoolean('true'); // true
 
 // Schema (for OpenAPI JSON routes)
-const responseSchema = jsonResponse({
+const responseSchema = OpenApiResponses.jsonResponse({
   description: 'User data',
   schema: z.object({ id: z.string(), name: z.string() }),
 });
 
 // JSX (for HTML routes)
-const htmlResponseSchema = htmlResponse({
+const htmlResponseSchema = OpenApiResponses.htmlResponse({
   description: 'Dashboard page',
 });
 

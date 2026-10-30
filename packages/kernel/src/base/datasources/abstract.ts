@@ -1,5 +1,5 @@
 import { MetadataRegistry } from '@/helpers/inversion';
-import { throwNotSupported } from '@/utilities';
+import { ErrorUtility } from '@/utilities';
 import type { AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type {
@@ -68,7 +68,7 @@ export abstract class AbstractDataSource<
 
   /** Defaults to throwing NotSupported - only connectors with real transaction support override this; async so callers get a rejected promise, not a synchronous throw that skips try/catch. */
   async beginTransaction(_opts?: ITransactionOptions): Promise<ITransaction> {
-    return throwNotSupported({
+    return ErrorUtility.throwNotSupported({
       scope: this.constructor.name,
       feature: 'Transactions',
       logger: this.logger,

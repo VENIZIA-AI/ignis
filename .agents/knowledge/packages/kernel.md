@@ -47,7 +47,7 @@ framework ships a class of the same name whose `APPLICATION_INSTANCE` is a diffe
 `./repository` is 14.7 KB against `base/repositories`' 105.3 KB: `AbstractRepository`,
 `AbstractDataSource`, `AbstractEntity`, the CRUD contract and the filter vocabulary, plus what a
 repository on any transport raises and bounds itself by - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`,
-`RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `throwNotSupported`,
+`RepositoryOperationScopes`, `CoreErrorCodes`, `SearchErrorCodes`, `ErrorUtility.throwNotSupported`,
 `SchemaTypes` - without the OpenAPI layer. It loads with neither `hono` nor `@hono/zod-openapi`
 installed (it used to reach `@hono/zod-openapi` through a barrel; the clean-install gate,
 `make clean-install-kernel`, is what proves it now). It
@@ -70,11 +70,11 @@ Everything under `src/base/` was the engine-neutral half of `packages/core-serve
 | `auth/` | The authentication and authorization seams - registries, middlewares, providers, policy builders |
 | `components/` | `BaseComponent` and its `binding()` contract |
 | `configurations/` | `BaseConfiguration` and the `@configuration({ after? })` artifact kind, drained at the `registerConfigurations` boot step - between `registerDefaultMiddlewares` and `registerDataSources`, so it is where a datasource or a component's inputs get settled. `ArtifactIndexHelper.sortConfigurationsTopologically` orders them by their declared `after` - the graph keyed by the class itself, so two same-named (minified) configurations are both kept - ties broken by class name, so an order that must survive minification belongs in `after`; an `after` naming a class that is not itself a registered configuration, and a dependency cycle, each throw naming what they found. `@provide` binds off a configuration the same as off a component, and lazily, so a provided key can be read long before the configuration's own turn |
-| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
+| `controllers/` | `AbstractRestController`, `BaseRestController` (route helpers and the response helpers `respond({ context, format, payload, range? })` and `setListHeaders({ context, count } & ({ range } | { offset, total }))`, plus the exported `DataRangeUtility.toContentRange` - the one home of the `Content-Range` / `X-Response-Count` / `X-Response-Format` contract; `respond({ extra })` offers figures beside a list's rows (`ResponseExtras` in `rest/extras.ts` parses and resolves): plain `() => v` when named, `{ isDefault, compute }` always unless `-name`/`-*`, `{ keys, compute({ keys }) }` a group named `name(k,k)` - keys required, never "all", never a default (the union forbids `isDefault` on it, and resolve skips groups), matched against the declared list, never evaluated; `-name(keys)` is a 400. The client half - `HttpExtraRequest.toHeader`, `HttpResponseReader.readExtra`, `TExtraRequest`/`TExtraResult` - lives in `/repository`. `readExtra` strips only `extra`: `body` is `{ count, data }` when the count was asked for in the body, the rows otherwise. Answers `{ data, extra }` (+`count`) and `x-response-extra` when anything ran, the unchanged body when nothing did, 400 on anything unknown or malformed; with `extra` it returns a promise, and every extra runs through an async wrapper so a synchronous throw beside a running one leaves no unhandled rejection; `format` is the `ResponseFormats` const class), `ControllerFactory`, and `ReadableCrudController.getBaseWhere({ context })` - the per-controller scope every read verb ANDs into the request filter as `{ and: [baseWhere, requestWhere] }`, public rather than protected because a generated controller's declaration cannot carry a protected member (TS4094) |
 | `datasources/` | `AbstractDataSource` - the engine-neutral root with no SQL members |
 | `events/` | `EventBus` - in-process, fire-and-forget domain event bus with per-registration retry |
 | `metadata/` | The decorator layer: `@controller`, `@model`, `@datasource`, `@repository`, `@configuration`, `@inject`, the REST verbs, the RPC verbs |
-| `middlewares/` | `emojiFavicon`, the not-found handler, and `RequestErrors` |
+| `middlewares/` | `EmojiFaviconMiddleware.create`, the not-found handler, and `RequestErrors` |
 | `mixins/` | The mixin contracts (`IComponentMixin`, `IControllerMixin`, `IRepositoryMixin`, ...) that compose onto an application |
 | `models/` | `AbstractEntity`, the model settings shape, and the `TEntityId` brand |
 | `providers/` | `BaseProvider` |
@@ -217,9 +217,9 @@ taken before that upgrades itself on its next call.
 
 `TEntityId` is `string & { readonly [entityIdBrand]: never }` - a string a plain `string` will not
 assign to, so passing a name, code or slug where an id belongs is a compile error rather than a
-lookup that silently returns nothing. `toEntityId({ value })` is the only way in.
+lookup that silently returns nothing. `ModelUtility.toEntityId({ value })` is the only way in.
 
-- **It validates nothing.** `toEntityId` is a cast plus a non-empty check; it does not verify the
+- **It validates nothing.** `ModelUtility.toEntityId` is a cast plus a non-empty check; it does not verify the
   row exists or match a format. The value is making the conversion VISIBLE at each boundary. An
   empty string is refused because an id of `''` collapses a `where` clause to no condition.
 - **It is opt-in per column** (`.$type<TEntityId>()`), never applied framework-wide, because Drizzle
@@ -229,7 +229,7 @@ lookup that silently returns nothing. `toEntityId({ value })` is the only way in
   makes a plain `string` assignable again, erasing the guarantee. This is the opposite of the
   `TIsoTimestamp` case in filter, where the union with `Date` is deliberate and correct.
 - The brand key is a module-local `unique symbol` typed `never`, so no object satisfies the shape
-  by accident or by hand - only the cast inside `toEntityId` produces one.
+  by accident or by hand - only the cast inside `ModelUtility.toEntityId` produces one.
 
 ## Repositories, datasources, and the query schemas
 
@@ -251,8 +251,8 @@ metadata type is a union discriminated on it (`TRepositoryMetadata`):
 - Keep the two values only in `RepositoryTypes`. Tests and messages reference the constant, never
   the literal.
 
-`registerFactoryRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
-(`base/controllers/factory/repository-injection.ts`, kernel root and `@venizia/ignis`) is the one home
+`ControllerFactory.registerRepositoryInjection({ target, factoryName, controllerName, repositoryName })`
+(`base/controllers/factory/controller.ts`, kernel root and `@venizia/ignis`) is the one home
 of the factory injection: `repositories.<repositoryName>` at constructor parameter 0, `isOptional:
 false`, recorded through `MetadataRegistry.setInjectMetadata` because Bun drops parameter decorators
 in some configurations. An empty name throws `[<factoryName>] Invalid repository name`.
@@ -281,8 +281,20 @@ body is empty - `{}`, a `where` alone, or only keys the body schema strips - wit
 `RequestErrors.NOTHING_TO_UPDATE` (400, `core.request.nothing_to_update`), before the repository runs.
 `updateById` and `updateBy` call it; it applies to custom bodies too.
 
-`errorResponses()` (`base/models/common/schemas.ts`) is the one home of the `4XX`/`5XX` pair;
-`jsonResponse`, `htmlResponse` and core-server's static-asset definitions spread it. `ErrorSchema`
+The public helper functions of the kernel are static methods of classes: `OpenApiResponses`
+(`jsonContent`, `jsonResponse`, `errorResponses`, `htmlContent`, `htmlResponse`), `OpenApiSchemas`
+(`requiredString`, `idParams`), `ContextUtility.asTypedContext`, `DataRangeUtility`
+(`buildDataRange`, `toContentRange`), `ModelUtility` (`toEntityId`, `snakeToCamel`),
+`RequestDomainResolver` (`readDeclarative`, `resolveRequestDomain`),
+`InjectableUtility.pickRegistrationOptions`, `EmojiFaviconMiddleware.create`,
+`ErrorUtility.throwNotSupported` and `ControllerFactory.registerRepositoryInjection`. Each old
+function name stays exported as a `@deprecated` alias until 0.5. The decorators, the middleware DSL
+(`authenticate`, `authorize`, `notFoundHandler`), the type guard `isDataSourceClass` and the mixin
+factories stay functions.
+
+`OpenApiResponses.errorResponses()` (`base/models/common/schemas.ts`) is the one home of the
+`4XX`/`5XX` pair; `OpenApiResponses.jsonResponse`, `OpenApiResponses.htmlResponse` and core-server's
+static-asset definitions spread it. `ErrorSchema`
 carries the refId `ErrorResponse`: two copies of it (two installed copies) merge into one component, an
 `.extend()` documents as `allOf`, and a consumer schema with the same refId silently resolves to the
 framework's.

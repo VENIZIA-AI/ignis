@@ -1,22 +1,9 @@
+import { OpenApiSchemas } from '@/base/models/common';
 import { z } from '@hono/zod-openapi';
 
+/** @deprecated Use OpenApiSchemas.requiredString({ min, max, fixed }). Removed in 0.5. */
 export const requiredString = (opts?: { min?: number; max?: number; fixed?: number }) => {
-  const { min, max, fixed } = opts ?? {};
-  let rs = z.string().nonempty();
-
-  if (min) {
-    rs = rs.min(min);
-  }
-
-  if (max) {
-    rs = rs.max(max);
-  }
-
-  if (fixed) {
-    rs = rs.length(fixed);
-  }
-
-  return rs;
+  return OpenApiSchemas.requiredString(opts);
 };
 
 export const AnyObjectSchema = z.object().catchall(z.any()).openapi({

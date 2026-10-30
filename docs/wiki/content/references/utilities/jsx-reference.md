@@ -6,34 +6,39 @@ difficulty: beginner
 
 # JSX/HTML Utility - Full Reference
 
-Exhaustive reference for `htmlContent()`, `htmlResponse()`, and `BaseRestController.defineJSXRoute()`. For a readable introduction and the common tasks, start with the [JSX/HTML overview](/references/utilities/jsx).
+Exhaustive reference for `OpenApiResponses.htmlContent()`, `OpenApiResponses.htmlResponse()`, and `BaseRestController.defineJSXRoute()`. For a readable introduction and the common tasks, start with the [JSX/HTML overview](/references/utilities/jsx).
+
+The functions `htmlContent` and `htmlResponse` are still exported as deprecated aliases of the class methods, and are removed in 0.5.
 
 **Files:**
 
-- [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts) - `htmlContent`, `htmlResponse`
+- [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts) - `OpenApiResponses.htmlContent`, `OpenApiResponses.htmlResponse`
+- [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts) - the deprecated `htmlContent`, `htmlResponse` aliases
 - [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts) - `BaseRestController.defineJSXRoute`
 - [`packages/kernel/src/base/controllers/rest/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/abstract.ts) - `AbstractRestController.getJSXRouteConfigs`
 - [`packages/helpers/src/common/jsx.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/jsx.ts) - `FC`, `PropsWithChildren`, `Child` (re-exported from `hono/jsx`)
 
-## `htmlContent()`
+## `OpenApiResponses.htmlContent()`
 
 Creates a standard OpenAPI content object for `text/html` responses.
 
-`Source ->` [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts)
+`Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts)
 
 ```typescript
-const htmlContent = (opts: { description: string; required?: boolean }) => ({
-  description: opts.description,
-  content: {
-    'text/html': {
-      schema: z.string().openapi({
-        description: 'HTML content',
-        example: '<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>',
-      }),
+static htmlContent(opts: { description: string; required?: boolean }) {
+  return {
+    description: opts.description,
+    content: {
+      'text/html': {
+        schema: z.string().openapi({
+          description: 'HTML content',
+          example: '<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>',
+        }),
+      },
     },
-  },
-  required: opts.required ?? false,
-});
+    required: opts.required ?? false,
+  };
+}
 ```
 
 ### Parameters
@@ -47,19 +52,22 @@ const htmlContent = (opts: { description: string; required?: boolean }) => ({
 
 An OpenAPI content configuration object: `description`, `content['text/html'].schema` (a `z.string()`), and `required`.
 
-## `htmlResponse()`
+## `OpenApiResponses.htmlResponse()`
 
-Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with the JSON error responses of `errorResponses()`: `4XX` and `5XX`, both referencing the `ErrorResponse` component.
+Creates a standard OpenAPI response object for HTML endpoints. It pairs a success (`200`) HTML response with the JSON error responses of `OpenApiResponses.errorResponses()`: `4XX` and `5XX`, both referencing the `ErrorResponse` component.
 
-`Source ->` [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts)
+`Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts)
 
 ```typescript
-const htmlResponse = (opts: { description: string; required?: boolean }) => {
+static htmlResponse(opts: { description: string; required?: boolean }) {
   return {
-    [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: opts.description, required: opts.required }),
-    ...errorResponses(),
+    [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({
+      description: opts.description,
+      required: opts.required,
+    }),
+    ...OpenApiResponses.errorResponses(),
   };
-};
+}
 ```
 
 ### Parameters
@@ -74,13 +82,13 @@ const htmlResponse = (opts: { description: string; required?: boolean }) => {
 A responses object: `200` (via `htmlContent()`) plus `4XX` and `5XX` (JSON `ErrorSchema`, from `errorResponses()`).
 
 ```typescript
-import { htmlResponse } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 
 this.defineRoute({
   configs: {
     path: '/dashboard',
     method: 'get',
-    responses: htmlResponse({ description: 'Dashboard HTML page' }),
+    responses: OpenApiResponses.htmlResponse({ description: 'Dashboard HTML page' }),
   },
   handler: context => context.html(<h1>Dashboard</h1>),
 });
@@ -120,7 +128,11 @@ getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteC
   return createRoute<string, RouteConfig>(
     Object.assign({}, restConfig, {
       middleware: mws,
-      responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
+      responses: Object.assign(
+        {},
+        OpenApiResponses.htmlResponse({ description: 'HTML page' }),
+        responses,
+      ),
       tags: [...tags, this.scope],
       security,
     }) as any,
@@ -128,7 +140,7 @@ getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteC
 }
 ```
 
-- **Default response merged in first.** `htmlResponse({ description: 'HTML page' })` is the base object. Your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
+- **Default response merged in first.** `OpenApiResponses.htmlResponse({ description: 'HTML page' })` is the base object. Your own `responses` is merged over it with `Object.assign`, so any status code you declare (typically `200`) overrides the default entry with the same key.
 - **Everything else matches `defineRoute`.** Auth middleware, tags (`this.scope` is always appended), and OpenAPI security are built the same way as JSON routes via `buildRouteMiddlewares`.
 - **Handler contract is unchanged.** The handler still returns whatever `context.html(...)` produces (a `Response`). `defineJSXRoute` only changes how the route's OpenAPI shape is computed, not how the handler runs.
 
@@ -205,7 +217,7 @@ export const HomePage: FC<HomePageProps> = ({ timestamp }) => (
 ### Wiring pages into a controller
 
 ```tsx
-import { BaseRestController, controller, htmlContent, type IControllerOptions, type ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses, type IControllerOptions, type ValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { HomePage } from '@/views/pages/home.page';
 
@@ -223,7 +235,7 @@ export class ViewController extends BaseRestController {
         description: 'Home page rendered with JSX',
         tags: ['Views'],
         responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Home page HTML' }),
+          [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.htmlContent({ description: 'Home page HTML' }),
         },
       },
       handler: context => {

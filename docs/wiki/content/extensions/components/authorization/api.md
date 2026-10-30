@@ -231,7 +231,7 @@ packages/kernel/src/base/auth/authorize/
 ├── models/authorization-role.model.ts  # AuthorizationRole
 └── providers/
     ├── authorization.provider.ts  # AuthorizationProvider
-    └── request-domain.ts          # resolveRequestDomain, readDeclarative
+    └── request-domain.ts          # RequestDomainResolver (resolveRequestDomain, readDeclarative)
 
 packages/core-server/src/components/auth/authorize/
 ├── adapters/
@@ -426,9 +426,9 @@ type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 ```
 
-`resolveRequestDomain()` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
+`RequestDomainResolver.resolveRequestDomain({ spec, context, options })` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `RequestDomainResolver.readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`. The functions `resolveRequestDomain` and `readDeclarative` are deprecated aliases of the two methods until 0.5.
 
-`readDeclarative()` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
+`RequestDomainResolver.readDeclarative({ source, context })` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
 
 ### TAuthorizationConditions / TAuthorizationVoter / TAuthorizeFn
 
@@ -1214,7 +1214,7 @@ const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 // 5b. Resolve request domain - only when spec.domain or a global domainResolver is in play.
 // Held in a LOCAL. The context is set for observability, and nothing reads it back.
 const domainScope = spec.domain || options?.domainResolver
-  ? await resolveRequestDomain({ spec, context, options })
+  ? await RequestDomainResolver.resolveRequestDomain({ spec, context, options })
   : undefined;
 context.set(Authorization.DOMAIN, domainScope);
 

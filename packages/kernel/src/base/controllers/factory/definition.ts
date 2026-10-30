@@ -1,7 +1,7 @@
 import type { TAuthMode, TAuthStrategy } from '@/base/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import type { TIdSchemaType } from '@/base/models/common';
-import { idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common';
+import { OpenApiResponses, OpenApiSchemas } from '@/base/models/common';
 import { CountSchema } from '@/base/repositories/common';
 import { FilterQuerySchema, WhereSchema } from '@/base/repositories/query-schemas';
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
@@ -32,12 +32,12 @@ type TResolvedResponseSchema<C, D extends z.ZodType> = C extends {
  * `this.other(...)`, or `this` is `undefined` at the call site.
  */
 export class RouteConfigResolver {
-  /** Path params always reach the validator as strings, so a number-typed id must be coerced before `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7`. */
+  /** Path params always reach the validator as strings, so a number-typed id must be coerced before `z.number()` sees it - `OpenApiSchemas.idParams` alone rejects `/accounts/7`. */
   private static idPathParamsSchema(opts: { idType: TIdSchemaType }) {
     const { idType } = opts;
 
     if (idType !== 'number') {
-      return idParamsSchema({ idType });
+      return OpenApiSchemas.idParams({ idType });
     }
 
     return z.object({
@@ -490,7 +490,7 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('count'),
         authorize: resolveRouteAuthorize('count'),
         request: count.request,
-        responses: jsonResponse(count.response),
+        responses: OpenApiResponses.jsonResponse(count.response),
       },
 
       FIND: {
@@ -500,7 +500,7 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('find'),
         authorize: resolveRouteAuthorize('find'),
         request: find.request,
-        responses: jsonResponse(find.response),
+        responses: OpenApiResponses.jsonResponse(find.response),
       },
 
       FIND_BY_ID: {
@@ -510,7 +510,7 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('findById'),
         authorize: resolveRouteAuthorize('findById'),
         request: findById.request,
-        responses: jsonResponse(findById.response),
+        responses: OpenApiResponses.jsonResponse(findById.response),
       },
 
       FIND_ONE: {
@@ -520,7 +520,7 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('findOne'),
         authorize: resolveRouteAuthorize('findOne'),
         request: findOne.request,
-        responses: jsonResponse(findOne.response),
+        responses: OpenApiResponses.jsonResponse(findOne.response),
       },
 
       CREATE: {
@@ -530,13 +530,13 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('create'),
         authorize: resolveRouteAuthorize('create'),
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Record data (required fields must be provided)',
             schema: create.request.body,
           }),
           headers: create.request.headers,
         },
-        responses: jsonResponse(create.response),
+        responses: OpenApiResponses.jsonResponse(create.response),
       },
 
       UPDATE_BY_ID: {
@@ -547,13 +547,13 @@ export class RouteConfigResolver {
         authorize: resolveRouteAuthorize('updateById'),
         request: {
           params: updateById.request.params,
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Partial data (only changed fields)',
             schema: updateById.request.body,
           }),
           headers: updateById.request.headers,
         },
-        responses: jsonResponse(updateById.response),
+        responses: OpenApiResponses.jsonResponse(updateById.response),
       },
 
       UPDATE_BY: {
@@ -564,13 +564,13 @@ export class RouteConfigResolver {
         authorize: resolveRouteAuthorize('updateBy'),
         request: {
           query: updateBy.request.query,
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Partial data to apply to all matches',
             schema: updateBy.request.body,
           }),
           headers: updateBy.request.headers,
         },
-        responses: jsonResponse(updateBy.response),
+        responses: OpenApiResponses.jsonResponse(updateBy.response),
       },
 
       DELETE_BY_ID: {
@@ -580,7 +580,7 @@ export class RouteConfigResolver {
         authenticate: resolveRouteAuth('deleteById'),
         authorize: resolveRouteAuthorize('deleteById'),
         request: deleteById.request,
-        responses: jsonResponse(deleteById.response),
+        responses: OpenApiResponses.jsonResponse(deleteById.response),
       },
 
       DELETE_BY: {
@@ -593,7 +593,7 @@ export class RouteConfigResolver {
           query: deleteBy.request.query,
           ...(deleteBy.request.body
             ? {
-                body: jsonContent({
+                body: OpenApiResponses.jsonContent({
                   description: 'Where condition, when it does not fit in the query',
                   schema: deleteBy.request.body,
                   required: false,
@@ -602,7 +602,7 @@ export class RouteConfigResolver {
             : {}),
           headers: deleteBy.request.headers,
         },
-        responses: jsonResponse(deleteBy.response),
+        responses: OpenApiResponses.jsonResponse(deleteBy.response),
       },
     } as const;
 
@@ -610,10 +610,17 @@ export class RouteConfigResolver {
   }
 }
 
+/** @deprecated Use RouteConfigResolver.conditionalCountResponse(dataSchema). Removed in 0.5. */
 export const conditionalCountResponse = RouteConfigResolver.conditionalCountResponse;
+/** @deprecated Use RouteConfigResolver.resolveCountConfig({ config, isStrict }). Removed in 0.5. */
 export const resolveCountConfig = RouteConfigResolver.resolveCountConfig;
+/** @deprecated Use RouteConfigResolver.resolveFindConfig({ config, selectSchema }). Removed in 0.5. */
 export const resolveFindConfig = RouteConfigResolver.resolveFindConfig;
+/** @deprecated Use RouteConfigResolver.resolveFindByIdConfig. Removed in 0.5. */
 export const resolveFindByIdConfig = RouteConfigResolver.resolveFindByIdConfig;
+/** @deprecated Use RouteConfigResolver.resolveFindOneConfig. Removed in 0.5. */
 export const resolveFindOneConfig = RouteConfigResolver.resolveFindOneConfig;
+/** @deprecated Use RouteConfigResolver.resolveCreateConfig. Removed in 0.5. */
 export const resolveCreateConfig = RouteConfigResolver.resolveCreateConfig;
+/** @deprecated Use RouteConfigResolver.defineControllerRouteConfigs. Removed in 0.5. */
 export const defineControllerRouteConfigs = RouteConfigResolver.defineControllerRouteConfigs;

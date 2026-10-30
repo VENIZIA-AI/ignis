@@ -1,12 +1,12 @@
-import { requiredString } from '@/base/controllers/common/schema-builders';
+import { OpenApiSchemas } from '@/base/models/common';
 import { z } from '@hono/zod-openapi';
 
 export const SignInRequestSchema = z
   .object({
     identifier: z
       .object({
-        scheme: requiredString({ min: 4 }),
-        value: requiredString({ min: 8 }),
+        scheme: OpenApiSchemas.requiredString({ min: 4 }),
+        value: OpenApiSchemas.requiredString({ min: 8 }),
       })
       .openapi({
         required: ['scheme', 'value'],
@@ -14,8 +14,8 @@ export const SignInRequestSchema = z
       }),
     credential: z
       .object({
-        scheme: requiredString(),
-        value: requiredString({ min: 8 }),
+        scheme: OpenApiSchemas.requiredString(),
+        value: OpenApiSchemas.requiredString({ min: 8 }),
       })
       .openapi({
         required: ['scheme', 'value'],

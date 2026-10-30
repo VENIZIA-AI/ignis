@@ -231,7 +231,7 @@ return context.json(
 );
 ```
 
-`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `DataRangeUtility.buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else (its old name `buildDataRange` is a deprecated alias until 0.5). The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
 
 #### Extras beside the rows
 
@@ -266,9 +266,9 @@ With `extra`, `respond` returns a promise: await it. A write route offers extras
 
 The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `buildDataRange` (inclusive `end`, empty page collapses onto `start`).
 
-### `toContentRange(opts: { range, count })`
+### `DataRangeUtility.toContentRange(opts: { range, count })`
 
-The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
+The one `Content-Range` formatter, exported from `@venizia/ignis-kernel` (the function `toContentRange` is a deprecated alias until 0.5): `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
 
 ### `normalizeCountData(opts: { context, payload })`
 
@@ -398,14 +398,16 @@ interface IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 }
 ```
 
-### `asTypedContext`
+### `ContextUtility.asTypedContext`
 
-Utility to cast middleware context to `TContext`:
+Utility to cast middleware context to `TContext`. The function `asTypedContext(context)` is a deprecated alias until 0.5.
 
 ```typescript
-const asTypedContext = <E extends Env>(context: unknown): TContext<E, string> => {
-  return context as TContext<E, string>;
-};
+class ContextUtility {
+  static asTypedContext<E extends Env>(opts: { context: unknown }): TContext<E, string> {
+    return opts.context as TContext<E, string>;
+  }
+}
 ```
 
 ### Route Auth Types (for CRUD Controllers)
@@ -796,9 +798,9 @@ The method is public, not protected: a generated controller's declaration file c
 To write a controller factory of your own, record the same injection on the class it generates:
 
 ```typescript
-import { registerFactoryRepositoryInjection } from '@venizia/ignis';
+import { ControllerFactory } from '@venizia/ignis';
 
-registerFactoryRepositoryInjection({
+ControllerFactory.registerRepositoryInjection({
   target: GeneratedController,
   factoryName: 'defineReportController',
   controllerName: 'ReportController',
@@ -806,7 +808,7 @@ registerFactoryRepositoryInjection({
 });
 ```
 
-`target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `defineCrudController` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
+The old name `registerFactoryRepositoryInjection` is a deprecated alias until 0.5. `target` is the generated class itself, typed `TClass<unknown>` - a bare function or an abstract class is refused. `defineCrudController` and `SearchControllerFactory.defineSearchController` call it too. An empty `repositoryName` throws a message that names `factoryName`.
 
 ### Routes Configuration
 

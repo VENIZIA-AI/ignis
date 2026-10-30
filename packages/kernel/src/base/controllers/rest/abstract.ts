@@ -7,7 +7,7 @@ import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strateg
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { RoutePathScopes, type TRoutePathScope } from '@/base/controllers/common/constants';
-import { htmlResponse } from '@/base/controllers/common/html-response';
+import { OpenApiResponses } from '@/base/models/common';
 import type { Hook } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -211,7 +211,11 @@ export abstract class AbstractRestController<
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
         middleware: mws,
-        responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
+        responses: Object.assign(
+          {},
+          OpenApiResponses.htmlResponse({ description: 'HTML page' }),
+          responses,
+        ),
         tags: [...tags, this.scope],
         security,
       }) as any,

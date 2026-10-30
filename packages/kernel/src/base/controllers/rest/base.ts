@@ -1,5 +1,5 @@
 import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { buildDataRange } from '@/base/repositories/common/types';
+import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -18,11 +18,9 @@ import { AbstractRestController } from './abstract';
 import type { IRequestedExtra, TResponseExtra } from './extras';
 import { ResponseExtras } from './extras';
 
-/** `Content-Range` of a page: inclusive `end`, and `records * /<total>` (no space) when the page is empty. Exported so a route that writes the header itself uses the one formatter. */
+/** @deprecated Use DataRangeUtility.toContentRange({ range, count }). Removed in 0.5. */
 export const toContentRange = (opts: { range: TDataRange; count: number }): string => {
-  const { range, count } = opts;
-  const { start, end, total } = range;
-  return count > 0 ? `records ${start}-${end}/${total}` : `records */${total}`;
+  return DataRangeUtility.toContentRange(opts);
 };
 
 /** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
@@ -132,7 +130,10 @@ export abstract class BaseRestController<
     const { context, format, payload, range, extra } = opts;
 
     if (range) {
-      context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count: payload.count }));
+      context.header(
+        HTTP.Headers.CONTENT_RANGE,
+        DataRangeUtility.toContentRange({ range, count: payload.count }),
+      );
     }
     context.header(HTTP.Headers.RESPONSE_FORMAT, format);
 
@@ -183,9 +184,13 @@ export abstract class BaseRestController<
     const range =
       'range' in opts
         ? opts.range
-        : buildDataRange({ offset: opts.offset, dataLength: count, total: opts.total });
+        : DataRangeUtility.buildDataRange({
+            offset: opts.offset,
+            dataLength: count,
+            total: opts.total,
+          });
 
-    context.header(HTTP.Headers.CONTENT_RANGE, toContentRange({ range, count }));
+    context.header(HTTP.Headers.CONTENT_RANGE, DataRangeUtility.toContentRange({ range, count }));
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, count.toString());
     context.header(HTTP.Headers.RESPONSE_FORMAT, ResponseFormats.ARRAY);
   }

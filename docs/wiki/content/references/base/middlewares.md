@@ -33,7 +33,7 @@ Before reading this document, you should understand:
 | `AppErrorMiddleware` | `IProvider<ErrorHandler>` | no (its parent `BaseAppErrorMiddleware` is) | Global error handler (Zod, DB constraints, generic) |
 | `notFoundHandler` | `NotFoundHandler` | yes | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | no | Request/response logging with timing |
-| `emojiFavicon` | `MiddlewareHandler` | yes | Serves an emoji as SVG favicon |
+| `EmojiFaviconMiddleware.create` | `MiddlewareHandler` | yes | Serves an emoji as SVG favicon (`emojiFavicon` is its deprecated alias) |
 
 ## Default Registration Order
 
@@ -529,17 +529,19 @@ async example(context: TRouteContext) {
 ```
 
 
-## emojiFavicon
+## EmojiFaviconMiddleware
 
 A simple middleware that serves an emoji as an SVG favicon on `/favicon.ico`.
 
 **Exported from `@venizia/ignis`**, though you rarely need it - `BaseApplication` registers it for
-you. To change the icon, set `configs.favicon`.
+you. To change the icon, set `configs.favicon`. The function `emojiFavicon(opts)` is a deprecated alias of `EmojiFaviconMiddleware.create(opts)` until 0.5.
 
 ### Signature
 
 ```typescript
-function emojiFavicon(opts: { icon: string }): MiddlewareHandler
+class EmojiFaviconMiddleware {
+  static create(opts: { icon: string }): MiddlewareHandler;
+}
 ```
 
 | Parameter | Type | Description |

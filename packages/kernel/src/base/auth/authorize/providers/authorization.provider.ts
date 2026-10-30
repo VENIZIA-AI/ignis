@@ -1,4 +1,4 @@
-import { asTypedContext } from '@/base/controllers/context';
+import { ContextUtility } from '@/base/controllers/context';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
@@ -8,7 +8,7 @@ import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
 import { Authorization, AuthorizationDecisions, AuthorizationErrors } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers/enforcer-registry';
-import { resolveRequestDomain } from './request-domain';
+import { RequestDomainResolver } from './request-domain';
 
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
@@ -71,7 +71,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           user,
           action: spec.action,
           resource: spec.resource,
-          context: asTypedContext(context),
+          context: ContextUtility.asTypedContext({ context }),
         });
 
         if (decision === AuthorizationDecisions.DENY) {
@@ -117,11 +117,11 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       // domain-less spec inherited the tenant domain a PREVIOUS spec had written - silently
       // widening a check that should have run at SYSTEM_WIDE. The context is still set, for
       // observability, but nothing decides on it.
-      let domainScope: Awaited<ReturnType<typeof resolveRequestDomain>> | undefined;
+      let domainScope: string | undefined;
       if (spec.domain || options?.domainResolver) {
-        const resolvedDomain = await resolveRequestDomain({
+        const resolvedDomain = await RequestDomainResolver.resolveRequestDomain({
           spec,
-          context: asTypedContext(context),
+          context: ContextUtility.asTypedContext({ context }),
           options,
         });
         domainScope = resolvedDomain;
@@ -151,7 +151,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
 
         const result = await enforcer.buildRules({
           user: user as { principalType: string } & IAuthUser,
-          context: asTypedContext(context),
+          context: ContextUtility.asTypedContext({ context }),
         });
         rules = result;
         rulesByEnforcer.set(resolvedName, rules);
@@ -166,7 +166,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           conditions: spec.conditions,
           domain: domainScope,
         },
-        context: asTypedContext(context),
+        context: ContextUtility.asTypedContext({ context }),
       });
 
       if (decision === AuthorizationDecisions.ABSTAIN) {

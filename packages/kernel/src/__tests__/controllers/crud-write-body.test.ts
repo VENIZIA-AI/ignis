@@ -1,6 +1,6 @@
 import type { TAnyObjectSchema } from '@/base/controllers/common/schema-builders';
 import { ControllerFactory } from '@/base/controllers/factory/controller';
-import { defineControllerRouteConfigs } from '@/base/controllers/factory/definition';
+import { RouteConfigResolver } from '@/base/controllers/factory/definition';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
 import { BindingKeys, Container } from '@/helpers/inversion';
@@ -47,9 +47,9 @@ const buildRoutes = (opts: {
   create: TAnyObjectSchema;
   update?: TAnyObjectSchema;
   serverStampedKeys?: string[];
-  routes?: Parameters<typeof defineControllerRouteConfigs>[0]['routes'];
+  routes?: Parameters<typeof RouteConfigResolver.defineControllerRouteConfigs>[0]['routes'];
 }) => {
-  return defineControllerRouteConfigs({
+  return RouteConfigResolver.defineControllerRouteConfigs({
     isStrict: true,
     idType: 'string',
     schema: { select: plainSchema, create: opts.create, update: opts.update ?? opts.create },

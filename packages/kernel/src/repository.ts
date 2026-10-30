@@ -26,7 +26,7 @@ export type {
   IUpdatableRepository,
 } from '@/base/repositories/common/types/contracts';
 
-export { buildDataRange } from '@/base/repositories/common/types/results';
+export { buildDataRange, DataRangeUtility } from '@/base/repositories/common/types/results';
 
 // How a client reads what an IGNIS server answers - shared by the http connector and any client
 // that reads the same server without it.
@@ -44,7 +44,7 @@ export {
 } from '@/base/repositories/common/constants';
 export type { TRepositoryType } from '@/base/repositories/common/constants';
 export { CoreErrorCodes, SearchErrorCodes } from '@/common/error-codes';
-export { throwNotSupported } from '@/utilities/error.utility';
+export { ErrorUtility, throwNotSupported } from '@/utilities/error.utility';
 export type { TCount, TDataRange, TDataWithRange } from '@/base/repositories/common/types/results';
 
 export type { IDataSource } from '@/base/datasources/common/types';
