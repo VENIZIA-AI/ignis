@@ -17,7 +17,7 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 - [`packages/core-server/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/factory.ts)
 - [`packages/core-server/src/components/static-asset/controller/base.definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/base.definition.ts)
 - [`packages/core-server/src/components/static-asset/controller/key-scope.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/key-scope.ts) - `controller.keyPrefix`
-- [`packages/core-server/src/components/static-asset/controller/meta-link.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/meta-link.ts) - `createMetaLinkRow`, `refreshMetaLinkRows`
+- [`packages/core-server/src/components/static-asset/controller/meta-link.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/meta-link.ts) - `AssetMetaLink.createRow`, `AssetMetaLink.refreshRows`
 - [`packages/core-server/src/components/static-asset/controller/route-options.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/controller/route-options.ts) - `enabled`, the `maxBytes` route guard
 - [`packages/core-server/src/components/static-asset/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/ingest.ts)
 - [`packages/core-server/src/components/static-asset/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/errors.ts)
@@ -161,7 +161,7 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 
 ### Per-route overrides
 
-Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `readRouteOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
+Each key accepts a `TStaticAssetRouteConfig` - `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` (typically `authenticate`, `authorize`, `path`, and `middleware`) plus `enabled`. `AssetRouteOptions.readOverride` splits `enabled` off before the rest is shallow-merged onto the base definition the factory built for this controller: `{ ...definitions.UPLOAD, ...routes?.upload }`.
 
 | Route key | HTTP Method | Base Path | Registered when |
 |-----------|-------------|-----------|------------------|
@@ -206,7 +206,7 @@ A configured `bucket` shortens `upload`, `listObjects`, `getObjectByName`, `down
 
 ### `controller.keyPrefix`
 
-Splits one shared bucket between controllers. `normalizeKeyPrefix` normalizes the value to exactly
+Splits one shared bucket between controllers. `AssetKeyScope.normalizePrefix` normalizes the value to exactly
 one trailing slash (`'tenant-a'`, `'/tenant-a'` and `'tenant-a/'` all become `'tenant-a/'`, so
 `tenant-a` never also owns `tenant-ab/`), and every segment must pass `isValidSegment()` or the
 controller throws at registration.
@@ -695,7 +695,7 @@ Upload and list share <code v-pre>/buckets/{bucketName}/objects</code> and diffe
 
 ### Where `maxBytes` runs
 
-`extra.maxBytes`'s `content-length` check is route middleware, built by `appendDeclaredLengthGuard`
+`extra.maxBytes`'s `content-length` check is route middleware, built by `AssetRouteOptions.appendLengthGuard`
 and appended AFTER your own `routes.upload.middleware` - so an application check of its own (for
 example inventory `REQUEST_TOO_LARGE`) still answers first. It runs before the route's body
 validator and before the handler.
@@ -922,7 +922,7 @@ Both classes come from the separate `@venizia/ignis-connectors` package, importe
   |------|-----------|--------------|
   | Refresh, `metaLink.createMetaLink` configured | One `repository.updateAll({ data: { mimetype, size, etag, isSynced: true }, where: { bucketName, objectName } })` - `link` and `metadata` are left alone, because the hook owns them | Every row for that `(bucketName, objectName)` pair |
   | Refresh, no hook | The same `updateAll`, plus `link` in the same statement; then one `updateById` **per row**, `{ metadata: { ...row.metadata, ...fileStat.metadata } }` - the stat's keys win, the row's other keys survive. Skipped entirely when the stat carries no metadata | Every row for that `(bucketName, objectName)` pair |
-  | Create | Only when the refresh updated `0` rows: `createMetaLinkRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
+  | Create | Only when the refresh updated `0` rows: `AssetMetaLink.createRow` - the same builder `upload` and `upload-commit` use, so `metaLink.createMetaLink` runs when provided, with a fresh `getStat()` result | One row, with no principal and no labels |
 
   Rows per pair are deliberately not unique, and a refresh keeps each row's own `storageType` and labels (`variant`, `principalType`, `principalId`, `sequence`) either way.
 
