@@ -191,5 +191,5 @@ commit token carrying business fields.
 
 **Files:**
 
-- [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `buildPostPolicy`
+- [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `S3SignatureUtility.buildPostPolicy`
 - [`packages/core-server/src/components/static-asset/common/commit-token.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/static-asset/common/commit-token.ts) - `buildCommitToken`, `readCommitToken`

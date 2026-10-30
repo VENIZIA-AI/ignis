@@ -457,7 +457,7 @@ S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorage
 > [!IMPORTANT]
 > Requires the **Bun runtime** - `bun:S3Client` exists only on Bun.
 
-- **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
+- **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `S3SignatureUtility.buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
 - **Object operations use the native SDK.** `upload`'s `writeObject`, `getObject`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
 
 ### Constructor
@@ -582,22 +582,24 @@ S3 caps one call at 1000 keys, so the helper loops on `nextContinuationToken` un
 | `useRecursive` | `boolean` | `true` | `false` sends `delimiter: '/'`, so only the top level comes back. |
 | `maxKeys` | `number` | `undefined` | Total cap across pages. `0` means zero, not unlimited. |
 
-### AWS Signature V4 (buildSignedRequest)
+### AWS Signature V4 (S3SignatureUtility.buildSignedRequest)
 
 `Source ->` [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts)
 
 ```typescript
-async function buildSignedRequest(opts: {
-  method: string;
-  endpoint: string;
-  path: string;
-  accessKey: string;
-  secretKey: string;
-  region: string;
-  sessionToken?: string;
-  body?: string;
-  query?: Record<string, string>;
-}): Promise<{ url: string; headers: Record<string, string> }>
+class S3SignatureUtility {
+  static async buildSignedRequest(opts: {
+    method: string;
+    endpoint: string;
+    path: string;
+    accessKey: string;
+    secretKey: string;
+    region: string;
+    sessionToken?: string;
+    body?: string;
+    query?: Record<string, string>;
+  }): Promise<{ url: string; headers: Record<string, string> }>;
+}
 ```
 
 - **Internal only.** Not exported from the package barrel.
@@ -606,14 +608,14 @@ async function buildSignedRequest(opts: {
 - **`query` signs a canonical query string** - each key and value URI-encoded, sorted by key, joined with `&`, and appended to the returned `url`. Omitted or empty, the signature is byte-identical to before `query` existed.
 - **Used for bucket management and object tagging.** `getBuckets`, `createBucket`, `removeBucket`, `getObjectTags`, and `replaceObjectTags` on `BunS3Helper`. Tagging passes `query: { tagging: '' }` - the query string S3 expects on both a `GET`/`PUT` against an object's tag set.
 
-#### Tagging XML (buildTaggingXml / parseTaggingXml)
+#### Tagging XML (S3SignatureUtility.buildTaggingXml / parseTaggingXml)
 
 `Source ->` [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts)
 
 Bun's `S3Client` has no tagging method, so `BunS3Helper` reads and writes S3's tagging XML by hand rather than adding an XML dependency.
 
-- **`buildTaggingXml(tags: Record<string, string>): string`** - builds `<Tagging><TagSet><Tag><Key>..</Key><Value>..</Value></Tag>...</TagSet></Tagging>`, escaping `&`, `<`, `>`, `"`, and `'` in every key and value.
-- **`parseTaggingXml(xml: string): Record<string, string>`** - reads the same shape back, unescaping in the reverse order so a literal `&amp;` in the source never decodes twice. An empty `<TagSet/>` (or `<TagSet></TagSet>`) returns `{}`. A body missing a `<TagSet>`, or a `<Tag>` missing its `<Key>` or `<Value>`, throws via `getError` rather than returning a half-parsed object.
+- **`S3SignatureUtility.buildTaggingXml({ tags }): string`** - builds `<Tagging><TagSet><Tag><Key>..</Key><Value>..</Value></Tag>...</TagSet></Tagging>`, escaping `&`, `<`, `>`, `"`, and `'` in every key and value.
+- **`S3SignatureUtility.parseTaggingXml({ xml }): Record<string, string>`** - reads the same shape back, unescaping in the reverse order so a literal `&amp;` in the source never decodes twice. An empty `<TagSet/>` (or `<TagSet></TagSet>`) returns `{}`. A body missing a `<TagSet>`, or a `<Tag>` missing its `<Key>` or `<Value>`, throws via `getError` rather than returning a half-parsed object.
 - **Internal only.** Not exported from the package barrel.
 
 ## DiskHelper

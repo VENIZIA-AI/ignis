@@ -6,7 +6,7 @@ import { BaseLogger } from '@/modules/logger/base/base';
 import { LogLevels, SHOULD_LOG_DEBUG } from '@/modules/logger/common';
 import type { TLogLevel } from '@/modules/logger/common';
 import type { ILogger } from '@/modules/logger/common/types';
-import { loggerSlot } from '@/modules/logger/slot';
+import { LoggerSlot } from '@/modules/logger/slot';
 import type { TLoggerResolver } from '@/modules/logger/slot';
 import { PACKAGE_ROOT } from '../package-root';
 import { spawnSyncBounded } from '@venizia/dev-configs/testing';
@@ -44,12 +44,12 @@ describe('BaseHelper.logger', () => {
   let installed: TLoggerResolver | undefined;
 
   beforeEach(() => {
-    installed = loggerSlot.resolve;
-    loggerSlot.resolve = undefined;
+    installed = LoggerSlot.resolve;
+    LoggerSlot.resolve = undefined;
   });
 
   afterEach(() => {
-    loggerSlot.resolve = installed;
+    LoggerSlot.resolve = installed;
     spyOn(console, 'info').mockRestore();
     spyOn(console, 'warn').mockRestore();
   });
@@ -63,7 +63,7 @@ describe('BaseHelper.logger', () => {
     const child = helper.logger.for('method');
 
     const recorder = buildRecorder();
-    loggerSlot.resolve = recorder.resolve;
+    LoggerSlot.resolve = recorder.resolve;
     helper.logger.info('after');
     child.info('child after');
 
@@ -78,7 +78,7 @@ describe('BaseHelper.logger', () => {
     const child = early.for('method');
 
     const recorder = buildRecorder();
-    loggerSlot.resolve = recorder.resolve;
+    LoggerSlot.resolve = recorder.resolve;
     early.debug('direct');
     child.emerg('child');
     early.log(LogLevels.WARN, 'dynamic');
@@ -92,7 +92,7 @@ describe('BaseHelper.logger', () => {
   });
 
   test('reading logger off a prototype neither throws nor pins it there', () => {
-    loggerSlot.resolve = buildRecorder().resolve;
+    LoggerSlot.resolve = buildRecorder().resolve;
 
     expect(Reflect.get(ProbeHelper.prototype, 'logger')).toBeDefined();
     expect(Object.hasOwn(ProbeHelper.prototype, 'logger')).toBe(false);
@@ -102,7 +102,7 @@ describe('BaseHelper.logger', () => {
 
   test('with a resolver installed, the helper gets the real logger directly', () => {
     const recorder = buildRecorder();
-    loggerSlot.resolve = recorder.resolve;
+    LoggerSlot.resolve = recorder.resolve;
     const helper = new ProbeHelper();
 
     helper.logger.for('run').warn('direct');
@@ -111,7 +111,7 @@ describe('BaseHelper.logger', () => {
   });
 
   test('every read answers the same logger object', () => {
-    loggerSlot.resolve = buildRecorder().resolve;
+    LoggerSlot.resolve = buildRecorder().resolve;
     const helper = new ProbeHelper();
 
     expect(helper.logger).toBe(helper.logger);
@@ -119,7 +119,7 @@ describe('BaseHelper.logger', () => {
   });
 
   test('an assigned logger wins, before and after the first read', () => {
-    loggerSlot.resolve = buildRecorder().resolve;
+    LoggerSlot.resolve = buildRecorder().resolve;
     const early = new ProbeHelper();
     const late = new ProbeHelper();
     const assigned = buildRecorder();
@@ -134,7 +134,7 @@ describe('BaseHelper.logger', () => {
   });
 
   test('the logger stays out of the keys a spread or JSON sees', () => {
-    loggerSlot.resolve = buildRecorder().resolve;
+    LoggerSlot.resolve = buildRecorder().resolve;
     const helper = new ProbeHelper();
     expect(helper.logger).toBeDefined();
 
@@ -175,8 +175,8 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
       console.info = () => {};
       ${opts.prelude ?? ''}
       for (const source of ${JSON.stringify(opts.modules)}) {
-        const { resolveHelperLogger } = await import(source);
-        resolveHelperLogger({ scopes: ['Copy'] }).info('one');
+        const { LoggerSlot } = await import(source);
+        LoggerSlot.resolveHelperLogger({ scopes: ['Copy'] }).info('one');
       }
       console.log(JSON.stringify({ warnings: warnings.filter(line => line.includes('no logger provider')).length }));
     `;
