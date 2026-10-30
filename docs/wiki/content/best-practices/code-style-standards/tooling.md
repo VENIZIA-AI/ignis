@@ -216,7 +216,6 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz lint --fix src/a.ts` | Fixes only those files. `--fix` comes first |
 | `devz clean` | Takes no argument (`--help` prints the usage; any other argument exits 2 and deletes nothing). Removes `dist`, `node_modules/.cache` and the `*.tsbuildinfo` files in the project root |
 | `devz check purity --claims <file> [package] [--json]` | Bundles every entry your claims file lists as browser-pure with `bun build --target=browser` and fails on a Node builtin, a Node global, an unresolved import, or a path into `@venizia/dev-configs`. Needs a build. `[package]` limits it to one package and exits 1 when it matches nothing; `--json` prints the verdict without machine paths. See [Checking browser purity](#checking-browser-purity) |
-| `devz check purity --claims <file> [package] [--json]` | Bundles every entry your claims file lists as browser-pure with `bun build --target=browser` and fails on a Node builtin, a Node global, an unresolved import, or a path into `@venizia/dev-configs`. Needs a build. `[package]` limits it to one package and exits 1 when it matches nothing; `--json` prints the verdict without machine paths. See [Checking browser purity](#checking-browser-purity) |
 | `devz check module-cycles <dir> [--max <n>]` | Lists the import cycles of a built ES module folder, such as `packages/kernel/dist/esm`. Exits 1 when there are more than `--max` (no bound by default), 2 on a usage error. Bun turns every member of a cycle into a lazy initializer, so a barrel `export *` over one can leave its exports undefined |
 | `devz check split-report [--dist <dir>] [folder...]` | A report, never a gate: hub files, `types.ts` outside `common/`, scope folders without a barrel, files over 500 lines, and the import cycles of `--dist` (default `dist`; `dist/esm` in IGNIS). With no folder it reads every `packages/*` and `examples/*` that has a `src/` |
 | `devz check catalog [--glob <pattern>]... [--pinned <file>]... [--preset-prefix <prefix>]` | Guards dependency ranges against the root `workspaces.catalog`: a catalogued dependency is `catalog:` (`npm publish` ships it verbatim), a `peerDependencies` range is never `catalog:`, and every catalog entry is used. `packages/*/package.json` is always read; `--glob` adds more. `--pinned` names a manifest outside the workspace, whose ranges must equal the catalog's. A file under `--preset-prefix` may use `catalog:` in its peers |
@@ -229,38 +228,6 @@ Bun's defaults already match the rest of the old IGNIS style: `tabWidth` 2, `tra
 | `devz codemod const-classes [paths...] [--write \| --check]` | Turns a string-literal union in an exported type alias, or in a property of an exported interface or object type, into a const class (`SCHEME_SET`, `isValid`) plus `TConstValue<typeof X>`, the shape the `venizia/const-class-values` rule asks for. It proposes the class and member names and prints them; `--emit-map` writes them to a file you edit, `--map` applies your names. The values stay the same, so no call site changes. A union in a parameter, a return type or a generic is reported and left untouched. [Details](/changelogs/2026-10-26-devz-codemod) |
 
 With a file list, the command drops the files the tools do not handle (`.md`, `.json`, ...) and exits 0 when none is left. A listed file that a `.ignore` skips passes quietly, so a commit that touches only generated code is not blocked. Paths are relative to the project, and `bun run lint src/a.ts` passes them through. Outside a script, run `bun x --no-install devz lint`: `--no-install` keeps Bun from fetching a newer version than the project pins.
-
-### Checking browser purity
-
-`devz check purity` is the gate behind `make purity` in IGNIS and ARDOR. The engine ships in `@venizia/dev-configs`; a repository supplies only its claims, in a module that exports `PURITY_CLAIMS`:
-
-```typescript
-// scripts/checks/purity/manifest.ts
-import type { IPurityClaim, IPurityOptions } from '@venizia/dev-configs/checks';
-
-export const PURITY_CLAIMS: IPurityClaim[] = [
-  { package: 'inversion' },
-  { package: 'helpers', subpaths: ['./core', './common'] },
-  { package: 'connectors', impure: { './typesense': ['default'] } },
-];
-
-// Optional: every claimed sub-path must publish its runtime entry below this prefix.
-export const PURITY_OPTIONS: IPurityOptions = { esmEntryPrefix: './dist/esm/' };
-```
-
-```bash
-devz check purity --claims scripts/checks/purity/manifest.ts           # every claim
-devz check purity kernel --claims scripts/checks/purity/manifest.ts    # one package
-```
-
-| Claim field | Meaning |
-|---|---|
-| `package` | Directory under `packages/`. The rows come from its `exports` map, one per runtime condition, so a sub-path added later is probed at once |
-| `subpaths` | Claim only these sub-paths, as spelled in `exports`. Each must still exist |
-| `external` | Third-party specifiers kept out of the bundle for one sub-path. A name that starts with the workspace scope is refused |
-| `impure` | Sub-paths and conditions expected to fail. The waiver is exact: a waived entry that turns out pure fails as a stale waiver |
-
-The scratch file goes to `.agents/local/tmp` under the folder you run in, never to the system temp. `@venizia/dev-configs/checks` also exports the engine functions (`buildManifest`, `probeEntry`, `checkPurity`) for a repository that wants them in its own tests. It is Bun-only tooling, so a browser entry must never import it.
 
 ### Checking browser purity
 

@@ -311,6 +311,5 @@ It rebinds `ExtraOptions` to `IDatabaseExtraOptions` and `TDataSource` to `IPost
 
 - [Repositories overview](/references/base/repositories/) - CRUD basics, common tasks
 - [Advanced Features](./advanced) - transactions, hidden properties, performance
-- [Repository Mixins (Removed)](./mixins) - where default-filter and fields-visibility behavior lives now
 - [Default Filter](/references/base/filter-system/default-filter) - configuring `@model` default filters
 - [Models - Full Reference](/references/base/models-reference) - `@model`, entity hierarchy, schema enrichers

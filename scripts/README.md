@@ -24,7 +24,7 @@ The wiki link and anchor gates (`make wiki-links-check`, `make wiki-anchors-chec
 
 The catalog check, the import-cycle list and the split report are `devz check catalog`, `devz check module-cycles` and `devz check split-report` (`packages/dev-configs/src/checks/`); `make catalog-check` and `make split-report` call them.
 
-`make test-scripts` runs the `__tests__/` of `release/`, `preset/`, `checks/`, `build/` and `wiki/`.
+`make test-scripts` runs the `__tests__/` of `release/`, `preset/`, `checks/` and `build/`.
 `purity/__tests__` runs under `make purity-test` and `build/build-checks` under `make build-checks`,
 because both need a build. `build/__tests__/` also holds the two tests of `packages/dev-configs`
 (`BunCompiler` and `devz lint`): that package builds everything under its `src`, so its tests cannot

@@ -65,7 +65,6 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Overview', link: '/references/base/repositories/' },
           { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
-          { text: 'Mixins', link: '/references/base/repositories/mixins' },
           { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
           { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
         ],
