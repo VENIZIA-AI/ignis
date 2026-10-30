@@ -20,9 +20,9 @@ export class AwaitHoistReasons {
   static readonly DUPLICATE = 'duplicate';
   /** The hoisted name is never read. */
   static readonly UNUSED = 'unused';
-  /** A hoist-family name read by its next statement once and again elsewhere: worth a look. */
+  /** A fixer name read by its next statement once and again elsewhere, beside its pair: worth a look. */
   static readonly MULTI_USE = 'multi-use';
-  /** The next statement reads another hoist's name, declared later or in an enclosing scope, not its own. */
+  /** The next statement reads not its own name but another hoist's: one declared later, or its fixer pair. */
   static readonly SWAP = 'swap';
 
   static readonly SCHEME_SET = new Set<string>([
@@ -66,7 +66,7 @@ export interface IAwaitHoistFinding {
   column: number;
   name: string;
   reason: TAwaitHoistReason;
-  /** `review` for multi-use and an earlier-name swap, `error` for the others. */
+  /** `review` for multi-use, an earlier-name swap and a shadow across functions; `error` otherwise. */
   severity: TAwaitHoistSeverity;
   /** The function that holds the declaration: `Class.method`, `name`, `<anonymous>` or `<module>`. */
   functionName: string;
@@ -209,7 +209,11 @@ export class AwaitHoistAudit {
     }
     const parent = AwaitHoistAudit.nodeAt({ node: block, key: 'parent' });
     const keyName = nameOf(AwaitHoistAudit.fieldOf({ node: parent, key: 'key' }));
-    if (parent && keyName && ['MethodDefinition', 'PropertyDefinition', 'Property'].includes(parent.type)) {
+    if (
+      parent &&
+      keyName &&
+      ['MethodDefinition', 'PropertyDefinition', 'Property'].includes(parent.type)
+    ) {
       const classNode = AwaitHoistAudit.nodeAt({
         node: AwaitHoistAudit.nodeAt({ node: parent, key: 'parent' }),
         key: 'parent',
@@ -233,7 +237,10 @@ export class AwaitHoistAudit {
           }
           const declarator: unknown = definition.node;
           const declaration: unknown = definition.parent;
-          if (!AwaitHoistAudit.isAuditNode(declarator) || !AwaitHoistAudit.isAuditNode(declaration)) {
+          if (
+            !AwaitHoistAudit.isAuditNode(declarator) ||
+            !AwaitHoistAudit.isAuditNode(declaration)
+          ) {
             continue;
           }
           const kind = AwaitHoistAudit.fieldOf({ node: declaration, key: 'kind' });
@@ -346,11 +353,10 @@ export class AwaitHoistAudit {
     return { findings, hoistCount };
   }
 
-  static analyze(opts: {
-    scopeManager: Scope.ScopeManager;
-    filePath: string;
-    lines: string[];
-  }): { findings: IAwaitHoistFinding[]; hoistCount: number } {
+  static analyze(opts: { scopeManager: Scope.ScopeManager; filePath: string; lines: string[] }): {
+    findings: IAwaitHoistFinding[];
+    hoistCount: number;
+  } {
     const { scopeManager, filePath, lines } = opts;
     const candidates = AwaitHoistAudit.collectCandidates({ scopeManager });
     const findings: IAwaitHoistFinding[] = [];
@@ -406,7 +412,10 @@ export class AwaitHoistAudit {
         const declaredAt = declarator.range[0];
         const nextReads = next
           ? reads.filter((reference) =>
-              AwaitHoistAudit.isWithin({ position: AwaitHoistAudit.positionOf({ reference }), node: next }),
+              AwaitHoistAudit.isWithin({
+                position: AwaitHoistAudit.positionOf({ reference }),
+                node: next,
+              }),
             )
           : [];
 
@@ -427,7 +436,9 @@ export class AwaitHoistAudit {
             : undefined;
         if (enclosing && outer) {
           const outerLine = AwaitHoistAudit.lineOf({ variable: outer });
-          const before = reads.filter((reference) => AwaitHoistAudit.positionOf({ reference }) < declaredAt);
+          const before = reads.filter(
+            (reference) => AwaitHoistAudit.positionOf({ reference }) < declaredAt,
+          );
           const isOnlyHoistSite = reads.length === 1 && nextReads.length === 1;
 
           // (1) a read beyond the one site the hoist replaced most likely meant the outer name; across a
@@ -439,7 +450,9 @@ export class AwaitHoistAudit {
             if (before.length > 0) {
               parts.push(`${before.length} read(s) before this declaration (TDZ)`);
             }
-            parts.push(`${reads.length} read(s) of the inner name, ${nextReads.length} in the next statement`);
+            parts.push(
+              `${reads.length} read(s) of the inner name, ${nextReads.length} in the next statement`,
+            );
             report({
               candidate,
               reason: AwaitHoistReasons.SHADOW,
@@ -462,17 +475,21 @@ export class AwaitHoistAudit {
           }
         }
 
-        // (3)
-        if (reads.length === 0 && !name.startsWith('_') && !AwaitHoistAudit.isExported({ declaration: candidate.declaration })) {
-          report({ candidate, reason: AwaitHoistReasons.UNUSED, detail: `\`${name}\` is never read` });
+        // (3) an exported or `_`-prefixed name is read elsewhere or unused on purpose
+        if (
+          reads.length === 0 &&
+          !name.startsWith('_') &&
+          !AwaitHoistAudit.isExported({ declaration: candidate.declaration })
+        ) {
+          report({
+            candidate,
+            reason: AwaitHoistReasons.UNUSED,
+            detail: `\`${name}\` is never read`,
+          });
         }
 
         // (4) conservative: only a fixer name, only in a function that also holds its pair
-        if (
-          hasFixerPair({ name }) &&
-          reads.length > 1 &&
-          nextReads.length === 1
-        ) {
+        if (hasFixerPair({ name }) && reads.length > 1 && nextReads.length === 1) {
           const elsewhere = reads.filter((reference) => !nextReads.includes(reference));
           report({
             candidate,
@@ -484,7 +501,15 @@ export class AwaitHoistAudit {
         }
 
         // (5) the next statement reads another hoist's name and not its own
-        if (next && !variable.references.some((reference) => AwaitHoistAudit.isWithin({ position: AwaitHoistAudit.positionOf({ reference }), node: next }))) {
+        if (
+          next &&
+          !variable.references.some((reference) =>
+            AwaitHoistAudit.isWithin({
+              position: AwaitHoistAudit.positionOf({ reference }),
+              node: next,
+            }),
+          )
+        ) {
           const swapped = new Set<string>();
           for (const reference of referencesIn(next)) {
             const usedName = reference.identifier.name;
@@ -561,7 +586,7 @@ export class AwaitHoistAudit {
       try {
         code = readFileSync(join(opts.root, file), 'utf8');
       } catch (error) {
-        // a tracked file deleted in the working tree: nothing to read
+        // a tracked file deleted in the working tree: listed as not parsed, never skipped silently
         failures.push({ file, message: `unreadable: ${String(error)}` });
         continue;
       }
@@ -576,7 +601,9 @@ export class AwaitHoistAudit {
     return { root: opts.root, fileCount: files.length, hoistCount, findings, failures };
   }
 
-  static countByReason(opts: { findings: IAwaitHoistFinding[] }): Record<TAwaitHoistReason, number> {
+  static countByReason(opts: {
+    findings: IAwaitHoistFinding[];
+  }): Record<TAwaitHoistReason, number> {
     const counts: Record<TAwaitHoistReason, number> = {
       shadow: 0,
       duplicate: 0,
@@ -617,16 +644,19 @@ export class AwaitHoistAudit {
       }
     }
 
-    const reasons = [...AwaitHoistReasons.SCHEME_SET].filter((reason) => AwaitHoistReasons.isValid(reason));
     const header = ['reason', ...opts.reports.map((report) => report.root), 'total'];
-    const rows = reasons.map((reason) => {
+    const rows = [...AwaitHoistReasons.SCHEME_SET].map((reason) => {
       const counts = opts.reports.map(
         (report) => report.findings.filter((finding) => finding.reason === reason).length,
       );
       return [reason, ...counts.map(String), String(counts.reduce((sum, count) => sum + count, 0))];
     });
     const unparsed = opts.reports.map((report) => report.failures.length);
-    rows.push(['not parsed', ...unparsed.map(String), String(unparsed.reduce((sum, count) => sum + count, 0))]);
+    rows.push([
+      'not parsed',
+      ...unparsed.map(String),
+      String(unparsed.reduce((sum, count) => sum + count, 0)),
+    ]);
 
     out.push('', `| ${header.join(' | ')} |`, `|${header.map(() => '---').join('|')}|`);
     for (const row of rows) {
@@ -641,12 +671,16 @@ export class AwaitHoistAudit {
     const unknownFlag = opts.argv.find((arg) => arg.startsWith('--') && arg !== '--json');
     const roots = opts.argv.filter((arg) => !arg.startsWith('--'));
     if (unknownFlag || roots.length === 0) {
-      console.error('usage: bun scripts/checks/await-hoist-audit.ts <repository root> [more roots...] [--json]');
+      console.error(
+        'usage: bun scripts/checks/await-hoist-audit.ts <repository root> [more roots...] [--json]',
+      );
       return 2;
     }
 
     const reports = roots.map((root) => AwaitHoistAudit.auditRepository({ root }));
-    const isDirty = reports.some((report) => report.findings.length > 0 || report.failures.length > 0);
+    const isDirty = reports.some(
+      (report) => report.findings.length > 0 || report.failures.length > 0,
+    );
 
     if (isJson) {
       const findings = reports.flatMap((report) => report.findings);

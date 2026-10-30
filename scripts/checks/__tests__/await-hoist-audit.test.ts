@@ -23,7 +23,10 @@ const makeRepository = (opts: { files: Record<string, string> }) => {
     mkdirSync(dirname(join(root, path)), { recursive: true });
     writeFileSync(join(root, path), content);
   }
-  for (const command of [['init', '--quiet'], ['add', '--all']]) {
+  for (const command of [
+    ['init', '--quiet'],
+    ['add', '--all'],
+  ]) {
     const run = spawnSync('git', command, { cwd: root, encoding: 'utf8' });
     if (run.status !== 0) {
       throw new Error(`git ${command.join(' ')} failed: ${run.stderr}`);
@@ -415,7 +418,11 @@ describe('AwaitHoistAudit - repository and CLI', () => {
       },
     });
 
-    expect(AwaitHoistAudit.listFiles({ root }).sort()).toEqual(['src/a.ts', 'src/b.tsx', 'src/c.mts']);
+    expect(AwaitHoistAudit.listFiles({ root }).sort()).toEqual([
+      'src/a.ts',
+      'src/b.tsx',
+      'src/c.mts',
+    ]);
   });
 
   test('the CLI exits 1 on the BANA output and 0 on clean code; --json carries every finding', () => {
