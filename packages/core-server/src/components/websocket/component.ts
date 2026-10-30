@@ -24,7 +24,7 @@ import {
   type IResolvedBindings,
   type IServerOptions,
 } from './common';
-import { createBunFetchHandler } from './handlers';
+import { WebSocketBunHandler } from './handlers';
 
 export class WebSocketComponent extends BaseComponent {
   protected serverOptions: IServerOptions;
@@ -196,7 +196,7 @@ export class WebSocketComponent extends BaseComponent {
         const wsPath = serverOptions.path ?? WebSocketDefaults.PATH;
 
         serverInstance.reload({
-          fetch: createBunFetchHandler({ wsPath, honoServer }),
+          fetch: WebSocketBunHandler.createFetchHandler({ wsPath, honoServer }),
           websocket: wsHelper.getBunWebSocketHandler(),
         });
 
