@@ -6,6 +6,7 @@ import { ReleaseWorkflowCheck, ReleaseWorkflowGuards } from '../release-workflow
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
 const WORKFLOW = readFileSync(resolve(ROOT, '.github/workflows/package-release.yml'), 'utf8');
 const RUNNER = readFileSync(resolve(ROOT, 'scripts/release/release-run.ts'), 'utf8');
+const RELEASE_SCRIPT = readFileSync(resolve(ROOT, 'scripts/release/github-release.ts'), 'utf8');
 
 interface IEdit {
   find: string;
@@ -32,22 +33,43 @@ const mutate = (edit: IEdit): string => swap(WORKFLOW, edit);
 const mutateMany = (edits: IEdit[]): string =>
   edits.reduce((current, edit) => swap(current, edit), WORKFLOW);
 
-const guardsOf = (opts: { text?: string; runnerText?: string }): string[] => [
+const guardsOf = (opts: {
+  text?: string;
+  runnerText?: string;
+  releaseScriptText?: string;
+}): string[] => [
   ...new Set(
     ReleaseWorkflowCheck.check({
       text: opts.text ?? WORKFLOW,
       runnerText: opts.runnerText ?? RUNNER,
+      releaseScriptText: opts.releaseScriptText ?? RELEASE_SCRIPT,
     }).map((violation) => violation.guard),
   ),
 ];
 
+/** The step "Create the GitHub Release" as the workflow has it, to move it in a copy. */
+const GITHUB_RELEASE_STEP_TEXT = ((): string => {
+  const start = WORKFLOW.indexOf('      - name: Create the GitHub Release\n');
+  const end = WORKFLOW.indexOf('\n\n', start);
+
+  return WORKFLOW.slice(start, end + 2);
+})();
+
+const MOVE_GITHUB_RELEASE_STEP: IEdit[] = [{ find: GITHUB_RELEASE_STEP_TEXT, replace: '' }];
+
 describe('the release workflow keeps its guards', () => {
   test('the workflow and the loop as committed have no violation', () => {
-    expect(ReleaseWorkflowCheck.check({ text: WORKFLOW, runnerText: RUNNER })).toEqual([]);
+    expect(
+      ReleaseWorkflowCheck.check({
+        text: WORKFLOW,
+        runnerText: RUNNER,
+        releaseScriptText: RELEASE_SCRIPT,
+      }),
+    ).toEqual([]);
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(35);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(38);
   });
 });
 
@@ -58,6 +80,8 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     edits?: IEdit[];
     /** Edits to scripts/release/release-run.ts. */
     runner?: IEdit[];
+    /** Edits to scripts/release/github-release.ts. */
+    script?: IEdit[];
   }> = [
     {
       guard: ReleaseWorkflowGuards.REF_BY_KIND,
@@ -726,6 +750,391 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         },
       ],
     },
+    // The GitHub Release of the run.
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '      - name: Create the GitHub Release\n',
+          replace: '      - name: Create nothing\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '        continue-on-error: true\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '        timeout-minutes: 5\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '          GH_TOKEN: ${{ github.token }}\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          GH_TOKEN: ${{ github.token }}\n',
+          replace:
+            '          GH_TOKEN: ${{ github.token }}\n          LEAK: ${{ secrets.RELEASE_PAT }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: 'github-release.ts create --targets "$TARGETS" --kind',
+          replace: 'github-release.ts create --kind',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: 'github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"',
+          replace: 'github-release.ts create --targets "$TARGETS"',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          TARGETS: ${{ needs.plan.outputs.targets }}\n        run: bun scripts/release/github-release.ts',
+          replace:
+            '          TARGETS: kernel=1.0.0\n        run: bun scripts/release/github-release.ts',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        ...MOVE_GITHUB_RELEASE_STEP,
+        {
+          find: '      - name: Release the plan\n',
+          replace: `${GITHUB_RELEASE_STEP_TEXT}      - name: Release the plan\n`,
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        ...MOVE_GITHUB_RELEASE_STEP,
+        {
+          find: '      - name: Report - published, merge back not done\n',
+          replace: `${GITHUB_RELEASE_STEP_TEXT}      - name: Report - published, merge back not done\n`,
+        },
+      ],
+    },
+    // The step is pinned: one command, no key that changes what runs or when, three variables, a short timeout.
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '--kind "$RELEASE_KIND"\n',
+          replace: '--kind "$RELEASE_KIND" && gh release edit atlas-index --notes injected\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '        run: bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"\n',
+          replace:
+            '        run: |\n          bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"\n          gh release delete atlas-index --yes\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '--kind "$RELEASE_KIND"\n',
+          replace:
+            '--kind "$RELEASE_KIND" || bun scripts/release/github-release.ts backfill --tag core-server-v0.4.6 --yes\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '        continue-on-error: true\n',
+          replace: '        if: false\n        continue-on-error: true\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '        continue-on-error: true\n',
+          replace: '        if: always()\n        continue-on-error: true\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        { find: '        timeout-minutes: 5\n', replace: '        timeout-minutes: 100000\n' },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [{ find: '        timeout-minutes: 5\n', replace: '        timeout-minutes: 0\n' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          TARGETS: ${{ needs.plan.outputs.targets }}\n        run: bun scripts/release/github-release.ts',
+          replace:
+            '          TARGETS: ${{ needs.plan.outputs.targets }}\n          GH_REPO: attacker/elsewhere\n        run: bun scripts/release/github-release.ts',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '        timeout-minutes: 5\n',
+          replace: '        timeout-minutes: 5\n        shell: bash\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '        timeout-minutes: 5\n',
+          replace: '        timeout-minutes: 5\n        working-directory: packages\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: '          RELEASE_KIND: ${{ needs.plan.outputs.kind }}\n',
+          replace: '          RELEASE_KIND: stable\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      edits: [
+        {
+          find: 'bun scripts/release/github-release.ts create',
+          replace: 'bun scripts/release/other-script.ts create',
+        },
+      ],
+    },
+    // A step name is found by its text, so a second step of the same name is the one that runs unchecked.
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
+      edits: [
+        {
+          find: GITHUB_RELEASE_STEP_TEXT,
+          replace: `${GITHUB_RELEASE_STEP_TEXT}${GITHUB_RELEASE_STEP_TEXT}`,
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
+      edits: [
+        {
+          find: '      - name: Report - published, merge back not done\n',
+          replace:
+            '      - name: Merge main back into develop\n        run: echo again\n\n      - name: Report - published, merge back not done\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
+      edits: [
+        {
+          find: '      - name: Report - published, merge back not done\n',
+          replace:
+            '      - name: Release the plan\n        run: echo again\n\n      - name: Report - published, merge back not done\n',
+        },
+      ],
+    },
+    // github-release.ts views and creates; it reads no token and forces nothing.
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "args: ['release', 'view', tag, '--json', 'tagName']",
+          replace: "args: ['release', 'delete', tag, '--yes']",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {",
+          replace:
+            "      opts.gh({ args: ['release', 'edit', 'atlas-index', '--notes', 'x'] });\n      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      const child = Bun.spawnSync(['gh', ...args], {",
+          replace:
+            "      Bun.spawnSync(['gh', 'release', 'upload', 'atlas-index', 'x']);\n      const child = Bun.spawnSync(['gh', ...args], {",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "          'release',\n          'create',\n",
+          replace: "          'release',\n          'comment',\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      script: [{ find: "args: ['tag', '--list']", replace: "args: ['tag', '--list', '--force']" }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
+      script: [
+        {
+          find: "  static readonly TITLE_PREFIX = 'IGNIS';",
+          replace:
+            "  static readonly LEAK = 'secrets.TOKEN';\n  static readonly TITLE_PREFIX = 'IGNIS';",
+        },
+      ],
+    },
+    // The rule on `gh` is enforced when ghOf runs; the text guard pins the code that keeps it so.
+    ...[
+      ['arguments from a variable', '{ args: viewArguments }'],
+      ['the shorthand { args }', '{ args }'],
+      ['a spread', "{ args: [...['release', 'delete', tag]] }"],
+      ['a split string', "{ args: 'release delete x'.split(' ') }"],
+      ['a template literal', "{ args: [`release`, 'delete', tag] }"],
+    ].map(([, call]) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {",
+          replace: `      opts.gh(${call});\n      if (opts.gh({ args: ['release', 'view', tag, '--json', 'tagName'] }).status === 0) {`,
+        },
+      ],
+    })),
+    ...[
+      ['a second spawn written with a space', "Bun.spawnSync (['rm', 'x']);"],
+      ['the Bun shell', 'const shell = Bun.$;'],
+      [
+        'fetch with DELETE',
+        "void fetch('https://api.github.com/repos/x/y/releases/1', { method: 'DELETE' });",
+      ],
+    ].map(([, line]) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "      const child = Bun.spawnSync(['gh', ...args], {",
+          replace: `      ${line}\n      const child = Bun.spawnSync(['gh', ...args], {`,
+        },
+      ],
+    })),
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "import { tmpdir } from 'node:os';",
+          replace:
+            "import { execFileSync } from 'node:child_process';\nimport { tmpdir } from 'node:os';",
+        },
+      ],
+    },
+    ...['GH_TOKEN', 'GITHUB_TOKEN'].map((name) => ({
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [
+        {
+          find: "  static readonly TITLE_PREFIX = 'IGNIS';",
+          replace: `  static readonly TOKEN = process.env.${name};\n  static readonly TITLE_PREFIX = 'IGNIS';`,
+        },
+      ],
+    })),
+    {
+      guard: ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      script: [{ find: 'GithubRelease.refusalOf({ args })', replace: 'undefined' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      script: [
+        { find: "args: ['tag', '--list']", replace: "args: ['tag', '--list', '+refs/tags/x']" },
+      ],
+    },
+    // The environment the publish steps run in is the one the file shows.
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '    environment: npm-release\n',
+          replace: '    environment: npm-release\n    defaults:\n      run:\n        shell: bash\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '    environment: npm-release\n',
+          replace: '    environment: npm-release\n    env:\n      GH_REPO: attacker/elsewhere\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n',
+          replace: '  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true\n  GH_REPO: attacker/elsewhere\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '\nconcurrency:\n',
+          replace: '\ndefaults:\n  run:\n    shell: bash\n\nconcurrency:\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '          git config user.email "developer@venizia.ai"\n',
+          replace:
+            '          git config user.email "developer@venizia.ai"\n          echo "GH_REPO=attacker/elsewhere" >> "$GITHUB_ENV"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      edits: [
+        {
+          find: '          git config user.email "developer@venizia.ai"\n',
+          replace:
+            '          git config user.email "developer@venizia.ai"\n          echo "/tmp/bin" >> "$GITHUB_PATH"\n',
+        },
+      ],
+    },
   ];
 
   test('the table names every guard', () => {
@@ -741,8 +1150,12 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         (current, edit) => swap(current, edit),
         RUNNER,
       );
+      const releaseScriptText = (mutation.script ?? []).reduce(
+        (current, edit) => swap(current, edit),
+        RELEASE_SCRIPT,
+      );
 
-      expect(guardsOf({ text, runnerText })).toContain(mutation.guard);
+      expect(guardsOf({ text, runnerText, releaseScriptText })).toContain(mutation.guard);
     });
   }
 });
@@ -755,6 +1168,7 @@ describe('the release holds no registry token', () => {
   test('the committed workflow and loop, comments aside, read no secret and name no npm token', () => {
     expect(withoutComments(WORKFLOW)).not.toMatch(TOKEN);
     expect(withoutScriptComments(RUNNER)).not.toMatch(TOKEN);
+    expect(withoutScriptComments(RELEASE_SCRIPT)).not.toMatch(TOKEN);
   });
 
   test('a comment that names the token is not a token, in the workflow or in the loop', () => {
@@ -768,8 +1182,21 @@ describe('the release holds no registry token', () => {
       ReleaseWorkflowCheck.check({
         text: commented,
         runnerText: `// NPM_CONFIG_TOKEN is gone\n${RUNNER}`,
+        releaseScriptText: `// secrets.GITHUB_TOKEN is not read\n${RELEASE_SCRIPT}`,
       }),
     ).toEqual([]);
+  });
+
+  test('a token named in github-release.ts is noticed, with the file and the line', () => {
+    const violations = ReleaseWorkflowCheck.check({
+      text: WORKFLOW,
+      runnerText: RUNNER,
+      releaseScriptText: `${RELEASE_SCRIPT}\nconst leak = process.env.NODE_AUTH_TOKEN;\n`,
+    }).filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN);
+
+    expect(violations.map((violation) => violation.message)).toEqual([
+      expect.stringContaining('github-release.ts, line'),
+    ]);
   });
 
   test('the violation names the file and the line it read', () => {
@@ -781,7 +1208,11 @@ describe('the release holds no registry token', () => {
     const line = leaked.split('\n').findIndex((entry) => entry.includes('LEAK:')) + 1;
 
     expect(
-      ReleaseWorkflowCheck.check({ text: leaked, runnerText: RUNNER })
+      ReleaseWorkflowCheck.check({
+        text: leaked,
+        runnerText: RUNNER,
+        releaseScriptText: RELEASE_SCRIPT,
+      })
         .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
         .map((violation) => violation.message),
     ).toEqual([expect.stringContaining(`the workflow, line ${line}`)]);
