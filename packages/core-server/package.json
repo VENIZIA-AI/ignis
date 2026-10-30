@@ -308,7 +308,8 @@
   "vulcan": {
     "presets": {
       "app": "./dist/presets/app/preset.json",
-      "lib": "./dist/presets/lib/preset.json"
+      "lib": "./dist/presets/lib/preset.json",
+      "shared": "./dist/presets/shared/preset.json"
     }
   }
 }

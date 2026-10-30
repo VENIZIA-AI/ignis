@@ -1,10 +1,12 @@
 /**
- * Writes the publishable VULCAN presets of @venizia/ignis: presets/app (an API) and presets/lib (a
- * shared library). Each template names its dependencies the way package.json does
- * (`workspace:*`, `catalog:`); this resolves each to the exact workspace version and the root
- * catalog range, read from disk at call time, and writes packages/core-server/dist/presets.
- * Each kind is preset.json + files/; the lib also gets the lint and clean files of the app, so both
- * kinds lint the same way.
+ * Writes the publishable VULCAN presets of @venizia/ignis: presets/app (an API), presets/lib (a
+ * library other IGNIS apps import) and presets/shared (a side-neutral package that apps of either
+ * side import, with no IGNIS or ARDOR dependency). Each template names its dependencies the way
+ * package.json does (`workspace:*`, `catalog:`); this resolves each to the exact workspace version
+ * and the root catalog range, read from disk at call time, and writes packages/core-server/dist/presets.
+ * Each kind is preset.json + files/; the lib and the shared kind also get the lint and format
+ * configs of the app, so all kinds lint the same way. The lib and the shared kind are optional:
+ * each is written only when its preset.json exists.
  * Usage: bun scripts/preset/vulcan-preset.ts
  */
 import { Glob } from 'bun';
@@ -14,12 +16,15 @@ import { join, relative, resolve } from 'node:path';
 const TEMPLATE_FOLDER = 'presets';
 const APP_KIND = 'app';
 const LIB_KIND = 'lib';
+const SHARED_KIND = 'shared';
+/** The kinds written after the app, each only when its preset.json exists. */
+const OPTIONAL_KINDS = [LIB_KIND, SHARED_KIND];
 const OUTPUT_FOLDER = 'packages/core-server/dist/presets';
 const DEPENDENCY_BLOCKS = ['dependencies', 'devDependencies', 'peers', 'peerDependencies'];
 const CATALOG_MARKER = 'catalog:';
 const WORKSPACE_MARKER = 'workspace:';
 const FILES_FOLDER = 'files';
-/** Paths of the app files a lib shares: the lint and format configs, never the app's builders. */
+/** Paths of the app files a lib or shared kind takes: the lint and format configs, never the app's builders. */
 const LIB_SHARED_PATHS = ['.configs/lints', '.configs/formatters'];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -215,13 +220,17 @@ export const buildPreset = (opts: { root: string; outDir: string }): IBuildPrese
     preset: resolveKind(APP_KIND),
   });
 
-  if (existsSync(join(templateDir, LIB_KIND, 'preset.json'))) {
+  for (const kind of OPTIONAL_KINDS) {
+    if (!existsSync(join(templateDir, kind, 'preset.json'))) {
+      continue;
+    }
+
     written.push(
       ...writeKind({
         templateDir,
         outDir: opts.outDir,
-        kind: LIB_KIND,
-        preset: resolveKind(LIB_KIND),
+        kind,
+        preset: resolveKind(kind),
         sharedFrom: APP_KIND,
       }),
     );
