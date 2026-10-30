@@ -164,7 +164,7 @@ The project needs a first commit: `git add -A && git commit -m init`. See [Docke
 
 ## 5. Add more apps
 
-Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a shared library:
+Each new app or package comes from a preset, never by hand. Add a frontend that calls `core-api`, and a library other IGNIS apps import:
 
 ```bash
 bun x --no-install vulcan add --preset ardor --app web --frontend-dir apps --api core-api
