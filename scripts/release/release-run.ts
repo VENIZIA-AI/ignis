@@ -301,7 +301,7 @@ export class ReleaseRun {
     }
 
     // Trusted publishing: no token; npm signs in with the job's identity and writes the provenance.
-    // --ignore-scripts: the build already ran, so the prepublishOnly rebuild is skipped.
+    // --ignore-scripts: the build already ran, and a package script must not run in the publish job.
     const npmTag = ReleaseTargets.distTagOf({ version });
     try {
       await ports.run({

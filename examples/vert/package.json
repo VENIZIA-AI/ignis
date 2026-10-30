@@ -11,7 +11,7 @@
   },
   "scripts": {
     "server:dev": "NODE_ENV=development bun run src/index.ts",
-    "compile": "sh scripts/compile.sh",
+    "compile": "bun scripts/compile.ts",
     "typecheck": "bun check",
     "lint": "bun run check:artifacts && devz lint",
     "lint:fix": "devz lint --fix",

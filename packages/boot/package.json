@@ -76,7 +76,6 @@
   },
   "scripts": {
     "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild",
     "test": "bun test ./src"
   },
   "dependencies": {

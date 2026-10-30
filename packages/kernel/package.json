@@ -65,8 +65,7 @@
     "access": "public"
   },
   "scripts": {
-    "force-update": "sh ../../scripts/build/force-update.sh",
-    "prepublishOnly": "make rebuild"
+    "force-update": "sh ../../scripts/build/force-update.sh"
   },
   "dependencies": {
     "@venizia/ignis-filter": "workspace:*",

@@ -5,7 +5,7 @@
   "description": "IGNIS on SQLite through libsql - a second SQL dialect on the engine-neutral relational tier",
   "scripts": {
     "server:dev": "NODE_ENV=development APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs bun run src/index.ts",
-    "compile": "sh scripts/compile.sh",
+    "compile": "bun scripts/compile.ts",
     "typecheck": "bun check",
     "lint": "devz lint",
     "lint:fix": "devz lint --fix",
