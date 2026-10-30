@@ -7,8 +7,11 @@ let config: Linter.Config[] = [];
 let checks: Linter.Config[] = [];
 
 beforeAll(async () => {
-  config = await AsyncStyle.createConfig();
-  checks = await AsyncStyle.createChecks();
+  const created = await AsyncStyle.createConfig();
+  const createdChecks = await AsyncStyle.createChecks();
+
+  config = created;
+  checks = createdChecks;
 });
 
 const fix = (source: string) =>
