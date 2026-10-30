@@ -191,7 +191,7 @@ Its URL shape is two more options, both off by default and independent: `control
 bucket-management routes unregistered, and `controller.rawObjectPath` widens the object segment to
 the `{objectName}{.+}` catch-all so a raw nested path resolves - the percent-encoded form keeps
 working either way. `buildAssetDefinitions(opts)` builds the twelve route configs from those two
-flags; `StaticAssetDefinitions` is `buildAssetDefinitions({})` and is unchanged.
+flags.
 The upload labels - `principalType`, `principalId`, `variant`, `sequence`, `folderPath` - travel in
 the BODY, not the query: form fields on `POST {base}/objects`, and beside the commit token in the
 JSON body on `upload-commit`. A query string is logged everywhere it passes, and an identifier

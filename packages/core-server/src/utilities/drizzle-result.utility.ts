@@ -1,6 +1,11 @@
 import { getError } from '@venizia/ignis-helpers/core';
 
-/** Rows affected by a write executed without RETURNING. */
+/**
+ * Rows affected by a write executed without RETURNING.
+ *
+ * @deprecated No replacement; it is kept for existing callers and will be removed in 0.5. The
+ * connectors' query executors read the count with their own driver-aware private copies.
+ */
 export const readAffectedRowCount = (opts: { result: unknown }): number => {
   const { result } = opts;
 

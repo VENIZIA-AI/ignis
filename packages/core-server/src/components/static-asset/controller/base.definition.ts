@@ -346,6 +346,3 @@ export const buildAssetDefinitions = (opts: {
     },
   };
 };
-
-/** The bucket-in-path shape, unchanged - every existing importer keeps working. */
-export const StaticAssetDefinitions = buildAssetDefinitions({});

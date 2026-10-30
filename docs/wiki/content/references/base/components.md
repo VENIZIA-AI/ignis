@@ -107,7 +107,6 @@ packages/kernel/src/base/components/controller/
 
 ```
 packages/core-server/src/components/controller/
-├── index.ts              # Empty - only comments; gRPC is not re-exported here
 └── grpc/
     ├── grpc.component.ts
     └── common/
@@ -504,7 +503,7 @@ export class GrpcBindingKeys {
 }
 ```
 
-> **Note:** `GrpcComponent` is excluded from the barrel at `packages/core-server/src/components/controller/index.ts`, which holds only comments. Import it from the `@venizia/ignis/grpc` subpath if you ever need the symbol. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
+> **Note:** `GrpcComponent` is not exported from the components barrel. Import it from the `@venizia/ignis/grpc` subpath if you ever need the symbol. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
 
 
 ## Component Implementation Patterns
