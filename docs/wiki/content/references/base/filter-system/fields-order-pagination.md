@@ -77,7 +77,7 @@ await userRepository.find({ filter: { fields: LIST_FIELDS } });
 
 ## Ordering
 
-Each entry in `order` is a `'field'` or `'field DIRECTION'` string, read by `parseOrderEntry`. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid. Only ASCII whitespace separates the two tokens - a non-breaking space does not split them, so `'name<NBSP>DESC'` is one token, not two:
+Each entry in `order` is a `'field'` or `'field DIRECTION'` string, read by `Sorts.parseEntry`. Direction defaults to `ASC` and only `ASC`/`DESC` (case-insensitive) are valid. Only ASCII whitespace separates the two tokens - a non-breaking space does not split them, so `'name<NBSP>DESC'` is one token, not two:
 
 ```typescript
 await userRepository.find({ filter: { order: ['createdAt DESC'] } });
@@ -87,11 +87,13 @@ await userRepository.find({ filter: { order: ['name'] } }); // same as 'name ASC
 
 When the order does not name `id`, the relational repository appends `id ASC`, so pages over a tied column never repeat or skip a row.
 
-### `parseOrderEntry`
+### `Sorts.parseEntry`
 
 ```typescript
-parseOrderEntry(opts: { entry: string }): { field: string; direction: 'asc' | 'desc' }
+Sorts.parseEntry(opts: { entry: string }): { field: string; direction: 'asc' | 'desc' }
 ```
+
+The free function `parseOrderEntry({ entry })` stays exported as a deprecated alias until 0.5.
 
 Every relational and search dialect (Postgres, SQLite, Typesense, Meilisearch) reads each `order` entry through this one parser, so the same 400s apply everywhere `order` is accepted. It throws a `400`, naming the whole entry, in three cases:
 
@@ -102,11 +104,11 @@ Every relational and search dialect (Postgres, SQLite, Typesense, Meilisearch) r
 | More than two tokens | `'name DESC NULLS LAST'` | `Too many tokens` |
 
 ```typescript
-import { parseOrderEntry } from '@venizia/ignis-filter';
+import { Sorts } from '@venizia/ignis-filter';
 
-parseOrderEntry({ entry: 'createdAt DESC' }); // { field: 'createdAt', direction: 'desc' }
-parseOrderEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
-parseOrderEntry({ entry: 'name DESC NULLS LAST' }); // throws - 400, two tokens max
+Sorts.parseEntry({ entry: 'createdAt DESC' }); // { field: 'createdAt', direction: 'desc' }
+Sorts.parseEntry({ entry: 'name' }); // { field: 'name', direction: 'asc' }
+Sorts.parseEntry({ entry: 'name DESC NULLS LAST' }); // throws - 400, two tokens max
 ```
 
 > [!NOTE]
@@ -369,7 +371,7 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 - [`packages/connectors/src/relational/core/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/common/types.ts) - `IRelationalQueryDialect.toOrderBy`'s `expressions` option
 - [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find()`'s `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `assertLimitWithinCeiling`/`assertFilterLimits`, the `settings.query.limit.max` check
-- [`packages/filter/src/common/order.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/order.ts) - `parseOrderEntry`
+- [`packages/filter/src/common/order.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/order.ts) - the deprecated `parseOrderEntry` alias; the parser is `Sorts.parseEntry` in [`operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts)
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TOrderEntry`
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`

@@ -1,15 +1,108 @@
 import { getError, type TConstValue } from '@venizia/ignis-inversion';
+import type { TParsedOrderEntry, TSortDirection } from './types';
 
 // Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported operators throw at translation time rather than being removed from this list.
 
-/** Sort direction constants for order by clauses. */
+/** Sort direction constants for order by clauses, and the reader of one order entry. */
 export class Sorts {
   static readonly DESC = 'desc';
   static readonly ASC = 'asc';
   static readonly SCHEMA_SET = new Set([Sorts.ASC, Sorts.DESC]);
 
+  /** Characters `JSON.stringify` leaves raw that still break a log line: DEL, C1 controls, U+2028, U+2029. */
+  private static readonly RAW_AFTER_JSON = /[\u007f-\u009f\u2028\u2029]/g;
+
   static isValid(value: string): boolean {
     return Sorts.SCHEMA_SET.has(value.toLowerCase());
+  }
+
+  /** The entry quoted for an error message: JSON-escaped, and on one line whatever it holds. */
+  private static quoteEntry(opts: { entry: string }): string {
+    return JSON.stringify(opts.entry).replace(
+      Sorts.RAW_AFTER_JSON,
+      (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`,
+    );
+  }
+
+  // ASCII whitespace: space, tab, line feed, vertical tab, form feed, carriage return.
+  private static isSeparator(code: number): boolean {
+    return code === 32 || (code >= 9 && code <= 13);
+  }
+
+  private static toSortDirection(opts: { direction: string }): TSortDirection | undefined {
+    const { direction } = opts;
+
+    // The spellings callers write, compared without allocating; anything else is lowercased.
+    switch (direction) {
+      case 'ASC':
+      case 'asc': {
+        return Sorts.ASC;
+      }
+      case 'DESC':
+      case 'desc': {
+        return Sorts.DESC;
+      }
+      default: {
+        const lowered = direction.toLowerCase();
+        return lowered === Sorts.ASC || lowered === Sorts.DESC ? lowered : undefined;
+      }
+    }
+  }
+
+  /**
+   * Reads one order entry - `field` or `field direction`, tokens separated by whitespace, direction
+   * `ASC` or `DESC` in any case (default `ASC`). Throws a 400 naming the whole entry when the field is
+   * missing, the direction is unknown, or the entry has more than two tokens.
+   */
+  static parseEntry(opts: { entry: string }): TParsedOrderEntry {
+    const { entry } = opts;
+    const trimmed = entry.trim();
+    const length = trimmed.length;
+
+    if (length === 0) {
+      throw getError({
+        statusCode: 400,
+        message: `[parseOrderEntry] Order entry has no field | entry: ${Sorts.quoteEntry({ entry })}`,
+      });
+    }
+
+    let fieldEnd = 0;
+    while (fieldEnd < length && !Sorts.isSeparator(trimmed.charCodeAt(fieldEnd))) {
+      fieldEnd++;
+    }
+
+    if (fieldEnd === length) {
+      return { field: trimmed, direction: Sorts.ASC };
+    }
+
+    // `trimmed` ends on a non-separator, so a direction token follows the gap.
+    let directionStart = fieldEnd + 1;
+    while (Sorts.isSeparator(trimmed.charCodeAt(directionStart))) {
+      directionStart++;
+    }
+
+    let directionEnd = directionStart + 1;
+    while (directionEnd < length && !Sorts.isSeparator(trimmed.charCodeAt(directionEnd))) {
+      directionEnd++;
+    }
+
+    if (directionEnd !== length) {
+      throw getError({
+        statusCode: 400,
+        message: `[parseOrderEntry] Too many tokens | entry: ${Sorts.quoteEntry({ entry })} | Expected: '<field>' or '<field> ASC|DESC'`,
+      });
+    }
+
+    const direction = Sorts.toSortDirection({ direction: trimmed.slice(directionStart) });
+
+    if (!direction) {
+      throw getError({
+        statusCode: 400,
+        message: `[parseOrderEntry] Invalid direction | entry: ${Sorts.quoteEntry({ entry })} | Expected: 'ASC' or 'DESC'`,
+      });
+    }
+
+    return { field: trimmed.slice(0, fieldEnd), direction };
   }
 }
 

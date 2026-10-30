@@ -1,4 +1,4 @@
-import { checkArtifactIndex, generateArtifactIndex } from '@/generator';
+import { ArtifactIndexGenerator, checkArtifactIndex, generateArtifactIndex } from '@/generator';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -21,21 +21,21 @@ afterAll(() => {
   }
 });
 
-describe('generateArtifactIndex / checkArtifactIndex', () => {
+describe('ArtifactIndexGenerator.generate / ArtifactIndexGenerator.check', () => {
   test('generate writes the index; check is fresh right after; check is stale after a hand edit', () => {
     const out = outputFile('artifacts.ts');
 
-    const generated = generateArtifactIndex({ root: FIXTURES, out });
+    const generated = ArtifactIndexGenerator.generate({ root: FIXTURES, out });
     expect(generated.written).toBe(true);
     expect(readFileSync(out, 'utf8')).toBe(generated.content);
     expect(generated.artifacts.map((a) => a.className)).toContain('GreeterService');
     expect(generated.content).not.toContain('ProbeModel');
 
-    expect(generateArtifactIndex({ root: FIXTURES, out }).written).toBe(false);
-    expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(true);
+    expect(ArtifactIndexGenerator.generate({ root: FIXTURES, out }).written).toBe(false);
+    expect(ArtifactIndexGenerator.check({ root: FIXTURES, out }).isFresh).toBe(true);
 
     writeFileSync(out, `${generated.content}\n// drift`);
-    const stale = checkArtifactIndex({ root: FIXTURES, out });
+    const stale = ArtifactIndexGenerator.check({ root: FIXTURES, out });
     expect(stale.isFresh).toBe(false);
     expect(stale.actual).not.toBe(stale.expected);
 
@@ -45,7 +45,7 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
   test('check on a missing file reports stale with actual undefined', () => {
     const out = outputFile('missing.ts');
 
-    const result = checkArtifactIndex({ root: FIXTURES, out });
+    const result = ArtifactIndexGenerator.check({ root: FIXTURES, out });
 
     expect(result.isFresh).toBe(false);
     expect(result.actual).toBeUndefined();
@@ -55,11 +55,11 @@ describe('generateArtifactIndex / checkArtifactIndex', () => {
 describe('checkArtifactIndex - the header is not drift', () => {
   test('a file whose first line differs but whose body matches is fresh; a body change is stale', () => {
     const out = outputFile('artifacts.ts');
-    const generated = generateArtifactIndex({ root: FIXTURES, out });
+    const generated = ArtifactIndexGenerator.generate({ root: FIXTURES, out });
     const [header, ...body] = generated.content.split('\n');
 
     writeFileSync(out, [`${header} --ignore legacy/**`, ...body].join('\n'));
-    const headerOnly = checkArtifactIndex({ root: FIXTURES, out });
+    const headerOnly = ArtifactIndexGenerator.check({ root: FIXTURES, out });
     expect(headerOnly.actual).not.toBe(headerOnly.expected);
     expect(headerOnly.isFresh).toBe(true);
 
@@ -67,7 +67,7 @@ describe('checkArtifactIndex - the header is not drift', () => {
       out,
       [header, ...body.filter((line) => !line.includes('GreeterService'))].join('\n'),
     );
-    expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
+    expect(ArtifactIndexGenerator.check({ root: FIXTURES, out }).isFresh).toBe(false);
 
     rmSync(out, { force: true });
   });
@@ -96,12 +96,12 @@ describe('generate / check report the decorated classes a user --ignore hides', 
     const root = buildRoot();
     const out = join(root, 'artifacts.ts');
 
-    const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    const generated = ArtifactIndexGenerator.generate({ root, out, ignore: ['legacy/**'] });
     expect(generated.artifacts.map((a) => a.className)).toEqual(['KeptService']);
     expect(generated.ignored.map((a) => a.className)).toEqual(['OldService']);
     expect(generated.ignored[0].filePath).toBe(join(root, 'legacy', 'old.service.ts'));
 
-    const checked = checkArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    const checked = ArtifactIndexGenerator.check({ root, out, ignore: ['legacy/**'] });
     expect(checked.isFresh).toBe(true);
     expect(checked.ignored.map((a) => a.className)).toEqual(['OldService']);
 
@@ -112,7 +112,7 @@ describe('generate / check report the decorated classes a user --ignore hides', 
     const root = buildRoot();
     const out = join(root, 'artifacts.ts');
 
-    const generated = generateArtifactIndex({ root, out });
+    const generated = ArtifactIndexGenerator.generate({ root, out });
     expect(generated.artifacts.map((a) => a.className).sort()).toEqual([
       'KeptService',
       'OldService',
@@ -142,11 +142,11 @@ describe('a broken file under a user --ignore never fails the run', () => {
     );
 
     const out = join(root, 'artifacts.ts');
-    const generated = generateArtifactIndex({ root, out, ignore: ['legacy/**'] });
+    const generated = ArtifactIndexGenerator.generate({ root, out, ignore: ['legacy/**'] });
     expect(generated.artifacts.map((a) => a.className)).toEqual(['KeptService']);
     expect(generated.ignored).toEqual([]);
 
-    expect(() => generateArtifactIndex({ root, out })).toThrow('carries 2 stereotypes');
+    expect(() => ArtifactIndexGenerator.generate({ root, out })).toThrow('carries 2 stereotypes');
 
     rmSync(root, { recursive: true, force: true });
   });
@@ -156,7 +156,7 @@ describe('generate / check with --source-module', () => {
   test('a named source module indexes its classes, the header records it, and check needs the same set', () => {
     const out = outputFile('artifacts.ts');
 
-    const generated = generateArtifactIndex({
+    const generated = ArtifactIndexGenerator.generate({
       root: FIXTURES,
       out,
       sourceModules: ['some-other-lib'],
@@ -165,9 +165,10 @@ describe('generate / check with --source-module', () => {
     expect(generated.content).toContain('import { ForeignService } from');
     expect(generated.content.split('\n')[0]).toContain('--source-module some-other-lib');
     expect(
-      checkArtifactIndex({ root: FIXTURES, out, sourceModules: ['some-other-lib'] }).isFresh,
+      ArtifactIndexGenerator.check({ root: FIXTURES, out, sourceModules: ['some-other-lib'] })
+        .isFresh,
     ).toBe(true);
-    expect(checkArtifactIndex({ root: FIXTURES, out }).isFresh).toBe(false);
+    expect(ArtifactIndexGenerator.check({ root: FIXTURES, out }).isFresh).toBe(false);
 
     rmSync(out, { force: true });
   });
@@ -175,7 +176,7 @@ describe('generate / check with --source-module', () => {
   test('without --source-module the header and the index are unchanged (positive control)', () => {
     const out = outputFile('artifacts.ts');
 
-    const generated = generateArtifactIndex({ root: FIXTURES, out });
+    const generated = ArtifactIndexGenerator.generate({ root: FIXTURES, out });
 
     expect(generated.content).not.toContain('ForeignService');
     expect(generated.content.split('\n')[0]).not.toContain('--source-module');
@@ -232,5 +233,22 @@ describe('generate / check with --source-module', () => {
     );
 
     rmSync(directory, { recursive: true, force: true });
+  });
+});
+
+describe('the deprecated aliases give what ArtifactIndexGenerator gives', () => {
+  test('generateArtifactIndex and checkArtifactIndex', () => {
+    const oldOut = outputFile('old.ts');
+    const newOut = outputFile('new.ts');
+
+    const fromOld = generateArtifactIndex({ root: FIXTURES, out: oldOut });
+    const fromNew = ArtifactIndexGenerator.generate({ root: FIXTURES, out: newOut });
+    expect(fromOld.written).toBe(fromNew.written);
+    expect(fromOld.artifacts).toEqual(fromNew.artifacts);
+
+    const checkedOld = checkArtifactIndex({ root: FIXTURES, out: oldOut });
+    const checkedNew = ArtifactIndexGenerator.check({ root: FIXTURES, out: oldOut });
+    expect(checkedOld).toEqual(checkedNew);
+    expect(checkedOld.isFresh).toBe(true);
   });
 });

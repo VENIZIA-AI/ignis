@@ -10,13 +10,13 @@ difficulty: beginner
 
 ## In one example
 
-`TValueOrResolver` plus `resolveValue` is the core pattern for an option that can be given eagerly or lazily.
+`TValueOrResolver` plus `ResolverUtility.resolveValue` is the core pattern for an option that can be given eagerly or lazily. The old free functions `resolveValue` and `resolveValueAsync` still work as deprecated aliases until 0.5.
 
 ```typescript
-import { TValueOrResolver, resolveValue } from '@venizia/ignis-helpers';
+import { TValueOrResolver, ResolverUtility } from '@venizia/ignis-helpers';
 
 function configure(opts: { timeout: TValueOrResolver<number> }) {
-  const timeout = resolveValue({ value: opts.timeout });
+  const timeout = ResolverUtility.resolveValue({ value: opts.timeout });
   // works whether opts.timeout is 5000 or () => 5000
 }
 
@@ -40,7 +40,7 @@ configure({ timeout: () => 5000 });
 | `TNullable<T>` | `T \| undefined \| null` |
 | `ValueOrPromise<T>` | `T \| Promise<T>` |
 
-- **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `resolveValue`/`resolveValueAsync` collapse either shape to a value.
+- **Resolvers defer construction.** `TResolver`/`TAsyncResolver` and their `TValueOrResolver`/`TValueOrAsyncResolver` unions let a config option be given eagerly or lazily. `ResolverUtility.resolveValue`/`ResolverUtility.resolveValueAsync` collapse either shape to a value.
 - **Class constructors pass through untouched.** `isClass()` detects them, so the resolver never invokes a class as if it were a function. It's re-exported from `@venizia/ignis-inversion` into `helpers`.
 - **Const classes replace string unions.** A class of `static readonly` fields, for example `RuntimeModules` or `DataTypes`, is a value namespace. `TConstValue<typeof X>` derives its own union type from those fields - one declaration, no duplicated string literals.
 
@@ -83,15 +83,15 @@ type TRuntimeModule = TConstValue<typeof RuntimeModules>; // 'bun'
 
 ### Resolve a value that may be eager or lazy, sync or async
 
-`resolveValueAsync` accepts a direct value, a sync resolver, or an async resolver, and always returns a `Promise`.
+`ResolverUtility.resolveValueAsync` accepts a direct value, a sync resolver, or an async resolver, and always returns a `Promise`.
 
 ```typescript
-import { TValueOrAsyncResolver, resolveValueAsync } from '@venizia/ignis-helpers';
+import { TValueOrAsyncResolver, ResolverUtility } from '@venizia/ignis-helpers';
 
 type ConfigOption = TValueOrAsyncResolver<{ host: string }>;
 
 const fromEnv: ConfigOption = async () => ({ host: process.env.DB_HOST! });
-const resolved = await resolveValueAsync({ value: fromEnv });
+const resolved = await ResolverUtility.resolveValueAsync({ value: fromEnv });
 ```
 
 ### Look up an HTTP header, content type, or status constant
@@ -142,5 +142,5 @@ See the [Full reference](/extensions/helpers/types/reference) for every type, re
 **Files:**
 
 - [`packages/helpers/src/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types) - utility, class, const-value, resolver, field-mapping, and injection types
-- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `resolveClass`
+- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `ResolverUtility` (from inversion), `resolveClass`
 - [`packages/helpers/src/common/constants/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/index.ts) - constants barrel

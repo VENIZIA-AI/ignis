@@ -9,65 +9,68 @@ import type {
 } from './types';
 
 /**
- * True for a value carrying nothing: `null`/`undefined`, an empty string, array, `Map`, `Set`, or an
- * object with no own enumerable keys. A number, boolean or function is empty too - it holds no
- * entries.
- *
- * Hand-written rather than `lodash/isEmpty`, and NOT a plain `!value`: `!{}` is `false` while an
- * empty object IS empty, so the two disagree on exactly the case a swap would silently flip.
+ * Object helpers. Hand-written rather than `lodash/isEmpty` and `lodash/omit`: this package is bundled
+ * for browsers, where importing lodash for two functions costs 24 KB.
  */
-export const isEmpty = (opts: { value: unknown }): boolean => {
-  const { value } = opts;
+export class ObjectUtility {
+  /**
+   * True for a value carrying nothing: `null`/`undefined`, an empty string, array, `Map`, `Set`, or an
+   * object with no own enumerable keys. A number, boolean or function is empty too - it holds no
+   * entries.
+   *
+   * NOT a plain `!value`: `!{}` is `false` while an empty object IS empty, so the two disagree on
+   * exactly the case a swap would silently flip.
+   */
+  static isEmpty(opts: { value: unknown }): boolean {
+    const { value } = opts;
 
-  if (value === null || value === undefined) {
-    return true;
-  }
-
-  // The types that carry a MEANINGFUL length. Duck-typing on `.length` instead would call
-  // `{ length: 0 }` empty, which it is not - it has an own key.
-  if (typeof value === 'string' || Array.isArray(value) || ArrayBuffer.isView(value)) {
-    return (value as { length: number }).length === 0;
-  }
-
-  if (value instanceof Map || value instanceof Set) {
-    return value.size === 0;
-  }
-
-  if (typeof value !== 'object') {
-    return true;
-  }
-
-  // Own keys only: `for...in` would walk the prototype chain and call an object with an inherited
-  // property non-empty.
-  return Object.keys(value).length === 0;
-};
-
-/**
- * A shallow copy without `keys`.
- *
- * Hand-written rather than `lodash/omit`: this package is bundled for browsers, where importing
- * lodash for one function costs 24 KB. Matches lodash on the shapes we pass it - a flat key list,
- * never a nested path.
- */
-export const omit = <T extends object, K extends PropertyKey>(opts: {
-  source: T;
-  keys: readonly K[];
-}): Omit<T, Extract<K, keyof T>> => {
-  const { source, keys } = opts;
-  const dropped = new Set<PropertyKey>(keys);
-  const kept: Record<string, unknown> = {};
-
-  const entries = Object.entries(source);
-  for (const [key, value] of entries) {
-    if (dropped.has(key)) {
-      continue;
+    if (value === null || value === undefined) {
+      return true;
     }
 
-    kept[key] = value;
+    // The types that carry a MEANINGFUL length. Duck-typing on `.length` instead would call
+    // `{ length: 0 }` empty, which it is not - it has an own key.
+    if (typeof value === 'string' || Array.isArray(value) || ArrayBuffer.isView(value)) {
+      return (value as { length: number }).length === 0;
+    }
+
+    if (value instanceof Map || value instanceof Set) {
+      return value.size === 0;
+    }
+
+    if (typeof value !== 'object') {
+      return true;
+    }
+
+    // Own keys only: `for...in` would walk the prototype chain and call an object with an inherited
+    // property non-empty.
+    return Object.keys(value).length === 0;
   }
 
-  return kept as Omit<T, Extract<K, keyof T>>;
-};
+  /**
+   * A shallow copy without `keys`. Matches lodash on the shapes we pass it - a flat key list, never a
+   * nested path.
+   */
+  static omit<T extends object, K extends PropertyKey>(opts: {
+    source: T;
+    keys: readonly K[];
+  }): Omit<T, Extract<K, keyof T>> {
+    const { source, keys } = opts;
+    const dropped = new Set<PropertyKey>(keys);
+    const kept: Record<string, unknown> = {};
+
+    const entries = Object.entries(source);
+    for (const [key, value] of entries) {
+      if (dropped.has(key)) {
+        continue;
+      }
+
+      kept[key] = value;
+    }
+
+    return kept as Omit<T, Extract<K, keyof T>>;
+  }
+}
 
 /** Tells a CONSTRUCTOR from a RESOLVER via source text - `prototype !== undefined` is true of every non-arrow function. Sound only on ES2020+ output (classes emit as `class`); ES5 bundling breaks it. */
 export const isClass = <T>(target: any): target is TClass<T> => {
@@ -78,33 +81,57 @@ export const isClass = <T>(target: any): target is TClass<T> => {
   return /^class[\s{]/.test(Function.prototype.toString.call(target));
 };
 
-/** A resolver is anything callable that is not a class - a class is a value here, never a factory. */
-const isResolver = <T>(valueOrResolver: TValueOrResolver<T>): valueOrResolver is TResolver<T> =>
-  typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+/** Readers for the value-or-resolver vocabulary the container branches on. */
+export class ResolverUtility {
+  /** A resolver is anything callable that is not a class - a class is a value here, never a factory. */
+  private static isResolver<T>(
+    valueOrResolver: TValueOrResolver<T>,
+  ): valueOrResolver is TResolver<T> {
+    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+  }
 
-/** Reads a value-or-resolver. A class constructor is returned as-is; only a plain function is called. */
-export const resolveValue = <T>(opts: { value: TValueOrResolver<T> }): T => {
-  const { value } = opts;
-  return isResolver(value) ? value() : value;
-};
+  private static isAsyncResolver<T>(
+    valueOrResolver: TValueOrAsyncResolver<T>,
+  ): valueOrResolver is TAsyncResolver<T> {
+    return typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+  }
 
-const isAsyncResolver = <T>(
-  valueOrResolver: TValueOrAsyncResolver<T>,
-): valueOrResolver is TAsyncResolver<T> =>
-  typeof valueOrResolver === 'function' && !isClass(valueOrResolver);
+  /** Reads a value-or-resolver. A class constructor is returned as-is; only a plain function is called. */
+  static resolveValue<T>(opts: { value: TValueOrResolver<T> }): T {
+    const { value } = opts;
+    return ResolverUtility.isResolver(value) ? value() : value;
+  }
 
-/** `resolveValue` for a resolver that may answer a promise. */
-export const resolveValueAsync = async <T>(opts: {
-  value: TValueOrAsyncResolver<T>;
-}): Promise<T> => {
-  const { value } = opts;
-  return isAsyncResolver(value) ? value() : value;
-};
+  /** `resolveValue` for a resolver that may answer a promise. */
+  static async resolveValueAsync<T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T> {
+    const { value } = opts;
+    return ResolverUtility.isAsyncResolver(value) ? value() : value;
+  }
 
-/** Reads what `@inject({ target })` named. The function form is called HERE, never at decoration: that is what lets a class reached through an import cycle be named at all. Answers `undefined` when the function hands back something that is not a class. The container resolves synchronously, so there is no async form. */
-export const resolveInjectTarget = (opts: {
-  target: TInjectTarget;
-}): TClass<AnyType> | undefined => {
-  const resolved = resolveValue({ value: opts.target });
-  return isClass(resolved) ? resolved : undefined;
-};
+  /** Reads what `@inject({ target })` named. The function form is called HERE, never at decoration: that is what lets a class reached through an import cycle be named at all. Answers `undefined` when the function hands back something that is not a class. The container resolves synchronously, so there is no async form. */
+  static resolveInjectTarget(opts: { target: TInjectTarget }): TClass<AnyType> | undefined {
+    const resolved = ResolverUtility.resolveValue({ value: opts.target });
+    return isClass(resolved) ? resolved : undefined;
+  }
+}
+
+/** @deprecated Use ObjectUtility.isEmpty({ value }). Removed in 0.5. */
+export const isEmpty = (opts: { value: unknown }): boolean => ObjectUtility.isEmpty(opts);
+
+/** @deprecated Use ObjectUtility.omit({ source, keys }). Removed in 0.5. */
+export const omit = <T extends object, K extends PropertyKey>(opts: {
+  source: T;
+  keys: readonly K[];
+}): Omit<T, Extract<K, keyof T>> => ObjectUtility.omit(opts);
+
+/** @deprecated Use ResolverUtility.resolveValue({ value }). Removed in 0.5. */
+export const resolveValue = <T>(opts: { value: TValueOrResolver<T> }): T =>
+  ResolverUtility.resolveValue(opts);
+
+/** @deprecated Use ResolverUtility.resolveValueAsync({ value }). Removed in 0.5. */
+export const resolveValueAsync = <T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T> =>
+  ResolverUtility.resolveValueAsync(opts);
+
+/** @deprecated Use ResolverUtility.resolveInjectTarget({ target }). Removed in 0.5. */
+export const resolveInjectTarget = (opts: { target: TInjectTarget }): TClass<AnyType> | undefined =>
+  ResolverUtility.resolveInjectTarget(opts);

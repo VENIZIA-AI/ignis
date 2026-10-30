@@ -24,13 +24,13 @@ generated file inventory.
 | `packages/core-server/src/base/applications/base.ts` | `BaseApplication` - the boot-aware application base combining all mixins and the lifecycle phases. |
 | `packages/kernel/src/common/bindings.ts` | `BindingNamespaces` and `CoreBindings` const-classes - every namespace and core binding key in one place. |
 | `packages/boot/src/generator/scanner.ts` | `ArtifactScanner.getInstance().scan({ root, ignore })` - the AST walk that finds every decorated artifact class. |
-| `packages/boot/src/generator/index.ts` | `generateArtifactIndex` / `checkArtifactIndex` - render-and-write and render-and-compare, the two entry points the CLI and `check:artifacts` call. |
+| `packages/boot/src/generator/generator.ts` | `ArtifactIndexGenerator.generate` / `ArtifactIndexGenerator.check` (old names `generateArtifactIndex` / `checkArtifactIndex` are deprecated aliases in `index.ts`) - render-and-write and render-and-compare, the two entry points the CLI and `check:artifacts` call. |
 | `packages/kernel/src/base/repositories/core/abstract.ts` | `AbstractRepository` - the one engine-neutral repository base every connector chain builds on. |
 | `packages/connectors/src/relational/postgres/repositories/core/index.ts` | The Postgres repository chain - five real subclasses of the neutral `connectors/relational` chain, each rebinding `ExtraOptions` and `TDataSource` to the Postgres types. |
 | `packages/kernel/src/base/datasources/abstract.ts` | `AbstractDataSource` - engine-neutral datasource root; no SQL, no document-store specifics. |
 | `packages/kernel/src/base/components/base.ts` | `BaseComponent` - the base every pluggable component (health check, auth, mail, Socket.IO, ...) extends. |
 | `packages/kernel/src/base/metadata/persistents.ts` | `registerDataSourceInjection` - the strict logic behind `@repository`'s auto-injected DataSource at constructor param[0]. |
-| `packages/filter/src/schemas/builder.ts` | `buildQuerySchemas({ decorate })` - the Zod `FilterSchema`/`InclusionSchema` definitions consumed by every repository find method, built with plain `zod` so they stay browser-usable. |
+| `packages/filter/src/schemas/builder.ts` | `QuerySchemaFactory.build({ decorate })` (deprecated alias `buildQuerySchemas`) - the Zod `FilterSchema`/`InclusionSchema` definitions consumed by every repository find method, built with plain `zod` so they stay browser-usable. |
 | `packages/kernel/src/base/repositories/query-schemas/index.ts` | The server-side re-export that decorates those schemas for OpenAPI. Its side-effect `import '@hono/zod-openapi'` is load-order-critical: `.openapi()` must be patched onto the shared `ZodType` prototype before `buildQuerySchemas` runs at module scope. |
 
 ## Related

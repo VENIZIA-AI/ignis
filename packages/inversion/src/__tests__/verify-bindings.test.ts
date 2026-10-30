@@ -7,7 +7,11 @@ import { Container } from '../modules/container/container';
 import { ApplicationError } from '../modules/error';
 import { inject } from '../modules/metadata/injectors';
 import { metadataRegistry } from '../modules/registry/registry';
-import { assertBindingsResolve, verifyBindings } from '../modules/container/verifier';
+import {
+  assertBindingsResolve,
+  BindingVerifier,
+  verifyBindings,
+} from '../modules/container/verifier';
 
 const calls = { alpha: 0, beta: 0, gamma: 0 };
 
@@ -79,7 +83,7 @@ describe('verifyBindings - what it finds', () => {
   test('K1 a service that needs an unregistered key is one failure naming the key', () => {
     container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(result.failures).toHaveLength(1);
     expect(result.failures[0].key).toBe('services.NeedsMissingKey');
@@ -92,7 +96,7 @@ describe('verifyBindings - what it finds', () => {
 
     let thrown: unknown;
     try {
-      assertBindingsResolve({ container, namespaces: NAMESPACES, scope: 'verifyBindings' });
+      BindingVerifier.assertResolve({ container, namespaces: NAMESPACES, scope: 'verifyBindings' });
     } catch (error) {
       thrown = error;
     }
@@ -108,7 +112,7 @@ describe('verifyBindings - what it finds', () => {
   test('K3 a class injected by class that nobody registered is reported as unregisteredClass', () => {
     container.bind({ key: 'services.NeedsUndecorated' }).toClass(NeedsUndecorated);
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(result.failures).toHaveLength(1);
     expect(result.failures[0].key).toBe('services.NeedsUndecorated');
@@ -121,8 +125,8 @@ describe('verifyBindings - what it finds', () => {
     container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
     container.bind({ key: 'services.NeedsTheNeedy' }).toClass(NeedsTheNeedy);
 
-    const both = verifyBindings({ container, namespaces: NAMESPACES });
-    const onlyOuter = verifyBindings({
+    const both = BindingVerifier.verify({ container, namespaces: NAMESPACES });
+    const onlyOuter = BindingVerifier.verify({
       container,
       namespaces: NAMESPACES,
       skip: ['services.NeedsMissingKey'],
@@ -136,7 +140,11 @@ describe('verifyBindings - what it finds', () => {
 
     const error = (() => {
       try {
-        assertBindingsResolve({ container, namespaces: NAMESPACES, scope: 'verifyBindings' });
+        BindingVerifier.assertResolve({
+          container,
+          namespaces: NAMESPACES,
+          scope: 'verifyBindings',
+        });
       } catch (caught) {
         return caught as ApplicationError;
       }
@@ -148,7 +156,7 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K5 only the named namespaces are resolved', () => {
-    verifyBindings({ container, namespaces: ['services'] });
+    BindingVerifier.verify({ container, namespaces: ['services'] });
 
     expect(calls.alpha).toBe(1);
     expect(calls.beta).toBe(1);
@@ -156,20 +164,20 @@ describe('verifyBindings - what it finds', () => {
   });
 
   test('K6 when everything resolves, nothing fails and verified lists every key in order', () => {
-    const result = verifyBindings({ container, namespaces: NAMESPACES });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(result.failures).toEqual([]);
     expect(result.unmatchedSkips).toEqual([]);
     expect(result.verified).toEqual(['services.Alpha', 'services.Beta', 'repositories.Gamma']);
     expect(() =>
-      assertBindingsResolve({ container, namespaces: NAMESPACES, scope: 'x' }),
+      BindingVerifier.assertResolve({ container, namespaces: NAMESPACES, scope: 'x' }),
     ).not.toThrow();
   });
 
   test('K7 a constructor that throws its own error carries neither missing field, and the object is kept', () => {
     container.bind({ key: 'services.Throwing' }).toClass(Throwing);
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(result.failures).toHaveLength(1);
     expect(result.failures[0].message).toBe('constructor failed on its own');
@@ -182,7 +190,11 @@ describe('verifyBindings - what it finds', () => {
 
 describe('verifyBindings - skip', () => {
   test('K8 a class skip does not build the binding and leaves it out of verified', () => {
-    const result = verifyBindings({ container, namespaces: NAMESPACES, skip: [AlphaService] });
+    const result = BindingVerifier.verify({
+      container,
+      namespaces: NAMESPACES,
+      skip: [AlphaService],
+    });
 
     expect(calls.alpha).toBe(0);
     expect(result.verified).not.toContain('services.Alpha');
@@ -193,7 +205,7 @@ describe('verifyBindings - skip', () => {
     ['class name', 'AlphaService'],
     ['binding key', 'services.Alpha'],
   ])('K9 a skip by %s does not build the binding either', (_form, skip) => {
-    const result = verifyBindings({ container, namespaces: NAMESPACES, skip: [skip] });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES, skip: [skip] });
 
     expect(calls.alpha).toBe(0);
     expect(result.verified).not.toContain('services.Alpha');
@@ -203,7 +215,11 @@ describe('verifyBindings - skip', () => {
   test('K10 one class name that two bindings share skips both', () => {
     container.bind({ key: 'services.AlphaTwin' }).toClass(makeTwin());
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES, skip: ['AlphaService'] });
+    const result = BindingVerifier.verify({
+      container,
+      namespaces: NAMESPACES,
+      skip: ['AlphaService'],
+    });
 
     expect(result.verified).not.toContain('services.Alpha');
     expect(result.verified).not.toContain('services.AlphaTwin');
@@ -211,7 +227,7 @@ describe('verifyBindings - skip', () => {
   });
 
   test('K11 a skip that matches nothing, or names a binding outside the namespaces, is unmatched and throws', () => {
-    const result = verifyBindings({
+    const result = BindingVerifier.verify({
       container,
       namespaces: NAMESPACES,
       skip: ['services.Typo', 'other.Thing'],
@@ -219,7 +235,7 @@ describe('verifyBindings - skip', () => {
 
     expect(result.unmatchedSkips).toEqual(['services.Typo', 'other.Thing']);
     expect(() =>
-      assertBindingsResolve({
+      BindingVerifier.assertResolve({
         container,
         namespaces: NAMESPACES,
         skip: ['services.Typo'],
@@ -231,7 +247,11 @@ describe('verifyBindings - skip', () => {
   test('K12 a value binding is still resolved when a class skip is given, and a class skip never matches it', () => {
     container.bind({ key: 'services.Constant' }).toValue(42);
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES, skip: [BetaService] });
+    const result = BindingVerifier.verify({
+      container,
+      namespaces: NAMESPACES,
+      skip: [BetaService],
+    });
 
     expect(result.verified).toContain('services.Constant');
     expect(result.verified).not.toContain('services.Beta');
@@ -242,7 +262,11 @@ describe('verifyBindings - skip', () => {
     class ChildService extends AlphaService {}
     container.bind({ key: 'services.Child' }).toClass(ChildService);
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES, skip: [AlphaService] });
+    const result = BindingVerifier.verify({
+      container,
+      namespaces: NAMESPACES,
+      skip: [AlphaService],
+    });
 
     expect(result.verified).toContain('services.Child');
   });
@@ -252,7 +276,7 @@ describe('verifyBindings - the edges', () => {
   test('K13 a binding bound with no resolver is a failure, not a crash of the verifier', () => {
     container.bind({ key: 'services.Bare' });
 
-    const result = verifyBindings({ container, namespaces: NAMESPACES });
+    const result = BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(result.failures.map((failure) => failure.key)).toEqual(['services.Bare']);
     expect(result.failures[0].message.length).toBeGreaterThan(0);
@@ -268,7 +292,7 @@ describe('verifyBindings - the edges', () => {
       .map((binding) => binding.key)
       .sort();
 
-    verifyBindings({ container, namespaces: NAMESPACES, skip: ['services.Typo'] });
+    BindingVerifier.verify({ container, namespaces: NAMESPACES, skip: ['services.Typo'] });
 
     const after = [
       ...container.findByTag({ tag: 'services' }),
@@ -337,8 +361,46 @@ describe('the core stays portable', () => {
   test('AK2 a spy shows the verifier calls get once per resolved binding and nothing else on the container', () => {
     const get = spyOn(container, 'get');
 
-    verifyBindings({ container, namespaces: NAMESPACES });
+    BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(get).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('the deprecated aliases give what BindingVerifier gives', () => {
+  test('verifyBindings', () => {
+    container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
+    const options = { container, namespaces: NAMESPACES, skip: [AlphaService] };
+
+    const old = verifyBindings(options);
+    const next = BindingVerifier.verify(options);
+
+    expect(old.verified).toEqual(next.verified);
+    expect(old.unmatchedSkips).toEqual(next.unmatchedSkips);
+    expect(old.failures.map((failure) => failure.key)).toEqual(
+      next.failures.map((failure) => failure.key),
+    );
+  });
+
+  test('assertBindingsResolve throws the same message, and returns the same result when clean', () => {
+    const clean = { container, namespaces: NAMESPACES, scope: 'alias' };
+    expect(assertBindingsResolve(clean).verified).toEqual(
+      BindingVerifier.assertResolve(clean).verified,
+    );
+
+    container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
+    const messageOf = (run: () => unknown): string => {
+      try {
+        run();
+      } catch (error) {
+        return (error as Error).message;
+      }
+      return '';
+    };
+
+    const failing = { container, namespaces: NAMESPACES, scope: 'alias' };
+    const old = messageOf(() => assertBindingsResolve(failing));
+    expect(old).toStartWith('[alias] 1 binding(s) cannot be resolved | ');
+    expect(old).toBe(messageOf(() => BindingVerifier.assertResolve(failing)));
   });
 });

@@ -27,7 +27,7 @@ Decorators mark a class as an artifact and carry its registration defaults. A ge
 | `IArtifactRegistrationOptions`, `IArtifactMetadata`, `IProvideMetadata`, `ArtifactTypes` | `@venizia/ignis-kernel` | Metadata shapes and the artifact type vocabulary |
 | `IArtifactIndex`, `TArtifactIndexInput`, `IApplicationConfigs.artifacts` | `@venizia/ignis-kernel` | The index shape and where the application receives it |
 | `registerArtifacts()`, `registerConfiguredArtifacts()` | `RestApplication` | Registration from an index; the boot step |
-| `ignis-artifacts`, `generateArtifactIndex()`, `checkArtifactIndex()` | `@venizia/ignis-boot` | The generator, as a binary and as functions |
+| `ignis-artifacts`, `ArtifactIndexGenerator.generate()`, `ArtifactIndexGenerator.check()` | `@venizia/ignis-boot` | The generator, as a binary and as static methods |
 | `BuildInfoStamp`, `BuildInfoResolver` | `@venizia/ignis-boot/build-info` | The build stamp: baked at compile, resolved from git at start |
 | `BuildInfoRegistry`, `IBuildInfo`, `TBuildInfoRecord` | `@venizia/ignis-helpers/core` | Where a host registers its stamp at the entrypoint |
 
@@ -457,7 +457,7 @@ Deterministic: imports sorted by path, class names sorted within each field, one
 
 ## Programmatic API
 
-`@venizia/ignis-boot/generator` exports the same machinery as functions.
+`@venizia/ignis-boot/generator` exports the same machinery as static methods of `ArtifactIndexGenerator`. The old functions `generateArtifactIndex` and `checkArtifactIndex` stay exported as deprecated aliases until 0.5.
 
 ```typescript
 interface IGenerateOptions {
@@ -471,17 +471,19 @@ interface IGenerateOptions {
 // scanWithReport({ root, ignore?, sourceModules?, followReexports? }) also returns
 // skipped: Array<{ className; filePath; reason: 'abstract' | 'not-exported' | 'ignored' }> (ScanSkipReasons)
 
-const generateArtifactIndex: (opts: IGenerateOptions) => {
-  content: string;
-  artifacts: IScannedArtifact[];
-  written: boolean;
-};
+class ArtifactIndexGenerator {
+  static generate(opts: IGenerateOptions): {
+    content: string;
+    artifacts: IScannedArtifact[];
+    written: boolean;
+  };
 
-const checkArtifactIndex: (opts: IGenerateOptions) => {
-  isFresh: boolean;
-  expected: string;
-  actual: string | undefined;
-};
+  static check(opts: IGenerateOptions): {
+    isFresh: boolean;
+    expected: string;
+    actual: string | undefined;
+  };
+}
 
 interface IScannedArtifact {
   type: TArtifactType;
@@ -502,9 +504,9 @@ class ArtifactIndexEmitter {
 ```
 
 ```typescript
-import { checkArtifactIndex } from '@venizia/ignis-boot/generator';
+import { ArtifactIndexGenerator } from '@venizia/ignis-boot/generator';
 
-const { isFresh } = checkArtifactIndex({ root: 'src', out: 'src/generated/artifacts.ts' });
+const { isFresh } = ArtifactIndexGenerator.check({ root: 'src', out: 'src/generated/artifacts.ts' });
 ```
 
 ## Build stamp

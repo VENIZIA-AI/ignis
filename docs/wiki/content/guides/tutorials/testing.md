@@ -57,7 +57,7 @@ The helper runs `init()` and `initialize()`, never `start()`: no socket opens an
 | `keepDataSources` | `[]` | Datasources whose real `configure()` runs. A class, a class name or a binding key (`datasources.Main`) selects one. Close a kept one with `await application.stop()` |
 | `skipComponents` | `[]` | Components whose `configure()` (and so `binding()`) is skipped, for one that needs infrastructure. What it would have registered is not registered |
 | `skipSteps` | `['hydrateSecrets', 'wireSecretRotatables']` | Boot steps that do not run. A value replaces the default; an unknown name rejects before anything boots |
-| `verifyBindings` | `true` | After boot, resolves every service and repository with [`assertBindingsResolve`](/extensions/helpers/inversion/reference#verifying-a-container), so an injection nobody references at boot still fails. A value you pass wins over the app's own `bootChecks`, whose boot step is off for the run |
+| `verifyBindings` | `true` | After boot, resolves every service and repository with [`BindingVerifier.assertResolve`](/extensions/helpers/inversion/reference#verifying-a-container), so an injection nobody references at boot still fails. A value you pass wins over the app's own `bootChecks`, whose boot step is off for the run |
 | `skipBindings` | `[]` | Services or repositories the verification leaves out, for one whose constructor needs infrastructure. A class, a class name or a binding key. A name that matches nothing rejects |
 | `allowNoControllers` | `false` | An application that registered no controller is rejected, because an empty artifact index would otherwise pass |
 | `routes` | `true` | The helper's own check that no method and path is mounted twice. IGNIS boot does not detect that |

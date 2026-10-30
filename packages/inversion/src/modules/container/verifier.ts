@@ -46,143 +46,164 @@ interface IClassBinding {
   boundClass: () => TClass<unknown> | undefined;
 }
 
-const hasBoundClass = (binding: IBinding): binding is IBinding & IClassBinding =>
-  'boundClass' in binding && typeof binding.boundClass === 'function';
-
-const classOf = (binding: IBinding): TClass<unknown> | undefined =>
-  hasBoundClass(binding) ? binding.boundClass() : undefined;
-
-const skipName = (skip: TBindingSkip): string => (typeof skip === 'string' ? skip : skip.name);
-
-const matchesSkip = (opts: { skip: TBindingSkip; binding: IBinding }): boolean => {
-  const { skip, binding } = opts;
-  const bound = classOf(binding);
-
-  if (typeof skip === 'string') {
-    return skip === binding.key || (bound !== undefined && skip === bound.name);
+/** Resolves bindings of the given namespaces and reports what cannot resolve. */
+export class BindingVerifier {
+  private static hasBoundClass(binding: IBinding): binding is IBinding & IClassBinding {
+    return 'boundClass' in binding && typeof binding.boundClass === 'function';
   }
 
-  return bound === skip;
-};
-
-const readString = (opts: { source: unknown; name: string }): string | undefined => {
-  const { source, name } = opts;
-  if (typeof source !== 'object' || source === null || !(name in source)) {
-    return undefined;
+  private static classOf(binding: IBinding): TClass<unknown> | undefined {
+    return BindingVerifier.hasBoundClass(binding) ? binding.boundClass() : undefined;
   }
 
-  const value = Reflect.get(source, name);
-  return typeof value === 'string' ? value : undefined;
-};
+  private static skipName(skip: TBindingSkip): string {
+    return typeof skip === 'string' ? skip : skip.name;
+  }
 
-/** What a thrown value says about the thing it could not find; a constructor's own error says nothing. */
-const readMissing = (error: unknown): { missingKey?: string; unregisteredClass?: string } => {
-  const extra =
-    typeof error === 'object' && error !== null ? Reflect.get(error, 'extra') : undefined;
-  const missingKey = readString({ source: extra, name: 'unboundKey' });
-  const unregisteredClass = readString({ source: extra, name: 'unregisteredClass' });
+  private static matchesSkip(opts: { skip: TBindingSkip; binding: IBinding }): boolean {
+    const { skip, binding } = opts;
+    const bound = BindingVerifier.classOf(binding);
 
-  return {
-    ...(missingKey === undefined ? {} : { missingKey }),
-    ...(unregisteredClass === undefined ? {} : { unregisteredClass }),
-  };
-};
+    if (typeof skip === 'string') {
+      return skip === binding.key || (bound !== undefined && skip === bound.name);
+    }
 
-/**
- * Resolves every binding of the given namespaces once and reports every failure, instead of stopping
- * at the first. It changes nothing in the container. A failed binding is a result, never a throw:
- * `assertBindingsResolve` is the throwing form.
- */
-export const verifyBindings = (opts: IVerifyBindingsOptions): IBindingVerification => {
-  const { container, namespaces, skip = [] } = opts;
+    return bound === skip;
+  }
 
-  const enumerated = new Map<string, IBinding>();
-  for (const namespace of namespaces) {
-    for (const binding of container.findByTag({ tag: namespace })) {
-      if (!enumerated.has(binding.key)) {
-        enumerated.set(binding.key, binding);
+  private static readString(opts: { source: unknown; name: string }): string | undefined {
+    const { source, name } = opts;
+    if (typeof source !== 'object' || source === null || !(name in source)) {
+      return undefined;
+    }
+
+    const value = Reflect.get(source, name);
+    return typeof value === 'string' ? value : undefined;
+  }
+
+  /** What a thrown value says about the thing it could not find; a constructor's own error says nothing. */
+  private static readMissing(error: unknown): { missingKey?: string; unregisteredClass?: string } {
+    const extra =
+      typeof error === 'object' && error !== null ? Reflect.get(error, 'extra') : undefined;
+    const missingKey = BindingVerifier.readString({ source: extra, name: 'unboundKey' });
+    const unregisteredClass = BindingVerifier.readString({
+      source: extra,
+      name: 'unregisteredClass',
+    });
+
+    return {
+      ...(missingKey === undefined ? {} : { missingKey }),
+      ...(unregisteredClass === undefined ? {} : { unregisteredClass }),
+    };
+  }
+
+  /**
+   * Resolves every binding of the given namespaces once and reports every failure, instead of stopping
+   * at the first. It changes nothing in the container. A failed binding is a result, never a throw:
+   * `assertResolve` is the throwing form.
+   */
+  static verify(opts: IVerifyBindingsOptions): IBindingVerification {
+    const { container, namespaces, skip = [] } = opts;
+
+    const enumerated = new Map<string, IBinding>();
+    for (const namespace of namespaces) {
+      for (const binding of container.findByTag({ tag: namespace })) {
+        if (!enumerated.has(binding.key)) {
+          enumerated.set(binding.key, binding);
+        }
       }
     }
+
+    const matched = new Set<TBindingSkip>();
+    const verified: string[] = [];
+    const failures: IBindingFailure[] = [];
+
+    for (const binding of enumerated.values()) {
+      const skipped = skip.filter((candidate) =>
+        BindingVerifier.matchesSkip({ skip: candidate, binding }),
+      );
+      for (const candidate of skipped) {
+        matched.add(candidate);
+      }
+
+      if (skipped.length > 0) {
+        continue;
+      }
+
+      try {
+        container.get({ key: binding.key });
+        verified.push(binding.key);
+      } catch (error) {
+        failures.push({
+          key: binding.key,
+          message: error instanceof Error ? error.message : String(error),
+          ...BindingVerifier.readMissing(error),
+          error,
+        });
+      }
+    }
+
+    return {
+      verified,
+      failures,
+      unmatchedSkips: skip.filter((candidate) => !matched.has(candidate)),
+    };
   }
 
-  const matched = new Set<TBindingSkip>();
-  const verified: string[] = [];
-  const failures: IBindingFailure[] = [];
+  /**
+   * `verify`, and one `ApplicationError` when a binding failed or a skip matched nothing: the
+   * message lists `<key>: <message>` per failure, `extra.missing` maps each missing key or class name
+   * to the bindings that needed it.
+   */
+  static assertResolve(opts: IVerifyBindingsOptions & { scope: string }): IBindingVerification {
+    const { scope, ...rest } = opts;
+    const result = BindingVerifier.verify(rest);
 
-  for (const binding of enumerated.values()) {
-    const skipped = skip.filter((candidate) => matchesSkip({ skip: candidate, binding }));
-    for (const candidate of skipped) {
-      matched.add(candidate);
+    if (result.failures.length === 0 && result.unmatchedSkips.length === 0) {
+      return result;
     }
 
-    if (skipped.length > 0) {
-      continue;
+    const parts = [
+      ...result.failures.map((failure) => `${failure.key}: ${failure.message}`),
+      ...result.unmatchedSkips.map(
+        (skip) => `skip matched no binding: ${BindingVerifier.skipName(skip)}`,
+      ),
+    ];
+
+    const missing: Record<string, string[]> = {};
+    for (const failure of result.failures) {
+      const what = failure.missingKey ?? failure.unregisteredClass;
+      if (what !== undefined) {
+        missing[what] = [...(missing[what] ?? []), failure.key];
+      }
     }
 
-    try {
-      container.get({ key: binding.key });
-      verified.push(binding.key);
-    } catch (error) {
-      failures.push({
-        key: binding.key,
-        message: error instanceof Error ? error.message : String(error),
-        ...readMissing(error),
-        error,
-      });
-    }
+    const header =
+      result.failures.length > 0
+        ? `[${scope}] ${result.failures.length} binding(s) cannot be resolved | `
+        : `[${scope}] `;
+
+    throw getError({
+      message: `${header}${parts.join(' | ')}`,
+      extra: {
+        failures: result.failures.map(({ key, message, missingKey, unregisteredClass }) => ({
+          key,
+          message,
+          ...(missingKey === undefined ? {} : { missingKey }),
+          ...(unregisteredClass === undefined ? {} : { unregisteredClass }),
+        })),
+        missing,
+        unmatchedSkips: result.unmatchedSkips.map(BindingVerifier.skipName),
+      },
+    });
   }
+}
 
-  return {
-    verified,
-    failures,
-    unmatchedSkips: skip.filter((candidate) => !matched.has(candidate)),
-  };
-};
+/** @deprecated Use BindingVerifier.verify({ container, namespaces, skip }). Removed in 0.5. */
+export const verifyBindings = (opts: IVerifyBindingsOptions): IBindingVerification =>
+  BindingVerifier.verify(opts);
 
-/**
- * `verifyBindings`, and one `ApplicationError` when a binding failed or a skip matched nothing: the
- * message lists `<key>: <message>` per failure, `extra.missing` maps each missing key or class name to
- * the bindings that needed it.
- */
+/** @deprecated Use BindingVerifier.assertResolve({ container, namespaces, skip, scope }). Removed in 0.5. */
 export const assertBindingsResolve = (
   opts: IVerifyBindingsOptions & { scope: string },
-): IBindingVerification => {
-  const { scope, ...rest } = opts;
-  const result = verifyBindings(rest);
-
-  if (result.failures.length === 0 && result.unmatchedSkips.length === 0) {
-    return result;
-  }
-
-  const parts = [
-    ...result.failures.map((failure) => `${failure.key}: ${failure.message}`),
-    ...result.unmatchedSkips.map((skip) => `skip matched no binding: ${skipName(skip)}`),
-  ];
-
-  const missing: Record<string, string[]> = {};
-  for (const failure of result.failures) {
-    const what = failure.missingKey ?? failure.unregisteredClass;
-    if (what !== undefined) {
-      missing[what] = [...(missing[what] ?? []), failure.key];
-    }
-  }
-
-  const header =
-    result.failures.length > 0
-      ? `[${scope}] ${result.failures.length} binding(s) cannot be resolved | `
-      : `[${scope}] `;
-
-  throw getError({
-    message: `${header}${parts.join(' | ')}`,
-    extra: {
-      failures: result.failures.map(({ key, message, missingKey, unregisteredClass }) => ({
-        key,
-        message,
-        ...(missingKey === undefined ? {} : { missingKey }),
-        ...(unregisteredClass === undefined ? {} : { unregisteredClass }),
-      })),
-      missing,
-      unmatchedSkips: result.unmatchedSkips.map(skipName),
-    },
-  });
-};
+): IBindingVerification => BindingVerifier.assertResolve(opts);

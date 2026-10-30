@@ -11,7 +11,7 @@ Exhaustive reference for every utility type, resolver function, and constant cla
 **Files:**
 
 - [`packages/helpers/src/common/types/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/types) - utility, class, const-value, resolver, field-mapping, and injection types
-- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `resolveValue`, `resolveValueAsync`, `resolveClass`
+- [`packages/helpers/src/common/resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) - `ResolverUtility` (from inversion), `resolveClass`
 - [`packages/helpers/src/common/constants/app.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/app.ts) - `Defaults`, `RuntimeModules`, `DataTypes`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP`
 - [`packages/helpers/src/common/constants/grpc.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/grpc.ts) - `GRPC`
@@ -82,8 +82,8 @@ import type {
 // isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
 import { isClass } from '@venizia/ignis-helpers';
 
-// Resolver functions
-import { resolveValue, resolveValueAsync, resolveClass } from '@venizia/ignis-helpers';
+// Resolvers (resolveValue and resolveValueAsync stay exported as deprecated aliases until 0.5)
+import { ResolverUtility, resolveClass } from '@venizia/ignis-helpers';
 
 // Constants
 import {
@@ -194,7 +194,7 @@ function MyMixin<T extends TMixinTarget<BaseClass>>(Base: T) {
 const isClass: <T>(target: any) => target is TClass<T>;
 ```
 
-Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `resolveValue`/`resolveValueAsync`/`resolveClass` all branch on it.
+Declared in `@venizia/ignis-inversion` and re-exported by `helpers`. It's the single predicate that tells a constructor from a resolver function. Controller factories and `ResolverUtility.resolveValue`/`ResolverUtility.resolveValueAsync`/`resolveClass` all branch on it.
 
 - **Filters to functions with a `prototype`** - true of every non-arrow function, so this alone is not sufficient.
 - **Decompiles the function via `Function.prototype.toString`** and regex-tests that the source text literally starts with the `class` keyword.
@@ -263,15 +263,15 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 | `TValueOrResolver<T>` | `T \| TResolver<T>` | Config options that accept an eager value or a sync resolver |
 | `TValueOrAsyncResolver<T>` | `T \| TAsyncResolver<T>` | Config options that accept an eager value or a sync/async resolver |
 
-### resolveValue
+### ResolverUtility.resolveValue
 
-`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `resolveClass`)
+`Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `ResolverUtility.resolveValueAsync`, `resolveClass`)
 
 ```typescript
-const resolveValue: <T>(opts: { value: TValueOrResolver<T> }) => T;
+ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value.
+Synchronously resolves a lazy value. The free function `resolveValue({ value })` stays as a deprecated alias of this method until 0.5, and so does `resolveValueAsync`.
 
 | Input | Result |
 |---|---|
@@ -279,13 +279,13 @@ Synchronously resolves a lazy value.
 | Class constructor | Returned as-is - detected via `isClass()`, never invoked |
 | Resolver function | Invoked; the return value is returned |
 
-### resolveValueAsync
+### ResolverUtility.resolveValueAsync
 
 ```typescript
-const resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T> }) => Promise<T>;
+ResolverUtility.resolveValueAsync<T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T>;
 ```
 
-Async version of `resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
+Async version of `ResolverUtility.resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
 
 ### resolveClass
 
@@ -306,7 +306,7 @@ Resolves lazy class references.
 ### Resolution example
 
 ```typescript
-import { TValueOrAsyncResolver, resolveValueAsync } from '@venizia/ignis-helpers';
+import { TValueOrAsyncResolver, ResolverUtility } from '@venizia/ignis-helpers';
 
 interface DatabaseConfig {
   host: string;
@@ -328,7 +328,7 @@ const config3: ConfigOption = async () => {
 };
 
 // Resolve any of the above uniformly
-const resolved = await resolveValueAsync({ value: config3 });
+const resolved = await ResolverUtility.resolveValueAsync({ value: config3 });
 ```
 
 ## Field Mapping Types

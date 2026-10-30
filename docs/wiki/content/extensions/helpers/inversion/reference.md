@@ -41,8 +41,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 ```typescript
 import {
   Container,
-  assertBindingsResolve,
-  verifyBindings,
+  BindingVerifier,
   Binding,
   MetadataRegistry,
   metadataRegistry,
@@ -401,12 +400,12 @@ const filtered = container.findByTag({ tag: 'services', exclude: ['services.Inte
 
 ## Verifying a Container
 
-`verifyBindings` resolves every binding of the namespaces you name, collects every failure and returns them. `assertBindingsResolve` does the same and throws one error. Both are plain functions exported from `@venizia/ignis-inversion`:
+`BindingVerifier.verify` resolves every binding of the namespaces you name, collects every failure and returns them. `BindingVerifier.assertResolve` does the same and throws one error. Both are static methods of `BindingVerifier`, exported from `@venizia/ignis-inversion`. The old functions `verifyBindings` and `assertBindingsResolve` stay exported as deprecated aliases until 0.5.
 
 ```typescript
-import { assertBindingsResolve, verifyBindings } from '@venizia/ignis-inversion';
+import { BindingVerifier } from '@venizia/ignis-inversion';
 
-const result = verifyBindings({
+const result = BindingVerifier.verify({
   container,
   namespaces: ['services', 'repositories'],
   skip: [LegacyMailer, 'services.Metrics'],
@@ -416,7 +415,7 @@ result.verified; // keys that resolved
 result.failures; // [{ key, message, missingKey?, unregisteredClass?, error }]
 result.unmatchedSkips; // skip entries that matched no binding
 
-assertBindingsResolve({ container, namespaces: ['services'], scope: 'startup' });
+BindingVerifier.assertResolve({ container, namespaces: ['services'], scope: 'startup' });
 ```
 
 | Option | Required | Meaning |
@@ -424,11 +423,11 @@ assertBindingsResolve({ container, namespaces: ['services'], scope: 'startup' })
 | `container` | yes | The container to verify |
 | `namespaces` | yes | A binding is in a namespace when its key is `<namespace>.<name>`: `Binding` tags it with that first segment. A namespace that holds a dot is not supported |
 | `skip` | no | Bindings left unresolved: a class (exact, not a subclass), a class name or a binding key. A string that equals the class name of several bindings skips them all |
-| `scope` | `assertBindingsResolve` only | The bracket label of the error message |
+| `scope` | `assertResolve` only | The bracket label of the error message |
 
 A failure names the binding that could not resolve (`key`, who needs the missing thing) and what is missing: `missingKey` for an injected key nobody bound, `unregisteredClass` for an injected class nobody registered. A constructor that throws its own error carries neither. `error` is the thrown object, unchanged.
 
-`assertBindingsResolve` throws when a binding failed or a `skip` entry matched nothing (a typo must not skip silently):
+`BindingVerifier.assertResolve` throws when a binding failed or a `skip` entry matched nothing (a typo must not skip silently):
 
 ```text
 [startup] 1 binding(s) cannot be resolved | services.Invoice: Binding key: services.Tax is not bounded in context!

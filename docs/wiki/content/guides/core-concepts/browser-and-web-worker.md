@@ -17,7 +17,7 @@ A worker entry built from the worker and kernel packages builds to about 680 kB 
 | `@venizia/ignis-inversion` | Root |
 | `@venizia/ignis-filter` | Root and `/schemas` |
 | `@venizia/ignis-kernel` | Root, `/metadata`, `/repository` |
-| `@venizia/ignis-worker` | Root (`WorkerApplication`, `installBffFetch`, `SharedBffTransport`) |
+| `@venizia/ignis-worker` | Root (`WorkerApplication`, `BffFetchBridge`, `SharedBffTransport`) |
 | `@venizia/ignis-connectors` | Everything except the engine clients (a database driver opens a socket) |
 | `@venizia/ignis-helpers` | `/core`, `/common`, `/uuid`, `/temporal`, `/socket-io/client` only |
 
@@ -41,14 +41,14 @@ The worker entry imports only the worker and kernel packages:
 ```typescript
 // src/worker.ts
 import {
+  BffFetchBridge,
   type IBffTransport,
-  installBffFetch,
   SharedBffTransport,
   WorkerApplication,
 } from '@venizia/ignis-worker';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 
-export { installBffFetch, SharedBffTransport, WorkerApplication };
+export { BffFetchBridge, SharedBffTransport, WorkerApplication };
 export type { IApplicationInfo, IBffTransport };
 ```
 
@@ -79,8 +79,8 @@ export default defineConfig({
 
 Run `vite build`. Point `lib.entry` at `src/main.ts` for the main-thread entry. Neither entry produces a `node:` import.
 
-> [!NOTE] Install `installBffFetch` before the application boots
-> `installBffFetch` answers the page's global `fetch` for requests under its `basePath`. A request sent before it is installed leaves the page and 404s against whatever serves it.
+> [!NOTE] Install `BffFetchBridge` before the application boots
+> `BffFetchBridge.install({ transport, basePath })` answers the page's global `fetch` for requests under its `basePath` and returns the uninstall function. A request sent before it is installed leaves the page and 404s against whatever serves it. The old function `installBffFetch` stays exported as a deprecated alias until 0.5.
 
 ## When `define: { global: 'globalThis' }` helps
 

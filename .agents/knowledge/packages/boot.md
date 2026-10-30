@@ -48,7 +48,7 @@ file emitter were removed, see [Build stamp](#build-stamp).
   from `@venizia/ignis-helpers/core` (`TBuildInfoRecord`, `BuildInfoRegistry.UNSPECIFIED`).
 - `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).
 - `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
-- `src/generator/index.ts` - `generateArtifactIndex`, `checkArtifactIndex`, `IGenerateOptions`.
+- `src/generator/generator.ts` - `ArtifactIndexGenerator.generate`, `ArtifactIndexGenerator.check`, `IGenerateOptions`; `src/generator/index.ts` keeps the `@deprecated` aliases `generateArtifactIndex` and `checkArtifactIndex` until 0.5.
 - `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
   `DEFAULT_IGNORE`, `EMIT_ORDER`, with `SCHEME_SET`/`isValid`), `IScannedArtifact`, `IScanOptions`.
 
@@ -83,7 +83,7 @@ the repo's `bun fmt --check` untouched. No IGNIS import in the file - the object
 The first line of a generated index is `ArtifactIndexEmitter.renderHeader(...)`, which wraps
 `renderCommand({ root, out, ignore, exportName, sourceModules })`: the flags the CLI actually received,
 `--ignore` only when non-empty, `--export` only when the name is not `GeneratedArtifacts`, one
-`--source-module` per entry. `check`'s stale message prints the same `renderCommand`. `ignis-artifacts check` compares only the body below that line (`checkArtifactIndex`), so a flag
+`--source-module` per entry. `check`'s stale message prints the same `renderCommand`. `ignis-artifacts check` compares only the body below that line (`ArtifactIndexGenerator.check`), so a flag
 change alone never reads as drift; `generate` still rewrites the file when the header differs.
 
 ## Build stamp

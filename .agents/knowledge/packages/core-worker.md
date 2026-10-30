@@ -12,7 +12,7 @@ tags: [packages, core-worker, browser, bff, worker, isomorphic]
 - [The package is small on purpose](#the-package-is-small-on-purpose)
 - [The HTTP contract is the seam](#the-http-contract-is-the-seam)
 - [`SharedBffTransport` - one Worker per origin, not per tab](#sharedbfftransport---one-worker-per-origin-not-per-tab)
-- [`installBffFetch` - the seam that makes the swap invisible](#installbfffetch---the-seam-that-makes-the-swap-invisible)
+- [`BffFetchBridge.install` - the seam that makes the swap invisible](#bfffetchbridgeinstall---the-seam-that-makes-the-swap-invisible)
 - [`listen()` and what it registers](#listen-and-what-it-registers)
 - [Browser purity is enforced by ESLint, not by tsc](#browser-purity-is-enforced-by-eslint-not-by-tsc)
 - [Testing without a browser](#testing-without-a-browser)
@@ -51,7 +51,7 @@ Eighteen source files, three subsystems, one export entry.
 |---|---|
 | `applications/` | `WorkerApplication` - extends the kernel's `RestApplication`, adds `listen()` and `stop()` |
 | `envelope/` | `BffEnvelope` - `encodeRequest`/`decodeRequest`, `encodeResponse`/`decodeResponse`, `encodeError`/`decodeError`, `toSyntheticUrl` - plus `BFF_SYNTHETIC_ORIGIN` and the envelope types |
-| `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `installBffFetch` |
+| `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `BffFetchBridge` (`installBffFetch` is its deprecated alias) |
 
 Everything else comes from the kernel. `hono` and `@hono/zod-openapi` are the only peers.
 
@@ -114,11 +114,13 @@ Bun has `BroadcastChannel` but no `navigator.locks`, so
 `src/__tests__/shared-transport.test.ts` drives a `LockManagerStub` - without it every test would
 take the single-tab branch, which is the one branch the suite is not about.
 
-## `installBffFetch` - the seam that makes the swap invisible
+## `BffFetchBridge.install` - the seam that makes the swap invisible
 
 ```ts
-installBffFetch({ transport: bff, basePath: '/api' });
+BffFetchBridge.install({ transport: bff, basePath: '/api' });
 ```
+
+The free function `installBffFetch` is a `@deprecated` alias of it until 0.5.
 
 Routes the page's own `fetch` into a transport for anything under `basePath`, and leaves every other
 call on the network. It returns an uninstall function, and refuses a second install rather than

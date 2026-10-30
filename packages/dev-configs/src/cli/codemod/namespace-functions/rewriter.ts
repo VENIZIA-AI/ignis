@@ -552,6 +552,10 @@ export class NamespaceFunctions {
     const { params, restKey, oldName } = mapping;
     const count = call.arguments.length;
 
+    if (mapping.keepsOptions) {
+      return undefined;
+    }
+
     if (call.arguments.some((argument) => typescript.isSpreadElement(argument))) {
       return `this call of \`${oldName}\` has a spread argument`;
     }
@@ -591,6 +595,10 @@ export class NamespaceFunctions {
         end: call.questionDotToken.end,
         text: '',
       });
+    }
+
+    if (mapping.keepsOptions) {
+      return edits;
     }
 
     const argumentList = [...call.arguments];

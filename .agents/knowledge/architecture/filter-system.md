@@ -22,7 +22,7 @@ A filter is a plain options object: `{ where, order, limit, offset, skip, fields
 
 The vocabulary is also **browser-safe**, and that is enforced rather than assumed - centrally, not per package. `devz check purity` (the engine in `packages/dev-configs/src/checks/purity/`; this repository owns only the claims in `scripts/checks/purity/manifest.ts`) bundles each claimed package's built `dist` entry with `bun build --target=browser` and fails on any leftover node builtin import, any unresolved external import, or any node global (`process.`, `__dirname`, `__filename`, `createRequire(`) surviving in the bundled text. `make purity` checks every entry in the manifest, `make purity-filter` only this package.
 
-The zod schemas that validate a filter arriving over HTTP come in two layers. `packages/filter/src/schemas/builder.ts` builds them with plain `zod`, so a browser can use them; `packages/kernel/src/base/repositories/query-schemas/index.ts` calls `buildQuerySchemas({ decorate })` to add the `@hono/zod-openapi` documentation metadata - a server concern, and the load-bearing side-effect `import '@hono/zod-openapi'` that patches `.openapi()` onto the shared prototype sits in that kernel file. The repository base classes live in the browser-pure `@venizia/ignis-kernel` package, not in `core/src/base/repositories/`, and kernel re-exports the filter package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
+The zod schemas that validate a filter arriving over HTTP come in two layers. `packages/filter/src/schemas/builder.ts` builds them with plain `zod`, so a browser can use them; `packages/kernel/src/base/repositories/query-schemas/index.ts` calls `QuerySchemaFactory.build({ decorate })` to add the `@hono/zod-openapi` documentation metadata - a server concern, and the load-bearing side-effect `import '@hono/zod-openapi'` that patches `.openapi()` onto the shared prototype sits in that kernel file. The repository base classes live in the browser-pure `@venizia/ignis-kernel` package, not in `core/src/base/repositories/`, and kernel re-exports the filter package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
 
 ## Operators
 
@@ -44,7 +44,7 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 ## Order entries share one parser
 
 Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
-`parseOrderEntry` (`packages/filter/src/common/order.ts`), a single exported function replacing three
+`Sorts.parseEntry` (`packages/filter/src/common/operators.ts`; the free function `parseOrderEntry` in `order.ts` is a `@deprecated` alias until 0.5), a single static method replacing three
 private copies of the same `entry.trim().split(/\s+/)` logic (V-C-16). It returns `TParsedOrderEntry`
 (`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
 
@@ -76,7 +76,7 @@ not the bytes. The map is **cleared**, not LRU-evicted, once full: deleting from
 `Map` measured slower than accepting one more parse on the next miss. An entry is cached as soon as
 its tokens parse and it fits the length bound - before the column or expression it names is looked
 up - so an entry naming an unknown column is cached too, as long as it is 256 characters or fewer;
-only a value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens)
+only a value `Sorts.parseEntry` itself rejects (empty field, invalid direction, more than two tokens)
 is never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
 this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
 the cache.
@@ -138,7 +138,7 @@ Any `where` key containing `.` or `[` is treated as a JSON path (`isJsonPath`). 
 2. **Path components are validated.** `JSON_PATH_PATTERN` allows identifiers, kebab-case, and array indices; anything else throws. This is what keeps a caller-supplied path out of the generated SQL as an injection vector.
 3. **Where extraction is text, numeric operands need a cast.** Postgres `#>>` yields text; comparing it to a number without a cast produces `operator does not exist: text = integer`. `jsonNeedsNumericCast()` decides this from the operand: true for any numeric comparison (`gt`/`gte`/`lt`/`lte`/`between`/`notBetween` with numbers), and true for `eq`/`ne`/`neq` with a number operand or `in`/`inq`/`nin` with an all-number array. A mixed-type array is *not* cast. It only picks between the two extractions the engine passed in, so `SqliteFilterBuilder` returns `false` and `json_extract` stays cast-free - including under `not`, which routes through the same predicate rather than testing `typeof` itself.
 4. **The column renders through the Drizzle column object, not a hand-quoted name.** `buildJsonWhereCondition`/`buildJsonOrderBy` build one flat `sql.fromList([...])` node - the Drizzle column chunk plus `StringChunk`s for the operator, path and (on Postgres) the cast guard - rather than a nested `sql\`...\`` template, because every nested `SQL` level costs a render pass. The column chunk is qualified with the table - or the query alias, on an included relation - exactly like a plain key. Only the path (`'{"a","b"}'`, `'$."a"."b"'`) stays raw text - Postgres quotes every element, because an unquoted `NULL` element is SQL NULL, built only from segments `validateJsonPathComponents` already passed. A test asserting the exact rendered SQL string sees the qualifier too.
-5. **A rejected key is escaped in the error message.** `Column NOT FOUND`, `Invalid JSON path component` and the search `Field NOT FOUND` quote the key through the internal `toSafeEcho` (connectors `common/internal`); `parseOrderEntry` escapes on top of `JSON.stringify`. C0, DEL, C1, U+2028 and U+2029 become `\uXXXX`, so a crafted key cannot split a log line.
+5. **A rejected key is escaped in the error message.** `Column NOT FOUND`, `Invalid JSON path component` and the search `Field NOT FOUND` quote the key through the internal `toSafeEcho` (connectors `common/internal`); `Sorts.parseEntry` escapes on top of `JSON.stringify`. C0, DEL, C1, U+2028 and U+2029 become `\uXXXX`, so a crafted key cannot split a log line.
 
 As of 2026-09-26, one layer up from these catches typos before the query ever runs:
 `TJsonPathKey<T>` in [filter](/packages/filter.md) type-checks the column part of a JSON-path key
