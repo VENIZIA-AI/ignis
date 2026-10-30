@@ -300,7 +300,8 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', source);
     commit();
 
-    expect(await code(['--write'])).toBe(0);
+    const result = await code(['--write']);
+    expect(result).toBe(0);
     expect(read('src/a.ts')).toContain(directive);
     expect(read('src/a.ts')).toContain('return f();');
   });
