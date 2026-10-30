@@ -5,8 +5,10 @@ import { reactNamingConventionConfigs } from '../react-eslint';
 import { HOUSE_PLUGIN_NAMESPACE } from './common';
 import { ConstClassValuesRule } from './const-class-values.rule';
 import { MaxParamsOwnRule } from './max-params-own.rule';
+import { NoInlineAwaitRule } from './no-inline-await.rule';
 import { NoLeakedRenderRule } from './no-leaked-render.rule';
 import { NoNewErrorRule } from './no-new-error.rule';
+import { NoReturnAwaitRule } from './no-return-await.rule';
 import { houseEslintPlugin } from './plugin';
 
 const SOURCE_FILES = ['**/*.{ts,tsx,mts,cts}'];
@@ -78,4 +80,26 @@ export const reactHouseConfigs: Linter.Config[] = [
   ...reactNamingConventionConfigs,
   ...houseRuleConfigs,
   ...reactRuleConfigs,
+];
+
+/**
+ * The async style rules, opt-in until every Venizia repository has been swept (the owner's rollout: the option in
+ * one release, the default in the next). Spread it next to `houseConfigs`:
+ *
+ * ```js
+ * export default [...houseConfigs, ...asyncStyleConfigs];
+ * ```
+ *
+ * `await` stands alone as a statement or as the whole initializer of a declaration (`no-inline-await`), and a
+ * function returns the promise instead of `return await` (`no-return-await`). They apply to test files too.
+ */
+export const asyncStyleConfigs: Linter.Config[] = [
+  {
+    files: SOURCE_FILES,
+    plugins: { [HOUSE_PLUGIN_NAMESPACE]: houseEslintPlugin },
+    rules: {
+      [NoInlineAwaitRule.NAME]: NoInlineAwaitRule.build(),
+      [NoReturnAwaitRule.NAME]: NoReturnAwaitRule.build(),
+    },
+  },
 ];
