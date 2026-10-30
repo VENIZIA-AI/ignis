@@ -41,12 +41,7 @@ import {
 } from 'drizzle-orm';
 import type { TRelationConfig, TTableColumns } from '../common';
 import { ScopeFilterDenial, TableColumnCache } from '../common';
-import {
-  isJsonPath,
-  parseJsonPath,
-  validateJsonColumnType,
-  validateJsonPathComponents,
-} from './internal';
+import { JsonPathUtility } from './internal';
 
 /** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
 /** What one registry lookup yields - named so the three setting readers can accept an already-resolved entry instead of each repeating the lookup. */
@@ -467,7 +462,7 @@ export abstract class FilterBuilder extends BaseHelper {
       return condition ? [condition] : [];
     }
 
-    if (isJsonPath({ key })) {
+    if (JsonPathUtility.isJsonPath({ key })) {
       return this.buildJsonWhereCondition({ key, value, columns, tableName });
     }
 
@@ -516,7 +511,7 @@ export abstract class FilterBuilder extends BaseHelper {
         continue;
       }
 
-      if (isJsonPath({ key })) {
+      if (JsonPathUtility.isJsonPath({ key })) {
         orderBy.push(this.buildJsonOrderBy({ key, direction, columns, tableName }));
         continue;
       }
@@ -815,7 +810,7 @@ export abstract class FilterBuilder extends BaseHelper {
   }): { column: TTableColumns[string]; path: string[] } {
     const { key, columns, tableName, methodName } = opts;
 
-    const parsed = parseJsonPath({ key });
+    const parsed = JsonPathUtility.parseJsonPath({ key });
 
     const column = columns[parsed.columnName];
     if (!column) {
@@ -824,14 +819,14 @@ export abstract class FilterBuilder extends BaseHelper {
       });
     }
 
-    validateJsonColumnType({
+    JsonPathUtility.validateJsonColumnType({
       column,
       columnName: parsed.columnName,
       tableName,
       methodName: `FilterBuilder.${methodName}`,
     });
 
-    validateJsonPathComponents({
+    JsonPathUtility.validateJsonPathComponents({
       path: parsed.path,
       tableName,
       methodName: `FilterBuilder.${methodName}`,

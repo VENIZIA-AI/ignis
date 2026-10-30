@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 
 import type { TSearchDocument } from '@/search/core/models';
-import { defineSearchCollection, deriveSearchDocumentSchema, field } from '@/search/core/models';
+import { SearchCollectionFactory, field } from '@/search/core/models';
 
 /** Compile-time document-type inference: `tsc --noEmit` is the real gate here - a misused `@ts-expect-error` fails the build, not `bun test`. */
-const collection = defineSearchCollection({
+const collection = SearchCollectionFactory.define({
   name: 'products',
   fields: [
     field.id(),
@@ -55,7 +55,10 @@ describe('TSearchDocument', () => {
   });
 
   test('runtime sanity: the zod schema derived from the same collection accepts a value matching TProductDocument', () => {
-    const schema = deriveSearchDocumentSchema({ definition: collection, type: 'select' });
+    const schema = SearchCollectionFactory.deriveDocumentSchema({
+      definition: collection,
+      type: 'select',
+    });
 
     const value: TProductDocument = { id: '1', title: 'Widget', price: 9.99, location: [1, 2] };
     const result = schema.safeParse(value);
@@ -65,7 +68,7 @@ describe('TSearchDocument', () => {
 });
 
 // engineOverrides has both known engine keys and an index signature for arbitrary ones - both must compile without breaking TSearchDocument.
-const collectionWithEngineOverrides = defineSearchCollection({
+const collectionWithEngineOverrides = SearchCollectionFactory.define({
   name: 'products-with-overrides',
   fields: [field.id(), field.string('title'), field.number('price')],
   engineOverrides: {
@@ -88,7 +91,7 @@ describe('engineOverrides - open index signature (H1)', () => {
 });
 
 // A client-provided vector field (no `embed`) participates in the document shape as `number[]`.
-const collectionWithClientVector = defineSearchCollection({
+const collectionWithClientVector = SearchCollectionFactory.define({
   name: 'products-with-vector',
   fields: [
     field.id(),
@@ -123,7 +126,7 @@ describe('TSearchDocument - client-provided vector field', () => {
 });
 
 // A server auto-embedded vector field (`embed` set) is Typesense-generated, so it must be entirely absent from the compile-time document shape, not merely optional.
-const collectionWithAutoEmbedVector = defineSearchCollection({
+const collectionWithAutoEmbedVector = SearchCollectionFactory.define({
   name: 'products-with-auto-embed',
   fields: [
     field.id(),

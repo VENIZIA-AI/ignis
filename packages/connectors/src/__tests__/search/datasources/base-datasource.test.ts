@@ -12,7 +12,7 @@ import { type ISearchDataSourceOptions } from '@/search/core/datasources';
 import { BasePostgresEntity } from '@/relational/postgres/models';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   type ISearchCollectionDefinition,
 } from '@/search/core/models';
@@ -60,7 +60,7 @@ class ProvisionDataSource extends FakeSearchDataSource {}
 describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
   @model({ type: 'entity' })
   class ProductDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title', { searchable: true })],
     });
@@ -68,7 +68,7 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
 
   @model({ type: 'entity' })
   class CategoryDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'categories',
       fields: [field.string('title', { searchable: true })],
     });
@@ -83,7 +83,7 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
   @model({ type: 'entity' })
   class DualEntity extends BasePostgresEntity {
     static override schema = dualTable;
-    static searchCollection = defineSearchCollection({
+    static searchCollection = SearchCollectionFactory.define({
       name: 'dual-entity-search-name',
       fields: [field.string('title')],
     });
@@ -157,7 +157,7 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
 describe('BaseSearchDataSource - provisionCollections', () => {
   @model({ type: 'entity' })
   class WidgetDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'widgets',
       fields: [field.string('title', { searchable: true })],
     });
@@ -165,7 +165,7 @@ describe('BaseSearchDataSource - provisionCollections', () => {
 
   @model({ type: 'entity' })
   class GadgetDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'gadgets',
       fields: [field.string('title', { searchable: true })],
     });
@@ -219,7 +219,7 @@ describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
 
   @model({ type: 'entity' })
   class LampDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'lamps',
       fields: [field.string('title', { searchable: true })],
     });
@@ -309,7 +309,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
 
   @model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
   class SecretDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'secret-collection',
       fields: [field.string('title'), field.string('secret')],
     });
@@ -369,7 +369,7 @@ describe('BaseSearchDataSource - duplicate collection name (loud, not silent las
 
   @model({ type: 'entity' })
   class FirstDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'shared-collection-name',
       fields: [field.string('title')],
     });
@@ -377,7 +377,7 @@ describe('BaseSearchDataSource - duplicate collection name (loud, not silent las
 
   @model({ type: 'entity' })
   class SecondDocument extends BaseSearchEntity {
-    static override schema = defineSearchCollection({
+    static override schema = SearchCollectionFactory.define({
       name: 'shared-collection-name',
       fields: [field.string('title')],
     });

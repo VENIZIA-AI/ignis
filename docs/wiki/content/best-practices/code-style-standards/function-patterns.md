@@ -75,14 +75,14 @@ Use consistent prefixes based on function purpose:
 
 | Prefix | Purpose | Examples |
 |--------|---------|----------|
-| `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
+| `generate*` | Create column definitions / schemas | `PostgresIdEnricher.generateColumnDefs()`, `PostgresTzEnricher.generateColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
 | `is*` | Boolean validation/check | `isApplicationError()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
 | `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
 | `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
-| `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
+| `enrich*` | Enhance with additional data | `PostgresUserAuditEnricher.enrich()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
 | `resolve*` | Determine/compute value | `resolveValue()`, `resolveClass()` |
 
@@ -99,8 +99,8 @@ each caller writing its own error message is how one condition ends up with four
 
 ```typescript
 // Generators - create schema definitions
-const idCols = generateIdColumnDefs({ id: { dataType: 'string' } });
-const tzCols = generateTzColumnDefs();
+const idCols = PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } });
+const tzCols = PostgresTzEnricher.generateColumnDefs();
 
 // Builders - construct complex query objects
 const condition = buildValueCondition(column, value);

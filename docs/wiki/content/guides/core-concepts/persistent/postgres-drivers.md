@@ -26,7 +26,7 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 | `@venizia/ignis/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
 | `@venizia/ignis/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
 | `@venizia/ignis/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
-| `@venizia/ignis/postgres/supabase` | `PoolerModes`, `buildPostgresJsOptions`, `withAuthContext`, Supabase role re-exports | `drizzle-orm/supabase` |
+| `@venizia/ignis/postgres/supabase` | `PoolerModes`, `SupabasePooler`, `SupabaseRls`, Supabase role re-exports | `drizzle-orm/supabase` |
 
 ## Naming the Driver Class
 
@@ -154,20 +154,20 @@ Supabase exposes three ways in, and one of them silently breaks prepared stateme
 | `PoolerModes.SESSION` | 5432 (pooler) | yes | pooled, one backend per client session |
 | `PoolerModes.TRANSACTION` | 6543 | **no** | serverless / many short-lived connections |
 
-The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend is not there next time. `buildPostgresJsOptions` encodes this so you cannot forget it:
+The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend is not there next time. `SupabasePooler.buildPostgresJsOptions` encodes this so you cannot forget it (the old function `buildPostgresJsOptions` is a deprecated alias until 0.5):
 
 ```typescript
 import { datasource } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
-import { buildPostgresJsOptions, PoolerModes } from '@venizia/ignis/postgres/supabase';
+import { SupabasePooler, PoolerModes } from '@venizia/ignis/postgres/supabase';
 import postgres from 'postgres';
 
 @datasource({ driver: PostgresJsDriver })
 export class SupabaseDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   override configure() {
     this.client = postgres(connectionString, {
-      ...buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION, max: 10 }),
+      ...SupabasePooler.buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION, max: 10 }),
     });
   }
 }
@@ -177,15 +177,15 @@ export class SupabaseDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ### Row Level Security
 
-`withAuthContext` sets the Supabase auth context for the remainder of **one transaction**, so `auth.uid()` resolves inside RLS policies:
+`SupabaseRls.withAuthContext` (the old function `withAuthContext` is a deprecated alias until 0.5) sets the Supabase auth context for the remainder of **one transaction**, so `auth.uid()` resolves inside RLS policies:
 
 ```typescript
-import { withAuthContext } from '@venizia/ignis/postgres/supabase';
+import { SupabaseRls } from '@venizia/ignis/postgres/supabase';
 
 const transaction = await this.dataSource.beginTransaction();
 try {
   // role defaults to claims.role (PostgREST semantics); pass it explicitly to override
-  await withAuthContext({ transaction, claims: jwtPayload });
+  await SupabaseRls.withAuthContext({ transaction, claims: jwtPayload });
 
   await this.orderRepository.create({ data, options: { transaction } });
   await transaction.commit();

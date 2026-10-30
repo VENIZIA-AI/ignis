@@ -8,7 +8,7 @@ import { ControllerFactory } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { model, repository } from '@venizia/ignis-kernel';
 import { BasePostgresEntity } from '@/relational/postgres/models';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import type { ISearchCollectionDefinition, TSearchDocument } from '@/search/core/models/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
@@ -33,7 +33,7 @@ class AppSqlDataSource extends BasePostgresDataSource<{}> {
 
 @model({ type: 'entity' })
 class ProductDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'wiring-product-doc',
     fields: [field.string('title', { searchable: true })],
   });
@@ -54,7 +54,7 @@ const dualProductTable = pgTable('wiring_dual_product', {
 @model({ type: 'entity' })
 class Product extends BasePostgresEntity {
   static override schema = dualProductTable;
-  static searchCollection = defineSearchCollection({
+  static searchCollection = SearchCollectionFactory.define({
     name: 'wiring-dual-product-search',
     fields: [field.string('title', { searchable: true })],
   });
@@ -77,7 +77,7 @@ class ProductDualSearchRepository {}
   },
 })
 class SprocketDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'sprockets',
     fields: [field.string('title', { searchable: true }), field.string('secretCode')],
   });

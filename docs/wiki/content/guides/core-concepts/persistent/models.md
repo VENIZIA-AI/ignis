@@ -8,16 +8,16 @@ Models define your data structure with Drizzle ORM tables. You declare the table
 // src/models/entities/user.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
 } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: text('name').notNull(),
   email: text('email').notNull(),
 });
@@ -32,7 +32,7 @@ export type TUser = TEntityObject<typeof User>;
 
 - The table is a plain, exported drizzle table - drizzle-kit reads it for migrations
 - `TABLE_NAME` is read off the table, so the name `'User'` is written once
-- The id is a UUID v7 text key, from `generateIdColumnDefs({ id: { dataType: 'string' } })`
+- The id is a UUID v7 text key, from `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })`
 - `TEntityObject<typeof User>` is the row type
 
 ## Creating a Model with Relations
@@ -41,10 +41,10 @@ export type TUser = TEntityObject<typeof User>;
 // src/models/entities/configuration.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateDataTypeColumnDefs,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresDataTypeEnricher,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
   ModelFactory,
   one,
 } from '@venizia/ignis/postgres';
@@ -54,10 +54,10 @@ import { userTable } from './user.model';
 export const configurationTable = pgTable(
   'Configuration',
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    ...generateDataTypeColumnDefs(),
-    ...generateUserAuditColumnDefs({
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
+    ...PostgresDataTypeEnricher.generateColumnDefs(),
+    ...PostgresUserAuditEnricher.generateColumnDefs({
       created: { dataType: 'string', columnName: 'created_by' },
       modified: { dataType: 'string', columnName: 'modified_by' },
     }),
@@ -119,9 +119,9 @@ static override schema = pgTable('User', {
 
 ```typescript
 static override schema = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),   // id (text with UUID default)
-  ...generateTzColumnDefs(),                                 // createdAt, modifiedAt
-  ...generateUserAuditColumnDefs({
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),   // id (text with UUID default)
+  ...PostgresTzEnricher.generateColumnDefs(),                                 // createdAt, modifiedAt
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },
   }),                                                        // createdBy, modifiedBy
@@ -133,15 +133,17 @@ static override schema = pgTable('User', {
 
 | Enricher | Columns Added | Use Case |
 |----------|---------------|----------|
-| `generateIdColumnDefs()` | `id` (text or number) | Every table |
-| `generateTzColumnDefs()` | `createdAt`, `modifiedAt` | Track timestamps |
-| `generateUserAuditColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
-| `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
+| `PostgresIdEnricher.generateColumnDefs()` | `id` (text or number) | Every table |
+| `PostgresTzEnricher.generateColumnDefs()` | `createdAt`, `modifiedAt` | Track timestamps |
+| `PostgresUserAuditEnricher.generateColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
+| `PostgresDataTypeEnricher.generateColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
+
+The functions these classes replace (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are still exported as deprecated aliases until 0.5. SQLite has the same classes under `Sqlite*` names.
 
 :::note User Audit Options
-The `generateUserAuditColumnDefs` enricher defaults both columns to `dataType: 'number'` (integer user ids) - pass `dataType: 'string'` for text ids. It also supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
+The `PostgresUserAuditEnricher` enricher defaults both columns to `dataType: 'number'` (integer user ids) - pass `dataType: 'string'` for text ids. It also supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
 ```typescript
-...generateUserAuditColumnDefs({
+...PostgresUserAuditEnricher.generateColumnDefs({
   created: { dataType: 'string', columnName: 'created_by', allowAnonymous: false },
   modified: { dataType: 'string', columnName: 'modified_by', allowAnonymous: false },
 })
@@ -158,11 +160,11 @@ Protect sensitive data by configuring properties that are **never returned** thr
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   email: text('email').notNull(),
   password: text('password'), // Hidden from queries
   secret: text('secret'), // Hidden from queries
@@ -238,11 +240,11 @@ Declare your model's authorization principal directly in `@model` settings. The 
 
 ```typescript
 import { AuthorizationActions, model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const articleTable = pgTable('Article', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: text('title').notNull(),
 });
 
@@ -300,12 +302,12 @@ Feed that list to whatever builds your `drizzle-kit` schema file. `examples/vert
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const myModelTable = pgTable('MyModel', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 

@@ -86,8 +86,8 @@ Each model is a Drizzle table plus a class built from it with `ModelFactory.defi
 // src/models/category.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
@@ -96,8 +96,8 @@ import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text, varchar } from 'drizzle-orm/pg-core';
 
 export const categoryTable = pgTable('Category', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 100 }).notNull(),
   slug: varchar('slug', { length: 100 }).unique().notNull(),
   description: text('description'),
@@ -126,8 +126,8 @@ export type TCategory = TEntityObject<typeof Category>;
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   one,
 } from '@venizia/ignis/postgres';
@@ -136,8 +136,8 @@ import { pgTable, text, varchar, decimal, integer, boolean } from 'drizzle-orm/p
 import { categoryTable } from './category.model';
 
 export const productTable = pgTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
@@ -169,8 +169,8 @@ export type TProduct = TEntityObject<typeof Product>;
 // src/models/cart.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
@@ -180,15 +180,15 @@ import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
 export const cartTable = pgTable('Cart', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   userId: text('user_id'),
   sessionId: varchar('session_id', { length: 255 }),
 });
 
 export const cartItemTable = pgTable('CartItem', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   cartId: text('cart_id').notNull(),
   productId: text('product_id').notNull(),
   quantity: integer('quantity').default(1).notNull(),
@@ -226,8 +226,8 @@ export type TCartItem = TEntityObject<typeof CartItem>;
 // src/models/order.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
@@ -237,8 +237,8 @@ import { pgTable, text, varchar, decimal, integer, jsonb } from 'drizzle-orm/pg-
 import { productTable } from './product.model';
 
 export const orderTable = pgTable('Order', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   userId: text('user_id'),
   email: varchar('email', { length: 255 }).notNull(),
   status: varchar('status', { length: 50 }).default('pending').notNull(),
@@ -252,7 +252,7 @@ export const orderTable = pgTable('Order', {
 });
 
 export const orderItemTable = pgTable('OrderItem', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   orderId: text('order_id').notNull(),
   productId: text('product_id').notNull(),
   name: varchar('name', { length: 255 }).notNull(),

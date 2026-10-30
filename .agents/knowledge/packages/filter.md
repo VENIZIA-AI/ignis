@@ -75,7 +75,7 @@ Two things this key check cannot tell apart, both pinned by tests rather than fi
 
 - **A relation-shaped object field type-checks as a JSON column.** A model type that carries a
   relation (`{ creator?: { id; name } }`) makes `'creator.name'` a valid `TJsonPathKey`, though
-  `creator` is never a real column - `validateJsonColumnType()` still throws
+  `creator` is never a real column - `JsonPathUtility.validateJsonColumnType()` still throws
   `Column 'creator' is not a JSON column` at runtime. The type layer only sees shapes, not the schema
   registry.
 - **A column typed purely `TIsoTimestamp` needs the explicit exclusion.** The brand

@@ -7,7 +7,7 @@ import { createSchemaFactory } from 'drizzle-zod';
 import type { Column, Table } from 'drizzle-orm';
 import { getTableColumns } from 'drizzle-orm';
 import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
-import { getIdType as _getIdType } from './common';
+import { RelationalEntityUtility } from './common';
 import { AuditFields } from './common/constants';
 
 /** Lazy singleton, shared by every entity. */
@@ -44,7 +44,9 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
   /** Maps the schema's id column's Drizzle `dataType` to 'number' (serial/integer) or 'string' (everything else, including bigint/unknown). */
   override getIdType(): TIdSchemaType {
-    return _getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
+    return RelationalEntityUtility.getIdType({ entity: this.schema }) === 'number'
+      ? 'number'
+      : 'string';
   }
 
   /** The audit keys whose column carries a default or `$onUpdate`; an audit column with neither is left to the client. */

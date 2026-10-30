@@ -1,17 +1,24 @@
 import type { TEntityDataObject } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
-import { registerFactoryRepositoryInjection, SchemaTypes } from '@venizia/ignis-kernel';
+import {
+  jsonContent,
+  jsonResponse,
+  registerFactoryRepositoryInjection,
+  SchemaTypes,
+} from '@venizia/ignis-kernel';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
 import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
+import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers/common';
 import type { TClass, TResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import { isClass } from '@venizia/ignis-inversion';
 import type { Env, Schema } from 'hono';
+import { MultiSearchInputSchema, SearchInputSchema } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
 import { AbstractSearchController } from './abstract';
 import type { TSearchScopeResolver } from './scope';
-import { defineSearchRouteConfigs } from './definition';
 
 /** Per-route enable/disable switches for the generated search controller. */
 export interface ISearchCustomizableRoutes {
@@ -65,6 +72,64 @@ export class SearchControllerFactory extends BaseHelper {
     super({ scope: SearchControllerFactory.name });
   }
 
+  static defineRouteConfigs(opts: {
+    selectSchema: z.ZodType;
+    authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+    authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+  }) {
+    const { selectSchema, authenticate, authorize } = opts;
+
+    const searchResponseSchema = z.object({
+      found: z.number(),
+      isFoundExact: z
+        .boolean()
+        .openapi({ description: 'False when the engine reports `found` as an estimate.' }),
+      hits: z.array(z.object({ document: selectSchema })),
+    });
+
+    const multiSearchResponseSchema = z.record(z.string(), z.unknown());
+
+    const resolvedAuthenticate = authenticate ?? {};
+
+    return {
+      SEARCH: {
+        method: HTTP.Methods.POST,
+        path: '/search',
+        description: 'Single-collection search (keyword, semantic, hybrid, or raw passthrough)',
+        authenticate: resolvedAuthenticate,
+        authorize,
+        request: {
+          body: jsonContent({
+            description: 'Search input, discriminated by mode',
+            schema: SearchInputSchema,
+          }),
+        },
+        responses: jsonResponse({
+          description: 'Search results',
+          schema: searchResponseSchema,
+        }),
+      },
+
+      MULTI_SEARCH: {
+        method: HTTP.Methods.POST,
+        path: '/multi-search',
+        description: 'Cross-collection search, forwarded verbatim to the search engine',
+        authenticate: resolvedAuthenticate,
+        authorize,
+        request: {
+          body: jsonContent({
+            description: 'Multi-search input - one or more per-collection native search params',
+            schema: MultiSearchInputSchema,
+          }),
+        },
+        responses: jsonResponse({
+          description: 'Federated (or, when union is true, merged) search results',
+          schema: multiSearchResponseSchema,
+        }),
+      },
+    } as const;
+  }
+
   /** Creates a search controller with two endpoints: `POST {basePath}/search` via `repository.search()`, and `POST {basePath}/multi-search` via `repository.dataSource.multiSearch()`. */
   static defineSearchController<
     TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
@@ -93,7 +158,11 @@ export class SearchControllerFactory extends BaseHelper {
     const entityInstance = new entityClass();
 
     const selectSchema = entityInstance.getSchema({ type: SchemaTypes.SELECT });
-    const routeDefinitions = defineSearchRouteConfigs({ selectSchema, authenticate, authorize });
+    const routeDefinitions = SearchControllerFactory.defineRouteConfigs({
+      selectSchema,
+      authenticate,
+      authorize,
+    });
 
     const controllerClass = class extends AbstractSearchController<
       TEntity,

@@ -3,7 +3,7 @@
 IGNIS streamlines data modeling with Drizzle ORM by providing powerful helpers and "enrichers" that reduce boilerplate code for common schema patterns.
 
 > [!NOTE] Scope: PostgreSQL connector
-> This page covers Drizzle-backed models (`BaseRelationalEntity`; the legacy `BasePostgresEntity` and `BaseEntity` exports are compatibility aliases for the same class) and enrichers, which are specific to relational tables. Search documents (typesense connector) use `defineSearchCollection` instead - see [Search & Typesense](/guides/core-concepts/persistent/search-typesense). See [Connectors](/references/base/connectors) for how the engine-neutral `AbstractEntity` relates to each connector's concrete entity class.
+> This page covers Drizzle-backed models (`BaseRelationalEntity`; the legacy `BasePostgresEntity` and `BaseEntity` exports are compatibility aliases for the same class) and enrichers, which are specific to relational tables. Search documents (typesense connector) use `SearchCollectionFactory.define` instead - see [Search & Typesense](/guides/core-concepts/persistent/search-typesense). See [Connectors](/references/base/connectors) for how the engine-neutral `AbstractEntity` relates to each connector's concrete entity class.
 
 ## 1. Base Entity
 
@@ -14,14 +14,14 @@ The recommended pattern is to define the schema and relations as **static proper
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BaseRelationalEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
+import { BaseRelationalEntity, extraUserColumns, PostgresIdEnricher, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model()
 export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     ...extraUserColumns({ idType: 'string' }),
   });
 
@@ -36,22 +36,24 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 
 **Available Enrichers:**
 
+Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite has the same under `Sqlite*` names). The old function names (`generateIdColumnDefs`, `enrichTz`, ...) are deprecated aliases until 0.5.
+
 | Enricher | Description | Columns Added |
 |----------|-------------|---------------|
-| `generateIdColumnDefs` | Adds a Primary Key | `id` (text, number, or big-number) |
-| `generatePrincipalColumnDefs` | Adds polymorphic relation fields | `{discriminator}Id`, `{discriminator}Type` |
-| `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
-| `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
-| `generateDataTypeColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
+| `PostgresIdEnricher.generateColumnDefs` | Adds a Primary Key | `id` (text, number, or big-number) |
+| `PostgresPrincipalEnricher.generateColumnDefs` | Adds polymorphic relation fields | `{discriminator}Id`, `{discriminator}Type` |
+| `PostgresTzEnricher.generateColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
+| `PostgresUserAuditEnricher.generateColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
+| `PostgresDataTypeEnricher.generateColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
 | `extraUserColumns` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 
 ```typescript
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
 } from '@venizia/ignis';
 import { pgTable, text, unique } from 'drizzle-orm/pg-core';
 
@@ -59,13 +61,13 @@ export const configurationTable = pgTable(
   'Configuration',
   {
     // 1. Auto-generate text Primary Key with UUID default
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
 
     // 2. Auto-generate createdAt / modifiedAt
-    ...generateTzColumnDefs(),
+    ...PostgresTzEnricher.generateColumnDefs(),
 
     // 3. Auto-generate createdBy / modifiedBy
-    ...generateUserAuditColumnDefs({
+    ...PostgresUserAuditEnricher.generateColumnDefs({
       created: { dataType: 'string', columnName: 'created_by' },
       modified: { dataType: 'string', columnName: 'modified_by' },
     }),
@@ -84,7 +86,7 @@ export const configurationTable = pgTable(
 
 ### ID Type Options
 
-The `generateIdColumnDefs` enricher supports multiple ID strategies:
+The `PostgresIdEnricher` enricher supports multiple ID strategies:
 
 | Data Type | PostgreSQL Type | JavaScript Type | Use Case |
 |-----------|-----------------|-----------------|----------|
@@ -97,25 +99,25 @@ The `generateIdColumnDefs` enricher supports multiple ID strategies:
 
 ```typescript
 // String ID with the default UUID v7 generator (time-ordered)
-...generateIdColumnDefs({ id: { dataType: 'string' } })
+...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })
 // Result: id TEXT PRIMARY KEY, filled by UuidHelper.getInstance().v7()
 
 // String ID with custom generator (e.g., nanoid, ulid)
 import { nanoid } from 'nanoid';
-...generateIdColumnDefs({ id: { dataType: 'string', generator: () => nanoid() } })
+...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string', generator: () => nanoid() } })
 
 // Auto-increment integer
-...generateIdColumnDefs({ id: { dataType: 'number' } })
+...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'number' } })
 // Result: id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY
 
 // Big integer for large datasets (JavaScript number - up to 2^53)
-...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'number' } })
+...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'big-number', numberMode: 'number' } })
 
 // Big integer with native BigInt (up to 2^64)
-...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'bigint' } })
+...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'big-number', numberMode: 'bigint' } })
 
 // With sequence options
-...generateIdColumnDefs({
+...PostgresIdEnricher.generateColumnDefs({
   id: {
     dataType: 'number',
     sequenceOptions: { startWith: 1000, increment: 1 },
@@ -125,19 +127,19 @@ import { nanoid } from 'nanoid';
 
 ### Principal Enricher (Polymorphic Relations)
 
-Use `generatePrincipalColumnDefs` when a record can belong to different entity types (polymorphic relationship).
+Use `PostgresPrincipalEnricher.generateColumnDefs` when a record can belong to different entity types (polymorphic relationship).
 
 **Use Case:** A `Comment` can belong to either a `Post` or a `Product`.
 
 ```typescript
-import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
+import { PostgresIdEnricher, PostgresPrincipalEnricher } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const commentTable = pgTable('Comment', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
 
   // Polymorphic relation: commentable can be Post or Product
-  ...generatePrincipalColumnDefs({
+  ...PostgresPrincipalEnricher.generateColumnDefs({
     discriminator: 'commentable',      // Field prefix
     polymorphicIdType: 'string',       // ID type of related entities
     defaultPolymorphic: 'Post',        // Default type
@@ -195,7 +197,7 @@ import { User } from './user.model';
 @model()
 export class Configuration extends BaseRelationalEntity<typeof Configuration.schema> {
   static override schema = pgTable('Configuration', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     createdBy: text('created_by'),
     // ...
   });
@@ -224,7 +226,7 @@ The foreign key lives on the **`ONE` side only**. A `MANY` relation carries no `
 @model()
 export class Post extends BaseRelationalEntity<typeof Post.schema> {
   static override schema = pgTable('Post', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     authorId: text('author_id').notNull(),
   });
 
@@ -245,7 +247,7 @@ export class Post extends BaseRelationalEntity<typeof Post.schema> {
 @model()
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     name: text('name').notNull(),
   });
 
@@ -394,7 +396,7 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),  // Never returned via repository
     secret: text('secret'),      // Never returned via repository
@@ -424,7 +426,7 @@ Declare your model's authorization principal in `@model` settings to make the mo
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),
   });

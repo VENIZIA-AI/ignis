@@ -2,34 +2,36 @@ import { SchemaTypes } from '@venizia/ignis-kernel';
 import type { TTableInsert, TTableObject } from '@/relational/sqlite/models';
 import {
   BaseSqliteEntity,
-  generateDataTypeColumnDefs,
-  generateIdColumnDefs,
-  generatePrincipalColumnDefs,
-  generateTzColumnDefs,
-  getIdType,
+  SqliteDataTypeEnricher,
+  SqliteIdEnricher,
+  SqlitePrincipalEnricher,
+  SqliteTzEnricher,
+  RelationalEntityUtility,
 } from '@/relational/sqlite/models';
 import { describe, expect, test } from 'bun:test';
 import { sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 const numberIdTable = sqliteTable('notes', {
-  ...generateIdColumnDefs(),
-  ...generateTzColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs(),
+  ...SqliteTzEnricher.generateColumnDefs(),
   body: text('body').notNull(),
 });
 
 const stringIdTable = sqliteTable('documents', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: text('title').notNull(),
 });
 
 const softDeletableTable = sqliteTable('archives', {
-  ...generateIdColumnDefs(),
-  ...generateTzColumnDefs({ deleted: { columnName: 'deleted_at' } }),
+  ...SqliteIdEnricher.generateColumnDefs(),
+  ...SqliteTzEnricher.generateColumnDefs({ deleted: { columnName: 'deleted_at' } }),
 });
 
 const defaultedTable = sqliteTable('metrics', {
-  ...generateIdColumnDefs(),
-  ...generateDataTypeColumnDefs({ defaultValue: { nValue: 0, tValue: '', boValue: false } }),
+  ...SqliteIdEnricher.generateColumnDefs(),
+  ...SqliteDataTypeEnricher.generateColumnDefs({
+    defaultValue: { nValue: 0, tValue: '', boValue: false },
+  }),
 });
 
 /** `Date` parsing of a zone-less value follows the host zone, so the assertion has to pin one. */
@@ -93,8 +95,8 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
   });
 
   test('getIdType reports number for an integer primary key and string for a text one', () => {
-    expect(getIdType({ entity: numberIdTable })).toBe('number');
-    expect(getIdType({ entity: stringIdTable })).toBe('string');
+    expect(RelationalEntityUtility.getIdType({ entity: numberIdTable })).toBe('number');
+    expect(RelationalEntityUtility.getIdType({ entity: stringIdTable })).toBe('string');
 
     expect(new Note().getIdType()).toBe('number');
     expect(new SqliteDocument().getIdType()).toBe('string');
@@ -134,12 +136,17 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
     expect(softDeletableTable.deletedAt).toBeDefined();
     expect(softDeletableTable.deletedAt.name).toBe('deleted_at');
 
-    const modifiedOnly = generateTzColumnDefs({ modified: { columnName: 'modified_at' } });
+    const modifiedOnly = SqliteTzEnricher.generateColumnDefs({
+      modified: { columnName: 'modified_at' },
+    });
     expect(Object.keys(modifiedOnly)).toContain('modifiedAt');
   });
 
   test('an explicit `enable: false` still drops the tz column', () => {
-    const defs = generateTzColumnDefs({ modified: { enable: false }, deleted: { enable: false } });
+    const defs = SqliteTzEnricher.generateColumnDefs({
+      modified: { enable: false },
+      deleted: { enable: false },
+    });
 
     expect(Object.keys(defs)).toEqual(['createdAt']);
   });
@@ -178,8 +185,8 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
 
   test('the data-type enricher maps every Postgres column onto a SQLite storage class', () => {
     const kvTable = sqliteTable('kv', {
-      ...generateIdColumnDefs(),
-      ...generateDataTypeColumnDefs(),
+      ...SqliteIdEnricher.generateColumnDefs(),
+      ...SqliteDataTypeEnricher.generateColumnDefs(),
     });
 
     expect(kvTable.nValue.getSQLType()).toBe('real');
@@ -189,14 +196,14 @@ describe('a sqliteTable round-trips through the SQLite model types', () => {
   });
 
   test('the principal enricher emits the polymorphic id and type pair', () => {
-    const defs = generatePrincipalColumnDefs({ polymorphicIdType: 'string' });
+    const defs = SqlitePrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' });
 
     expect(Object.keys(defs).sort()).toEqual(['principalId', 'principalType']);
   });
 
   test('an unsupported id dataType throws NotSupported instead of emitting wrong DDL', () => {
-    expect(() => generateIdColumnDefs({ id: { dataType: 'big-number' } } as never)).toThrowError(
-      /not supported on SQLite/,
-    );
+    expect(() =>
+      SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'big-number' } } as never),
+    ).toThrowError(/not supported on SQLite/);
   });
 });

@@ -39,40 +39,52 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
 // Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
 const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
-export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
-  opts?: Opts,
-): TIdColumnDef<Opts> => {
-  const { id = { dataType: 'number' } } = opts ?? {};
+export class PostgresIdEnricher {
+  static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
+    opts?: Opts,
+  ): TIdColumnDef<Opts> {
+    const { id = { dataType: 'number' } } = opts ?? {};
 
-  switch (id.dataType) {
-    case 'string': {
-      return {
-        id: text('id')
-          .primaryKey()
-          .$defaultFn(id.generator ?? defaultStringId),
-      } as TIdColumnDef<Opts>;
-    }
-    case 'number': {
-      return {
-        id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
-      } as TIdColumnDef<Opts>;
-    }
-    case 'big-number': {
-      return {
-        id: bigint('id', { mode: id.numberMode ?? 'number' })
-          .primaryKey()
-          .generatedAlwaysAsIdentity(id.sequenceOptions),
-      } as TIdColumnDef<Opts>;
-    }
-    default: {
-      throw getError({
-        message: `[enrichId] Invalid id dataType`,
-      });
+    switch (id.dataType) {
+      case 'string': {
+        return {
+          id: text('id')
+            .primaryKey()
+            .$defaultFn(id.generator ?? defaultStringId),
+        } as TIdColumnDef<Opts>;
+      }
+      case 'number': {
+        return {
+          id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
+        } as TIdColumnDef<Opts>;
+      }
+      case 'big-number': {
+        return {
+          id: bigint('id', { mode: id.numberMode ?? 'number' })
+            .primaryKey()
+            .generatedAlwaysAsIdentity(id.sequenceOptions),
+        } as TIdColumnDef<Opts>;
+      }
+      default: {
+        throw getError({
+          message: `[enrichId] Invalid id dataType`,
+        });
+      }
     }
   }
-};
 
-export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => {
-  const defs = generateIdColumnDefs(opts);
-  return { ...baseColumns, ...defs };
-};
+  static enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }) {
+    const { baseColumns, opts: enricherOpts } = opts;
+    const defs = PostgresIdEnricher.generateColumnDefs(enricherOpts);
+    return { ...baseColumns, ...defs };
+  }
+}
+
+/** @deprecated Use PostgresIdEnricher.generateColumnDefs(opts). Removed in 0.5. */
+export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
+  opts?: Opts,
+): TIdColumnDef<Opts> => PostgresIdEnricher.generateColumnDefs(opts);
+
+/** @deprecated Use PostgresIdEnricher.enrich({ baseColumns, opts }). Removed in 0.5. */
+export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) =>
+  PostgresIdEnricher.enrich({ baseColumns, opts });

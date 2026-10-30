@@ -21,24 +21,29 @@ export interface IPostgresJsOptions {
   max?: number;
 }
 
-/** Supavisor's TRANSACTION mode rebinds the backend connection per transaction, so server-side prepared statements do not survive - `prepare: false` is required there, not a tuning knob. `max` is forwarded only when supplied; postgres-js has its own default. */
+export class SupabasePooler {
+  /** Supavisor's TRANSACTION mode rebinds the backend connection per transaction, so server-side prepared statements do not survive - `prepare: false` is required there, not a tuning knob. `max` is forwarded only when supplied; postgres-js has its own default. */
+  static buildPostgresJsOptions(opts: { mode: TPoolerMode; max?: number }): IPostgresJsOptions {
+    const { mode, max } = opts;
+
+    if (!PoolerModes.isValid(mode)) {
+      throw getError({
+        message: `[buildPostgresJsOptions] Unknown pooler mode '${mode}' | Expected one of: ${[...PoolerModes.SCHEME_SET].join(', ')}`,
+      });
+    }
+
+    const options: IPostgresJsOptions = { prepare: mode !== PoolerModes.TRANSACTION };
+
+    if (max !== undefined) {
+      options.max = max;
+    }
+
+    return options;
+  }
+}
+
+/** @deprecated Use SupabasePooler.buildPostgresJsOptions({ mode, max }). Removed in 0.5. */
 export const buildPostgresJsOptions = (opts: {
   mode: TPoolerMode;
   max?: number;
-}): IPostgresJsOptions => {
-  const { mode, max } = opts;
-
-  if (!PoolerModes.isValid(mode)) {
-    throw getError({
-      message: `[buildPostgresJsOptions] Unknown pooler mode '${mode}' | Expected one of: ${[...PoolerModes.SCHEME_SET].join(', ')}`,
-    });
-  }
-
-  const options: IPostgresJsOptions = { prepare: mode !== PoolerModes.TRANSACTION };
-
-  if (max !== undefined) {
-    options.max = max;
-  }
-
-  return options;
-};
+}): IPostgresJsOptions => SupabasePooler.buildPostgresJsOptions(opts);

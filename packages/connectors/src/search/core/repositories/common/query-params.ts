@@ -12,19 +12,26 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
   'queryByWeights',
 ]);
 
-/** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through; keeps `search()`, `multiSearch()` and `commonParams` on one friendly-to-wire path. */
-export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
-  const params: Record<string, unknown> = {};
+export class SearchQueryParamsUtility {
+  /** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through; keeps `search()`, `multiSearch()` and `commonParams` on one friendly-to-wire path. */
+  static toSearchQueryParams(opts: { input: Record<string, unknown> }): Partial<ISearchQuery> {
+    const { input } = opts;
+    const params: Record<string, unknown> = {};
 
-  const inputEntries = Object.entries(input);
-  for (const [key, value] of inputEntries) {
-    if (value === undefined || key === 'collection') {
-      continue;
+    const inputEntries = Object.entries(input);
+    for (const [key, value] of inputEntries) {
+      if (value === undefined || key === 'collection') {
+        continue;
+      }
+
+      params[key] =
+        MULTI_SEARCH_LIST_FIELDS.has(key) && Array.isArray(value) ? value.join(',') : value;
     }
 
-    params[key] =
-      MULTI_SEARCH_LIST_FIELDS.has(key) && Array.isArray(value) ? value.join(',') : value;
+    return params as Partial<ISearchQuery>;
   }
+}
 
-  return params as Partial<ISearchQuery>;
-};
+/** @deprecated Use SearchQueryParamsUtility.toSearchQueryParams({ input }). Removed in 0.5. */
+export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> =>
+  SearchQueryParamsUtility.toSearchQueryParams({ input });

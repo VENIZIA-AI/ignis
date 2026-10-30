@@ -1,4 +1,4 @@
-import { enrichPrincipal, generatePrincipalColumnDefs } from '@/relational/sqlite/models';
+import { SqlitePrincipalEnricher } from '@/relational/sqlite/models';
 import { Database } from 'bun:sqlite';
 import { describe, expect, test } from 'bun:test';
 import { getTableConfig, sqliteTable } from 'drizzle-orm/sqlite-core';
@@ -30,7 +30,10 @@ const open = (table: SQLiteTable) => {
 describe('the SQLite principal enricher discriminator column', () => {
   test('is nullable with the default value unless isNullableDiscriminator is false', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({ polymorphicIdType: 'string', defaultPolymorphic: 'User' }),
+      ...SqlitePrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'string',
+        defaultPolymorphic: 'User',
+      }),
     });
 
     expect(table.principalType.notNull).toBe(false);
@@ -41,13 +44,13 @@ describe('the SQLite principal enricher discriminator column', () => {
   test('treats a null or undefined isNullableDiscriminator from an untyped caller as nullable', () => {
     const untyped = JSON.parse('null');
     const viaNull = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: untyped,
       }),
     });
     const viaUndefined = sqliteTable('replies', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: undefined,
       }),
@@ -59,7 +62,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('is NOT NULL with no default when isNullableDiscriminator is false and no default is given', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: false,
       }),
@@ -71,7 +74,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('keeps NOT NULL and the given default when isNullableDiscriminator is false', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         discriminator: 'owner',
         defaultPolymorphic: 'User',
@@ -87,7 +90,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('does not change the id column nullability', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'number',
         isNullableId: true,
         isNullableDiscriminator: false,
@@ -100,7 +103,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('leaves the id column unchanged for a string id too', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableId: true,
         isNullableDiscriminator: false,
@@ -113,7 +116,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('rejects an insert without the type when isNullableDiscriminator is false', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: false,
       }),
@@ -132,7 +135,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('stores the given default for an insert without the type', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         defaultPolymorphic: 'User',
         isNullableDiscriminator: false,
@@ -149,7 +152,7 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('stores the empty string for an insert without the type by default', () => {
     const table = sqliteTable('comments', {
-      ...generatePrincipalColumnDefs({ polymorphicIdType: 'string' }),
+      ...SqlitePrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' }),
     });
     const { sqlite, db } = open(table);
 
@@ -161,13 +164,13 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('$inferInsert requires the type with isNullableDiscriminator: false and not by default', () => {
     const required = sqliteTable('replies', {
-      ...generatePrincipalColumnDefs({
+      ...SqlitePrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: false,
       }),
     });
     const optional = sqliteTable('notes', {
-      ...generatePrincipalColumnDefs({ polymorphicIdType: 'string' }),
+      ...SqlitePrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' }),
     });
 
     // @ts-expect-error principalType is required
@@ -180,8 +183,11 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('a widened boolean flag takes the NOT NULL branch as one type, not a union', () => {
     const widened = (flag: boolean) =>
-      generatePrincipalColumnDefs({ polymorphicIdType: 'string', isNullableDiscriminator: flag });
-    const strict = generatePrincipalColumnDefs({
+      SqlitePrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'string',
+        isNullableDiscriminator: flag,
+      });
+    const strict = SqlitePrincipalEnricher.generateColumnDefs({
       polymorphicIdType: 'string',
       isNullableDiscriminator: false,
     });
@@ -193,8 +199,11 @@ describe('the SQLite principal enricher discriminator column', () => {
 
   test('a widened boolean isNullableId takes the NOT NULL branch as one type, not a union', () => {
     const widened = (flag: boolean) =>
-      generatePrincipalColumnDefs({ polymorphicIdType: 'string', isNullableId: flag });
-    const strict = generatePrincipalColumnDefs({ polymorphicIdType: 'string' });
+      SqlitePrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'string',
+        isNullableId: flag,
+      });
+    const strict = SqlitePrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' });
 
     assertType<TEquals<ReturnType<typeof widened>['principalId'], typeof strict.principalId>>();
 
@@ -204,11 +213,11 @@ describe('the SQLite principal enricher discriminator column', () => {
 
 describe('the SQLite enrichPrincipal', () => {
   test('passes isNullableDiscriminator and isNullableId through with matching column types', () => {
-    const schema = enrichPrincipal(
-      {},
-      { polymorphicIdType: 'number', isNullableId: true, isNullableDiscriminator: false },
-    );
-    const direct = generatePrincipalColumnDefs({
+    const schema = SqlitePrincipalEnricher.enrich({
+      baseSchema: {},
+      opts: { polymorphicIdType: 'number', isNullableId: true, isNullableDiscriminator: false },
+    });
+    const direct = SqlitePrincipalEnricher.generateColumnDefs({
       polymorphicIdType: 'number',
       isNullableId: true,
       isNullableDiscriminator: false,

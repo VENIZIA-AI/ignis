@@ -82,16 +82,16 @@ Same decorators, `sqliteTable` instead of `pgTable`, and the enrichers come from
 ```typescript
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  SqliteIdEnricher,
+  SqliteTzEnricher,
   ModelFactory,
 } from '@venizia/ignis/sqlite';
 import type { TEntityObject } from '@venizia/ignis/sqlite';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const productTable = sqliteTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteTzEnricher.generateColumnDefs(),
   name: text('name').notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   metadata: text('metadata', { mode: 'json' }).$type<Record<string, unknown>>(),
@@ -107,9 +107,9 @@ Three column choices differ from the Postgres twin:
 
 - **JSON is a json-mode `text` column.** Declare the mode. A JSON path on a plain `text` column is rejected rather than compiled into a `json_extract` that quietly returns `NULL`.
 - **Booleans are `integer(..., { mode: 'boolean' })`** - SQLite stores 0 and 1.
-- **Timestamps are ISO 8601 strings.** `generateTzColumnDefs()` handles this, defaulting to `(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`. Comparisons stay lexicographic, so ordering by a timestamp still works.
+- **Timestamps are ISO 8601 strings.** `SqliteTzEnricher.generateColumnDefs()` handles this, defaulting to `(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`. Comparisons stay lexicographic, so ordering by a timestamp still works.
 
-`generateIdColumnDefs` accepts `dataType: 'string'` and `dataType: 'number'`. There is no `'big-number'` - an integer primary key in SQLite is already the 64-bit rowid.
+`SqliteIdEnricher.generateColumnDefs` accepts `dataType: 'string'` and `dataType: 'number'`. There is no `'big-number'` - an integer primary key in SQLite is already the 64-bit rowid.
 
 ## Repositories
 
@@ -287,7 +287,7 @@ A SQLite application does not run as a `bun build --compile` binary out of the b
 
 ## Runnable example
 
-`examples/sqlite-quickstart/` is this page as an app: a `sqliteTable` model with a `text` id and `text({ mode: 'json' })` metadata, `generateTzColumnDefs` for the timestamp default, and the same repository and controller the PGlite example uses.
+`examples/sqlite-quickstart/` is this page as an app: a `sqliteTable` model with a `text` id and `text({ mode: 'json' })` metadata, `SqliteTzEnricher.generateColumnDefs` for the timestamp default, and the same repository and controller the PGlite example uses.
 
 ```bash
 cd examples/sqlite-quickstart

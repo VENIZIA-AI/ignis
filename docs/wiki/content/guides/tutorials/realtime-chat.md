@@ -47,16 +47,16 @@ Each model is a Drizzle table plus a class built from it with `ModelFactory.defi
 // src/models/user.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
 } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   username: varchar('username', { length: 50 }).unique().notNull(),
   displayName: varchar('display_name', { length: 100 }),
   avatar: text('avatar'),
@@ -76,8 +76,8 @@ export type TUser = TEntityObject<typeof User>;
 // src/models/room.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   many,
   one,
@@ -87,8 +87,8 @@ import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core'
 import { userTable } from './user.model';
 
 export const roomTable = pgTable('Room', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
   isPrivate: boolean('is_private').default(false).notNull(),
@@ -96,7 +96,7 @@ export const roomTable = pgTable('Room', {
 });
 
 export const roomMemberTable = pgTable('RoomMember', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   roomId: text('room_id').notNull(),
   userId: text('user_id').notNull(),
   role: varchar('role', { length: 20 }).default('member').notNull(),
@@ -142,8 +142,8 @@ export type TRoomMember = TEntityObject<typeof RoomMember>;
 // src/models/message.model.ts
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   one,
 } from '@venizia/ignis/postgres';
@@ -153,8 +153,8 @@ import { userTable } from './user.model';
 import { roomTable } from './room.model';
 
 export const messageTable = pgTable('Message', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   roomId: text('room_id').notNull(),
   senderId: text('sender_id').notNull(),
   content: text('content').notNull(),
@@ -165,8 +165,8 @@ export const messageTable = pgTable('Message', {
 });
 
 export const directMessageTable = pgTable('DirectMessage', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   senderId: text('sender_id').notNull(),
   receiverId: text('receiver_id').notNull(),
   content: text('content').notNull(),

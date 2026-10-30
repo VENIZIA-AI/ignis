@@ -34,36 +34,48 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
 // Time-ordered, so a text primary key appends to its B-tree instead of splitting pages.
 const defaultStringId = (): string => UuidHelper.getInstance().v7();
 
-export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
-  opts?: Opts,
-): TIdColumnDef<Opts> => {
-  const { id = { dataType: 'number' } } = opts ?? {};
+export class SqliteIdEnricher {
+  static generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(
+    opts?: Opts,
+  ): TIdColumnDef<Opts> {
+    const { id = { dataType: 'number' } } = opts ?? {};
 
-  switch (id.dataType) {
-    case 'string': {
-      return {
-        id: text('id')
-          .primaryKey()
-          .$defaultFn(id.generator ?? defaultStringId),
-      } as TIdColumnDef<Opts>;
-    }
-    case 'number': {
-      return {
-        id: integer('id').primaryKey({ autoIncrement: id.autoIncrement ?? true }),
-      } as TIdColumnDef<Opts>;
-    }
-    default: {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-        messageCode: CoreErrorCodes.NOT_SUPPORTED,
-        message: `[enrichId] Id dataType '${(id as { dataType: string }).dataType}' is not supported on SQLite - it has no sequence, identity or bigint type; an INTEGER primary key is already a 64-bit rowid, so use dataType: 'number' or 'string'.`,
-      });
+    switch (id.dataType) {
+      case 'string': {
+        return {
+          id: text('id')
+            .primaryKey()
+            .$defaultFn(id.generator ?? defaultStringId),
+        } as TIdColumnDef<Opts>;
+      }
+      case 'number': {
+        return {
+          id: integer('id').primaryKey({ autoIncrement: id.autoIncrement ?? true }),
+        } as TIdColumnDef<Opts>;
+      }
+      default: {
+        throw getError({
+          statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
+          messageCode: CoreErrorCodes.NOT_SUPPORTED,
+          message: `[enrichId] Id dataType '${(id as { dataType: string }).dataType}' is not supported on SQLite - it has no sequence, identity or bigint type; an INTEGER primary key is already a 64-bit rowid, so use dataType: 'number' or 'string'.`,
+        });
+      }
     }
   }
-};
 
-export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => {
-  const defs = generateIdColumnDefs(opts);
+  static enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }) {
+    const { baseColumns, opts: enricherOpts } = opts;
+    const defs = SqliteIdEnricher.generateColumnDefs(enricherOpts);
 
-  return { ...baseColumns, ...defs };
-};
+    return { ...baseColumns, ...defs };
+  }
+}
+
+/** @deprecated Use SqliteIdEnricher.generateColumnDefs(opts). Removed in 0.5. */
+export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
+  opts?: Opts,
+): TIdColumnDef<Opts> => SqliteIdEnricher.generateColumnDefs(opts);
+
+/** @deprecated Use SqliteIdEnricher.enrich({ baseColumns, opts }). Removed in 0.5. */
+export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) =>
+  SqliteIdEnricher.enrich({ baseColumns, opts });

@@ -25,43 +25,55 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
+export class SqliteTzEnricher {
+  static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
+    opts?: Opts,
+  ): TTzEnricherResult<Opts> {
+    const {
+      created = { columnName: 'created_at' },
+      modified = { enable: true, columnName: 'modified_at' },
+      deleted = { enable: false },
+    } = opts ?? {};
+
+    let rs = {
+      createdAt: isoTimestamp(created.columnName).default(sql.raw(ISO_TIMESTAMP_NOW)).notNull(),
+    } as TTzEnricherResult<Opts>;
+
+    // `enable` is optional in the option type, so supplying only a `columnName` opts the column in -
+    // gating on truthiness here would emit no column while `TTzEnricherResult` still declares one.
+    if (modified.enable !== false) {
+      rs = {
+        ...rs,
+        modifiedAt: isoTimestamp(modified.columnName)
+          .default(sql.raw(ISO_TIMESTAMP_NOW))
+          .notNull()
+          .$onUpdate(() => new Date().toISOString()),
+      } as TTzEnricherResult<Opts>;
+    }
+
+    if (deleted.enable !== false) {
+      rs = {
+        ...rs,
+        deletedAt: isoTimestamp(deleted.columnName),
+      } as TTzEnricherResult<Opts>;
+    }
+
+    return rs;
+  }
+
+  static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }) {
+    const { baseSchema, opts: enricherOpts } = opts;
+    const defs = SqliteTzEnricher.generateColumnDefs(enricherOpts);
+
+    return { ...baseSchema, ...defs };
+  }
+}
+
+/** @deprecated Use SqliteTzEnricher.generateColumnDefs(opts). Removed in 0.5. */
 export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
   opts?: Opts,
-): TTzEnricherResult<Opts> => {
-  const {
-    created = { columnName: 'created_at' },
-    modified = { enable: true, columnName: 'modified_at' },
-    deleted = { enable: false },
-  } = opts ?? {};
+): TTzEnricherResult<Opts> => SqliteTzEnricher.generateColumnDefs(opts);
 
-  let rs = {
-    createdAt: isoTimestamp(created.columnName).default(sql.raw(ISO_TIMESTAMP_NOW)).notNull(),
-  } as TTzEnricherResult<Opts>;
-
-  // `enable` is optional in the option type, so supplying only a `columnName` opts the column in -
-  // gating on truthiness here would emit no column while `TTzEnricherResult` still declares one.
-  if (modified.enable !== false) {
-    rs = {
-      ...rs,
-      modifiedAt: isoTimestamp(modified.columnName)
-        .default(sql.raw(ISO_TIMESTAMP_NOW))
-        .notNull()
-        .$onUpdate(() => new Date().toISOString()),
-    } as TTzEnricherResult<Opts>;
-  }
-
-  if (deleted.enable !== false) {
-    rs = {
-      ...rs,
-      deletedAt: isoTimestamp(deleted.columnName),
-    } as TTzEnricherResult<Opts>;
-  }
-
-  return rs;
-};
-
-export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) => {
-  const defs = generateTzColumnDefs(opts);
-
-  return { ...baseSchema, ...defs };
-};
+/** @deprecated Use SqliteTzEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
+export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) =>
+  SqliteTzEnricher.enrich({ baseSchema, opts });

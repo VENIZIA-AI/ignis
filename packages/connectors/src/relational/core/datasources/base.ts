@@ -5,11 +5,11 @@ import type { ILogger } from '@venizia/ignis-helpers/core';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource, TAnyDataSourceSchema } from '@venizia/ignis-kernel';
 // Deep import, not a barrel: `discoverSchema()` below is the only production call site that needs
-// `createRelations`, so the install runs from here rather than `dialect/relations/create.ts` - nothing else
-// value-imports that file's `createRelations` export, and a `sideEffects: false` bundler drops an
+// `RelationsFactory.create`, so the install runs from here rather than `dialect/relations/create.ts` - nothing else
+// value-imports that file's `RelationsFactory` export, and a `sideEffects: false` bundler drops an
 // unused export's module body even when it is reachable through a barrel `export *` chain (verified
 // with `bun build --target=browser`, the tool `make purity` uses).
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { IRelationalConnection } from '@/relational/core/drivers';
 import { AbstractRelationalDataSource } from './abstract';
 import type { IRelationalTransaction, TRelationalTransactionOptions } from './common';
@@ -173,4 +173,4 @@ export abstract class BaseRelationalDataSource<
 // Runs once this module loads. Every engine (postgres, sqlite) extends `BaseRelationalDataSource`,
 // and `discoverSchema()` above is the sole caller of `resolveModelRelations()`, so this is the one
 // place guaranteed to load whenever relation building is actually needed.
-RelationBuilderRegistry.set({ builder: createRelations as TRelationBuilder });
+RelationBuilderRegistry.set({ builder: RelationsFactory.create as TRelationBuilder });

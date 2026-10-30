@@ -231,7 +231,9 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   }
 
   override getIdType(): TIdSchemaType {
-    return getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
+    return RelationalEntityUtility.getIdType({ entity: this.schema }) === 'number'
+      ? 'number'
+      : 'string';
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
@@ -260,11 +262,11 @@ Declare the table, then build the class from it. The full contract is in [`Model
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
@@ -278,12 +280,12 @@ Define schema and relations as static properties. Repositories auto-resolve them
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs, RelationTypes } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher, RelationTypes } from '@venizia/ignis';
 import type { TRelationConfig } from '@venizia/ignis/postgres';
 import { Comment } from './comment.model';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull(),
 });
@@ -348,7 +350,7 @@ It ships from `@venizia/ignis/postgres` and from `@venizia/ignis-connectors/rela
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
+| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
 | `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()`. Read on first use and once, so it may name a table declared later in the file |
 
 ### The returned class
@@ -370,7 +372,7 @@ Every other member is inherited: the instance `schema`, `getSchema({ type })`, `
 |---|---|---|
 | `one` | `one(table, metadata?)` | A to-one relation. `metadata` is drizzle's `one()` options, every field optional |
 | `many` | `many(table, metadata?)` | A to-many relation. `metadata.relationName` names the `one` on the other table it pairs with |
-| `toRelationConfigs` | `toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key |
+| `RelationDeclarations.toRelationConfigs` | `RelationDeclarations.toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key. The old function `toRelationConfigs` is a deprecated alias until 0.5 |
 
 A relation points at a **table**, never at an entity class - passing a class does not compile. That is why two entities that relate both ways, a self relation (parent and children), and relations across files all keep their row types.
 
@@ -403,11 +405,11 @@ The inverse side carries no columns. drizzle reads them off the `one()` on the t
 
 ```typescript
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
 });
 
 export const profileTable = pgTable('Profile', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
 });
 
@@ -457,14 +459,14 @@ Hidden properties are excluded at the SQL level - they are never fetched from th
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher } from '@venizia/ignis';
 
 @model({
   settings: { hiddenProperties: ['password', 'secret'] },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),
     secret: text('secret'),
@@ -560,32 +562,33 @@ await postRepository.find({
 
 ## Schema enrichers
 
-- **What they are.** Helper functions in the PostgreSQL connector that return an object of Drizzle ORM column definitions.
-- **How to use them.** Spread a `generate*` result into a `pgTable` definition to add common, standardized fields.
-- **Convenience wrappers.** Each `enrich*` wrapper accepts an existing column definitions object as its first argument and merges the generated columns into it.
+- **What they are.** Classes in the PostgreSQL connector whose static methods return an object of Drizzle ORM column definitions. The SQLite connector has the same five under `Sqlite*` names (`SqliteIdEnricher`, ...), so both dialects can be imported side by side.
+- **How to use them.** Spread a `generateColumnDefs` result into a `pgTable` definition to add common, standardized fields.
+- **Convenience wrappers.** Each `enrich` method accepts an existing column definitions object as `baseColumns` (or `baseSchema`) and merges the generated columns into it.
+- **Old names.** The functions these classes replace (`generateIdColumnDefs`, `enrichId`, and so on) are still exported as deprecated aliases until 0.5. `devz codemod namespace-functions` rewrites the calls.
 
-| Enricher function | Convenience wrapper | Purpose |
-| :--- | :--- | :--- |
-| `generateIdColumnDefs` | `enrichId` | Adds a primary key `id` column (string, integer, or big integer) |
-| `generateTzColumnDefs` | `enrichTz` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
-| `generateUserAuditColumnDefs` | `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
-| `generatePrincipalColumnDefs` | `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
-| `generateDataTypeColumnDefs` | `enrichDataTypes` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
+| Enricher class | `generateColumnDefs` | `enrich` | Purpose |
+| :--- | :--- | :--- | :--- |
+| `PostgresIdEnricher` | was `generateIdColumnDefs` | was `enrichId` | Adds a primary key `id` column (string, integer, or big integer) |
+| `PostgresTzEnricher` | was `generateTzColumnDefs` | was `enrichTz` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
+| `PostgresUserAuditEnricher` | was `generateUserAuditColumnDefs` | was `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
+| `PostgresPrincipalEnricher` | was `generatePrincipalColumnDefs` | was `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
+| `PostgresDataTypeEnricher` | was `generateDataTypeColumnDefs` | was `enrichDataTypes` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
 
 ### Combined example
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
 } from '@venizia/ignis';
 
 export const myTable = pgTable('MyTable', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
-  ...generateUserAuditColumnDefs({
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },
   }),
@@ -593,14 +596,14 @@ export const myTable = pgTable('MyTable', {
 });
 ```
 
-### `generateIdColumnDefs`
+### `PostgresIdEnricher`
 
 Adds a primary key `id` column with full TypeScript type inference.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts)
 
 ```typescript
-generateIdColumnDefs<Opts extends TIdEnricherOptions | undefined>(opts?: Opts): TIdColumnDef<Opts>
+PostgresIdEnricher.generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(opts?: Opts): TIdColumnDef<Opts>
 ```
 
 Options (`TIdEnricherOptions`):
@@ -638,17 +641,17 @@ Notes:
 Convenience wrapper:
 
 ```typescript
-enrichId(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDefinitions
+PostgresIdEnricher.enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }): TColumnDefinitions
 ```
 
-### `generateTzColumnDefs`
+### `PostgresTzEnricher`
 
 Adds timestamp columns for creation, modification, and soft deletion.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts)
 
 ```typescript
-generateTzColumnDefs<Opts extends TTzEnricherOptions | undefined>(opts?: Opts): TTzEnricherResult<Opts>
+PostgresTzEnricher.generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(opts?: Opts): TTzEnricherResult<Opts>
 ```
 
 Options (`TTzEnricherOptions`):
@@ -691,7 +694,7 @@ A generated CRUD route never takes `createdAt` or `modifiedAt` from the request 
 Convenience wrapper:
 
 ```typescript
-enrichTz(baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions): TColumnDefinitions
+PostgresTzEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }): TColumnDefinitions
 ```
 
 <details>
@@ -717,14 +720,14 @@ await db.update(myTable).set({ deletedAt: null }).where(eq(myTable.id, id));
 
 </details>
 
-### `generateUserAuditColumnDefs`
+### `PostgresUserAuditEnricher`
 
 Adds `createdBy` and `modifiedBy` columns tracking which user created or modified a record.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts)
 
 ```typescript
-generateUserAuditColumnDefs(opts?: TUserAuditEnricherOptions): {
+PostgresUserAuditEnricher.generateColumnDefs(opts?: TUserAuditEnricherOptions): {
   createdBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
   modifiedBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
 }
@@ -782,20 +785,20 @@ The enricher validates `dataType` and throws for invalid values (only `'number'`
 Convenience wrapper:
 
 ```typescript
-enrichUserAudit<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts?: TUserAuditEnricherOptions,
-): TUserAuditEnricherResult<ColumnDefinitions>
+PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts?: TUserAuditEnricherOptions;
+}): TUserAuditEnricherResult<ColumnDefinitions>
 ```
 
-### `generatePrincipalColumnDefs`
+### `PostgresPrincipalEnricher`
 
 Adds polymorphic principal columns for associating a record with different entity types (a comment can belong to a Post, User, or Product).
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts)
 
 ```typescript
-generatePrincipalColumnDefs<
+PostgresPrincipalEnricher.generateColumnDefs<
   Discriminator extends string = 'principal',
   IdType extends 'number' | 'string' = 'number',
   Nullable extends boolean = false,
@@ -826,11 +829,11 @@ With a custom discriminator such as `'owner'`, columns become `ownerId` / `owner
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
+import { PostgresIdEnricher, PostgresPrincipalEnricher } from '@venizia/ignis';
 
 export const commentTable = pgTable('Comment', {
-  ...generateIdColumnDefs(),
-  ...generatePrincipalColumnDefs({ polymorphicIdType: 'number' }),
+  ...PostgresIdEnricher.generateColumnDefs(),
+  ...PostgresPrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'number' }),
   content: text('content').notNull(),
 });
 // principalId: integer('principal_id').notNull()
@@ -840,20 +843,20 @@ export const commentTable = pgTable('Comment', {
 Convenience wrapper:
 
 ```typescript
-enrichPrincipal<ColumnDefinitions extends TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions,
-): ColumnDefinitions & TPrincipalColumnDef
+PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
+  baseSchema: ColumnDefinitions;
+  opts: TPrincipalEnricherOptions;
+}): ColumnDefinitions & TPrincipalColumnDef
 ```
 
-### `generateDataTypeColumnDefs`
+### `PostgresDataTypeEnricher`
 
 Adds polymorphic data storage columns for entities that store values of different types in a single table (key-value stores, settings tables).
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
 ```typescript
-generateDataTypeColumnDefs(opts?: TDataTypeEnricherOptions): {
+PostgresDataTypeEnricher.generateColumnDefs(opts?: TDataTypeEnricherOptions): {
   dataType: PgTextBuilderInitial;
   nValue: PgDoublePrecisionBuilderInitial;
   tValue: PgTextBuilderInitial;
@@ -893,13 +896,13 @@ All columns are nullable by default (no `NOT NULL`), since typically only one va
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
+import { BaseEntity, model, PostgresIdEnricher, PostgresDataTypeEnricher } from '@venizia/ignis';
 
 @model()
 export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
   static override schema = pgTable('AppConfig', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateDataTypeColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresDataTypeEnricher.generateColumnDefs(),
     key: text('key').notNull().unique(),
   });
 }
@@ -910,7 +913,7 @@ export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
 Convenience wrapper:
 
 ```typescript
-enrichDataTypes(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions): TColumnDefinitions
+PostgresDataTypeEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }): TColumnDefinitions
 ```
 
 ## Key types
@@ -1059,10 +1062,10 @@ Built on `keysToCamel()` / `toCamel()` from `@venizia/ignis-helpers`; recursivel
 
 There are two distinct `getIdType`s in the framework - do not confuse them.
 
-| | Neutral instance method | PostgreSQL utility function |
+| | Neutral instance method | PostgreSQL utility (`RelationalEntityUtility.getIdType`; the old function `getIdType` is a deprecated alias until 0.5) |
 |---|---|---|
-| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
-| Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
+| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `RelationalEntityUtility.getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
+| Signature | `getIdType(): TIdSchemaType` | `RelationalEntityUtility.getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
 | Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
 
 ```typescript
@@ -1071,8 +1074,8 @@ const entity = new User();
 entity.getIdType(); // 'string' | 'number'
 
 // PostgreSQL connector - standalone utility inspecting a raw Drizzle schema
-import { getIdType } from '@venizia/ignis/postgres';
-getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
+import { RelationalEntityUtility } from '@venizia/ignis/postgres';
+RelationalEntityUtility.getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
 ```
 
 ## See also

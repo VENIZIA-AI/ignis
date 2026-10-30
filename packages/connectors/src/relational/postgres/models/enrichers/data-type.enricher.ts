@@ -8,42 +8,50 @@ const byteaType = customType<{ data: Buffer }>({
   },
 });
 
-export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) => {
-  const { defaultValue } = opts ?? {};
+export class PostgresDataTypeEnricher {
+  static generateColumnDefs(opts?: TDataTypeEnricherOptions) {
+    const { defaultValue } = opts ?? {};
 
-  // Gate on presence, not truthiness - `0`, `''` and `false` are legitimate defaults.
-  return {
-    dataType:
-      defaultValue?.dataType !== undefined
-        ? text('data_type').default(defaultValue.dataType)
-        : text('data_type'),
-    nValue:
-      defaultValue?.nValue !== undefined
-        ? doublePrecision('n_value').default(defaultValue.nValue)
-        : doublePrecision('n_value'),
-    tValue:
-      defaultValue?.tValue !== undefined
-        ? text('t_value').default(defaultValue.tValue)
-        : text('t_value'),
-    bValue:
-      defaultValue?.bValue !== undefined
-        ? byteaType('b_value').default(defaultValue.bValue)
-        : byteaType('b_value'),
-    jValue:
-      defaultValue?.jValue !== undefined
-        ? jsonb('j_value').default(defaultValue.jValue).$type<Record<string, AnyType>>()
-        : jsonb('j_value').$type<Record<string, AnyType>>(),
-    boValue:
-      defaultValue?.boValue !== undefined
-        ? boolean('bo_value').default(defaultValue.boValue)
-        : boolean('bo_value'),
-  };
-};
+    // Gate on presence, not truthiness - `0`, `''` and `false` are legitimate defaults.
+    return {
+      dataType:
+        defaultValue?.dataType !== undefined
+          ? text('data_type').default(defaultValue.dataType)
+          : text('data_type'),
+      nValue:
+        defaultValue?.nValue !== undefined
+          ? doublePrecision('n_value').default(defaultValue.nValue)
+          : doublePrecision('n_value'),
+      tValue:
+        defaultValue?.tValue !== undefined
+          ? text('t_value').default(defaultValue.tValue)
+          : text('t_value'),
+      bValue:
+        defaultValue?.bValue !== undefined
+          ? byteaType('b_value').default(defaultValue.bValue)
+          : byteaType('b_value'),
+      jValue:
+        defaultValue?.jValue !== undefined
+          ? jsonb('j_value').default(defaultValue.jValue).$type<Record<string, AnyType>>()
+          : jsonb('j_value').$type<Record<string, AnyType>>(),
+      boValue:
+        defaultValue?.boValue !== undefined
+          ? boolean('bo_value').default(defaultValue.boValue)
+          : boolean('bo_value'),
+    };
+  }
 
-export const enrichDataTypes = (
-  baseSchema: TColumnDefinitions,
-  opts?: TDataTypeEnricherOptions,
-) => {
-  const defs = generateDataTypeColumnDefs(opts);
-  return { ...baseSchema, ...defs };
-};
+  static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }) {
+    const { baseSchema, opts: enricherOpts } = opts;
+    const defs = PostgresDataTypeEnricher.generateColumnDefs(enricherOpts);
+    return { ...baseSchema, ...defs };
+  }
+}
+
+/** @deprecated Use PostgresDataTypeEnricher.generateColumnDefs(opts). Removed in 0.5. */
+export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) =>
+  PostgresDataTypeEnricher.generateColumnDefs(opts);
+
+/** @deprecated Use PostgresDataTypeEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
+export const enrichDataTypes = (baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions) =>
+  PostgresDataTypeEnricher.enrich({ baseSchema, opts });

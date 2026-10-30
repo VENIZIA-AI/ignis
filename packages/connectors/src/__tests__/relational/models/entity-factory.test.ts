@@ -6,15 +6,15 @@ import { PGlite } from '@electric-sql/pglite';
 import { createTableRelationsHelpers, getTableName, is, One } from 'drizzle-orm';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import {
-  generateIdColumnDefs,
+  PostgresIdEnricher,
+  RelationDeclarations,
   many,
   ModelFactory,
   one,
-  toRelationConfigs,
 } from '@/relational/postgres/models';
 import type { TEntityObject } from '@/relational/postgres/models';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
@@ -23,7 +23,7 @@ import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
-const stringId = () => generateIdColumnDefs({ id: { dataType: 'string' } });
+const stringId = () => PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } });
 
 // ----- Tables first: plain drizzle, foreign keys stated once, on the column.
 
@@ -315,7 +315,9 @@ describe('ModelFactory.defineEntity - the class', () => {
   });
 
   test('flattens the keyed relations into the array form, named by their keys', () => {
-    expect(toRelationConfigs({ relations: { children: many(PolicyFeatureTable) } })).toEqual([
+    expect(
+      RelationDeclarations.toRelationConfigs({ relations: { children: many(PolicyFeatureTable) } }),
+    ).toEqual([
       {
         name: 'children',
         type: RelationTypes.MANY,
@@ -335,14 +337,16 @@ describe('ModelFactory.defineEntity - the class', () => {
 });
 
 /** Runs the relation callback the way drizzle does when it builds the query schema. */
-const buildRelations = (opts: Parameters<typeof createRelations>[0]) =>
-  createRelations(opts).relations.config(createTableRelationsHelpers(opts.source));
+const buildRelations = (opts: Parameters<typeof RelationsFactory.create>[0]) =>
+  RelationsFactory.create(opts).relations.config(createTableRelationsHelpers(opts.source));
 
 describe('one() reads its columns off the table', () => {
   test('a single foreign key to the target becomes fields and references', () => {
     const built = buildRelations({
       source: PolicyFeatureTable,
-      relations: toRelationConfigs({ relations: { policy: one(PolicyTable) } }),
+      relations: RelationDeclarations.toRelationConfigs({
+        relations: { policy: one(PolicyTable) },
+      }),
     });
 
     const policy = built.policy;
@@ -355,7 +359,7 @@ describe('one() reads its columns off the table', () => {
   test('fields written out are used as written', () => {
     const built = buildRelations({
       source: PolicyFeatureTable,
-      relations: toRelationConfigs({
+      relations: RelationDeclarations.toRelationConfigs({
         relations: {
           policy: one(PolicyTable, {
             fields: [PolicyFeatureTable.policyId],
@@ -372,7 +376,9 @@ describe('one() reads its columns off the table', () => {
   test('the inverse side of a one-to-one carries no config, so drizzle pairs it from the other side', () => {
     const built = buildRelations({
       source: PolicyTable,
-      relations: toRelationConfigs({ relations: { detail: one(PolicyDetailTable) } }),
+      relations: RelationDeclarations.toRelationConfigs({
+        relations: { detail: one(PolicyDetailTable) },
+      }),
     });
 
     const detail = built.detail;
@@ -391,7 +397,9 @@ describe('one() reads its columns off the table', () => {
     expect(() =>
       buildRelations({
         source: AuditTable,
-        relations: toRelationConfigs({ relations: { creator: one(UserTable) } }),
+        relations: RelationDeclarations.toRelationConfigs({
+          relations: { creator: one(UserTable) },
+        }),
       }),
     ).toThrow(/created_by, updated_by/);
   });
@@ -399,7 +407,7 @@ describe('one() reads its columns off the table', () => {
   test('a key claimed by a written one() is left out, so the one key left is read', () => {
     const built = buildRelations({
       source: ArticleTable,
-      relations: toRelationConfigs({
+      relations: RelationDeclarations.toRelationConfigs({
         relations: {
           author: one(WriterTable, {
             fields: [ArticleTable.authorId],
@@ -426,7 +434,7 @@ describe('one() reads its columns off the table', () => {
     const build = () =>
       buildRelations({
         source: ReviewedTable,
-        relations: toRelationConfigs({
+        relations: RelationDeclarations.toRelationConfigs({
           relations: {
             author: one(WriterTable, {
               fields: [ReviewedTable.authorId],
@@ -446,7 +454,7 @@ describe('one() reads its columns off the table', () => {
     expect(() =>
       buildRelations({
         source: ArticleTable,
-        relations: toRelationConfigs({
+        relations: RelationDeclarations.toRelationConfigs({
           relations: {
             author: one(WriterTable, {
               fields: [ArticleTable.authorId],
@@ -469,7 +477,9 @@ describe('one() reads its columns off the table', () => {
     expect(() =>
       buildRelations({
         source: LonelyTable,
-        relations: toRelationConfigs({ relations: { policy: one(PolicyTable) } }),
+        relations: RelationDeclarations.toRelationConfigs({
+          relations: { policy: one(PolicyTable) },
+        }),
       }),
     ).toThrow(/no foreign key/);
   });
@@ -478,7 +488,7 @@ describe('one() reads its columns off the table', () => {
     expect(() =>
       buildRelations({
         source: PolicyTable,
-        relations: toRelationConfigs({
+        relations: RelationDeclarations.toRelationConfigs({
           relations: { detail: one(PolicyDetailTable, { relationName: 'policy' }) },
         }),
       }),
@@ -497,7 +507,9 @@ describe('one() reads its columns off the table', () => {
       expect(() =>
         buildRelations({
           source: MemberTable,
-          relations: toRelationConfigs({ relations: { card: one(MemberCardTable) } }),
+          relations: RelationDeclarations.toRelationConfigs({
+            relations: { card: one(MemberCardTable) },
+          }),
         }),
       ).toThrow(/member_id, issued_by[\s\S]*write fields and references on this side/);
     });
@@ -505,7 +517,7 @@ describe('one() reads its columns off the table', () => {
     test('takes the escape: fields and references written reversed are used as written', () => {
       const built = buildRelations({
         source: MemberTable,
-        relations: toRelationConfigs({
+        relations: RelationDeclarations.toRelationConfigs({
           relations: {
             card: one(MemberCardTable, {
               fields: [MemberTable.id],
@@ -527,7 +539,7 @@ describe('one() reads its columns off the table', () => {
     expect(() =>
       buildRelations({
         source: NodeTable,
-        relations: toRelationConfigs({
+        relations: RelationDeclarations.toRelationConfigs({
           relations: { previous: one(NodeTable), next: one(NodeTable) },
         }),
       }),
@@ -537,7 +549,7 @@ describe('one() reads its columns off the table', () => {
   test('a fields-less self one() beside a written one still reads the one self key', () => {
     const built = buildRelations({
       source: NodeTable,
-      relations: toRelationConfigs({
+      relations: RelationDeclarations.toRelationConfigs({
         relations: {
           previous: one(NodeTable),
           next: one(NodeTable, { fields: [NodeTable.id], references: [NodeTable.previousId] }),
@@ -560,7 +572,7 @@ describe('one() reads its columns off the table', () => {
 
     const built = buildRelations({
       source: ChainTable,
-      relations: toRelationConfigs({
+      relations: RelationDeclarations.toRelationConfigs({
         relations: {
           previous: one(ChainTable, {
             fields: [ChainTable.previousId],
@@ -588,9 +600,11 @@ describe('one() reads its columns off the table', () => {
     });
 
     // drizzle runs the callback on every drizzle({ schema }), and the drivers make one per transaction.
-    const { relations } = createRelations({
+    const { relations } = RelationsFactory.create({
       source: SourceTable,
-      relations: toRelationConfigs({ relations: { target: one(TargetTable) } }),
+      relations: RelationDeclarations.toRelationConfigs({
+        relations: { target: one(TargetTable) },
+      }),
     });
     relations.config(createTableRelationsHelpers(SourceTable));
     const afterFirstBuild = lookups;

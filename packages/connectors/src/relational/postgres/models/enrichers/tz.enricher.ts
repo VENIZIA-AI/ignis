@@ -25,48 +25,60 @@ export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = unde
       : {}
     : {}); // no deletedAt when opts is undefined
 
-export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
-  opts?: Opts,
-): TTzEnricherResult<Opts> => {
-  const {
-    created = { columnName: 'created_at', withTimezone: true },
-    modified = { enable: true, columnName: 'modified_at', withTimezone: true },
-    deleted = { enable: false },
-  } = opts ?? {};
+export class PostgresTzEnricher {
+  static generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(
+    opts?: Opts,
+  ): TTzEnricherResult<Opts> {
+    const {
+      created = { columnName: 'created_at', withTimezone: true },
+      modified = { enable: true, columnName: 'modified_at', withTimezone: true },
+      deleted = { enable: false },
+    } = opts ?? {};
 
-  let rs = {
-    createdAt: isoTimestamp(created.columnName, {
-      withTimezone: created.withTimezone,
-    })
-      .default(sql`NOW()`)
-      .notNull(),
-  } as TTzEnricherResult<Opts>;
-
-  if (modified.enable !== false) {
-    rs = {
-      ...rs,
-      modifiedAt: isoTimestamp(modified.columnName, {
-        withTimezone: modified.withTimezone,
+    let rs = {
+      createdAt: isoTimestamp(created.columnName, {
+        withTimezone: created.withTimezone,
       })
         .default(sql`NOW()`)
-        .notNull()
-        .$onUpdate(() => new Date().toISOString()),
+        .notNull(),
     } as TTzEnricherResult<Opts>;
+
+    if (modified.enable !== false) {
+      rs = {
+        ...rs,
+        modifiedAt: isoTimestamp(modified.columnName, {
+          withTimezone: modified.withTimezone,
+        })
+          .default(sql`NOW()`)
+          .notNull()
+          .$onUpdate(() => new Date().toISOString()),
+      } as TTzEnricherResult<Opts>;
+    }
+
+    if (deleted.enable !== false) {
+      rs = {
+        ...rs,
+        deletedAt: isoTimestamp(deleted.columnName, {
+          withTimezone: deleted.withTimezone,
+        }),
+      } as TTzEnricherResult<Opts>;
+    }
+
+    return rs;
   }
 
-  if (deleted.enable !== false) {
-    rs = {
-      ...rs,
-      deletedAt: isoTimestamp(deleted.columnName, {
-        withTimezone: deleted.withTimezone,
-      }),
-    } as TTzEnricherResult<Opts>;
+  static enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }) {
+    const { baseSchema, opts: enricherOpts } = opts;
+    const defs = PostgresTzEnricher.generateColumnDefs(enricherOpts);
+    return { ...baseSchema, ...defs };
   }
+}
 
-  return rs;
-};
+/** @deprecated Use PostgresTzEnricher.generateColumnDefs(opts). Removed in 0.5. */
+export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
+  opts?: Opts,
+): TTzEnricherResult<Opts> => PostgresTzEnricher.generateColumnDefs(opts);
 
-export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) => {
-  const defs = generateTzColumnDefs(opts);
-  return { ...baseSchema, ...defs };
-};
+/** @deprecated Use PostgresTzEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
+export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) =>
+  PostgresTzEnricher.enrich({ baseSchema, opts });

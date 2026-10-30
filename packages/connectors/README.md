@@ -28,7 +28,7 @@ import { datasource, model, repository } from '@venizia/ignis-kernel';
 import {
   BasePostgresDataSource,
   DefaultCRUDRepository,
-  generateIdColumnDefs,
+  PostgresIdEnricher,
   many,
   ModelFactory,
   one,
@@ -39,12 +39,12 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 import { Pool } from 'pg';
 
 export const authorTable = pgTable('Author', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
 export const postTable = pgTable('Post', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   authorId: text('author_id').notNull().references(() => authorTable.id),
   title: text('title').notNull(),
 });
@@ -99,7 +99,7 @@ Notice what you did not write:
   `fields`/`references` for that relation.
 - `many(postTable, { relationName: 'author' })` pairs with the `one()` named `author` on `Post`.
 - The datasource has no schema. It collects the tables from every `@repository` bound to it.
-- `generateIdColumnDefs({ id: { dataType: 'string' } })` gives a text primary key filled with a UUID v7.
+- `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` gives a text primary key filled with a UUID v7. The enrichers are classes (`Postgres*Enricher`, `Sqlite*Enricher`); the old function names (`generateIdColumnDefs`, ...) are deprecated aliases until 0.5.
 
 A class that extends `BaseRelationalEntity` with a hand-written static `schema` still works. Both
 styles can live in one application.
@@ -114,7 +114,7 @@ styles can live in one application.
 | `/postgres/node-postgres` | `NodePostgresDriver` | `drizzle-orm`, `pg` |
 | `/postgres/postgres-js` | `PostgresJsDriver` | `drizzle-orm`, `postgres` |
 | `/postgres/pglite` | `PGliteDriver` - Postgres in WASM, in memory or in the browser's OPFS | `drizzle-orm`, `@electric-sql/pglite` |
-| `/postgres/supabase` | `withAuthContext`, `PoolerModes`, `buildPostgresJsOptions`, and the Supabase role and table helpers | `drizzle-orm` |
+| `/postgres/supabase` | `SupabaseRls`, `PoolerModes`, `SupabasePooler`, and the Supabase role and table helpers | `drizzle-orm` |
 | `/sqlite` | `BaseSqliteDataSource`, `DefaultSqliteRepository` and its chain, `ModelFactory`, `RecursiveTreeSql` | `drizzle-orm`, `drizzle-zod`, `hono`, `@hono/zod-openapi` |
 | `/sqlite/libsql` | `LibSqlDriver` | `drizzle-orm`, `drizzle-zod`, `hono`, `@hono/zod-openapi`, `@libsql/client` |
 | `/search` | The engine-neutral search tier: `BaseSearchDataSource`, `BaseSearchEntity`, `DefaultSearchRepository` and its chain | none |

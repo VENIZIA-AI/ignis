@@ -1,11 +1,11 @@
 import { describe, test, expect } from 'bun:test';
 import { z } from '@hono/zod-openapi';
 
-import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { SchemaTypes } from '@venizia/ignis-kernel';
 
 class ProductDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products',
     fields: [
       field.string('title', { searchable: true }),
@@ -55,7 +55,7 @@ describe('BaseSearchEntity', () => {
   });
 
   test('constructor accepts an explicit schema override', () => {
-    const override = defineSearchCollection({
+    const override = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('sku')],
     });
@@ -69,7 +69,7 @@ describe('BaseSearchEntity', () => {
   });
 
   test('an explicit schema override is derived fresh, bypassing the static-definition cache', () => {
-    const override = defineSearchCollection({
+    const override = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('sku')],
     });
@@ -83,7 +83,7 @@ describe('BaseSearchEntity', () => {
 
   test('documentSchema override wins wholesale over DSL derivation', () => {
     class OverriddenDocument extends BaseSearchEntity {
-      static override schema = defineSearchCollection({
+      static override schema = SearchCollectionFactory.define({
         name: 'overridden',
         fields: [field.string('title')],
       });
@@ -126,7 +126,7 @@ describe('BaseSearchEntity', () => {
   test('COLLECTION_NAME takes precedence over definition.name for entity name', () => {
     class NamedDocument extends BaseSearchEntity {
       static override COLLECTION_NAME = 'named-override';
-      static override schema = defineSearchCollection({
+      static override schema = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.string('title')],
       });

@@ -3,7 +3,7 @@ import { getTableName } from 'drizzle-orm';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BaseRelationalEntity } from './base';
 import type { TRelationDefinitions, TTableSchemaWithId } from './common';
-import { toRelationConfigs } from './relations';
+import { RelationDeclarations } from './relations';
 
 /**
  * The class `defineEntity` returns: every static and instance member of a hand-written
@@ -55,7 +55,7 @@ export class ModelFactory {
       }
 
       static override readonly relations: TValueOrResolver<Array<TRelationConfig>> = () => {
-        configs ??= toRelationConfigs({ relations: readDefinitions() ?? {} });
+        configs ??= RelationDeclarations.toRelationConfigs({ relations: readDefinitions() ?? {} });
         return configs;
       };
     }

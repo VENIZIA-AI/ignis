@@ -100,75 +100,80 @@ const assertVectorDistance = (opts: { field: ISearchFieldDefinition }): void => 
   });
 };
 
-/** Compiles the neutral collection DSL into a Meilisearch index plan. */
+export class MeilisearchCollectionCompiler {
+  /** Compiles the neutral collection DSL into a Meilisearch index plan. */
+  static compile(opts: { definition: ISearchCollectionDefinition }): IMeilisearchIndexPlan {
+    const { definition } = opts;
+    const { name, fields, defaultSort, synonyms, engineOverrides } = definition;
+
+    assertGeopoint({ definition });
+
+    const searchableAttributes: string[] = [];
+    const filterableAttributes: string[] = [];
+    const sortableAttributes: string[] = [];
+    const embedders: Record<string, unknown> = {};
+    let primaryKey: string | undefined;
+
+    for (const item of fields) {
+      if (item.name === RESERVED_ID_FIELD_NAME) {
+        primaryKey = item.name;
+      }
+
+      if (item.searchable) {
+        searchableAttributes.push(item.name);
+      }
+
+      if (item.filterable) {
+        filterableAttributes.push(item.name);
+      }
+
+      if (item.sortable) {
+        sortableAttributes.push(item.name);
+      }
+
+      if (item.type !== SearchFieldTypes.VECTOR) {
+        continue;
+      }
+
+      assertVectorDistance({ field: item });
+
+      embedders[item.name] = item.vector?.embed
+        ? buildEmbedder({ field: item.name, embed: item.vector.embed })
+        : { source: 'userProvided', dimensions: item.vector?.dimensions };
+    }
+
+    if (defaultSort !== undefined && !sortableAttributes.includes(defaultSort)) {
+      throw getError({
+        message: `[compileMeilisearchCollection] Meilisearch has no default_sorting_field, so defaultSort must name a sortable field | collection: ${name} | defaultSort: ${defaultSort}`,
+      });
+    }
+
+    const settings: Record<string, unknown> = {
+      // An empty array would disable search entirely; `['*']` is Meilisearch's own default.
+      searchableAttributes: searchableAttributes.length > 0 ? searchableAttributes : ['*'],
+      filterableAttributes,
+      sortableAttributes,
+    };
+
+    if (synonyms?.length) {
+      settings['synonyms'] = buildSynonymDictionary({ synonyms });
+    }
+
+    if (Object.keys(embedders).length > 0) {
+      settings['embedders'] = embedders;
+    }
+
+    const override = engineOverrides?.meilisearch;
+
+    return {
+      uid: name,
+      ...(primaryKey ? { primaryKey } : {}),
+      settings: override ? { ...settings, ...override } : settings,
+    };
+  }
+}
+
+/** @deprecated Use MeilisearchCollectionCompiler.compile({ definition }). Removed in 0.5. */
 export const compileMeilisearchCollection = (opts: {
   definition: ISearchCollectionDefinition;
-}): IMeilisearchIndexPlan => {
-  const { definition } = opts;
-  const { name, fields, defaultSort, synonyms, engineOverrides } = definition;
-
-  assertGeopoint({ definition });
-
-  const searchableAttributes: string[] = [];
-  const filterableAttributes: string[] = [];
-  const sortableAttributes: string[] = [];
-  const embedders: Record<string, unknown> = {};
-  let primaryKey: string | undefined;
-
-  for (const item of fields) {
-    if (item.name === RESERVED_ID_FIELD_NAME) {
-      primaryKey = item.name;
-    }
-
-    if (item.searchable) {
-      searchableAttributes.push(item.name);
-    }
-
-    if (item.filterable) {
-      filterableAttributes.push(item.name);
-    }
-
-    if (item.sortable) {
-      sortableAttributes.push(item.name);
-    }
-
-    if (item.type !== SearchFieldTypes.VECTOR) {
-      continue;
-    }
-
-    assertVectorDistance({ field: item });
-
-    embedders[item.name] = item.vector?.embed
-      ? buildEmbedder({ field: item.name, embed: item.vector.embed })
-      : { source: 'userProvided', dimensions: item.vector?.dimensions };
-  }
-
-  if (defaultSort !== undefined && !sortableAttributes.includes(defaultSort)) {
-    throw getError({
-      message: `[compileMeilisearchCollection] Meilisearch has no default_sorting_field, so defaultSort must name a sortable field | collection: ${name} | defaultSort: ${defaultSort}`,
-    });
-  }
-
-  const settings: Record<string, unknown> = {
-    // An empty array would disable search entirely; `['*']` is Meilisearch's own default.
-    searchableAttributes: searchableAttributes.length > 0 ? searchableAttributes : ['*'],
-    filterableAttributes,
-    sortableAttributes,
-  };
-
-  if (synonyms?.length) {
-    settings['synonyms'] = buildSynonymDictionary({ synonyms });
-  }
-
-  if (Object.keys(embedders).length > 0) {
-    settings['embedders'] = embedders;
-  }
-
-  const override = engineOverrides?.meilisearch;
-
-  return {
-    uid: name,
-    ...(primaryKey ? { primaryKey } : {}),
-    settings: override ? { ...settings, ...override } : settings,
-  };
-};
+}): IMeilisearchIndexPlan => MeilisearchCollectionCompiler.compile(opts);

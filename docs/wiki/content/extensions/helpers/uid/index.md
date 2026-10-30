@@ -36,7 +36,7 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 
 | Use | Version | Why |
 |---|---|---|
-| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages. This is what `generateIdColumnDefs({ id: { dataType: 'string' } })` fills a string ID with |
+| Database primary key | `v7()` | Time-ordered, so a B-tree appends instead of splitting pages. This is what `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` fills a string ID with |
 | Idempotency key, deterministic ID | `v5({ namespace, name })` | The same inputs answer the same ID on every host, forever - there is no state to store |
 | Public identifier, random token | `v4()` | No clock, nothing to correlate a caller by, 122 random bits |
 

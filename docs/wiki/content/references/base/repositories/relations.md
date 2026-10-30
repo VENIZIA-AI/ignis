@@ -52,17 +52,17 @@ A model built with `ModelFactory.defineEntity` declares its relations keyed by n
 ```typescript
 // src/models/user.model.ts
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, many, ModelFactory, one } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
 export const postTable = pgTable('Post', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   authorId: text('author_id').notNull().references((): AnyPgColumn => userTable.id),
   title: text('title').notNull(),
 });
@@ -88,7 +88,7 @@ export class Post extends ModelFactory.defineEntity({
 
 ### The class form
 
-A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `createRelations`. `createRelations` builds the actual Drizzle `relations()` definition - application code never calls it directly.
+A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `RelationsFactory.create` (the old function `createRelations` is a deprecated alias until 0.5). `RelationsFactory.create` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts

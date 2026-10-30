@@ -23,9 +23,9 @@ end-to-end evidence that the lift worked.
   reading its foreign key, `Note.comments` a `many()`.
 - **Storage classes have neighbours, not equivalents** - SQLite has five, so the model uses `text`
   for the id and body columns instead of `uuid`/`varchar`, `text({ mode: 'json' })` instead of
-  `jsonb`, and `generateTzColumnDefs` for the created-at default instead of `timestamptz`. The filter
+  `jsonb`, and `SqliteTzEnricher.generateColumnDefs` for the created-at default instead of `timestamptz`. The filter
   layer compensates: JSON-path predicates compile to `json_extract` rather than `#>>`.
-- **`generateTzColumnDefs` owns the default expression** - it is the enricher, not the caller, that
+- **`SqliteTzEnricher.generateColumnDefs` owns the default expression** - it is the enricher, not the caller, that
   wraps the ISO-timestamp constant in `sql.raw()`. This example disables `modified` and `deleted`
   (`{ enable: false }`) and keeps only `createdAt`.
 - **libsql spans four deployment shapes** - `file:` for local, `:memory:` for ephemeral, plus remote

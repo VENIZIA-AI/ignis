@@ -1,6 +1,6 @@
 import type { TFilter, TWhere } from '@venizia/ignis-kernel';
 import { datasource, model, RelationTypes } from '@venizia/ignis-kernel';
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/relational/core/models';
 import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
@@ -81,9 +81,11 @@ class JsonPathSqliteDataSource extends BaseSqliteDataSource<{ url: string }, {},
         // Keyed by the registered model name, as auto-discovery keys a real application.
         [ORDER_MODEL_NAME]: orderTable,
         JsonPathSqliteSupplier: supplierTable,
-        orderRelations: createRelations({ source: orderTable, relations: orderRelationsConfig })
-          .relations,
-        supplierRelations: createRelations({
+        orderRelations: RelationsFactory.create({
+          source: orderTable,
+          relations: orderRelationsConfig,
+        }).relations,
+        supplierRelations: RelationsFactory.create({
           source: supplierTable,
           relations: supplierRelationsConfig,
         }).relations,

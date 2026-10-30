@@ -27,7 +27,7 @@ export class TableColumnCache {
   }
 }
 
-/** Published name of {@link TableColumnCache.get}. */
+/** @deprecated Use TableColumnCache.get(schema). Removed in 0.5. */
 export const getCachedColumns = <Schema extends TTableSchemaWithId>(
   schema: Schema,
 ): TTableColumns => TableColumnCache.get(schema);

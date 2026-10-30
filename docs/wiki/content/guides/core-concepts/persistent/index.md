@@ -42,7 +42,7 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 ```typescript
 // 1. Define a Model: a Drizzle table, then the model class built from it
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull(),
 });

@@ -14,7 +14,7 @@ import {
 } from '@/search/core';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   type ISynonym,
 } from '@/search/core/models';
@@ -283,7 +283,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   },
 })
 export class ProductDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products',
     fields: [
       field.string('title', { searchable: true }),
@@ -304,7 +304,7 @@ export class ProductDocument extends BaseSearchEntity {
   },
 })
 export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products_no_default_filter',
     fields: [
       field.string('title', { searchable: true }),
@@ -327,7 +327,7 @@ export class ProductDocumentNoDefaultFilter extends BaseSearchEntity {
   tableName: 'products_with_default_query_by',
 })
 export class ProductDocumentWithDefaultQueryBy extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products_with_default_query_by',
     fields: [
       field.string('title'),
@@ -348,7 +348,7 @@ export class ProductDocumentWithDefaultQueryBy extends BaseSearchEntity {
   },
 })
 export class ProductDocumentWithDefaultLimit extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products_with_default_limit',
     fields: [field.string('title', { searchable: true })],
   });

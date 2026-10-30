@@ -2,8 +2,7 @@ import { omit } from '@venizia/ignis-helpers/common';
 import { describe, test, expect } from 'bun:test';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import {
-  defineSearchCollection,
-  deriveSearchDocumentSchema,
+  SearchCollectionFactory,
   field,
   SearchFieldTypes,
   VectorDistances,
@@ -117,7 +116,7 @@ describe('search-collection DSL', () => {
 
   describe('defineSearchCollection', () => {
     test('auto-prepends field.id() when missing', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.string('title')],
       });
@@ -131,7 +130,7 @@ describe('search-collection DSL', () => {
     });
 
     test('keeps an explicit id field as-is', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.id(), field.string('title')],
       });
@@ -141,20 +140,20 @@ describe('search-collection DSL', () => {
     });
 
     test('throws when name is empty', () => {
-      expect(() => defineSearchCollection({ name: '', fields: [field.string('title')] })).toThrow(
-        /\[defineSearchCollection\]/,
-      );
+      expect(() =>
+        SearchCollectionFactory.define({ name: '', fields: [field.string('title')] }),
+      ).toThrow(/\[defineSearchCollection\]/);
     });
 
     test('throws when there are no fields', () => {
-      expect(() => defineSearchCollection({ name: 'products', fields: [] })).toThrow(
+      expect(() => SearchCollectionFactory.define({ name: 'products', fields: [] })).toThrow(
         /\[defineSearchCollection\]/,
       );
     });
 
     test('throws on duplicate field names', () => {
       expect(() =>
-        defineSearchCollection({
+        SearchCollectionFactory.define({
           name: 'products',
           fields: [field.string('title'), field.string('title')],
         }),
@@ -163,7 +162,7 @@ describe('search-collection DSL', () => {
 
     test('throws when id field is not of type string', () => {
       expect(() =>
-        defineSearchCollection({
+        SearchCollectionFactory.define({
           name: 'products',
           fields: [field.number('id'), field.string('title')],
         }),
@@ -172,7 +171,7 @@ describe('search-collection DSL', () => {
 
     test('throws when defaultSort references an unknown field', () => {
       expect(() =>
-        defineSearchCollection({
+        SearchCollectionFactory.define({
           name: 'products',
           fields: [field.string('title')],
           defaultSort: 'unknown',
@@ -182,7 +181,7 @@ describe('search-collection DSL', () => {
 
     test('throws when defaultQueryBy references an unknown field, naming collection and field', () => {
       const build = () =>
-        defineSearchCollection({
+        SearchCollectionFactory.define({
           name: 'products',
           fields: [field.string('title')],
           defaultQueryBy: ['title', 'headline'],
@@ -201,7 +200,7 @@ describe('search-collection DSL', () => {
      */
     test('throws when defaultQueryBy names a non-text field', () => {
       const build = () =>
-        defineSearchCollection({
+        SearchCollectionFactory.define({
           name: 'products',
           fields: [field.string('title'), field.number('price')],
           defaultQueryBy: ['title', 'price'],
@@ -212,7 +211,7 @@ describe('search-collection DSL', () => {
     });
 
     test('accepts defaultQueryBy over string and string[] fields', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.string('title'), field.strings('tags')],
         defaultQueryBy: ['title', 'tags'],
@@ -228,7 +227,7 @@ describe('search-collection DSL', () => {
 
     // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement is enforced later by compileTypesenseCollection, since other engines may sort on strings.
     test('accepts defaultSort referencing an existing STRING field (valid for other engines)', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.string('title')],
         defaultSort: 'title',
@@ -238,7 +237,7 @@ describe('search-collection DSL', () => {
     });
 
     test('accepts defaultSort referencing an existing number[] (array) field', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.numbers('scores')],
         defaultSort: 'scores',
@@ -248,7 +247,7 @@ describe('search-collection DSL', () => {
     });
 
     test('accepts defaultSort referencing a scalar numeric field without explicit sortable flag', () => {
-      const collection = defineSearchCollection({
+      const collection = SearchCollectionFactory.define({
         name: 'products',
         fields: [field.number('price')],
         defaultSort: 'price',
@@ -259,7 +258,7 @@ describe('search-collection DSL', () => {
   });
 
   describe('deriveSearchDocumentSchema', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.string('title'),
@@ -281,28 +280,28 @@ describe('search-collection DSL', () => {
     };
 
     test('SELECT accepts a full valid document', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'select' });
       const result = schema.safeParse(validDocument);
 
       expect(result.success).toBe(true);
     });
 
     test('SELECT rejects wrong field types', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'select' });
       const result = schema.safeParse({ ...validDocument, price: 'not-a-number' });
 
       expect(result.success).toBe(false);
     });
 
     test('SELECT rejects malformed geopoint', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'select' });
       const result = schema.safeParse({ ...validDocument, location: [1, 2, 3] });
 
       expect(result.success).toBe(false);
     });
 
     test('SELECT treats optional fields as optional', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'select' });
       const docWithoutRating = omit({
         source: validDocument as typeof validDocument & { rating?: number },
         keys: ['rating'],
@@ -313,7 +312,7 @@ describe('search-collection DSL', () => {
     });
 
     test('CREATE requires id even if not marked optional elsewhere', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'create' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'create' });
       const docWithoutId = omit({ source: validDocument, keys: ['id'] });
       const result = schema.safeParse(docWithoutId);
 
@@ -321,21 +320,21 @@ describe('search-collection DSL', () => {
     });
 
     test('CREATE accepts a full valid document', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'create' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'create' });
       const result = schema.safeParse(validDocument);
 
       expect(result.success).toBe(true);
     });
 
     test('UPDATE accepts a partial document without id', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'update' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'update' });
       const result = schema.safeParse({ title: 'New title' });
 
       expect(result.success).toBe(true);
     });
 
     test('UPDATE has no id key in its shape - unknown id is stripped, not validated', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'update' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'update' });
       const result = schema.safeParse({ id: '1', title: 'New title' });
 
       expect(result.success).toBe(true);
@@ -343,7 +342,7 @@ describe('search-collection DSL', () => {
     });
 
     test('UPDATE still rejects wrong field types', () => {
-      const schema = deriveSearchDocumentSchema({ definition, type: 'update' });
+      const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'update' });
       const result = schema.safeParse({ price: 'nope' });
 
       expect(result.success).toBe(false);
@@ -351,7 +350,7 @@ describe('search-collection DSL', () => {
 
     test('throws for an invalid schema type', () => {
       expect(() =>
-        deriveSearchDocumentSchema({
+        SearchCollectionFactory.deriveDocumentSchema({
           definition,
           // @ts-expect-error - intentionally invalid to exercise the default branch
           type: 'bogus',

@@ -14,7 +14,7 @@ under `@repository({ model, dataSource })`).
 ## What it demonstrates
 
 - **The entity DSL** - `src/models/article.model.ts` defines `ArticleDocument extends
-  BaseSearchEntity` with `defineSearchCollection` + the `field.*` builder instead of a Drizzle
+  BaseSearchEntity` with `SearchCollectionFactory.define` + the `field.*` builder instead of a Drizzle
   `pgTable`; `id` is auto-prepended, never listed. `TArticleDocument` derives from
   `ArticleDocument.schema`.
 - **Factory CRUD over a search repository** - `src/controllers/article.controller.ts` calls

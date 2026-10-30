@@ -9,7 +9,7 @@ import {
   model,
   repository,
 } from '@venizia/ignis-kernel';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import type { ISearchCollectionDefinition, TSearchDocument } from '@/search/core/models/common';
 import { DefaultSearchRepository } from '@/search/typesense/repositories';
 
@@ -23,7 +23,7 @@ const COLLECTION = 'crud-body-variants';
 /** A collection that requires `createdAt`, as a sort key often is. Nothing on the search path stamps it. */
 @model({ type: 'entity' })
 class VariantDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: COLLECTION,
     fields: [
       field.string('name', { searchable: true }),

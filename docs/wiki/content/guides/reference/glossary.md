@@ -133,7 +133,7 @@ export const todoTable = pgTable('Todo', {
 });
 
 // Relations
-export const userRelations = createRelations({
+export const userRelations = RelationsFactory.create({
   source: userTable,
   relations: [{ name: 'posts', type: 'many', schema: postTable, metadata: {} }],
 });

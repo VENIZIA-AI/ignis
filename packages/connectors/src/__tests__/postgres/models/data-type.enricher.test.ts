@@ -1,13 +1,15 @@
-import { generateDataTypeColumnDefs } from '@/relational/postgres/models';
+import { PostgresDataTypeEnricher } from '@/relational/postgres/models';
 import { describe, expect, test } from 'bun:test';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 const defaultedTable = pgTable('metrics', {
-  ...generateDataTypeColumnDefs({ defaultValue: { nValue: 0, tValue: '', boValue: false } }),
+  ...PostgresDataTypeEnricher.generateColumnDefs({
+    defaultValue: { nValue: 0, tValue: '', boValue: false },
+  }),
 });
 
 const undefaultedTable = pgTable('readings', {
-  ...generateDataTypeColumnDefs(),
+  ...PostgresDataTypeEnricher.generateColumnDefs(),
 });
 
 describe('the Postgres data-type enricher', () => {

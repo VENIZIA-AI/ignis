@@ -3,7 +3,7 @@ import type { ISearchCollectionDefinition } from '@/search/core/models';
 import type { ISearchQueryDialect, TMultiSearchEntry } from '@/search/core/repositories/common';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 import type { Client } from 'typesense';
-import { compileTypesenseCollection } from '../compiler';
+import { TypesenseCollectionCompiler } from '../compiler';
 import { TypesenseConnector } from '../connector';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import type {
@@ -80,7 +80,7 @@ export class TypesenseDataSource extends BaseSearchDataSource<
   }
 
   compileCollection(opts: { definition: ISearchCollectionDefinition }): CollectionCreateSchema {
-    return compileTypesenseCollection(opts);
+    return TypesenseCollectionCompiler.compile(opts);
   }
 
   async ensureCollection(opts: { definition: ISearchCollectionDefinition }): Promise<void> {

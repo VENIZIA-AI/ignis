@@ -13,11 +13,11 @@ tags: [examples, postgres, supabase]
 ## What it demonstrates
 
 - **The driver seam is real** - `src/datasources/supabase.datasource.ts` declares `@datasource({ driver: PostgresJsDriver })` and its `configure()` builds only the client, `this.client = postgres(url, buildPostgresJsOptions({ mode, max }))`. The framework constructs the `PostgresJsDriver` over that client and its pooled connector lazily on first use, through its own internal `useDriver()` call - no such call appears in the example. `getClient()` is typed as postgres-js's `Sql`, not `pg.Pool`.
-- **Pooler mode as a correctness switch** - `buildPostgresJsOptions({ mode })` sets `prepare: false` only for `TRANSACTION` mode, because Supavisor rebinds the backend per transaction and a server-side prepared statement from one backend won't exist on the next.
+- **Pooler mode as a correctness switch** - `SupabasePooler.buildPostgresJsOptions({ mode })` sets `prepare: false` only for `TRANSACTION` mode, because Supavisor rebinds the backend per transaction and a server-side prepared statement from one backend won't exist on the next.
 - **RLS lives in the model** - `pgPolicy` on the `note` entity, using re-exported `authenticatedRole`/`authUid`; drizzle-kit generates the policies and `ENABLE ROW LEVEL SECURITY`.
-- **`withAuthContext` makes `auth.uid()` resolve** - every `NoteService` call opens a transaction and sets the caller's claims with `SET LOCAL`/`set_config(..., true)` inside it, which is transaction-scoped and therefore pooler-safe (a plain `SET` would leak identity to the next connection borrower).
+- **`SupabaseRls.withAuthContext` makes `auth.uid()` resolve** - every `NoteService` call opens a transaction and sets the caller's claims with `SET LOCAL`/`set_config(..., true)` inside it, which is transaction-scoped and therefore pooler-safe (a plain `SET` would leak identity to the next connection borrower).
 - **Ownership cannot be forged** - `ownerId` defaults to `auth.uid()` at the table level; the app never sends an owner in the request body.
-- **The control group** - `GET /notes/unscoped` runs the identical repository call with no auth context and returns every row, isolating `withAuthContext` as the only variable.
+- **The control group** - `GET /notes/unscoped` runs the identical repository call with no auth context and returns every row, isolating `SupabaseRls.withAuthContext` as the only variable.
 - **Claims-shape reconciliation** - IGNIS's `IJWTTokenPayload` uses `userId`/`roles`; GoTrue issues `sub`/`role`. The controller's `getClaims` reconciles them at the boundary rather than assuming they coincide.
 - **Grants are hand-written** - drizzle-kit emits the table and policies but not the schema or `GRANT`s the policies depend on; `migration/0000_purple_calypso.sql` adds those by hand, because a policy is only consulted after the role clears table privileges.
 

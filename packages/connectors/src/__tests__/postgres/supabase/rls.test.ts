@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers/common';
-import { withAuthContext } from '@/relational/postgres/supabase';
+import { SupabaseRls } from '@/relational/postgres/supabase';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
@@ -33,7 +33,11 @@ describe('withAuthContext', () => {
   test('issues set_config then set local role, inside the caller transaction', async () => {
     const { transaction, executed } = buildTransaction();
 
-    await withAuthContext({ transaction, claims: { sub: 'user-1' }, role: 'authenticated' });
+    await SupabaseRls.withAuthContext({
+      transaction,
+      claims: { sub: 'user-1' },
+      role: 'authenticated',
+    });
 
     expect(executed).toHaveLength(2);
     expect(compile(executed[0]).sql).toContain('set_config');
@@ -44,7 +48,7 @@ describe('withAuthContext', () => {
     const { transaction, executed } = buildTransaction();
     const claims = { sub: "u'1", role: 'authenticated' };
 
-    await withAuthContext({ transaction, claims, role: 'authenticated' });
+    await SupabaseRls.withAuthContext({ transaction, claims, role: 'authenticated' });
 
     const { sql: text, params } = compile(executed[0]);
 
@@ -56,7 +60,7 @@ describe('withAuthContext', () => {
   test('the config is transaction-scoped (set_config is_local = true)', async () => {
     const { transaction, executed } = buildTransaction();
 
-    await withAuthContext({ transaction, claims: {}, role: 'authenticated' });
+    await SupabaseRls.withAuthContext({ transaction, claims: {}, role: 'authenticated' });
 
     // Plain `SET` would leak the identity to the next borrower of a pooled connection.
     expect(compile(executed[0]).sql).toContain('true');
@@ -77,7 +81,7 @@ describe('withAuthContext', () => {
       // `set local role $1` is not valid SQL, so the role must be interpolated - an unvalidated role taken from a JWT would be a direct privilege-escalation vector.
       let caught: unknown;
       try {
-        await withAuthContext({ transaction, claims: {}, role });
+        await SupabaseRls.withAuthContext({ transaction, claims: {}, role });
       } catch (error) {
         caught = error;
       }
@@ -92,7 +96,10 @@ describe('withAuthContext', () => {
   test('role defaults to the claims role - PostgREST semantics', async () => {
     const { transaction, executed } = buildTransaction();
 
-    await withAuthContext({ transaction, claims: { sub: 'user-1', role: 'service_role' } });
+    await SupabaseRls.withAuthContext({
+      transaction,
+      claims: { sub: 'user-1', role: 'service_role' },
+    });
 
     expect(compile(executed[1]).sql).toBe('set local role service_role');
   });
@@ -100,7 +107,7 @@ describe('withAuthContext', () => {
   test('an explicit role overrides the claims role', async () => {
     const { transaction, executed } = buildTransaction();
 
-    await withAuthContext({
+    await SupabaseRls.withAuthContext({
       transaction,
       claims: { role: 'authenticated' },
       role: 'supabase_auth_admin',
@@ -116,7 +123,10 @@ describe('withAuthContext', () => {
 
       let caught: unknown;
       try {
-        await withAuthContext({ transaction, claims: claims as Record<string, unknown> });
+        await SupabaseRls.withAuthContext({
+          transaction,
+          claims: claims as Record<string, unknown>,
+        });
       } catch (error) {
         caught = error;
       }
@@ -131,7 +141,10 @@ describe('withAuthContext', () => {
 
     let caught: unknown;
     try {
-      await withAuthContext({ transaction, claims: { role: 'anon; drop table users; --' } });
+      await SupabaseRls.withAuthContext({
+        transaction,
+        claims: { role: 'anon; drop table users; --' },
+      });
     } catch (error) {
       caught = error;
     }
@@ -148,7 +161,7 @@ describe('withAuthContext', () => {
       name: 'Nguyễn Văn A',
     };
 
-    await withAuthContext({ transaction, claims });
+    await SupabaseRls.withAuthContext({ transaction, claims });
 
     const { params } = compile(executed[0]);
     expect(JSON.parse(params[0] as string)).toEqual(claims);
@@ -159,7 +172,7 @@ describe('withAuthContext', () => {
     for (const role of roles) {
       const { transaction } = buildTransaction();
 
-      await withAuthContext({ transaction, claims: {}, role });
+      await SupabaseRls.withAuthContext({ transaction, claims: {}, role });
     }
   });
 });

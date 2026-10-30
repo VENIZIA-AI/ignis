@@ -1,4 +1,4 @@
-import { enrichPrincipal, generatePrincipalColumnDefs } from '@/relational/postgres/models';
+import { PostgresPrincipalEnricher } from '@/relational/postgres/models';
 import { describe, expect, test } from 'bun:test';
 import { pgTable } from 'drizzle-orm/pg-core';
 
@@ -10,7 +10,10 @@ const assertType = <Check extends true>(): Check | undefined => undefined;
 describe('the Postgres principal enricher discriminator column', () => {
   test('is nullable with the default value unless isNullableDiscriminator is false', () => {
     const table = pgTable('comments', {
-      ...generatePrincipalColumnDefs({ polymorphicIdType: 'number', defaultPolymorphic: 'User' }),
+      ...PostgresPrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'number',
+        defaultPolymorphic: 'User',
+      }),
     });
 
     expect(table.principalType.notNull).toBe(false);
@@ -21,13 +24,13 @@ describe('the Postgres principal enricher discriminator column', () => {
   test('treats a null or undefined isNullableDiscriminator from an untyped caller as nullable', () => {
     const untyped = JSON.parse('null');
     const viaNull = pgTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: untyped,
       }),
     });
     const viaUndefined = pgTable('replies', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: undefined,
       }),
@@ -39,7 +42,7 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('is NOT NULL with no default when isNullableDiscriminator is false and no default is given', () => {
     const table = pgTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: false,
       }),
@@ -51,7 +54,7 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('keeps NOT NULL and the given default when isNullableDiscriminator is false', () => {
     const table = pgTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         discriminator: 'owner',
         defaultPolymorphic: 'User',
@@ -67,7 +70,7 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('does not change the id column nullability', () => {
     const table = pgTable('comments', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'number',
         isNullableId: true,
         isNullableDiscriminator: false,
@@ -80,13 +83,13 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('$inferInsert requires the type with isNullableDiscriminator: false and not by default', () => {
     const required = pgTable('replies', {
-      ...generatePrincipalColumnDefs({
+      ...PostgresPrincipalEnricher.generateColumnDefs({
         polymorphicIdType: 'string',
         isNullableDiscriminator: false,
       }),
     });
     const optional = pgTable('notes', {
-      ...generatePrincipalColumnDefs({ polymorphicIdType: 'string' }),
+      ...PostgresPrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' }),
     });
 
     // @ts-expect-error principalType is required
@@ -99,8 +102,11 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('a widened boolean flag takes the NOT NULL branch as one type, not a union', () => {
     const widened = (flag: boolean) =>
-      generatePrincipalColumnDefs({ polymorphicIdType: 'string', isNullableDiscriminator: flag });
-    const strict = generatePrincipalColumnDefs({
+      PostgresPrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'string',
+        isNullableDiscriminator: flag,
+      });
+    const strict = PostgresPrincipalEnricher.generateColumnDefs({
       polymorphicIdType: 'string',
       isNullableDiscriminator: false,
     });
@@ -112,8 +118,11 @@ describe('the Postgres principal enricher discriminator column', () => {
 
   test('a widened boolean isNullableId takes the NOT NULL branch as one type, not a union', () => {
     const widened = (flag: boolean) =>
-      generatePrincipalColumnDefs({ polymorphicIdType: 'string', isNullableId: flag });
-    const strict = generatePrincipalColumnDefs({ polymorphicIdType: 'string' });
+      PostgresPrincipalEnricher.generateColumnDefs({
+        polymorphicIdType: 'string',
+        isNullableId: flag,
+      });
+    const strict = PostgresPrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'string' });
 
     assertType<TEquals<ReturnType<typeof widened>['principalId'], typeof strict.principalId>>();
 
@@ -123,11 +132,11 @@ describe('the Postgres principal enricher discriminator column', () => {
 
 describe('the Postgres enrichPrincipal', () => {
   test('passes isNullableDiscriminator and isNullableId through with matching column types', () => {
-    const schema = enrichPrincipal(
-      {},
-      { polymorphicIdType: 'number', isNullableId: true, isNullableDiscriminator: false },
-    );
-    const direct = generatePrincipalColumnDefs({
+    const schema = PostgresPrincipalEnricher.enrich({
+      baseSchema: {},
+      opts: { polymorphicIdType: 'number', isNullableId: true, isNullableDiscriminator: false },
+    });
+    const direct = PostgresPrincipalEnricher.generateColumnDefs({
       polymorphicIdType: 'number',
       isNullableId: true,
       isNullableDiscriminator: false,

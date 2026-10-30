@@ -1,4 +1,8 @@
+import { omit } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
+import type { TSchemaType } from '@venizia/ignis-kernel';
+import { SchemaTypes } from '@venizia/ignis-kernel/repository';
+import { z } from 'zod';
 
 import type {
   ISearchCollectionDefinition,
@@ -10,6 +14,7 @@ import type {
   TVectorDistance,
 } from './common';
 import { SearchFieldTypes } from './common';
+import { buildShape } from './zod-derivation';
 
 /** `<const N, const O>` preserve the field's name/flag literals - a widened `ISearchFieldDefinition` return would break `TSearchDocument`, which needs literal types. */
 const buildField = <
@@ -76,103 +81,143 @@ export const field = {
   },
 };
 
-/** @throws when two synonym sets in the same collection share an id. */
-const assertUniqueSynonymIds = (opts: { name: string; synonyms: readonly ISynonym[] }): void => {
-  const { name, synonyms } = opts;
-  const seenSynonymIds = new Set<string>();
+export class SearchCollectionFactory {
+  /** @throws when two synonym sets in the same collection share an id. */
+  private static assertUniqueSynonymIds(opts: {
+    name: string;
+    synonyms: readonly ISynonym[];
+  }): void {
+    const { name, synonyms } = opts;
+    const seenSynonymIds = new Set<string>();
 
-  for (const synonym of synonyms) {
-    if (seenSynonymIds.has(synonym.id)) {
-      throw getError({
-        message: `[defineSearchCollection] Duplicate synonym id | name: ${name} | id: ${synonym.id}`,
-      });
-    }
-
-    seenSynonymIds.add(synonym.id);
-  }
-};
-
-/** `<const T>` preserves field literals so `TSearchDocument<typeof X>` can map over them - a plain `T extends ISearchCollectionDefinition` would widen `fields` and lose every literal. */
-export const defineSearchCollection = <const T extends ISearchCollectionDefinition>(opts: T): T => {
-  const { name, fields, defaultSort, defaultQueryBy, synonyms, engineOverrides } = opts;
-
-  if (!name || name.trim().length === 0) {
-    throw getError({
-      message: `[defineSearchCollection] Invalid name | name must be non-empty | name: ${String(name)}`,
-    });
-  }
-
-  if (!fields || fields.length === 0) {
-    throw getError({
-      message: `[defineSearchCollection] Invalid fields | at least one field is required | name: ${name}`,
-    });
-  }
-
-  const seenNames = new Set<string>();
-  for (const definitionField of fields) {
-    if (seenNames.has(definitionField.name)) {
-      throw getError({
-        message: `[defineSearchCollection] Duplicate field name | name: ${name} | field: ${definitionField.name}`,
-      });
-    }
-
-    seenNames.add(definitionField.name);
-  }
-
-  const idField = fields.find((item) => item.name === 'id');
-  let resolvedFields: readonly ISearchFieldDefinition[] = fields;
-
-  if (!idField) {
-    resolvedFields = [field.id(), ...fields];
-  } else if (idField.type !== SearchFieldTypes.STRING) {
-    throw getError({
-      message: `[defineSearchCollection] Invalid id field | id field must be of type string | name: ${name} | type: ${idField.type}`,
-    });
-  }
-
-  // Engine-neutral rule only: defaultSort must reference an existing field; per-engine constraints (Typesense's numeric-scalar requirement) belong to that engine's compiler.
-  if (defaultSort) {
-    const sortField = resolvedFields.find((item) => item.name === defaultSort);
-
-    if (!sortField) {
-      throw getError({
-        message: `[defineSearchCollection] Invalid defaultSort | field not found | name: ${name} | defaultSort: ${defaultSort}`,
-      });
-    }
-  }
-
-  if (defaultQueryBy) {
-    for (const queryByFieldName of defaultQueryBy) {
-      const queryByField = resolvedFields.find((item) => item.name === queryByFieldName);
-
-      if (!queryByField) {
+    for (const synonym of synonyms) {
+      if (seenSynonymIds.has(synonym.id)) {
         throw getError({
-          message: `[defineSearchCollection] Invalid defaultQueryBy | field not found | name: ${name} | field: ${queryByFieldName}`,
+          message: `[defineSearchCollection] Duplicate synonym id | name: ${name} | id: ${synonym.id}`,
         });
       }
 
-      if (
-        queryByField.type !== SearchFieldTypes.STRING &&
-        queryByField.type !== SearchFieldTypes.STRING_ARRAY
-      ) {
+      seenSynonymIds.add(synonym.id);
+    }
+  }
+
+  /** `<const T>` preserves field literals so `TSearchDocument<typeof X>` can map over them - a plain `T extends ISearchCollectionDefinition` would widen `fields` and lose every literal. */
+  static define<const T extends ISearchCollectionDefinition>(opts: T): T {
+    const { name, fields, defaultSort, defaultQueryBy, synonyms, engineOverrides } = opts;
+
+    if (!name || name.trim().length === 0) {
+      throw getError({
+        message: `[defineSearchCollection] Invalid name | name must be non-empty | name: ${String(name)}`,
+      });
+    }
+
+    if (!fields || fields.length === 0) {
+      throw getError({
+        message: `[defineSearchCollection] Invalid fields | at least one field is required | name: ${name}`,
+      });
+    }
+
+    const seenNames = new Set<string>();
+    for (const definitionField of fields) {
+      if (seenNames.has(definitionField.name)) {
         throw getError({
-          message: `[defineSearchCollection] Invalid defaultQueryBy | full-text search matches text fields only (string, string[]) | name: ${name} | field: ${queryByFieldName} | type: ${queryByField.type}`,
+          message: `[defineSearchCollection] Duplicate field name | name: ${name} | field: ${definitionField.name}`,
+        });
+      }
+
+      seenNames.add(definitionField.name);
+    }
+
+    const idField = fields.find((item) => item.name === 'id');
+    let resolvedFields: readonly ISearchFieldDefinition[] = fields;
+
+    if (!idField) {
+      resolvedFields = [field.id(), ...fields];
+    } else if (idField.type !== SearchFieldTypes.STRING) {
+      throw getError({
+        message: `[defineSearchCollection] Invalid id field | id field must be of type string | name: ${name} | type: ${idField.type}`,
+      });
+    }
+
+    // Engine-neutral rule only: defaultSort must reference an existing field; per-engine constraints (Typesense's numeric-scalar requirement) belong to that engine's compiler.
+    if (defaultSort) {
+      const sortField = resolvedFields.find((item) => item.name === defaultSort);
+
+      if (!sortField) {
+        throw getError({
+          message: `[defineSearchCollection] Invalid defaultSort | field not found | name: ${name} | defaultSort: ${defaultSort}`,
+        });
+      }
+    }
+
+    if (defaultQueryBy) {
+      for (const queryByFieldName of defaultQueryBy) {
+        const queryByField = resolvedFields.find((item) => item.name === queryByFieldName);
+
+        if (!queryByField) {
+          throw getError({
+            message: `[defineSearchCollection] Invalid defaultQueryBy | field not found | name: ${name} | field: ${queryByFieldName}`,
+          });
+        }
+
+        if (
+          queryByField.type !== SearchFieldTypes.STRING &&
+          queryByField.type !== SearchFieldTypes.STRING_ARRAY
+        ) {
+          throw getError({
+            message: `[defineSearchCollection] Invalid defaultQueryBy | full-text search matches text fields only (string, string[]) | name: ${name} | field: ${queryByFieldName} | type: ${queryByField.type}`,
+          });
+        }
+      }
+    }
+
+    if (synonyms) {
+      SearchCollectionFactory.assertUniqueSynonymIds({ name, synonyms });
+    }
+
+    // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
+    return {
+      name,
+      fields: resolvedFields,
+      defaultSort,
+      defaultQueryBy,
+      synonyms,
+      engineOverrides,
+    } as T;
+  }
+
+  static deriveDocumentSchema(opts: {
+    definition: ISearchCollectionDefinition;
+    type: TSchemaType;
+  }): z.ZodType {
+    const { definition, type } = opts;
+    const shape = buildShape(definition.fields);
+
+    switch (type) {
+      case SchemaTypes.SELECT: {
+        return z.object(shape);
+      }
+      case SchemaTypes.CREATE: {
+        return z.object({ ...shape, id: z.string() });
+      }
+      case SchemaTypes.UPDATE: {
+        return z.object(omit({ source: shape, keys: ['id'] })).partial();
+      }
+      default: {
+        throw getError({
+          message: `[deriveSearchDocumentSchema] Invalid schema type | valid: [select | create | update] | name: ${definition.name} | type: ${type}`,
         });
       }
     }
   }
+}
 
-  if (synonyms) {
-    assertUniqueSynonymIds({ name, synonyms });
-  }
+/** @deprecated Use SearchCollectionFactory.define(definition). Removed in 0.5. */
+export const defineSearchCollection = <const T extends ISearchCollectionDefinition>(opts: T): T =>
+  SearchCollectionFactory.define(opts);
 
-  // The runtime result is only structurally an ISearchCollectionDefinition; the cast back to the caller's literal T is deliberate - `id` is guaranteed at the type level via TSearchDocument.
-  return {
-    name,
-    fields: resolvedFields,
-    defaultSort,
-    defaultQueryBy,
-    synonyms,
-    engineOverrides,
-  } as T;
-};
+/** @deprecated Use SearchCollectionFactory.deriveDocumentSchema({ definition, type }). Removed in 0.5. */
+export const deriveSearchDocumentSchema = (opts: {
+  definition: ISearchCollectionDefinition;
+  type: TSchemaType;
+}): z.ZodType => SearchCollectionFactory.deriveDocumentSchema(opts);

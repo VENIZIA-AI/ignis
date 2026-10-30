@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { compileTypesenseCollection } from '@/search/typesense/compiler';
-import { defineSearchCollection, field } from '@/search/core/models';
+import { TypesenseCollectionCompiler } from '@/search/typesense/compiler';
+import { SearchCollectionFactory, field } from '@/search/core/models';
 
 describe('compileTypesenseCollection', () => {
   test('compiles a full definition to the exact expected CollectionCreateSchema', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.string('title', { searchable: true }),
@@ -20,7 +20,7 @@ describe('compileTypesenseCollection', () => {
       defaultSort: 'rating',
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     // Computed key (not a declared identifier) - the Typesense wire field is a runtime string here.
     expect(schema).toEqual({
@@ -40,19 +40,19 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('omits the id field from the compiled fields list', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.id(), field.string('title')],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields.find((item) => item.name === 'id')).toBeUndefined();
     expect(schema.fields).toEqual([{ name: 'title', type: 'string' }]);
   });
 
   test('maps every DSL field type to its Typesense wire type', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'catalog',
       fields: [
         field.string('a'),
@@ -65,7 +65,7 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields.map((item) => item.type)).toEqual([
       'string',
@@ -79,23 +79,23 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('emits sort: true for a string field with sortable: true', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title', { sortable: true })],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([{ name: 'title', type: 'string', sort: true }]);
   });
 
   test('does not emit a sort key for a field without the sortable flag', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title'), field.number('price')],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     for (const compiledField of schema.fields) {
       expect(compiledField).not.toHaveProperty('sort');
@@ -104,37 +104,37 @@ describe('compileTypesenseCollection', () => {
 
   // default_sorting_field requires a scalar numeric field while sortable only affects sort_by eligibility, and the DSL only checks the field exists - so this is a compile-time-only rejection.
   test('defaultSort on a sortable STRING field is rejected at compile time, not definition time', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title', { sortable: true })],
       defaultSort: 'title',
     });
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(
       /\[compileTypesenseCollection\]/,
     );
   });
 
   test('defaultSort on a number[] (array) field is rejected at compile time - not a scalar', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.numbers('scores')],
       defaultSort: 'scores',
     });
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(
       /\[compileTypesenseCollection\]/,
     );
   });
 
   test('defaultSort on a sortable NUMBER field compiles with both default_sorting_field and sort: true', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.number('rating', { sortable: true })],
       defaultSort: 'rating',
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema).toEqual({
       name: 'products',
@@ -144,7 +144,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('defaultSort naming a field the collection does not declare is rejected at compile time, not forwarded', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.number('rating', { sortable: true })],
       defaultSort: 'rating',
@@ -152,18 +152,18 @@ describe('compileTypesenseCollection', () => {
     // Repoints defaultSort at a non-existent field, bypassing the DSL's definition-time check, to exercise the compiler's own guard - it also receives hand-built definitions.
     (definition as { defaultSort?: string }).defaultSort = 'nonexistent';
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(
       /does not exist in the collection/,
     );
   });
 
   test('does not emit default_sorting_field when defaultSort is absent', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title')],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema).not.toHaveProperty('default_sorting_field');
   });
@@ -172,13 +172,13 @@ describe('compileTypesenseCollection', () => {
     const typesenseOverride: Record<string, unknown> = {};
     typesenseOverride['token_separators'] = ['-'];
 
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title')],
       engineOverrides: { typesense: typesenseOverride },
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema).toEqual({
       name: 'products',
@@ -191,7 +191,7 @@ describe('compileTypesenseCollection', () => {
     const openSearchSettings: Record<string, unknown> = {};
     openSearchSettings['number_of_shards'] = 3;
 
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title')],
       engineOverrides: {
@@ -200,7 +200,7 @@ describe('compileTypesenseCollection', () => {
       },
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema).toEqual({
       name: 'products',
@@ -209,7 +209,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('shallow-merges a per-field override matched by name into the compiled field', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title'), field.number('price')],
       engineOverrides: {
@@ -219,7 +219,7 @@ describe('compileTypesenseCollection', () => {
       },
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       { name: 'title', type: 'string', locale: 'en', infix: true },
@@ -228,7 +228,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('appends an override field whose name has no compiled counterpart', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title')],
       engineOverrides: {
@@ -238,7 +238,7 @@ describe('compileTypesenseCollection', () => {
       },
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       { name: 'title', type: 'string' },
@@ -247,12 +247,12 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('compiles a client-provided vector field to float[] with num_dim and vec_dist', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.vector('vec', { dimensions: 384, distance: 'cosine' })],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       { name: 'vec', type: 'float[]', ['num_dim']: 384, ['vec_dist']: 'cosine' },
@@ -260,12 +260,12 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('defaults vec_dist to cosine when distance is not supplied', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.vector('vec', { dimensions: 128 })],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       { name: 'vec', type: 'float[]', ['num_dim']: 128, ['vec_dist']: 'cosine' },
@@ -273,7 +273,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('compiles an auto-embed vector field to float[] with embed.from/model_config, no vec_dist', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.string('title'),
@@ -281,7 +281,7 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       { name: 'title', type: 'string' },
@@ -294,7 +294,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('maps a remote embed model config to snake_case model_config (apiKey -> api_key)', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.vector('vec', {
@@ -306,7 +306,7 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     const vec = schema.fields.find((f) => f.name === 'vec') as Record<string, unknown>;
     expect(vec['embed']).toEqual({
@@ -316,7 +316,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('maps an OpenAI-compatible embed config with a custom url (e.g. Gemini via the OpenAI endpoint)', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.vector('vec', {
@@ -332,7 +332,7 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     const vec = schema.fields.find((f) => f.name === 'vec') as Record<string, unknown>;
     expect(vec['embed']).toEqual({
@@ -346,7 +346,7 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('forwards an explicit dimensions alongside embed (e.g. a custom model Typesense cannot introspect)', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [
         field.vector('vec', {
@@ -356,7 +356,7 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toEqual([
       {
@@ -376,7 +376,7 @@ describe('compileTypesenseCollection', () => {
    * the declaration that caused it. Caught here, where the mistake is made.
    */
   test('a dotted field name without enable_nested_fields throws, naming the field', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'merchants',
       fields: [
         field.string('title'),
@@ -384,27 +384,29 @@ describe('compileTypesenseCollection', () => {
       ],
     });
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(/merchantName\.en/);
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(/merchantName\.en/);
   });
 
   test('the throw states exactly what to set, not merely that something is wrong', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'merchants',
       fields: [field.string('merchantName.vi')],
     });
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(/enable_nested_fields/);
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(
+      /enable_nested_fields/,
+    );
   });
 
   test('a dotted field compiles once engineOverrides.typesense enables nested fields', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'merchants',
       fields: [field.string('merchantName.en', { facet: true, optional: true })],
       // Computed key - the Typesense wire flag is a runtime string, never a snake_case identifier.
       engineOverrides: { typesense: { ['enable_nested_fields']: true } },
     });
 
-    const schema = compileTypesenseCollection({ definition });
+    const schema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(schema.fields).toContainEqual({
       name: 'merchantName.en',
@@ -416,16 +418,16 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('a collection with no dotted field is unaffected by the flag check', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title'), field.number('price')],
     });
 
-    expect(() => compileTypesenseCollection({ definition })).not.toThrow();
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).not.toThrow();
   });
 
   test('throws via the default branch for an unsupported field type (defensive, unreachable by typing)', () => {
-    const definition = defineSearchCollection({
+    const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [field.string('title')],
     });
@@ -433,7 +435,7 @@ describe('compileTypesenseCollection', () => {
     // @ts-expect-error - intentionally widen to exercise the defensive default branch
     definition.fields[1].type = 'object';
 
-    expect(() => compileTypesenseCollection({ definition })).toThrow(
+    expect(() => TypesenseCollectionCompiler.compile({ definition })).toThrow(
       /\[compileTypesenseCollection\]/,
     );
   });

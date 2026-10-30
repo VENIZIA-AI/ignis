@@ -12,27 +12,32 @@ import { Authentication, RequestContextRegistry } from '@venizia/ignis-kernel';
  * constructs an `AsyncLocalStorage` in its own body, which is a `TypeError` at import in a browser.
  * A host with no resolver installed reports "no request context" - the first branch below.
  */
-export const resolveAuditUserId = <T>(opts: {
-  allowAnonymous: boolean;
-  columnField: string;
-}): T | null => {
-  const context = RequestContextRegistry.resolve();
-  if (!context) {
-    if (!opts.allowAnonymous) {
+export class AuditUserResolver {
+  static resolveAuditUserId<T>(opts: { allowAnonymous: boolean; columnField: string }): T | null {
+    const context = RequestContextRegistry.resolve();
+    if (!context) {
+      if (!opts.allowAnonymous) {
+        throw getError({
+          message: `[getCurrentUserId] Invalid request context to identify user | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous}`,
+        });
+      }
+
+      return null;
+    }
+
+    const userId = context.get(Authentication.AUDIT_USER_ID);
+    if (!userId && !opts.allowAnonymous) {
       throw getError({
-        message: `[getCurrentUserId] Invalid request context to identify user | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous}`,
+        message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
       });
     }
 
-    return null;
+    return (userId as T) ?? null;
   }
+}
 
-  const userId = context.get(Authentication.AUDIT_USER_ID);
-  if (!userId && !opts.allowAnonymous) {
-    throw getError({
-      message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
-    });
-  }
-
-  return (userId as T) ?? null;
-};
+/** @deprecated Use AuditUserResolver.resolveAuditUserId({ allowAnonymous, columnField }). Removed in 0.5. */
+export const resolveAuditUserId = <T>(opts: {
+  allowAnonymous: boolean;
+  columnField: string;
+}): T | null => AuditUserResolver.resolveAuditUserId<T>(opts);

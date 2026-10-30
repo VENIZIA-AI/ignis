@@ -20,20 +20,25 @@ export const one = <Schema extends TTableSchemaWithId>(
   metadata?: TRelationMetadata<typeof RelationTypes.ONE>,
 ): IOneRelation<Schema> => ({ type: RelationTypes.ONE, schema, metadata });
 
-/** Flattens the keyed form into the array shape the query dialect reads, taking each relation's name from its key. */
+export class RelationDeclarations {
+  /** Flattens the keyed form into the array shape the query dialect reads, taking each relation's name from its key. */
+  static toRelationConfigs(opts: { relations: TRelationDefinitions }): Array<TRelationConfig> {
+    const { relations } = opts;
+    const configs: Array<TRelationConfig> = [];
+
+    for (const [name, relation] of Object.entries(relations)) {
+      configs.push(
+        relation.type === RelationTypes.MANY
+          ? { name, type: RelationTypes.MANY, schema: relation.schema, metadata: relation.metadata }
+          : { name, type: RelationTypes.ONE, schema: relation.schema, metadata: relation.metadata },
+      );
+    }
+
+    return configs;
+  }
+}
+
+/** @deprecated Use RelationDeclarations.toRelationConfigs({ relations }). Removed in 0.5. */
 export const toRelationConfigs = (opts: {
   relations: TRelationDefinitions;
-}): Array<TRelationConfig> => {
-  const { relations } = opts;
-  const configs: Array<TRelationConfig> = [];
-
-  for (const [name, relation] of Object.entries(relations)) {
-    configs.push(
-      relation.type === RelationTypes.MANY
-        ? { name, type: RelationTypes.MANY, schema: relation.schema, metadata: relation.metadata }
-        : { name, type: RelationTypes.ONE, schema: relation.schema, metadata: relation.metadata },
-    );
-  }
-
-  return configs;
-};
+}): Array<TRelationConfig> => RelationDeclarations.toRelationConfigs(opts);

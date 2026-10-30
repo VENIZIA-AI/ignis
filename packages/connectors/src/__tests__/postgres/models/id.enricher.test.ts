@@ -1,4 +1,4 @@
-import { generateIdColumnDefs } from '@/relational/postgres/models/enrichers/id.enricher';
+import { PostgresIdEnricher } from '@/relational/postgres/models/enrichers/id.enricher';
 import { describe, expect, test } from 'bun:test';
 import { pgTable } from 'drizzle-orm/pg-core';
 
@@ -8,7 +8,7 @@ describe('generateIdColumnDefs - string ids', () => {
   test('default to a time-ordered UUID v7, so later rows sort after earlier ones', () => {
     const table = pgTable(
       'id_enricher_default',
-      generateIdColumnDefs({ id: { dataType: 'string' } }),
+      PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     );
 
     const first = table.id.defaultFn?.();
@@ -21,7 +21,9 @@ describe('generateIdColumnDefs - string ids', () => {
   test('a caller-supplied generator still wins', () => {
     const table = pgTable(
       'id_enricher_custom',
-      generateIdColumnDefs({ id: { dataType: 'string', generator: () => 'custom-id' } }),
+      PostgresIdEnricher.generateColumnDefs({
+        id: { dataType: 'string', generator: () => 'custom-id' },
+      }),
     );
 
     expect(table.id.defaultFn?.()).toBe('custom-id');

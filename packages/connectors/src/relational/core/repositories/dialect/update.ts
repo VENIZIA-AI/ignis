@@ -5,17 +5,12 @@ import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import type { ITransformedUpdateData, TTableColumns } from '../common';
 import { TableColumnCache } from '../common';
-import {
-  isJsonPath,
-  parseJsonPath,
-  validateJsonColumnType,
-  validateJsonPathComponents,
-} from './internal';
+import { JsonPathUtility } from './internal';
 
 /**
  * Splits `data` into plain columns and JSON-path writes, validating every JSON key before any of it
  * becomes SQL. That validation is why this is a base and not a copied skeleton: an engine composing
- * through `sql.raw` is injectable the moment it forgets `validateJsonPathComponents`.
+ * through `sql.raw` is injectable the moment it forgets `JsonPathUtility.validateJsonPathComponents`.
  *
  * Subclasses supply only the JSON composition: `jsonb_set` on Postgres, `json_set` on SQLite.
  */
@@ -51,7 +46,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
         continue;
       }
 
-      if (!isJsonPath({ key })) {
+      if (!JsonPathUtility.isJsonPath({ key })) {
         if (!columns[key]) {
           throw getError({
             message: `[${this.scope}][transform] Table: ${tableName} | Column NOT FOUND | key: '${toSafeEcho({ value: key })}'`,
@@ -93,7 +88,7 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
   } {
     const { key, columns, tableName } = opts;
 
-    const parsed = parseJsonPath({ key });
+    const parsed = JsonPathUtility.parseJsonPath({ key });
     const column = columns[parsed.columnName];
 
     if (!column) {
@@ -104,14 +99,14 @@ export abstract class RelationalUpdateBuilder extends BaseHelper {
 
     // `scope` is the concrete subclass name, so both message
     // forms keep naming the builder that actually ran.
-    validateJsonColumnType({
+    JsonPathUtility.validateJsonColumnType({
       column,
       columnName: parsed.columnName,
       tableName,
       methodName: `${this.scope}.transform`,
     });
 
-    validateJsonPathComponents({
+    JsonPathUtility.validateJsonPathComponents({
       path: parsed.path,
       tableName,
       methodName: `${this.scope}.transform`,

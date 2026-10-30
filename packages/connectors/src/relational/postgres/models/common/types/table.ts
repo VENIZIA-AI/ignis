@@ -21,7 +21,7 @@ export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
 
 // The neutral constraint is `Table`-branded, so it is wider than the `PgTable`-branded one here
 // and every postgres caller still satisfies it.
-export { getIdType } from '@/relational/core/models/common/types';
+export { getIdType, RelationalEntityUtility } from '@/relational/core/models/common/types';
 
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 

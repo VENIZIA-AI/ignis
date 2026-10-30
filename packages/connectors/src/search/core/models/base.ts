@@ -4,7 +4,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type { TSchemaType } from '@venizia/ignis-kernel';
 import { AbstractEntity } from '@venizia/ignis-kernel/repository';
 import type { ISearchCollectionDefinition, TSearchDocument } from './common';
-import { deriveSearchDocumentSchema } from './zod-derivation';
+import { SearchCollectionFactory } from './define-search-collection';
 
 /** Engine-neutral search-document entity deriving zod schemas from an `ISearchCollectionDefinition`. `Schema` is instance-side only so `schema` carries the caller's literal collection type - mirrors `BasePostgresEntity`'s static-wide / instance-narrow duality. */
 export class BaseSearchEntity<
@@ -47,7 +47,10 @@ export class BaseSearchEntity<
     }
 
     if (this.schema !== ctor.schema) {
-      return deriveSearchDocumentSchema({ definition: this.schema, type: opts.type }) as T;
+      return SearchCollectionFactory.deriveDocumentSchema({
+        definition: this.schema,
+        type: opts.type,
+      }) as T;
     }
 
     let byType = BaseSearchEntity._schemaCache.get(ctor);
@@ -61,7 +64,10 @@ export class BaseSearchEntity<
       return cached as T;
     }
 
-    const derived = deriveSearchDocumentSchema({ definition: this.schema, type: opts.type });
+    const derived = SearchCollectionFactory.deriveDocumentSchema({
+      definition: this.schema,
+      type: opts.type,
+    });
     byType.set(opts.type, derived);
     return derived as T;
   }

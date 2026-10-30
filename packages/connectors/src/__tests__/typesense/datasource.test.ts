@@ -10,9 +10,9 @@ import {
   type TypesenseConnector,
   TypesenseQueryDialect,
 } from '@/search/typesense';
-import { compileTypesenseCollection } from '@/search/typesense/compiler';
+import { TypesenseCollectionCompiler } from '@/search/typesense/compiler';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 
 /** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/synonym-set calls. */
 class FakeTypesenseConnector {
@@ -60,7 +60,7 @@ class SynonymProvisionDataSource extends TypesenseDataSource {}
 
 @model({ type: 'entity' })
 class ProductDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products',
     fields: [field.string('title', { searchable: true })],
   });
@@ -71,7 +71,7 @@ class TypesenseProductRepository {}
 
 @model({ type: 'entity' })
 class GizmoDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'gizmos',
     fields: [field.string('title')],
   });
@@ -82,7 +82,7 @@ class GizmoRepo {}
 
 @model({ type: 'entity' })
 class WidgetDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'widgets',
     fields: [field.string('title')],
     synonyms: [
@@ -130,7 +130,7 @@ describe('TypesenseDataSource', () => {
     await ds.configure();
 
     const definition = ProductDocument.schema;
-    const expectedSchema = compileTypesenseCollection({ definition });
+    const expectedSchema = TypesenseCollectionCompiler.compile({ definition });
 
     expect(fakeConnector.ensureCalls).toEqual([expectedSchema]);
     expect(ds.getConnector()).toBe(asTypesenseConnector(fakeConnector));
@@ -229,7 +229,7 @@ describe('TypesenseDataSource', () => {
 
     const definition = ProductDocument.schema;
     expect(ds.compileCollection({ definition })).toEqual(
-      compileTypesenseCollection({ definition }),
+      TypesenseCollectionCompiler.compile({ definition }),
     );
   });
 

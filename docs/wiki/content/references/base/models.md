@@ -14,12 +14,12 @@ The smallest real model: a Drizzle table, and an entity class built from it with
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   email: text('email').notNull(),
 });
 
@@ -36,7 +36,7 @@ A `@repository` binds this model to a datasource, and the datasource auto-discov
 - **Table first.** The table is a plain Drizzle table (`pgTable`, `pgSchema(...).table` or `sqliteTable`), exported so drizzle-kit sees it. `defineEntity` reads `TABLE_NAME` off it, so the name is written once.
 - **Registration.** The `@model` decorator registers the class in the framework's metadata registry, keyed by table name (resolved as `tableName` > static `TABLE_NAME` > class name).
 - **Validation at decoration time.** It validates `settings.query.limit.default` and, when you declare an authorization principal, copies it onto the static `AUTHORIZATION_SUBJECT` property.
-- **Enrichers.** `generateIdColumnDefs` and its siblings return column definitions you spread into the table, so common columns (id, timestamps, audit, principal) stay standardized across models.
+- **Enrichers.** `PostgresIdEnricher.generateColumnDefs` and its siblings return column definitions you spread into the table, so common columns (id, timestamps, audit, principal) stay standardized across models.
 - **Zod on demand.** The entity generates Zod schemas from the table via `getSchema({ type })` - `'select'`, `'create'`, and `'update'` variants for validating query results, inserts, and updates.
   - The generator is a shared lazy singleton, so there is no per-entity cost.
 
@@ -53,16 +53,16 @@ Everything on this page is the relational connector - see the [Full reference](/
 
 ### Add id and timestamp columns
 
-Enrichers return column definitions - spread them into the table. `generateIdColumnDefs` adds the primary key; `generateTzColumnDefs` adds `createdAt` and `modifiedAt`.
+Enrichers return column definitions - spread them into the table. `PostgresIdEnricher.generateColumnDefs` adds the primary key; `PostgresTzEnricher.generateColumnDefs` adds `createdAt` and `modifiedAt`. The old function names (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are deprecated aliases until 0.5.
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, generateTzColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, PostgresTzEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const articleTable = pgTable('Article', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   title: text('title').notNull(),
 });
 
@@ -76,18 +76,18 @@ Point each relation at a **table**, never at another entity class. `one` reads i
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, many, ModelFactory, one } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 export const authorTable = pgTable('Author', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
 export const postTable = pgTable('Post', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   authorId: text('author_id').notNull().references((): AnyPgColumn => authorTable.id),
   title: text('title').notNull(),
 });
@@ -118,7 +118,7 @@ List a column in `settings.hiddenProperties`. Hidden columns are excluded at the
 
 ```typescript
 export const accountTable = pgTable('Account', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   email: text('email').notNull(),
   password: text('password'),
 });
@@ -173,11 +173,11 @@ See [Authorization](/extensions/components/authorization/usage#model-based-resou
 The class form still works, and existing models need no change. Hand-written `BaseEntity` subclasses are the compatibility path; new code uses `ModelFactory.defineEntity` (see the [models guide](/guides/core-concepts/persistent/models)). Assign the table to a static `schema` on `BaseEntity`:
 
 ```typescript
-import { BaseEntity, generateIdColumnDefs, model } from '@venizia/ignis';
+import { BaseEntity, PostgresIdEnricher, model } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const tagTable = pgTable('Tag', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   label: text('label').notNull(),
 });
 

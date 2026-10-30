@@ -221,48 +221,53 @@ const assertNestedFieldsEnabled = (opts: { schema: CollectionCreateSchema }): vo
   });
 };
 
-/** Compiles an engine-neutral `ISearchCollectionDefinition` into a Typesense `CollectionCreateSchema`. */
+export class TypesenseCollectionCompiler {
+  /** Compiles an engine-neutral `ISearchCollectionDefinition` into a Typesense `CollectionCreateSchema`. */
+  static compile(opts: { definition: ISearchCollectionDefinition }): CollectionCreateSchema {
+    const { definition } = opts;
+    const { name, fields, defaultSort, engineOverrides } = definition;
+
+    const compiledFields = fields
+      .filter((item) => item.name !== RESERVED_ID_FIELD_NAME)
+      .map((item) => compileField({ field: item }));
+
+    let schema: CollectionCreateSchema = {
+      name,
+      fields: compiledFields,
+    };
+
+    if (defaultSort !== undefined) {
+      const sortField = fields.find((item) => item.name === defaultSort);
+
+      // A defaultSort naming an undeclared field would otherwise be forwarded verbatim and rejected by the engine - fail here with the field named, same as the type check.
+      if (!sortField) {
+        throw getError({
+          message: `[compileTypesenseCollection] Invalid defaultSort | references a field that does not exist in the collection | name: ${name} | defaultSort: ${defaultSort}`,
+        });
+      }
+
+      // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array.
+      if (sortField.type !== SearchFieldTypes.NUMBER) {
+        throw getError({
+          message: `[compileTypesenseCollection] Invalid defaultSort | Typesense's default_sorting_field requires a scalar numeric field (int32/int64/float) - not string, not array | name: ${name} | defaultSort: ${defaultSort} | type: ${sortField.type}`,
+        });
+      }
+
+      schema.default_sorting_field = defaultSort;
+    }
+
+    const typesenseOverride = engineOverrides?.typesense;
+    if (typesenseOverride) {
+      schema = mergeOverride({ schema, override: typesenseOverride });
+    }
+
+    assertNestedFieldsEnabled({ schema });
+
+    return schema;
+  }
+}
+
+/** @deprecated Use TypesenseCollectionCompiler.compile({ definition }). Removed in 0.5. */
 export const compileTypesenseCollection = (opts: {
   definition: ISearchCollectionDefinition;
-}): CollectionCreateSchema => {
-  const { definition } = opts;
-  const { name, fields, defaultSort, engineOverrides } = definition;
-
-  const compiledFields = fields
-    .filter((item) => item.name !== RESERVED_ID_FIELD_NAME)
-    .map((item) => compileField({ field: item }));
-
-  let schema: CollectionCreateSchema = {
-    name,
-    fields: compiledFields,
-  };
-
-  if (defaultSort !== undefined) {
-    const sortField = fields.find((item) => item.name === defaultSort);
-
-    // A defaultSort naming an undeclared field would otherwise be forwarded verbatim and rejected by the engine - fail here with the field named, same as the type check.
-    if (!sortField) {
-      throw getError({
-        message: `[compileTypesenseCollection] Invalid defaultSort | references a field that does not exist in the collection | name: ${name} | defaultSort: ${defaultSort}`,
-      });
-    }
-
-    // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array.
-    if (sortField.type !== SearchFieldTypes.NUMBER) {
-      throw getError({
-        message: `[compileTypesenseCollection] Invalid defaultSort | Typesense's default_sorting_field requires a scalar numeric field (int32/int64/float) - not string, not array | name: ${name} | defaultSort: ${defaultSort} | type: ${sortField.type}`,
-      });
-    }
-
-    schema.default_sorting_field = defaultSort;
-  }
-
-  const typesenseOverride = engineOverrides?.typesense;
-  if (typesenseOverride) {
-    schema = mergeOverride({ schema, override: typesenseOverride });
-  }
-
-  assertNestedFieldsEnabled({ schema });
-
-  return schema;
-};
+}): CollectionCreateSchema => TypesenseCollectionCompiler.compile(opts);
