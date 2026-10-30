@@ -1,6 +1,6 @@
 ---
 title: skipMigrate Is Removed From @model
-description: "The deprecated skipMigrate key of @model is gone. The decorator throws on it and names the replacement, migration: { use: false }. devz codemod model-settings rewrites it. Ships in 0.4.4."
+description: "The deprecated skipMigrate key of @model is gone; the decorator throws on it and names the replacement, migration: { use: false }."
 packages: ['@venizia/ignis-kernel']
 ---
 
@@ -14,8 +14,8 @@ packages: ['@venizia/ignis-kernel']
 
 ## What changed
 
-- **The key is gone.** `skipMigrate` is no longer a key of `@model`, so TypeScript rejects it, and an untyped caller gets an error when the decorator runs: `skipMigrate was removed in 0.4.4 | write migration: { use: false } | run bunx devz codemod model-settings --write`. The class never registers.
-- **The boot warning is gone.** There is nothing left to warn about.
+- **The key is gone.** TypeScript rejects `skipMigrate`, and an untyped caller gets an error when the decorator runs: `skipMigrate was removed in 0.4.4 | write migration: { use: false } | run bunx devz codemod model-settings --write`. The class never registers.
+- **The boot warning is gone.**
 - **The registry entry has no `skipMigrate` field.** It carries `migration: { use }`; read that. A model that declares `migration` gets `use` filled in (`true` unless you wrote `false`).
 
 ## Who is affected
@@ -29,7 +29,7 @@ packages: ['@venizia/ignis-kernel']
 
 ## Migrate
 
-Run the codemod that already converts it. It is a dry run until you pass `--write`:
+The codemod is a dry run until you pass `--write`:
 
 ```bash
 bunx devz codemod model-settings           # lists the files it would change, writes nothing

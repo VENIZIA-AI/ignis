@@ -14,8 +14,8 @@ packages: ['@venizia/dev-configs']
 
 ## What changed
 
-- **`devz clean` removes `*.tsbuildinfo`.** The shared base tsconfig sets `incremental: true`, so a type-check that emits nothing writes `<tsconfig name>.tsbuildinfo` next to `tsconfig.json`. `clean` used to remove only `dist` and `node_modules/.cache`.
-- **Nothing else moves.** Only files directly in the project root are removed. A `.tsbuildinfo` inside `dist` already went with `dist`, and `.eslintcache` is not produced by `devz lint` (it caches under `node_modules/.cache/eslint`).
+- **`devz clean` removes `*.tsbuildinfo`.** It used to remove only `dist` and `node_modules/.cache`.
+- **Only files directly in the project root are removed.**
 
 ## Who is affected
 

@@ -14,7 +14,7 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **The leak.** The Dockerfile copies the whole project (`COPY . .`). The root `.dockerignore` written by VULCAN 0.3.6 does not exclude `.env` files, so every app's `.env` (database passwords, secrets) lands in the builder layer. The final image holds only the binary, but a CI layer cache can keep the builder layer.
+- **The leak.** The Dockerfile copies the whole project (`COPY . .`), and the root `.dockerignore` written by VULCAN 0.3.6 does not exclude `.env` files, so an app's `.env` (database passwords, secrets) landed in the builder layer. The final image holds only the binary, but a CI layer cache can keep the builder layer.
 - **The guard.** Right after the copy, the Dockerfile looks for any `.env*` file other than `.env.example`. If it finds one, the build stops, names the files and says which lines the `.dockerignore` needs.
 
 ## Who is affected

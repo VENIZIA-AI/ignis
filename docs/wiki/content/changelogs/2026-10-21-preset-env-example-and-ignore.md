@@ -1,6 +1,6 @@
 ---
 title: The App Preset Lists Its Environment Keys and Ships Its Ignore Files
-description: ".env.example names every APP_ENV key the app reads, the .ignore files come with the app, and the image refuses anything that is not a commit sha."
+description: "A new app comes with a .env.example naming every APP_ENV key it reads and its .ignore files, and the image refuses a build commit that is not a sha."
 packages: ['@venizia/ignis']
 ---
 
@@ -15,8 +15,8 @@ packages: ['@venizia/ignis']
 ## What changed
 
 - **`.env.example`.** It lists the application (`APP_ENV_APPLICATION_NAME`, `APP_ENV_APPLICATION_TIMEZONE`), server (`APP_ENV_SERVER_HOST`, `APP_ENV_SERVER_PORT`) and logger keys (`APP_ENV_LOGGER_LEVEL`, `_FORMAT`, `_COLOR`, `_FOLDER_PATH`, `_FILE_FREQUENCY`, `_FILE_MAX_SIZE`, `_FILE_MAX_FILES`), each with a one-line comment. Copy it to `.env` for a local run.
-- **The server keys work.** The app used to set `host` and `port` in code, so `APP_ENV_SERVER_HOST` and `APP_ENV_SERVER_PORT` did nothing. It now reads `HOST`, then `APP_ENV_SERVER_HOST`; and `PORT`, then `APP_ENV_SERVER_PORT`, then the dev port.
-- **`.configs/lints/.ignore` and `.configs/formatters/.ignore`** ship with the app and every lib, holding only comments: what the file is for, the syntax and an example. Uncomment or add a line to skip a path.
+- **The server keys work.** `APP_ENV_SERVER_HOST` and `APP_ENV_SERVER_PORT` used to do nothing. The app now reads `HOST`, then `APP_ENV_SERVER_HOST`; and `PORT`, then `APP_ENV_SERVER_PORT`, then the dev port.
+- **`.configs/lints/.ignore` and `.configs/formatters/.ignore`** ship with the app and every lib, holding only comments. Uncomment or add a line to skip a path.
 - **The image refuses a value that is not a commit.** `APP_BUILD_COMMIT` must be a hex sha of 7 characters or more. Before a first commit, `git rev-parse HEAD` prints the word `HEAD`, which the image used to accept and stamp.
 
 ## Who is affected

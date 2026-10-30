@@ -1,6 +1,6 @@
 ---
 title: String ID with Custom Generator
-description: Text column with customizable ID generator for maximum database compatibility
+description: String IDs now use a text column with an optional custom generator instead of the PostgreSQL uuid type.
 packages: ['@venizia/ignis']
 ---
 
@@ -8,36 +8,14 @@ packages: ['@venizia/ignis']
 
 ## String ID with Custom Generator
 
-This release changes the string ID implementation from PostgreSQL `uuid` type to `text` column with a customizable ID generator for maximum database compatibility.
+**In one line.** String IDs are stored in a `text` column, and you can plug in any ID format (UUID, nanoid, cuid) with a `generator` function.
 
-## Overview
+## What changed
 
-- **Text Column**: String IDs now use `text` column type instead of PostgreSQL `uuid`
-- **Custom Generator**: Optional `generator` function to use any ID format (UUID, nanoid, cuid, etc.)
-- **Default UUID**: Uses `crypto.randomUUID()` by default for backwards compatibility
-- **Consistent Naming**: Renamed `visibleColumns` to `visibleProperties` for consistency with `hiddenProperties`
-- **Removed 'uuid' Option**: Principal enricher now only supports `'number' | 'string'`
-
-
-## String ID Changes
-
-### Before
-
-```typescript
-// Used PostgreSQL uuid type
-uuid('id').defaultRandom().primaryKey()
-// Column type: uuid
-```
-
-### After
-
-```typescript
-// Uses text column with $defaultFn
-text('id').primaryKey().$defaultFn(() => crypto.randomUUID())
-// Column type: text
-```
-
-### Custom Generator Option
+- **Text column.** String IDs use `text` instead of the PostgreSQL `uuid` type.
+- **Custom generator.** `generateIdColumnDefs` accepts `generator` for `dataType: 'string'`. The default is `crypto.randomUUID()`.
+- **Renames.** `visibleColumns` is now `visibleProperties`, to match `hiddenProperties`.
+- **Principal enricher.** The `'uuid'` id type is removed; only `'number' | 'string'` remain.
 
 ```typescript
 import { nanoid } from 'nanoid';
@@ -45,94 +23,36 @@ import { nanoid } from 'nanoid';
 generateIdColumnDefs({
   id: {
     dataType: 'string',
-    generator: () => nanoid(),  // Custom generator
+    generator: () => nanoid(),
   },
 })
 ```
 
-### Type Definition
+## Who is affected
 
+- **Code using `generateIdColumnDefs({ id: { dataType: 'string' } })`.** It keeps working; only the column type changes from `uuid` to `text`.
+- **Existing `uuid` columns.** See the database step below.
+- **Code using the old names or the `'uuid'` id type.** Rename them (below).
+
+## Breaking changes
+
+> [!WARNING]
+> Affects code that uses the renamed members or the removed `'uuid'` id type.
+
+**Before:**
 ```typescript
-type TIdEnricherOptions = {
-  id?: { columnName?: string } & (
-    | { dataType: 'string'; generator?: () => string }  // NEW: optional generator
-    | { dataType: 'number'; sequenceOptions?: PgSequenceOptions }
-    | { dataType: 'big-number'; numberMode: 'number' | 'bigint'; sequenceOptions?: PgSequenceOptions }
-  );
-};
-```
-
-
-## Naming Consistency
-
-Renamed internal properties for consistency:
-
-| Before | After |
-|--------|-------|
-| `_visibleColumns` | `_visibleProperties` |
-| `getVisibleColumns()` | `getVisibleProperties()` |
-| `visibleColumns` getter/setter | `visibleProps` getter/setter |
-
-
-## Principal Enricher Simplification
-
-Removed 'uuid' option since it's now identical to 'string':
-
-```typescript
-// Before
 type IdType = 'number' | 'string' | 'uuid';
-
-// After
-type IdType = 'number' | 'string';
+// _visibleColumns, getVisibleColumns(), visibleColumns getter/setter
 ```
 
+**After:**
+```typescript
+type IdType = 'number' | 'string';
+// _visibleProperties, getVisibleProperties(), visibleProps getter/setter
+```
 
-## Files Changed
-
-### Core Package (`packages/core-server`)
-
-| File | Changes |
-|------|---------|
-| `src/base/models/enrichers/id.enricher.ts` | Text column with custom generator, type aliases |
-| `src/base/models/enrichers/principal.enricher.ts` | Removed 'uuid' option, uses text for string IDs |
-| `src/base/repositories/core/base.ts` | Renamed visibleColumns to visibleProperties |
-| `src/base/repositories/core/readable.ts` | Updated to use getVisibleProperties() |
-| `src/base/repositories/core/persistable.ts` | Updated to use getVisibleProperties() |
-| `src/components/static-asset/models/base.model.ts` | uuid() to text() |
-| `src/components/auth/models/entities/*.ts` | uuid() to text() for all auth models |
-
-
-## Migration Guide
-
-### No Breaking Changes for Most Users
-
-If you're using `generateIdColumnDefs({ id: { dataType: 'string' } })`, your code continues to work. The only difference is the underlying column type changes from `uuid` to `text`.
-
-### Database Migration
-
-If you have existing `uuid` columns and want to migrate to `text`:
+To move an existing `uuid` column to `text`, alter the column type (data is preserved), or keep the `uuid` type, which still works with the text-based code:
 
 ```sql
--- Option 1: Alter column type (data preserved)
 ALTER TABLE "your_table" ALTER COLUMN "id" TYPE TEXT;
-
--- Option 2: Keep uuid type (still works with text-based code)
--- No migration needed - uuid values are compatible with text operations
-```
-
-### Custom ID Generator
-
-To use a custom generator:
-
-```typescript
-import { nanoid } from 'nanoid';
-// or
-import { createId } from '@paralleldrive/cuid2';
-
-generateIdColumnDefs({
-  id: {
-    dataType: 'string',
-    generator: () => nanoid(),  // or createId
-  },
-})
 ```

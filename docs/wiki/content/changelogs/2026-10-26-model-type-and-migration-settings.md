@@ -15,8 +15,7 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 
 ## What changed
 
-- **`type` is optional.** `ModelTypes.ENTITY` (`'entity'`) is the only value and the default. The decorator throws on any other value, `'view'` included: views are not in the relational query interface, and nothing in IGNIS ever read the field.
-- **`ModelTypes` and `TModelType`** are exported from the kernel package, like the other constant classes.
+- **`type` is optional.** `ModelTypes.ENTITY` (`'entity'`) is the only value and the default. The decorator throws on any other value, `'view'` included: views are not in the relational query interface. `ModelTypes` and `TModelType` are exported from the kernel package.
 - **`migration: { use }` replaces `skipMigrate`.** `use` defaults to `true`. `false` marks the model as one your migration tooling leaves alone.
 - **IGNIS generates no migrations.** `drizzle-kit` reads the schema file you give it; neither `type` nor `migration` changes what it does. `migration.use` is a marker in the public registry (`MetadataRegistry.getAllModels()`) for tooling of yours. See [Migrations](/guides/core-concepts/persistent/models#migrations).
 - **`skipMigrate` is deprecated.** The decorator maps it to `migration: { use: !skipMigrate }` and the application logs one warning per model at boot:
@@ -25,8 +24,8 @@ packages: ['@venizia/ignis-kernel', '@venizia/ignis', '@venizia/dev-configs']
 [deprecated] model Product uses skipMigrate | use migration: { use: false } instead | removed in 0.4.4
 ```
 
-- **Both keys together throw.** A model that sets `skipMigrate` and `migration` is ambiguous, so the decorator refuses it.
-- **`BaseMetaLinkModel` uses `migration: { use: false }`.** The MetaLink docs now say what is true: IGNIS creates no table, so export its schema to your `drizzle-kit` file or create it by hand.
+- **Both keys together throw.** A model that sets `skipMigrate` and `migration` is refused.
+- **`BaseMetaLinkModel` uses `migration: { use: false }`.** IGNIS creates no MetaLink table, so export its schema to your `drizzle-kit` file or create it by hand.
 
 ## Who is affected
 

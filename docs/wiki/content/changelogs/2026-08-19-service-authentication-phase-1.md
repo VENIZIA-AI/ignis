@@ -1,6 +1,6 @@
 ---
 title: Your Own Authentication Strategies, and Tokens That Say Who They Are For
-description: Register a strategy beyond jwt and basic, check aud and iss when verifying, and stamp them when issuing.
+description: A route can name any authentication strategy you register, and a JWT can now be issued and verified with issuer and audience claims.
 packages: ['@venizia/ignis-connectors', '@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-kernel']
 ---
 
@@ -31,26 +31,23 @@ jwtOptions: {
 
 ## What changed
 
-- **`TAuthStrategy` accepts any registered name.** `'jwt'` and `'basic'` still autocomplete; anything you register with `AuthenticationStrategyRegistry` now typechecks without a cast.
-- **A misspelled strategy is reported at boot**, at error level, naming both the typo and what was registered. Previously it compiled only for the two built-ins and, once the type opened, would have 401'd every request with nothing above debug level to explain it.
-- **`verify` checks claims.** `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`, passed straight to jose.
-- **`sign` stamps claims**, and `generate({ payload, claims })` sets per-token `aud` / `sub` / `jti`.
-- **`securitySchemes` on the API reference**, so a route naming your strategy publishes a valid OpenAPI document.
-- **`AuthenticationStrategyRegistry.has()` / `.getNames()` / `.findUnregistered()` / `.assertRegistered()`** for building your own startup checks.
+- **`TAuthStrategy` accepts any registered name.** `'jwt'` and `'basic'` still autocomplete; anything you register with `AuthenticationStrategyRegistry` typechecks without a cast.
+- **A misspelled strategy is reported at boot,** at error level, naming both the typo and what was registered.
+- **`verify` checks claims:** `audience`, `issuer`, `subject`, `algorithms`, `clockTolerance`, `maxTokenAge`, `typ` and `requiredClaims`, passed straight to jose.
+- **`sign` stamps claims,** and `generate({ payload, claims })` sets per-token `aud`, `sub` and `jti`.
+- **`securitySchemes` on the API reference,** so a route naming your strategy publishes a valid OpenAPI document.
+- **`AuthenticationStrategyRegistry.has()`, `.getNames()`, `.findUnregistered()` and `.assertRegistered()`** for your own startup checks.
 
 ## Who is affected
 
-- **Anyone registering a custom strategy.** The cast at every route goes away. Declare a `securitySchemes` entry for your strategy name, or your generated OpenAPI document names a scheme it never declares.
-- **Anyone running more than one service off one issuer.** Set `verify.audience`. Without it, a token minted for one service is accepted verbatim by every other - there is no cryptographic notion of "this token was meant for me".
-- **Anyone importing a deprecated alias.** `QueueHelper`, `TNodePostgresConnector` and `TNodePostgresTransactionConnector` are removed. Pure renames - see Breaking changes.
-- **Anyone importing any `Swagger*` symbol.** `SwaggerComponent`, `ISwaggerOptions` and `SwaggerBindingKeys` are all removed in this release. It is a rename - see Breaking changes.
-- **Everyone else.** No action needed. Every new option is optional and unset means today's behaviour, byte for byte.
+- **Anyone registering a custom strategy.** The cast at every route goes away. Declare a `securitySchemes` entry for your strategy name, or your OpenAPI document names a scheme it never declares.
+- **Anyone running more than one service off one issuer.** Set `verify.audience`. Without it, a token minted for one service is accepted by every other.
+- **Anyone importing a deprecated alias or any `Swagger*` symbol.** They are removed. See Breaking changes.
+- **Everyone else.** No action needed. Every new option is optional, and unset means today's behaviour.
 
 ## Breaking changes
 
 ### The deprecated `Swagger*` aliases are removed
-
-All three go together, so nothing is left half-renamed:
 
 | Removed | Use instead |
 |---|---|
@@ -72,12 +69,9 @@ this.bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPT
 this.component(ApiReferenceComponent);
 ```
 
-It is a rename only. `SwaggerBindingKeys.SWAGGER_OPTIONS` always held the same
-`'@app/api-reference/options'` string, so no binding moves and no runtime behaviour changes.
+It is a rename only. `SwaggerBindingKeys.SWAGGER_OPTIONS` always held the same `'@app/api-reference/options'` string, so no binding moves.
 
 ### Every deprecated alias is removed
-
-The compatibility aliases are gone rather than marked. Each is a pure rename with no behaviour attached:
 
 | Removed | Use instead | Package |
 |---|---|---|
@@ -85,14 +79,12 @@ The compatibility aliases are gone rather than marked. Each is a pure rename wit
 | `TNodePostgresConnector` | `TRelationalConnector` | connectors |
 | `TNodePostgresTransactionConnector` | `TRelationalConnector` | connectors |
 
-`TRelationalConnector` covers both Postgres cases: `NodePgDatabase` and `PostgresJsDatabase` both extend `PgDatabase`, so the driver-specific aliases described a distinction that stopped existing when the relational tier went engine-neutral.
-
 ### A configured `iss` / `aud` now wins over the payload
 
 > [!WARNING]
 > Only for applications that already smuggle `iss` or `aud` through the token payload.
 
-A configured `sign.issuer` / `sign.audience` is **authoritative**. It overrides a claim of the same name on the payload, and logs a warning when it does.
+A configured `sign.issuer` or `sign.audience` overrides a claim of the same name on the payload, and logs a warning when it does. With `sign` unset, tokens are unchanged.
 
 **Before** - the payload was the only way to set these, and it won:
 
@@ -110,49 +102,21 @@ sign: { issuer: 'identity', audience: 'inventory' }
 await tokenService.generate({ payload: { userId }, claims: { audience: 'inventory' } });
 ```
 
-The reason is not tidiness. `iss` and `aud` are standard JWT fields, so they pass through the AES payload envelope in the clear - an issuer identity that any payload could overwrite is not an identity. With `sign` unset, nothing fires and tokens are unchanged.
-
 ## Details
 
-### The registry is the source of truth for a strategy name
-
-`AuthenticateStrategy.isValid` knows the two built-ins only, and returns `false` for a strategy you registered. It stays as a public export, but never build a check on it - ask the registry:
+- `AuthenticateStrategy.isValid` knows only the two built-ins and returns `false` for a strategy you registered. Ask the registry instead:
 
 ```ts
 AuthenticationStrategyRegistry.getInstance().has({ name: 'service' });
 AuthenticationStrategyRegistry.getInstance().getNames();
 ```
 
-The framework reports unregistered names while building route configs, which happens after registration. It **reports** rather than throws, deliberately:
-
-- `defineAuthController` hard-codes `'jwt'` on four of its routes. An application that registers its JWT strategy under a custom name - the configuration this release adds support for - would stop booting.
-- A route listing several strategies in `mode: 'any'` tolerates one that does not resolve. That is a working setup today.
-
-An empty `strategies` array is never reported: that is how `authenticate: { skip: true }` is encoded.
-
-If you want the hard failure, ask for it in your own startup:
+- Unregistered names are reported, not thrown, while building route configs. An empty `strategies` array is never reported, since that is how `authenticate: { skip: true }` is encoded. For a hard failure, call it in your own startup:
 
 ```ts
 AuthenticationStrategyRegistry.getInstance().assertRegistered({ names: ['service', 'jwt'] });
 ```
 
-### Audience matching is overlap, not equality
-
-jose accepts a token whose `aud` **contains** the configured value. A token carrying `['commerce','inventory']` satisfies `verify.audience: 'inventory'`. If you want strict single-audience tokens, enforce that when you issue them.
-
-### `maxTokenAge` is the replay window
-
-`exp` is chosen by whoever minted the token. `maxTokenAge` caps elapsed time since `iat` regardless, which is what a short-lived per-request assertion actually needs.
-
-### Diagnosing a rejection
-
-Every verification failure still surfaces as one `TOKEN_INVALID`, but the jose error survives on `cause` - `JWTClaimValidationFailed: unexpected "aud" claim value` rather than a generic "invalid or expired token". That distinction is the difference between an afternoon and a week during a fleet-wide rollout.
-
-| File | Package |
-|------|---------|
-| `src/base/auth/authenticate/common/constants.ts` | kernel |
-| `src/base/auth/authenticate/common/types.ts` | kernel |
-| `src/base/auth/authenticate/strategies/strategy-registry.ts` | kernel |
-| `src/base/auth/base/abstract-auth-registry.ts` | kernel |
-| `src/components/auth/authenticate/services/bearer/` | core |
-| `src/components/api-reference/` | core |
+- **Audience matching is overlap, not equality.** A token with `aud` `['commerce','inventory']` satisfies `verify.audience: 'inventory'`. To require single-audience tokens, enforce it when you issue them.
+- **`maxTokenAge` is the replay window.** It caps elapsed time since `iat` regardless of `exp`, which the minting side chooses.
+- **Diagnosing a rejection.** Every verification failure surfaces as one `TOKEN_INVALID`, and the jose error survives on `cause`, for example `JWTClaimValidationFailed: unexpected "aud" claim value`.

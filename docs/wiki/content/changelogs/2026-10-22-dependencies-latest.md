@@ -1,6 +1,6 @@
 ---
 title: Dependencies at Their Latest, Eight Peer Majors Raised
-description: "Every floor at its newest release; ioredis 6, bullmq 6, nodemailer 10, mailgun.js 14, @scalar/hono-api-reference 0.12, meilisearch 0.62, node-vault 0.13, eslint-plugin-unicorn 78."
+description: "Peer floors now ask for the newest major of ioredis, bullmq, nodemailer, mailgun.js, @scalar/hono-api-reference, meilisearch, node-vault and eslint-plugin-unicorn."
 packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-connectors', '@venizia/dev-configs']
 ---
 
@@ -23,14 +23,10 @@ packages: ['@venizia/ignis', '@venizia/ignis-helpers', '@venizia/ignis-connector
 | `node-vault` | ^0.12 | ^0.13 | Behind `HTTPS_PROXY`, the proxy must allow `CONNECT` to Vault |
 | `eslint-plugin-unicorn` (dev-configs) | ^74 | ^78 | None for the presets |
 
-Every other floor sits at the newest release of its major.
-
-## Held back
-
-- `@libsql/client` 0.18: its connection pool rolls back a raw `BEGIN`; the sqlite transactions need a redesign first.
-- `tsc-alias` stays `1.9.4`: 1.9.8 rewrites `drizzle-orm/pg-core` to `.../index.js`.
-- `typescript` stays 6: `typescript-eslint` and `ignis-boot` need the TypeScript 6 API.
-
 ## Who is affected
 
 An app that uses Redis, queues, mail, Meilisearch or Vault through IGNIS: raise those packages with the IGNIS upgrade. Reaching `BullMQHelper.queue.client` or repeatable jobs breaks on bullmq 6.
+
+## Details
+
+- Held back: `@libsql/client` stays below 0.18, `tsc-alias` stays `1.9.4`, and `typescript` stays 6.

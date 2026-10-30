@@ -1,6 +1,6 @@
 ---
 title: A Log Line Stops Carrying a Base64 Payload
-description: "Long strings are capped in the shared sanitiser, with the original length kept in the marker. Stack traces are exempt."
+description: "Long strings are capped in every log line, with the original length kept in the marker; stack traces are exempt."
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -10,38 +10,20 @@ packages: ['@venizia/ignis-helpers']
 
 <Badge type="tip" text="Fix" />
 
-A request body carrying `data:image/png;base64,...` turned one log line into hundreds of kilobytes,
-and none of it was readable.
+**In one line.** A request body carrying `data:image/png;base64,...` used to turn one log line into hundreds of kilobytes. Long strings are now cut.
 
 ```
 {"image":"data:image/png;base64,iVBORw0KG... [truncated, 302144 chars total]"}
 ```
 
-The **original length stays in the marker**. That number is what tells you the field held a 300 KB
-image rather than a truncated sentence.
+## What changed
 
-| | |
-|---|---|
-| Default | 2048 characters |
-| Turn it off | `APP_ENV_LOGGER_MAX_STRING_LENGTH=0` |
-| Never capped | `stack`, `stacktrace`, `stack_trace` |
-
-A stack trace is long by nature and useless cut - it is the whole reason the line is being read.
-
-## Where it sits, and why not in the middleware
-
-In `deepSanitize`, the one walk `redactSecrets` and `toJsonSafe` both go through. Every log call has
-the same exposure; `RequestSpyMiddleware` is only where it was noticed.
-
-Capping is **structural**, so `APP_ENV_LOGGER_DO_REDACT=false` does not disable it. That switch is
-about masking secret-shaped keys, never about letting a 300 KB payload onto a line.
+- **Default cap: 2048 characters.** The original length stays in the marker, so you can tell a 300 KB image from a truncated sentence.
+- **Turn it off.** `APP_ENV_LOGGER_MAX_STRING_LENGTH=0`.
+- **Never capped.** `stack`, `stacktrace` and `stack_trace`.
+- **`APP_ENV_LOGGER_DO_REDACT=false` does not disable it.** That switch is about masking secret-shaped keys only.
 
 ## Who is affected
 
-**You log large strings deliberately.** Raise or disable the limit.
-
-**Everyone else.** Smaller logs, same content.
-
-**Files:**
-
-- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts)
+- **You log large strings deliberately.** Raise or disable the limit.
+- **Everyone else.** Smaller logs, same content.

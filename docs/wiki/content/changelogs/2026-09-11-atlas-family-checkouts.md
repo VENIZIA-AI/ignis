@@ -1,6 +1,6 @@
 ---
 title: Atlas serves any VENIZIA family checkout
-description: The MCP server recognises a sibling framework's repository (@venizia/<family>-workspace) and names itself after it, so a sibling framework runs the same atlas over its own wiki, changelogs and knowledge bundle.
+description: The Atlas MCP server recognises any @venizia/<family>-workspace repository, so a sibling framework can run the same Atlas over its own docs.
 packages: ['@venizia/ignis-atlas']
 ---
 
@@ -14,11 +14,11 @@ packages: ['@venizia/ignis-atlas']
 
 ## What changed
 
-- **Checkout detection follows the family pattern.** `isRepositoryCheckout` accepted only `@venizia/ignis-workspace`; it now accepts any root manifest matching `@venizia/<family>-workspace` with `docs/wiki`, `docs/wiki/content/changelogs` and `.agents/knowledge` present. A scope-mate that is not a workspace (`@venizia/ignis-atlas`) is still refused.
-- **The server name follows the checkout.** In repo mode the MCP server reports `<family>-atlas` (for example `<family>-atlas` in a sibling framework's repository); in snapshot mode it stays `ignis-atlas`, because the packaged corpus is always IGNIS's.
+- **Any family checkout.** The root manifest may be any `@venizia/<family>-workspace`, with `docs/wiki`, `docs/wiki/content/changelogs` and `.agents/knowledge` present. A scope-mate that is not a workspace (`@venizia/ignis-atlas`) is still refused.
+- **The server name follows the checkout.** In repo mode the server reports `<family>-atlas`. In snapshot mode it stays `ignis-atlas`.
 - **New helper.** `workspaceFamilyOf({ root })` returns the family name or `undefined`.
 
 ## Who is affected
 
-- **IGNIS itself.** No action needed; behavior in this repository is unchanged.
-- **Sibling frameworks.** Register `bun <path-to-ignis>/packages/atlas/src/cli.ts mcp` (or the published `bunx @venizia/ignis-atlas mcp --root .`) in `.mcp.json`; the server serves that repository's corpora.
+- **IGNIS itself.** No action needed.
+- **Sibling frameworks.** Register `bun <path-to-ignis>/packages/atlas/src/cli.ts mcp` (or the published `bunx @venizia/ignis-atlas mcp --root .`) in `.mcp.json`.

@@ -10,12 +10,12 @@ packages: ['@venizia/ignis-kernel', '@venizia/dev-configs']
 
 <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />
 
-**In one line.** Three small corrections found while writing the upgrade list for a downstream app. Ships in 0.4.4.
+**In one line.** `enable` is optional on the middleware options, the middleware types say what the framework installs, and `devz codemod` says when a path holds nothing it can read. Ships in 0.4.4.
 
 ## What changed
 
-- **`enable` is optional on the middleware options** (`configs.middlewares.cors`, `bodyLimit` and the others). The code already treated a missing `enable` as on and only `enable: false` as off; the type now says so. Write `cors: { origin: 'https://app.example' }` without `enable: true`. Nothing changes at run time.
-- **The middleware types say what is installed.** The framework installs `cors` (first) and `bodyLimit` (right after the request id). `compress`, `csrf` and `ipRestriction` are typed so a config object can carry them, but nothing reads them: wire them in `setupMiddlewares()`. A doc comment that said only `bodyLimit` was installed is corrected.
+- **`enable` is optional on the middleware options** (`configs.middlewares.cors`, `bodyLimit` and the others). A missing `enable` already meant on; only `enable: false` is off. Write `cors: { origin: 'https://app.example' }` without `enable: true`. Nothing changes at run time.
+- **The middleware types say what is installed.** The framework installs `cors` (first) and `bodyLimit` (right after the request id). `compress`, `csrf` and `ipRestriction` are typed so a config object can carry them, but nothing reads them: wire them in `setupMiddlewares()`.
 - **`devz codemod` names a path it cannot read.** `devz codemod model-settings generated/` on a folder git ignores used to print "0 file(s) would change", which looks like a clean tree. It now says that the path holds no source files the codemod may read, and that nothing was read. The exit code is unchanged.
 
 ## Who is affected

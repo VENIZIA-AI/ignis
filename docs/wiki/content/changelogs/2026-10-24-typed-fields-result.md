@@ -23,7 +23,7 @@ await productRepository.find({ filter: { fields: ['id', 'nmae'] } }); // error: 
 
 ## What changed
 
-- **`fields` is typed.** `TFilter` takes the model and the selection (`TFilter<T, F>`); `fields` accepts `ReadonlyArray<keyof T>` or an object keyed by column. Only a `true` entry selects, as the query layer already did.
+- **`fields` is typed.** `TFilter` takes the model and the selection (`TFilter<T, F>`); `fields` accepts `ReadonlyArray<keyof T>` or an object keyed by column. Only a `true` entry selects.
 - **The row follows it.** A literal `fields` gives `Pick<T, ...>`. No `fields`, an empty selection or a non-literal array gives the whole row. Relations a model declares optional (`items?: ...`) stay readable, because an `include` adds them.
 - **An explicit type wins.** `find<MyRow>(...)` returns `MyRow[]` whatever `fields` says.
 - **New exports** from `@venizia/ignis-filter` and `@venizia/ignis-kernel`: `TRow`, `TSelectedRow`, `TByIdFilter`; `TFields` and `TFilter` gain the model parameter.
@@ -32,7 +32,7 @@ await productRepository.find({ filter: { fields: ['id', 'nmae'] } }); // error: 
 
 ## Who is affected
 
-- **Everyone who reads with `fields`.** A read that uses a column it did not select now fails to compile. That is a bug the compiler found, not a false alarm: at run time the column is `undefined`.
+- **Everyone who reads with `fields`.** A read that uses a column it did not select now fails to compile. At run time that column is `undefined`.
 - **A repository that overrides `find`, `findOne` or `findById`.** With the old `<R = E>` signature it stops compiling, and hooks that infer the row from the class degrade to `unknown`. Migrate the override (below).
 - **A read with no `fields`.** No action needed; the row type is unchanged.
 
@@ -41,7 +41,7 @@ await productRepository.find({ filter: { fields: ['id', 'nmae'] } }); // error: 
 > [!WARNING]
 > Type-level only; nothing changes at run time. A `fields` list kept in a constant, a generic repository base class, or an override of a read method must change.
 
-**1. Field lists kept in constants need `as const`.** A plain array is widened to `string[]`, which is no longer accepted - that is what keeps a typo in it an error.
+**1. Field lists kept in constants need `as const`.** A plain array is widened to `string[]`, which is no longer accepted.
 
 ```typescript
 // Before
@@ -73,6 +73,4 @@ override async findOne<R = unknown, const F extends TFields<E> = TFields<E>>(
 
 ## Details
 
-- The type work is in `packages/filter/src/common/types.ts`; `packages/kernel/src/__tests__/repository-typed-fields.ts` pins the behaviour at compile time.
-- Type-check cost scales with the number of `fields` call sites: about +1% type instantiations on the IGNIS packages, +4% on an example with 17 such calls.
 - The search repository keeps `where` untyped, as before; only `fields` is typed.

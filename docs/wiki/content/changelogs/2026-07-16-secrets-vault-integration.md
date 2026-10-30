@@ -1,6 +1,6 @@
 ---
 title: Secrets & Vault Integration
-description: A pluggable Secrets provider family - HashiCorp Vault, Dotenv Vault, and system env - with boot-time hydration, dynamic leases, and restart-free credential rotation. Fully additive; existing apps are unchanged.
+description: A pluggable Secrets provider family for HashiCorp Vault, Dotenv Vault and system env, with boot-time hydration, dynamic leases and restart-free credential rotation.
 packages: ['@venizia/ignis-helpers']
 ---
 
@@ -10,11 +10,15 @@ packages: ['@venizia/ignis-helpers']
 
 <Badge type="tip" text="New Feature" /> <Badge type="info" text="Enhancement" />
 
-**In one line.** A pluggable `Secrets` provider family, a boot-time hydration phase, and restart-free rotation of dynamic database credentials - additive and dormant by default.
+**In one line.** You can now load secrets from a vault at boot and rotate dynamic database credentials without a restart. Apps that do not opt in are unchanged.
 
-## The problem it solves
+## What changed
 
-IGNIS applications previously read configuration and credentials straight from `process.env`. There was no secrets provider and no way to consume a vault. Override `registerSecrets()` to opt in - an application that does not is unaffected:
+- **Secrets providers.** `AbstractSecretsHelper` plus `SystemEnvsHelper`, `HashiCorpVaultHelper` and `DotenvVaultHelper`, chosen with `SecretProviders`. The default is `system-envs`.
+- **Boot-time hydration.** A new `hydrateSecrets()` phase runs between `preConfigure()` and `registerDataSources()`. It merges static secrets into `Envs`, opens dynamic leases and binds the provider at `@app/config` for on-demand reads.
+- **Restart-free rotation.** Each lease in a `lease` entry is wired to its datasource. The PostgreSQL datasource gets an `onSecretRotated()` hook that rebuilds the pool with new credentials and drains the old pool so in-flight transactions finish. Rotation is opt-in per datasource.
+- **Vault token self-renewal.** `HashiCorpVaultHelper` renews its own auth token and re-authenticates if it cannot, so AppRole and Kubernetes deployments keep working past the token TTL.
+- **Fail-closed.** A vault failure crashes the boot in production. Development falls back to `process.env`.
 
 ```typescript
 import { SecretProviders, VaultAuthMethods } from '@venizia/ignis-helpers';
@@ -31,41 +35,21 @@ export class Application extends BaseApplication {
 }
 ```
 
-## What changed
+`registerSecrets()` returns `provider` (`SYSTEM_ENVS`, `HASHICORP_VAULT` or `DOTENV_VAULT`), `config` (provider settings), `hydrate` (static paths merged into `Envs`) and `lease` (dynamic leases, each mapped to a datasource by key).
 
-- **New `Secrets` provider family** (`@venizia/ignis-helpers`): `AbstractSecretsHelper` plus `SystemEnvsHelper`, `HashiCorpVaultHelper`, and `DotenvVaultHelper`, selected by a `SecretProviders` const-class. The default provider is `system-envs`, so nothing changes until you opt in.
-- **New `hydrateSecrets()` lifecycle phase**, runs between `preConfigure()` and `registerDataSources()`. It resolves the provider, merges static secrets into `Envs`, opens dynamic leases, and binds the provider at the previously-dormant `@app/config` key.
-- **Two ways to consume a secret**: boot-time hydration into `Envs` / `process.env` (existing code unchanged), and an injectable provider bound at `@app/config` for on-demand reads.
-- **Restart-free credential rotation.** `wireSecretRotatables()` connects each lease to its datasource after registration. The PostgreSQL datasource gains an `onSecretRotated()` hook that swaps in the new credentials and rebuilds the pool via `configure()`.
-  - It then drains the old pool with `end()` so in-flight transactions finish. Rotation is opt-in - wired only for datasources named in a `lease` entry.
-- **Vault token self-renewal.** `HashiCorpVaultHelper` renews its own Vault auth token on the same cadence, and re-authenticates if the token can no longer be renewed. AppRole and Kubernetes deployments keep working past the token TTL.
-- **Fail-closed.** A vault failure crashes the boot in production. Development falls back to `process.env`.
+## Who is affected
 
-## Options
+- **Apps that do not override `registerSecrets()`.** Unaffected.
+- **Apps that want a vault.** Override `registerSecrets()` and install the matching peer. No other step.
 
-`registerSecrets()` returns:
+## Details
 
-| Field | Meaning |
-|---|---|
-| `provider` | `SecretProviders.SYSTEM_ENVS` (default), `HASHICORP_VAULT`, or `DOTENV_VAULT` |
-| `config` | Provider-specific connection and auth settings |
-| `hydrate` | Static secret paths merged into `Envs` at boot |
-| `lease` | Dynamic credential leases, each mapped to a datasource by key |
-
-The vault backends are optional peer dependencies, reached only through sub-paths and dynamic imports - importing `@venizia/ignis-helpers` never requires them:
+The vault backends are optional peer dependencies reached through sub-paths, so importing `@venizia/ignis-helpers` never requires them. Install a peer only in the app that uses that provider.
 
 | Provider | Peer | Sub-path |
 |---|---|---|
 | HashiCorp Vault | `node-vault` | `@venizia/ignis-helpers/hashicorp-vault` |
 | Dotenv Vault | `@dotenvx/dotenvx` | `@venizia/ignis-helpers/dotenv-vault` |
-
-Install a peer only in the application that uses that provider.
-
-## Who is affected
-
-- **Applications that do not override `registerSecrets()`.** Unaffected - they use `system-envs` and are byte-for-byte unchanged at boot.
-- **Applications that want a vault.** Opt in with `registerSecrets()` and install the matching peer. No other migration step is required.
-- **Everyone else.** No new dependency is forced; the reserved binding keys `@app/config` and `@app/environments` were previously unused.
 
 ## See also
 
