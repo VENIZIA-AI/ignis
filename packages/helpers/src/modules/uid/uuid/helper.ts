@@ -1,15 +1,15 @@
 import { BaseHelper } from '../../base';
 import { UUID_PATTERN } from './common/constants';
 import type { IUuidInspection } from './common/types';
-import { uuidV4 } from './v4';
-import { uuidV5 } from './v5';
-import { uuidV7 } from './v7';
+import { UuidV4Generator } from './v4';
+import { UuidV5Generator } from './v5';
+import { UuidV7Generator } from './v7';
 
 /**
  * One door for every UUID IGNIS mints: `v7()` for a database key, `v5()` for a deterministic key,
  * `v4()` for a random token.
  *
- * A facade over {@link uuidV4}, {@link uuidV5} and {@link uuidV7} - importing one of those from
+ * A facade over {@link UuidV4Generator}, {@link UuidV5Generator} and {@link UuidV7Generator} - importing one of those from
  * `@venizia/ignis-helpers/uuid` leaves the other two out of a browser bundle.
  */
 export class UuidHelper extends BaseHelper {
@@ -21,13 +21,13 @@ export class UuidHelper extends BaseHelper {
   private static instance?: UuidHelper;
 
   /** Random - a public identifier or a token. */
-  readonly v4: () => string = uuidV4;
+  readonly v4: () => string = UuidV4Generator.generate;
 
   /** Deterministic - same inputs, same id. Reproducible therefore not secret. */
-  readonly v5: (opts: { namespace: string; name: string }) => string = uuidV5;
+  readonly v5: (opts: { namespace: string; name: string }) => string = UuidV5Generator.generate;
 
   /** Time-ordered - a database key. A burst past about 2048 ids per millisecond leads the wall clock. */
-  readonly v7: () => string = uuidV7;
+  readonly v7: () => string = UuidV7Generator.generate;
 
   constructor(opts?: { scope?: string }) {
     super({ scope: opts?.scope ?? UuidHelper.name });

@@ -4,8 +4,9 @@ import * as rootBarrel from '@/index';
 
 /** Consumers name the definition through the kernel's `RequestErrors`; a second public name for it would be two answers to one question. */
 describe('the malformed-body catalog', () => {
-  test('the root barrel carries readFormBody but not RequestBodyErrors', () => {
+  test('the root barrel carries FormBodyUtility and the deprecated readFormBody, not RequestBodyErrors', () => {
     expect(Object.keys(rootBarrel)).not.toContain('RequestBodyErrors');
+    expect(rootBarrel.FormBodyUtility).toBe(coreBarrel.FormBodyUtility);
     expect(rootBarrel.readFormBody).toBe(coreBarrel.readFormBody);
   });
 

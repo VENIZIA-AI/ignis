@@ -1,9 +1,5 @@
 import { type AnyType } from '@/common';
-import {
-  ensureRedisClientsConnecting,
-  type TRedisClient,
-  waitForRedisReady,
-} from '@/modules/redis';
+import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { describe, expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
 
@@ -27,7 +23,7 @@ describe('waitForRedisReady', () => {
 
     let caught: unknown;
     try {
-      await waitForRedisReady({ client: asRedisClient(client), timeoutMs: 50 });
+      await RedisUtility.waitForReady({ client: asRedisClient(client), timeoutMs: 50 });
     } catch (error) {
       caught = error;
     }
@@ -39,7 +35,10 @@ describe('waitForRedisReady', () => {
   test('resolves as soon as the client emits ready', async () => {
     const client = new FakeRedisClient();
 
-    const execution = waitForRedisReady({ client: asRedisClient(client), timeoutMs: 1_000 });
+    const execution = RedisUtility.waitForReady({
+      client: asRedisClient(client),
+      timeoutMs: 1_000,
+    });
     client.status = 'ready';
     client.emit('ready');
 
@@ -53,7 +52,7 @@ describe('ensureRedisClientsConnecting', () => {
     const connected = new FakeRedisClient();
     connected.status = 'ready';
 
-    ensureRedisClientsConnecting({
+    RedisUtility.ensureConnecting({
       clients: [asRedisClient(waiting), asRedisClient(connected)],
       scope: 'configure',
     });

@@ -131,7 +131,7 @@ describe('ApplicationLogger - the provider-following facade', () => {
   });
 
   test('get() routes through the factory and follows use()', () => {
-    const logger: ILogger = ApplicationLogger.get('FacadeTest');
+    const logger: ILogger = ApplicationLogger.get({ scope: 'FacadeTest' });
     LoggerFactory.use({ provider: RecordingProviderLogger });
     logger.warn('via facade');
     expect(RecordingProviderLogger.writes).toContainEqual({
@@ -142,8 +142,14 @@ describe('ApplicationLogger - the provider-following facade', () => {
   });
 
   test('facade and factory hand out the same wrapper per scope', () => {
-    expect(ApplicationLogger.get('FacadeIdentity')).toBe(
+    expect(ApplicationLogger.get({ scope: 'FacadeIdentity' })).toBe(
       LoggerFactory.getLogger(['FacadeIdentity']),
+    );
+  });
+
+  test('the string form is a deprecated overload that answers the same wrapper', () => {
+    expect(ApplicationLogger.get('FacadeLegacy')).toBe(
+      ApplicationLogger.get({ scope: 'FacadeLegacy' }),
     );
   });
 });

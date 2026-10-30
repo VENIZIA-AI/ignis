@@ -1,6 +1,6 @@
 import { type ValueOrPromise } from '@/common';
 import { BaseHelper } from '@/modules/base';
-import { voidExecution } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import dgram from 'node:dgram';
 
 interface INetworkUdpClientProps {
@@ -199,7 +199,7 @@ export class NetworkUdpClient extends BaseHelper {
     });
 
     this.client.bind({ port: this.port, address: this.host }, () => {
-      voidExecution({
+      PromiseUtility.voidExecution({
         logger: this.logger,
         scope: 'bind',
         // The async wrapper turns a SYNCHRONOUS throw from onBind into a rejection; calling it bare would throw out of the dgram listening listener as an uncaught exception.

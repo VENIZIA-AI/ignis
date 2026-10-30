@@ -1,9 +1,9 @@
 import { Defaults } from '@/common/constants';
-import { blankToUndefined } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import path from 'node:path';
 import pino from 'pino';
-import { LoggerFormats, resolveLoggerColorize } from '../common';
+import { LoggerFormats, LoggerConfigUtility } from '../common';
 
 import { PinoFrequencies, type TFrequency } from './common';
 
@@ -28,7 +28,8 @@ export class PinoDestination {
   private static readonly DEFAULT_MAX_FILES = '5d';
 
   /** `APP_ENV_LOGGER_FILE_FREQUENCY` -> pino-roll's `frequency`; an unrecognized value warns and falls back rather than throwing, so the app still boots. */
-  static mapFrequency(value?: string): TFrequency {
+  static mapFrequency(opts: { value?: string }): TFrequency {
+    const { value } = opts;
     const normalized = (value ?? '1h').trim().toLowerCase();
 
     switch (normalized) {
@@ -98,7 +99,9 @@ export class PinoDestination {
     const folderPath = process.env.APP_ENV_LOGGER_FOLDER_PATH;
 
     if (folderPath && folderPath.trim() !== '') {
-      const frequency = PinoDestination.mapFrequency(process.env.APP_ENV_LOGGER_FILE_FREQUENCY);
+      const frequency = PinoDestination.mapFrequency({
+        value: process.env.APP_ENV_LOGGER_FILE_FREQUENCY,
+      });
       const count = PinoDestination.mapMaxFilesToCount({
         value: process.env.APP_ENV_LOGGER_FILE_MAX_FILES,
         frequency,
@@ -109,7 +112,9 @@ export class PinoDestination {
         options: {
           file: path.join(folderPath, Defaults.APPLICATION_NAME),
           frequency,
-          size: blankToUndefined(process.env.APP_ENV_LOGGER_FILE_MAX_SIZE) ?? '100m',
+          size:
+            ParseUtility.blankToUndefined({ input: process.env.APP_ENV_LOGGER_FILE_MAX_SIZE }) ??
+            '100m',
           limit: { count },
           mkdir: true,
         },
@@ -125,7 +130,9 @@ export class PinoDestination {
   }
 
   /** `pino.transport()` is SYNCHRONOUS - it returns a `ThreadStream` that BUFFERS writes until its worker thread loads, so no async gating is needed; `ModuleUtility.assertInstalled` runs first so a missing optional peer fails loudly here, not as an opaque worker-thread crash. */
-  static build(plan: TDestinationPlan): pino.DestinationStream | undefined {
+  static build(opts: { plan: TDestinationPlan }): pino.DestinationStream | undefined {
+    const { plan } = opts;
+
     switch (plan.kind) {
       case 'stdout': {
         return undefined;
@@ -135,7 +142,7 @@ export class PinoDestination {
 
         // Only a decision is forwarded. Left alone, pino-pretty's own `isColorSupported` still
         // suppresses color when stdout is not a terminal - a check winston has no equivalent of.
-        const colorize = resolveLoggerColorize();
+        const colorize = LoggerConfigUtility.resolveColorize();
         return pino.transport({
           target: 'pino-pretty',
           ...(colorize === undefined ? {} : { options: { colorize } }),
@@ -152,14 +159,16 @@ export class PinoDestination {
   }
 }
 
-// Published names, kept so `@venizia/ignis-helpers/pino` consumers do not have to move; the class
-// above is the implementation and the entry point for new code.
-export const mapFrequency = (value?: string): TFrequency => PinoDestination.mapFrequency(value);
+/** @deprecated Use PinoDestination.mapFrequency({ value }). Removed in 0.5. */
+export const mapFrequency = (value?: string): TFrequency => PinoDestination.mapFrequency({ value });
 
+/** @deprecated Use PinoDestination.mapMaxFilesToCount({ value, frequency }). Removed in 0.5. */
 export const mapMaxFilesToCount = (opts: { value?: string; frequency: TFrequency }): number =>
   PinoDestination.mapMaxFilesToCount(opts);
 
+/** @deprecated Use PinoDestination.resolvePlan(). Removed in 0.5. */
 export const resolveDestinationPlan = (): TDestinationPlan => PinoDestination.resolvePlan();
 
+/** @deprecated Use PinoDestination.build({ plan }). Removed in 0.5. */
 export const buildDestination = (plan: TDestinationPlan): pino.DestinationStream | undefined =>
-  PinoDestination.build(plan);
+  PinoDestination.build({ plan });

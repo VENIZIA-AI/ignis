@@ -1,18 +1,5 @@
-import winston from 'winston';
-import { type AnyType } from '@/common/types';
-import { formatLogMessage } from '../../formatting';
+import type winston from 'winston';
+import { WinstonFormatFactory } from '../formats';
 
-/** Winston stashes the extra arguments of `logger.error(msg, ...args)` under this well-known key. */
-const SPLAT = Symbol.for('splat');
-
-/** Drop-in replacement for `winston.format.splat()` that formats through {@link formatLogMessage}; every transport reads `info.message`, so widening it here widens console, file and dgram at once. */
-export const deepSplat = winston.format((info) => {
-  const args = (info as AnyType)[SPLAT] as Array<unknown> | undefined;
-
-  if (!args?.length || typeof info.message !== 'string') {
-    return info;
-  }
-
-  info.message = formatLogMessage({ message: info.message, args });
-  return info;
-});
+/** @deprecated Use WinstonFormatFactory.deepSplat(). Removed in 0.5. */
+export const deepSplat = (): winston.Logform.Format => WinstonFormatFactory.deepSplat();

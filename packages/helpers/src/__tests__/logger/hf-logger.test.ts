@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AbstractLogger, HfLogFlusher, HfLogger } from '@/modules/logger';
 import type { ILogger, THfSinkBatch } from '@/modules/logger';
-import { toBoolean } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 
 const LINE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z \[(\w+)\] (\S+) (.*)$/;
 
@@ -111,7 +111,7 @@ describe('HfLogger implements ILogger', () => {
     const { flusher, lines } = await collectingFlusher();
     HfLogger.get('DebugGate').debug('gated line');
     await flusher.flush();
-    expect(lines().length).toBe(toBoolean(process.env.DEBUG) ? 1 : 0);
+    expect(lines().length).toBe(ParseUtility.toBoolean({ input: process.env.DEBUG }) ? 1 : 0);
   });
 
   test('for() composes the scope with a dash and returns a working logger', async () => {

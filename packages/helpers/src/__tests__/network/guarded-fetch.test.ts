@@ -3,7 +3,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { UrlIngest } from '@/modules/network/utilities/url-safety/ingest';
 import { UrlSchemes } from '@/modules/network/utilities/url-safety/common/constants';
-import { isUrlRefusedError } from '@/modules/network/utilities/url-safety/common/errors';
+import { UrlPolicy } from '@/modules/network/utilities/url-safety/policy';
 
 const originalFetch = globalThis.fetch;
 
@@ -156,7 +156,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
     ['a malformed url', 'not a url'],
   ])('%s is permanent', async (_label, url) => {
     const error = await refusedFrom(UrlIngest.fetchGuarded({ url }));
-    expect(isUrlRefusedError({ error })).toBe(true);
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
   });
 
   test('a redirect into a private address is permanent', async () => {
@@ -169,7 +169,7 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
       }),
     );
 
-    expect(isUrlRefusedError({ error })).toBe(true);
+    expect(UrlPolicy.isRefusedError({ error })).toBe(true);
   });
 
   test('a 5xx is NOT permanent - the caller may retry it', async () => {
@@ -179,6 +179,6 @@ describe('isUrlRefusedError - permanent versus worth retrying', () => {
       UrlIngest.fetchGuarded({ url: 'https://cdn.example.com/a.png', policy: publicPolicy }),
     );
 
-    expect(isUrlRefusedError({ error })).toBe(false);
+    expect(UrlPolicy.isRefusedError({ error })).toBe(false);
   });
 });

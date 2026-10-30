@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import { formatLogMessage } from '@/modules/logger';
+import { LogFormatUtility } from '@/modules/logger';
 import { HashiCorpVaultHelper } from '@/modules/secrets/hashicorp/hashicorp.helper';
 import { VaultAuthMethods } from '@/modules/secrets/common';
 import type { IClock, ITimerAdapter, TTimerHandle } from '@/modules/secrets/common';
 
 /** Routes captured log calls through the REAL formatter, so the test proves the raw error object (with its enumerable `config.headers['X-Vault-Token']`) is redacted by the logger's deep-inspect path before reaching a sink. */
 const formatLogArgs = ([message, ...args]: unknown[]) =>
-  formatLogMessage({ message: String(message), args });
+  LogFormatUtility.formatMessage({ message: String(message), args });
 
 const makeCapturingLogger = () => {
   const messages: string[] = [];

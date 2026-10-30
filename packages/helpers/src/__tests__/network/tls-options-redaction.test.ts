@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { REDACTED, redactSecrets } from '@/common/redact';
+import { REDACTED, RedactUtility } from '@/common/redact';
 import type { AnyType } from '@/common/types';
 import { NetworkTlsTcpClient } from '@/modules/network';
 
@@ -14,11 +14,13 @@ const TLS_OPTIONS = {
 
 describe('redactSecrets', () => {
   test('replaces secret-named keys at any depth and leaves the rest intact', () => {
-    const redacted = redactSecrets({
-      host: 'db.internal',
-      port: 5432,
-      auth: { user: 'app', password: 'hunter2' },
-      nested: [{ apiKey: 'abc123', label: 'keep' }],
+    const redacted = RedactUtility.redactSecrets({
+      value: {
+        host: 'db.internal',
+        port: 5432,
+        auth: { user: 'app', password: 'hunter2' },
+        nested: [{ apiKey: 'abc123', label: 'keep' }],
+      },
     }) as AnyType;
 
     expect(redacted.host).toBe('db.internal');
@@ -29,7 +31,9 @@ describe('redactSecrets', () => {
   });
 
   test('a Buffer-valued secret is summarized, never serialized', () => {
-    const redacted = redactSecrets({ key: Buffer.from('private-key-bytes') }) as AnyType;
+    const redacted = RedactUtility.redactSecrets({
+      value: { key: Buffer.from('private-key-bytes') },
+    }) as AnyType;
 
     expect(redacted.key).toBe(REDACTED);
   });
@@ -38,7 +42,10 @@ describe('redactSecrets', () => {
     const node: AnyType = { name: 'root' };
     node.self = node;
 
-    expect(redactSecrets(node)).toEqual({ name: 'root', self: '[Circular]' });
+    expect(RedactUtility.redactSecrets({ value: node })).toEqual({
+      name: 'root',
+      self: '[Circular]',
+    });
   });
 });
 

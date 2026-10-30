@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import pino from 'pino';
 import { LoggerFactory } from '@/modules/logger';
 import { WinstonLogger } from '@/modules/logger/winston';
-import { buildPinoOptions, PinoLogger, setPinoBackingLogger } from '@/modules/logger/pino';
+import { PinoBackingLogger, PinoLogger } from '@/modules/logger/pino';
 
 interface IParsedLine {
   level: number;
@@ -21,7 +21,7 @@ describe('PinoLogger - behavioral, via an injected in-memory backing', () => {
       },
     };
 
-    setPinoBackingLogger({
+    PinoBackingLogger.set({
       instance: pino(
         {
           name: 'APP',
@@ -94,7 +94,7 @@ describe('pino level floor parity with npm ordering', () => {
     process.env[ENV_KEY] = savedLevel;
   });
 
-  const buildInstance = () => pino(buildPinoOptions(), { write: () => {} } as never);
+  const buildInstance = () => pino(PinoBackingLogger.buildOptions(), { write: () => {} } as never);
 
   test('default floor (no APP_ENV_LOGGER_LEVEL) admits every level incl. the custom emerg', () => {
     delete process.env[ENV_KEY];

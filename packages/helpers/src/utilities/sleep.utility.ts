@@ -1,3 +1,6 @@
+import { PromiseUtility } from './promise.utility';
+
+/** @deprecated Use PromiseUtility.sleep({ ms }). Removed in 0.5. */
 export const sleep = (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return PromiseUtility.sleep({ ms });
 };

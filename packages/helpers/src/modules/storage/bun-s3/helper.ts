@@ -16,7 +16,7 @@ import type {
   IStorageHelperOptions,
   IUploadFile,
 } from '../common';
-import { S3Audiences, isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
+import { S3Audiences, StorageUtility, StoragePresignDefaults } from '../common';
 import type { TS3Audience } from '../common';
 import {
   buildCopySource,
@@ -141,7 +141,7 @@ export class BunS3Helper extends BaseStorageHelper {
       return true;
     } catch (error) {
       // A missing bucket is the answer; a credentials or network failure is not, and must not vanish.
-      if (!isNotFoundError({ error })) {
+      if (!StorageUtility.isNotFoundError({ error })) {
         this.logger.warn(
           '[hasBucket] Cannot determine bucket existence - reporting false | bucket: %s | %s',
           name,
@@ -320,7 +320,7 @@ export class BunS3Helper extends BaseStorageHelper {
       bucket: bucket.name,
       keyPrefix,
       maxBytes,
-      expiresInSeconds: toExpirySeconds({ expiresIn, operation: 'presignPost' }),
+      expiresInSeconds: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignPost' }),
       accessKey,
       secretKey,
       region,
@@ -364,7 +364,7 @@ export class BunS3Helper extends BaseStorageHelper {
       secretKey,
       region,
       sessionToken,
-      expiresInSeconds: toExpirySeconds({ expiresIn, operation: 'presignPut' }),
+      expiresInSeconds: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignPut' }),
       headers: {
         ...(tagging ? { 'x-amz-tagging': buildTaggingHeader({ tags: tagging }) } : {}),
         ...(contentLength === undefined ? {} : { 'content-length': String(contentLength) }),
@@ -391,7 +391,7 @@ export class BunS3Helper extends BaseStorageHelper {
     return this.client.presign(object.key, {
       ...this.presignOptions({ bucket: bucket.name }),
       method: 'GET',
-      expiresIn: toExpirySeconds({ expiresIn, operation: 'presignGet' }),
+      expiresIn: StorageUtility.toExpirySeconds({ expiresIn, operation: 'presignGet' }),
       ...(responseContentType ? { type: responseContentType } : {}),
       ...(responseContentDisposition ? { contentDisposition: responseContentDisposition } : {}),
     });

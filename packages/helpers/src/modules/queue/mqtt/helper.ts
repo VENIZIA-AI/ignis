@@ -1,10 +1,10 @@
 import { HTTP } from '@/common/constants/http';
 import { isEmpty } from '@venizia/ignis-inversion';
-import { redactSecrets, redactUrlCredentials } from '@/common/redact';
+import { RedactUtility } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import mqtt from 'mqtt';
-import { invokeHook } from '../common';
+import { HookUtility } from '../common';
 
 export interface IMQTTClientOptions {
   identifier: string;
@@ -68,13 +68,13 @@ export class MQTTClientHelper extends BaseHelper {
       .info(
         '[%s] Start configuring mqtt client | Url: %s | Options: %j',
         this.identifier,
-        redactUrlCredentials(this.url),
-        redactSecrets(this.options),
+        RedactUtility.redactUrlCredentials({ url: this.url }),
+        RedactUtility.redactSecrets({ value: this.options }),
       );
     this.client = this.createClient({ url: this.url, options: this.options });
 
     this.client.on('connect', () => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'onConnect',
         execution: () => this.onConnect?.(),
@@ -82,7 +82,7 @@ export class MQTTClientHelper extends BaseHelper {
     });
 
     this.client.on('disconnect', () => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'onDisconnect',
         execution: () => this.onDisconnect?.(),
@@ -90,7 +90,7 @@ export class MQTTClientHelper extends BaseHelper {
     });
 
     this.client.on('message', (topic, message) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'onMessage',
         execution: () => this.onMessage?.({ topic, message }),
@@ -98,7 +98,7 @@ export class MQTTClientHelper extends BaseHelper {
     });
 
     this.client.on('error', (error) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'onError',
         execution: () => this.onError?.(error),
@@ -106,7 +106,7 @@ export class MQTTClientHelper extends BaseHelper {
     });
 
     this.client.on('close', (error?: Error) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'onClose',
         execution: () => this.onClose?.(error),

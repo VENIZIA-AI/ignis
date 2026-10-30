@@ -45,7 +45,7 @@ console.log(session); // { userId: 42, active: true }
 | Cluster | `RedisClusterHelper` | Data sharded across nodes |
 | Sentinel | `RedisSentinelHelper` | Automatic failover for one logical master |
 
-- **Pick a topology via the factory.** `createRedisHelper({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`.
+- **Pick a topology via the factory.** `RedisHelperFactory.create({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`. The old `createRedisHelper(opts)` is a deprecated alias until 0.5.
 - **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
 - **Reconnect backoff grows with each attempt:** 2 s, then 4 s, then 5 s for every attempt after that. A successful reconnect resets it.
 - **The default does not reconnect at all.** `maxRetry` defaults to `0`, which gives up after the first failed attempt. Pass `-1` to reconnect forever.
@@ -76,9 +76,9 @@ Wrote a value with `set`? Read it back with `getObject`/`getObjects`.
 Switch topology by changing `mode` and its matching options. The rest of your code does not change.
 
 ```typescript
-import { createRedisHelper, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
+import { RedisHelperFactory, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
 
-const redis: IRedisHelper = createRedisHelper({
+const redis: IRedisHelper = RedisHelperFactory.create({
   mode: RedisModes.SINGLE, // or RedisModes.CLUSTER / RedisModes.SENTINEL
   name: 'app-cache',
   host: process.env.REDIS_HOST!,

@@ -1,7 +1,7 @@
 import { Defaults } from '@/common/constants';
 import { type AnyType } from '@/common/types';
 import pino from 'pino';
-import { resolveLoggerLevel } from '../common';
+import { LoggerConfigUtility } from '../common';
 
 import { PINO_CUSTOM_LEVELS, type TPinoInstance } from './common';
 import { PinoDestination } from './destination';
@@ -16,7 +16,7 @@ export class PinoBackingLogger {
   static buildOptions() {
     return {
       name: Defaults.APPLICATION_NAME,
-      level: resolveLoggerLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
+      level: LoggerConfigUtility.resolveLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
       customLevels: PINO_CUSTOM_LEVELS,
     };
   }
@@ -24,7 +24,7 @@ export class PinoBackingLogger {
   /** Lazy, env-driven singleton, built once and reused by every scope entirely synchronously - the very first log line already targets the real env-configured destination, no stdout bootstrap. `set()` is the only way to replace it; this getter never resets it. */
   static get(): TPinoInstance {
     if (!PinoBackingLogger.instance) {
-      const destination = PinoDestination.build(PinoDestination.resolvePlan());
+      const destination = PinoDestination.build({ plan: PinoDestination.resolvePlan() });
       PinoBackingLogger.instance = pino(
         PinoBackingLogger.buildOptions(),
         destination,
@@ -58,11 +58,12 @@ export class PinoBackingLogger {
   }
 }
 
-// Published names, kept so `@venizia/ignis-helpers/pino` consumers do not have to move; the class
-// above is the implementation and the entry point for new code.
+/** @deprecated Use PinoBackingLogger.buildOptions(). Removed in 0.5. */
 export const buildPinoOptions = () => PinoBackingLogger.buildOptions();
 
+/** @deprecated Use PinoBackingLogger.get(). Removed in 0.5. */
 export const getPinoBackingLogger = (): TPinoInstance => PinoBackingLogger.get();
 
+/** @deprecated Use PinoBackingLogger.set({ instance }). Removed in 0.5. */
 export const setPinoBackingLogger = (opts: { instance: TPinoInstance }): void =>
   PinoBackingLogger.set(opts);

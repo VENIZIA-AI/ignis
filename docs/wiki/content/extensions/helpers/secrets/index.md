@@ -14,9 +14,9 @@ The Secrets helper family reads configuration and credentials from a backend, be
 ## In one example
 
 ```typescript
-import { createSecretsHelper, SecretProviders } from '@venizia/ignis-helpers';
+import { SecretsHelperFactory, SecretProviders } from '@venizia/ignis-helpers';
 
-const secrets = await createSecretsHelper({
+const secrets = await SecretsHelperFactory.create({
   provider: SecretProviders.SYSTEM_ENVS,
 });
 await secrets.configure();
@@ -43,7 +43,7 @@ Only HashiCorp mints dynamic, lease-bearing credentials. The other two are read-
 - **The cache evicts lazily, not on a timer.** An expired entry is only cleared the next time you call `get()` or `getBundle()` for that path - there's no background sweep.
 - **Dynamic secrets renew themselves.** `lease()` opens a lease-bearing secret, and schedules its own renewal at `ttlSeconds * renewBeforeRatio` (default ratio `0.66`). Only HashiCorp supports `lease()` - the static providers throw.
 - **A failed renewal retries with backoff, then rotates.** If Vault is unreachable, the scheduler retries with capped exponential backoff. Once a renewal genuinely can't extend the lease, the helper fetches a fresh one and dispatches rotation.
-- **`createSecretsHelper({ provider })` picks the concrete class for you.**
+- **`SecretsHelperFactory.create({ provider })` picks the concrete class for you.** The old `createSecretsHelper(opts)` is a deprecated alias until 0.5.
 - **The peer packages stay invisible to bundlers.** `node-vault` and `@dotenvx/dotenvx` load only through a dynamic import (`ModuleUtility.load`). Importing `@venizia/ignis-helpers` never requires either package.
 - **This holds under `Bun.build` too.** A literal dynamic import resolves at bundle time, so a compiled binary needs no `external` entry for either peer.
 
@@ -79,7 +79,7 @@ Install the peer first: `bun add node-vault`. Vault supports three auth methods.
 | `kubernetes` | `role`, `jwtPath?`, `mountPath?` |
 
 ```typescript
-const secrets = await createSecretsHelper({
+const secrets = await SecretsHelperFactory.create({
   provider: SecretProviders.HASHICORP_VAULT,
   config: {
     endpoint: 'https://vault.internal:8200',
@@ -113,7 +113,7 @@ secrets.registerRotatable({ key: 'datasources.PostgresDataSource', target: pool 
 ### Read a static `.env.vault`
 
 ```typescript
-const secrets = await createSecretsHelper({
+const secrets = await SecretsHelperFactory.create({
   provider: SecretProviders.DOTENV_VAULT,
   config: { path: '.env.vault', dotenvKey: process.env.DOTENV_KEY },
 });

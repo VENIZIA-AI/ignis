@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { createUuidV7, uuidV7 } from '@/modules/uid';
+import { createUuidV7, uuidV7, UuidV7Generator } from '@/modules/uid';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -24,15 +24,17 @@ afterEach(() => {
 });
 
 test('one shared sequence per realm, so every caller draws from the same counter', () => {
-  const ids = Array.from({ length: 2_000 }, () => uuidV7());
+  const ids = Array.from({ length: 2_000 }, () => UuidV7Generator.generate());
 
   expect(ids).toEqual([...ids].sort());
   expect(new Set(ids).size).toBe(ids.length);
 });
 
 const paths = [
-  { name: 'shared uuidV7', build: () => uuidV7 },
-  { name: 'createUuidV7()', build: createUuidV7 },
+  { name: 'shared UuidV7Generator.generate', build: () => UuidV7Generator.generate },
+  { name: 'UuidV7Generator.create()', build: UuidV7Generator.create },
+  { name: 'shared uuidV7 (deprecated alias)', build: () => uuidV7 },
+  { name: 'createUuidV7() (deprecated alias)', build: createUuidV7 },
 ];
 
 for (const path of paths) {
@@ -66,7 +68,7 @@ for (const path of paths) {
 
 describe('uuidV7 - clock handling', () => {
   test('10k ids inside one frozen millisecond stay ordered past the 4096-step counter', () => {
-    const generate = createUuidV7();
+    const generate = UuidV7Generator.create();
     spyOn(Date, 'now').mockReturnValue(1_800_000_000_000);
 
     const ids = generateMany({ generator: generate, count: 10_000 });
@@ -76,7 +78,7 @@ describe('uuidV7 - clock handling', () => {
   });
 
   test('a clock that steps backwards never makes a later id sort earlier', () => {
-    const generate = createUuidV7();
+    const generate = UuidV7Generator.create();
     const clock = spyOn(Date, 'now').mockReturnValue(1_900_000_000_000);
     const first = generateMany({ generator: generate, count: 10 });
 

@@ -1,7 +1,7 @@
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { platformaticRequirePlugin } from '../../../modules/queue/kafka';
+import { PlatformaticKafkaPlugins } from '../../../modules/queue/kafka';
 
 /** The plugin filters on path, so the module has to sit at a `@platformatic/kafka/dist/` path to be seen at all. */
 const MODULE_DIRECTORY = join('node_modules', '@platformatic', 'kafka', 'dist');
@@ -33,7 +33,7 @@ const probe = async (): Promise<void> => {
     const built = await Bun.build({
       entrypoints: [join(root, 'entry.js')],
       target: 'bun',
-      plugins: [platformaticRequirePlugin()],
+      plugins: [PlatformaticKafkaPlugins.buildRequirePlugin()],
     });
 
     let code = '';

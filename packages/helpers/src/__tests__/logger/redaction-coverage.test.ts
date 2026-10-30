@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { formatLogMessage } from '@/modules/logger';
-import { REDACTED, redactSecrets, toJsonSafe } from '@/common';
+import { LogFormatUtility } from '@/modules/logger';
+import { REDACTED, RedactUtility } from '@/common';
 
 /**
  * The `%s` path was already covered. These are the paths that were NOT, and each one leaked a live
@@ -9,7 +9,7 @@ import { REDACTED, redactSecrets, toJsonSafe } from '@/common';
 describe('formatLogMessage - the placeholders redaction used to miss', () => {
   /** `%o` is what the reference docs recommend for a data object, and it printed secrets verbatim. */
   test('%o redacts', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'login failed %o',
       args: [{ username: 'alice', password: 'DROP-ME' }],
     });
@@ -20,7 +20,7 @@ describe('formatLogMessage - the placeholders redaction used to miss', () => {
   });
 
   test('%O redacts', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'context %O',
       args: [{ apiKey: 'DROP-ME', requestId: 'req-1' }],
     });
@@ -31,7 +31,7 @@ describe('formatLogMessage - the placeholders redaction used to miss', () => {
 
   /** `util.format` appends an argument with no placeholder, which is the most ordinary call there is. */
   test('an argument with NO placeholder redacts', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'login failed',
       args: [{ username: 'alice', password: 'DROP-ME' }],
     });
@@ -46,7 +46,7 @@ describe('formatLogMessage - the placeholders redaction used to miss', () => {
    * the rendering is not changed.
    */
   test('%o still renders as an object, not a quoted string', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'payload %o',
       args: [{ safe: 'value' }],
     });
@@ -58,7 +58,9 @@ describe('formatLogMessage - the placeholders redaction used to miss', () => {
   test('a non-secret argument is untouched on every path', () => {
     const messages = ['plain %o', 'plain %O', 'plain'];
     for (const message of messages) {
-      expect(formatLogMessage({ message, args: [{ requestId: 'req-9' }] })).toContain('req-9');
+      expect(LogFormatUtility.formatMessage({ message, args: [{ requestId: 'req-9' }] })).toContain(
+        'req-9',
+      );
     }
   });
 });
@@ -81,10 +83,9 @@ describe('redactSecrets - key spellings the pattern used to let through', () => 
 
   for (const key of secretKeys) {
     test(`${key} is redacted`, () => {
-      const redacted = redactSecrets({ [key]: 'DROP-ME', keep: 'KEEP-ME' }) as Record<
-        string,
-        unknown
-      >;
+      const redacted = RedactUtility.redactSecrets({
+        value: { [key]: 'DROP-ME', keep: 'KEEP-ME' },
+      }) as Record<string, unknown>;
 
       expect(redacted[key]).toBe(REDACTED);
       expect(redacted.keep).toBe('KEEP-ME');
@@ -93,10 +94,12 @@ describe('redactSecrets - key spellings the pattern used to let through', () => 
 
   /** The pattern keys on the WHOLE key, so an ordinary word that merely contains one is not eaten. */
   test('ordinary keys are not swallowed', () => {
-    const redacted = redactSecrets({
-      secretary: 'KEEP-ME',
-      passwordPolicy: 'KEEP-ME',
-      tokenizer: 'KEEP-ME',
+    const redacted = RedactUtility.redactSecrets({
+      value: {
+        secretary: 'KEEP-ME',
+        passwordPolicy: 'KEEP-ME',
+        tokenizer: 'KEEP-ME',
+      },
     }) as Record<string, unknown>;
 
     expect(Object.values(redacted)).toEqual(['KEEP-ME', 'KEEP-ME', 'KEEP-ME']);
@@ -118,14 +121,20 @@ describe('redactSecrets - the depth bound', () => {
   };
 
   test('defaults to walking the whole graph', () => {
-    const redacted = redactSecrets(buildChain(6)) as Record<string, unknown>;
+    const redacted = RedactUtility.redactSecrets({ value: buildChain(6) }) as Record<
+      string,
+      unknown
+    >;
 
     expect(redacted.password).toBe(REDACTED);
     expect((redacted.nested as Record<string, unknown>).nested).toBeDefined();
   });
 
   test('a bound stops the walk instead of doing work the renderer discards', () => {
-    const redacted = redactSecrets(buildChain(6), undefined, 2) as Record<string, unknown>;
+    const redacted = RedactUtility.redactSecrets({ value: buildChain(6), depth: 2 }) as Record<
+      string,
+      unknown
+    >;
 
     // The levels within the bound are still redacted...
     expect(redacted.password).toBe(REDACTED);
@@ -140,7 +149,7 @@ describe('redactSecrets - the depth bound', () => {
    * unbounded walk overflows depends on the engine's stack size, so it is not asserted here.
    */
   test('a very deep chain is cut exactly at the bound', () => {
-    expect(redactSecrets(buildChain(100_000), undefined, 3)).toEqual({
+    expect(RedactUtility.redactSecrets({ value: buildChain(100_000), depth: 3 })).toEqual({
       password: REDACTED,
       nested: {
         password: REDACTED,
@@ -159,7 +168,7 @@ describe('redactSecrets - the depth bound', () => {
 
     const messages = ['deep %s', 'deep %o', 'deep %O', 'deep'];
     for (const message of messages) {
-      expect(() => formatLogMessage({ message, args: [deep] })).not.toThrow();
+      expect(() => LogFormatUtility.formatMessage({ message, args: [deep] })).not.toThrow();
     }
   });
 });
@@ -173,7 +182,9 @@ describe('a long string is capped, and says how long it was', () => {
   const base64 = 'A'.repeat(5000);
 
   test('the marker carries the original length', () => {
-    const rs = toJsonSafe({ value: { image: `data:image/png;base64,${base64}` } }) as {
+    const rs = RedactUtility.toJsonSafe({
+      value: { image: `data:image/png;base64,${base64}` },
+    }) as {
       image: string;
     };
 
@@ -182,13 +193,13 @@ describe('a long string is capped, and says how long it was', () => {
   });
 
   test('a short string is untouched', () => {
-    expect(toJsonSafe({ value: { name: 'ordinary' } })).toEqual({ name: 'ordinary' });
+    expect(RedactUtility.toJsonSafe({ value: { name: 'ordinary' } })).toEqual({ name: 'ordinary' });
   });
 
   /** A stack trace is the whole reason the line is being read. */
   test('a stack is never capped', () => {
     const stack = `Error: boom\n${'    at somewhere (file.ts:1:1)\n'.repeat(200)}`;
-    const rs = toJsonSafe({ value: { stack } }) as { stack: string };
+    const rs = RedactUtility.toJsonSafe({ value: { stack } }) as { stack: string };
 
     expect(rs.stack).toBe(stack);
   });
@@ -198,9 +209,9 @@ describe('a long string is capped, and says how long it was', () => {
     process.env.APP_ENV_LOGGER_DO_REDACT = 'false';
 
     try {
-      expect((toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob).toContain(
-        '[truncated',
-      );
+      expect(
+        (RedactUtility.toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob,
+      ).toContain('[truncated');
     } finally {
       process.env.APP_ENV_LOGGER_DO_REDACT = previous;
     }
@@ -211,7 +222,9 @@ describe('a long string is capped, and says how long it was', () => {
     process.env.APP_ENV_LOGGER_MAX_STRING_LENGTH = '0';
 
     try {
-      expect((toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob).toBe(base64);
+      expect((RedactUtility.toJsonSafe({ value: { blob: base64 } }) as { blob: string }).blob).toBe(
+        base64,
+      );
     } finally {
       process.env.APP_ENV_LOGGER_MAX_STRING_LENGTH = previous;
     }

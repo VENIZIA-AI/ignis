@@ -1,10 +1,10 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { type IRedisHelper } from '@/modules/redis';
-import { toError } from '@/utilities/promise.utility';
+import { ErrorUtility } from '@/utilities/error.utility';
 import { ModuleUtility } from '@/utilities/module.utility';
 import type { Job, Processor, Queue, QueueOptions, Worker, WorkerOptions } from 'bullmq';
-import { invokeHook, type TBullQueueRole } from '../common';
+import { HookUtility, type TBullQueueRole } from '../common';
 
 export interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
@@ -235,7 +235,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     });
 
     this.worker.on('completed', (job, result) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'worker-completed',
         execution: () => this.onWorkerDataCompleted?.(job, result),
@@ -243,7 +243,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     });
 
     this.worker.on('failed', (job, reason) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'worker-failed',
         execution: () => this.onWorkerDataFail?.(job, reason),
@@ -296,7 +296,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.close.name)
         .error('Error closing BullMQ worker: %s | ID: %s', error, this.identifier);
-      failures.push(toError(error).message);
+      failures.push(ErrorUtility.toError({ error }).message);
     }
 
     try {
@@ -305,7 +305,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       this.logger
         .for(this.close.name)
         .error('Error closing BullMQ queue: %s | ID: %s', error, this.identifier);
-      failures.push(toError(error).message);
+      failures.push(ErrorUtility.toError({ error }).message);
     }
 
     if (failures.length) {

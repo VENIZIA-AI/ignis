@@ -1,7 +1,7 @@
 import type { AnyType } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 import { ApplicationEnvironment } from '@/modules/env';
-import { toDelimitedArray, toTrimmed } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 
 const makeEnvironment = (values: Record<string, string>) => {
   return new ApplicationEnvironment({ prefix: 'APP_ENV', envs: values });
@@ -23,7 +23,7 @@ describe('ApplicationEnvironment.get - options form', () => {
   test('transform runs on the raw value', () => {
     const environment = makeEnvironment({ APP_ENV_NODES: ' a:1 , b:2 ,, c:3 ' });
     const nodes = environment.get<string[]>('APP_ENV_NODES', {
-      transform: (value) => toDelimitedArray(value),
+      transform: (value) => ParseUtility.toDelimitedArray({ input: value }),
     });
     expect(nodes).toEqual(['a:1', 'b:2', 'c:3']);
   });
@@ -40,14 +40,22 @@ describe('ApplicationEnvironment.get - options form', () => {
 
 describe('env transforms', () => {
   test('toDelimitedArray splits, trims, and drops empties', () => {
-    expect(toDelimitedArray(' one, two ,, three ')).toEqual(['one', 'two', 'three']);
-    expect(toDelimitedArray(undefined)).toEqual([]);
-    expect(toDelimitedArray('a|b| c', '|')).toEqual(['a', 'b', 'c']);
+    expect(ParseUtility.toDelimitedArray({ input: ' one, two ,, three ' })).toEqual([
+      'one',
+      'two',
+      'three',
+    ]);
+    expect(ParseUtility.toDelimitedArray({ input: undefined })).toEqual([]);
+    expect(ParseUtility.toDelimitedArray({ input: 'a|b| c', separator: '|' })).toEqual([
+      'a',
+      'b',
+      'c',
+    ]);
   });
 
   test('toTrimmed normalizes absent values to empty string', () => {
-    expect(toTrimmed('  padded  ')).toBe('padded');
-    expect(toTrimmed(undefined)).toBe('');
+    expect(ParseUtility.toTrimmed({ input: '  padded  ' })).toBe('padded');
+    expect(ParseUtility.toTrimmed({ input: undefined })).toBe('');
   });
 });
 

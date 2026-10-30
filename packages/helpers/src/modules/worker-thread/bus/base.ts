@@ -1,5 +1,5 @@
 import { type ValueOrPromise } from '@/common/types';
-import { voidExecution } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { type MessagePort, type Transferable } from 'node:worker_threads';
 import { type IWorkerMessageBusHandler } from '../common';
 import { AbstractWorkerBusHelper } from './abstract';
@@ -44,7 +44,7 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     const { scope, execution } = opts;
 
     try {
-      voidExecution({ logger: this.logger, scope, execution: execution() });
+      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }

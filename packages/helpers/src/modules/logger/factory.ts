@@ -118,9 +118,16 @@ export class LoggerFactory {
 }
 
 /** Provider-following facade: always resolves through the registered provider. */
-export const ApplicationLogger = {
-  get: (scope: string): ILogger => LoggerFactory.getLogger([scope]),
-};
+export class ApplicationLogger {
+  static get(opts: { scope: string }): ILogger;
+
+  /** @deprecated Use ApplicationLogger.get({ scope }). Removed in 0.5. */
+  static get(scope: string): ILogger;
+
+  static get(opts: { scope: string } | string): ILogger {
+    return LoggerFactory.getLogger([typeof opts === 'string' ? opts : opts.scope]);
+  }
+}
 
 // Runs whenever LoggerFactory is imported as a value - which core's Container and every application entrypoint already do. This is what makes BaseHelper resolve real loggers on the server while its own import graph stays browser-pure.
 LoggerResolver.use({ resolver: (opts) => LoggerFactory.getLogger(opts.scopes) });

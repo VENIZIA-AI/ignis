@@ -129,7 +129,23 @@ export class UrlPolicy {
 
     return parsed;
   }
+
+  /**
+   * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
+   * address, a host outside the allow-list, a malformed url, or too many hops. Retrying any of those
+   * repeats the same rejection - drop the work instead.
+   *
+   * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
+   */
+  static isRefusedError(opts: { error: unknown }): boolean {
+    const source = opts.error as { normalized?: { code?: string } };
+    return source?.normalized?.code === UrlSafetyErrors.URL_REFUSED.message.code;
+  }
 }
+
+/** @deprecated Use UrlPolicy.isRefusedError({ error }). Removed in 0.5. */
+export const isUrlRefusedError = (opts: { error: unknown }): boolean =>
+  UrlPolicy.isRefusedError(opts);
 
 export { UrlSafetyDefaults, UrlSchemes };
 export type { IUrlSafetyPolicy };

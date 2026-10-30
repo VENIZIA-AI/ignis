@@ -48,9 +48,16 @@ export { TreeWalker } from './modules/tree/walk';
 // symbol below is verified free of node builtins/globals.
 export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
-export { blankToUndefined, int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
-export { executeWithPerformanceMeasure } from './utilities/performance.utility';
-export { readFormBody, RequestBodyErrors } from './utilities/form-body.utility';
+export {
+  blankToUndefined,
+  int,
+  keysToCamel,
+  ParseUtility,
+  toBoolean,
+  toCamel,
+} from './utilities/parse.utility';
+export { executeWithPerformanceMeasure, PerformanceUtility } from './utilities/performance.utility';
+export { FormBodyUtility, readFormBody, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even

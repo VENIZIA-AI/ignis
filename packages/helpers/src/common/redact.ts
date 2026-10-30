@@ -152,62 +152,79 @@ const deepSanitize = (value: unknown, context: TSanitizeContext): unknown => {
   return result;
 };
 
-/**
- * Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not
- * serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function.
- *
- * `depth` bounds the walk, exactly as {@link toJsonSafe} already does. It defaults to `Infinity` for
- * callers that really do want the whole graph, but the logger passes its own bound: rendering only
- * inspects a handful of levels, so walking to `Infinity` did work whose result was thrown away -
- * 12x on a deep graph, and a `RangeError` on a very deep chain.
- */
+export class RedactUtility {
+  /**
+   * Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not
+   * serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function.
+   *
+   * `depth` bounds the walk, exactly as {@link RedactUtility.toJsonSafe} already does. It defaults to
+   * `Infinity` for callers that really do want the whole graph, but the logger passes its own bound:
+   * rendering only inspects a handful of levels, so walking to `Infinity` did work whose result was
+   * thrown away - 12x on a deep graph, and a `RangeError` on a very deep chain.
+   */
+  static redactSecrets(opts: { value: unknown; seen?: WeakSet<object>; depth?: number }): unknown {
+    const { value, seen, depth = Infinity } = opts;
+
+    if (!isRedactionEnabled()) {
+      return value;
+    }
+
+    return deepSanitize(value, {
+      seen: seen ?? new WeakSet<object>(),
+      doRedact: true,
+      depth,
+      maxStringLength: resolveMaxStringLength(),
+    });
+  }
+
+  /** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. */
+  static toJsonSafe(opts: { value: unknown; depth?: number }): unknown {
+    return deepSanitize(opts.value, {
+      seen: new WeakSet<object>(),
+      doRedact: isRedactionEnabled(),
+      depth: opts.depth ?? Infinity,
+      // Capping is STRUCTURAL, like the projection itself: turning redaction off is about key masking,
+      // never about letting a 300 KB base64 field through.
+      maxStringLength: resolveMaxStringLength(),
+    });
+  }
+
+  /** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link RedactUtility.redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. */
+  static redactUrlCredentials(opts: { url: string }): string {
+    const { url } = opts;
+
+    if (!isRedactionEnabled()) {
+      return url;
+    }
+
+    let parsed: URL;
+
+    try {
+      parsed = new URL(url);
+    } catch {
+      return url;
+    }
+
+    if (!parsed.password) {
+      return url;
+    }
+
+    parsed.password = REDACTED;
+    return decodeURIComponent(parsed.toString());
+  }
+}
+
+/** @deprecated Use RedactUtility.redactSecrets({ value, seen, depth }). Removed in 0.5. */
 export const redactSecrets = (
   value: unknown,
   seen?: WeakSet<object>,
   depth: number = Infinity,
-): unknown => {
-  if (!isRedactionEnabled()) {
-    return value;
-  }
+): unknown => RedactUtility.redactSecrets({ value, seen, depth });
 
-  return deepSanitize(value, {
-    seen: seen ?? new WeakSet<object>(),
-    doRedact: true,
-    depth,
-    maxStringLength: resolveMaxStringLength(),
-  });
-};
+/** @deprecated Use RedactUtility.toJsonSafe({ value, depth }). Removed in 0.5. */
+export const toJsonSafe = (opts: { value: unknown; depth?: number }): unknown =>
+  RedactUtility.toJsonSafe(opts);
 
-/** Projects a value into something `JSON.stringify` can render: it answers `[Circular]` for the WHOLE payload when one cycle sits anywhere inside it, so cycles must be broken per-branch first. `depth` bounds the walk the way `util.inspect` does - a log argument may hold a live connector or request context, whose graph is effectively unbounded. The projection itself is unconditional: `APP_ENV_LOGGER_DO_REDACT=false` turns off the key masking, never the structural pass. */
-export const toJsonSafe = (opts: { value: unknown; depth?: number }): unknown => {
-  return deepSanitize(opts.value, {
-    seen: new WeakSet<object>(),
-    doRedact: isRedactionEnabled(),
-    depth: opts.depth ?? Infinity,
-    // Capping is STRUCTURAL, like the projection itself: turning redaction off is about key masking,
-    // never about letting a 300 KB base64 field through.
-    maxStringLength: resolveMaxStringLength(),
-  });
-};
-
-/** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. */
-export const redactUrlCredentials = (url: string): string => {
-  if (!isRedactionEnabled()) {
-    return url;
-  }
-
-  let parsed: URL;
-
-  try {
-    parsed = new URL(url);
-  } catch {
-    return url;
-  }
-
-  if (!parsed.password) {
-    return url;
-  }
-
-  parsed.password = REDACTED;
-  return decodeURIComponent(parsed.toString());
-};
+/** @deprecated Use RedactUtility.redactUrlCredentials({ url }). Removed in 0.5. */
+export const redactUrlCredentials = (url: string): string =>
+  RedactUtility.redactUrlCredentials({ url });

@@ -8,6 +8,21 @@ difficulty: intermediate
 
 Exhaustive reference for `Logger`, `LoggerFactory`, `HfLogger`/`HfLogFlusher`, the Winston formatter and transport internals, and every environment variable. For a readable introduction and the common tasks, start with the [Logger overview](/extensions/helpers/logger/).
 
+Several functions on this page moved into classes. The old names are still exported as deprecated aliases until 0.5, and `devz codemod namespace-functions` moves your calls:
+
+| Old name | New form |
+|---|---|
+| `resolveLoggerLevel(opts)` | `LoggerConfigUtility.resolveLevel(opts)` |
+| `resolveLoggerColorize(opts)` | `LoggerConfigUtility.resolveColorize(opts)` |
+| `formatLogMessage(opts)` | `LogFormatUtility.formatMessage(opts)` |
+| `defineCustomLogger(opts)` | `WinstonLoggerFactory.defineCustomLogger(opts)` |
+| `defineJsonLoggerFormatter(opts)`, `defineLogFormatter(opts)`, `definePrettyLoggerFormatter(opts)` | `WinstonFormatFactory.json(opts)`, `.log(opts)`, `.pretty(opts)` |
+| `resolveDefaultTransportOptions()` | `WinstonLoggerFactory.resolveDefaultTransportOptions()` |
+| `deepSplat()` | `WinstonFormatFactory.deepSplat()` |
+| `ApplicationLogger.get(scope)` | `ApplicationLogger.get({ scope })`; the string form is a deprecated overload |
+
+`WinstonLoggerFactory` and `WinstonFormatFactory` are exported from `@venizia/ignis-helpers/winston`. The examples below still use the old names.
+
 The default provider is **Winston**, paired with `winston-daily-rotate-file` for file rotation. All provider packages are OPTIONAL peers. An application loads exactly ONE provider - see [single-provider loading](#architecture-and-ilogger) below.
 
 **Files:**

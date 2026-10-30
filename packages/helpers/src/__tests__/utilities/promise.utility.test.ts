@@ -1,12 +1,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import {
-  executePromiseWithLimit,
-  getDeepProperty,
-  isPromiseLike,
-  toError,
-} from '@/utilities/promise.utility';
+import { ErrorUtility } from '@/utilities/error.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
+import { PromiseUtility, isPromiseLike } from '@/utilities/promise.utility';
 
 const defer = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -71,14 +68,14 @@ describe('executePromiseWithLimit', () => {
       },
     ];
 
-    const results = await executePromiseWithLimit({ tasks, limit: 3 });
+    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 3 });
     expect(results).toEqual(['slow-first', 'fast-second', 'medium-third']);
   });
 
   test('caps concurrency at `limit`', async () => {
     const { state, tasks } = buildInstrumentedTasks({ count: 20 });
 
-    const results = await executePromiseWithLimit({ tasks, limit: 4 });
+    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 4 });
 
     expect(results).toEqual(Array.from({ length: 20 }, (_unused, index) => index));
     expect(state.peak).toBeLessThanOrEqual(4);
@@ -89,22 +86,24 @@ describe('executePromiseWithLimit', () => {
   test('a limit larger than the task count runs everything in parallel', async () => {
     const { state, tasks } = buildInstrumentedTasks({ count: 3 });
 
-    const results = await executePromiseWithLimit({ tasks, limit: 100 });
+    const results = await PromiseUtility.executeWithLimit({ tasks, limit: 100 });
 
     expect(results).toEqual([0, 1, 2]);
     expect(state.peak).toBe(3);
   });
 
   test('an empty task list resolves to an empty array', async () => {
-    const result = await executePromiseWithLimit({ tasks: [], limit: 5 });
+    const result = await PromiseUtility.executeWithLimit({ tasks: [], limit: 5 });
     expect(result).toEqual([]);
   });
 
   test('rejects a limit below 1 instead of silently degrading to serial execution', async () => {
     const { tasks } = buildInstrumentedTasks({ count: 3 });
 
-    const zeroLimit = await captureRejection(executePromiseWithLimit({ tasks, limit: 0 }));
-    const negativeLimit = await captureRejection(executePromiseWithLimit({ tasks, limit: -5 }));
+    const zeroLimit = await captureRejection(PromiseUtility.executeWithLimit({ tasks, limit: 0 }));
+    const negativeLimit = await captureRejection(
+      PromiseUtility.executeWithLimit({ tasks, limit: -5 }),
+    );
 
     expect(zeroLimit.message).toMatch(/limit must be a positive integer/);
     expect(negativeLimit.message).toMatch(/limit must be a positive integer/);
@@ -114,7 +113,7 @@ describe('executePromiseWithLimit', () => {
     const { tasks } = buildInstrumentedTasks({ count: 6 });
     const done: unknown[] = [];
 
-    await executePromiseWithLimit({
+    await PromiseUtility.executeWithLimit({
       tasks,
       limit: 2,
       onTaskDone: async ({ result }) => {
@@ -134,7 +133,7 @@ describe('executePromiseWithLimit', () => {
       async () => 'ok-3',
     ];
 
-    const rejection = await captureRejection(executePromiseWithLimit({ tasks, limit: 2 }));
+    const rejection = await captureRejection(PromiseUtility.executeWithLimit({ tasks, limit: 2 }));
     expect(rejection.message).toBe('task-2-blew-up');
   });
 
@@ -152,7 +151,7 @@ describe('executePromiseWithLimit', () => {
 
     let caught: unknown;
     try {
-      await executePromiseWithLimit({ tasks, limit: 2 });
+      await PromiseUtility.executeWithLimit({ tasks, limit: 2 });
     } catch (error) {
       caught = error;
     }
@@ -187,12 +186,12 @@ describe('isPromiseLike', () => {
 describe('toError', () => {
   test('passes an Error through and stringifies anything else', () => {
     const error = new TypeError('boom');
-    expect(toError(error)).toBe(error);
+    expect(ErrorUtility.toError({ error })).toBe(error);
 
-    expect(toError('plain string').message).toBe('plain string');
-    expect(toError(undefined).message).toBe('undefined');
-    expect(toError({ code: 1 }).message).toBe('[object Object]');
-    expect(toError(getError({ message: 'app' })).message).toBe('app');
+    expect(ErrorUtility.toError({ error: 'plain string' }).message).toBe('plain string');
+    expect(ErrorUtility.toError({ error: undefined }).message).toBe('undefined');
+    expect(ErrorUtility.toError({ error: { code: 1 } }).message).toBe('[object Object]');
+    expect(ErrorUtility.toError({ error: getError({ message: 'app' }) }).message).toBe('app');
   });
 });
 
@@ -200,13 +199,19 @@ describe('getDeepProperty', () => {
   test('traverses a dotted path', () => {
     const source = { a: { b: { c: 42 } }, list: [{ id: 1 }] };
 
-    expect(getDeepProperty<typeof source, number>(source, 'a.b.c')).toBe(42);
-    expect(getDeepProperty<typeof source, number>(source, 'list.0.id')).toBe(1);
-    expect(getDeepProperty<typeof source, undefined>(source, 'a.missing')).toBeUndefined();
+    expect(ParseUtility.getDeepProperty<typeof source, number>({ source, path: 'a.b.c' })).toBe(42);
+    expect(ParseUtility.getDeepProperty<typeof source, number>({ source, path: 'list.0.id' })).toBe(
+      1,
+    );
+    expect(
+      ParseUtility.getDeepProperty<typeof source, undefined>({ source, path: 'a.missing' }),
+    ).toBeUndefined();
   });
 
   test('throws when the path runs through a nullish value', () => {
     const source = { a: null };
-    expect(() => getDeepProperty(source, 'a.b')).toThrow(/Cannot read property 'b' of null/);
+    expect(() => ParseUtility.getDeepProperty({ source, path: 'a.b' })).toThrow(
+      /Cannot read property 'b' of null/,
+    );
   });
 });

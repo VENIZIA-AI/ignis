@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import {
-  createRedisHelper,
+  RedisHelperFactory,
   RedisClusterHelper,
   RedisModes,
   RedisSentinelHelper,
@@ -9,7 +9,7 @@ import {
 
 describe('createRedisHelper', () => {
   it('builds a single helper', () => {
-    const helper = createRedisHelper({
+    const helper = RedisHelperFactory.create({
       mode: RedisModes.SINGLE,
       name: 's',
       host: '127.0.0.1',
@@ -22,7 +22,7 @@ describe('createRedisHelper', () => {
   });
 
   it('builds a cluster helper', () => {
-    const helper = createRedisHelper({
+    const helper = RedisHelperFactory.create({
       mode: RedisModes.CLUSTER,
       name: 'c',
       nodes: [{ host: '127.0.0.1', port: 7000 }],
@@ -33,7 +33,7 @@ describe('createRedisHelper', () => {
   });
 
   it('builds a sentinel helper', () => {
-    const helper = createRedisHelper({
+    const helper = RedisHelperFactory.create({
       mode: RedisModes.SENTINEL,
       name: 'se',
       masterName: 'mymaster',
@@ -46,6 +46,6 @@ describe('createRedisHelper', () => {
 
   it('throws on an unsupported mode', () => {
     // @ts-expect-error - exercising the runtime guard with an invalid mode
-    expect(() => createRedisHelper({ mode: 'nope', name: 'x' })).toThrow();
+    expect(() => RedisHelperFactory.create({ mode: 'nope', name: 'x' })).toThrow();
   });
 });

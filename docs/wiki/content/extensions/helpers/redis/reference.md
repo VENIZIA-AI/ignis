@@ -394,13 +394,13 @@ console.log(val); // "world"
 
 `Source ->` [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts)
 
-`createRedisHelper` is an overloaded factory that returns the concrete type when `mode` is a literal.
+`RedisHelperFactory.create` is an overloaded factory that returns the concrete type when `mode` is a literal. The bare `createRedisHelper(opts)` is still exported as a deprecated alias until 0.5.
 
 ```typescript
-import { createRedisHelper, RedisModes } from '@venizia/ignis-helpers';
+import { RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
 
 // Type inferred as RedisSingleHelper
-const single = createRedisHelper({
+const single = RedisHelperFactory.create({
   mode: RedisModes.SINGLE,
   name: 'cache',
   host: process.env.REDIS_HOST!,
@@ -409,7 +409,7 @@ const single = createRedisHelper({
 });
 
 // Type inferred as RedisSentinelHelper
-const sentinel = createRedisHelper({
+const sentinel = RedisHelperFactory.create({
   mode: RedisModes.SENTINEL,
   name: 'cache-ha',
   masterName: 'mymaster',
@@ -421,11 +421,11 @@ const sentinel = createRedisHelper({
 Switch by environment:
 
 ```typescript
-import { createRedisHelper, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
+import { RedisHelperFactory, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
 
 const mode = (process.env.REDIS_MODE ?? RedisModes.SINGLE) as typeof RedisModes.SINGLE;
 
-const redis: IRedisHelper = createRedisHelper({
+const redis: IRedisHelper = RedisHelperFactory.create({
   mode,
   name: 'app-cache',
   host: process.env.REDIS_HOST!,
@@ -776,7 +776,7 @@ import {
   RedisClusterHelper,
   RedisSentinelHelper,
   // Factory
-  createRedisHelper,
+  RedisHelperFactory,
   RedisModes,
   // Sentinel role const-class
   RedisSentinelRoles,

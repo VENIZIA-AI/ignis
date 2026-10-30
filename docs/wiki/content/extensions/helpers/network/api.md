@@ -39,7 +39,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 - [`packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/udp-socket/network-udp-client.helper.ts) - `NetworkUdpClient`, `INetworkUdpClientProps`
 - [`packages/helpers/src/modules/network/utilities/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/policy.ts) - `UrlPolicy`
 - [`packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/ingest.ts) - `UrlIngest`
-- [`packages/helpers/src/modules/network/utilities/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`, `isUrlRefusedError`
+- [`packages/helpers/src/modules/network/utilities/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`
 - [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `redactUrlCredentials`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP.Methods`, `THttpMethod`
 
@@ -388,7 +388,7 @@ constructor(opts: {
 })
 ```
 
-`queryString` decides how `params` are written into the url (see [`toQueryString`](#toquerystring)); omitted, it is `node:querystring`'s behavior. `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`: a logger with only those two methods is accepted as is. `getWorker()` returns the global `fetch`.
+`queryString` decides how `params` are written into the url (see [`QueryStringUtility.toQueryString`](#querystringutilitytoquerystring)); omitted, it is `node:querystring`'s behavior. `TFetcherLogger` is `Pick<ILogger, 'debug' | 'info'>`: a logger with only those two methods is accepted as is. `getWorker()` returns the global `fetch`.
 
 #### INodeFetchRequestOptions
 
@@ -413,7 +413,7 @@ Dispatches the request using the native `fetch` API. Behavior:
 - `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
 - `body` is sent as given when it is a string, `Blob`, `ArrayBuffer`, typed array, `FormData`, `URLSearchParams` or `ReadableStream`; a plain object or an array is JSON-encoded; `null` or `undefined` sends no body.
 - `headers` of the call replace `defaultConfigs.headers` (a caller sending a `FormData` body leaves the content type out so `fetch` writes the boundary); a call that passes none keeps the defaults.
-- Query `params` are serialized by [`toQueryString`](#toquerystring) (with the fetcher's `queryString` options) and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
+- Query `params` are serialized by [`QueryStringUtility.toQueryString`](#querystringutilitytoquerystring) (with the fetcher's `queryString` options) and appended to `url`. The separator adapts: `?` when the URL carries no query string yet, `&` when it already does - never a double `?`.
 - If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
   - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
   - The timer is cleared as soon as the request settles.
@@ -462,11 +462,13 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 
 ---
 
-### `toQueryString`
+### `QueryStringUtility.toQueryString`
 
 ```typescript
-toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
+QueryStringUtility.toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
+
+The bare function `toQueryString(opts)` is still exported with the same signature as a deprecated alias, removed in 0.5.
 
 Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
 
@@ -1093,7 +1095,7 @@ The guard for a url your application did not choose - a webhook target, an avata
 It ships as part of the network module, so the root barrel carries it:
 
 ```typescript
-import { UrlPolicy, UrlIngest, UrlSchemes, UrlSafetyDefaults, isUrlRefusedError } from '@venizia/ignis-helpers';
+import { UrlPolicy, UrlIngest, UrlSchemes, UrlSafetyDefaults } from '@venizia/ignis-helpers';
 import type { IUrlSafetyPolicy } from '@venizia/ignis-helpers';
 ```
 
@@ -1165,19 +1167,19 @@ const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 
 
 ### Telling a refusal from a retryable failure
 
-Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `isUrlRefusedError({ error })` tests it.
+Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `UrlPolicy.isRefusedError({ error })` tests it. The old `isUrlRefusedError({ error })` is a deprecated alias until 0.5.
 
 A refused url is refused forever. A bad scheme, a non-public address, a host outside the allow-list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
 
 A timeout, a DNS failure, or a 5xx answers `false`. Those are worth another attempt, and `fetchGuarded` raises them as a plain error with no refusal code.
 
 ```typescript
-import { isUrlRefusedError, RetryHelper, UrlIngest } from '@venizia/ignis-helpers';
+import { RetryHelper, UrlIngest, UrlPolicy } from '@venizia/ignis-helpers';
 
 await RetryHelper.executeWithRetry({
   operation: 'fetchAvatar',
   execution: () => UrlIngest.fetchGuarded({ url: userSuppliedUrl }),
-  shouldRetry: context => !isUrlRefusedError({ error: context.error }),
+  shouldRetry: context => !UrlPolicy.isRefusedError({ error: context.error }),
 });
 ```
 

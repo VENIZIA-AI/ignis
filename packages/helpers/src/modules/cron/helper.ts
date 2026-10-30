@@ -1,6 +1,6 @@
 import { isEmpty } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
-import { voidExecution } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
 import { ApplicationError } from '../error';
 
@@ -108,7 +108,7 @@ export class CronHelper extends BaseHelper {
     this.cronTime = cronTime;
 
     if (shouldFireOnTick) {
-      voidExecution({
+      PromiseUtility.voidExecution({
         logger: this.logger,
         scope: this.modifyCronTime.name,
         execution: this.instance.fireOnTick(),

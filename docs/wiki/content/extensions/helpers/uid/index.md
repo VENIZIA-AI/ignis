@@ -47,37 +47,39 @@ uuid.v5({ namespace: UuidNamespaces.URL, name: 'orders/4711/refund' }); // alway
 Every generator ignores the arguments it is called with, so you can hand one straight to a function that passes some:
 
 ```typescript
-import { uuidV4, uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { UuidV4Generator, UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
-const orderIds = Array.from({ length: 3 }, uuidV7); // Array.from passes (undefined, index)
-const tokens = ['alice', 'bob'].map(uuidV4); // map passes (value, index, array)
+const orderIds = Array.from({ length: 3 }, UuidV7Generator.generate); // Array.from passes (undefined, index)
+const tokens = ['alice', 'bob'].map(UuidV4Generator.generate); // map passes (value, index, array)
 ```
 
-The same holds for `createUuidV4()`, `createUuidV7()` and `UuidHelper.getInstance().v4` / `.v7`, and for Hono's `requestId({ generator: uuidV7 })`, which passes the request context.
+The same holds for `UuidV4Generator.create()`, `UuidV7Generator.create()` and `UuidHelper.getInstance().v4` / `.v7`, and for Hono's `requestId({ generator: UuidV7Generator.generate })`, which passes the request context. `generate` reads no `this`, so it is safe to pass detached.
+
+The old names `uuidV4`, `uuidV5`, `uuidV7` and `createUuidV4`, `createUuidV5`, `createUuidV7` are still exported as deprecated aliases until 0.5, with the same behavior; `devz codemod namespace-functions` moves your calls to `UuidV4Generator.generate()`, `UuidV5Generator.generate({ namespace, name })`, `UuidV7Generator.generate()` and `.create()`.
 
 ### In a browser bundle, import the version you need
 
-`UuidHelper` is a thin facade over three functions, and every version is exported on its own from the `./uuid` subpath. A bundle that needs one random ID should import that one function - the facade references all three, and a bundler cannot drop what a class references, so importing it also carries v5's SHA-1 digest, a status-code table and the error surface its namespace guard needs.
+`UuidHelper` is a thin facade over three generator classes, and every version is exported on its own from the `./uuid` subpath, one class per file. A bundle that needs one random ID should import that one class - the facade references all three, and a bundler cannot drop what a class references, so importing it also carries v5's SHA-1 digest, a status-code table and the error surface its namespace guard needs.
 
-`uuidV4`, `uuidV5` and `uuidV7` each come from a factory - `createUuidV4()`, `createUuidV5()`, `createUuidV7()` - and the exported constant is the shared one every caller should use. Build your own only when a private sequence is the point, which in practice means a test: `createUuidV7()` gives a generator with its own clock state and counter, so a test can drive it without disturbing the shared sequence.
+`UuidV4Generator`, `UuidV5Generator` and `UuidV7Generator` each have a `create()` factory and a `generate()` that uses the shared generator every caller should use. Build your own only when a private sequence is the point, which in practice means a test: `UuidV7Generator.create()` gives a generator with its own clock state and counter, so a test can drive it without disturbing the shared sequence.
 
 ```typescript
-// A browser framework that needs one tracing ID - 409 B gzipped
-import { uuidV4 } from '@venizia/ignis-helpers/uuid';
+// A browser framework that needs one tracing ID - about 400 B gzipped
+import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 
-const requestId = uuidV4();
+const requestId = UuidV4Generator.generate();
 ```
 
 Measured with `bun build --target=browser --minify`, gzipped, against the published `dist`:
 
 | Import | gzip |
 |---|---|
-| `uuidV4` from `./uuid` | **409 B** |
-| `uuidV7` from `./uuid` | **572 B** |
-| `uuidV5` from `./uuid` | 8.7 KB |
+| `UuidV4Generator` from `./uuid` | **about 380 B** |
+| `UuidV7Generator` from `./uuid` | **about 550 B** |
+| `UuidV5Generator` from `./uuid` | 8.7 KB |
 | `UuidHelper` from `./uuid` or `./core` | 9.9 KB |
 
-The two small numbers are asserted by a test, not just measured once: `uuid-bundle-budget.test.ts` bundles each entry and fails if `uuidV4` passes 600 B or `uuidV7` passes 800 B. Re-exporting either through anything that reaches `getError` puts it back over budget, and that test is what catches it. v5 is allowed to be large - it needs the digest and a framework error for a bad namespace - and the budgets prove importing v4 does not drag it in.
+The two small numbers are asserted by a test, not just measured once: `uuid-bundle-budget.test.ts` bundles each entry and fails if the v4 entry passes 600 B or the v7 entry passes 800 B. Re-exporting either through anything that reaches `getError` puts it back over budget, and that test is what catches it. v5 is allowed to be large - it needs the digest and a framework error for a bad namespace - and the budgets prove importing v4 does not drag it in.
 
 On a server, keep importing `UuidHelper` from `./core`. The subpath exists for the case where nine kilobytes is the whole budget.
 
@@ -373,10 +375,10 @@ Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. Th
 **Files:**
 
 - [`packages/helpers/src/modules/uid/uuid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/helper.ts) - `UuidHelper`
-- [`packages/helpers/src/modules/uid/uuid/v4.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v4.ts) - `uuidV4`, `createUuidV4` - the 398 B path
-- [`packages/helpers/src/modules/uid/uuid/v5.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v5.ts) - `uuidV5`, `createUuidV5`
+- [`packages/helpers/src/modules/uid/uuid/v4.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v4.ts) - `UuidV4Generator` (and the deprecated `uuidV4`, `createUuidV4`) - the small path
+- [`packages/helpers/src/modules/uid/uuid/v5.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v5.ts) - `UuidV5Generator` (and the deprecated `uuidV5`, `createUuidV5`)
 - [`packages/helpers/src/uuid.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/uuid.ts) - the `./uuid` subpath entry
-- [`packages/helpers/src/modules/uid/uuid/v7.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v7.ts) - `uuidV7`, `createUuidV7`
+- [`packages/helpers/src/modules/uid/uuid/v7.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v7.ts) - `UuidV7Generator` (and the deprecated `uuidV7`, `createUuidV7`)
 - [`packages/helpers/src/modules/uid/uuid/sha1.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/sha1.ts) - the inline SHA-1 behind v5
 - [`packages/helpers/src/modules/uid/uuid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/common/constants.ts) - `UuidNamespaces`
 - [`packages/helpers/src/modules/uid/request-id.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/request-id.ts) - `RequestIdGenerator`, a delegate over `v4()`

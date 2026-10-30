@@ -91,7 +91,9 @@ If your operations depend on the left column, stay on winston - it is not deprec
 
 ## Advanced: injecting a backing instance
 
-`setPinoBackingLogger({ instance })` replaces the env-driven singleton with a pino instance you configured yourself. Tests use this with an in-memory destination; apps can use it for exotic transports. The previous instance's transport is flushed and closed on replacement. `buildPinoOptions()` and `resolveDestinationPlan()` are exported for building compatible options.
+`PinoBackingLogger.set({ instance })` replaces the env-driven singleton with a pino instance you configured yourself. Tests use this with an in-memory destination; apps can use it for exotic transports. The previous instance's transport is flushed and closed on replacement. `PinoBackingLogger.buildOptions()` and `PinoDestination.resolvePlan()` are exported for building compatible options.
+
+The bare functions `setPinoBackingLogger`, `getPinoBackingLogger`, `buildPinoOptions`, `mapFrequency`, `mapMaxFilesToCount`, `resolveDestinationPlan` and `buildDestination` are still exported as deprecated aliases until 0.5. `PinoDestination.mapFrequency` and `PinoDestination.build` take an options object now (`{ value }` and `{ plan }`); the aliases keep the positional signature.
 
 ## See also
 

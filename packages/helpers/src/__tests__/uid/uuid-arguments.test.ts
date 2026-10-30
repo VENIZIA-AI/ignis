@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import path from 'node:path';
-import { createUuidV4, createUuidV7, UuidHelper, uuidV4, uuidV7 } from '@/modules/uid';
+import { UuidV4Generator, UuidV7Generator, UuidHelper, uuidV4, uuidV7 } from '@/modules/uid';
 import { PACKAGE_ROOT } from '../package-root';
 import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
@@ -28,14 +28,16 @@ const callWith = (opts: {
 }) => opts.generator(...opts.args);
 
 const v7Generators = [
-  { name: 'uuidV7', generator: uuidV7 },
-  { name: 'createUuidV7()', generator: createUuidV7() },
+  { name: 'UuidV7Generator.generate', generator: UuidV7Generator.generate },
+  { name: 'uuidV7 (deprecated alias)', generator: uuidV7 },
+  { name: 'UuidV7Generator.create()', generator: UuidV7Generator.create() },
   { name: 'UuidHelper.v7', generator: UuidHelper.getInstance().v7 },
 ];
 
 const v4Generators = [
-  { name: 'uuidV4', generator: uuidV4 },
-  { name: 'createUuidV4()', generator: createUuidV4() },
+  { name: 'UuidV4Generator.generate', generator: UuidV4Generator.generate },
+  { name: 'uuidV4 (deprecated alias)', generator: uuidV4 },
+  { name: 'UuidV4Generator.create()', generator: UuidV4Generator.create() },
   { name: 'UuidHelper.v4', generator: UuidHelper.getInstance().v4 },
 ];
 
@@ -57,8 +59,8 @@ describe('a v7 generator ignores whatever it is called with', () => {
   }
 
   test('Array.from and map, the two point-free shapes callers actually write', () => {
-    const fromArray = Array.from({ length: 3 }, uuidV7);
-    const mapped = ['a', 'b'].map(uuidV7);
+    const fromArray = Array.from({ length: 3 }, UuidV7Generator.generate);
+    const mapped = ['a', 'b'].map(UuidV7Generator.generate);
 
     expect([...fromArray, ...mapped].every((id) => UUID_V7.test(id))).toBe(true);
   });
@@ -71,8 +73,8 @@ describe('an older helpers version already holding the v7 slot', () => {
   test('its generator is still called with no argument', () => {
     const script = `
       Reflect.set(globalThis, Symbol.for('@venizia/ignis-helpers:uuid-v7'), Bun.randomUUIDv7);
-      const { uuidV7 } = await import('${V7_SOURCE}');
-      const ids = Array.from({ length: 3 }, uuidV7);
+      const { UuidV7Generator } = await import('${V7_SOURCE}');
+      const ids = Array.from({ length: 3 }, UuidV7Generator.generate);
       const stamps = ids.map(id => Number.parseInt(id.slice(0, 8) + id.slice(9, 13), 16));
       console.log(JSON.stringify({ ids, current: stamps.every(stamp => Math.abs(stamp - Date.now()) < 60_000) }));
     `;
@@ -144,7 +146,7 @@ describe('the native v4 path never forwards an argument', () => {
     };
     Object.defineProperty(crypto, 'randomUUID', { value: strict, configurable: true });
 
-    const generate = createUuidV4();
+    const generate = UuidV4Generator.create();
     const ids = STRAY_ARGUMENTS.map((args) => callWith({ generator: generate, args }));
 
     expect(prototypeRandomUuid).toBeDefined();
