@@ -2,12 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  findStrayModuleRoots,
-  findUnmatchedBrowserEntries,
-  findUnpinnedWorkspaceEntries,
-  isBuildStale,
-} from '../clean-install/cli';
+import { CleanInstallChecks } from '../clean-install/cli';
 
 const TARBALL = '/tmp/gate/tarballs/kernel/venizia-ignis-kernel-0.2.0-44.tgz';
 const HELPERS_TARBALL = '/tmp/gate/tarballs/helpers/venizia-ignis-helpers-0.2.0-39.tgz';
@@ -39,10 +34,14 @@ describe('clean-install guards', () => {
     const root = join(ancestor, 'a', 'gate-root');
     mkdirSync(root, { recursive: true });
 
-    expect(findStrayModuleRoots({ root })).not.toContain(join(ancestor, 'node_modules'));
+    expect(CleanInstallChecks.findStrayModuleRoots({ root })).not.toContain(
+      join(ancestor, 'node_modules'),
+    );
 
     mkdirSync(join(ancestor, 'node_modules'));
-    expect(findStrayModuleRoots({ root })).toContain(join(ancestor, 'node_modules'));
+    expect(CleanInstallChecks.findStrayModuleRoots({ root })).toContain(
+      join(ancestor, 'node_modules'),
+    );
   });
 
   test('NODE_PATH and the home-folder module roots are refused', () => {
@@ -50,12 +49,16 @@ describe('clean-install guards', () => {
     scratch.push(home);
     const root = join(home, 'gate-root');
 
-    expect(findStrayModuleRoots({ root, home, nodePath: '' })).not.toContain(
+    expect(CleanInstallChecks.findStrayModuleRoots({ root, home, nodePath: '' })).not.toContain(
       join(home, '.node_modules'),
     );
 
     mkdirSync(join(home, '.node_modules'));
-    const found = findStrayModuleRoots({ root, home, nodePath: '/opt/lib:/srv/lib' });
+    const found = CleanInstallChecks.findStrayModuleRoots({
+      root,
+      home,
+      nodePath: '/opt/lib:/srv/lib',
+    });
     expect(found).toContain(join(home, '.node_modules'));
     expect(found).toContain('NODE_PATH=/opt/lib');
     expect(found).toContain('NODE_PATH=/srv/lib');
@@ -72,7 +75,11 @@ describe('clean-install guards', () => {
     ]);
 
     expect(
-      findUnpinnedWorkspaceEntries({ lock, tarballs, package: '@venizia/ignis-kernel' }),
+      CleanInstallChecks.findUnpinnedWorkspaceEntries({
+        lock,
+        tarballs,
+        package: '@venizia/ignis-kernel',
+      }),
     ).toEqual([]);
   });
 
@@ -86,7 +93,7 @@ describe('clean-install guards', () => {
       ['@venizia/ignis-helpers', HELPERS_TARBALL],
     ]);
 
-    const problems = findUnpinnedWorkspaceEntries({
+    const problems = CleanInstallChecks.findUnpinnedWorkspaceEntries({
       lock,
       tarballs,
       package: '@venizia/ignis-kernel',
@@ -107,7 +114,11 @@ describe('clean-install guards', () => {
     ]);
 
     expect(
-      findUnpinnedWorkspaceEntries({ lock, tarballs, package: '@venizia/ignis-filter' }),
+      CleanInstallChecks.findUnpinnedWorkspaceEntries({
+        lock,
+        tarballs,
+        package: '@venizia/ignis-filter',
+      }),
     ).toEqual(['@venizia/ignis-filter is missing from bun.lock']);
   });
 
@@ -118,13 +129,13 @@ describe('clean-install guards', () => {
     ];
 
     expect(
-      findUnmatchedBrowserEntries({
+      CleanInstallChecks.findUnmatchedBrowserEntries({
         browserEntries,
         rowEntries: ['packages/kernel/dist/esm/index.js', 'packages/kernel/dist/esm/metadata.js'],
       }),
     ).toEqual([]);
     expect(
-      findUnmatchedBrowserEntries({
+      CleanInstallChecks.findUnmatchedBrowserEntries({
         browserEntries,
         rowEntries: ['packages/kernel/dist/esm/index.js'],
       }),
@@ -132,9 +143,15 @@ describe('clean-install guards', () => {
   });
 
   test('a build older than its source, or missing, is stale', () => {
-    expect(isBuildStale({ newestSourceMs: 1_000, newestDistMs: 2_000 })).toBe(false);
-    expect(isBuildStale({ newestSourceMs: 2_000, newestDistMs: 2_000 })).toBe(false);
-    expect(isBuildStale({ newestSourceMs: 3_000, newestDistMs: 2_000 })).toBe(true);
-    expect(isBuildStale({ newestSourceMs: 3_000 })).toBe(true);
+    expect(CleanInstallChecks.isBuildStale({ newestSourceMs: 1_000, newestDistMs: 2_000 })).toBe(
+      false,
+    );
+    expect(CleanInstallChecks.isBuildStale({ newestSourceMs: 2_000, newestDistMs: 2_000 })).toBe(
+      false,
+    );
+    expect(CleanInstallChecks.isBuildStale({ newestSourceMs: 3_000, newestDistMs: 2_000 })).toBe(
+      true,
+    );
+    expect(CleanInstallChecks.isBuildStale({ newestSourceMs: 3_000 })).toBe(true);
   });
 });

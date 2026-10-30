@@ -14,14 +14,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync }
 import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { PURITY_MANIFEST } from '../purity/manifest';
-import {
-  assertEveryPackageClaimed,
-  deriveInstallRows,
-  getRequiredPeers,
-  INSTALL_CLAIMS,
-  listPublishedPackages,
-  readPackageManifest,
-} from './manifest';
+import { INSTALL_CLAIMS, InstallManifest } from './manifest';
 import type { IInstallRow } from './manifest';
 
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
@@ -56,99 +49,101 @@ const firstErrorLine = (opts: { output: string }): string => {
   return (found ?? lines.find((line) => line.length > 0) ?? '').slice(0, 200);
 };
 
-/**
- * Node and Bun resolve a bare specifier from every ANCESTOR `node_modules`, and Node's `require` also
- * from `NODE_PATH` and `~/.node_modules` / `~/.node_libraries`. Any of them sitting above the gate
- * root would satisfy a missing peer and pass a leak - so each one found is a reason not to start.
- */
-export const findStrayModuleRoots = (opts: {
-  root: string;
-  home?: string;
-  nodePath?: string;
-}): string[] => {
-  const found: string[] = [];
+export class CleanInstallChecks {
+  /**
+   * Node and Bun resolve a bare specifier from every ANCESTOR `node_modules`, and Node's `require` also
+   * from `NODE_PATH` and `~/.node_modules` / `~/.node_libraries`. Any of them sitting above the gate
+   * root would satisfy a missing peer and pass a leak - so each one found is a reason not to start.
+   */
+  static findStrayModuleRoots(opts: { root: string; home?: string; nodePath?: string }): string[] {
+    const found: string[] = [];
 
-  let directory = dirname(opts.root);
-  while (true) {
-    const candidate = join(directory, 'node_modules');
-    if (existsSync(candidate)) {
-      found.push(candidate);
+    let directory = dirname(opts.root);
+    while (true) {
+      const candidate = join(directory, 'node_modules');
+      if (existsSync(candidate)) {
+        found.push(candidate);
+      }
+
+      const parent = dirname(directory);
+      if (parent === directory) {
+        break;
+      }
+      directory = parent;
     }
 
-    const parent = dirname(directory);
-    if (parent === directory) {
-      break;
-    }
-    directory = parent;
-  }
-
-  const home = opts.home;
-  if (home) {
-    const globalFolders = ['.node_modules', '.node_libraries'].map((name) => join(home, name));
-    found.push(...globalFolders.filter((folder) => existsSync(folder)));
-  }
-
-  const nodePaths = (opts.nodePath ?? '').split(':').filter((path) => path.length > 0);
-  found.push(...nodePaths.map((path) => `NODE_PATH=${path}`));
-
-  return found;
-};
-
-/**
- * Every `@venizia/*` entry of a sandbox's `bun.lock` that does NOT resolve to the tarball packed for
- * it. A registry copy of the same version reads `"name@0.2.0-44", ""`; a packed one reads
- * `"name@/abs/path.tgz"`. The sandboxed package itself must be present, or nothing was checked.
- */
-export const findUnpinnedWorkspaceEntries = (opts: {
-  lock: string;
-  tarballs: Map<string, string>;
-  package: string;
-}): string[] => {
-  const parsed = Bun.JSONC.parse(opts.lock);
-  const packages =
-    typeof parsed === 'object' && parsed !== null && 'packages' in parsed ? parsed.packages : {};
-  const problems: string[] = [];
-  let sawPackage = false;
-
-  const entries = typeof packages === 'object' && packages !== null ? Object.entries(packages) : [];
-  for (const [key, value] of entries) {
-    const resolution = Array.isArray(value) ? String(value[0]) : '';
-    const at = resolution.indexOf('@', 1);
-    const name = resolution.slice(0, at);
-    if (!name.startsWith(WORKSPACE_SCOPE)) {
-      continue;
+    const home = opts.home;
+    if (home) {
+      const globalFolders = ['.node_modules', '.node_libraries'].map((name) => join(home, name));
+      found.push(...globalFolders.filter((folder) => existsSync(folder)));
     }
 
-    sawPackage ||= name === opts.package;
-    const spec = resolution.slice(at + 1);
-    const tarball = opts.tarballs.get(name);
-    if (!tarball || (spec !== tarball && spec !== `file:${tarball}`)) {
-      problems.push(`${key} resolves to '${spec}', not the packed tarball`);
+    const nodePaths = (opts.nodePath ?? '').split(':').filter((path) => path.length > 0);
+    found.push(...nodePaths.map((path) => `NODE_PATH=${path}`));
+
+    return found;
+  }
+
+  /**
+   * Every `@venizia/*` entry of a sandbox's `bun.lock` that does NOT resolve to the tarball packed for
+   * it. A registry copy of the same version reads `"name@0.2.0-44", ""`; a packed one reads
+   * `"name@/abs/path.tgz"`. The sandboxed package itself must be present, or nothing was checked.
+   */
+  static findUnpinnedWorkspaceEntries(opts: {
+    lock: string;
+    tarballs: Map<string, string>;
+    package: string;
+  }): string[] {
+    const parsed = Bun.JSONC.parse(opts.lock);
+    const packages =
+      typeof parsed === 'object' && parsed !== null && 'packages' in parsed ? parsed.packages : {};
+    const problems: string[] = [];
+    let sawPackage = false;
+
+    const entries =
+      typeof packages === 'object' && packages !== null ? Object.entries(packages) : [];
+    for (const [key, value] of entries) {
+      const resolution = Array.isArray(value) ? String(value[0]) : '';
+      const at = resolution.indexOf('@', 1);
+      const name = resolution.slice(0, at);
+      if (!name.startsWith(WORKSPACE_SCOPE)) {
+        continue;
+      }
+
+      sawPackage ||= name === opts.package;
+      const spec = resolution.slice(at + 1);
+      const tarball = opts.tarballs.get(name);
+      if (!tarball || (spec !== tarball && spec !== `file:${tarball}`)) {
+        problems.push(`${key} resolves to '${spec}', not the packed tarball`);
+      }
     }
+
+    if (!sawPackage) {
+      problems.push(`${opts.package} is missing from bun.lock`);
+    }
+
+    return problems;
   }
 
-  if (!sawPackage) {
-    problems.push(`${opts.package} is missing from bun.lock`);
+  /**
+   * Browser-claimed ESM entries no install row loads. The browser build runs only for an entry some
+   * row's `import` target matches, so an unmatched one would be skipped without a word.
+   */
+  static findUnmatchedBrowserEntries(opts: {
+    browserEntries: string[];
+    rowEntries: string[];
+  }): string[] {
+    return opts.browserEntries.filter((entry) => !opts.rowEntries.includes(entry));
   }
 
-  return problems;
-};
-
-/**
- * Browser-claimed ESM entries no install row loads. The browser build runs only for an entry some
- * row's `import` target matches, so an unmatched one would be skipped without a word.
- */
-export const findUnmatchedBrowserEntries = (opts: {
-  browserEntries: string[];
-  rowEntries: string[];
-}): string[] => opts.browserEntries.filter((entry) => !opts.rowEntries.includes(entry));
-
-/**
- * True when the build is older than its source. The stamp is the newest file under `dist/`, not one
- * entry file: the build is incremental, so `tsc` re-emits only the files a change reaches.
- */
-export const isBuildStale = (opts: { newestSourceMs: number; newestDistMs?: number }): boolean =>
-  opts.newestDistMs === undefined || opts.newestSourceMs > opts.newestDistMs;
+  /**
+   * True when the build is older than its source. The stamp is the newest file under `dist/`, not one
+   * entry file: the build is incremental, so `tsc` re-emits only the files a change reaches.
+   */
+  static isBuildStale(opts: { newestSourceMs: number; newestDistMs?: number }): boolean {
+    return opts.newestDistMs === undefined || opts.newestSourceMs > opts.newestDistMs;
+  }
+}
 
 const newestFile = (opts: {
   directory: string;
@@ -188,7 +183,13 @@ const assertFreshBuild = (opts: { directories: string[] }): void => {
     const packageDirectory = join(REPOSITORY_ROOT, 'packages', directory);
     const source = newestFile({ directory: join(packageDirectory, 'src'), skip: '__tests__' });
     const dist = newestFile({ directory: join(packageDirectory, 'dist') });
-    if (source && isBuildStale({ newestSourceMs: source.mtimeMs, newestDistMs: dist?.mtimeMs })) {
+    if (
+      source &&
+      CleanInstallChecks.isBuildStale({
+        newestSourceMs: source.mtimeMs,
+        newestDistMs: dist?.mtimeMs,
+      })
+    ) {
       stale.push(`${directory} (${relative(REPOSITORY_ROOT, source.path)} is newer than dist/)`);
     }
   }
@@ -201,14 +202,17 @@ const assertFreshBuild = (opts: { directories: string[] }): void => {
 };
 
 const listPackageDirectories = (): string[] =>
-  assertEveryPackageClaimed({ packages: listPublishedPackages(), claims: INSTALL_CLAIMS });
+  InstallManifest.assertEveryPackageClaimed({
+    packages: InstallManifest.listPublished(),
+    claims: INSTALL_CLAIMS,
+  });
 
 /** The package and every workspace package it reaches through dependencies or peers. */
 const workspaceClosure = (opts: { directories: string[] }): string[] => {
   const byName = new Map<string, string>();
   const allDirectories = listPackageDirectories();
   for (const directory of allDirectories) {
-    byName.set(readPackageManifest({ package: directory }).name, directory);
+    byName.set(InstallManifest.readPackage({ package: directory }).name, directory);
   }
 
   const reached = new Set<string>();
@@ -220,7 +224,7 @@ const workspaceClosure = (opts: { directories: string[] }): string[] => {
     }
 
     reached.add(directory);
-    const manifest = readPackageManifest({ package: directory });
+    const manifest = InstallManifest.readPackage({ package: directory });
     const names = [
       ...Object.keys(manifest.dependencies ?? {}),
       ...Object.keys(manifest.peerDependencies ?? {}),
@@ -262,7 +266,10 @@ const pack = async (opts: {
       );
     }
 
-    tarballs.set(readPackageManifest({ package: directory }).name, join(destination, produced[0]));
+    tarballs.set(
+      InstallManifest.readPackage({ package: directory }).name,
+      join(destination, produced[0]),
+    );
   }
 
   return tarballs;
@@ -283,7 +290,7 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
     .map((entry) => entry.entry)
     .filter((entry) =>
       opts.packages.some((directory) =>
-        Object.values(readPackageManifest({ package: directory }).exports ?? {}).some(
+        Object.values(InstallManifest.readPackage({ package: directory }).exports ?? {}).some(
           (target) =>
             typeof target === 'object' &&
             target.default !== undefined &&
@@ -294,7 +301,9 @@ const browserEsmEntries = (opts: { packages: string[] }): string[] =>
 
 /** Repository-relative file a row's `import()` loads. */
 const rowEntry = (opts: { row: IInstallRow }): string | undefined => {
-  const target = readPackageManifest({ package: opts.row.package }).exports?.[opts.row.subpath];
+  const target = InstallManifest.readPackage({ package: opts.row.package }).exports?.[
+    opts.row.subpath
+  ];
   const file = typeof target === 'string' ? target : target?.default;
   return file ? join('packages', opts.row.package, file) : undefined;
 };
@@ -352,14 +361,14 @@ const main = async (): Promise<number> => {
     throw new Error(`[clean-install] no claim matches ${tokens.join(', ')}`);
   }
 
-  const rows = deriveInstallRows({ claims });
+  const rows = InstallManifest.deriveRows({ claims });
   const rowPackages = [...new Set(rows.map((row) => row.package))];
   if (rowPackages.length === 0) {
     console.log('[clean-install] no runtime sub-path to load for this package - nothing to check.');
     return 0;
   }
 
-  const unmatched = findUnmatchedBrowserEntries({
+  const unmatched = CleanInstallChecks.findUnmatchedBrowserEntries({
     browserEntries: browserEsmEntries({ packages: rowPackages }),
     rowEntries: rows.flatMap((row) => rowEntry({ row }) ?? []),
   });
@@ -379,7 +388,7 @@ const main = async (): Promise<number> => {
   let checkCount = 0;
 
   try {
-    const strayRoots = findStrayModuleRoots({
+    const strayRoots = CleanInstallChecks.findStrayModuleRoots({
       root,
       home: process.env.HOME,
       nodePath: process.env.NODE_PATH,
@@ -408,14 +417,14 @@ const main = async (): Promise<number> => {
     const groupEntries = [...groups];
     for (const [key, groupRows] of groupEntries) {
       const [directory, linker, extrasText] = key.split('|');
-      const manifest = readPackageManifest({ package: directory });
+      const manifest = InstallManifest.readPackage({ package: directory });
       const extras = extrasText ? extrasText.split(',') : [];
       const peerRanges = manifest.peerDependencies ?? {};
 
       const sandbox = mkdtempSync(join(root, `${directory}-${linker}-`));
       const dependencies = {
         [manifest.name]: `file:${tarballs.get(manifest.name)}`,
-        ...getRequiredPeers({ manifest }),
+        ...InstallManifest.getRequiredPeers({ manifest }),
         ...Object.fromEntries(extras.map((name) => [name, peerRanges[name]])),
       };
       writeFileSync(
@@ -440,7 +449,7 @@ const main = async (): Promise<number> => {
 
       // `overrides` is what swaps each registry `@venizia/*` for its tarball; if bun ever stops
       // honouring it, the same version comes from the registry and every check tests the wrong code.
-      const unpinned = findUnpinnedWorkspaceEntries({
+      const unpinned = CleanInstallChecks.findUnpinnedWorkspaceEntries({
         lock: await Bun.file(join(sandbox, 'bun.lock')).text(),
         tarballs,
         package: manifest.name,

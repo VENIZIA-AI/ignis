@@ -196,53 +196,55 @@ const writeKind = (opts: {
   ];
 };
 
-export const buildPreset = (opts: { root: string; outDir: string }): IBuildPresetResult => {
-  const templateDir = join(opts.root, TEMPLATE_FOLDER);
-  const manifest = readJson({ file: join(opts.root, 'package.json') });
-  const context = {
-    catalog: readCatalog({ manifest }),
-    versions: readWorkspaceVersions({ root: opts.root, manifest }),
-    resolved: [] as string[],
-  };
-  const resolveKind = (kind: string): Record<string, unknown> =>
-    resolveTemplate({
-      ...context,
-      template: readJson({ file: join(templateDir, kind, 'preset.json') }),
-      filesFolder: FILES_FOLDER,
+export class VulcanPreset {
+  static build(opts: { root: string; outDir: string }): IBuildPresetResult {
+    const templateDir = join(opts.root, TEMPLATE_FOLDER);
+    const manifest = readJson({ file: join(opts.root, 'package.json') });
+    const context = {
+      catalog: readCatalog({ manifest }),
+      versions: readWorkspaceVersions({ root: opts.root, manifest }),
+      resolved: [] as string[],
+    };
+    const resolveKind = (kind: string): Record<string, unknown> =>
+      resolveTemplate({
+        ...context,
+        template: readJson({ file: join(templateDir, kind, 'preset.json') }),
+        filesFolder: FILES_FOLDER,
+      });
+
+    rmSync(opts.outDir, { recursive: true, force: true });
+
+    const written = writeKind({
+      templateDir,
+      outDir: opts.outDir,
+      kind: APP_KIND,
+      preset: resolveKind(APP_KIND),
     });
 
-  rmSync(opts.outDir, { recursive: true, force: true });
+    for (const kind of OPTIONAL_KINDS) {
+      if (!existsSync(join(templateDir, kind, 'preset.json'))) {
+        continue;
+      }
 
-  const written = writeKind({
-    templateDir,
-    outDir: opts.outDir,
-    kind: APP_KIND,
-    preset: resolveKind(APP_KIND),
-  });
-
-  for (const kind of OPTIONAL_KINDS) {
-    if (!existsSync(join(templateDir, kind, 'preset.json'))) {
-      continue;
+      written.push(
+        ...writeKind({
+          templateDir,
+          outDir: opts.outDir,
+          kind,
+          preset: resolveKind(kind),
+          sharedFrom: APP_KIND,
+        }),
+      );
     }
 
-    written.push(
-      ...writeKind({
-        templateDir,
-        outDir: opts.outDir,
-        kind,
-        preset: resolveKind(kind),
-        sharedFrom: APP_KIND,
-      }),
-    );
+    return { written, resolved: context.resolved };
   }
-
-  return { written, resolved: context.resolved };
-};
+}
 
 if (import.meta.main) {
   const root = resolve(import.meta.dir, '..', '..');
   const outDir = join(root, OUTPUT_FOLDER);
-  const { written, resolved } = buildPreset({ root, outDir });
+  const { written, resolved } = VulcanPreset.build({ root, outDir });
 
   for (const line of resolved) {
     console.log(`  ${line}`);

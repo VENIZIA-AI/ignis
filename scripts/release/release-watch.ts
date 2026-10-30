@@ -13,27 +13,29 @@ const POLL_MILLISECONDS = 10_000;
 const WAITING_STATUS = 'waiting';
 const COMPLETED_STATUS = 'completed';
 
-export const watchRun = async (opts: {
-  view: () => Promise<IRunStatus>;
-  sleep: (milliseconds: number) => Promise<void>;
-  onWaiting: () => void;
-}): Promise<string> => {
-  const { view, sleep, onWaiting } = opts;
-  let wasWaiting = false;
+export class ReleaseWatch {
+  static async run(opts: {
+    view: () => Promise<IRunStatus>;
+    sleep: (milliseconds: number) => Promise<void>;
+    onWaiting: () => void;
+  }): Promise<string> {
+    const { view, sleep, onWaiting } = opts;
+    let wasWaiting = false;
 
-  for (;;) {
-    const { status, conclusion } = await view();
+    for (;;) {
+      const { status, conclusion } = await view();
 
-    if (status === COMPLETED_STATUS) {
-      return conclusion ?? '';
+      if (status === COMPLETED_STATUS) {
+        return conclusion ?? '';
+      }
+
+      const isWaiting = status === WAITING_STATUS;
+      if (isWaiting && !wasWaiting) {
+        onWaiting();
+      }
+      wasWaiting = isWaiting;
+
+      await sleep(POLL_MILLISECONDS);
     }
-
-    const isWaiting = status === WAITING_STATUS;
-    if (isWaiting && !wasWaiting) {
-      onWaiting();
-    }
-    wasWaiting = isWaiting;
-
-    await sleep(POLL_MILLISECONDS);
   }
-};
+}

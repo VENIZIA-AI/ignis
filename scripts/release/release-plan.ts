@@ -16,33 +16,33 @@ export interface IPlannedPackage {
   cascadedFrom?: string[];
 }
 
-/**
- * The packages a full sweep releases: the ones with source changes, plus every package that
- * depends on one of them, transitively.
- *
- * The published manifests pin internal dependencies EXACTLY (`@venizia/ignis-worker@0.4.1` needs
- * kernel `0.4.1`), so a package left behind keeps pointing at the old version and a consumer
- * installs both copies. `packages` must be in dependency order; the result keeps that order.
- */
-export const planFullSweep = (opts: {
-  packages: ReadonlyArray<IPlanPackage>;
-}): IPlannedPackage[] => {
-  const planned: IPlannedPackage[] = [];
-  const releasedNames = new Set<string>();
+export class ReleasePlan {
+  /**
+   * The packages a full sweep releases: the ones with source changes, plus every package that
+   * depends on one of them, transitively.
+   *
+   * The published manifests pin internal dependencies EXACTLY (`@venizia/ignis-worker@0.4.1` needs
+   * kernel `0.4.1`), so a package left behind keeps pointing at the old version and a consumer
+   * installs both copies. `packages` must be in dependency order; the result keeps that order.
+   */
+  static planFullSweep(opts: { packages: ReadonlyArray<IPlanPackage> }): IPlannedPackage[] {
+    const planned: IPlannedPackage[] = [];
+    const releasedNames = new Set<string>();
 
-  for (const pkg of opts.packages) {
-    if (pkg.changedFiles > 0) {
-      planned.push({ name: pkg.name });
-      releasedNames.add(pkg.packageName);
-      continue;
+    for (const pkg of opts.packages) {
+      if (pkg.changedFiles > 0) {
+        planned.push({ name: pkg.name });
+        releasedNames.add(pkg.packageName);
+        continue;
+      }
+
+      const cascadedFrom = pkg.dependsOn.filter((dependency) => releasedNames.has(dependency));
+      if (cascadedFrom.length > 0) {
+        planned.push({ name: pkg.name, cascadedFrom });
+        releasedNames.add(pkg.packageName);
+      }
     }
 
-    const cascadedFrom = pkg.dependsOn.filter((dependency) => releasedNames.has(dependency));
-    if (cascadedFrom.length > 0) {
-      planned.push({ name: pkg.name, cascadedFrom });
-      releasedNames.add(pkg.packageName);
-    }
+    return planned;
   }
-
-  return planned;
-};
+}

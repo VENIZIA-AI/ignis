@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { watchRun } from '../release-watch';
+import { ReleaseWatch } from '../release-watch';
 
 /** A run that reports the given statuses one poll at a time, then the last one for good. */
 const runThrough = (statuses: Array<{ status: string; conclusion?: string }>) => {
@@ -7,9 +7,9 @@ const runThrough = (statuses: Array<{ status: string; conclusion?: string }>) =>
   return async () => statuses[Math.min(poll++, statuses.length - 1)];
 };
 
-describe('watchRun', () => {
+describe('ReleaseWatch.run', () => {
   test('returns the conclusion of a run that completes', async () => {
-    const conclusion = await watchRun({
+    const conclusion = await ReleaseWatch.run({
       view: runThrough([
         { status: 'queued' },
         { status: 'in_progress' },
@@ -33,7 +33,7 @@ describe('watchRun', () => {
     ];
     let slept = 0;
 
-    const conclusion = await watchRun({
+    const conclusion = await ReleaseWatch.run({
       view: runThrough(statuses),
       sleep: async (milliseconds) => {
         slept += milliseconds;
@@ -49,7 +49,7 @@ describe('watchRun', () => {
   test('reports a second wait after the run left the first one', async () => {
     const waits: number[] = [];
 
-    await watchRun({
+    await ReleaseWatch.run({
       view: runThrough([
         { status: 'waiting' },
         { status: 'in_progress' },
@@ -64,7 +64,7 @@ describe('watchRun', () => {
   });
 
   test('returns a failed conclusion as it is', async () => {
-    const conclusion = await watchRun({
+    const conclusion = await ReleaseWatch.run({
       view: runThrough([{ status: 'completed', conclusion: 'failure' }]),
       sleep: async () => {},
       onWaiting: () => {},

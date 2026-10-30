@@ -23,7 +23,7 @@ import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind'
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { ReleaseRegistry } from './release-registry';
 import { ReleaseVersion } from './release-version';
-import { waitForTarball } from './release-tarballs';
+import { ReleaseTarballs } from './release-tarballs';
 
 export interface ICommandResult {
   stdout: string;
@@ -525,7 +525,7 @@ const realPorts = (): IReleasePorts => ({
     new Bun.CryptoHasher('sha256').update(await Bun.file(path).arrayBuffer()).digest('hex'),
   registry: {
     isPublished: (opts) => ReleaseRegistry.isPublished(opts),
-    waitForTarball: (opts) => waitForTarball(opts),
+    waitForTarball: (opts) => ReleaseTarballs.waitFor(opts),
   },
   log: (line) => {
     console.log(line);

@@ -5,17 +5,17 @@ import { join } from 'node:path';
 import ts from 'typescript';
 import { CodemodCommand } from '../cli/codemod';
 import { CodemodFiles } from '../cli/codemod/files';
-import { migrateModelSettings } from '../cli/codemod/model-settings';
+import { ModelSettingsCodemod } from '../cli/codemod/model-settings';
 
 const run = (source: string) => {
-  return migrateModelSettings({ typescript: ts, fileName: 'product.model.ts', source });
+  return ModelSettingsCodemod.migrate({ typescript: ts, fileName: 'product.model.ts', source });
 };
 
 const model = (settings: string) =>
   `@model({ type: 'entity', settings: ${settings} })\nclass Product {}\n`;
 const migrated = (settings: string) => run(model(settings)).output;
 
-describe('migrateModelSettings - each old key', () => {
+describe('ModelSettingsCodemod.migrate - each old key', () => {
   test('defaultFilter becomes query.filter', () => {
     expect(migrated('{ defaultFilter: { where: { isDeleted: false } } }')).toBe(
       model('{ query: { filter: { where: { isDeleted: false } } } }'),
@@ -74,7 +74,7 @@ describe('migrateModelSettings - each old key', () => {
   });
 });
 
-describe('migrateModelSettings - combinations', () => {
+describe('ModelSettingsCodemod.migrate - combinations', () => {
   test('every old key together, with hiddenProperties and authorize left where they were', () => {
     const result = run(`@model({
   type: 'entity',
@@ -135,7 +135,7 @@ class Product {}
   });
 });
 
-describe('migrateModelSettings - an existing query or access', () => {
+describe('ModelSettingsCodemod.migrate - an existing query or access', () => {
   test('old limits join an existing query.filter', () => {
     expect(migrated('{ query: { filter: { where: {} } }, defaultLimit: 5, maxLimit: 9 }')).toBe(
       model('{ query: { filter: { where: {} }, limit: { default: 5, max: 9 } }, }'),
@@ -170,7 +170,7 @@ describe('migrateModelSettings - an existing query or access', () => {
   });
 });
 
-describe('migrateModelSettings - comments and formatting', () => {
+describe('ModelSettingsCodemod.migrate - comments and formatting', () => {
   test('a comment above a moved property stays above the new property', () => {
     const result = run(`@model({
   settings: {
@@ -204,7 +204,7 @@ class Product {}
   });
 });
 
-describe('migrateModelSettings - never guesses', () => {
+describe('ModelSettingsCodemod.migrate - never guesses', () => {
   test.each([
     [
       'a variable',
@@ -308,7 +308,7 @@ describe('migrateModelSettings - never guesses', () => {
   });
 });
 
-describe('migrateModelSettings - idempotence', () => {
+describe('ModelSettingsCodemod.migrate - idempotence', () => {
   test.each([
     '{ defaultFilter: { where: {} }, defaultLimit: 1, maxLimit: 2, scopeFilter: { resolve, writeGuard: "assign", sharedRows: true } }',
     '{ query: { limit: { max: 9 } }, defaultLimit: 5 }',
@@ -586,7 +586,7 @@ describe('devz codemod model-settings - the command', () => {
   });
 });
 
-describe('migrateModelSettings - skipMigrate', () => {
+describe('ModelSettingsCodemod.migrate - skipMigrate', () => {
   const skip = (metadata: string) => `@model({ ${metadata} })\nclass Product {}\n`;
 
   test('skipMigrate: true becomes migration: { use: false }', () => {

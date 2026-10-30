@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkReleaseWorkflow, ReleaseWorkflowGuards } from '../release-workflow';
+import { ReleaseWorkflowCheck, ReleaseWorkflowGuards } from '../release-workflow';
 
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
 const WORKFLOW = readFileSync(resolve(ROOT, '.github/workflows/package-release.yml'), 'utf8');
@@ -34,7 +34,7 @@ const mutateMany = (edits: IEdit[]): string =>
 
 const guardsOf = (opts: { text?: string; runnerText?: string }): string[] => [
   ...new Set(
-    checkReleaseWorkflow({
+    ReleaseWorkflowCheck.check({
       text: opts.text ?? WORKFLOW,
       runnerText: opts.runnerText ?? RUNNER,
     }).map((violation) => violation.guard),
@@ -43,7 +43,7 @@ const guardsOf = (opts: { text?: string; runnerText?: string }): string[] => [
 
 describe('the release workflow keeps its guards', () => {
   test('the workflow and the loop as committed have no violation', () => {
-    expect(checkReleaseWorkflow({ text: WORKFLOW, runnerText: RUNNER })).toEqual([]);
+    expect(ReleaseWorkflowCheck.check({ text: WORKFLOW, runnerText: RUNNER })).toEqual([]);
   });
 
   test('the guard list and the mutations below cover each other', () => {
@@ -765,7 +765,7 @@ describe('the release holds no registry token', () => {
     });
 
     expect(
-      checkReleaseWorkflow({
+      ReleaseWorkflowCheck.check({
         text: commented,
         runnerText: `// NPM_CONFIG_TOKEN is gone\n${RUNNER}`,
       }),
@@ -781,7 +781,7 @@ describe('the release holds no registry token', () => {
     const line = leaked.split('\n').findIndex((entry) => entry.includes('LEAK:')) + 1;
 
     expect(
-      checkReleaseWorkflow({ text: leaked, runnerText: RUNNER })
+      ReleaseWorkflowCheck.check({ text: leaked, runnerText: RUNNER })
         .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
         .map((violation) => violation.message),
     ).toEqual([expect.stringContaining(`the workflow, line ${line}`)]);

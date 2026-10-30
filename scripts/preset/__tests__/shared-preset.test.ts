@@ -3,7 +3,7 @@ import { Glob } from 'bun';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { buildPreset } from '../vulcan-preset';
+import { VulcanPreset } from '../vulcan-preset';
 
 /**
  * The shared kind of the IGNIS preset: a side-neutral package, built from presets/shared. These tests
@@ -151,7 +151,7 @@ const makeFixturePreset = (opts: {
 
 /** The repository built once; every real-preset test reads this output. */
 const outDir = join(scratch, 'built');
-buildPreset({ root: ROOT, outDir });
+VulcanPreset.build({ root: ROOT, outDir });
 const sharedDir = join(outDir, 'shared');
 const sharedFiles = (): string[] => listFiles({ dir: join(sharedDir, 'files') });
 const readShared = (opts: { path: string }): string =>

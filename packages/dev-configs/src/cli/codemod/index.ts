@@ -4,7 +4,7 @@ import { AsyncStyleCommand } from './async-style';
 import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
-import { migrateModelSettings } from './model-settings';
+import { ModelSettingsCodemod } from './model-settings';
 
 const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
 
@@ -129,7 +129,7 @@ export class CodemodCommand {
           continue;
         }
 
-        const result = migrateModelSettings({ typescript, fileName: file, source });
+        const result = ModelSettingsCodemod.migrate({ typescript, fileName: file, source });
         const shown = relative(opts.root, file) || file;
 
         for (const report of result.reports) {

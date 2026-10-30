@@ -499,22 +499,26 @@ const assertStampBaked = (opts: { binary: string }): void => {
 };
 
 /** VULCAN at the version this repository declares: the smoke must not run a release that came out after it. */
-export const defaultVulcanCommand = (opts: { root: string }): string => {
-  const manifest = JSON.parse(readFileSync(join(opts.root, 'package.json'), 'utf8')) as {
-    devDependencies?: Record<string, string>;
-  };
-  const version = manifest.devDependencies?.['@venizia/vulcan'];
-  if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
-    throw new Error(
-      `[preset-smoke] devDependencies['@venizia/vulcan'] must be an exact version to pin the smoke, found: ${version}`,
-    );
-  }
+export class PresetSmoke {
+  static getDefaultVulcanCommand(opts: { root: string }): string {
+    const manifest = JSON.parse(readFileSync(join(opts.root, 'package.json'), 'utf8')) as {
+      devDependencies?: Record<string, string>;
+    };
+    const version = manifest.devDependencies?.['@venizia/vulcan'];
+    if (!version || !/^\d+\.\d+\.\d+/.test(version)) {
+      throw new Error(
+        `[preset-smoke] devDependencies['@venizia/vulcan'] must be an exact version to pin the smoke, found: ${version}`,
+      );
+    }
 
-  return `bun x @venizia/vulcan@${version}`;
-};
+    return `bun x @venizia/vulcan@${version}`;
+  }
+}
 
 const smoke = async (opts: { root: string; scratch: string }): Promise<void> => {
-  const vulcan = (process.env.VULCAN_CMD ?? defaultVulcanCommand({ root: opts.root }))
+  const vulcan = (
+    process.env.VULCAN_CMD ?? PresetSmoke.getDefaultVulcanCommand({ root: opts.root })
+  )
     .split(/\s+/)
     .filter(Boolean);
   const tarballDir = join(opts.scratch, 'tgz');
