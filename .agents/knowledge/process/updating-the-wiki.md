@@ -6,6 +6,14 @@ resource: docs/wiki
 tags: [process, docs, wiki]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Steps](#steps)
+- [What the changelog records](#what-the-changelog-records)
+- [Related](#related)
+<!-- okf:generated:contents end -->
+
 ## Steps
 
 1. Know the difference: `docs/wiki/` is the human-facing documentation site, a VitePress site built
