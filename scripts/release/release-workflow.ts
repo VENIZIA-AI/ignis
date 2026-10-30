@@ -45,6 +45,7 @@ export class ReleaseWorkflowGuards {
   static readonly MERGE_BACK_FROM_A_COPY = 'merge-back-from-a-copy';
   static readonly TARGET_BRANCH_BY_KIND = 'target-branch-by-kind';
   static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
+  static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -81,6 +82,7 @@ export class ReleaseWorkflowGuards {
     this.MERGE_BACK_FROM_A_COPY,
     this.TARGET_BRANCH_BY_KIND,
     this.NO_FORCE_OR_TAG_MOVE,
+    this.PLAN_CHECKS_THE_LABEL,
   ]);
 }
 
@@ -143,7 +145,9 @@ const MINIMUM_NPM = '11.21.0';
 const INSTALL_NPM_STEP = 'Install the npm that publishes';
 const RELEASE_STEP = 'Release the plan';
 const RELEASE_COMMAND = 'bun scripts/release/release-run.ts run';
-const PLAN_INPUTS = ['build_mode', 'issue', 'plan'];
+const PLAN_INPUTS = ['build_mode', 'issue', 'label', 'plan'];
+/** The whole run name is one expression: the label, or for a dispatch by hand the mode and the whole commit. */
+const RUN_NAME_EXPRESSION = /\$\{\{\s*inputs\.label\s*\|\|[\s\S]*github\.sha[\s\S]*\}\}\s*$/;
 const MATRIX_EXPRESSION = '${{ fromJSON(needs.plan.outputs.matrix) }}';
 const BUILD_COMMAND = 'make core-server core-worker boot';
 /** A git command that rewrites or removes history a release has already made public. */
@@ -422,10 +426,37 @@ export const checkReleaseWorkflow = (opts: {
     );
   }
 
-  if (!String(workflow['run-name'] ?? '').includes('github.sha')) {
+  // The title is the dispatcher's label, which ends in the short commit and which the plan job checks, or the whole
+  // commit for a dispatch by hand: one expression, so a mention of the two names in plain text does not count.
+  if (!RUN_NAME_EXPRESSION.test(String(workflow['run-name'] ?? ''))) {
     violate(
       ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT,
-      'the `run-name` must carry the dispatched commit (`github.sha`)',
+      'the `run-name` must carry the dispatched commit: one expression, `${{ inputs.label || ... github.sha ... }}`, the label (which ends in the short commit) and, for a dispatch by hand, the whole commit',
+    );
+  }
+
+  const planChecksTheLabel =
+    stepsOf(plan).some(
+      (step) =>
+        commandsOf(step).includes('release-run.ts plan') &&
+        step.env?.RELEASE_LABEL === '${{ inputs.label }}' &&
+        step.env?.RELEASE_ISSUE === '${{ inputs.issue }}',
+    ) &&
+    /process\.env\.RELEASE_LABEL/.test(runner) &&
+    /ReleaseTargets\.labelProblems/.test(runner) &&
+    // What the check finds must stop the job, and the issue that goes into the title must be digits.
+    /labelProblems\.length > 0\) \{\s*throw /.test(runner) &&
+    /\!\/\^\\d\*\$\/\.test\(issue\)\) \{\s*throw /.test(runner) &&
+    // The label is read in two places and no other: the run name and the plan step. A third reader would trust it,
+    // whatever way it is spelled (`inputs['label']`, the whole `inputs` object as JSON).
+    withoutComments(text).split('inputs.label').length - 1 === 2 &&
+    !/inputs\[|toJSON\(\s*(?:github\.event\.)?inputs\b/.test(withoutComments(text)) &&
+    // A plan job that may fail and go on would let a refused label through.
+    !JSON.stringify(plan).includes('continue-on-error');
+  if (!planChecksTheLabel) {
+    violate(
+      ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      'the plan step must receive `label` and `issue` from the dispatch inputs (`RELEASE_LABEL`, `RELEASE_ISSUE`), `release-run.ts plan` must refuse a label that is not the one it computes, `inputs.label` is read by the run name and the plan step only, and the plan job has no `continue-on-error`: the run title cannot name a release the run does not make',
     );
   }
 

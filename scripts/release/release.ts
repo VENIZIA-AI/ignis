@@ -1,5 +1,5 @@
 /**
- * Starts the NPM Release workflow ONCE for the whole plan and waits for it. The run itself loops the packages
+ * Starts the Release workflow ONCE for the whole plan and waits for it. The run itself loops the packages
  * in dependency order (scripts/release/release-run.ts): this script plans, dispatches, watches and reads back.
  *
  *   bun scripts/release/release.ts                      # every changed package and every package that depends on one, in order
@@ -440,7 +440,26 @@ const main = async (): Promise<void> => {
   }
 
   const previousRunId = await resolveLatestRunId();
-  await run({ command: ['gh', ...ReleaseDispatch.buildArgs({ entries, mode, issue })] });
+  // The run title the workflow shows: the plan job works out the same string and refuses a different one. The commit
+  // is the head of the branch the run is dispatched on, which `assertReleasable` has just fetched. The workflow that
+  // runs is the file on that branch: one that does not declare `label` (main, until the Sync) is sent none, because
+  // GitHub refuses an input the file does not declare.
+  const { stdout: headSha } = await run({ command: ['git', 'rev-parse', `origin/${branch}`] });
+  const { stdout: workflowText } = await run({
+    command: ['git', 'show', `origin/${branch}:.github/workflows/${ReleaseDispatch.WORKFLOW}`],
+  });
+  const label = ReleaseDispatch.declaresLabel({ workflowText })
+    ? ReleaseTargets.labelOf({
+        kind,
+        targets: ReleaseTargets.of({ entries, mode }),
+        issue,
+        sha: headSha,
+      })
+    : undefined;
+  if (label === undefined) {
+    console.log(`  ${branch} has no run title input yet: the run is titled by its mode`);
+  }
+  await run({ command: ['gh', ...ReleaseDispatch.buildArgs({ entries, mode, issue, label })] });
 
   const runId = await waitForNewRun({ previousRunId });
   console.log(`\n  run ${runId} - waiting...`);

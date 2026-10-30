@@ -47,7 +47,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(34);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(35);
   });
 });
 
@@ -144,9 +144,9 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       guard: ReleaseWorkflowGuards.NO_NPM_TOKEN,
       edits: [
         {
-          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n',
+          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n        run: bun scripts/release/release-run.ts run',
           replace:
-            '          RELEASE_ISSUE: ${{ inputs.issue }}\n          LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n',
+            '          RELEASE_ISSUE: ${{ inputs.issue }}\n          LEAK: ${{ secrets.NPM_ACCESS_TOKEN }}\n        run: bun scripts/release/release-run.ts run',
         },
       ],
     },
@@ -291,7 +291,87 @@ describe('one mutation per guard: removing the guard from a copy fails the check
     },
     {
       guard: ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT,
-      edits: [{ find: ' | commit: ${{ github.sha }}', replace: '' }],
+      edits: [{ find: ', github.sha) }}"', replace: ", 'unknown') }}\"" }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT,
+      edits: [{ find: 'inputs.label || format(', replace: 'format(' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [{ find: '          RELEASE_LABEL: ${{ inputs.label }}\n', replace: '' }],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '          RELEASE_LABEL: ${{ inputs.label }}\n',
+          replace: '          RELEASE_LABEL: a fixed title\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '          RELEASE_ISSUE: ${{ inputs.issue }}\n          RELEASE_LABEL: ${{ inputs.label }}\n',
+          replace: '          RELEASE_LABEL: ${{ inputs.label }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      runner: [{ find: 'ReleaseTargets.labelProblems({', replace: 'ReleaseTargets.noProblems({' }],
+    },
+    {
+      // A check whose finding does not stop the job.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      runner: [{ find: 'if (labelProblems.length > 0) {', replace: 'if (false) {' }],
+    },
+    {
+      // An issue that is not checked.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      runner: [{ find: 'if (!/^\\d*$/.test(issue)) {', replace: 'if (false) {' }],
+    },
+    {
+      // The label read through another spelling of the inputs.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '      PACKAGE: ${{ matrix.package }}\n',
+          replace: "      PACKAGE: ${{ matrix.package }}\n      TITLE: ${{ inputs['label'] }}\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '      PACKAGE: ${{ matrix.package }}\n',
+          replace: '      PACKAGE: ${{ matrix.package }}\n      ALL: ${{ toJSON(inputs) }}\n',
+        },
+      ],
+    },
+    {
+      // A third reader of the label.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '      PACKAGE: ${{ matrix.package }}\n',
+          replace: '      PACKAGE: ${{ matrix.package }}\n      TITLE: ${{ inputs.label }}\n',
+        },
+      ],
+    },
+    {
+      // A plan job that may fail and go on.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '        id: plan\n        env:\n          PLAN: ${{ inputs.plan }}\n',
+          replace:
+            '        id: plan\n        continue-on-error: true\n        env:\n          PLAN: ${{ inputs.plan }}\n',
+        },
+      ],
     },
     {
       guard: ReleaseWorkflowGuards.ACTIONS_PINNED_BY_COMMIT,
@@ -705,5 +785,65 @@ describe('the release holds no registry token', () => {
         .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
         .map((violation) => violation.message),
     ).toEqual([expect.stringContaining(`the workflow, line ${line}`)]);
+  });
+});
+
+describe('the run name is one expression over the label and the commit', () => {
+  const RUN_NAME = /^run-name: .*$/m.exec(WORKFLOW)?.[0] ?? '';
+
+  test('the committed run name is found', () => {
+    expect(RUN_NAME).toContain('inputs.label');
+  });
+
+  test('a name that only mentions the label and the commit as text is noticed', () => {
+    for (const runName of [
+      'Release · ${{ inputs.build_mode }} · literal inputs.label github.sha',
+      '${{ inputs.label }} github.sha',
+      'Release · ${{ inputs.build_mode }} · ${{ github.sha }}',
+    ]) {
+      expect(
+        guardsOf({ text: mutate({ find: RUN_NAME, replace: `run-name: "${runName}"` }) }),
+        runName,
+      ).toContain(ReleaseWorkflowGuards.RUN_NAME_CARRIES_COMMIT);
+    }
+  });
+});
+
+describe('release-run.ts plan, run as the plan job runs it', () => {
+  const SHA = 'c84852a7e1d0b6a2f3c9d8e7b6a5f4e3d2c1b0a9';
+  const plan = (env: Record<string, string>) =>
+    Bun.spawnSync(['bun', resolve(ROOT, 'scripts/release/release-run.ts'), 'plan'], {
+      cwd: ROOT,
+      env: {
+        PATH: process.env.PATH ?? '',
+        PLAN: 'helpers@0.4.6',
+        BUILD_MODE: 'prerelease',
+        GITHUB_REF: 'refs/heads/develop',
+        GITHUB_SHA: SHA,
+        ...env,
+      },
+    });
+  const LABEL = 'prerelease · 0.4.7-0 helpers · #664 · c84852a';
+
+  test('accepts the label it computes, and no label', () => {
+    expect(plan({ RELEASE_ISSUE: '664', RELEASE_LABEL: LABEL }).exitCode).toBe(0);
+    expect(plan({ RELEASE_ISSUE: '664', RELEASE_LABEL: '' }).exitCode).toBe(0);
+  });
+
+  test('refuses another label, and says so quoted', () => {
+    const result = plan({
+      RELEASE_ISSUE: '664',
+      RELEASE_LABEL: 'prerelease · 0.4.7-0 kernel · #664 · c84852a',
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain('the run title is refused');
+  });
+
+  test('refuses an issue that is not a number, before it reaches the title or a commit', () => {
+    const result = plan({ RELEASE_ISSUE: '664\n::set-output name=x::y', RELEASE_LABEL: '' });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain('the issue must be a number or empty');
   });
 });

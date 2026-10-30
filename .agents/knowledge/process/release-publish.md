@@ -26,12 +26,12 @@ The mode decides the kind (`scripts/release/release-kind.ts`): `prerelease`, `pr
 prerelease, `patch`, `minor` and `major` are a stable (`npm version patch` over `0.4.9-3` gives the stable `0.4.9`, so a
 run cannot mix kinds).
 
-| | Prerelease | Stable |
-|---|---|---|
-| Dispatched on and released from | `develop` | `main` |
-| Release commits go to | `develop` | `main` |
-| Plan | what changed since each package's last release, plus the packages that depend on them | the scope of the mode, never named: a `patch` promotes every package that has a prerelease part, a `minor` or a `major` moves all nine (they must share one MAJOR.MINOR) |
-| npm dist-tag | `next` | `latest` |
+|                                 | Prerelease                                                                            | Stable                                                                                                                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dispatched on and released from | `develop`                                                                             | `main`                                                                                                                                                                   |
+| Release commits go to           | `develop`                                                                             | `main`                                                                                                                                                                   |
+| Plan                            | what changed since each package's last release, plus the packages that depend on them | the scope of the mode, never named: a `patch` promotes every package that has a prerelease part, a `minor` or a `major` moves all nine (they must share one MAJOR.MINOR) |
+| npm dist-tag                    | `next`                                                                                | `latest`                                                                                                                                                                 |
 
 The dist-tag follows the version of each package (a prerelease part means `next`), not the mode. The plan job refuses a ref
 that is not the kind's branch, and a stable plan whose scope is not the mode's (a package left out, a patch over a stable
@@ -80,6 +80,7 @@ git tags the workflow pushes, and reads symbols from the built or installed `.d.
 atlas-releases` and `make atlas-symbols` print what it sees (both come from
 `node_modules/@venizia/vulcan/base/make/vulcan.mk`). Only the public-surface snapshot
 (`reference/public-surface.md`, `make surface-gen`) is committed, and `make build-all` gates it.
+
 - **Package names on the command line.** `release.ts <pkg>` means "from this package on"; `--plan` carries its own
   packages and cannot be combined with names. The parsing lives in `scripts/release/release-args.ts` with its own test.
 
@@ -168,20 +169,28 @@ and `@venizia/ignis-worker` (`core-worker`).
 
 ## The prebuilt atlas index of this repository
 
-IGNIS publishes the atlas index of its own commits, so a project that declares IGNIS as a source downloads it instead of building it. `.github/workflows/atlas-index.yml` runs on a push to `main`, to `develop` or of a tag, builds the index through VULCAN's action (`VENIZIA-AI/vulcan/.github/actions/atlas-index`, pinned by full commit to the installed VULCAN release; a bump is a deliberate pull request), signs it with the Actions secret `ATLAS_INDEX_KEY` and attaches the pair to the release `atlas-index`. The public half of the key is `atlas.index.keys` in `.configs/vulcan.config.mts`, rendered into `.agents/vulcan.manifest.json`; a reader accepts a pair only when a listed key verifies it, and otherwise builds locally as before. The job has `contents: write` and nothing else does; the secret is read only by the publishing step; `scripts/release/__tests__/atlas-index-workflow.test.ts` holds those rules.
+IGNIS publishes the atlas index of its own commits, so a project that declares IGNIS as a source downloads it instead of building it. The `atlas-index` job of `.github/workflows/deploy-docs.yml` (the workflow "Docs", which also deploys the wiki) runs on a push to `main`, to `develop` or of a tag, builds the index through VULCAN's action (`VENIZIA-AI/vulcan/.github/actions/atlas-index`, pinned by full commit to the installed VULCAN release; a bump is a deliberate pull request), signs it with the Actions secret `ATLAS_INDEX_KEY` and attaches the pair to the release `atlas-index`. The public half of the key is `atlas.index.keys` in `.configs/vulcan.config.mts`, rendered into `.agents/vulcan.manifest.json`; a reader accepts a pair only when a listed key verifies it, and otherwise builds locally as before. The job has `contents: write` and nothing else does; the secret is read only by the publishing step; `scripts/release/__tests__/docs-workflow.test.ts` holds those rules.
 
-**Release tags get no pair from it.** The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from a push made with that token, so a release tag of IGNIS gets no pair from `atlas-index.yml`; the next push to `develop` covers the head. VULCAN 0.4.7 runs the action from its own release; IGNIS gets that when it moves to it. The release keeps the newest 20 branch-head pairs and every release-tag commit's pair, 300 pairs at most. A new key is made with `bun x --no-install vulcan x atlas index keygen` by the maintainer, who sets the secret; an agent never writes it.
+**Release tags get no pair from it.** The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from a push made with that token, so a release tag of IGNIS gets no pair from that job; the next push to `develop` covers the head. VULCAN 0.4.7 runs the action from its own release; IGNIS gets that when it moves to it. The release keeps the newest 20 branch-head pairs and every release-tag commit's pair, 300 pairs at most. A new key is made with `bun x --no-install vulcan x atlas index keygen` by the maintainer, who sets the secret; an agent never writes it.
 
 ## Steps
 
-1. This is a `workflow_dispatch` workflow ("NPM Release") - it never runs on push, tag, or PR. A human triggers it, in
-   practice `release.ts` does (`gh workflow run package-release.yml --ref develop`), with three inputs:
+1. This is a `workflow_dispatch` workflow ("Release"; its publish job is still named "NPM Release", which the trusted
+   publishers and the environments know the file by, not the title) - it never runs on push, tag, or PR. A human triggers it, in
+   practice `release.ts` does (`gh workflow run package-release.yml --ref develop`), with four inputs:
    - `plan` (required): `name@version,...`, the folders under `packages/` and the version each has now.
    - `build_mode`: the semver bump - `patch`, `minor`, `major`, `prepatch`, `preminor`, `premajor`, or `prerelease`
      (default `prerelease`, so a dispatch that names no mode never publishes under `latest`).
    - `issue`: the issue number the release commits serve.
-   A repository-wide `concurrency: npm-release` group serialises runs. A second dispatch waits; a third cancels the waiting
-   one. `docs/wiki` (`@venizia/ignis-docs`) is not in the plan: it is not republished through this workflow.
+   - `label` (optional): the run title, filled in by `release.ts` (`stable · 0.4.6 boot,kernel; 0.4.5 filter · #664 · c84852a`: the
+     kind, each version with its packages, the issue, the short commit). The run name cannot see the plan, so the dispatcher says
+     it and the `plan` job refuses a label that is not the one it computes (`ReleaseTargets.labelOf`); the title cannot name a
+     release the run does not make. A dispatch by hand has none, and the title is the mode, the issue and the whole commit.
+     `release.ts` sends `label` only when the workflow file on the branch it dispatches on declares it (GitHub refuses an input
+     the file does not declare, and `main` has none until the Sync), and the guard `plan-checks-the-label` allows no other reader
+     of `inputs.label` and no `continue-on-error` in the plan job.
+     A repository-wide `concurrency: npm-release` group serialises runs. A second dispatch waits; a third cancels the waiting
+     one. `docs/wiki` (`@venizia/ignis-docs`) is not in the plan: it is not republished through this workflow.
 2. `plan` validates the input and outputs the ordered plan and the test matrix.
 3. `test`, once per package of the plan: `bun run --filter "@venizia/*" force-update workspace` runs BEFORE `bun install`, and
    over the WHOLE workspace rather than the one package.
@@ -214,6 +223,7 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
    runtime dependency must be served by the registry (`release-run.ts registry`: a version the packument lists or whose
    tarball answers 200, so a sibling released minutes ago passes; no `chain_released` input exists any more). Last, the unit
    tests and, for `core-server`, the preset smoke. `scripts` runs `make test-scripts` once.
+
 4. `publish`, after every gate: checkout, Node, Bun, an exact npm, `force-update workspace`, `bun install`, and ONE build for
    all nine packages (`make core-server core-worker boot`). Then `release-run.ts run` loops the plan.
 5. For each package, in dependency order. Its state first: the version in git is the plan's (release it), or it is above the

@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { TReleaseMode } from '../release-constants';
 import { ReleaseDispatch } from '../release-dispatch';
 
@@ -107,5 +109,54 @@ describe('ReleaseDispatch.readOutcomes', () => {
     });
 
     expect(outcomes.get('@venizia/ignis')).toEqual({ marker: '+', version: '0.4.9-1' });
+  });
+});
+
+describe('ReleaseDispatch.buildArgs: the run title', () => {
+  test('sends the label as the label input, last', () => {
+    const label = 'stable · 0.4.6 helpers,kernel · #664 · c84852a';
+    const args = ReleaseDispatch.buildArgs({
+      entries: ENTRIES,
+      mode: 'patch',
+      issue: '664',
+      label,
+    });
+
+    expect(args.slice(-2)).toEqual(['-f', `label=${label}`]);
+  });
+
+  test('sends none when the label is empty or absent', () => {
+    for (const label of [undefined, '']) {
+      const args = ReleaseDispatch.buildArgs({ entries: ENTRIES, mode: 'patch', label });
+
+      expect(args.some((arg) => arg.startsWith('label='))).toBe(false);
+    }
+  });
+});
+
+describe('ReleaseDispatch.declaresLabel', () => {
+  test('is true for a workflow that declares the label input', () => {
+    const workflowText = `on:\n  workflow_dispatch:\n    inputs:\n      plan:\n        type: string\n      label:\n        type: string\n`;
+
+    expect(ReleaseDispatch.declaresLabel({ workflowText })).toBe(true);
+  });
+
+  test('is false for a workflow without it, without inputs, with another trigger or that is not YAML', () => {
+    const without = `on:\n  workflow_dispatch:\n    inputs:\n      plan:\n        type: string\n`;
+    const noInputs = `on:\n  workflow_dispatch:\n`;
+    const push = `on:\n  push:\n    branches: [main]\n`;
+
+    for (const workflowText of [without, noInputs, push, '', '{ not: [yaml']) {
+      expect(ReleaseDispatch.declaresLabel({ workflowText })).toBe(false);
+    }
+  });
+
+  test('is true for the committed release workflow', () => {
+    const workflowText = readFileSync(
+      resolve(import.meta.dir, '..', '..', '..', '.github/workflows/package-release.yml'),
+      'utf8',
+    );
+
+    expect(ReleaseDispatch.declaresLabel({ workflowText })).toBe(true);
   });
 });

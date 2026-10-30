@@ -44,9 +44,9 @@ tags: [process, docs, wiki]
    other Makefile targets carry - `docs` has no prerequisite target). Clean with `bun run
    docs:clean`.
 5. The built site reaches production through GitHub Pages, not through you: the
-   `.github/workflows/deploy-docs.yml` workflow ("Deploy Wiki Site") runs `make docs` and deploys
-   `docs/wiki/site/.vitepress/dist`, on every push to `main` that touches `docs/wiki/**` and on
-   manual dispatch. Nothing else publishes the site - merging your page to `main` is the deploy.
+   `.github/workflows/deploy-docs.yml` workflow ("Docs") runs `make docs` and deploys
+   `docs/wiki/site/.vitepress/dist`, on every push to `develop` that touches `docs/wiki/**` and on
+   manual dispatch. Nothing else publishes the site - merging your page to `develop` is the deploy.
 6. There is no compiled output in this package any more: `content/` is plain markdown VitePress
    reads directly, and every script under `scripts/` runs straight with `bun`, no build step. The
    `mcp-server/` directory this step used to describe is deleted; the MCP server that answers over
