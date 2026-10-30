@@ -49,8 +49,29 @@ describe('venizia/no-async-hook-callback', () => {
     ).toBe(0);
   });
 
-  test('does not report an async function nested in an object argument', () => {
-    expect(flagged(`useFoo({ fn: async () => {} });`).length).toBe(0);
+  test('reports an async function that is a property value of an object argument', () => {
+    expect(flagged(`useMutation({ mutationFn: async (input) => { void input; } });`).length).toBe(
+      1,
+    );
+    expect(flagged(`useQuery({ queryKey: ['a'], queryFn: async function () {} });`).length).toBe(1);
+    expect(flagged(`useFoo({ run: async () => {}, stop: async () => {} });`).length).toBe(2);
+  });
+
+  test('reports an async method and a function nested in literals', () => {
+    expect(flagged(`useFoo({ async load() {} });`).length).toBe(1);
+    expect(flagged(`useFoo({ handlers: { onDone: async () => {} } });`).length).toBe(1);
+    expect(flagged(`useFoo([async () => {}, () => {}]);`).length).toBe(1);
+    expect(flagged(`React.useFoo({ fn: async () => {} });`).length).toBe(1);
+  });
+
+  test('does not report sync property values, non-function values or a call that is not a hook', () => {
+    expect(flagged(`useFoo({ fn: () => {}, key: 'a', list: [1, 2] });`).length).toBe(0);
+    expect(flagged(`run({ fn: async () => {} });`).length).toBe(0);
+  });
+
+  test('does not look inside a sync callback: what it builds is not an argument', () => {
+    expect(flagged(`useFoo(() => ({ fn: async () => {} }));`).length).toBe(0);
+    expect(flagged(`useFoo(() => { const load = async () => {}; return load; });`).length).toBe(0);
   });
 
   test('is checked in a .tsx file too', () => {

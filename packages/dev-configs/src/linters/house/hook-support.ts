@@ -43,4 +43,40 @@ export class HookSupport {
   static isAsync(opts: { node: unknown }): boolean {
     return HookSupport.isCallback(opts) && readField({ node: opts.node, key: 'async' }) === true;
   }
+
+  /**
+   * The async functions an argument hands over: the argument itself, a property value of an object literal
+   * (`useMutation({ mutationFn: async () => {} })`, an async method too) and an element of an array literal, at any
+   * depth of literals. It does not look inside a function: what a sync callback builds is not an argument.
+   */
+  static asyncFunctionsIn(opts: { node: unknown }): unknown[] {
+    const { node } = opts;
+    const type = nodeType({ node });
+
+    if (HookSupport.isAsync({ node })) {
+      return [node];
+    }
+
+    if (type === 'ObjectExpression') {
+      const properties = readField({ node, key: 'properties' });
+
+      return Array.isArray(properties)
+        ? properties.flatMap((property) =>
+            nodeType({ node: property }) === 'Property'
+              ? HookSupport.asyncFunctionsIn({ node: readField({ node: property, key: 'value' }) })
+              : [],
+          )
+        : [];
+    }
+
+    if (type === 'ArrayExpression') {
+      const elements = readField({ node, key: 'elements' });
+
+      return Array.isArray(elements)
+        ? elements.flatMap((element) => HookSupport.asyncFunctionsIn({ node: element }))
+        : [];
+    }
+
+    return [];
+  }
 }
