@@ -237,9 +237,7 @@ describe('test-controls', () => {
     });
 
     const result = await CheckCommand.run({ root: good, args: ['test-controls', 'controls.json'] });
-    expect(result).toBe(
-      0,
-    );
+    expect(result).toBe(0);
     const result2 = await CheckCommand.run({ root: bad, args: ['test-controls', 'controls.json'] });
     expect(result2).toBe(1);
     const result3 = await CheckCommand.run({ root: good, args: ['test-controls'] });

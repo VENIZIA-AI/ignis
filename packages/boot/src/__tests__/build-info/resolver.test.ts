@@ -123,9 +123,7 @@ describe('BuildInfoResolver.resolve', () => {
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
     const result = await BuildInfoResolver.getInstance().resolve({ root });
-    expect(result.builtAt).toBe(
-      '2026-03-03T00:00:00.000Z',
-    );
+    expect(result.builtAt).toBe('2026-03-03T00:00:00.000Z');
   });
 
   /** A directory with no manifest and no git is exactly a Distroless image; it must not throw. */
@@ -190,8 +188,6 @@ describe('BuildInfoResolver.resolve', () => {
     const root = manifestRoot({ name: '@nx/sale', version: '1.4.2' });
 
     const result = await BuildInfoResolver.getInstance().resolve({ root });
-    expect(result.builtAt).toBe(
-      '2026-01-01T00:00:00.000Z',
-    );
+    expect(result.builtAt).toBe('2026-01-01T00:00:00.000Z');
   });
 });

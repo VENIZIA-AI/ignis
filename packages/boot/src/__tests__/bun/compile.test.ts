@@ -163,11 +163,7 @@ describe('a compiled binary', () => {
     const result2 = await order({ out: 'out-default' });
     expect(result2).toEqual(['evaluated', 'imported', 'resolved']);
     const result3 = await order({ lazyIndex: true, out: 'out-lazy' });
-    expect(result3).toEqual([
-      'imported',
-      'evaluated',
-      'resolved',
-    ]);
+    expect(result3).toEqual(['imported', 'evaluated', 'resolved']);
   }, 60_000);
 
   test('a browser bundle of an app using the auto module builds with the plugin', async () => {

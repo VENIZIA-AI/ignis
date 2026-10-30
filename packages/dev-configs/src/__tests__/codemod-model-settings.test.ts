@@ -553,10 +553,11 @@ describe('devz codemod model-settings - the command', () => {
     spyOn(console, 'error').mockImplementation(() => {});
     write('src/a.model.ts', model('{ defaultLimit: 5 }'));
 
-    const result = await CodemodCommand.run({ root, args: ['model-settings', '--write', '--check'] });
-    expect(result).toBe(
-      2,
-    );
+    const result = await CodemodCommand.run({
+      root,
+      args: ['model-settings', '--write', '--check'],
+    });
+    expect(result).toBe(2);
     expect(read('src/a.model.ts')).toBe(model('{ defaultLimit: 5 }'));
   });
 

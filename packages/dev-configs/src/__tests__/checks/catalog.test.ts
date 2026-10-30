@@ -147,9 +147,7 @@ describe('findCatalogProblems', () => {
       JSON.stringify({ dependencies: { hono: '4.1.0' } }),
     );
     const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
-    expect(
-      result.problems,
-    ).toEqual([]);
+    expect(result.problems).toEqual([]);
   });
 
   test('a pinned manifest that does not exist is skipped', async () => {
@@ -161,9 +159,7 @@ describe('findCatalogProblems', () => {
     });
 
     const result = await findCatalogProblems({ root, pinned: ['docs/wiki/package.json'] });
-    expect(
-      result.problems,
-    ).toEqual([]);
+    expect(result.problems).toEqual([]);
   });
 
   test('invalid JSON in a manifest is a problem, not a crash', async () => {
@@ -215,10 +211,11 @@ describe('devz check module-cycles and split-report', () => {
 
     const result = await CheckCommand.run({ root: dir, args: ['module-cycles'] });
     expect(result).toBe(2);
-    const result2 = await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', 'x'] });
-    expect(result2).toBe(
-      2,
-    );
+    const result2 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', 'x'],
+    });
+    expect(result2).toBe(2);
     const result3 = await CheckCommand.run({ root: dir, args: ['module-cycles', '--dist', dir] });
     expect(result3).toBe(0);
   });
@@ -231,14 +228,16 @@ describe('devz check module-cycles and split-report', () => {
 
     const result = await CheckCommand.run({ root: dir, args: ['module-cycles', dir] });
     expect(result).toBe(0);
-    const result2 = await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', '0'] });
-    expect(result2).toBe(
-      1,
-    );
-    const result3 = await CheckCommand.run({ root: dir, args: ['module-cycles', dir, '--max', '1'] });
-    expect(result3).toBe(
-      0,
-    );
+    const result2 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', '0'],
+    });
+    expect(result2).toBe(1);
+    const result3 = await CheckCommand.run({
+      root: dir,
+      args: ['module-cycles', dir, '--max', '1'],
+    });
+    expect(result3).toBe(0);
   });
 
   test('split-report: an unknown option is a usage error, and a folder without src/ prints nothing', async () => {
