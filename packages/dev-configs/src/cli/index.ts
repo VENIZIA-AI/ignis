@@ -15,6 +15,7 @@ Commands:
   codemod drop-redundant-casts [paths...]       remove \`as X\` casts the compiler no longer needs (dry run unless --write)
   codemod const-classes [paths...]              turn a string-literal union into a const class (dry run unless --write)
   codemod async-style [paths...]                apply the no-inline-await and no-return-await fixers (dry run unless --write)
+  codemod namespace-functions [paths...]        move calls of a function that moved into a class to the class form (dry run unless --write)
 
 Run \`devz clean --help\` or \`devz codemod --help\` for a command's options.`;
 
