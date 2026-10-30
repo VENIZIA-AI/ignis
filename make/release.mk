@@ -17,8 +17,9 @@ preset-build:
 preset-smoke:
 	@bun scripts/preset/preset-smoke.ts
 
-# Dispatches the release workflow one package at a time, in dependency order, waiting for each.
-# `force-update` runs over the whole workspace, so overlapping runs fail on each other's ranges.
+# `release-plan` prints the plan and dispatches nothing. `release` plans and dispatches the workflow ONCE for the whole plan:
+# the run releases the packages in dependency order. ARGS="--plan <printed plan> --yes" sends a plan as printed,
+# to continue a run that stopped.
 release-plan:
 	@bun scripts/release/release.ts --dry-run
 

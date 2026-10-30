@@ -70,7 +70,7 @@ help:
 	@echo ""
 	@echo "Release and dependencies:"
 	@$(HELP_ROW) "release-plan" "Print the release plan (dependency order), dispatch nothing."
-	@$(HELP_ROW) "release ARGS=\"...\"" "Dispatch the release workflow per package, e.g. ARGS=\"kernel --mode patch\"."
+	@$(HELP_ROW) "release ARGS=\"...\"" "Dispatch the release workflow once for the whole plan, e.g. ARGS=\"kernel --mode prerelease --yes\"; a stable (patch, minor, major) releases from main with its own scope: ARGS=\"--mode patch --dry-run\"; ARGS=\"--plan <printed plan> --yes\" continues a run that stopped."
 	@$(HELP_ROW) "catalog-check" "Gate: every catalogued dep is referenced as \"catalog:\", none drifted."
 	@$(HELP_ROW) "preset-build" "Write the VULCAN preset (packages/core-server/dist/presets) with this workspace's versions."
 	@$(HELP_ROW) "examples-check" "Gate: every example type-checks against the built packages. Needs a build."
