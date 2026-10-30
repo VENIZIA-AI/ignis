@@ -4,7 +4,7 @@ description: "@venizia/dev-configs adds four lint rules for await, return and Re
 packages: ['@venizia/dev-configs']
 ---
 
-# Changelog - 2026-10-29
+# Changelog - 2026-10-31
 
 ## Async style lint rules and a codemod
 
