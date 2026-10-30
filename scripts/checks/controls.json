@@ -150,7 +150,7 @@
     },
     {
       "gate": "atlas index workflow guards",
-      "file": "scripts/release/__tests__/atlas-index-workflow.test.ts",
+      "file": "scripts/release/__tests__/docs-workflow.test.ts",
       "titlePattern": "the key is read only by the step that publishes",
       "min": 1
     }
