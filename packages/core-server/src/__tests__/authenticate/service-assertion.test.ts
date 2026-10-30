@@ -65,13 +65,15 @@ beforeAll(async () => {
     extractable: true,
   });
 
+  const result = await exportPKCS8(privateKey);
+  const result2 = await exportSPKI(publicKey);
   signer = buildSigner({
     name: CALLER,
     keys: {
       driver: 'text',
       format: 'pem',
-      private: await exportPKCS8(privateKey),
-      public: await exportSPKI(publicKey),
+      private: result,
+      public: result2,
     },
     resolvePrincipal: async () => ({ userId: 1 }),
   });
@@ -80,7 +82,10 @@ beforeAll(async () => {
   // would skip is exactly the part shared between two services.
   jwksServer = Bun.serve({
     port: 0,
-    fetch: async () => Response.json(await signer.getPublicJWKS()),
+    fetch: async () => {
+      const jwks = await signer.getPublicJWKS();
+      return Response.json(jwks);
+    },
   });
   jwksUrl = `http://localhost:${jwksServer.port}/svc-certs`;
 });
@@ -143,7 +148,8 @@ describe('a callee accepts what was minted for it', () => {
     const verifier = buildVerifier(calleeOptions());
 
     // What `new URL(context.req.url).pathname` hands over.
-    expect(await verifier.verify({ token, method: 'GET', path: encoded })).toMatchObject({
+    const result = await verifier.verify({ token, method: 'GET', path: encoded });
+    expect(result).toMatchObject({
       issuer: CALLER,
     });
 
@@ -213,6 +219,7 @@ describe('a callee refuses everything else', () => {
 
     // Minted directly so `iat` can be backdated: `maxTokenAge` measures against `iat`, and the
     // service always stamps "now".
+    const privateKey = await (signer as AnyType).resolvePrivateKey();
     const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
@@ -224,7 +231,7 @@ describe('a callee refuses everything else', () => {
       .setJti('stale-1')
       .setIssuedAt(stale)
       .setExpirationTime(stale + 3600)
-      .sign(await (signer as AnyType).resolvePrivateKey());
+      .sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -242,12 +249,13 @@ describe('a callee refuses everything else', () => {
   });
 
   test('an assertion with no iss', async () => {
+    const privateKey = await (signer as AnyType).resolvePrivateKey();
     const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({ alg: ServiceAssertion.ALGORITHM, typ: ServiceAssertion.TYP })
       .setAudience(CALLEE)
       .setIssuedAt()
       .setExpirationTime('60s')
-      .sign(await (signer as AnyType).resolvePrivateKey());
+      .sign(privateKey);
 
     return expect(
       buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
@@ -263,6 +271,7 @@ describe('the callee decides the window, per caller', () => {
   test('a per-caller override widens the window for that caller alone', async () => {
     const stale = Math.floor(Date.now() / 1000) - 300;
 
+    const privateKey = await (signer as AnyType).resolvePrivateKey();
     const token = await new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
         alg: ServiceAssertion.ALGORITHM,
@@ -274,21 +283,21 @@ describe('the callee decides the window, per caller', () => {
       .setJti('batch-1')
       .setIssuedAt(stale)
       .setExpirationTime(stale + 3600)
-      .sign(await (signer as AnyType).resolvePrivateKey());
+      .sign(privateKey);
 
     // Default window: refused.
-    expect(
-      await rejectionOf(
-        buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
-      ),
-    ).toBeInstanceOf(Error);
+    const result = await rejectionOf(
+      buildVerifier(calleeOptions()).verify({ token, method: 'GET', path: '/v1/api/x' }),
+    );
+    expect(result).toBeInstanceOf(Error);
 
     // Same token, this caller granted more slack by the CALLEE's config.
     const generous = buildVerifier(
       calleeOptions({ callers: { [CALLER]: { jwksUrl, acceptMaxAgeSeconds: 600 } } }),
     );
 
-    expect(await generous.verify({ token, method: 'GET', path: '/v1/api/x' })).toMatchObject({
+    const result2 = await generous.verify({ token, method: 'GET', path: '/v1/api/x' });
+    expect(result2).toMatchObject({
       issuer: CALLER,
     });
   });
@@ -297,7 +306,8 @@ describe('the callee decides the window, per caller', () => {
     const token = await signer.sign({ method: 'GET', path: '/v1/api/x', audience: CALLEE });
 
     const verifier = buildVerifier(calleeOptions({ acceptMaxAgeSeconds: 600 }));
-    expect(await verifier.verify({ token, method: 'GET', path: '/v1/api/x' })).toMatchObject({
+    const result = await verifier.verify({ token, method: 'GET', path: '/v1/api/x' });
+    expect(result).toMatchObject({
       issuer: CALLER,
     });
   });
@@ -327,6 +337,7 @@ describe('the clock tolerance window', () => {
 
   const mint = async (opts: { iatOffsetSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS + opts.iatOffsetSeconds;
+    const privateKey = await (signer as AnyType).resolvePrivateKey();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -339,7 +350,7 @@ describe('the clock tolerance window', () => {
       .setJti(`skew-${opts.iatOffsetSeconds}`)
       .setIssuedAt(iat)
       .setExpirationTime(iat + 60)
-      .sign(await (signer as AnyType).resolvePrivateKey());
+      .sign(privateKey);
   };
 
   const verifier = () =>
@@ -347,17 +358,18 @@ describe('the clock tolerance window', () => {
 
   /** A caller whose clock runs ahead. Without tolerance this fails at ONE second of skew. */
   test('a token from the near future is accepted, a far one is not', async () => {
-    expect(
-      await verifier().verify({
-        token: await mint({ iatOffsetSeconds: 5 }),
-        method: 'GET',
-        path: '/v1/api/x',
-      }),
-    ).toMatchObject({ issuer: CALLER });
+    const nearToken = await mint({ iatOffsetSeconds: 5 });
+    const result = await verifier().verify({
+      token: nearToken,
+      method: 'GET',
+      path: '/v1/api/x',
+    });
+    expect(result).toMatchObject({ issuer: CALLER });
 
+    const farToken = await mint({ iatOffsetSeconds: 6 });
     return expect(
       verifier().verify({
-        token: await mint({ iatOffsetSeconds: 6 }),
+        token: farToken,
         method: 'GET',
         path: '/v1/api/x',
       }),
@@ -370,17 +382,18 @@ describe('the clock tolerance window', () => {
    * and `exp` is reached first. See below for the REPLAY window, which is a different number.
    */
   test('an old token is accepted at 64s and refused at 65s', async () => {
-    expect(
-      await verifier().verify({
-        token: await mint({ iatOffsetSeconds: -64 }),
-        method: 'GET',
-        path: '/v1/api/x',
-      }),
-    ).toMatchObject({ issuer: CALLER });
+    const youngerToken = await mint({ iatOffsetSeconds: -64 });
+    const result = await verifier().verify({
+      token: youngerToken,
+      method: 'GET',
+      path: '/v1/api/x',
+    });
+    expect(result).toMatchObject({ issuer: CALLER });
 
+    const olderToken = await mint({ iatOffsetSeconds: -65 });
     return expect(
       verifier().verify({
-        token: await mint({ iatOffsetSeconds: -65 }),
+        token: olderToken,
         method: 'GET',
         path: '/v1/api/x',
       }),
@@ -401,6 +414,7 @@ describe('the replay window is wider than the acceptance window', () => {
 
   const mintSkewed = async (opts: { mintedAgoOnOurClock: number; callerSkewSeconds: number }) => {
     const iat = FROZEN_NOW_SECONDS - opts.mintedAgoOnOurClock + opts.callerSkewSeconds;
+    const privateKey = await (signer as AnyType).resolvePrivateKey();
 
     return new SignJWT({ htm: 'GET', htu: '/v1/api/x' })
       .setProtectedHeader({
@@ -413,7 +427,7 @@ describe('the replay window is wider than the acceptance window', () => {
       .setJti(`replay-${opts.mintedAgoOnOurClock}-${opts.callerSkewSeconds}`)
       .setIssuedAt(iat)
       .setExpirationTime(iat + 60)
-      .sign(await (signer as AnyType).resolvePrivateKey());
+      .sign(privateKey);
   };
 
   const accepts = async (token: string) => {
@@ -428,20 +442,20 @@ describe('the replay window is wider than the acceptance window', () => {
   };
 
   test('agreed clocks: usable for 64s after minting, not 65', async () => {
-    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 64, callerSkewSeconds: 0 }))).toBe(
-      true,
-    );
-    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 65, callerSkewSeconds: 0 }))).toBe(
-      false,
-    );
+    const result2 = await mintSkewed({ mintedAgoOnOurClock: 64, callerSkewSeconds: 0 });
+    const result = await accepts(result2);
+    expect(result).toBe(true);
+    const result4 = await mintSkewed({ mintedAgoOnOurClock: 65, callerSkewSeconds: 0 });
+    const result3 = await accepts(result4);
+    expect(result3).toBe(false);
   });
 
   test('a caller running the full tolerance fast: usable for 69s, not 70', async () => {
-    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 69, callerSkewSeconds: 5 }))).toBe(
-      true,
-    );
-    expect(await accepts(await mintSkewed({ mintedAgoOnOurClock: 70, callerSkewSeconds: 5 }))).toBe(
-      false,
-    );
+    const result2 = await mintSkewed({ mintedAgoOnOurClock: 69, callerSkewSeconds: 5 });
+    const result = await accepts(result2);
+    expect(result).toBe(true);
+    const result4 = await mintSkewed({ mintedAgoOnOurClock: 70, callerSkewSeconds: 5 });
+    const result3 = await accepts(result4);
+    expect(result3).toBe(false);
   });
 });

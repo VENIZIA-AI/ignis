@@ -107,10 +107,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       domains: [...domainClosure],
     });
 
-    lines.push(
-      ...(await this.buildGrantLines({ subjectType: principal.type, rows: directGrants })),
-    );
-    lines.push(...(await this.buildGrantLines({ subjectType: principals.role, rows: roleGrants })));
+    const result = await this.buildGrantLines({ subjectType: principal.type, rows: directGrants });
+    lines.push(...result);
+    const result2 = await this.buildGrantLines({ subjectType: principals.role, rows: roleGrants });
+    lines.push(...result2);
 
     const [structuralEdges, hookLines] = await Promise.all([
       structuralEdgesPromise,
@@ -178,7 +178,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
 
     let edges: TDomainHierarchyEdge[];
     try {
-      edges = await this.resolveDomainEdges(opts);
+      const result = await this.resolveDomainEdges(opts);
+      edges = result;
     } catch (error) {
       this.logger
         .for(this.resolveDomainEdgeLines.name)

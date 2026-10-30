@@ -13,26 +13,31 @@ const buildServer = () => {
 
 const fetchObjectName = async (rawName: string): Promise<string> => {
   const response = await buildServer().request(`/objects/${encodeURIComponent(rawName)}`);
-  const body = (await response.json()) as { objectName: string };
+  const result = await response.json();
+  const body = result as { objectName: string };
 
   return body.objectName;
 };
 
 describe('Hono decodes the path param - the controller must NOT decode again', () => {
   test('a name containing a percent sign survives intact', async () => {
-    expect(await fetchObjectName('report_100%.pdf')).toBe('report_100%.pdf');
+    const result = await fetchObjectName('report_100%.pdf');
+    expect(result).toBe('report_100%.pdf');
   });
 
   test('a nested path survives intact', async () => {
-    expect(await fetchObjectName('tenant-7/avatar.png')).toBe('tenant-7/avatar.png');
+    const result = await fetchObjectName('tenant-7/avatar.png');
+    expect(result).toBe('tenant-7/avatar.png');
   });
 
   test('a name that LOOKS like an encoded slash stays literal - it is not a folder', async () => {
     // Decoding a second time would turn this into `a/b.png`, a different object entirely.
-    expect(await fetchObjectName('a%2Fb.png')).toBe('a%2Fb.png');
+    const result = await fetchObjectName('a%2Fb.png');
+    expect(result).toBe('a%2Fb.png');
   });
 
   test('a name with a space and a plus survives intact', async () => {
-    expect(await fetchObjectName('my report+final.pdf')).toBe('my report+final.pdf');
+    const result = await fetchObjectName('my report+final.pdf');
+    expect(result).toBe('my report+final.pdf');
   });
 });

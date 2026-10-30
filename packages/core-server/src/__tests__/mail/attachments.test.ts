@@ -171,7 +171,8 @@ describe('Mail attachments - path confinement', () => {
 
   test('a symlink inside the root that points outside it is refused', async () => {
     const { service, transport } = buildService({ attachmentRoot });
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
 
     const error = await captureError(
       service.send(buildMessage([{ filename: 'x', path: 'escape-link.txt' }])),
@@ -204,7 +205,8 @@ describe('Mail attachments - path confinement', () => {
 
   test('a file inside the root is read and handed over as content, with no path left', async () => {
     const { service, transport } = buildService({ attachmentRoot });
-    fileReadSpy = await spyOnFileReads();
+    const result2 = await spyOnFileReads();
+    fileReadSpy = result2;
 
     const result = await service.send(
       buildMessage([
@@ -292,7 +294,8 @@ describe('Mail attachments - size limit', () => {
 
   test('a file inside the root that is over the limit is refused by its size, before any read', async () => {
     const { service } = buildService({ attachmentRoot, maxAttachmentBytes: 1024 });
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
 
     const error = await captureError(
       service.send(buildMessage([{ filename: 'big.bin', path: 'big.bin' }])),
@@ -796,7 +799,8 @@ describe('Mail attachments - review fixes', () => {
   });
 
   test('a file that grows after its size check is still capped while it is read', async () => {
-    fileReadSpy = await spyOnFileReads();
+    const result = await spyOnFileReads();
+    fileReadSpy = result;
     const handle = await open(secretFile);
     const prototype = Object.getPrototypeOf(handle);
     await handle.close();

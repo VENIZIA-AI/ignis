@@ -37,7 +37,8 @@ describe('hydrateSecrets failure mode', () => {
       config: { path: { base: '', isStrict: false } },
     });
 
-    expect(await app.hydrateSecrets()).toBeUndefined();
+    const result = await app.hydrateSecrets();
+    expect(result).toBeUndefined();
   });
 
   test('production env throws ApplicationError', async () => {

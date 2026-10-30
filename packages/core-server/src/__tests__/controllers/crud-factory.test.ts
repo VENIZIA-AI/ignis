@@ -190,7 +190,8 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     const response = await restController.getRouter().request('/7');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
 
-    const body = (await response.json()) as { data: { resolvedId: number } };
+    const result = await response.json();
+    const body = result as { data: { resolvedId: number } };
     expect(body.data.resolvedId).toBe(7);
   });
 
@@ -209,7 +210,8 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     const response = await restController.getRouter().request('/doc-1');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
 
-    const body = (await response.json()) as { data: { resolvedId: string } };
+    const result = await response.json();
+    const body = result as { data: { resolvedId: string } };
     expect(body.data.resolvedId).toBe('doc-1');
   });
 
@@ -233,7 +235,8 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     const response = await restController.getRouter().request('/ext-1');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
 
-    const body = (await response.json()) as { data: { resolvedId: string } };
+    const result = await response.json();
+    const body = result as { data: { resolvedId: string } };
     expect(body.data.resolvedId).toBe('ext-1');
   });
 
@@ -271,7 +274,8 @@ describe('ControllerFactory.defineCrudController - request schemas', () => {
     // ...and optional under the loose one.
     const looseResponse = await loose.getRouter().request('/count');
     expect(looseResponse.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await looseResponse.json()).toEqual({ count: 0 });
+    const result = await looseResponse.json();
+    expect(result).toEqual({ count: 0 });
   });
 
   test('the generated select schema still declares @model hiddenProperties - they are stripped at SQL level, not by the schema', () => {
@@ -403,7 +407,8 @@ describe('ControllerFactory.defineCrudController - bulk where in the query or th
 
     expect(patched.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
     expect(deleted.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-    expect(await deleted.json()).toMatchObject({ message: expect.stringMatching(/both/) });
+    const result = await deleted.json();
+    expect(result).toMatchObject({ message: expect.stringMatching(/both/) });
     expect(calls).toEqual([]);
   });
 

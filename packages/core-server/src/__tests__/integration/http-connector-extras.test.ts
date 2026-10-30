@@ -175,9 +175,12 @@ describe('what is computed is what was asked for, plus the defaults', () => {
   test('count, existsWith and findOne compute no default', async () => {
     const before = calls.counts;
 
-    expect(await products.count({ where: {} })).toEqual({ count: 2 });
-    expect(await products.existsWith({ where: {} })).toBe(true);
-    expect((await products.findOne({ filter: {} }))?.id).toBe(1);
+    const result = await products.count({ where: {} });
+    expect(result).toEqual({ count: 2 });
+    const result2 = await products.existsWith({ where: {} });
+    expect(result2).toBe(true);
+    const one = await products.findOne({ filter: {} });
+    expect(one?.id).toBe(1);
     expect(calls.counts).toBe(before);
   });
 
@@ -197,7 +200,8 @@ describe('what is computed is what was asked for, plus the defaults', () => {
     });
 
     expect(response.headers.get('x-response-extra')).toBe('summary');
-    expect(await response.json()).toEqual({ count: 2, data: ROWS, extra: { summary: 'summary' } });
+    const result = await response.json();
+    expect(result).toEqual({ count: 2, data: ROWS, extra: { summary: 'summary' } });
   });
 });
 

@@ -293,8 +293,10 @@ describe('BullMQMailExecutorHelper - teardown', () => {
       workerHelpers: [new FakeWorkerHelper()],
     });
 
-    expect(await executor.removeWorker(5)).toBe(false);
-    expect(await executor.removeWorker(-1)).toBe(false);
+    const result = await executor.removeWorker(5);
+    expect(result).toBe(false);
+    const result2 = await executor.removeWorker(-1);
+    expect(result2).toBe(false);
     expect(executor.getWorkerCount()).toBe(1);
   });
 

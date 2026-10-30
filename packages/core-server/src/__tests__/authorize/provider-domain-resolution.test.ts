@@ -322,10 +322,15 @@ describe('ScopedCasbinAdapter — no-op write methods (lines 43-48)', () => {
       },
     });
 
-    expect(await adapter.loadPolicy()).toBeUndefined();
-    expect(await adapter.savePolicy()).toBe(true);
-    expect(await adapter.addPolicy()).toBeUndefined();
-    expect(await adapter.removePolicy()).toBeUndefined();
-    expect(await adapter.removeFilteredPolicy()).toBeUndefined();
+    const result = await adapter.loadPolicy();
+    expect(result).toBeUndefined();
+    const result2 = await adapter.savePolicy();
+    expect(result2).toBe(true);
+    const result3 = await adapter.addPolicy();
+    expect(result3).toBeUndefined();
+    const result4 = await adapter.removePolicy();
+    expect(result4).toBeUndefined();
+    const result5 = await adapter.removeFilteredPolicy();
+    expect(result5).toBeUndefined();
   });
 });

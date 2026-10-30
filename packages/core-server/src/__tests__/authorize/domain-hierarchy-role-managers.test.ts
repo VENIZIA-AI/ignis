@@ -88,7 +88,8 @@ describe('DomainHierarchyRoleManager', () => {
       await manager.addLink('Merchant_777', 'Organizer_888');
 
       expect(manager.syncedHasLink('Merchant_777', 'Organizer_888')).toBe(true);
-      expect(await manager.getRoles('Merchant_777')).toEqual(['Organizer_888']);
+      const result = await manager.getRoles('Merchant_777');
+      expect(result).toEqual(['Organizer_888']);
     });
 
     it('walks a chain of two overlay edges', async () => {
@@ -231,7 +232,8 @@ describe('MembershipRoleManager', () => {
     await manager.addLink('User_7', 'Organizer_456');
     await manager.addLink('User_7', 'Organizer_456');
 
-    expect(await manager.getRoles('User_7')).toEqual(['Organizer_456']);
+    const result = await manager.getRoles('User_7');
+    expect(result).toEqual(['Organizer_456']);
   });
 });
 

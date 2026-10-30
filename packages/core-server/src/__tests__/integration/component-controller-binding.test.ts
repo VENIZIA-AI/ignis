@@ -237,23 +237,27 @@ describe('Component → Controller binding integration', () => {
       // ComponentA controllers
       const usersRes = await rootRouter.request('/users');
       expect(usersRes.status).toBe(200);
-      const usersBody = (await usersRes.json()) as { users: string[] };
+      const result = await usersRes.json();
+      const usersBody = result as { users: string[] };
       expect(usersBody.users).toEqual(['alice', 'bob']);
 
       const ordersRes = await rootRouter.request('/orders');
       expect(ordersRes.status).toBe(200);
-      const ordersBody = (await ordersRes.json()) as { orders: string[] };
+      const result2 = await ordersRes.json();
+      const ordersBody = result2 as { orders: string[] };
       expect(ordersBody.orders).toEqual(['order-1', 'order-2']);
 
       // ComponentB controllers
       const productsRes = await rootRouter.request('/products');
       expect(productsRes.status).toBe(200);
-      const productsBody = (await productsRes.json()) as { products: string[] };
+      const result3 = await productsRes.json();
+      const productsBody = result3 as { products: string[] };
       expect(productsBody.products).toEqual(['widget', 'gadget']);
 
       const invoicesRes = await rootRouter.request('/invoices');
       expect(invoicesRes.status).toBe(200);
-      const invoicesBody = (await invoicesRes.json()) as { invoices: string[] };
+      const result4 = await invoicesRes.json();
+      const invoicesBody = result4 as { invoices: string[] };
       expect(invoicesBody.invoices).toEqual(['inv-001']);
     });
 
@@ -269,7 +273,8 @@ describe('Component → Controller binding integration', () => {
         body: JSON.stringify({ name: 'new-product' }),
       });
       expect(res.status).toBe(201);
-      const body = (await res.json()) as { name: string; id: string };
+      const result = await res.json();
+      const body = result as { name: string; id: string };
       expect(body.name).toBe('new-product');
       expect(body.id).toBe('p-1');
     });
@@ -295,7 +300,8 @@ describe('Component → Controller binding integration', () => {
       // Directly registered
       const statusRes = await rootRouter.request('/status');
       expect(statusRes.status).toBe(200);
-      const statusBody = (await statusRes.json()) as { status: string };
+      const result = await statusRes.json();
+      const statusBody = result as { status: string };
       expect(statusBody.status).toBe('running');
     });
 
@@ -368,7 +374,8 @@ describe('Component → Controller binding integration', () => {
       const rootRouter = app.getRootRouter();
       const res = await rootRouter.request('/tracked');
       expect(res.status).toBe(200);
-      const body = (await res.json()) as { tracked: boolean };
+      const result = await res.json();
+      const body = result as { tracked: boolean };
       expect(body.tracked).toBe(true);
     });
   });
@@ -451,7 +458,8 @@ describe('Component → Controller binding integration', () => {
       // GET /products
       const getRes = await rootRouter.request('/products');
       expect(getRes.status).toBe(200);
-      const getBody = (await getRes.json()) as { products: string[] };
+      const result = await getRes.json();
+      const getBody = result as { products: string[] };
       expect(getBody.products).toEqual(['widget', 'gadget']);
 
       // POST /products
@@ -461,7 +469,8 @@ describe('Component → Controller binding integration', () => {
         body: JSON.stringify({ name: 'gizmo' }),
       });
       expect(postRes.status).toBe(201);
-      const postBody = (await postRes.json()) as { name: string };
+      const result2 = await postRes.json();
+      const postBody = result2 as { name: string };
       expect(postBody.name).toBe('gizmo');
     });
   });

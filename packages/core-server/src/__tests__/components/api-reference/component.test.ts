@@ -61,7 +61,8 @@ const readDocument = async (opts: {
 }): Promise<Record<string, AnyType>> => {
   const response = await opts.application.getRootRouter().request(opts.path ?? '/doc/openapi.json');
   expect(response.status).toBe(200);
-  return (await response.json()) as Record<string, AnyType>;
+  const result = await response.json();
+  return result as Record<string, AnyType>;
 };
 
 describe('ApiReferenceComponent — options binding', () => {
@@ -185,6 +186,7 @@ describe('UIProviderFactory — pluggability', () => {
 
     const response = await application.getRootRouter().request('/doc/explorer');
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('redoc spec-url');
+    const result = await response.text();
+    expect(result).toContain('redoc spec-url');
   });
 });

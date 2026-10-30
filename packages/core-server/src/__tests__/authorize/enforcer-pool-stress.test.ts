@@ -221,8 +221,10 @@ describe('enforcer-pool-stress — cross-user isolation under high concurrency',
     for (let i = 0; i < 30; i++) {
       const self = users[i % users.length];
       const other = users[(i + 1) % users.length];
-      expect(await decide(e, self, `${self}_secret`)).toBe('allow');
-      expect(await decide(e, self, `${other}_secret`)).toBe('deny');
+      const result = await decide(e, self, `${self}_secret`);
+      expect(result).toBe('allow');
+      const result2 = await decide(e, self, `${other}_secret`);
+      expect(result2).toBe('deny');
     }
 
     e.destroy();
@@ -573,9 +575,12 @@ describe('enforcer-pool-stress — load failure discard recovery under concurren
     expect(rejected).toBeGreaterThanOrEqual(3); // at least the 3 forced failures fail closed
 
     // Pool must have recovered: subsequent requests resolve to correct decisions.
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'A', 'B_secret')).toBe('deny');
-    expect(await decide(e, 'B', 'B_secret')).toBe('allow');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'A', 'B_secret');
+    expect(result2).toBe('deny');
+    const result3 = await decide(e, 'B', 'B_secret');
+    expect(result3).toBe('allow');
 
     e.destroy();
   });
@@ -668,8 +673,10 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     expect(client.store.has('casbin:User:A')).toBe(false);
 
     // Immediate evaluate → cache miss → refetch → correct decision.
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'A', 'B_secret')).toBe('deny');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'A', 'B_secret');
+    expect(result2).toBe('deny');
     expect(adapter.loadCounts.get('A')).toBe(2); // initial warm + refetch after invalidate
 
     e.destroy();

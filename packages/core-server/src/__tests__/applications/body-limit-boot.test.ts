@@ -47,9 +47,10 @@ describe('configs.middlewares.bodyLimit across the whole boot', () => {
     await application.initialize();
 
     const server = application.getServer();
-    server.post('/echo', async (context) =>
-      context.json({ length: (await context.req.text()).length }),
-    );
+    server.post('/echo', async (context) => {
+      const text = await context.req.text();
+      return context.json({ length: text.length });
+    });
     const response = await server.request('/echo', {
       method: 'POST',
       headers: { 'content-type': 'text/plain', 'content-length': '100' },

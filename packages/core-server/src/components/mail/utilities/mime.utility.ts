@@ -420,7 +420,8 @@ export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer
     const parts = [bodyPart(relatedBoundary)];
 
     for (const attachment of inlineAttachments) {
-      parts.push(await attachmentPart(attachment, relatedBoundary));
+      const result = await attachmentPart(attachment, relatedBoundary);
+      parts.push(result);
     }
 
     parts.push(`--${relatedBoundary}--`);
@@ -438,7 +439,8 @@ export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer
     const parts = [bodyPart(relatedBoundary)];
 
     for (const attachment of inlineAttachments) {
-      parts.push(await attachmentPart(attachment, relatedBoundary));
+      const result = await attachmentPart(attachment, relatedBoundary);
+      parts.push(result);
     }
 
     parts.push(`--${relatedBoundary}--`);
@@ -452,13 +454,15 @@ export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer
   const bodyParts: string[] = [];
 
   if (inlineAttachments.length > 0) {
-    bodyParts.push(await buildRelatedPart(mixedBoundary));
+    const result2 = await buildRelatedPart(mixedBoundary);
+    bodyParts.push(result2);
   } else {
     bodyParts.push(bodyPart(mixedBoundary));
   }
 
   for (const attachment of fileAttachments) {
-    bodyParts.push(await attachmentPart(attachment, mixedBoundary));
+    const result3 = await attachmentPart(attachment, mixedBoundary);
+    bodyParts.push(result3);
   }
 
   bodyParts.push(`--${mixedBoundary}--`);

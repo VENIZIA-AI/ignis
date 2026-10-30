@@ -232,7 +232,8 @@ describe('JWSTokenService - payload encryption', () => {
     let caught: unknown;
     let verified: IJWTTokenPayload | undefined;
     try {
-      verified = await verifier.verify({ type: 'Bearer', token });
+      const result = await verifier.verify({ type: 'Bearer', token });
+      verified = result;
     } catch (error) {
       caught = error;
     }
@@ -254,7 +255,8 @@ describe('JWSTokenService - payload cipher seam', () => {
     const claims = readClaims(token);
 
     expect(claims['userId']).not.toBe(42);
-    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(42);
+    const result = await service.verify({ type: 'Bearer', token });
+    expect(result.userId).toBe(42);
   });
 
   test('the supplied cipher really is the one used - the default AES cannot read its output', async () => {
@@ -300,6 +302,7 @@ describe('JWSTokenService - payload cipher seam', () => {
 
     const token = await service.generate({ payload: buildPayload() });
 
-    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(42);
+    const result = await service.verify({ type: 'Bearer', token });
+    expect(result.userId).toBe(42);
   });
 });

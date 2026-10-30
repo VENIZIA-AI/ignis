@@ -135,21 +135,24 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
       count: 1,
       data: { id: first.data.id, title: 'first, edited' },
     });
-    expect(await notes.findById({ id: first.data.id })).toMatchObject({ title: 'first, edited' });
+    const result = await notes.findById({ id: first.data.id });
+    expect(result).toMatchObject({ title: 'first, edited' });
 
     const closed = await notes.updateBy({
       where: { id: { inq: [second.data.id, third.data.id] } },
       data: { status: 'closed' },
     });
     expect(closed.count).toBe(2);
-    expect(await notes.count({ where: { status: 'closed' } })).toEqual({ count: 2 });
+    const result2 = await notes.count({ where: { status: 'closed' } });
+    expect(result2).toEqual({ count: 2 });
 
     const removed = await notes.deleteById({ id: first.data.id });
     expect(removed).toMatchObject({ count: 1, data: { id: first.data.id } });
 
     const purged = await notes.deleteBy({ where: { id: { inq: ids } } });
     expect(purged.count).toBe(2);
-    expect(await notes.count({ where: {} })).toEqual({ count: 0 });
+    const result3 = await notes.count({ where: {} });
+    expect(result3).toEqual({ count: 0 });
   });
 
   test('a server validation error comes back with the server status and message', async () => {
@@ -169,7 +172,8 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
     expect(caught.message).toContain('[http][write] 422');
     expect(caught.message).toContain('/notes');
     expect(caught.message).toContain('Invalid input');
-    expect(await notes.count({ where: {} })).toEqual({ count: 0 });
+    const result = await notes.count({ where: {} });
+    expect(result).toEqual({ count: 0 });
   });
 
   test("a 422's per-field issues are the error's cause, naming the field", async () => {
@@ -210,11 +214,14 @@ describe('HttpRepository reads through a real IGNIS CRUD controller', () => {
     expect(page.data.map((row) => row.title)).toEqual(['r2', 'r3']);
     expect(page.range).toMatchObject({ start: 1, end: 2, total: 3 });
 
-    expect(await notes.findOne({ filter: { where: { title: 'r2' } } })).toMatchObject({
+    const result = await notes.findOne({ filter: { where: { title: 'r2' } } });
+    expect(result).toMatchObject({
       title: 'r2',
     });
-    expect(await notes.existsWith({ where: { title: 'r3' } })).toBe(true);
-    expect(await notes.existsWith({ where: { title: 'nope' } })).toBe(false);
+    const result2 = await notes.existsWith({ where: { title: 'r3' } });
+    expect(result2).toBe(true);
+    const result3 = await notes.existsWith({ where: { title: 'nope' } });
+    expect(result3).toBe(false);
 
     await notes.deleteBy({ where: { id: { inq: ids } } });
   });

@@ -143,7 +143,8 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     let provider: ISecretsHelper | undefined;
     const emptyHydrations: string[] = [];
     try {
-      provider = await createSecretsHelper({ ...registration, identifier: 'app' });
+      const result = await createSecretsHelper({ ...registration, identifier: 'app' });
+      provider = result;
       await provider.configure();
 
       await this.hydrateSecretEntries({ provider, registration, emptyHydrations, logger });
@@ -175,10 +176,11 @@ export abstract class BaseApplication extends ServerApplication implements IRest
             ),
           );
       }
-      provider = await createSecretsHelper({
+      const result2 = await createSecretsHelper({
         provider: SecretProviders.SYSTEM_ENVS,
         identifier: 'app',
       });
+      provider = result2;
     }
 
     if (!provider) {

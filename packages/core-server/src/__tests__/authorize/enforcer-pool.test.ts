@@ -80,9 +80,12 @@ describe('CasbinAuthorizationEnforcer — pool isolation (§9 race fix)', () => 
     // poolSize 1 forces the SAME enforcer instance to be reused across users.
     const e = poolEnforcer(new DelayedPerUserAdapter(0), 1);
     await e.configure();
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'B', 'A_secret')).toBe('deny'); // reused enforcer must not still hold A's grant
-    expect(await decide(e, 'B', 'B_secret')).toBe('allow');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'B', 'A_secret');
+    expect(result2).toBe('deny'); // reused enforcer must not still hold A's grant
+    const result3 = await decide(e, 'B', 'B_secret');
+    expect(result3).toBe('allow');
   });
 });
 
@@ -127,8 +130,10 @@ describe('CasbinAuthorizationEnforcer — discard recovery', () => {
     expect(error).toBeDefined();
 
     // Pool must have re-created capacity: a later valid request resolves correctly, with no stale state from the failed borrow.
-    expect(await decide(e, 'A', 'A_secret')).toBe('allow');
-    expect(await decide(e, 'A', 'B_secret')).toBe('deny');
+    const result = await decide(e, 'A', 'A_secret');
+    expect(result).toBe('allow');
+    const result2 = await decide(e, 'A', 'B_secret');
+    expect(result2).toBe('deny');
   });
 });
 

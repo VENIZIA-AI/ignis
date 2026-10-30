@@ -194,6 +194,7 @@ describe('Route auth config - controller level vs route level', () => {
 
     const response = await restController.getRouter().request('/public');
     expect(response.status).toBe(HTTP.ResultCodes.RS_2.Ok);
-    expect(await response.json()).toEqual({ hit: 'public' });
+    const result = await response.json();
+    expect(result).toEqual({ hit: 'public' });
   });
 });

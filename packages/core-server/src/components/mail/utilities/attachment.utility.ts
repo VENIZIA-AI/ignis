@@ -95,10 +95,11 @@ const resolveConfinedPath = async (opts: {
 
   // `resolve` throws synchronously on a non-string `path` from an untyped caller; it lands here too.
   try {
-    [rootPath, filePath] = await Promise.all([
+    const resolved = await Promise.all([
       realpath(attachmentRoot),
       realpath(resolve(attachmentRoot, path)),
     ]);
+    [rootPath, filePath] = resolved;
   } catch (error) {
     throw buildPathRefusedError({ reason: PATH_OUTSIDE_REASON, cause: error });
   }
@@ -151,7 +152,8 @@ const readConfinedFile = async (opts: {
       end: maxBytes === undefined ? Infinity : maxBytes - usedBytes,
     });
 
-    return await drainStream({ stream, usedBytes, maxBytes });
+    const result = await drainStream({ stream, usedBytes, maxBytes });
+    return result;
   } finally {
     await handle.close();
   }

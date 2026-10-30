@@ -117,7 +117,8 @@ describe('a malformed multipart body is a 400 in every environment', () => {
       const response = await postMalformed({ server, path: '/hand' });
 
       expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-      expect(JSON.stringify(await response.json())).toContain(BODY_MALFORMED_CODE);
+      const result = await response.json();
+      expect(JSON.stringify(result)).toContain(BODY_MALFORMED_CODE);
     });
 
     test(`the static-asset upload route answers 400 in '${environment}'`, async () => {
@@ -127,7 +128,8 @@ describe('a malformed multipart body is a 400 in every environment', () => {
       const response = await postMalformed({ server, path: '/assets/objects' });
 
       expect(response.status).toBe(HTTP.ResultCodes.RS_4.BadRequest);
-      expect(JSON.stringify(await response.json())).toContain(BODY_MALFORMED_CODE);
+      const result = await response.json();
+      expect(JSON.stringify(result)).toContain(BODY_MALFORMED_CODE);
       expect(helper.calls).toEqual([]);
     });
   }

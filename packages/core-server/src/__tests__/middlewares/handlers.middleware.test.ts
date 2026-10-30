@@ -15,7 +15,8 @@ logger.error = () => undefined;
 logger.info = () => undefined;
 
 const readJson = async (response: Response): Promise<Record<string, any>> => {
-  return (await response.json()) as Record<string, any>;
+  const result = await response.json();
+  return result as Record<string, any>;
 };
 
 describe('notFoundHandler', () => {
@@ -47,7 +48,8 @@ describe('emojiFavicon', () => {
     const response = await application.request('/favicon.ico');
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('image/svg+xml');
-    expect(await response.text()).toContain('🔥');
+    const result = await response.text();
+    expect(result).toContain('🔥');
   });
 
   test('every other path falls through to the next handler', async () => {
@@ -57,7 +59,8 @@ describe('emojiFavicon', () => {
 
     const response = await application.request('/ping');
     expect(response.status).toBe(200);
-    expect(await response.text()).toBe('pong');
+    const result = await response.text();
+    expect(result).toBe('pong');
   });
 });
 
@@ -81,7 +84,8 @@ describe('AppErrorMiddleware - internal detail must never leak outside a develop
 
   const readBody = async (opts: { env?: Record<string, string> }) => {
     const response = await mountRaw().request('/x', undefined, opts.env);
-    return { response, body: await readJson(response) };
+    const result = await readJson(response);
+    return { response, body: result };
   };
 
   test.each(['production', 'PRODUCTION', 'staging', 'uat', 'beta', 'weird-custom-env'])(

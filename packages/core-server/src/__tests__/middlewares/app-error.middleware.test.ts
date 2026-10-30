@@ -13,7 +13,8 @@ logger.log = () => undefined;
 
 /** Reads a Hono Response body as a loosely-typed JSON object (Response.json() is `unknown`). */
 const readJson = async (res: Response): Promise<Record<string, any>> => {
-  return (await res.json()) as Record<string, any>;
+  const result = await res.json();
+  return result as Record<string, any>;
 };
 
 /** Mounts a Hono app whose single route runs `thrower()` (which always throws). */
@@ -498,7 +499,9 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
       throw new Error('connection to db-prod-1.internal:5432 refused');
     });
 
-    const body = (await (await app.request('/')).json()) as {
+    const result2 = await app.request('/');
+    const result = await result2.json();
+    const body = result as {
       message: string;
       normalized: { text: string; code: string; args: Record<string, unknown> };
     };
@@ -526,7 +529,8 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
     });
 
     const res = await app.request('/');
-    const body = (await res.json()) as {
+    const result = await res.json();
+    const body = result as {
       message: string;
       normalized: { text: string; args: Record<string, unknown> };
     };
@@ -542,7 +546,9 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
 /** `normalized` is the field clients are told to read, so EVERY branch must emit it - including the early-returning `formatZodError` validation branch clients hit most often. */
 describe('AppErrorMiddleware - every branch emits normalized', () => {
   const readNormalized = async (app: Hono, path = '/') => {
-    const body = (await (await app.request(path)).json()) as {
+    const result2 = await app.request(path);
+    const result = await result2.json();
+    const body = result as {
       message: string;
       normalized?: { text: string; code: string; args: Record<string, unknown> };
     };

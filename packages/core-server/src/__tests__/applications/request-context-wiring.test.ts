@@ -100,7 +100,8 @@ describe('BaseApplication - request context wiring for the user-audit enricher',
     const port = application.getServerPort();
     const response = await fetch(`http://127.0.0.1:${port}/audit-with-user`);
 
-    expect(await response.json()).toEqual({ stamped: AUDIT_USER_ID });
+    const result = await response.json();
+    expect(result).toEqual({ stamped: AUDIT_USER_ID });
   });
 
   test('a live request with no audit user stamps null, and does not throw', async () => {
@@ -114,7 +115,8 @@ describe('BaseApplication - request context wiring for the user-audit enricher',
     const port = application.getServerPort();
     const response = await fetch(`http://127.0.0.1:${port}/audit-without-user`);
 
-    expect(await response.json()).toEqual({ stamped: null });
+    const result = await response.json();
+    expect(result).toEqual({ stamped: null });
   });
 
   test('outside a request the installed resolver reports no context at all', async () => {

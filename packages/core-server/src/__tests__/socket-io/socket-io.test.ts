@@ -114,7 +114,8 @@ describe('SocketIOClientHelper', () => {
 
   beforeEach(async () => {
     activeClients = [];
-    port = await getAvailablePort();
+    const result = await getAvailablePort();
+    port = result;
     httpServer = createServer();
 
     await new Promise<void>((resolve) => {
@@ -1080,7 +1081,8 @@ describe('SocketIOClientHelper - Edge Cases', () => {
 
   beforeEach(async () => {
     activeClients = [];
-    port = await getAvailablePort();
+    const result = await getAvailablePort();
+    port = result;
     httpServer = createServer();
 
     await new Promise<void>((resolve) => {
