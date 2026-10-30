@@ -43,6 +43,7 @@ Maintain consistent code style using **`bun fmt`** (formatting) and **oxlint** (
 | [Route Definitions](./route-definitions) | Config-driven routes, OpenAPI integration |
 | [Constants & Configuration](./constants-configuration) | Static classes vs enums, defaults |
 | [Control Flow & Organization](./control-flow) | Braces, switches, imports, logging |
+| [Async Style](./async-style) | Where `await` may stand, `return` without `await`, async functions and hooks |
 | [Advanced Patterns](./advanced-patterns) | Mixins, factories, value resolvers |
 | [Documentation (JSDoc)](./documentation) | When and how to document code |
 

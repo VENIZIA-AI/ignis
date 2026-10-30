@@ -86,6 +86,19 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 | `const-class-values` | both, `warn` | V-C-08: a string-literal union in an exported declaration (alias, interface member, generic constraint, parameter or return type); skips `Pick`/`Omit`/`Extract`/`Exclude`/`Record` arguments and mapped-type keys; off in tests. `namePattern` narrows it to exported aliases with a matching name |
 | `@typescript-eslint/consistent-type-assertions` | both, `warn`, `assertionStyle: never` | V-C-10: `as X` warns, `as const` and `satisfies` do not; off in tests. These two warn only, so `make lint` (oxlint `--deny-warnings` is the oxlint side) still passes |
 
+### The async style rules (opt-in)
+
+Five more rules, all at `error`, apply to test files too, and are **not** in `houseConfigs` or `reactHouseConfigs` yet. A project turns them on by spreading two arrays next to the house configs: `[...houseConfigs, ...asyncStyleConfigs]`, and for a React project `[...reactHouseConfigs, ...reactAsyncStyleConfigs]`. A later release moves them into the house arrays and keeps the two exports as aliases. The convention behind them is [async style](/conventions/async-style.md).
+
+| Rule | In | Notes |
+|---|---|---|
+| `no-inline-await` | `asyncStyleConfigs` | `await` only as a whole statement or as the whole initializer of a declaration; `return g(await f())` is the same report. The fixer hoists the `await` into a `const result = ...` in front of the statement, only when nothing that does more than read a value runs before it and it is not in a branch, a loop test, an unbraced `if` or an arrow expression body |
+| `no-return-await` | `asyncStyleConfigs` | `return await f()` becomes `return f()`; inside `try`, `catch` or `finally` it becomes `const result = await f(); return result;`. It stands beside `typescript/return-await`, which asks for an `await` only when a promise is returned inside a `try` |
+| `no-async-hook-callback` | `reactAsyncStyleConfigs` | an async arrow or function expression passed directly to any `use[A-Z]*` call (`React.useX` too); report only. An async function inside an object or array argument is not reported |
+| `effect-cleanup-consistency` | `reactAsyncStyleConfigs` | the callback of `useEffect`, `useLayoutEffect`, `useInsertionEffect` returns nothing on every path or a cleanup on every path; uses ESLint code paths |
+
+`devz codemod async-style [paths...] [--write | --check]` applies the fixers of the first two through ESLint's own `Linter.verifyAndFix`, lists what it cannot fix with file, line and rule, and with `--write` refuses a file that has local changes. The two hook rules have no fixer and no codemod: moving an async hook body into a promise chain changes error handling.
+
 Checked against the BANA copies (2026-10-18): `max-params-own` gave the same hits on a 6-case snippet and on the BANA frontend; `no-leaked-render` gave the same 48 hits and the same fixed output on 3755 `.tsx` files; `no-new-error` differs only in also catching a bare `Error('x')` call. BANA's `pascal-case-tsx` was not taken: IGNIS and ARDOR name `.tsx` files in kebab-case (`about.page.tsx`, `product-list.tsx`), so PascalCase is a BANA product rule.
 
 Both React presets (`ReactEslintConfigs`, `ReactOxlintConfigs`) run 15 `jsx-a11y` rules: the nine basics plus `anchor-is-valid`, `click-events-have-key-events`, `heading-has-content`, `label-has-associated-control`, `no-noninteractive-element-interactions`, `no-static-element-interactions`.
