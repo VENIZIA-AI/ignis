@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import type { TReleaseMode } from '../release-constants';
 import { ReleaseDispatch } from '../release-dispatch';
 
@@ -158,5 +159,59 @@ describe('ReleaseDispatch.declaresLabel', () => {
     );
 
     expect(ReleaseDispatch.declaresLabel({ workflowText })).toBe(true);
+  });
+});
+
+describe('ReleaseDispatch.syncCommands', () => {
+  test('fetches the ref in full into its remote-tracking ref, then fast-forwards from it', () => {
+    expect(ReleaseDispatch.syncCommands({ branch: 'develop' })).toEqual([
+      ['git', 'fetch', '--quiet', 'origin', '+refs/heads/develop:refs/remotes/origin/develop'],
+      ['git', 'merge', '--ff-only', '--quiet', 'refs/remotes/origin/develop'],
+    ]);
+  });
+
+  test('never uses the short branch name that a same-named branch under a folder could make ambiguous', () => {
+    const commands = ReleaseDispatch.syncCommands({ branch: 'main' }).flat();
+
+    expect(commands).not.toContain('pull');
+    expect(commands).not.toContain('main');
+    expect(commands).not.toContain('origin/main');
+  });
+
+  test('is a real fast-forward in a repository that has a same-named branch under a folder', () => {
+    const root = mkdtempSync(join(tmpdir(), 'sync-commands-'));
+    const git = (cwd: string, ...args: string[]) =>
+      Bun.spawnSync(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', ...args], {
+        cwd,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+
+    try {
+      const origin = join(root, 'origin.git');
+      const clone = join(root, 'clone');
+      const other = join(root, 'other');
+
+      git(root, 'init', '--bare', '-b', 'develop', origin);
+      git(root, 'clone', '-q', origin, clone);
+      writeFileSync(join(clone, 'a'), '1');
+      git(clone, 'add', 'a');
+      git(clone, 'commit', '-q', '-m', 'one');
+      git(clone, 'push', '-q', 'origin', 'develop');
+      git(clone, 'push', '-q', 'origin', 'develop:someone/develop');
+
+      git(root, 'clone', '-q', origin, other);
+      writeFileSync(join(other, 'a'), '2');
+      git(other, 'commit', '-q', '-am', 'two');
+      git(other, 'push', '-q', 'origin', 'develop');
+
+      for (const command of ReleaseDispatch.syncCommands({ branch: 'develop' })) {
+        expect(git(clone, ...command.slice(1)).exitCode).toBe(0);
+      }
+
+      expect(readFileSync(join(clone, 'a'), 'utf8')).toBe('2');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

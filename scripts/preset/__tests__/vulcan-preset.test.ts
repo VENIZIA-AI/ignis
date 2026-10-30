@@ -75,6 +75,26 @@ const writeLib = (opts: { root: string }): void => {
   writeText({ root: opts.root, path: 'presets/lib/files/src/index.ts', content: 'export {};\n' });
 };
 
+/** A shared template beside the app one: no dependency on the workspace package, a catalog devDependency. */
+const writeShared = (opts: { root: string }): void => {
+  writeJson({
+    root: opts.root,
+    path: 'presets/shared/preset.json',
+    value: {
+      presetVersion: 1,
+      summary: 'A side-neutral package.',
+      devDependencies: { hono: 'catalog:', '@venizia/a': 'workspace:*' },
+      atlas: [],
+      files: './files',
+    },
+  });
+  writeText({
+    root: opts.root,
+    path: 'presets/shared/files/src/index.ts',
+    content: "export const name = '{{package}}';\n",
+  });
+};
+
 const readOutput = (opts: { outDir: string; file: string }): Record<string, unknown> =>
   JSON.parse(readFileSync(join(opts.outDir, opts.file), 'utf8'));
 
@@ -181,6 +201,66 @@ describe('buildPreset', () => {
 
     expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
     expect(written.some((path) => path.startsWith('lib/'))).toBe(false);
+  });
+
+  test('no presets/shared writes no shared preset, with or without a lib', () => {
+    const repository = makeRepository({});
+    writeLib({ root: repository.root });
+
+    const { written } = buildPreset(repository);
+
+    expect(existsSync(join(repository.outDir, 'shared'))).toBe(false);
+    expect(written.some((path) => path.startsWith('shared/'))).toBe(false);
+    expect(existsSync(join(repository.outDir, 'lib/preset.json'))).toBe(true);
+  });
+
+  test('presets/shared alone writes the app and the shared preset, with its markers resolved', () => {
+    const repository = makeRepository({});
+    writeShared({ root: repository.root });
+
+    const { written } = buildPreset(repository);
+    const shared = readOutput({ outDir: repository.outDir, file: 'shared/preset.json' });
+
+    expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
+    expect(shared.presetVersion).toBe(1);
+    expect(shared.summary).toBe('A side-neutral package.');
+    expect(shared.devDependencies).toEqual({ hono: '^4.1.0', '@venizia/a': '1.2.3' });
+    expect(shared.files).toBe('./files');
+    expect(shared.atlas).toEqual([]);
+    expect(readFileSync(join(repository.outDir, 'shared/files/src/index.ts'), 'utf8')).toBe(
+      "export const name = '{{package}}';\n",
+    );
+    expect(written).toContain('shared/preset.json');
+    expect(written).toContain('shared/files/src/index.ts');
+  });
+
+  test('the lib and the shared kind each get the lint and format configs of the app, never its builders', () => {
+    const repository = makeRepository({});
+    writeLib({ root: repository.root });
+    writeShared({ root: repository.root });
+    writeText({
+      root: repository.root,
+      path: 'presets/app/files/.configs/lints/oxlint.config.mts',
+      content: 'app lint\n',
+    });
+    writeText({
+      root: repository.root,
+      path: 'presets/app/files/.configs/builders/compile.ts',
+      content: 'compile\n',
+    });
+
+    buildPreset(repository);
+
+    for (const kind of ['lib', 'shared']) {
+      expect(
+        readFileSync(
+          join(repository.outDir, kind, 'files/.configs/lints/oxlint.config.mts'),
+          'utf8',
+        ),
+      ).toBe('app lint\n');
+      expect(existsSync(join(repository.outDir, kind, 'files/.configs/builders'))).toBe(false);
+      expect(existsSync(join(repository.outDir, kind, 'files/_env.example'))).toBe(false);
+    }
   });
 
   test('the lib preset resolves its markers, peerDependencies included', () => {

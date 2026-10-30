@@ -1,0 +1,26 @@
+{
+  "presetVersion": 1,
+  "summary": "A package of plain code that backend and frontend apps both import; it depends on no framework.",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/bun": "catalog:",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "catalog:",
+    "oxlint": "catalog:",
+    "oxlint-tsgolint": "catalog:",
+    "typescript": "catalog:"
+  },
+  "peerDependencies": {},
+  "scripts": {
+    "typecheck": "bun check",
+    "lint": "devz lint",
+    "lint:fix": "devz lint --fix",
+    "test": "bun test --preload @venizia/dev-configs/testing/tmpdir-preload",
+    "clean": "devz clean"
+  },
+  "checks": ["typecheck", "lint", "test"],
+  "imports": { "#src/*.json": "./src/*.json", "#src/*": "./src/*.js" },
+  "exports": { ".": "./src/index.ts" },
+  "files": "./files",
+  "atlas": []
+}

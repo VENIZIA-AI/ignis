@@ -64,6 +64,20 @@ export class ReleaseDispatch {
     ];
   }
 
+  /**
+   * The two git calls that bring the checkout up to the release commits the workflow pushed. The ref is named in full
+   * and fast-forwarded from what was just fetched: `git pull origin <branch>` takes the short name, which another
+   * branch of the same name under a folder of the remote (`someone/develop`) can make ambiguous.
+   */
+  static syncCommands(opts: { branch: string }): string[][] {
+    const remote = `refs/remotes/origin/${opts.branch}`;
+
+    return [
+      ['git', 'fetch', '--quiet', 'origin', `+refs/heads/${opts.branch}:${remote}`],
+      ['git', 'merge', '--ff-only', '--quiet', remote],
+    ];
+  }
+
   /** The plan as `--plan <value>`, printed so that a stopped run is continued by re-sending it unchanged. */
   static planFlag(opts: { entries: ReadonlyArray<IPlanEntry> }): string {
     return `--plan ${ReleasePlanInput.format({ entries: opts.entries })}`;

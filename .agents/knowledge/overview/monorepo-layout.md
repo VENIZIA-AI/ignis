@@ -8,7 +8,10 @@ tags: [overview, monorepo, layout, packages]
 
 IGNIS is a Bun workspace monorepo. Everything published lives under `packages/`; everything that
 demonstrates the framework lives under `examples/`. `presets/` holds the VULCAN preset templates
-(`presets/app` for an API, `presets/lib` for a shared library); a preset is app source linted inside the generated app, so no repo lint target reaches it.
+(`presets/app` for an API, `presets/lib` for a library other IGNIS apps import, `presets/shared` for a
+side-neutral package that apps of either side import and that depends on no IGNIS or ARDOR package). A
+preset is app source linted inside the generated app, so no package lint target reaches it; `make
+lint-files` runs the formatter check over `presets/**`.
 
 ## Packages
 
