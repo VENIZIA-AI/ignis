@@ -7,7 +7,6 @@ tags: [process, release, ci]
 ---
 
 <!-- okf:generated:contents start -->
-
 **Contents**
 
 - [Two kinds of release](#two-kinds-of-release)
@@ -19,7 +18,6 @@ tags: [process, release, ci]
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
 - [Steps](#steps)
 - [Related](#related)
-
 <!-- okf:generated:contents end -->
 
 ## Two kinds of release
@@ -188,6 +186,9 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
      kind, each version with its packages, the issue, the short commit). The run name cannot see the plan, so the dispatcher says
      it and the `plan` job refuses a label that is not the one it computes (`ReleaseTargets.labelOf`); the title cannot name a
      release the run does not make. A dispatch by hand has none, and the title is the mode, the issue and the whole commit.
+     `release.ts` sends `label` only when the workflow file on the branch it dispatches on declares it (GitHub refuses an input
+     the file does not declare, and `main` has none until the Sync), and the guard `plan-checks-the-label` allows no other reader
+     of `inputs.label` and no `continue-on-error` in the plan job.
      A repository-wide `concurrency: npm-release` group serialises runs. A second dispatch waits; a third cancels the waiting
      one. `docs/wiki` (`@venizia/ignis-docs`) is not in the plan: it is not republished through this workflow.
 2. `plan` validates the input and outputs the ordered plan and the test matrix.

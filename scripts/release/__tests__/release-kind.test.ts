@@ -311,3 +311,30 @@ describe('ReleaseTargets.labelOf and labelProblems: the run title', () => {
     expect(problem).not.toContain('\n');
   });
 });
+
+describe('ReleaseTargets.quote: a value in one log line', () => {
+  test('escapes the bidirectional and zero-width characters, which JSON leaves as they are', () => {
+    const hostile = 'a‮b​c⁦d﻿e‏f';
+    const quoted = ReleaseTargets.quote({ value: hostile });
+
+    expect(quoted).toBe('"a\\u202eb\\u200bc\\u2066d\\ufeffe\\u200ff"');
+    expect(quoted).not.toMatch(/[​-‏‪-‮⁠-⁯﻿]/);
+  });
+
+  test('keeps JSON quoting for a newline and a quote, and leaves plain text and the middle dot alone', () => {
+    expect(ReleaseTargets.quote({ value: 'x\n"y"' })).toBe('"x\\n\\"y\\""');
+    expect(ReleaseTargets.quote({ value: 'stable · 0.4.6 kernel' })).toBe(
+      '"stable · 0.4.6 kernel"',
+    );
+  });
+
+  test('a refusal shows a hostile label escaped', () => {
+    const [problem] = ReleaseTargets.labelProblems({
+      label: 'stable‮ · 0.4.6',
+      expected: 'stable · 0.4.6',
+    });
+
+    expect(problem).toContain('stable\\u202e');
+    expect(problem).not.toContain('‮');
+  });
+});

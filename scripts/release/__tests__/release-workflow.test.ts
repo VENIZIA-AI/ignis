@@ -324,6 +324,27 @@ describe('one mutation per guard: removing the guard from a copy fails the check
       runner: [{ find: 'ReleaseTargets.labelProblems({', replace: 'ReleaseTargets.noProblems({' }],
     },
     {
+      // A third reader of the label.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '      PACKAGE: ${{ matrix.package }}\n',
+          replace: '      PACKAGE: ${{ matrix.package }}\n      TITLE: ${{ inputs.label }}\n',
+        },
+      ],
+    },
+    {
+      // A plan job that may fail and go on.
+      guard: ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
+      edits: [
+        {
+          find: '        id: plan\n        env:\n          PLAN: ${{ inputs.plan }}\n',
+          replace:
+            '        id: plan\n        continue-on-error: true\n        env:\n          PLAN: ${{ inputs.plan }}\n',
+        },
+      ],
+    },
+    {
       guard: ReleaseWorkflowGuards.ACTIONS_PINNED_BY_COMMIT,
       edits: [
         {

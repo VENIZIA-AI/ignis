@@ -21,6 +21,23 @@ export class ReleaseDispatch {
   }
 
   /**
+   * Whether the workflow file declares the `label` input. GitHub refuses a dispatch with an input the file does not
+   * declare, and the first stable after this change runs the workflow of `main`, which has no `label` until the Sync
+   * brings it: the dispatcher sends the label only when the branch it dispatches on declares it.
+   */
+  static declaresLabel(opts: { workflowText: string }): boolean {
+    try {
+      const workflow = Bun.YAML.parse(opts.workflowText) as {
+        on?: { workflow_dispatch?: { inputs?: Record<string, unknown> } };
+      } | null;
+
+      return workflow?.on?.workflow_dispatch?.inputs?.['label'] !== undefined;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * The arguments of the one `gh` call that starts the whole release. The run title `label` is sent only when there
    * is one; the plan job refuses a label that is not the one it computes (`ReleaseTargets.labelOf`).
    */

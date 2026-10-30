@@ -18,7 +18,7 @@ interface IJob {
   needs?: string | string[];
   if?: string;
   permissions?: Record<string, string>;
-  concurrency?: { group?: string };
+  concurrency?: { group?: string; 'cancel-in-progress'?: boolean };
   steps?: IStep[];
 }
 

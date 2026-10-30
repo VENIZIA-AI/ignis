@@ -441,14 +441,24 @@ const main = async (): Promise<void> => {
 
   const previousRunId = await resolveLatestRunId();
   // The run title the workflow shows: the plan job works out the same string and refuses a different one. The commit
-  // is the head of the branch the run is dispatched on, which `assertReleasable` has just fetched.
+  // is the head of the branch the run is dispatched on, which `assertReleasable` has just fetched. The workflow that
+  // runs is the file on that branch: one that does not declare `label` (main, until the Sync) is sent none, because
+  // GitHub refuses an input the file does not declare.
   const { stdout: headSha } = await run({ command: ['git', 'rev-parse', `origin/${branch}`] });
-  const label = ReleaseTargets.labelOf({
-    kind,
-    targets: ReleaseTargets.of({ entries, mode }),
-    issue,
-    sha: headSha,
+  const { stdout: workflowText } = await run({
+    command: ['git', 'show', `origin/${branch}:.github/workflows/${ReleaseDispatch.WORKFLOW}`],
   });
+  const label = ReleaseDispatch.declaresLabel({ workflowText })
+    ? ReleaseTargets.labelOf({
+        kind,
+        targets: ReleaseTargets.of({ entries, mode }),
+        issue,
+        sha: headSha,
+      })
+    : undefined;
+  if (label === undefined) {
+    console.log(`  ${branch} has no run title input yet: the run is titled by its mode`);
+  }
   await run({ command: ['gh', ...ReleaseDispatch.buildArgs({ entries, mode, issue, label })] });
 
   const runId = await waitForNewRun({ previousRunId });

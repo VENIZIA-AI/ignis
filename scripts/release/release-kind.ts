@@ -191,12 +191,23 @@ export class ReleaseTargets {
     return [opts.kind, versions, ...issue, ...sha].join(' · ');
   }
 
+  /**
+   * A value as one log-safe quoted string: JSON quoting (a newline, a quote) plus an escape for the characters that
+   * JSON leaves as they are and that change how a log line reads: the bidirectional controls and the zero-width ones.
+   */
+  static quote(opts: { value: string }): string {
+    return JSON.stringify(opts.value).replaceAll(
+      /[­؜᠎​-‏‪-‮⁠-⁯﻿]/g,
+      (char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`,
+    );
+  }
+
   /** Why a label is not the one this plan gives; empty when it is, or when there is none (a dispatch by hand). */
   static labelProblems(opts: { label: string | undefined; expected: string }): string[] {
     return opts.label === undefined || opts.label === '' || opts.label === opts.expected
       ? []
       : [
-          `the label ${JSON.stringify(opts.label)} is not what the plan computes: ${JSON.stringify(opts.expected)}`,
+          `the label ${this.quote({ value: opts.label })} is not what the plan computes: ${this.quote({ value: opts.expected })}`,
         ];
   }
 

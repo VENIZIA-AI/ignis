@@ -443,11 +443,15 @@ export const checkReleaseWorkflow = (opts: {
         step.env?.RELEASE_ISSUE === '${{ inputs.issue }}',
     ) &&
     /process\.env\.RELEASE_LABEL/.test(runner) &&
-    /ReleaseTargets\.labelProblems/.test(runner);
+    /ReleaseTargets\.labelProblems/.test(runner) &&
+    // The label is read in two places and no other: the run name and the plan step. A third reader would trust it.
+    withoutComments(text).split('inputs.label').length - 1 === 2 &&
+    // A plan job that may fail and go on would let a refused label through.
+    !JSON.stringify(plan).includes('continue-on-error');
   if (!planChecksTheLabel) {
     violate(
       ReleaseWorkflowGuards.PLAN_CHECKS_THE_LABEL,
-      'the plan step must receive `label` and `issue` from the dispatch inputs (`RELEASE_LABEL`, `RELEASE_ISSUE`), and `release-run.ts plan` must refuse a label that is not the one it computes: the run title cannot name a release the run does not make',
+      'the plan step must receive `label` and `issue` from the dispatch inputs (`RELEASE_LABEL`, `RELEASE_ISSUE`), `release-run.ts plan` must refuse a label that is not the one it computes, `inputs.label` is read by the run name and the plan step only, and the plan job has no `continue-on-error`: the run title cannot name a release the run does not make',
     );
   }
 
