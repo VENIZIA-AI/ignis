@@ -19,8 +19,10 @@ describe('neutral driver contract', () => {
 
     const connection = await driver.acquire({ schema: {} as never });
     expect(connection.connector.tag).toBe('fake');
-    expect((await connection.execute({ statement: 'BEGIN' })).count).toBe(0);
-    expect(await connection.query({ statement: 'SELECT 1' })).toEqual([]);
+    const result = await connection.execute({ statement: 'BEGIN' });
+    expect(result.count).toBe(0);
+    const result2 = await connection.query({ statement: 'SELECT 1' });
+    expect(result2).toEqual([]);
   });
 
   test('the postgres guard accepts what the neutral guard accepts', () => {

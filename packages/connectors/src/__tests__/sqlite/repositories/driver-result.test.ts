@@ -32,11 +32,13 @@ const captureFailureMessage = (result: unknown): Promise<string> =>
 
 describe('SqliteQueryExecutor - affected-row count reads libsql and nothing else', () => {
   test("libsql's rowsAffected is read", async () => {
-    expect(await insertWithResult({ rowsAffected: 3 })).toEqual({ count: 3, rows: [] });
+    const result = await insertWithResult({ rowsAffected: 3 });
+    expect(result).toEqual({ count: 3, rows: [] });
   });
 
   test("a result carrying only 'changes' is refused, not counted", async () => {
-    expect(await captureFailureMessage({ changes: 3 })).toContain('Unrecognized driver result');
+    const result2 = await captureFailureMessage({ changes: 3 });
+    expect(result2).toContain('Unrecognized driver result');
   });
 
   test('the refusal names libsql only - no synchronous driver can reach this tier', async () => {

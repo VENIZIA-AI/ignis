@@ -19,12 +19,14 @@ const buildConnector = (opts?: {
 describe('MeilisearchConnector - getHealth', () => {
   test('resolves { ok: true } when the engine reports available', async () => {
     const { connector } = buildConnector();
-    expect(await connector.getHealth()).toEqual({ ok: true });
+    const result = await connector.getHealth();
+    expect(result).toEqual({ ok: true });
   });
 
   test('resolves { ok: false } when status is not available', async () => {
     const client = new FakeMeilisearchClient({ healthStatus: 'maintenance' });
     const { connector } = buildConnector({ client });
-    expect(await connector.getHealth()).toEqual({ ok: false });
+    const result = await connector.getHealth();
+    expect(result).toEqual({ ok: false });
   });
 });

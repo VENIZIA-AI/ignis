@@ -111,9 +111,10 @@ describe('PGliteDriver - against a real PGlite instance', () => {
     first.release();
     await second;
 
-    const rows = (
-      await client.query<{ id: number }>('SELECT id FROM serialisation_probe ORDER BY id')
-    ).rows;
+    const result = await client.query<{ id: number }>(
+      'SELECT id FROM serialisation_probe ORDER BY id',
+    );
+    const rows = result.rows;
 
     // One assertion over both facts, so a regression reports the
     // ordering AND the surviving row rather than stopping at the first.

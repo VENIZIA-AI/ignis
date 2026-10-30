@@ -11,12 +11,14 @@ describe('TypesenseConnector lifecycle', () => {
 
   test('getHealth maps to { ok }', async () => {
     const { helper } = makeHelper({ health: { ok: true } });
-    expect(await helper.getHealth()).toEqual({ ok: true });
+    const result = await helper.getHealth();
+    expect(result).toEqual({ ok: true });
   });
 
   test('ping returns boolean from health', async () => {
     const { helper } = makeHelper({ health: { ok: false } });
-    expect(await helper.ping()).toBe(false);
+    const result = await helper.ping();
+    expect(result).toBe(false);
   });
 
   test('onInitialized callback fires with name', () => {
@@ -36,7 +38,8 @@ describe('TypesenseConnector lifecycle', () => {
 
   test('getHealth returns { ok: false } and does not throw when the probe fails', async () => {
     const { helper } = makeHelper({ throwOn: { 'health.retrieve': new Error('probe down') } });
-    expect(await helper.getHealth()).toEqual({ ok: false });
+    const result = await helper.getHealth();
+    expect(result).toEqual({ ok: false });
   });
 
   test('onError fires and the constructor rethrows when initialization throws', () => {

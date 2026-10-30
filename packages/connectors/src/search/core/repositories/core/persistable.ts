@@ -188,7 +188,8 @@ export class PersistableSearchRepository<
     let found: TNullable<TDocument> = null;
 
     if (this.defaultWhere && !options?.shouldSkipDefaultFilter) {
-      found = await this.findById({ id, options });
+      const result = await this.findById({ id, options });
+      found = result;
 
       if (!found) {
         return { count: 0, data: null };

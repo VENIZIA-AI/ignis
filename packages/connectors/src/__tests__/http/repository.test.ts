@@ -34,7 +34,8 @@ describe('the total comes from the header, not from the page', () => {
   test('count reads Content-Range while the payload holds one row', async () => {
     stubFetch({ body: [{ id: 'a' }], contentRange: 'items 0-0/7' });
 
-    expect(await build().count({ where: {} })).toEqual({ count: 7 });
+    const result = await build().count({ where: {} });
+    expect(result).toEqual({ count: 7 });
   });
 
   test('find with a range fills the envelope from the header', async () => {
@@ -51,7 +52,8 @@ describe('an empty page still carries its total', () => {
   test('count answers 0 when nothing matches', async () => {
     stubFetch({ body: [], contentRange: 'records */0' });
 
-    expect(await build().count({ where: {} })).toEqual({ count: 0 });
+    const result = await build().count({ where: {} });
+    expect(result).toEqual({ count: 0 });
   });
 
   test('find past the end keeps the total and the requested start', async () => {
@@ -88,8 +90,10 @@ describe('an unknown total is not a total, and the message says which', () => {
   test('plain find and existsWith need no total', async () => {
     stubFetch({ body: [{ id: 'a' }], contentRange: UNKNOWN });
 
-    expect(await build().find({})).toHaveLength(1);
-    expect(await build().existsWith({ where: {} })).toBe(true);
+    const result = await build().find({});
+    expect(result).toHaveLength(1);
+    const result2 = await build().existsWith({ where: {} });
+    expect(result2).toBe(true);
   });
 });
 
@@ -112,13 +116,15 @@ describe('no header means no total, and it says so', () => {
   test('find without a range is unaffected', async () => {
     stubFetch({ body: [{ id: 'a' }, { id: 'b' }] });
 
-    expect(await build().find({})).toHaveLength(2);
+    const result = await build().find({});
+    expect(result).toHaveLength(2);
   });
 
   test('existsWith answers from the rows, with no header', async () => {
     stubFetch({ body: [{ id: 'a' }] });
 
-    expect(await build().existsWith({ where: {} })).toBe(true);
+    const result = await build().existsWith({ where: {} });
+    expect(result).toBe(true);
   });
 });
 
@@ -126,7 +132,8 @@ describe('countPath is opt-in convention', () => {
   test('when named, the count route is asked instead', async () => {
     const urls = stubFetch({ body: { count: 42 } });
 
-    expect(await build({ countPath: 'count' }).count({ where: {} })).toEqual({ count: 42 });
+    const result = await build({ countPath: 'count' }).count({ where: {} });
+    expect(result).toEqual({ count: 42 });
     expect(urls[0]).toContain('/tickets/count');
   });
 
@@ -143,9 +150,10 @@ describe('findOnePath is opt-in convention', () => {
   test('when named, the find-one route is asked and its row comes back bare', async () => {
     const urls = stubFetch({ body: { id: 'a' } });
 
-    expect(
-      await build({ findOnePath: 'find-one' }).findOne({ filter: { where: { id: 'a' } } }),
-    ).toEqual({
+    const result = await build({ findOnePath: 'find-one' }).findOne({
+      filter: { where: { id: 'a' } },
+    });
+    expect(result).toEqual({
       id: 'a',
     } as never);
     expect(urls[0]).toContain('/tickets/find-one?');
@@ -156,13 +164,15 @@ describe('findOnePath is opt-in convention', () => {
   test('a missing row is a 200 with a null body, and answers null', async () => {
     stubFetch({ body: null });
 
-    expect(await build({ findOnePath: 'find-one' }).findOne({ filter: {} })).toBeNull();
+    const result = await build({ findOnePath: 'find-one' }).findOne({ filter: {} });
+    expect(result).toBeNull();
   });
 
   test('when absent, the list route is asked for one row', async () => {
     const urls = stubFetch({ body: [{ id: 'a' }] });
 
-    expect(await build().findOne({ filter: {} })).toEqual({ id: 'a' } as never);
+    const result = await build().findOne({ filter: {} });
+    expect(result).toEqual({ id: 'a' } as never);
     expect(urls[0]).not.toContain('find-one');
     expect(urls[0]).toContain('limit');
   });
@@ -175,13 +185,15 @@ describe('both IGNIS list shapes are read, not one assumed', () => {
       contentRange: 'items 0-1/50',
     });
 
-    expect(await build().find({})).toHaveLength(2);
+    const result = await build().find({});
+    expect(result).toHaveLength(2);
   });
 
   test('a bare array is read as it always was', async () => {
     stubFetch({ body: [{ id: 'a' }, { id: 'b' }] });
 
-    expect(await build().find({})).toHaveLength(2);
+    const result = await build().find({});
+    expect(result).toHaveLength(2);
   });
 
   test('the total comes from the header even when an envelope carries a count', async () => {
@@ -190,13 +202,15 @@ describe('both IGNIS list shapes are read, not one assumed', () => {
       contentRange: 'items 0-1/50',
     });
 
-    expect(await build().count({ where: {} })).toEqual({ count: 50 });
+    const result = await build().count({ where: {} });
+    expect(result).toEqual({ count: 50 });
   });
 
   test('a plain object is not mistaken for an envelope', async () => {
     stubFetch({ body: { id: 'a', count: 3 } });
 
-    expect(await build().findById({ id: 'a' })).toEqual({ id: 'a', count: 3 } as never);
+    const result = await build().findById({ id: 'a' });
+    expect(result).toEqual({ id: 'a', count: 3 } as never);
   });
 });
 
@@ -204,7 +218,8 @@ describe('a record is never unwrapped, whatever fields it carries', () => {
   test('findById returns a row that happens to carry data and count', async () => {
     stubFetch({ body: { id: 'a', data: { nested: true }, count: 3 } });
 
-    expect(await build().findById({ id: 'a' })).toEqual({
+    const result = await build().findById({ id: 'a' });
+    expect(result).toEqual({
       id: 'a',
       data: { nested: true },
       count: 3,
@@ -239,15 +254,18 @@ describe('a body that is not a list, and a count route that answers no count', (
 
   test('findOne answers null for an empty page, and the row for a full one', async () => {
     stubFetch({ body: [] });
-    expect(await build().findOne({ filter: {} })).toBeNull();
+    const result = await build().findOne({ filter: {} });
+    expect(result).toBeNull();
 
     stubFetch({ body: [{ id: 'a' }, { id: 'b' }] });
-    expect(await build().findOne({ filter: {} })).toEqual({ id: 'a' } as never);
+    const result2 = await build().findOne({ filter: {} });
+    expect(result2).toEqual({ id: 'a' } as never);
   });
 
   test('existsWith answers false when no row comes back', async () => {
     stubFetch({ body: [], contentRange: 'records */0' });
 
-    expect(await build().existsWith({ where: {} })).toBe(false);
+    const result = await build().existsWith({ where: {} });
+    expect(result).toBe(false);
   });
 });

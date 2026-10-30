@@ -471,9 +471,10 @@ export class SharedBffTransport extends BaseHelper implements IBffTransport {
         request: BffEnvelope.decodeRequest({ envelope }),
       });
 
+      const result = await BffEnvelope.encodeResponse({ response, id: envelope.id });
       this.channel.postMessage({
         kind: ChannelMessageKinds.RESPONSE,
-        envelope: await BffEnvelope.encodeResponse({ response, id: envelope.id }),
+        envelope: result,
       } satisfies TChannelMessage);
     } catch (error) {
       // The follower gets the failure as a failure, rather than waiting out a timeout that would

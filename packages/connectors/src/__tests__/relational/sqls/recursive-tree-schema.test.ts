@@ -153,7 +153,8 @@ describe('RecursiveTreeSql.walk - against a real Postgres (PGlite)', () => {
   });
 
   test('reads the table in the commerce schema', async () => {
-    expect(await walkIds({ rootId: 'a' })).toEqual(['a', 'b', 'c', 'd', 'e']);
+    const result = await walkIds({ rootId: 'a' });
+    expect(result).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
   test('a soft-deleted row in the chain is excluded, with its subtree, by recursiveFilter', async () => {

@@ -29,7 +29,8 @@ class GizmoConnector implements IRawSqlConnector {
       });
     }
 
-    return { rows: await this.client.run(query) };
+    const result = await this.client.run(query);
+    return { rows: result };
   }
 }
 
@@ -88,7 +89,8 @@ describe('the raw SQL guide: a worked example on a fake engine', () => {
         statement: "select day, sum(total) from revenue where day >= '2026-10-01'",
       },
     ]);
-    expect(await captureRejection(() => dataSource.close())).toBeUndefined();
+    const result = await captureRejection(() => dataSource.close());
+    expect(result).toBeUndefined();
   });
 
   test('a Drizzle template is refused by this connector, in its own words', async () => {

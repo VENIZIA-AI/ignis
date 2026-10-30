@@ -89,7 +89,8 @@ describe('optional and sub-path-only modules are never eagerly loaded', () => {
   for (const { name, entry } of ENTRIES) {
     for (const { label, pattern } of FORBIDDEN) {
       test(`${name} loads zero ${label} modules`, async () => {
-        expect(await countDriverModules({ entry, pattern })).toBe(0);
+        const result = await countDriverModules({ entry, pattern });
+        expect(result).toBe(0);
       }, 30_000);
     }
   }

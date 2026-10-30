@@ -95,7 +95,8 @@ export class PGliteDriver<
     // The bare pool error names only a timeout; on one session the cause is almost always an
     // unreleased transaction, so say so where the caller reads it.
     try {
-      client = await this.slot.acquire();
+      const result2 = await this.slot.acquire();
+      client = result2;
     } catch (error) {
       throw getError({
         message: `[${PGliteDriver.name}][acquire] Could not borrow the single PGlite session | ${(error as Error)?.message ?? String(error)} | An unreleased transaction still holds it - commit/rollback it, or raise \`acquireTimeoutMs\``,

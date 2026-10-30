@@ -339,7 +339,8 @@ export abstract class RelationalBaseRepository<
 
     let result: ResultType;
     try {
-      result = await execute({ transaction: ownedTransaction });
+      const result2 = await execute({ transaction: ownedTransaction });
+      result = result2;
     } catch (error) {
       if (ownedTransaction.isActive) {
         await this.rollbackOwnedTransaction({ transaction: ownedTransaction });

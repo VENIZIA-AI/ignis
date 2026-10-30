@@ -42,12 +42,18 @@ export class BffEnvelope {
     const { request, id, url } = opts;
     const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
 
+    let body: ArrayBuffer | undefined;
+    if (hasBody) {
+      const buffer = await request.arrayBuffer();
+      body = buffer;
+    }
+
     return {
       id,
       method: request.method,
       url: url ?? request.url,
       headers: [...request.headers.entries()],
-      body: hasBody ? await request.arrayBuffer() : undefined,
+      body,
     };
   }
 
@@ -68,12 +74,18 @@ export class BffEnvelope {
     const { response, id } = opts;
     const hasBody = !BffEnvelope.NULL_BODY_STATUSES.has(response.status);
 
+    let body: ArrayBuffer | undefined;
+    if (hasBody) {
+      const buffer = await response.arrayBuffer();
+      body = buffer;
+    }
+
     return {
       id,
       status: response.status,
       statusText: response.statusText,
       headers: [...response.headers.entries()],
-      body: hasBody ? await response.arrayBuffer() : undefined,
+      body,
     };
   }
 

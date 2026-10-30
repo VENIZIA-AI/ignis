@@ -197,7 +197,8 @@ describe('WorkerApplication.listen() - the boot window', () => {
 
     await listening;
 
-    expect(await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 })).toBe(true);
+    const result = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result).toBe(true);
 
     const response = scope.posted[0] as IBffResponseEnvelope;
     expect(response.id).toBe('boot-window-1');
@@ -227,9 +228,8 @@ describe('WorkerApplication.listen() - the boot window', () => {
 
     await listening;
 
-    expect(await waitFor({ condition: () => scope.posted.length === 3, timeoutMs: 500 })).toBe(
-      true,
-    );
+    const result = await waitFor({ condition: () => scope.posted.length === 3, timeoutMs: 500 });
+    expect(result).toBe(true);
 
     const answeredIds = (scope.posted as IBffResponseEnvelope[]).map((response) => response.id);
     expect(answeredIds).toEqual(['boot-window-a', 'boot-window-b', 'boot-window-c']);
@@ -265,7 +265,8 @@ describe('WorkerApplication.listen() - the boot window', () => {
     // The caller of `listen()` still hears the failure...
     expect(caught).toBeDefined();
     // ...and so does the UI, instead of waiting out the transport's full timeout.
-    expect(await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 })).toBe(true);
+    const result = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result).toBe(true);
 
     const errorEnvelope = scope.posted[0] as IBffErrorEnvelope;
     expect(errorEnvelope.id).toBe('failed-boot-1');
@@ -286,9 +287,11 @@ describe('WorkerApplication.listen() - the boot window', () => {
 
     expect(scope.listenerCount()).toBe(1);
 
-    scope.dispatch(await buildRequestEnvelope({ id: 'idempotent-1' }));
+    const result = await buildRequestEnvelope({ id: 'idempotent-1' });
+    scope.dispatch(result);
 
-    expect(await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 })).toBe(true);
+    const result2 = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result2).toBe(true);
     await sleep(50);
 
     expect(helloHandlerRunCount).toBe(1);
@@ -317,7 +320,8 @@ describe('WorkerApplication.listen() - the boot window', () => {
     // next Worker fails with `NoModificationAllowedError` until a full page reload.
     expect(drainedIdentifiers).toEqual(['test.datasource.close']);
 
-    scope.dispatch(await buildRequestEnvelope({ id: 'after-stop-1' }));
+    const result = await buildRequestEnvelope({ id: 'after-stop-1' });
+    scope.dispatch(result);
     await sleep(50);
 
     expect(scope.posted).toHaveLength(0);
@@ -333,11 +337,13 @@ describe('WorkerApplication.listen() - the boot window', () => {
     const scope = new FakeWorkerScope();
 
     const listening = app.listen({ scope });
-    scope.dispatch(await buildRequestEnvelope({ id: 'stopped-mid-boot-1' }));
+    const result = await buildRequestEnvelope({ id: 'stopped-mid-boot-1' });
+    scope.dispatch(result);
     await app.stop();
     await listening;
 
-    expect(await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 })).toBe(true);
+    const result2 = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result2).toBe(true);
 
     const errorEnvelope = scope.posted[0] as IBffErrorEnvelope;
     expect(errorEnvelope.id).toBe('stopped-mid-boot-1');
@@ -360,7 +366,8 @@ describe('WorkerApplication - a failure that escapes the HTTP layer', () => {
     // an error envelope at all. Nothing about it is a client's bad request.
     scope.dispatch({ id: 'escaped-1', method: 'GET', url: 'ignis.internal/hello', headers: [] });
 
-    expect(await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 })).toBe(true);
+    const result = await waitFor({ condition: () => scope.posted.length > 0, timeoutMs: 500 });
+    expect(result).toBe(true);
 
     const errorEnvelope = scope.posted[0] as IBffErrorEnvelope;
     expect(errorEnvelope.id).toBe('escaped-1');

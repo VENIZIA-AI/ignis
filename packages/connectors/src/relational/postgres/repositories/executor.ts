@@ -93,7 +93,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -109,7 +110,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 
@@ -122,7 +124,8 @@ export class PostgresQueryExecutor implements IRelationalQueryExecutor<TRelation
       return { count: this.readAffectedRowCount({ result }), rows: [] };
     }
 
-    const rows = returning ? await query.returning(returning as AnyType) : await query.returning();
+    const pending = returning ? query.returning(returning as AnyType) : query.returning();
+    const rows = await pending;
     return { count: rows.length, rows: rows as Array<R> };
   }
 

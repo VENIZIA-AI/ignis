@@ -203,10 +203,14 @@ export class ReadableRelationalRepository<
     let total: number;
 
     if (effectiveOptions.transaction) {
-      data = await dataPromise;
-      ({ count: total } = await countPromise());
+      const result = await dataPromise;
+      data = result;
+      const counted = await countPromise();
+      total = counted.count;
     } else {
-      [data, { count: total }] = await Promise.all([dataPromise, countPromise()]);
+      const [rows, counted] = await Promise.all([dataPromise, countPromise()]);
+      data = rows;
+      total = counted.count;
     }
 
     return {

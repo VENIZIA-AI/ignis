@@ -38,7 +38,8 @@ export class InProcessBffTransport extends BaseHelper implements IBffTransport {
 
     try {
       const response = await this.handler(BffEnvelope.decodeRequest({ envelope: requestEnvelope }));
-      responseEnvelope = await BffEnvelope.encodeResponse({ response, id });
+      const result = await BffEnvelope.encodeResponse({ response, id });
+      responseEnvelope = result;
     } catch (error) {
       this.logger.for(this.fetch.name).error('Handler failed | id: %s | error: %s', id, error);
 

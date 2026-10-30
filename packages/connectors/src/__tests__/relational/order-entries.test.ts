@@ -394,7 +394,8 @@ describe('toOrderBy - runtime order on PGlite', () => {
       pgExpressions,
     );
 
-    expect(await selectIds(order)).toEqual([2, 3, 4, 1, 5]);
+    const result = await selectIds(order);
+    expect(result).toEqual([2, 3, 4, 1, 5]);
   });
 
   test('expression, JSON path and column mixed in one call', async () => {
@@ -403,13 +404,13 @@ describe('toOrderBy - runtime order on PGlite', () => {
       pgExpressions,
     );
 
-    expect(await selectIds(order)).toEqual([5, 1, 2, 4, 3]);
+    const result = await selectIds(order);
+    expect(result).toEqual([5, 1, 2, 4, 3]);
   });
 
   test('a JSON path and a column without expressions sort as before', async () => {
-    expect(await selectIds(toPostgresOrderBy(['metadata.rank DESC', 'name ASC']))).toEqual([
-      1, 3, 4, 5, 2,
-    ]);
+    const result = await selectIds(toPostgresOrderBy(['metadata.rank DESC', 'name ASC']));
+    expect(result).toEqual([1, 3, 4, 5, 2]);
   });
 });
 
@@ -476,7 +477,8 @@ describe('toOrderBy - runtime order on libsql', () => {
   test('joined column then COALESCE, the tie on items 3 and 4 broken by id', async () => {
     const order = toSqliteOrderByWithExpressions(['groupLabel ASC', 'displayName DESC']);
 
-    expect(await selectIds(order)).toEqual([2, 3, 4, 1, 5]);
+    const result = await selectIds(order);
+    expect(result).toEqual([2, 3, 4, 1, 5]);
   });
 
   test('expression, JSON path and column mixed in one call', async () => {
@@ -486,12 +488,12 @@ describe('toOrderBy - runtime order on libsql', () => {
       'score DESC',
     ]);
 
-    expect(await selectIds(order)).toEqual([5, 1, 2, 4, 3]);
+    const result = await selectIds(order);
+    expect(result).toEqual([5, 1, 2, 4, 3]);
   });
 
   test('a JSON path and a column without expressions sort as before', async () => {
-    expect(await selectIds(toSqliteOrderBy(['metadata.rank DESC', 'name ASC']))).toEqual([
-      1, 3, 4, 5, 2,
-    ]);
+    const result = await selectIds(toSqliteOrderBy(['metadata.rank DESC', 'name ASC']));
+    expect(result).toEqual([1, 3, 4, 5, 2]);
   });
 });

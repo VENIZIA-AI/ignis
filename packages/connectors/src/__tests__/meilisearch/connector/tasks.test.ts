@@ -103,7 +103,8 @@ describe('MeilisearchConnector - count and updateBy', () => {
   let connector: MeilisearchConnector;
 
   beforeEach(async () => {
-    ({ connector } = await buildConnector());
+    const built = await buildConnector();
+    connector = built.connector;
     await connector.collection.ensure({
       schema: { uid: 'articles', primaryKey: 'id', settings: {} },
     });
@@ -118,10 +119,13 @@ describe('MeilisearchConnector - count and updateBy', () => {
       });
     }
 
-    expect(await connector.document.count({ collection: 'articles' })).toBe(3);
-    expect(await connector.document.count({ collection: 'articles', filterBy: 'score > 1' })).toBe(
-      2,
-    );
+    const result = await connector.document.count({ collection: 'articles' });
+    expect(result).toBe(3);
+    const result2 = await connector.document.count({
+      collection: 'articles',
+      filterBy: 'score > 1',
+    });
+    expect(result2).toBe(2);
   });
 
   test('updateBy() patches every matching document and preserves untouched fields', async () => {

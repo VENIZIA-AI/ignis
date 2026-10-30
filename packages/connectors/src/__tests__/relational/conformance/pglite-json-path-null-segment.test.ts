@@ -52,26 +52,31 @@ afterAll(async () => {
 
 describe('a JSON-path segment named NULL is read as a key, not as SQL NULL', () => {
   test('where equality finds the row whose NULL key has that value', async () => {
-    expect(await selectIds({ where: { 'metadata.NULL': 'b' } })).toEqual([1]);
+    const result = await selectIds({ where: { 'metadata.NULL': 'b' } });
+    expect(result).toEqual([1]);
   });
 
   test('where null matches only the row that has no NULL key', async () => {
-    expect(await selectIds({ where: { 'metadata.NULL': null } })).toEqual([3]);
+    const result = await selectIds({ where: { 'metadata.NULL': null } });
+    expect(result).toEqual([3]);
   });
 
   test('lower-case null is a key too', async () => {
     await client.exec(`INSERT INTO ${TABLE} (metadata) VALUES ('{"null": "x"}')`);
-    expect(await selectIds({ where: { 'metadata.null': 'x' } })).toEqual([4]);
+    const result = await selectIds({ where: { 'metadata.null': 'x' } });
+    expect(result).toEqual([4]);
     await client.exec(`DELETE FROM ${TABLE} WHERE id = 4`);
   });
 
   test('order by the NULL key sorts by its value', async () => {
-    expect(await selectIds({ order: ['metadata.NULL DESC', 'id ASC'] })).toEqual([3, 2, 1]);
+    const result = await selectIds({ order: ['metadata.NULL DESC', 'id ASC'] });
+    expect(result).toEqual([3, 2, 1]);
   });
 
   test('an array index segment still works when quoted', async () => {
     await client.exec(`INSERT INTO ${TABLE} (metadata) VALUES ('{"items": ["p", "q"]}')`);
-    expect(await selectIds({ where: { 'metadata.items[1]': 'q' } })).toEqual([5]);
+    const result = await selectIds({ where: { 'metadata.items[1]': 'q' } });
+    expect(result).toEqual([5]);
     await client.exec(`DELETE FROM ${TABLE} WHERE id = 5`);
   });
 
@@ -87,6 +92,7 @@ describe('a JSON-path segment named NULL is read as a key, not as SQL NULL', () 
       .set({ metadata: transformed.jsonExpressions.metadata })
       .where(sql`${table.id} = 1`);
 
-    expect(await selectIds({ where: { 'metadata.NULL': 'z' } })).toEqual([1]);
+    const result = await selectIds({ where: { 'metadata.NULL': 'z' } });
+    expect(result).toEqual([1]);
   });
 });

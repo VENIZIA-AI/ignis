@@ -33,26 +33,33 @@ export const runConnectorConformance = (opts: {
     };
 
     beforeEach(async () => {
-      ({ connector, collection } = await build());
+      const built = await build();
+      connector = built.connector;
+      collection = built.collection;
     });
 
     test('ping() reports healthy', async () => {
-      expect(await connector.ping()).toBe(true);
+      const result = await connector.ping();
+      expect(result).toBe(true);
     });
 
     test('getHealth() resolves { ok: false } instead of throwing when the probe fails', async () => {
       const { connector: unhealthy } = await buildWithFailingHealth();
-      expect(await unhealthy.getHealth()).toEqual({ ok: false });
+      const result = await unhealthy.getHealth();
+      expect(result).toEqual({ ok: false });
     });
 
     test('ping() returns false instead of throwing when the probe fails', async () => {
       const { connector: unhealthy } = await buildWithFailingHealth();
-      expect(await unhealthy.ping()).toBe(false);
+      const result = await unhealthy.ping();
+      expect(result).toBe(false);
     });
 
     test('collection.exists() distinguishes present from absent', async () => {
-      expect(await connector.collection.exists({ name: collection })).toBe(true);
-      expect(await connector.collection.exists({ name: 'no-such-collection' })).toBe(false);
+      const result = await connector.collection.exists({ name: collection });
+      expect(result).toBe(true);
+      const result2 = await connector.collection.exists({ name: 'no-such-collection' });
+      expect(result2).toBe(false);
     });
 
     // A false here triggers a write (ensureCollection creates on absence), so a transient
@@ -102,10 +109,13 @@ export const runConnectorConformance = (opts: {
         { id: '3', title: 't-3', score: 3 },
       ]);
 
-      expect(await connector.document.count({ collection })).toBe(3);
-      expect(await connector.document.count({ collection, filterBy: filters.scoreAboveOne })).toBe(
-        2,
-      );
+      const result = await connector.document.count({ collection });
+      expect(result).toBe(3);
+      const result2 = await connector.document.count({
+        collection,
+        filterBy: filters.scoreAboveOne,
+      });
+      expect(result2).toBe(2);
     });
 
     test('updateBy() patches every matching document and leaves the rest alone', async () => {
@@ -136,24 +146,30 @@ export const runConnectorConformance = (opts: {
         { id: '2', title: 'b', score: 6 },
       ]);
 
-      expect(
-        await connector.document.deleteBy({ collection, filterBy: filters.allPositiveScores }),
-      ).toBe(2);
-      expect(await connector.document.count({ collection })).toBe(0);
+      const result = await connector.document.deleteBy({
+        collection,
+        filterBy: filters.allPositiveScores,
+      });
+      expect(result).toBe(2);
+      const result2 = await connector.document.count({ collection });
+      expect(result2).toBe(0);
     });
 
     test('deleteAll() empties the collection', async () => {
       await seed([{ id: '1', title: 'a', score: 1 }]);
 
       await connector.document.deleteAll({ collection });
-      expect(await connector.document.count({ collection })).toBe(0);
+      const result = await connector.document.count({ collection });
+      expect(result).toBe(0);
     });
 
     test('delete() removes one document', async () => {
       await seed([{ id: '1', title: 'a', score: 1 }]);
 
-      expect(await connector.document.delete({ collection, id: '1' })).toBe(true);
-      expect(await connector.document.count({ collection })).toBe(0);
+      const result = await connector.document.delete({ collection, id: '1' });
+      expect(result).toBe(true);
+      const result2 = await connector.document.count({ collection });
+      expect(result2).toBe(0);
     });
 
     test('import() reports success and failure counts', async () => {
@@ -167,7 +183,8 @@ export const runConnectorConformance = (opts: {
 
       expect(result.count.success).toBe(2);
       expect(result.count.fail).toBe(0);
-      expect(await connector.document.count({ collection })).toBe(2);
+      const result2 = await connector.document.count({ collection });
+      expect(result2).toBe(2);
     });
 
     test('create() rejects a duplicate id; upsert() replaces', async () => {
@@ -184,18 +201,16 @@ export const runConnectorConformance = (opts: {
       }
 
       expect(caught).toBeDefined();
-      expect(
-        (await connector.document.get<IConformanceDocument>({ collection, id: '1' })).title,
-      ).toBe('first');
+      const result = await connector.document.get<IConformanceDocument>({ collection, id: '1' });
+      expect(result.title).toBe('first');
 
       // upsert is the explicit last-write-wins verb.
       await connector.document.upsert<IConformanceDocument>({
         collection,
         document: { id: '1', title: 'second', score: 2 },
       });
-      expect(
-        (await connector.document.get<IConformanceDocument>({ collection, id: '1' })).title,
-      ).toBe('second');
+      const result2 = await connector.document.get<IConformanceDocument>({ collection, id: '1' });
+      expect(result2.title).toBe('second');
     });
 
     test('create with duplicate id throws 409 already_exists', async () => {

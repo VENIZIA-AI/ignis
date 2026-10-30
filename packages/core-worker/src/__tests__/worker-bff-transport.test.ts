@@ -130,7 +130,8 @@ describe('WorkerBffTransport', () => {
 
     const response = await fetchPromise;
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true });
+    const result = await response.json();
+    expect(result).toEqual({ ok: true });
   });
 
   test('rejects with an ApplicationError when the worker posts back an error envelope', async () => {
@@ -284,7 +285,8 @@ describe('WorkerBffTransport', () => {
     await flushMicrotasks();
     controller.abort();
 
-    expect(await settleWithin({ task: fetchPromise, timeoutMs: 100 })).toBe('rejected');
+    const result = await settleWithin({ task: fetchPromise, timeoutMs: 100 });
+    expect(result).toBe('rejected');
   });
 
   test('honours a signal that aborts while the body is still being buffered', async () => {
@@ -304,7 +306,8 @@ describe('WorkerBffTransport', () => {
     // after the fact never fires, so this is the window a re-read has to cover.
     controller.abort();
 
-    expect(await settleWithin({ task: fetchPromise, timeoutMs: 100 })).toBe('rejected');
+    const result = await settleWithin({ task: fetchPromise, timeoutMs: 100 });
+    expect(result).toBe('rejected');
     expect(worker.posted).toHaveLength(0);
   });
 
@@ -327,7 +330,8 @@ describe('WorkerBffTransport', () => {
       dispatchError = error;
     }
 
-    expect(await settleWithin({ task: fetchPromise, timeoutMs: 100 })).toBe('rejected');
+    const result = await settleWithin({ task: fetchPromise, timeoutMs: 100 });
+    expect(result).toBe('rejected');
     // The decode failure belongs to the request that caused it, not to the page's error handler.
     expect(dispatchError).toBeUndefined();
   });
@@ -360,8 +364,12 @@ describe('WorkerBffTransport', () => {
       body: new TextEncoder().encode('two').buffer as ArrayBuffer,
     });
 
-    expect(await (await first).text()).toBe('one');
-    expect(await (await second).text()).toBe('two');
+    const result2 = await first;
+    const result = await result2.text();
+    expect(result).toBe('one');
+    const result4 = await second;
+    const result3 = await result4.text();
+    expect(result3).toBe('two');
   });
 
   test('close() detaches from the worker and fails what was still in flight', async () => {
@@ -374,7 +382,8 @@ describe('WorkerBffTransport', () => {
 
     transport.close();
 
-    expect(await settleWithin({ task: fetchPromise, timeoutMs: 100 })).toBe('rejected');
+    const result = await settleWithin({ task: fetchPromise, timeoutMs: 100 });
+    expect(result).toBe('rejected');
 
     // Detached: a late answer must not reach a listener that is no longer there.
     expect(worker.listenerCount()).toBe(0);
@@ -393,8 +402,10 @@ describe('WorkerBffTransport', () => {
 
     // Longer than `WORKER_ERROR_GRACE_MS`: an `error` event does not prove the worker is dead, so
     // the requests are held briefly in case it still answers. Nothing answers here, so both fail.
-    expect(await settleWithin({ task: first, timeoutMs: 500 })).toBe('rejected');
-    expect(await settleWithin({ task: second, timeoutMs: 500 })).toBe('rejected');
+    const result = await settleWithin({ task: first, timeoutMs: 500 });
+    expect(result).toBe('rejected');
+    const result2 = await settleWithin({ task: second, timeoutMs: 500 });
+    expect(result2).toBe('rejected');
   });
 
   /**
@@ -414,7 +425,8 @@ describe('WorkerBffTransport', () => {
     worker.crash();
     worker.respond({ id: sentEnvelope.id, status: 204, headers: [] });
 
-    expect((await inFlight).status).toBe(204);
+    const result = await inFlight;
+    expect(result.status).toBe(204);
   });
 });
 

@@ -24,7 +24,8 @@ describe('createCollection is idempotent - a second boot must not die', () => {
     // Second boot, same app, same index.
     await connector.createCollection({ schema: plan });
 
-    expect(await client.getIndexes()).toEqual({ results: [{ uid: 'products' }] });
+    const result = await client.getIndexes();
+    expect(result).toEqual({ results: [{ uid: 'products' }] });
   });
 
   test('a task that fails as index_already_exists is tolerated even when it is not a thrown error', async () => {
@@ -35,7 +36,8 @@ describe('createCollection is idempotent - a second boot must not die', () => {
     const connector = buildConnector(client);
 
     // A live Meilisearch accepts the request (202) and then fails the TASK; a fake that throws synchronously instead would hide this entirely.
-    expect(await connector.createCollection({ schema: plan })).toBeUndefined();
+    const result = await connector.createCollection({ schema: plan });
+    expect(result).toBeUndefined();
   });
 
   test('a task that fails for any OTHER reason still surfaces as a dependency error', async () => {
