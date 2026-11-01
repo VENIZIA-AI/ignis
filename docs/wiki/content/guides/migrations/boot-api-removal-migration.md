@@ -87,10 +87,10 @@ Delete every hit: the 16 override methods, the 3 `await app.boot()` lines, the 2
 ## Step 4 - verify
 
 ```bash
-bun run --filter '*' tsc --noEmit
+bun check --all
 ```
 
-Zero errors means the upgrade is complete. A `TS2307` on `@venizia/ignis-boot` at this point means a runtime-boot import survived (`Bootstrapper`, `BootMixin`, a `*Booter` class, `discoverFiles`, `loadClasses`) - those exports no longer exist and have no replacement; the generated index does their job.
+Run it in each package. Zero errors means the upgrade is complete. `--all` shows every error, so use it when you count what is left. A failing run exits with code 1, so a script tests for `!= 0`, not for a specific code. A `TS2307` on `@venizia/ignis-boot` at this point means a runtime-boot import survived (`Bootstrapper`, `BootMixin`, a `*Booter` class, `discoverFiles`, `loadClasses`) - those exports no longer exist and have no replacement; the generated index does their job.
 
 ## Why the boot API went away
 

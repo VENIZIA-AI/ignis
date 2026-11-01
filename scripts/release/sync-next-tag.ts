@@ -15,60 +15,63 @@
  */
 import { NpmDistTags, type TNpmDistTag } from './release-constants';
 
-/** `move` is true when `next` is missing or semver-lower than `latest`; with no `latest` there is nothing to compare. */
-export const decideNextTag = (opts: { latest?: string; next?: string }): { move: boolean } => {
-  const { latest, next } = opts;
-  if (!latest) {
-    return { move: false };
-  }
-  if (!next) {
-    return { move: true };
-  }
-
-  return { move: Bun.semver.order(next, latest) < 0 };
-};
-
 export interface IPublished {
   name: string;
   version: string;
   tag: TNpmDistTag;
 }
 
-/** Reads `--published <name>@<version> --tag <latest|next>`. Throws on a malformed value or an unknown tag. */
-export const parsePublished = (args: ReadonlyArray<string>): IPublished | undefined => {
-  const index = args.indexOf('--published');
-  if (index < 0) {
-    return undefined;
+export class NextTagSync {
+  /** `move` is true when `next` is missing or semver-lower than `latest`; with no `latest` there is nothing to compare. */
+  static decide(opts: { latest?: string; next?: string }): { move: boolean } {
+    const { latest, next } = opts;
+    if (!latest) {
+      return { move: false };
+    }
+    if (!next) {
+      return { move: true };
+    }
+
+    return { move: Bun.semver.order(next, latest) < 0 };
   }
 
-  const spec = args[index + 1] ?? '';
-  const at = spec.lastIndexOf('@');
-  if (at <= 0 || at === spec.length - 1) {
-    throw new Error(`--published needs <name>@<version>, got: ${spec || 'nothing'}`);
+  /** Reads `--published <name>@<version> --tag <latest|next>`. Throws on a malformed value or an unknown tag. */
+  static parsePublished(opts: { args: ReadonlyArray<string> }): IPublished | undefined {
+    const { args } = opts;
+    const index = args.indexOf('--published');
+    if (index < 0) {
+      return undefined;
+    }
+
+    const spec = args[index + 1] ?? '';
+    const at = spec.lastIndexOf('@');
+    if (at <= 0 || at === spec.length - 1) {
+      throw new Error(`--published needs <name>@<version>, got: ${spec || 'nothing'}`);
+    }
+
+    const tagIndex = args.indexOf('--tag');
+    const tag = tagIndex >= 0 ? args[tagIndex + 1] : undefined;
+    if (tag === undefined || !NpmDistTags.isValid(tag)) {
+      throw new Error(`--tag must be latest or next, got: ${tag ?? 'nothing'}`);
+    }
+
+    return { name: spec.slice(0, at), version: spec.slice(at + 1), tag };
   }
 
-  const tagIndex = args.indexOf('--tag');
-  const tag = tagIndex >= 0 ? args[tagIndex + 1] : undefined;
-  if (tag === undefined || !NpmDistTags.isValid(tag)) {
-    throw new Error(`--tag must be latest or next, got: ${tag ?? 'nothing'}`);
+  /** Right after a publish the registry still serves the old dist-tags, so the published version wins for its own tag. */
+  static applyPublished(opts: {
+    name: string;
+    tags: { latest?: string; next?: string };
+    published?: IPublished;
+  }): { latest?: string; next?: string } {
+    const { name, tags, published } = opts;
+    if (!published || published.name !== name) {
+      return tags;
+    }
+
+    return { ...tags, [published.tag]: published.version };
   }
-
-  return { name: spec.slice(0, at), version: spec.slice(at + 1), tag };
-};
-
-/** Right after a publish the registry still serves the old dist-tags, so the published version wins for its own tag. */
-export const applyPublished = (opts: {
-  name: string;
-  tags: { latest?: string; next?: string };
-  published?: IPublished;
-}): { latest?: string; next?: string } => {
-  const { name, tags, published } = opts;
-  if (!published || published.name !== name) {
-    return tags;
-  }
-
-  return { ...tags, [published.tag]: published.version };
-};
+}
 
 const readNames = async (): Promise<Array<string>> => {
   const names: Array<string> = [];
@@ -110,7 +113,7 @@ const main = async (): Promise<void> => {
   const failures: Array<string> = [];
   let published: IPublished | undefined;
   try {
-    published = parsePublished(Bun.argv.slice(2));
+    published = NextTagSync.parsePublished({ args: Bun.argv.slice(2) });
   } catch (error) {
     failures.push(error instanceof Error ? error.message : String(error));
   }
@@ -124,8 +127,8 @@ const main = async (): Promise<void> => {
         }
         throw error;
       });
-      const { latest, next } = applyPublished({ name, tags: registry, published });
-      const { move } = decideNextTag({ latest, next });
+      const { latest, next } = NextTagSync.applyPublished({ name, tags: registry, published });
+      const { move } = NextTagSync.decide({ latest, next });
       if (!move || !latest) {
         console.log(`kept   ${name}  next ${next ?? '-'}  latest ${latest ?? '-'}`);
         continue;
