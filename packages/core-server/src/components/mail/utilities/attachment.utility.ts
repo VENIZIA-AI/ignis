@@ -1,5 +1,5 @@
 import { constants } from 'node:fs';
-import { open, realpath } from 'node:fs/promises';
+import { open, realpath, type FileHandle } from 'node:fs/promises';
 import { basename, isAbsolute, relative, resolve, sep } from 'node:path';
 import { ContentTypeTable } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -131,9 +131,13 @@ const readConfinedFile = async (opts: {
   }
 
   const filePath = await resolveConfinedPath({ path, attachmentRoot });
-  const handle = await open(filePath, OPEN_FLAGS).catch((error) => {
+  let handle: FileHandle;
+  try {
+    const opened = await open(filePath, OPEN_FLAGS);
+    handle = opened;
+  } catch (error) {
     throw buildPathRefusedError({ reason: PATH_OUTSIDE_REASON, cause: error });
-  });
+  }
 
   try {
     const stats = await handle.stat();

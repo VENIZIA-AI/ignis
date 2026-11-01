@@ -87,6 +87,7 @@ describe('beginTransaction - failure paths', () => {
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the COMMIT failure is asserted in the previous test; this one checks only the release
     } catch {
       // Asserted in the previous test.
     }
@@ -116,6 +117,7 @@ describe('beginTransaction - failure paths', () => {
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the COMMIT failure is asserted in "a failed COMMIT rethrows"; this test counts only the releases
     } catch {
       // Expected.
     }
@@ -235,6 +237,7 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
 
     try {
       await transaction.commit();
+      // eslint-disable-next-line venizia/no-silent-catch -- the first COMMIT failure is asserted above; this test checks the second commit()
     } catch {
       // asserted above
     }

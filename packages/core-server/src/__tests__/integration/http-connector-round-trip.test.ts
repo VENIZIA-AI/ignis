@@ -177,7 +177,12 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
   });
 
   test("a 422's per-field issues are the error's cause, naming the field", async () => {
-    const caught = await notes.create({ data: {} }).catch((error: unknown) => error);
+    let caught: unknown;
+    try {
+      await notes.create({ data: {} });
+    } catch (error) {
+      caught = error;
+    }
 
     if (!isApplicationError(caught)) {
       throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
@@ -188,7 +193,12 @@ describe('HttpRepository writes through a real IGNIS CRUD controller', () => {
   });
 
   test("an envelope under the server's rootKey keeps the server's code and text", async () => {
-    const caught = await wrappedNotes.create({ data: {} }).catch((error: unknown) => error);
+    let caught: unknown;
+    try {
+      await wrappedNotes.create({ data: {} });
+    } catch (error) {
+      caught = error;
+    }
 
     if (!isApplicationError(caught)) {
       throw new Error(`expected an ApplicationError, got: ${String(caught)}`);

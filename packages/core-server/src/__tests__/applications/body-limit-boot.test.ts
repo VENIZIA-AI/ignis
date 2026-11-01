@@ -68,10 +68,12 @@ describe('configs.middlewares.bodyLimit across the whole boot', () => {
     application.lateMiddlewares = BODY_LIMIT;
     application.init();
 
-    const refusal = await application.initialize().then(
-      () => undefined,
-      (error: unknown) => error,
-    );
+    let refusal: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      refusal = error;
+    }
 
     expect(String(refusal)).toContain('configs.middlewares.bodyLimit');
     expect(String(refusal)).toContain('constructor config');

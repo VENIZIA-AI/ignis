@@ -163,6 +163,7 @@ describe('Security Tests', () => {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
+        // eslint-disable-next-line venizia/no-silent-catch -- the test asserts only that next() ran; whether the middleware throws after it is not what this test checks
       } catch {
         /* expected */
       }
@@ -189,6 +190,7 @@ describe('Security Tests', () => {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
+        // eslint-disable-next-line venizia/no-silent-catch -- the test asserts only that next() ran; whether the middleware throws after it is not what this test checks
       } catch {
         /* expected */
       }
@@ -215,6 +217,7 @@ describe('Security Tests', () => {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
+        // eslint-disable-next-line venizia/no-silent-catch -- the test asserts only that next() ran; whether the middleware throws after it is not what this test checks
       } catch {
         /* expected */
       }
@@ -241,6 +244,7 @@ describe('Security Tests', () => {
         await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
+        // eslint-disable-next-line venizia/no-silent-catch -- the test asserts only that next() ran; whether the middleware throws after it is not what this test checks
       } catch {
         /* expected */
       }
