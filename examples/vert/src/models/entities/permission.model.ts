@@ -8,8 +8,8 @@ import {
 import { pgTable } from 'drizzle-orm/pg-core';
 
 export const permissionTable = pgTable('Permission', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   ...AuthModelColumns.buildPermission({ idType: 'string' }),
 });
 

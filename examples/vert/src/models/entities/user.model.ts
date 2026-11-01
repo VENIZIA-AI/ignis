@@ -8,8 +8,8 @@ import {
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   ...AuthModelColumns.buildUser({ idType: 'string' }),
   username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),

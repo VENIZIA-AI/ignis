@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { DrizzleResultUtility } from '@/utilities';
+
 /** Drizzle's raw result shape differs per driver and the shared `PgDatabase` type cannot tell them apart - the reader is the only place that knows. An unrecognized shape THROWS: returning `[]` would be silently wrong. */
-/** Drizzle's raw result shape differs per driver (pg `{ rows, rowCount }` vs postgres-js array with `count`) and the shared `PgDatabase` type cannot tell them apart - these two readers are the only place that knows. An unrecognized shape THROWS: returning `0`/`[]` would be silently wrong. */
 describe('DrizzleResultUtility.readResultRows', () => {
   interface IRow {
     id: number;
