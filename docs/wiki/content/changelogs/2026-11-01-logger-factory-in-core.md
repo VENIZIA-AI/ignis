@@ -14,18 +14,18 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis', '@venizia/dev-configs']
 
 ## What changed
 
-- **`LoggerFactory` and `ConsoleLogger` are exported from `@venizia/ignis-helpers/core`.** The factory imports nothing from node, so a browser bundle uses it too. The default provider is the console.
-- **A compiled binary needs no `LoggerFactory.use`.** `@venizia/ignis` selects Winston at `initialize()` unless your application already chose a provider. If `winston` is not installed, the console stays.
-- **`LoggerFactory.use({ provider, level })` chooses the provider and the level.** The level is a `LogLevels` value and applies to every provider the same way.
-- **`SHOULD_LOG_DEBUG` is removed.** It was a snapshot of the debug rule taken when the module loaded; the loggers now read the live gate, which `LoggerFactory.use({ level })` can change. Nothing in IGNIS read the constant; if yours did, ask `LoggerDebugGate.isOpen()`.
-- **`ApplicationLogger`, `LoggerSlot`, `LoggerResolver`, `ResolvedLogger` and `TLoggerResolver` are removed.** So is the one-time "Logging to the console - no logger provider is installed" warning.
+- **Import `LoggerFactory` and `ConsoleLogger` from `@venizia/ignis-helpers/core`.** The factory imports nothing from node. Browser bundles can use it directly. The default provider is the console.
+- **Omit `LoggerFactory.use` in compiled binaries.** `@venizia/ignis` automatically selects Winston during `initialize()`. It skips this selection if your app already picked a provider. The console remains active if `winston` is not installed.
+- **Call `LoggerFactory.use({ provider, level })` to set the provider and the level.** Use a `LogLevels` value for the level. The level applies to every provider in the same way.
+- **Check `LoggerDebugGate.isOpen()` instead of `SHOULD_LOG_DEBUG`.** `SHOULD_LOG_DEBUG` is removed. It only recorded a snapshot when the module loaded. Loggers now check the live gate directly. You can update that live gate with `LoggerFactory.use({ level })`. Nothing inside IGNIS read the old constant.
+- **Stop using removed symbols.** The update removes `ApplicationLogger`, `LoggerSlot`, `LoggerResolver`, `ResolvedLogger` and `TLoggerResolver`. It also removes the warning about logging to the console with no provider installed.
 
 ## Who is affected
 
-- **An app that calls `ApplicationLogger`.** Run the codemod: it moves the calls to `LoggerFactory.getLogger([scope])`.
-- **Anyone who used `LoggerSlot`, `LoggerResolver` or `TLoggerResolver`, or `LoggerSlot.use` from the `0.4.7-1` prerelease.** Replace the resolver with `LoggerFactory.use({ provider, level })`. A resolver that returned a custom `ILogger` becomes an `ILoggerProvider`: a class with a static `get(scope: string): ILogger`.
-- **A script that relied on the console warning, or an app that called `LoggerFactory.use` only so a compiled binary could log.** The warning is gone and the `use` call is optional. Keep it to choose Pino, or to set a level.
-- **Everyone else.** No action needed.
+- **Apps that call `ApplicationLogger`.** Run the codemod. It converts those calls to `LoggerFactory.getLogger([scope])`.
+- **Apps that use `LoggerSlot`, `LoggerResolver`, `TLoggerResolver`, or `LoggerSlot.use` from prerelease `0.4.7-1`.** Replace the resolver by calling `LoggerFactory.use({ provider, level })`. Convert any resolver that returned a custom `ILogger` into an `ILoggerProvider`. Make it a class with a static `get(scope: string): ILogger` method.
+- **Scripts relying on the console warning, or apps calling `LoggerFactory.use` only for compiled binaries.** The warning is gone. The `use` call is now optional. Keep the call only if you want Pino or need to set a specific level.
+- **Everyone else.** Do nothing.
 
 ## Breaking changes
 
@@ -64,15 +64,15 @@ To upgrade:
 
 ## Details
 
-- **The debug gate.** Every provider shares one rule: `debug` is off unless `DEBUG` is truthy and `NODE_ENV` is unset or an allowed name (`APP_ENV_EXTRA_LOG_ENVS` adds more). Where there is no `process` (a browser) it is off.
-- **The level overrides the gate.** `level: LogLevels.DEBUG` turns `debug` on and any higher level turns it off, whatever the environment says.
-- **`use` can run late.** Loggers already issued re-point to the new provider on their next line, so call order does not matter.
-- **Lines logged before `initialize()` go to the console.** `@venizia/ignis` picks Winston when the application starts (`initialize()`); a line written earlier (in a constructor, or by a test that calls a method directly) uses the console format. Choose the provider with `LoggerFactory.use` before you build the application if those lines must reach Winston's files.
-- **A level that is not a `LogLevels` value is ignored.** `LoggerFactory.use({ level })` with a typo or an uppercase name from the environment changes nothing: it never opens debug.
-- **The debug gate applies to every provider.** The factory drops `debug` while the gate is closed, so a custom provider needs no gate of its own.
-- **`LoggerFactory.useUnlessChosen({ provider })`** chooses a provider only when the application has not. `@venizia/ignis` uses it for Winston. `isChosen()` and `reset()` complete the surface.
-- **Two module copies share the choice.** The provider and the level live in `globalThis` slots, so a bundle with two copies of `@venizia/ignis-helpers` sees one provider and one level.
-- **A script that imports only helpers** gets the console. Call `LoggerFactory.use({ provider })` with `PinoLogger` or `WinstonLogger` to choose another.
+- **Know the debug gate rules.** Every provider shares the same rule. Debug is off by default. It turns on only when `DEBUG` is truthy and `NODE_ENV` is unset or set to an allowed name. You can add allowed names with `APP_ENV_EXTRA_LOG_ENVS`. Environments without `process`, such as a browser, keep debug off.
+- **Override the gate with a level.** Set `level: LogLevels.DEBUG` to force debug on. Set any higher level to force debug off. The level setting overrides the environment variables.
+- **Call `use` at any time.** Existing loggers switch to the new provider on their next log line. Call order does not matter.
+- **Expect console format before `initialize()`.** `@venizia/ignis` selects Winston when `initialize()` runs. Any line logged earlier uses console format. This includes lines logged in constructors or direct test calls. Call `LoggerFactory.use` before building the app if those early lines must go to Winston files.
+- **Pass valid `LogLevels` values.** The factory ignores any value outside `LogLevels`. Typos or uppercase strings from environment variables change nothing. Invalid values never enable debug logging.
+- **Write custom providers without custom debug gates.** The factory filters out `debug` messages while the gate is closed. Custom providers do not need their own gate logic.
+- **Use helper methods when needed.** Call `LoggerFactory.useUnlessChosen({ provider })` to set a fallback provider. `@venizia/ignis` uses this method for Winston. You can also inspect or clear state with `isChosen()` and `reset()`.
+- **Rely on shared state across duplicate bundles.** The chosen provider and level live in `globalThis` slots. Two copies of `@venizia/ignis-helpers` in the same bundle share the same configuration.
+- **Configure scripts that import only helpers.** These scripts default to the console. Call `LoggerFactory.use({ provider })` with `PinoLogger` or `WinstonLogger` if you need another provider.
 
 ```typescript
 import { LoggerFactory, LogLevels } from '@venizia/ignis-helpers';
