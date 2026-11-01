@@ -118,4 +118,4 @@ class MyRepo extends AbstractRepository<Schema, Data, Persist, IExtraOptions> {}
 
 ## Details
 
-- See [Default Filter Guide](/references/base/filter-system/default-filter), [Repository Mixins](/references/base/repositories/mixins) and [Advanced Repository Features](/references/base/repositories/advanced).
+- See [Default Filter Guide](/references/base/filter-system/default-filter), [Advanced Repository Features](/references/base/repositories/advanced) (including [what moved from the removed mixins](/references/base/repositories/advanced#moved-from-the-removed-mixins)).

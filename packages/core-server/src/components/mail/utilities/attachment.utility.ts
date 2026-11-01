@@ -159,130 +159,138 @@ const readConfinedFile = async (opts: {
   }
 };
 
-/**
- * Reads one attachment's bytes. A string `content` is raw text unless `encoding` says otherwise
- * (nodemailer's convention); `null` counts as absent. A `path` is read only inside
- * `attachmentRoot` and refused without one. `maxBytes` caps the whole message; `usedBytes` is what
- * earlier attachments already took.
- */
-export const readAttachmentContent = async (opts: {
-  attachment: IMailAttachment;
-  attachmentRoot?: string;
-  maxBytes?: number;
-  usedBytes?: number;
-}): Promise<Buffer> => {
-  const { attachment, attachmentRoot, maxBytes, usedBytes = 0 } = opts;
-  const { content } = attachment;
-
-  if (content !== undefined && content !== null) {
-    if (typeof content === 'string') {
-      const encoding = attachment.encoding ?? 'utf-8';
-      assertWithinLimit({ byteLength: Buffer.byteLength(content, encoding), usedBytes, maxBytes });
-      return Buffer.from(content, encoding);
-    }
-
-    if (content instanceof Uint8Array) {
-      assertWithinLimit({ byteLength: content.byteLength, usedBytes, maxBytes });
-      return toBuffer(content);
-    }
-
-    if (!isAttachmentStream(content)) {
-      throw getError({
-        error: MailErrors.INVALID_CONFIGURATION,
-        message:
-          'Invalid mail attachment | attachment.content must be a Buffer, a Uint8Array, a string or a stream',
-      });
-    }
-
-    return drainStream({ stream: content, usedBytes, maxBytes });
-  }
-
-  if (attachment.path !== undefined && attachment.path !== null) {
-    return readConfinedFile({ path: attachment.path, usedBytes, attachmentRoot, maxBytes });
-  }
-
-  return Buffer.alloc(0);
-};
-
-/**
- * Turns every attachment into `content` bytes and drops `path`, so no transport is ever handed a
- * file or URL to read on its own. `maxBytes` is shared by all attachments of the message. An
- * attachment read from `path` keeps the file's name and, when none is given, its content type.
- */
-export const resolveMailAttachments = async (opts: {
-  attachments: IMailAttachment[];
-  attachmentRoot?: string;
-  maxBytes?: number;
-}): Promise<IMailAttachment[]> => {
-  const { attachments, attachmentRoot, maxBytes } = opts;
-  const resolved: IMailAttachment[] = [];
-  let usedBytes = 0;
-
-  // Sequential on purpose: each read spends the budget the previous ones left.
-  for (const attachment of attachments) {
-    const { path, href, raw, content, encoding, ...rest } = attachment;
-
-    // nodemailer reads both on its own - `href` fetches a URL, `raw` can carry a `path`.
-    if ((href !== undefined && href !== null) || (raw !== undefined && raw !== null)) {
-      throw buildPathRefusedError({
-        reason: 'attachment.href and attachment.raw are not supported | pass the bytes as content',
-      });
-    }
-
-    const bytes = await readAttachmentContent({
-      attachment: { content, encoding, path },
-      attachmentRoot,
-      maxBytes,
-      usedBytes,
-    });
-
-    usedBytes += bytes.byteLength;
-
-    const isReadFromPath = (content === undefined || content === null) && typeof path === 'string';
-    const filename = rest.filename ?? (isReadFromPath ? basename(path) : undefined);
-    const contentType =
-      rest.contentType ??
-      (isReadFromPath && filename ? ContentTypeTable.resolve({ filename }) : undefined);
-
-    resolved.push({
-      ...rest,
-      ...(filename === undefined ? {} : { filename }),
-      ...(contentType === undefined ? {} : { contentType }),
-      content: bytes,
-    });
-  }
-
-  return resolved;
-};
-
-/**
- * Releases every attachment stream of a refused send, read or not, so none keeps a descriptor
- * open. A drained stream is already closed; releasing it again is harmless.
- */
-export const releaseAttachmentStreams = (opts: { attachments?: IMailAttachment[] }): void => {
-  for (const attachment of opts.attachments ?? []) {
+export class MailAttachmentUtility {
+  /**
+   * Reads one attachment's bytes. A string `content` is raw text unless `encoding` says otherwise
+   * (nodemailer's convention); `null` counts as absent. A `path` is read only inside
+   * `attachmentRoot` and refused without one. `maxBytes` caps the whole message; `usedBytes` is what
+   * earlier attachments already took.
+   */
+  static async readContent(opts: {
+    attachment: IMailAttachment;
+    attachmentRoot?: string;
+    maxBytes?: number;
+    usedBytes?: number;
+  }): Promise<Buffer> {
+    const { attachment, attachmentRoot, maxBytes, usedBytes = 0 } = opts;
     const { content } = attachment;
 
-    if (content instanceof ReadableStream) {
-      if (!content.locked) {
-        content.cancel().catch((error) => {
-          logger.warn(
-            '[releaseAttachmentStreams] Cancelling a web stream failed | error: %s',
-            error,
-          );
+    if (content !== undefined && content !== null) {
+      if (typeof content === 'string') {
+        const encoding = attachment.encoding ?? 'utf-8';
+        assertWithinLimit({
+          byteLength: Buffer.byteLength(content, encoding),
+          usedBytes,
+          maxBytes,
+        });
+        return Buffer.from(content, encoding);
+      }
+
+      if (content instanceof Uint8Array) {
+        assertWithinLimit({ byteLength: content.byteLength, usedBytes, maxBytes });
+        return toBuffer(content);
+      }
+
+      if (!isAttachmentStream(content)) {
+        throw getError({
+          error: MailErrors.INVALID_CONFIGURATION,
+          message:
+            'Invalid mail attachment | attachment.content must be a Buffer, a Uint8Array, a string or a stream',
         });
       }
 
-      continue;
+      return drainStream({ stream: content, usedBytes, maxBytes });
     }
 
-    if (
-      typeof content === 'object' &&
-      content !== null &&
-      'destroy' in content &&
-      typeof content.destroy === 'function'
-    ) {
-      content.destroy();
+    if (attachment.path !== undefined && attachment.path !== null) {
+      return readConfinedFile({ path: attachment.path, usedBytes, attachmentRoot, maxBytes });
+    }
+
+    return Buffer.alloc(0);
+  }
+
+  /**
+   * Turns every attachment into `content` bytes and drops `path`, so no transport is ever handed a
+   * file or URL to read on its own. `maxBytes` is shared by all attachments of the message. An
+   * attachment read from `path` keeps the file's name and, when none is given, its content type.
+   */
+  static async resolve(opts: {
+    attachments: IMailAttachment[];
+    attachmentRoot?: string;
+    maxBytes?: number;
+  }): Promise<IMailAttachment[]> {
+    const { attachments, attachmentRoot, maxBytes } = opts;
+    const resolved: IMailAttachment[] = [];
+    let usedBytes = 0;
+
+    // Sequential on purpose: each read spends the budget the previous ones left.
+    for (const attachment of attachments) {
+      const { path, href, raw, content, encoding, ...rest } = attachment;
+
+      // nodemailer reads both on its own - `href` fetches a URL, `raw` can carry a `path`.
+      if ((href !== undefined && href !== null) || (raw !== undefined && raw !== null)) {
+        throw buildPathRefusedError({
+          reason:
+            'attachment.href and attachment.raw are not supported | pass the bytes as content',
+        });
+      }
+
+      const bytes = await MailAttachmentUtility.readContent({
+        attachment: { content, encoding, path },
+        attachmentRoot,
+        maxBytes,
+        usedBytes,
+      });
+
+      usedBytes += bytes.byteLength;
+
+      const isReadFromPath =
+        (content === undefined || content === null) && typeof path === 'string';
+      const filename = rest.filename ?? (isReadFromPath ? basename(path) : undefined);
+      const contentType =
+        rest.contentType ??
+        (isReadFromPath && filename ? ContentTypeTable.resolve({ filename }) : undefined);
+
+      resolved.push({
+        ...rest,
+        ...(filename === undefined ? {} : { filename }),
+        ...(contentType === undefined ? {} : { contentType }),
+        content: bytes,
+      });
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Releases every attachment stream of a refused send, read or not, so none keeps a descriptor
+   * open. A drained stream is already closed; releasing it again is harmless.
+   */
+  static release(opts: { attachments?: IMailAttachment[] }): void {
+    for (const attachment of opts.attachments ?? []) {
+      const { content } = attachment;
+
+      if (content instanceof ReadableStream) {
+        if (!content.locked) {
+          content.cancel().catch((error) => {
+            logger.warn(
+              '[MailAttachmentUtility.release] Cancelling a web stream failed | error: %s',
+              error,
+            );
+          });
+        }
+
+        continue;
+      }
+
+      if (
+        typeof content === 'object' &&
+        content !== null &&
+        'destroy' in content &&
+        typeof content.destroy === 'function'
+      ) {
+        content.destroy();
+      }
     }
   }
-};
+}

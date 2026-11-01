@@ -124,4 +124,4 @@ this.bind({ key: WebSocketBindingKeys.HANDSHAKE_HANDLER }).toValue(handshakeFn);
 - [`packages/core-server/src/components/websocket/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/component.ts) - `WebSocketComponent`
 - [`packages/core-server/src/components/websocket/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/common/keys.ts) - `WebSocketBindingKeys`
 - [`packages/core-server/src/components/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/common/types.ts) - `IServerOptions`, `DEFAULT_SERVER_OPTIONS`
-- [`packages/core-server/src/components/websocket/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/handlers/bun.handler.ts) - `createBunFetchHandler`
+- [`packages/core-server/src/components/websocket/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/websocket/handlers/bun.handler.ts) - `WebSocketBunHandler`

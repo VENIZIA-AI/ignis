@@ -860,5 +860,5 @@ toJsonSafe({ value: node });
 
 - [Types overview](/extensions/helpers/types/) - introduction and the most common tasks
 - [Dependency Injection](/guides/core-concepts/dependency-injection) - `TInjectionGetter` and DI-adjacent types in use
-- [Repository Mixins](/references/base/repositories/mixins) - `TMixinTarget` in use
+- [Advanced Patterns](/best-practices/code-style-standards/advanced-patterns) - `TMixinTarget` in use
 - [Helpers Overview](/extensions/helpers/) - all available helpers

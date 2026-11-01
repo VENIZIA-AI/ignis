@@ -17,7 +17,7 @@ help:
 	@$(HELP_ROW) "all / build" "Rebuilds all packages (alias for 'build-all')."
 	@$(HELP_ROW) "build-all" "Rebuilds all packages in order, then the wiki and its checks."
 	@$(HELP_ROW) "install" "Install all dependencies with bun."
-	@$(HELP_ROW) "update" "Force update all packages from NPM registry."
+	@$(HELP_ROW) "update" "Alias of 'install'; to raise one package's deps use 'update-<pkg>'."
 	@$(HELP_ROW) "clean" "Clean build artifacts from all packages."
 	@$(HELP_ROW) "setup-hooks" "Configure git to use .githooks directory."
 	@$(HELP_ROW) "docs" "Rebuilds wiki (VitePress) for GitHub Pages."
