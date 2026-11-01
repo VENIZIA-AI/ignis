@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { buildPreset } from '../vulcan-preset';
+import { VulcanPreset } from '../vulcan-preset';
 
 const tmpDirs: string[] = [];
 
@@ -107,11 +107,11 @@ afterAll(() => {
   }
 });
 
-describe('buildPreset', () => {
+describe('VulcanPreset.build', () => {
   test('workspace:* resolves to the version on disk at call time', () => {
     const repository = makeRepository({});
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
     expect(readPreset(repository).dependencies).toMatchObject({ '@venizia/a': '1.2.3' });
 
     writeJson({
@@ -119,14 +119,14 @@ describe('buildPreset', () => {
       path: 'packages/a/package.json',
       value: { name: '@venizia/a', version: '1.2.4-0' },
     });
-    buildPreset(repository);
+    VulcanPreset.build(repository);
     expect(readPreset(repository).dependencies).toMatchObject({ '@venizia/a': '1.2.4-0' });
   });
 
   test('catalog: resolves to the root catalog value', () => {
     const repository = makeRepository({});
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
 
     expect(readPreset(repository).dependencies).toMatchObject({ hono: '^4.1.0' });
     expect(readPreset(repository).devDependencies).toEqual({ hono: '^4.1.0' });
@@ -137,7 +137,7 @@ describe('buildPreset', () => {
       rootManifest: { workspaces: ['packages/*'], catalog: { hono: '^4.2.0' } },
     });
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
 
     expect(readPreset(repository).dependencies).toMatchObject({ hono: '^4.2.0' });
   });
@@ -147,7 +147,7 @@ describe('buildPreset', () => {
       template: { presetVersion: 1, dependencies: { zod: 'catalog:' }, files: './files' },
     });
 
-    expect(() => buildPreset(repository)).toThrow('zod');
+    expect(() => VulcanPreset.build(repository)).toThrow('zod');
   });
 
   test('a workspace:* name with no workspace package throws and names it', () => {
@@ -159,13 +159,13 @@ describe('buildPreset', () => {
       },
     });
 
-    expect(() => buildPreset(repository)).toThrow('@venizia/ghost');
+    expect(() => VulcanPreset.build(repository)).toThrow('@venizia/ghost');
   });
 
   test('literal ranges pass through unchanged', () => {
     const repository = makeRepository({});
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
 
     expect(readPreset(repository).dependencies).toMatchObject({ winston: '^3.19.0' });
   });
@@ -173,7 +173,7 @@ describe('buildPreset', () => {
   test('files/ is copied byte-identical with dotfile-named sources, and files points at ./files', () => {
     const repository = makeRepository({});
 
-    const { written } = buildPreset(repository);
+    const { written } = VulcanPreset.build(repository);
 
     expect(readFileSync(join(repository.outDir, 'app/files/_env.example'), 'utf8')).toBe(
       'PORT={{devPort}}\n',
@@ -187,9 +187,9 @@ describe('buildPreset', () => {
   test('the output folder is replaced, not merged', () => {
     const repository = makeRepository({});
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
     writeText({ root: repository.outDir, path: 'app/files/stale.txt', content: 'old' });
-    buildPreset(repository);
+    VulcanPreset.build(repository);
 
     expect(existsSync(join(repository.outDir, 'app/files/stale.txt'))).toBe(false);
   });
@@ -197,7 +197,7 @@ describe('buildPreset', () => {
   test('no presets/lib writes the app preset only', () => {
     const repository = makeRepository({});
 
-    const { written } = buildPreset(repository);
+    const { written } = VulcanPreset.build(repository);
 
     expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
     expect(written.some((path) => path.startsWith('lib/'))).toBe(false);
@@ -207,7 +207,7 @@ describe('buildPreset', () => {
     const repository = makeRepository({});
     writeLib({ root: repository.root });
 
-    const { written } = buildPreset(repository);
+    const { written } = VulcanPreset.build(repository);
 
     expect(existsSync(join(repository.outDir, 'shared'))).toBe(false);
     expect(written.some((path) => path.startsWith('shared/'))).toBe(false);
@@ -218,7 +218,7 @@ describe('buildPreset', () => {
     const repository = makeRepository({});
     writeShared({ root: repository.root });
 
-    const { written } = buildPreset(repository);
+    const { written } = VulcanPreset.build(repository);
     const shared = readOutput({ outDir: repository.outDir, file: 'shared/preset.json' });
 
     expect(existsSync(join(repository.outDir, 'lib'))).toBe(false);
@@ -249,7 +249,7 @@ describe('buildPreset', () => {
       content: 'compile\n',
     });
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
 
     for (const kind of ['lib', 'shared']) {
       expect(
@@ -267,7 +267,7 @@ describe('buildPreset', () => {
     const repository = makeRepository({});
     writeLib({ root: repository.root });
 
-    buildPreset(repository);
+    VulcanPreset.build(repository);
     const lib = readOutput({ outDir: repository.outDir, file: 'lib/preset.json' });
 
     expect(lib.peerDependencies).toEqual({ '@venizia/a': '1.2.3' });
@@ -285,7 +285,7 @@ describe('buildPreset', () => {
     write('presets/app/files/.configs/builders/compile.ts', 'compile\n');
     write('presets/lib/files/.configs/formatters/.ignore', 'lib format\n');
 
-    const { written } = buildPreset(repository);
+    const { written } = VulcanPreset.build(repository);
     const out = (path: string): string => readFileSync(join(repository.outDir, path), 'utf8');
 
     expect(out('lib/files/.configs/lints/oxlint.config.mts')).toBe('app lint\n');
