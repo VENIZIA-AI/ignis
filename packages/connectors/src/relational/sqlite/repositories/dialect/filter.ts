@@ -5,7 +5,7 @@ import { FilterBuilder } from '@/relational/core/repositories/dialect/filter';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import type { SQL } from 'drizzle-orm';
 import { sql, StringChunk } from 'drizzle-orm';
-import { assertNotBlobJsonColumn, toSqliteJsonExtractionChunks } from './internal';
+import { SqliteJsonPathUtility } from './internal';
 import { SqliteQueryOperators } from './query';
 
 const SORT_DIRECTIONS: Record<TConstValue<typeof Sorts>, StringChunk> = {
@@ -35,7 +35,7 @@ export class SqliteFilterBuilder extends FilterBuilder {
 
     const validated = super.validateJsonColumn(opts);
 
-    assertNotBlobJsonColumn({
+    SqliteJsonPathUtility.assertNotBlobJsonColumn({
       column: validated.column,
       tableName,
       scope: `[${SqliteFilterBuilder.name}][${methodName}]`,
@@ -68,7 +68,9 @@ export class SqliteFilterBuilder extends FilterBuilder {
       methodName: 'buildJsonWhereCondition',
     });
 
-    const extraction = sql.fromList(toSqliteJsonExtractionChunks({ column, path }));
+    const extraction = sql.fromList(
+      SqliteJsonPathUtility.toSqliteJsonExtractionChunks({ column, path }),
+    );
 
     if (!this.isOperatorObject({ value })) {
       return [this.buildValueCondition({ column: extraction, value })];
@@ -98,7 +100,7 @@ export class SqliteFilterBuilder extends FilterBuilder {
       methodName: 'buildJsonOrderBy',
     });
 
-    const chunks = toSqliteJsonExtractionChunks({ column, path });
+    const chunks = SqliteJsonPathUtility.toSqliteJsonExtractionChunks({ column, path });
     chunks.push(SORT_DIRECTIONS[direction]);
 
     return sql.fromList(chunks);

@@ -4,7 +4,7 @@ import { TableColumnCache } from '@/relational/core/repositories/common';
 import { RelationalUpdateBuilder } from '@/relational/core/repositories/dialect';
 import type { SQL } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
-import { assertNotBlobJsonColumn, toSqliteJsonPaths } from './internal';
+import { SqliteJsonPathUtility } from './internal';
 
 /**
  * Composes nested JSON path updates as chained `json_set` calls - SQLite's `jsonb_set`. The neutral
@@ -28,7 +28,7 @@ export class SqliteUpdateBuilder extends RelationalUpdateBuilder {
     // schema property, which is what resolves back to a column.
     const columns = TableColumnCache.get(schema);
     for (const columnName in transformed.jsonExpressions) {
-      assertNotBlobJsonColumn({
+      SqliteJsonPathUtility.assertNotBlobJsonColumn({
         column: columns[columnName],
         tableName,
         scope: `[${SqliteUpdateBuilder.name}][transform]`,
@@ -50,7 +50,7 @@ export class SqliteUpdateBuilder extends RelationalUpdateBuilder {
 
     // Chained rather than merged: an all-digit component yields both
     // readings, and only the one matching the stored shape applies.
-    return toSqliteJsonPaths({ path }).reduce(
+    return SqliteJsonPathUtility.toSqliteJsonPaths({ path }).reduce(
       (composed, literal) => sql`json_set(${composed}, ${literal}, json(${serialized}))`,
       target,
     );

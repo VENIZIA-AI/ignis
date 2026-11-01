@@ -2,7 +2,7 @@ import { AuthenticationModes } from '@/base/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/base/auth/authenticate/middlewares/authenticate.middleware';
 import type { IAuthorizationSpec } from '@/base/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/base/auth/authorize/middlewares/authorize.middleware';
-import { formBodyReader, hasFormBody } from '@/base/middlewares/form-body/form-body.middleware';
+import { FormBodyMiddleware } from '@/base/middlewares/form-body/form-body.middleware';
 import { AuthenticationStrategyRegistry } from '@/base/auth/authenticate/strategies/strategy-registry';
 import { DroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
@@ -180,8 +180,8 @@ export abstract class AbstractRestController<
     }
 
     // Last: an application middleware and any size check run before the body is read.
-    if (hasFormBody({ content: restConfig.request?.body?.content })) {
-      mws.push(formBodyReader);
+    if (FormBodyMiddleware.hasFormBody({ content: restConfig.request?.body?.content })) {
+      mws.push(FormBodyMiddleware.read);
     }
 
     return { restConfig, security, mws };
