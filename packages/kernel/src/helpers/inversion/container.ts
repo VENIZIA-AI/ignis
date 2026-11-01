@@ -7,7 +7,7 @@ import { MetadataRegistry } from './registry';
 export class Container extends DIContainer {
   logger: ILogger;
 
-  /** Resolved through `BaseHelper`/`LoggerResolver`, never `LoggerFactory` directly - the resolver's console fallback is what keeps this constructor (and everything that extends it) browser-pure. A server host still gets the real provider: importing `LoggerFactory` as a value anywhere in the process (core's own `helpers/base-helper.ts` already does) installs it as the active resolver. */
+  /** Resolved through `BaseHelper`, which asks `LoggerFactory` (browser-pure, the console by default). A server host gets the provider the application chose, or Winston when it chose none. */
   constructor(opts?: { scope: string }) {
     super({ scope: opts?.scope ?? Container.name });
     this.logger = new BaseHelper({ scope: opts?.scope ?? Container.name }).getLogger();

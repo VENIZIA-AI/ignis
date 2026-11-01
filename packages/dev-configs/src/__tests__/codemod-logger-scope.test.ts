@@ -6,47 +6,75 @@ const rewrite = (source: string) =>
   LoggerScopeRewriter.rewrite({ typescript: ts, fileName: 'a.ts', source });
 
 const HEADER = `import { ApplicationLogger } from '@venizia/ignis-helpers';\n`;
+const FIXED_HEADER = `import { LoggerFactory } from '@venizia/ignis-helpers';\n`;
 
-describe('the ApplicationLogger.get call-shape rule', () => {
-  test('a string literal becomes the object form', () => {
+describe('the ApplicationLogger call-shape rule: every form becomes LoggerFactory.getLogger([scope])', () => {
+  test('a string literal becomes an array of one scope, and the import follows', () => {
     const result = rewrite(`${HEADER}const logger = ApplicationLogger.get('UserService');\n`);
 
     expect(result.output).toBe(
-      `${HEADER}const logger = ApplicationLogger.get({ scope: 'UserService' });\n`,
+      `${FIXED_HEADER}const logger = LoggerFactory.getLogger(['UserService']);\n`,
     );
     expect(result.rewritten).toBe(1);
     expect(result.reports).toEqual([]);
   });
 
-  test('an identifier and a property access become the object form', () => {
+  test('an identifier and a property access (the NAME and LOG_PREFIX constants) become an array of one scope', () => {
     const result = rewrite(
-      `${HEADER}const NAME = 'X';\nconst a = ApplicationLogger.get(NAME);\nconst b = ApplicationLogger.get(Constants.LOG_PREFIX);\n`,
+      `${HEADER}const a = ApplicationLogger.get(NAME);\nconst b = ApplicationLogger.get(Constants.LOG_PREFIX);\n`,
     );
 
-    expect(result.output).toContain('ApplicationLogger.get({ scope: NAME })');
-    expect(result.output).toContain('ApplicationLogger.get({ scope: Constants.LOG_PREFIX })');
+    expect(result.output).toContain('LoggerFactory.getLogger([NAME])');
+    expect(result.output).toContain('LoggerFactory.getLogger([Constants.LOG_PREFIX])');
+    expect(result.output).not.toContain('ApplicationLogger');
     expect(result.rewritten).toBe(2);
   });
 
-  test('an identifier named scope is written short', () => {
-    const result = rewrite(`${HEADER}const scope = 'X';\nApplicationLogger.get(scope);\n`);
-
-    expect(result.output).toContain('ApplicationLogger.get({ scope })');
-  });
-
-  test('a template literal becomes the object form', () => {
+  test('a template literal becomes an array of one scope', () => {
     const result = rewrite(`${HEADER}ApplicationLogger.get(\`\${name}-svc\`);\n`);
 
-    expect(result.output).toContain('ApplicationLogger.get({ scope: `${name}-svc` })');
+    expect(result.output).toContain('LoggerFactory.getLogger([`${name}-svc`])');
   });
 
-  test('the object form is left alone', () => {
-    const source = `${HEADER}ApplicationLogger.get({ scope: 'X' });\n`;
-    const result = rewrite(source);
+  test('the object form { scope } is rewritten too, in the long and the short spelling', () => {
+    const result = rewrite(
+      `${HEADER}const scope = 'X';\nconst a = ApplicationLogger.get({ scope: 'Y' });\nconst b = ApplicationLogger.get({ scope });\n`,
+    );
 
-    expect(result.changed).toBe(false);
-    expect(result.output).toBe(source);
-    expect(result.reports).toEqual([]);
+    expect(result.output).toContain("LoggerFactory.getLogger(['Y'])");
+    expect(result.output).toContain('LoggerFactory.getLogger([scope])');
+    expect(result.rewritten).toBe(2);
+  });
+
+  test('the import keeps its other names and takes LoggerFactory in place of ApplicationLogger', () => {
+    const result = rewrite(
+      `import { ErrorPrettier, ApplicationLogger, getError } from '@venizia/ignis-helpers';\nApplicationLogger.get('A');\n`,
+    );
+
+    expect(result.output).toContain(
+      "import { ErrorPrettier, LoggerFactory, getError } from '@venizia/ignis-helpers';",
+    );
+  });
+
+  test('an import that already has LoggerFactory just drops ApplicationLogger', () => {
+    const result = rewrite(
+      `import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';\nApplicationLogger.get('A');\nLoggerFactory.use({ provider });\n`,
+    );
+
+    expect(result.output).toContain("import { LoggerFactory } from '@venizia/ignis-helpers';");
+    expect(result.output).toContain("LoggerFactory.getLogger(['A'])");
+  });
+
+  test('ApplicationLogger stays imported while something else still uses it, and LoggerFactory is added', () => {
+    const result = rewrite(
+      `${HEADER}ApplicationLogger.get('A');\nexport const alias = ApplicationLogger;\n`,
+    );
+
+    expect(result.output).toContain(
+      "import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';",
+    );
+    expect(result.output).toContain("LoggerFactory.getLogger(['A'])");
+    expect(result.output).toContain('export const alias = ApplicationLogger;');
   });
 
   test('an aliased import and a namespace import are followed', () => {
@@ -57,8 +85,9 @@ describe('the ApplicationLogger.get call-shape rule', () => {
       `import * as helpers from '@venizia/ignis-helpers';\nhelpers.ApplicationLogger.get('B');\n`,
     );
 
-    expect(aliased.output).toContain("AppLog.get({ scope: 'A' })");
-    expect(namespaced.output).toContain("helpers.ApplicationLogger.get({ scope: 'B' })");
+    expect(aliased.output).toContain("import { LoggerFactory } from '@venizia/ignis';");
+    expect(aliased.output).toContain("LoggerFactory.getLogger(['A'])");
+    expect(namespaced.output).toContain("helpers.LoggerFactory.getLogger(['B'])");
   });
 
   test('Logger.get and HfLogger.get are never touched', () => {
@@ -76,11 +105,11 @@ describe('the ApplicationLogger.get call-shape rule', () => {
   });
 
   test('a call it cannot decide is listed with its line and left as it was', () => {
-    const source = `${HEADER}ApplicationLogger.get(name());\nApplicationLogger.get('a', 'b');\n`;
+    const source = `${HEADER}ApplicationLogger.get(name());\nApplicationLogger.get('a', 'b');\nApplicationLogger.get({ scope: 'a', extra: 1 });\n`;
     const result = rewrite(source);
 
     expect(result.changed).toBe(false);
     expect(result.output).toBe(source);
-    expect(result.reports.map((report) => report.line)).toEqual([2, 3]);
+    expect(result.reports.map((report) => report.line)).toEqual([2, 3, 4]);
   });
 });

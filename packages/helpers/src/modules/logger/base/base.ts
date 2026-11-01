@@ -1,5 +1,5 @@
 import { type AnyType } from '@/common/types';
-import { type ILogger, LogLevels, SHOULD_LOG_DEBUG, type TLogLevel } from '../common';
+import { type ILogger, LogLevels, LoggerDebugGate, type TLogLevel } from '../common';
 import { AbstractLogger } from './abstract';
 
 /** Provider-independent plumbing: scope, prefix, DEBUG gate, for(). Every level method funnels into ONE abstract write() sink; child() lets each provider keep its own caching policy. */
@@ -18,7 +18,7 @@ export abstract class BaseLogger extends AbstractLogger {
   protected abstract child(opts: { scope: string }): ILogger;
 
   debug(message: string, ...args: AnyType[]) {
-    if (!SHOULD_LOG_DEBUG) {
+    if (!LoggerDebugGate.isOpen()) {
       return;
     }
     this.write({ level: LogLevels.DEBUG, message, args });
@@ -41,7 +41,7 @@ export abstract class BaseLogger extends AbstractLogger {
   }
 
   log(level: TLogLevel, message: string, ...args: AnyType[]) {
-    if (level === LogLevels.DEBUG && !SHOULD_LOG_DEBUG) {
+    if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
       return;
     }
     this.write({ level, message, args });

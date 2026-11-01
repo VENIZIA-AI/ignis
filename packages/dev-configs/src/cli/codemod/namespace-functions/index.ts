@@ -24,8 +24,8 @@ with its file and line, and leaves for you: a call with a spread argument or the
 arguments, the old name used as a value (passed, stored, exported, in typeof), a re-export, a type-only
 import, and a file that declares a name the rewrite would collide with.
 
-It also moves the string form of the logger: \`ApplicationLogger.get('scope')\` (a string, a template, an
-identifier or a property access) becomes \`ApplicationLogger.get({ scope: 'scope' })\`, when
+It also moves the removed \`ApplicationLogger\`: \`ApplicationLogger.get('scope')\`, \`.get(NAME)\` and
+\`.get({ scope: NAME })\` become \`LoggerFactory.getLogger(['scope'])\`, \`([NAME])\`, and the import follows, when
 \`ApplicationLogger\` comes from \`@venizia/ignis-helpers\` or \`@venizia/ignis\`. \`Logger.get\` and
 \`HfLogger.get\` are not touched, and a call it cannot decide is listed.
 
