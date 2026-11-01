@@ -88,7 +88,7 @@ Every lint preset (backend, browser and React) lives here, and ARDOR consumes th
 
 ### The async style rules (opt-in)
 
-Five more rules, all at `error`, apply to test files too, and are **not** in `houseConfigs` or `reactHouseConfigs` yet. A project turns them on by spreading two arrays next to the house configs: `[...houseConfigs, ...asyncStyleConfigs]`, and for a React project `[...reactHouseConfigs, ...reactAsyncStyleConfigs]`. A later release moves them into the house arrays and keeps the two exports as aliases. The convention behind them is [async style](/conventions/async-style.md).
+Six more rules, all at `error`, apply to test files too, and are **not** in `houseConfigs` or `reactHouseConfigs` yet. A project turns them on by spreading two arrays next to the house configs: `[...houseConfigs, ...asyncStyleConfigs]`, and for a React project `[...reactHouseConfigs, ...reactAsyncStyleConfigs]`. A later release moves them into the house arrays and keeps the two exports as aliases. The convention behind them is [async style](/conventions/async-style.md).
 
 | Rule | In | Notes |
 |---|---|---|
@@ -96,8 +96,12 @@ Five more rules, all at `error`, apply to test files too, and are **not** in `ho
 | `no-return-await` | `asyncStyleConfigs` | `return await f()` becomes `return f()`; inside `try`, `catch` or `finally` it becomes `const result = await f(); return result;`. It stands beside `typescript/return-await`, which asks for an `await` only when a promise is returned inside a `try` |
 | `no-async-hook-callback` | `reactAsyncStyleConfigs` | an async arrow or function expression passed to any `use[A-Z]*` call (`React.useX` too): as the argument, as the value of a property of an object literal argument (`useMutation({ mutationFn: async () => {} })`, an async method too) or as an element of an array literal; report only. What a sync callback builds inside is not an argument and is not reported |
 | `effect-cleanup-consistency` | `reactAsyncStyleConfigs` | the callback of `useEffect`, `useLayoutEffect`, `useInsertionEffect` returns nothing on every path or a cleanup on every path; uses ESLint code paths |
+| `no-await-promise-chain` | both arrays | an `await` whose operand (after `!`, `as`, `satisfies`, an optional chain) is a call of `.then`, `.catch` or `.finally`, `['then']` too; one report per `await`. The fixer covers only `const\|let x = await f().catch(() => <value>)` and writes `let x; try { x = await f(); } catch (error) { x = <value>; }`; the conditions are in [async style](/conventions/async-style.md#await-or-chain-never-both) |
+| `no-silent-catch` | both arrays | a `.catch` handler or a `catch` block that is empty, comment-only, or only returns or assigns a constant without reading the error; report only. Not `no-empty`: that one passes a comment-only block and never sees `.catch(() => null)` |
 
-`devz codemod async-style [paths...] [--write | --check]` applies the fixers of the first two through ESLint's own `Linter.verifyAndFix`, lists what it cannot fix with file, line and rule, and with `--write` refuses a file that has local changes. The two hook rules have no fixer and no codemod: moving an async hook body into a promise chain changes error handling.
+`promise-chain-support.ts` (`PromiseChainSupport`) holds what the last two share: the chain-call test, what a constant is, what a silent block is.
+
+`devz codemod async-style [paths...] [--write | --check]` applies the fixers of `no-inline-await`, `no-return-await` and `no-await-promise-chain` through ESLint's own `Linter.verifyAndFix` (it runs every rule of `asyncStyleConfigs`, so `no-inline-await` then hoists the `x = await f()` the chain fix writes), lists what it cannot fix with file, line and rule (every `no-silent-catch` finding among them), and with `--write` refuses a file that has local changes. It reads a file holding `await` or `catch`; its fix count is the number of findings of the original source that carried a fix. The two hook rules have no fixer and no codemod: moving an async hook body into a promise chain changes error handling.
 
 Checked against the BANA copies (2026-10-18): `max-params-own` gave the same hits on a 6-case snippet and on the BANA frontend; `no-leaked-render` gave the same 48 hits and the same fixed output on 3755 `.tsx` files; `no-new-error` differs only in also catching a bare `Error('x')` call. BANA's `pascal-case-tsx` was not taken: IGNIS and ARDOR name `.tsx` files in kebab-case (`about.page.tsx`, `product-list.tsx`), so PascalCase is a BANA product rule.
 

@@ -349,6 +349,3 @@ export class AssetDefinitionBuilder {
     };
   }
 }
-
-/** The bucket-in-path shape, unchanged - every existing importer keeps working. */
-export const StaticAssetDefinitions = AssetDefinitionBuilder.build({});

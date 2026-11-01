@@ -568,7 +568,7 @@ earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it t
 `RequestSpyMiddleware.value()` calls `parseBody` for every content type in a development
 environment, and for `application/json` only elsewhere - its own malformed-JSON `400` is a contract,
 the rest is unread. A route whose `request.body.content` declares a form type gets its own
-`formBodyReader` middleware, appended after every application middleware and just ahead of the
+`FormBodyMiddleware.read` middleware, appended after every application middleware and just ahead of the
 validator, and `parseMultipartBody` maps its own parse failure - both land on
 `400 core.request.body_malformed`, the same object as the spy's. Application middleware that calls
 `context.req.formData()` itself, ahead of any framework reader (an upload authorization guard, for

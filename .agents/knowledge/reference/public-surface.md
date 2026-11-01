@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (53)
+### `@venizia/dev-configs` (56)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
@@ -37,6 +37,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitPromiseChainRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -44,10 +45,12 @@ generated:
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
+- `NoSilentCatchRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
@@ -72,7 +75,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (52)
+### `@venizia/dev-configs/linters` (55)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
@@ -96,6 +99,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitPromiseChainRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -103,10 +107,12 @@ generated:
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
+- `NoSilentCatchRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
@@ -868,7 +874,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (158)
+### `@venizia/ignis-helpers/core` (161)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -881,6 +887,7 @@ generated:
 - `BasePoolHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
+- `ConsoleLogger` class
 - `createUuidV4` const
 - `createUuidV5` const
 - `createUuidV7` const
@@ -948,6 +955,7 @@ generated:
 - `IWalkOptions` interface
 - `IZonedTemporalParts` interface
 - `keysToCamel` const
+- `LoggerSlot` class
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `MessageCode` class
@@ -991,6 +999,7 @@ generated:
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
 - `TFetcherLogger` type
+- `TLoggerResolver` type
 - `TLogLevel` type
 - `TNodePredicate` type
 - `toBoolean` const
