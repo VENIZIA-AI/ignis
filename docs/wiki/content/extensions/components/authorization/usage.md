@@ -47,7 +47,7 @@ class ArticleController extends BaseRestController {
           conditions: { ownerId: 'currentUser' }, // available to voters/custom enforcers - the built-in Casbin enforcer ignores it
         },
         request: { params: z.object({ id: z.string() }) },
-        responses: jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
+        responses: OpenApiResponses.jsonResponse({ description: 'Deleted article', schema: ArticleSchema }),
       },
       handler: async (context: TRouteContext) => {
         const { id } = context.req.valid<{ id: string }>('param');
@@ -75,8 +75,8 @@ class ArticleController extends BaseRestController {
         resource: 'Article',
         allowedRoles: ['editor', AuthorizationRoles.ADMIN.identifier],
       },
-      request: { body: jsonContent({ schema: CreateArticleSchema }) },
-      responses: jsonResponse({ description: 'Created article', schema: ArticleSchema }),
+      request: { body: OpenApiResponses.jsonContent({ schema: CreateArticleSchema }) },
+      responses: OpenApiResponses.jsonResponse({ description: 'Created article', schema: ArticleSchema }),
     },
   })
   async create(context: TRouteContext) {

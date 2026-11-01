@@ -83,7 +83,7 @@ import {
   controller,
   FilterQuerySchema,
   inject,
-  jsonResponse,
+  OpenApiResponses,
   type TInferSchema,
   type TRouteContext,
   type ValueOrPromise,
@@ -105,7 +105,7 @@ export class ProductController extends BaseRestController {
         path: '/search',
         method: HTTP.Methods.GET,
         request: { query: FilterQuerySchema },
-        responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
+        responses: OpenApiResponses.jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
       handler: async (context: TRouteContext) => {
         const { filter = {} } = context.req.valid<TInferSchema<typeof FilterQuerySchema>>('query');

@@ -214,7 +214,7 @@ export type TUser = TEntityObject<typeof User>;
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, inject, jsonContent, post, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, inject, OpenApiResponses, post, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/users' })
@@ -231,7 +231,7 @@ class UserController extends BaseRestController {
     configs: {
       path: '/',
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'User data',
           schema: z.object({ name: z.string() }),
         }),
@@ -430,8 +430,7 @@ import {
   inject,
 
   // Utilities
-  jsonResponse,
-  htmlResponse,
+  OpenApiResponses,
   Statuses,
 } from '@venizia/ignis';
 ```
@@ -492,7 +491,7 @@ import { BindingNamespaces } from '@venizia/ignis';
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonResponse, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @get({
@@ -501,7 +500,7 @@ import { HTTP } from '@venizia/ignis-helpers';
     request: {
       params: z.object({ id: z.string() }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User data',
       schema: z.object({
         id: z.string(),
@@ -523,12 +522,12 @@ getUser(context: TRouteContext) {
 ### HTML Response
 
 ```typescript
-import { htmlResponse, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
 
 @get({
   configs: {
     path: '/dashboard',
-    responses: htmlResponse({
+    responses: OpenApiResponses.htmlResponse({
       description: 'Dashboard page',
     }),
   },
@@ -601,7 +600,7 @@ handler, `RequestSpyMiddleware` and the emoji favicon during `initialize()`. You
 | `AppErrorMiddleware` | no | Global error handler, installed via `onError` |
 | `notFoundHandler` | yes | JSON 404 response for unknown routes |
 | `RequestSpyMiddleware` | no | Request and response logging with timing |
-| `EmojiFaviconMiddleware.create` | yes | Serves an emoji as an SVG favicon (`emojiFavicon` is its deprecated alias) |
+| `EmojiFaviconMiddleware.create` | yes | Serves an emoji as an SVG favicon |
 
 Change the favicon through `configs.favicon` and the error wrapper through `configs.error.rootKey`
 rather than re-registering anything.
@@ -646,7 +645,7 @@ import {
   controller,
   DefaultCRUDRepository,
   inject,
-  jsonContent,
+  OpenApiResponses,
   post,
   repository,
   TRouteContext,
@@ -674,7 +673,7 @@ class UserController extends BaseRestController {
     configs: {
       path: '/',
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'User data',
           schema: z.object({
             name: z.string(),

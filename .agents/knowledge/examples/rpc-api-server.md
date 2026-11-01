@@ -22,7 +22,7 @@ database server. Its smoke test runs with `bun test` inside the example folder, 
   strategies: [Authentication.STRATEGY_JWT] }`. `createdBy` is always the signed-in user: the CRUD
   factory drops the audit keys from its default request bodies.
 - **Server-side JSX** - `src/controllers/view.controller.tsx` renders `/` and `/about` with
-  `defineJSXRoute` and `htmlContent`; the pages live in `src/views`. This is the only example doing
+  `defineJSXRoute` and `OpenApiResponses.htmlContent`; the pages live in `src/views`. This is the only example doing
   SSR.
 - **`src/models/auth.schema.ts`** types the auth routes' responses - the same schema
   `rpc-client-app`'s generated `schema.d.ts` is typed from.

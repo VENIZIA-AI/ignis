@@ -286,7 +286,7 @@ Each controller lives in its own folder with separate files for definitions, log
 Create `src/controllers/hello/definitions.ts` - route configs and schemas:
 
 ```typescript
-import { jsonContent } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -297,7 +297,7 @@ export const helloRouteConfigs = {
     method: HTTP.Methods.GET,
     path: '/',
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'A simple hello message',
         schema: z.object({ message: z.string() }),
       }),

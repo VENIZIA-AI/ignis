@@ -287,8 +287,11 @@ The public helper functions of the kernel are static methods of classes: `OpenAp
 (`buildDataRange`, `toContentRange`), `ModelUtility` (`toEntityId`, `snakeToCamel`),
 `RequestDomainResolver` (`readDeclarative`, `resolveRequestDomain`),
 `InjectableUtility.pickRegistrationOptions`, `EmojiFaviconMiddleware.create`,
-`ErrorUtility.throwNotSupported` and `ControllerFactory.registerRepositoryInjection`. Each old
-function name stays exported as a `@deprecated` alias until 0.5. The decorators, the middleware DSL
+`ErrorUtility.throwNotSupported` and `ControllerFactory.registerRepositoryInjection`, and
+`RouteConfigResolver` holds the route-config resolvers. The old function names are not exported:
+`devz codemod namespace-functions --write` moves a caller to the class form, from the table in
+`packages/dev-configs/src/cli/codemod/namespace-functions/mappings/kernel.ts`, and
+`src/__tests__/namespace-mapping.test.ts` fails if an old name comes back. The decorators, the middleware DSL
 (`authenticate`, `authorize`, `notFoundHandler`), the type guard `isDataSourceClass` and the mixin
 factories stay functions.
 

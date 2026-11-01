@@ -969,11 +969,11 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 `Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts), [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)
 
-These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names (`idParamsSchema`, `jsonContent`, `jsonResponse`, `errorResponses`, `snakeToCamel`, `toEntityId`) are deprecated aliases that call the method, and are removed in 0.5. `snakeToCamel(shape)` took its argument positionally; the method takes `{ shape }`.
+These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names are no longer exported; `devz codemod namespace-functions --write` moves a call of an old name to the class form. `ModelUtility.snakeToCamel` takes `{ shape }`.
 
 ### `OpenApiSchemas.idParams`
 
-Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions. Its old name is `idParamsSchema`.
+Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions.
 
 ```typescript
 OpenApiSchemas.idParams(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
@@ -1016,7 +1016,7 @@ OpenApiResponses.jsonResponse<ContentSchema, HeaderSchema>(opts: {
 
 ### `OpenApiResponses.errorResponses`
 
-The JSON error body of a route, under the two range keys OpenAPI accepts. `jsonResponse()`, `htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
+The JSON error body of a route, under the two range keys OpenAPI accepts. `OpenApiResponses.jsonResponse()`, `OpenApiResponses.htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
 
 ```typescript
 OpenApiResponses.errorResponses(): {
@@ -1067,7 +1067,7 @@ There are two distinct `getIdType`s in the framework - do not confuse them.
 |---|---|---|
 | Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
 | Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
-| Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
+| Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `OpenApiSchemas.idParams` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
 
 ```typescript
 // Neutral - instance method (default 'string'; BaseEntity overrides based on the column)

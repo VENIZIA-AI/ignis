@@ -1143,8 +1143,7 @@ import {
   BaseRestController,
   controller,
   inject,
-  jsonContent,
-  jsonResponse,
+  OpenApiResponses,
   TRouteContext,
   BindingKeys,
   BindingNamespaces,
@@ -1169,7 +1168,7 @@ const ChatRoutes = {
   GET_ROOMS: {
     method: HTTP.Methods.GET,
     path: '/rooms',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User rooms',
       schema: z.array(z.any()),
     }),
@@ -1178,12 +1177,12 @@ const ChatRoutes = {
     method: HTTP.Methods.POST,
     path: '/rooms',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Room data',
         schema: CreateRoomSchema,
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Created room',
       schema: z.any(),
     }),
@@ -1195,7 +1194,7 @@ const ChatRoutes = {
       params: z.object({ roomId: z.string() }),
       query: PaginationQuerySchema,
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Room messages',
       schema: z.array(z.any()),
     }),
@@ -1203,7 +1202,7 @@ const ChatRoutes = {
   GET_CONVERSATIONS: {
     method: HTTP.Methods.GET,
     path: '/conversations',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User conversations',
       schema: z.array(z.any()),
     }),
@@ -1215,7 +1214,7 @@ const ChatRoutes = {
       params: z.object({ userId: z.string() }),
       query: PaginationQuerySchema,
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Direct messages',
       schema: z.array(z.any()),
     }),

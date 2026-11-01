@@ -50,7 +50,7 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 ## See also
 
 - [Utilities Overview](/references/utilities/) - all utility functions
-- [Schema Utility](/references/utilities/schema) - `snakeToCamel` for Zod schemas built on `toCamel`/`keysToCamel`
+- [Schema Utility](/references/utilities/schema) - `ModelUtility.snakeToCamel` for Zod schemas built on `toCamel`/`keysToCamel`
 
 **Files:**
 

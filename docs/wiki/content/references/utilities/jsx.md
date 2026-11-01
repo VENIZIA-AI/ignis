@@ -6,7 +6,7 @@ difficulty: beginner
 
 # JSX/HTML Utility
 
-IGNIS renders HTML pages server-side with Hono's built-in JSX support, and documents those routes for OpenAPI with `OpenApiResponses.htmlContent()` / `OpenApiResponses.htmlResponse()`. The old function names `htmlContent` and `htmlResponse` are deprecated aliases until 0.5.
+IGNIS renders HTML pages server-side with Hono's built-in JSX support, and documents those routes for OpenAPI with `OpenApiResponses.htmlContent()` / `OpenApiResponses.htmlResponse()`.
 
 ## In one example
 
@@ -121,11 +121,11 @@ this.defineJSXRoute({
 ## See also
 
 - [Full reference](/references/utilities/jsx-reference) - every function, `defineJSXRoute` behavior, and component patterns
-- [Schema Utility](./schema.md) - the JSON-side helpers (`jsonContent`, `jsonResponse`) this pairs with
+- [Schema Utility](./schema.md) - the JSON-side helpers (`OpenApiResponses.jsonContent`, `OpenApiResponses.jsonResponse`) this pairs with
 - [Controllers](../base/controllers.md) - `defineRoute`/`bindRoute`, `authenticate`/`authorize` config
 - **External:** [Hono JSX Documentation](https://hono.dev/docs/guides/jsx)
 
 **Files:**
 
-- [`packages/kernel/src/base/controllers/common/html-response.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/common/html-response.ts) - `htmlContent`, `htmlResponse`
+- [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts) - `OpenApiResponses.htmlContent`, `OpenApiResponses.htmlResponse`
 - [`packages/kernel/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/controllers/rest/base.ts) - `defineJSXRoute`

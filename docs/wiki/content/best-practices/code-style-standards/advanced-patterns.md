@@ -76,7 +76,7 @@ class ControllerFactory extends BaseHelper {
     const entityInstance = new entityClass();
 
     // Derive request/response schemas + route configs from the entity instance
-    const definitions = defineControllerRouteConfigs({
+    const definitions = RouteConfigResolver.defineControllerRouteConfigs({
       idType: entityInstance.getIdType(),
       routes,
       schema: {

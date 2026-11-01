@@ -426,7 +426,7 @@ type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 ```
 
-`RequestDomainResolver.resolveRequestDomain({ spec, context, options })` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `RequestDomainResolver.readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`. The functions `resolveRequestDomain` and `readDeclarative` are deprecated aliases of the two methods until 0.5.
+`RequestDomainResolver.resolveRequestDomain({ spec, context, options })` (`providers/request-domain.ts`) turns either shape into a casbin domain string. Precedence: `spec.domain` (resolver, then declarative `RequestDomainResolver.readDeclarative()`) -> `IAuthorizeOptions.domainResolver` -> `AuthorizationDomainScopes.SYSTEM_WIDE`.
 
 `RequestDomainResolver.readDeclarative({ source, context })` reads `context.req.param/header/query()` for `'param'|'header'|'query'`, or `context.get(key)` for `'context'`.
 
@@ -1516,7 +1516,7 @@ interface IRpcMetadata {
 
 ### CRUD factory authorization
 
-`defineControllerRouteConfigs` (`base/controllers/factory/definition.ts`) resolves each generated route's `authorize` via `resolveRouteAuthorize(routeKey)`:
+`RouteConfigResolver.defineControllerRouteConfigs` (`base/controllers/factory/definition.ts`) resolves each generated route's `authorize` via `resolveRouteAuthorize(routeKey)`:
 
 1. Endpoint `authenticate: { skip: true }` -> `undefined` (skips both authentication and authorization).
 2. Endpoint `authorize: { skip: true }` -> `undefined` (authorization only; authentication still runs).

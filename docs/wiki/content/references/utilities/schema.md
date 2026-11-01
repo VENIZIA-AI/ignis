@@ -39,13 +39,13 @@ this.defineRoute({
 
 ## Functions
 
-These are static methods of three classes. The old function names (`jsonContent`, `jsonResponse`, `errorResponses`, `requiredString`, `idParamsSchema`, `snakeToCamel`, `htmlContent`, `htmlResponse`) are still exported as deprecated aliases that call the class method, and are removed in 0.5. `snakeToCamel(shape)` took its argument positionally; the class method takes `{ shape }`.
+These are static methods of three classes. The old function names are no longer exported; `devz codemod namespace-functions --write` moves a call of an old name to the class form. `ModelUtility.snakeToCamel` takes `{ shape }`.
 
 | Method | Signature | What it does |
 |--------|-----------|---------------|
 | `OpenApiResponses.jsonContent` | `jsonContent(opts: { schema: ZodType; description: string; required?: boolean }): { description; content; required }` | Builds a standard OpenAPI content object for an `application/json` payload. |
 | `OpenApiResponses.jsonResponse` | `jsonResponse(opts: { schema: ZodType; description?: string; required?: boolean; headers?: Record<string, THeaderObject> }): Record<number \| string, ...>` | Builds a full response map: `200` success (via `jsonContent`, description defaults to `'Success Response'`) plus the `4XX` and `5XX` entries of `errorResponses()`. |
-| `OpenApiResponses.errorResponses` | `errorResponses(): { '4XX': ...; '5XX': ... }` | The JSON error body under `4XX` and `5XX`, both `jsonContent({ description: 'Error Response', schema: ErrorSchema })`. Spread it into a route whose success body is not JSON. |
+| `OpenApiResponses.errorResponses` | `errorResponses(): { '4XX': ...; '5XX': ... }` | The JSON error body under `4XX` and `5XX`, both `OpenApiResponses.jsonContent({ description: 'Error Response', schema: ErrorSchema })`. Spread it into a route whose success body is not JSON. |
 | `OpenApiSchemas.requiredString` | `requiredString(opts?: { min?: number; max?: number; fixed?: number }): ZodString` | A non-empty (`.nonempty()`) Zod string, optionally constrained by `min`, `max`, or an exact `fixed` length. |
 | `OpenApiSchemas.idParams` | `idParams(opts?: { idType: TIdSchemaType }): ZodObject` | Builds a path-param schema for `{ id }`, typed and OpenAPI-documented as `number` or `string`. `TIdSchemaType` is `'number' \| 'string'`. Throws on any other value. The whole `opts` object is optional and defaults to `number`, but once you pass it, `idType` is required. Its old name is `idParamsSchema`. |
 | `ModelUtility.snakeToCamel` | `snakeToCamel<T extends ZodRawShape>(opts: { shape: T }): ZodPipe` | Wraps a Zod object `shape` so it accepts `snake_case` input keys and produces a `camelCase`-keyed output: `z.object(shape).transform(keysToCamel).pipe(z.object(camelShape))`. |
@@ -60,10 +60,10 @@ These are static methods of three classes. The old function names (`jsonContent`
 
 ## Notes
 
-- **Three source files, one page.** `AnyObjectSchema`, `TAnyObjectSchema`, `TInferSchema`, and the deprecated `requiredString` alias live in `base/controllers/common/schema-builders.ts` (they call `z.object()` at module load, so they sit with the REST surface rather than in the zod-free `utilities/` barrel); `OpenApiResponses`, `OpenApiSchemas`, and their deprecated aliases live in `base/models/common/schemas.ts`; `ModelUtility` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
-- **`jsonResponse`'s error branch is fixed** - it always uses `ErrorSchema` under the `4XX` and `5XX` keys (the only range keys OpenAPI accepts, so client generators type the error body); only the success schema, description, and headers are customizable per call.
+- **Three source files, one page.** `AnyObjectSchema`, `TAnyObjectSchema` and `TInferSchema` live in `base/controllers/common/schema-builders.ts` (they call `z.object()` at module load, so they sit with the REST surface rather than in the zod-free `utilities/` barrel); `OpenApiResponses` and `OpenApiSchemas` live in `base/models/common/schemas.ts`; `ModelUtility` lives in `base/models/common/utilities.ts`. All three are re-exported from the `@venizia/ignis` root barrel, so the import path is the same either way.
+- **`OpenApiResponses.jsonResponse`'s error branch is fixed** - it always uses `ErrorSchema` under the `4XX` and `5XX` keys (the only range keys OpenAPI accepts, so client generators type the error body); only the success schema, description, and headers are customizable per call.
 - **`ErrorSchema` is the named component `ErrorResponse`.** Every route's `4XX` and `5XX` reference `#/components/schemas/ErrorResponse`, so a generated client types the error as `components['schemas']['ErrorResponse']`. A schema that extends `ErrorSchema` is documented as `allOf` that reference plus its own fields. Only one schema can own the name, so rename a component of your own called `ErrorResponse`.
-- **A route with a non-JSON success body** (a file stream, an image) spreads `errorResponses()` beside its own `200`:
+- **A route with a non-JSON success body** (a file stream, an image) spreads `OpenApiResponses.errorResponses()` beside its own `200`:
 
   ```typescript
   responses: {
@@ -74,15 +74,15 @@ These are static methods of three classes. The old function names (`jsonContent`
     ...OpenApiResponses.errorResponses(),
   },
   ```
-- **The workspace is on Zod v4.** `snakeToCamel` returns a `ZodPipe`; there is no `ZodEffects` to hold, that class belonged to v3.
+- **The workspace is on Zod v4.** `ModelUtility.snakeToCamel` returns a `ZodPipe`; there is no `ZodEffects` to hold, that class belonged to v3.
 - **`TInferSchema<T>` constrains `T` to `z.ZodType`.** The full declaration is `TInferSchema<T extends z.ZodType> = z.infer<T>`.
-- **HTML responses are a separate utility.** For `text/html` routes, use `OpenApiResponses.htmlContent`/`OpenApiResponses.htmlResponse` from the [JSX Utility](/references/utilities/jsx) instead of `jsonContent`/`jsonResponse`.
+- **HTML responses are a separate utility.** For `text/html` routes, use `OpenApiResponses.htmlContent`/`OpenApiResponses.htmlResponse` from the [JSX Utility](/references/utilities/jsx) instead of `OpenApiResponses.jsonContent`/`OpenApiResponses.jsonResponse`.
 
 ## See also
 
 - [Utilities Overview](/references/utilities/) - all utility functions
 - [JSX Utility](/references/utilities/jsx) - `OpenApiResponses.htmlContent()` / `OpenApiResponses.htmlResponse()` for HTML routes
-- [Parse Utility](/references/utilities/parse) - `toCamel()` / `keysToCamel()`, the transforms `snakeToCamel` builds on
+- [Parse Utility](/references/utilities/parse) - `toCamel()` / `keysToCamel()`, the transforms `ModelUtility.snakeToCamel` builds on
 - [REST Controllers Guide](/guides/core-concepts/rest-controllers) - defining routes with `request`/`responses`
 
 **Files:**
