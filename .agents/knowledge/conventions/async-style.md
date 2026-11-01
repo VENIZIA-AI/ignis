@@ -6,6 +6,17 @@ resource: packages/dev-configs/src/linters/house/
 tags: [conventions, async, lint]
 ---
 
+<!-- okf:generated:contents start -->
+**Contents**
+
+- [Await stands alone](#await-stands-alone)
+- [A function returns its promise](#a-function-returns-its-promise)
+- [Await or chain, never both](#await-or-chain-never-both)
+- [No silent catch](#no-silent-catch)
+- [Hooks](#hooks)
+- [Why](#why)
+<!-- okf:generated:contents end -->
+
 How IGNIS, ARDOR and VULCAN write asynchronous code. The lint rules that enforce it are in
 [dev-configs](/packages/dev-configs.md#the-async-style-rules-opt-in).
 

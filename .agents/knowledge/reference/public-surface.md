@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (53)
+### `@venizia/dev-configs` (56)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
@@ -37,6 +37,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitPromiseChainRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -44,10 +45,12 @@ generated:
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
+- `NoSilentCatchRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
@@ -72,7 +75,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (52)
+### `@venizia/dev-configs/linters` (55)
 
 - `AstNodeTypes` class
 - `asyncStyleConfigs` const
@@ -96,6 +99,7 @@ generated:
 - `namingConventionConfigs` const
 - `NamingConventionRule` class
 - `NoAsyncHookCallbackRule` class
+- `NoAwaitPromiseChainRule` class
 - `nodeType` const
 - `NoInlineAwaitRule` class
 - `NoLeakedRenderRule` class
@@ -103,10 +107,12 @@ generated:
 - `NoRestrictedImportsRule` class
 - `NoRestrictedPropertiesRule` class
 - `NoReturnAwaitRule` class
+- `NoSilentCatchRule` class
 - `NoUnusedVarsRule` class
 - `oxlintConfigs` const
 - `OxlintConfigs` class
 - `PreferNullishCoalescingRule` class
+- `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
 - `ReactEslintConfigs` class
 - `reactHouseConfigs` const
