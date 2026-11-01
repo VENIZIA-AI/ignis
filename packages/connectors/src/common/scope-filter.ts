@@ -90,7 +90,3 @@ export class ScopeFilterUtility {
     }
   }
 }
-
-/** @deprecated Use ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled }). Removed in 0.5. */
-export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean }): void =>
-  ScopeFilterUtility.assertScopeFilterSupported(opts);

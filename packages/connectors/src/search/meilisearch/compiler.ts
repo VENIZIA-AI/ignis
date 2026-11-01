@@ -172,8 +172,3 @@ export class MeilisearchCollectionCompiler {
     };
   }
 }
-
-/** @deprecated Use MeilisearchCollectionCompiler.compile({ definition }). Removed in 0.5. */
-export const compileMeilisearchCollection = (opts: {
-  definition: ISearchCollectionDefinition;
-}): IMeilisearchIndexPlan => MeilisearchCollectionCompiler.compile(opts);

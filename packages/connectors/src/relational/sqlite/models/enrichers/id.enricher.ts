@@ -70,12 +70,3 @@ export class SqliteIdEnricher {
     return { ...baseColumns, ...defs };
   }
 }
-
-/** @deprecated Use SqliteIdEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
-  opts?: Opts,
-): TIdColumnDef<Opts> => SqliteIdEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use SqliteIdEnricher.enrich({ baseColumns, opts }). Removed in 0.5. */
-export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) =>
-  SqliteIdEnricher.enrich({ baseColumns, opts });

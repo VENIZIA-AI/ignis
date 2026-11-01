@@ -31,7 +31,3 @@ export class SearchQueryParamsUtility {
     return params as Partial<ISearchQuery>;
   }
 }
-
-/** @deprecated Use SearchQueryParamsUtility.toSearchQueryParams({ input }). Removed in 0.5. */
-export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> =>
-  SearchQueryParamsUtility.toSearchQueryParams({ input });

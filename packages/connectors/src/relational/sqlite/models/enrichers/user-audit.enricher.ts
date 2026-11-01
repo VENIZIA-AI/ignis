@@ -84,14 +84,3 @@ export class SqliteUserAuditEnricher {
     return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
   }
 }
-
-/** @deprecated Use SqliteUserAuditEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) =>
-  SqliteUserAuditEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use SqliteUserAuditEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichUserAudit = <ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts?: TUserAuditEnricherOptions,
-): TUserAuditEnricherResult<ColumnDefinitions> =>
-  SqliteUserAuditEnricher.enrich({ baseSchema, opts });

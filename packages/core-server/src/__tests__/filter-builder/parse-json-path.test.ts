@@ -159,9 +159,9 @@ const testCases: ITestCase[] = [
   },
 ];
 
-// parseJsonPath only splits: it never rejects. Injection payloads are expected to survive intact
-// here, because rejection is validateJsonPathComponents' job further down the chain.
-describe('parseJsonPath', () => {
+// JsonPathUtility.parseJsonPath only splits: it never rejects. Injection payloads are expected to survive intact
+// here, because rejection is JsonPathUtility.validateJsonPathComponents' job further down the chain.
+describe('JsonPathUtility.parseJsonPath', () => {
   for (const testCase of testCases) {
     test(`parses ${JSON.stringify(testCase.input)}`, () => {
       const result = JsonPathUtility.parseJsonPath({ key: testCase.input });

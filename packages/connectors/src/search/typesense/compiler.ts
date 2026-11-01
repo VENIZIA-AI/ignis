@@ -266,8 +266,3 @@ export class TypesenseCollectionCompiler {
     return schema;
   }
 }
-
-/** @deprecated Use TypesenseCollectionCompiler.compile({ definition }). Removed in 0.5. */
-export const compileTypesenseCollection = (opts: {
-  definition: ISearchCollectionDefinition;
-}): CollectionCreateSchema => TypesenseCollectionCompiler.compile(opts);

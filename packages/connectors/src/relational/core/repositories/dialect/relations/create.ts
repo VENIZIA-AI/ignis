@@ -59,9 +59,3 @@ export class RelationsFactory {
     };
   }
 }
-
-/** @deprecated Use RelationsFactory.create({ source, relations }). Removed in 0.5. */
-export const createRelations = <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
-  source: Schema;
-  relations: Array<TRelationConfig>;
-}) => RelationsFactory.create(opts);

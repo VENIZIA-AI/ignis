@@ -35,9 +35,3 @@ export class AuditUserResolver {
     return (userId as T) ?? null;
   }
 }
-
-/** @deprecated Use AuditUserResolver.resolveAuditUserId({ allowAnonymous, columnField }). Removed in 0.5. */
-export const resolveAuditUserId = <T>(opts: {
-  allowAnonymous: boolean;
-  columnField: string;
-}): T | null => AuditUserResolver.resolveAuditUserId<T>(opts);

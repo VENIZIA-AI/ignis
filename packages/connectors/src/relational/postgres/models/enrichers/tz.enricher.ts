@@ -73,12 +73,3 @@ export class PostgresTzEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use PostgresTzEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
-  opts?: Opts,
-): TTzEnricherResult<Opts> => PostgresTzEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use PostgresTzEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) =>
-  PostgresTzEnricher.enrich({ baseSchema, opts });

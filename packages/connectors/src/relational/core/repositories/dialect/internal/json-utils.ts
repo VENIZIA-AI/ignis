@@ -52,25 +52,3 @@ export class JsonPathUtility {
     }
   }
 }
-
-/** @deprecated Use JsonPathUtility.isJsonPath({ key }). Removed in 0.5. */
-export const isJsonPath = (opts: { key: string }): boolean => JsonPathUtility.isJsonPath(opts);
-
-/** @deprecated Use JsonPathUtility.parseJsonPath({ key }). Removed in 0.5. */
-export const parseJsonPath = (opts: { key: string }): { columnName: string; path: string[] } =>
-  JsonPathUtility.parseJsonPath(opts);
-
-/** @deprecated Use JsonPathUtility.validateJsonPathComponents({ path, tableName, methodName }). Removed in 0.5. */
-export const validateJsonPathComponents = (opts: {
-  path: string[];
-  tableName: string;
-  methodName: string;
-}): void => JsonPathUtility.validateJsonPathComponents(opts);
-
-/** @deprecated Use JsonPathUtility.validateJsonColumnType({ column, columnName, tableName, methodName }). Removed in 0.5. */
-export const validateJsonColumnType = (opts: {
-  column: { dataType: string };
-  columnName: string;
-  tableName: string;
-  methodName: string;
-}): void => JsonPathUtility.validateJsonColumnType(opts);

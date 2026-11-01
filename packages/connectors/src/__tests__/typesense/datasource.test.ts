@@ -220,7 +220,7 @@ describe('TypesenseDataSource', () => {
     expect(ds.getQueryDialect()).toBeInstanceOf(TypesenseQueryDialect);
   });
 
-  test('compileCollection() delegates to compileTypesenseCollection', () => {
+  test('compileCollection() delegates to TypesenseCollectionCompiler.compile', () => {
     const ds = new TypesenseAppSearchDataSource({
       name: 'compile-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },

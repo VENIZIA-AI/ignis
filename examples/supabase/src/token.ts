@@ -11,7 +11,7 @@ import { applicationEnvironment, int } from '@venizia/ignis-helpers';
  *
  * `IJWTTokenPayload` is IGNIS's own claim shape (`userId` + `roles`), not the `sub` + `role` shape
  * this example mints - `userId`/`roles: []` below are filler nothing reads. `auth.uid()` reads only
- * the registered `sub` claim (set via `claims.subject`); `withAuthContext` reads `role` off the
+ * the registered `sub` claim (set via `claims.subject`); `SupabaseRls.withAuthContext` reads `role` off the
  * decoded payload directly, which the index signature on `IJWTTokenPayload` allows through untouched.
  */
 export const mintToken = async (opts: { subject: string; role?: string }): Promise<string> => {

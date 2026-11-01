@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import { TypesenseCollectionCompiler } from '@/search/typesense/compiler';
 import { SearchCollectionFactory, field } from '@/search/core/models';
 
-describe('compileTypesenseCollection', () => {
+describe('TypesenseCollectionCompiler.compile', () => {
   test('compiles a full definition to the exact expected CollectionCreateSchema', () => {
     const definition = SearchCollectionFactory.define({
       name: 'products',

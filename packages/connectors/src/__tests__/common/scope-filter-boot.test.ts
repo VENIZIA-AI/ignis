@@ -34,7 +34,7 @@ const register = (opts: {
   });
 };
 
-describe('assertScopeFilterSupported', () => {
+describe('ScopeFilterUtility.assertScopeFilterSupported', () => {
   afterEach(() => {
     registry.getAllModels().clear();
   });
@@ -92,7 +92,7 @@ describe('assertScopeFilterSupported', () => {
   });
 });
 
-describe('assertScopeFilterSupported - the write guard settings', () => {
+describe('ScopeFilterUtility.assertScopeFilterSupported - the write guard settings', () => {
   const ordersTable = pgTable('boot_guard_orders', {
     id: serial('id').primaryKey(),
     merchantId: text('merchant_id'),

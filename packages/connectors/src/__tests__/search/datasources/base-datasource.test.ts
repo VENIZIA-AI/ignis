@@ -333,7 +333,7 @@ describe('BaseSearchDataSource - multiSearch injects @model hidden fields into e
       ],
     });
 
-    // toSearchQueryParams comma-joins excludeFields; the injected 'secret' unions with caller 'other'.
+    // SearchQueryParamsUtility.toSearchQueryParams comma-joins excludeFields; the injected 'secret' unions with caller 'other'.
     const known = dataSource.capturedSearches[0];
     expect(String(known['excludeFields']).split(',').sort()).toEqual(['other', 'secret']);
 

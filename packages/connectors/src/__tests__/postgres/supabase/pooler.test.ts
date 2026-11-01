@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { SupabasePooler, PoolerModes } from '@/relational/postgres/supabase';
 
-describe('buildPostgresJsOptions', () => {
+describe('SupabasePooler.buildPostgresJsOptions', () => {
   test('transaction mode disables prepared statements', () => {
     // Supavisor rebinds the backend per transaction, so a server-side prepared statement is not there next time - the single most common Supabase + postgres-js failure.
     expect(SupabasePooler.buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION }).prepare).toBe(

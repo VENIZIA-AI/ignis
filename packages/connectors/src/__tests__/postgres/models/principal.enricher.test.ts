@@ -130,7 +130,7 @@ describe('the Postgres principal enricher discriminator column', () => {
   });
 });
 
-describe('the Postgres enrichPrincipal', () => {
+describe('PostgresPrincipalEnricher.enrich', () => {
   test('passes isNullableDiscriminator and isNullableId through with matching column types', () => {
     const schema = PostgresPrincipalEnricher.enrich({
       baseSchema: {},

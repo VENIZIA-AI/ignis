@@ -47,11 +47,3 @@ export class PostgresDataTypeEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use PostgresDataTypeEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) =>
-  PostgresDataTypeEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use PostgresDataTypeEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichDataTypes = (baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions) =>
-  PostgresDataTypeEnricher.enrich({ baseSchema, opts });

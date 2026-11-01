@@ -32,10 +32,3 @@ export class SupabaseRls {
     await transaction.connector.execute(sql.raw(`set local role ${role}`));
   }
 }
-
-/** @deprecated Use SupabaseRls.withAuthContext({ transaction, claims, role }). Removed in 0.5. */
-export const withAuthContext = async (opts: {
-  transaction: IDatabaseTransaction;
-  claims: Record<string, unknown>;
-  role?: string;
-}): Promise<void> => SupabaseRls.withAuthContext(opts);

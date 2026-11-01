@@ -96,26 +96,3 @@ export class PostgresPrincipalEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use PostgresPrincipalEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generatePrincipalColumnDefs = <
-  Discriminator extends string = 'principal',
-  IdType extends TIdSchemaType = 'number',
-  Nullable extends boolean = false,
-  NullableDiscriminator extends boolean = true,
->(
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
-): TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator> =>
-  PostgresPrincipalEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use PostgresPrincipalEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichPrincipal = <
-  ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
-  Discriminator extends string = string,
-  IdType extends TIdSchemaType = TIdSchemaType,
-  Nullable extends boolean = false,
-  NullableDiscriminator extends boolean = true,
->(
-  baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
-) => PostgresPrincipalEnricher.enrich({ baseSchema, opts });

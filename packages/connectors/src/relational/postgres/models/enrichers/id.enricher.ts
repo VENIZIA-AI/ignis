@@ -79,12 +79,3 @@ export class PostgresIdEnricher {
     return { ...baseColumns, ...defs };
   }
 }
-
-/** @deprecated Use PostgresIdEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
-  opts?: Opts,
-): TIdColumnDef<Opts> => PostgresIdEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use PostgresIdEnricher.enrich({ baseColumns, opts }). Removed in 0.5. */
-export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) =>
-  PostgresIdEnricher.enrich({ baseColumns, opts });

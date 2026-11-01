@@ -29,7 +29,7 @@ const buildTransaction = () => {
   };
 };
 
-describe('withAuthContext', () => {
+describe('SupabaseRls.withAuthContext', () => {
   test('issues set_config then set local role, inside the caller transaction', async () => {
     const { transaction, executed } = buildTransaction();
 

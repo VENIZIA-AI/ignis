@@ -20,7 +20,7 @@ export type TSearchFieldTsType<T extends TSearchFieldType> = T extends 'string'
                 ? number[]
                 : never;
 
-/** Compile-time document shape for a `defineSearchCollection` literal. Uses `Exclude<..., { optional: true }>`, not `Extract<..., { optional?: false }>` - the latter is a TS weak type and rejects fields with no `optional` key. A `vector.embed` field is server auto-embedded, so it is omitted entirely. */
+/** Compile-time document shape for a `SearchCollectionFactory.define` literal. Uses `Exclude<..., { optional: true }>`, not `Extract<..., { optional?: false }>` - the latter is a TS weak type and rejects fields with no `optional` key. A `vector.embed` field is server auto-embedded, so it is omitted entirely. */
 export type TSearchDocument<T extends ISearchCollectionDefinition> = { id: string } & {
   [
     F in Exclude<T['fields'][number], { optional: true }> as F['name'] extends 'id'

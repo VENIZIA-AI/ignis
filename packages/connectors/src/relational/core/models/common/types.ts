@@ -35,10 +35,6 @@ export class RelationalEntityUtility {
   }
 }
 
-/** @deprecated Use RelationalEntityUtility.getIdType({ entity }). Removed in 0.5. */
-export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) =>
-  RelationalEntityUtility.getIdType(opts);
-
 /** Static schema + relations contract every entity model implements. */
 export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
   TABLE_NAME?: string;

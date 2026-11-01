@@ -42,7 +42,7 @@ export class BaseSearchEntity<
 
     if (!this.schema) {
       throw getError({
-        message: `[BaseSearchEntity] Missing collection definition | name: ${this.name} | define a static "schema" (via defineSearchCollection) or pass one to the constructor`,
+        message: `[BaseSearchEntity] Missing collection definition | name: ${this.name} | define a static "schema" (via SearchCollectionFactory.define) or pass one to the constructor`,
       });
     }
 

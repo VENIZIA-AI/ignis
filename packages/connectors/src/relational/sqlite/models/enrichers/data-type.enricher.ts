@@ -48,11 +48,3 @@ export class SqliteDataTypeEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use SqliteDataTypeEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) =>
-  SqliteDataTypeEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use SqliteDataTypeEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichDataTypes = (baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions) =>
-  SqliteDataTypeEnricher.enrich({ baseSchema, opts });

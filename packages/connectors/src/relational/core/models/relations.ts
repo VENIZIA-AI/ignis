@@ -37,8 +37,3 @@ export class RelationDeclarations {
     return configs;
   }
 }
-
-/** @deprecated Use RelationDeclarations.toRelationConfigs({ relations }). Removed in 0.5. */
-export const toRelationConfigs = (opts: {
-  relations: TRelationDefinitions;
-}): Array<TRelationConfig> => RelationDeclarations.toRelationConfigs(opts);

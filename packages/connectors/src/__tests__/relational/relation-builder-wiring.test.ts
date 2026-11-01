@@ -4,7 +4,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { RelationTypes } from '@venizia/ignis-kernel';
 // Imported as a VALUE, not a type: the module body of `connectors/relational/datasources/base.ts`
-// installs the concrete relation builder (`RelationBuilderRegistry.set({ builder: createRelations })`)
+// installs the concrete relation builder (`RelationBuilderRegistry.set({ builder: RelationsFactory.create })`)
 // as a side effect of that module loading. Referencing `BaseRelationalDataSource` below - and only
 // this reference - is what guarantees the install has run before `buildSchema()` is exercised. A
 // later "unused import" cleanup that deletes this import would silently disable this test's guard.
@@ -37,7 +37,7 @@ class RelationWiringParentDataSource {}
 /**
  * The wiring this test protects: `RepositoryMetadataMixin.resolveModelRelations()` never imports
  * `drizzle-orm` itself - it calls whatever `RelationBuilderRegistry.resolve()` returns. The concrete
- * builder (`createRelations`) is installed only by loading `connectors/relational/datasources/base.ts`.
+ * builder (`RelationsFactory.create`) is installed only by loading `connectors/relational/datasources/base.ts`.
  * Every existing test that reaches `buildSchema()`/`getModels()` exercises the zero-relations case
  * and asserts `relations: {}`, so none of them would notice if that install line were ever lost -
  * this is the one that does.
@@ -72,7 +72,7 @@ describe('relation builder wiring - registry-driven relation building end-to-end
     const builtRelations = built.relations['relation_wiring_parentRelations'] as AnyType;
     expect(builtRelations).toBeDefined();
 
-    // 3. Structural, not a passthrough: only `createRelations()` calling drizzle-orm's own
+    // 3. Structural, not a passthrough: only `RelationsFactory.create()` calling drizzle-orm's own
     // `relations()` produces an actual `Relations` instance wrapping the source table. A stub that
     // echoed back the raw `TRelationConfig` array (or `{ relations: opts.relations }`) would be a
     // plain object/array here and fail both checks below.

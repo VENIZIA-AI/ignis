@@ -106,26 +106,3 @@ export class SqlitePrincipalEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use SqlitePrincipalEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generatePrincipalColumnDefs = <
-  Discriminator extends string = 'principal',
-  IdType extends TIdSchemaType = 'number',
-  Nullable extends boolean = false,
-  NullableDiscriminator extends boolean = true,
->(
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
-): TPrincipalColumnDef<Discriminator, IdType, Nullable, NullableDiscriminator> =>
-  SqlitePrincipalEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use SqlitePrincipalEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichPrincipal = <
-  ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
-  Discriminator extends string = string,
-  IdType extends TIdSchemaType = TIdSchemaType,
-  Nullable extends boolean = false,
-  NullableDiscriminator extends boolean = true,
->(
-  baseSchema: ColumnDefinitions,
-  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable, NullableDiscriminator>,
-) => SqlitePrincipalEnricher.enrich({ baseSchema, opts });

@@ -41,9 +41,3 @@ export class SupabasePooler {
     return options;
   }
 }
-
-/** @deprecated Use SupabasePooler.buildPostgresJsOptions({ mode, max }). Removed in 0.5. */
-export const buildPostgresJsOptions = (opts: {
-  mode: TPoolerMode;
-  max?: number;
-}): IPostgresJsOptions => SupabasePooler.buildPostgresJsOptions(opts);

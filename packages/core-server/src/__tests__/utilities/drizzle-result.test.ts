@@ -1,46 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { readAffectedRowCount, readResultRows } from '@/utilities';
+import { readResultRows } from '@/utilities';
 
-/** Drizzle's raw result shape differs per driver (pg `{ rows, rowCount }` vs postgres-js array with `count`) and the shared `PgDatabase` type cannot tell them apart - these two readers are the only place that knows. An unrecognized shape THROWS: returning `0`/`[]` would be silently wrong. */
-describe('readAffectedRowCount', () => {
-  test('reads pg.QueryResult.rowCount (node-postgres)', () => {
-    expect(readAffectedRowCount({ result: { rowCount: 3, rows: [] } })).toBe(3);
-  });
-
-  test('reads RowList.count (postgres-js)', () => {
-    const rowList = Object.assign([], { count: 5, command: 'UPDATE' });
-    expect(readAffectedRowCount({ result: rowList })).toBe(5);
-  });
-
-  test('rowCount wins when both are present', () => {
-    expect(readAffectedRowCount({ result: { rowCount: 2, count: 9 } })).toBe(2);
-  });
-
-  test('a zero rowCount is preserved, not coerced away', () => {
-    expect(readAffectedRowCount({ result: { rowCount: 0 } })).toBe(0);
-  });
-
-  test('pg reports rowCount: null for statements that affect no rows', () => {
-    expect(readAffectedRowCount({ result: { rowCount: null } })).toBe(0);
-  });
-
-  test('null and undefined resolve to 0 - drizzle resolves some statements to nothing', () => {
-    expect(readAffectedRowCount({ result: null })).toBe(0);
-    expect(readAffectedRowCount({ result: undefined })).toBe(0);
-  });
-
-  test('a primitive throws rather than reporting zero rows affected', () => {
-    expect(() => readAffectedRowCount({ result: 7 })).toThrow(/Unrecognized driver result/);
-  });
-
-  test('an object with neither rowCount nor count throws', () => {
-    // `0` is a legitimate answer, so it must never double as "I did not understand this".
-    expect(() => readAffectedRowCount({ result: { command: 'INSERT' } })).toThrow(
-      /Unrecognized driver result/,
-    );
-  });
-});
-
+/** Drizzle's raw result shape differs per driver (pg `{ rows }` vs the postgres-js row list) and the shared `PgDatabase` type cannot tell them apart - this reader is the only place that knows. An unrecognized shape THROWS: returning `[]` would be silently wrong. */
 describe('readResultRows', () => {
   interface IRow {
     id: number;

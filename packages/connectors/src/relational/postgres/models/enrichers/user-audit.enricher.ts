@@ -78,14 +78,3 @@ export class PostgresUserAuditEnricher {
     return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
   }
 }
-
-/** @deprecated Use PostgresUserAuditEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) =>
-  PostgresUserAuditEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use PostgresUserAuditEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichUserAudit = <ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions>(
-  baseSchema: ColumnDefinitions,
-  opts?: TUserAuditEnricherOptions,
-): TUserAuditEnricherResult<ColumnDefinitions> =>
-  PostgresUserAuditEnricher.enrich({ baseSchema, opts });

@@ -114,7 +114,7 @@ describe('search-collection DSL', () => {
     });
   });
 
-  describe('defineSearchCollection', () => {
+  describe('SearchCollectionFactory.define', () => {
     test('auto-prepends field.id() when missing', () => {
       const collection = SearchCollectionFactory.define({
         name: 'products',
@@ -225,7 +225,7 @@ describe('search-collection DSL', () => {
     // `defaultSort` has no such test. What matters behaviourally is pinned one tier up, in
     // repositories/default-query-by.test.ts.
 
-    // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement is enforced later by compileTypesenseCollection, since other engines may sort on strings.
+    // The DSL only checks that the field exists; Typesense's numeric-scalar sort requirement is enforced later by TypesenseCollectionCompiler.compile, since other engines may sort on strings.
     test('accepts defaultSort referencing an existing STRING field (valid for other engines)', () => {
       const collection = SearchCollectionFactory.define({
         name: 'products',
@@ -257,7 +257,7 @@ describe('search-collection DSL', () => {
     });
   });
 
-  describe('deriveSearchDocumentSchema', () => {
+  describe('SearchCollectionFactory.deriveDocumentSchema', () => {
     const definition = SearchCollectionFactory.define({
       name: 'products',
       fields: [

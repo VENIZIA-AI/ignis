@@ -4,7 +4,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
-describe('generateIdColumnDefs - string ids', () => {
+describe('PostgresIdEnricher.generateColumnDefs - string ids', () => {
   test('default to a time-ordered UUID v7, so later rows sort after earlier ones', () => {
     const table = pgTable(
       'id_enricher_default',

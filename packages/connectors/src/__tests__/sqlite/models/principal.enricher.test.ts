@@ -211,7 +211,7 @@ describe('the SQLite principal enricher discriminator column', () => {
   });
 });
 
-describe('the SQLite enrichPrincipal', () => {
+describe('SqlitePrincipalEnricher.enrich', () => {
   test('passes isNullableDiscriminator and isNullableId through with matching column types', () => {
     const schema = SqlitePrincipalEnricher.enrich({
       baseSchema: {},

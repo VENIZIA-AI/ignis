@@ -211,13 +211,3 @@ export class SearchCollectionFactory {
     }
   }
 }
-
-/** @deprecated Use SearchCollectionFactory.define(definition). Removed in 0.5. */
-export const defineSearchCollection = <const T extends ISearchCollectionDefinition>(opts: T): T =>
-  SearchCollectionFactory.define(opts);
-
-/** @deprecated Use SearchCollectionFactory.deriveDocumentSchema({ definition, type }). Removed in 0.5. */
-export const deriveSearchDocumentSchema = (opts: {
-  definition: ISearchCollectionDefinition;
-  type: TSchemaType;
-}): z.ZodType => SearchCollectionFactory.deriveDocumentSchema(opts);

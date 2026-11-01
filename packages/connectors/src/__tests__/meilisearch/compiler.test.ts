@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchCollectionCompiler } from '@/search/meilisearch/compiler';
 import { SearchCollectionFactory, field } from '@/search/core/models';
 
-describe('compileMeilisearchCollection', () => {
+describe('MeilisearchCollectionCompiler.compile', () => {
   test('searchable/filterable/sortable flags become index settings', () => {
     const definition = SearchCollectionFactory.define({
       name: 'articles',

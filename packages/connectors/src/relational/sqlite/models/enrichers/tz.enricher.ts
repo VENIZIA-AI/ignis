@@ -68,12 +68,3 @@ export class SqliteTzEnricher {
     return { ...baseSchema, ...defs };
   }
 }
-
-/** @deprecated Use SqliteTzEnricher.generateColumnDefs(opts). Removed in 0.5. */
-export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
-  opts?: Opts,
-): TTzEnricherResult<Opts> => SqliteTzEnricher.generateColumnDefs(opts);
-
-/** @deprecated Use SqliteTzEnricher.enrich({ baseSchema, opts }). Removed in 0.5. */
-export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) =>
-  SqliteTzEnricher.enrich({ baseSchema, opts });

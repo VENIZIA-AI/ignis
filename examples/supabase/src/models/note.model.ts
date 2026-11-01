@@ -20,7 +20,7 @@ export const ignisExample = pgSchema('ignis_example');
  *
  * Ownership is NOT enforced in application code - it is enforced by the four policies below, applied
  * to every statement the `authenticated` role issues. `owner_id` defaults to `auth.uid()`, so a create
- * never states an owner: inside a transaction carrying auth context (`withAuthContext`), the database
+ * never states an owner: inside a transaction carrying auth context (`SupabaseRls.withAuthContext`), the database
  * already knows who is asking.
  */
 export const noteTable = ignisExample.table(
@@ -39,7 +39,7 @@ export const noteTable = ignisExample.table(
     index('IDX_note_owner_id').on(table.ownerId),
 
     // `authUid` compiles to `(select auth.uid())`, which reads `request.jwt.claims` - the setting
-    // `withAuthContext` writes with `set_config(..., true)`. No auth context, no rows.
+    // `SupabaseRls.withAuthContext` writes with `set_config(..., true)`. No auth context, no rows.
     pgPolicy('note_select_own', {
       for: 'select',
       to: authenticatedRole,
