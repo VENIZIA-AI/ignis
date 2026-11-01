@@ -17,8 +17,7 @@ import type {
   TEntityPersistObject,
 } from '../common';
 import { PersistableCrudController } from './crud';
-import { defineControllerRouteConfigs } from './definition';
-import { registerFactoryRepositoryInjection } from './repository-injection';
+import { RouteConfigResolver } from './definition';
 
 /** Factory for generating typed CRUD controllers from entity definitions. */
 export class ControllerFactory extends BaseHelper {

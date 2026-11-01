@@ -20,7 +20,7 @@ import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
-import { injectable, pickRegistrationOptions } from './injectable';
+import { injectable, InjectableUtility } from './injectable';
 import { ModelMetadataUtility } from './model-metadata';
 
 /** Registers a model class with its static schema and relations. */
