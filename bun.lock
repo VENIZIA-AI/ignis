@@ -8,7 +8,9 @@
         "@types/bun": "catalog:",
         "@venizia/dev-configs": "workspace:*",
         "@venizia/vulcan": "0.4.6",
+        "eslint": "catalog:",
         "typescript": "catalog:",
+        "typescript-eslint": "catalog:",
       },
     },
     "docs/wiki": {
