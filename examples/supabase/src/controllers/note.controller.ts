@@ -8,8 +8,7 @@ import {
   get,
   type IAuthRouteConfig,
   inject,
-  jsonContent,
-  jsonResponse,
+  OpenApiResponses,
   post,
   type TRouteContext,
 } from '@venizia/ignis';
@@ -39,7 +38,7 @@ const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: HTTP.Methods.GET,
     path: '/',
     authenticate: authenticated,
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Notes visible to the caller. Scoped by RLS, not by a where clause.',
       schema: z.object({ data: z.array(NoteSchema), count: z.number().int() }),
     }),
@@ -49,19 +48,22 @@ const RouteConfigs: Record<string, IAuthRouteConfig> = {
     path: '/',
     authenticate: authenticated,
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'A new note. Ownership is not part of the payload - the database stamps it.',
         schema: CreateNoteSchema,
       }),
     },
-    responses: jsonResponse({ description: 'The created note', schema: NoteSchema }),
+    responses: OpenApiResponses.jsonResponse({
+      description: 'The created note',
+      schema: NoteSchema,
+    }),
   },
   ['/delete']: {
     method: HTTP.Methods.DELETE,
     path: '/:id',
     authenticate: authenticated,
     request: { params: z.object({ id: z.string() }) },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Rows deleted. A note owned by someone else matches nothing, so count is 0.',
       schema: z.object({ count: z.number().int() }),
     }),
@@ -69,7 +71,7 @@ const RouteConfigs: Record<string, IAuthRouteConfig> = {
   ['/unscoped']: {
     method: HTTP.Methods.GET,
     path: '/unscoped',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description:
         'EVERY note in the table. Same repository, same table - but no auth context, so the query runs as the connection role and RLS never engages. The control group.',
       schema: z.object({ data: z.array(NoteSchema), count: z.number().int() }),

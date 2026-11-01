@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from '@hono/zod-openapi';
 
 import {
-  defineControllerRouteConfigs,
+  RouteConfigResolver,
   FilterQuerySchema,
   FilterSchema,
   WhereQuerySchema,
@@ -18,7 +18,7 @@ const queryOf = (request: unknown): TQueryParser => (request as { query: TQueryP
 
 /** The public entry point, so these assertions cover the wiring an application actually reaches. */
 const buildRoutes = (opts: { isStrict: boolean }) =>
-  defineControllerRouteConfigs({
+  RouteConfigResolver.defineControllerRouteConfigs({
     isStrict: opts.isStrict,
     idType: 'string',
     schema: { select: SelectSchema, create: SelectSchema, update: SelectSchema },

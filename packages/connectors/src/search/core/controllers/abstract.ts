@@ -1,5 +1,5 @@
 import type { TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
-import { BaseRestController, buildDataRange } from '@venizia/ignis-kernel';
+import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -17,7 +17,7 @@ const resolveSearchStart = (opts: { input: TSearchInput; hitCount: number }): nu
   const { input, hitCount } = opts;
 
   if (input.mode !== SearchModes.RAW) {
-    // Same precedence as buildDataRange: the repository filter carries skip or offset.
+    // Same precedence as DataRangeUtility.buildDataRange: the repository filter carries skip or offset.
     return input.filter?.skip ?? input.filter?.offset ?? 0;
   }
 
@@ -91,7 +91,11 @@ export abstract class AbstractSearchController<
     const start = resolveSearchStart({ input, hitCount: rs.hits.length });
     this.setListHeaders({
       context,
-      range: buildDataRange({ offset: start, dataLength: rs.hits.length, total: rs.found }),
+      range: DataRangeUtility.buildDataRange({
+        offset: start,
+        dataLength: rs.hits.length,
+        total: rs.found,
+      }),
       count: rs.hits.length,
     });
 

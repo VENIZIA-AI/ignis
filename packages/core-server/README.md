@@ -38,7 +38,7 @@ import {
   BaseRestController,
   controller,
   get,
-  jsonResponse,
+  OpenApiResponses,
 } from '@venizia/ignis';
 import type { Context } from 'hono';
 
@@ -53,7 +53,7 @@ class HelloController extends BaseRestController {
   @get({
     configs: {
       path: '/',
-      responses: jsonResponse({ schema: z.object({ message: z.string() }) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.object({ message: z.string() }) }),
     },
   })
   sayHello(context: Context) {

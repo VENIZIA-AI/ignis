@@ -51,7 +51,7 @@ const SECURE_ROUTE = {
   path: '/data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  responses: jsonResponse({ description: 'Protected', schema: z.object({ data: z.any() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Protected', schema: z.object({ data: z.any() }) }),
 } as const;
 ```
 
@@ -136,7 +136,7 @@ const FALLBACK_AUTH_CONFIG = {
   path: '/api/data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC], mode: AuthenticationModes.ANY },
-  responses: jsonResponse({ description: 'Data', schema: z.object({ data: z.any() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Data', schema: z.object({ data: z.any() }) }),
 } as const;
 ```
 

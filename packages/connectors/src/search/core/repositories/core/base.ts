@@ -6,7 +6,7 @@ import { SearchErrors } from '@/search/core/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
 import type { BaseSearchEntity } from '@/search/core/models';
-import { throwNotSupported } from '@venizia/ignis-kernel/repository';
+import { NotSupportedUtility } from '@venizia/ignis-kernel/repository';
 import type { TClass } from '@venizia/ignis-helpers/common';
 import type {
   ISearchQuery,
@@ -94,7 +94,7 @@ export abstract class SearchBaseRepository<
       return;
     }
 
-    throwNotSupported({
+    NotSupportedUtility.throwNotSupported({
       scope: this.dataSource.constructor.name,
       feature: 'Transactions',
       logger: this.logger,
@@ -107,7 +107,7 @@ export abstract class SearchBaseRepository<
       return;
     }
 
-    throwNotSupported({
+    NotSupportedUtility.throwNotSupported({
       scope: this.dataSource.constructor.name,
       feature: 'Row-level locking',
       logger: this.logger,

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { AuthorizationDomainScopes, CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -102,12 +102,12 @@ const decide = async (opts: {
   const { enforcer, domain } = opts;
   const rules = await enforcer.buildRules({
     user: { principalType: 'User', userId: 1 },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   return enforcer.evaluate({
     rules,
     request: { resource: 'Activation', action: 'read', domain },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
 };
 

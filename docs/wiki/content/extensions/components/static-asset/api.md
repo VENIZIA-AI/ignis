@@ -630,7 +630,7 @@ defineExtraRoutes: ({ controller, helper }) => {
     configs: {
       method: 'get',
       path: '/health',
-      responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
     },
     handler: async context => {
       const buckets = await helper.getBuckets();

@@ -12,7 +12,7 @@ import type {
   TStaticAssetExtraOptions,
 } from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
-import { jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { AppErrorMiddleware } from '@/base/middlewares';
@@ -758,7 +758,9 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
           configs: {
             method: 'get',
             path: '/health',
-            responses: jsonResponse({ schema: z.object({ basePath: z.string() }) }),
+            responses: OpenApiResponses.jsonResponse({
+              schema: z.object({ basePath: z.string() }),
+            }),
           },
           handler: (context) => context.json({ basePath }, HTTP.ResultCodes.RS_2.Ok),
         });
@@ -783,7 +785,7 @@ describe('StaticAsset controller — defineExtraRoutes hook', () => {
           configs: {
             method: 'get',
             path: '/health',
-            responses: jsonResponse({ schema: z.object({ buckets: z.number() }) }),
+            responses: OpenApiResponses.jsonResponse({ schema: z.object({ buckets: z.number() }) }),
           },
           handler: async (context) => {
             const buckets = await hookHelper.getBuckets();

@@ -6,13 +6,16 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { controller, get, model, post, repository, unary } from '@/base/metadata';
-import { jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { applyMethodDecorator } from '../controllers/fixtures';
 
-const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
+const okResponse = OpenApiResponses.jsonResponse({
+  schema: z.object({ hit: z.string() }),
+  description: 'ok',
+});
 const registry = MetadataRegistry.getInstance();
 
 // --- Route metadata across a class hierarchy -------------------------------------------------

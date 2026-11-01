@@ -231,7 +231,7 @@ return context.json(
 );
 ```
 
-`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
+`range` is the repository's `TDataRange` (`{ start, end, total }`, `end` inclusive); `DataRangeUtility.buildDataRange({ skip, offset, dataLength, total })` builds one when the rows come from somewhere else. The CRUD verbs `findById`, `findOne`, `create`, `updateById` and `deleteById` answer with `format: ResponseFormats.OBJECT` and no range.
 
 #### Extras beside the rows
 
@@ -264,9 +264,9 @@ With `extra`, `respond` returns a promise: await it. A write route offers extras
 
 ### `setListHeaders(opts: { context, count } & ({ range } | { offset, total }))`
 
-The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `buildDataRange` (inclusive `end`, empty page collapses onto `start`).
+The list headers without the body, for a response whose body is not a `{ count, data }` envelope. `POST /search` uses it and keeps its `{ found, isFoundExact, hits }` body. Pass the repository's `range`, or `offset` + `total` when the engine reports those; the range is derived with `DataRangeUtility.buildDataRange` (inclusive `end`, empty page collapses onto `start`).
 
-### `toContentRange(opts: { range, count })`
+### `DataRangeUtility.toContentRange(opts: { range, count })`
 
 The one `Content-Range` formatter, exported from `@venizia/ignis-kernel`: `records <start>-<end>/<total>`, or `records */<total>` when `count` is 0. Use it only where the header is written without `respond` or `setListHeaders`.
 
@@ -398,14 +398,16 @@ interface IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 }
 ```
 
-### `asTypedContext`
+### `ContextUtility.asTypedContext`
 
-Utility to cast middleware context to `TContext`:
+Utility to cast middleware context to `TContext`.
 
 ```typescript
-const asTypedContext = <E extends Env>(context: unknown): TContext<E, string> => {
-  return context as TContext<E, string>;
-};
+class ContextUtility {
+  static asTypedContext<E extends Env>(opts: { context: unknown }): TContext<E, string> {
+    return opts.context as TContext<E, string>;
+  }
+}
 ```
 
 ### Route Auth Types (for CRUD Controllers)
@@ -490,13 +492,13 @@ Generic route decorator. Registers route config in the metadata registry.
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { api, BaseRestController, controller, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { api, BaseRestController, controller, OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const MyRouteConfig = {
   method: 'get',
   path: '/data',
-  responses: jsonResponse({ schema: z.object({ success: z.boolean() }) }),
+  responses: OpenApiResponses.jsonResponse({ schema: z.object({ success: z.boolean() }) }),
 } as const;
 
 @controller({ path: '/my-feature' })
@@ -523,13 +525,13 @@ Each decorator calls `@api` internally with the appropriate `HTTP.Methods.*` val
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { get, post, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { get, post, OpenApiResponses, Authentication, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const UserRoutes = {
   LIST_USERS: {
     path: '/',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'A list of users',
       schema: z.array(z.object({ id: z.string(), name: z.string() })),
     }),
@@ -539,7 +541,7 @@ const UserRoutes = {
     request: {
       params: z.object({ id: z.string() }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'A single user',
       schema: z.object({ id: z.string(), name: z.string() }),
     }),
@@ -548,11 +550,11 @@ const UserRoutes = {
     path: '/',
     authenticate: { strategies: [Authentication.STRATEGY_JWT] },
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({ name: z.string() }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z.object({ id: z.string(), name: z.string() }),
     }),
   },
@@ -597,7 +599,7 @@ this.defineRoute({
   configs: {
     method: 'get',
     path: '/status',
-    responses: jsonResponse({ schema: z.object({ ok: z.boolean() }) }),
+    responses: OpenApiResponses.jsonResponse({ schema: z.object({ ok: z.boolean() }) }),
     authenticate: { strategies: ['jwt'] },
     authorize: { action: 'read', resource: 'status' },
   },
@@ -618,9 +620,9 @@ const { configs } = this.bindRoute({
     method: 'post',
     path: '/action',
     request: {
-      body: jsonContent({ schema: z.object({ name: z.string() }) }),
+      body: OpenApiResponses.jsonContent({ schema: z.object({ name: z.string() }) }),
     },
-    responses: jsonResponse({ schema: z.object({ id: z.string() }) }),
+    responses: OpenApiResponses.jsonResponse({ schema: z.object({ id: z.string() }) }),
   },
 }).to({
   handler: async (context) => {
@@ -670,13 +672,13 @@ The `configs` object extends the OpenAPI 3.0 `RouteConfig` from `@hono/zod-opena
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 
 // ...
 request: {
   params: z.object({ id: z.string() }),
   query: z.object({ format: z.string().optional() }),
-  body: jsonContent({
+  body: OpenApiResponses.jsonContent({
     schema: z.object({ name: z.string() })
   })
 }
@@ -796,9 +798,9 @@ The method is public, not protected: a generated controller's declaration file c
 To write a controller factory of your own, record the same injection on the class it generates:
 
 ```typescript
-import { registerFactoryRepositoryInjection } from '@venizia/ignis';
+import { ControllerFactory } from '@venizia/ignis';
 
-registerFactoryRepositoryInjection({
+ControllerFactory.registerRepositoryInjection({
   target: GeneratedController,
   factoryName: 'defineReportController',
   controllerName: 'ReportController',

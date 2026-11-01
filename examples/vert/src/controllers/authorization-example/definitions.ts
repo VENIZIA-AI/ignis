@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { AuthenticateStrategy, type IAuthRouteConfig, jsonContent } from '@venizia/ignis';
+import { AuthenticateStrategy, type IAuthRouteConfig, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 export const RouteConfigs: Record<string, IAuthRouteConfig> = {
@@ -8,7 +8,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     path: '/public',
     method: 'get',
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Public endpoint - no auth required',
         schema: z.object({ message: z.string() }),
       }),
@@ -21,7 +21,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: 'get',
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'User profile - JWT authentication only',
         schema: z.object({ message: z.string(), userId: z.string() }),
       }),
@@ -35,7 +35,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     authorize: { action: 'read', resource: 'configuration' },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Configurations - requires authorization (read:configuration)',
         schema: z.object({ message: z.string(), data: z.array(z.string()) }),
       }),
@@ -49,7 +49,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     authorize: { action: 'create', resource: 'user' },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Create user - requires authorization (create:user)',
         schema: z.object({ message: z.string() }),
       }),
@@ -67,7 +67,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
       allowedRoles: ['999_super-admin', '900_admin'],
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Admin dashboard - requires admin role',
         schema: z.object({ message: z.string(), stats: z.object({}) }),
       }),

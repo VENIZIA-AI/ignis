@@ -1,5 +1,5 @@
 import type { IAuthRouteConfig } from '@/base';
-import { errorResponses, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { MetaLinkRecreateActions } from '../common/constants';
@@ -60,7 +60,7 @@ const fileStreamResponses = (): IAuthRouteConfig['responses'] => ({
       },
     },
   },
-  ...errorResponses(),
+  ...OpenApiResponses.errorResponses(),
 });
 
 /** The ten built-in asset routes. Only `path` and `request.params` differ between option combinations. */
@@ -111,7 +111,7 @@ export class AssetDefinitionBuilder {
       GET_BUCKETS: {
         method: 'get',
         path: '/buckets',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.array(
             z.object({
               name: z.string(),
@@ -126,7 +126,7 @@ export class AssetDefinitionBuilder {
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z
             .object({
               name: z.string(),
@@ -141,7 +141,7 @@ export class AssetDefinitionBuilder {
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z
             .object({
               name: z.string(),
@@ -156,7 +156,7 @@ export class AssetDefinitionBuilder {
         request: {
           params: z.object({ bucketName: bucketNameParam() }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({
             isDeleted: z.boolean(),
           }),
@@ -194,7 +194,7 @@ export class AssetDefinitionBuilder {
             },
           },
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.array(
             z.object({
               postURL: z.string(),
@@ -221,7 +221,7 @@ export class AssetDefinitionBuilder {
             },
           },
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({
             bucket: z.object({ name: z.string() }),
             object: z.object({ key: z.string() }),
@@ -246,7 +246,7 @@ export class AssetDefinitionBuilder {
             },
           },
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.array(
             z.object({
               bucket: z.object({ name: z.string() }),
@@ -267,7 +267,7 @@ export class AssetDefinitionBuilder {
         method: 'delete',
         path: `${bucketPrefix}/objects/${objectSegment}`,
         request: objectRequest(),
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({
             success: z.boolean(),
           }),
@@ -314,7 +314,7 @@ export class AssetDefinitionBuilder {
               }),
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.array(
             z.object({
               name: z.string().optional(),
@@ -330,7 +330,7 @@ export class AssetDefinitionBuilder {
         method: 'put',
         path: `${bucketPrefix}/meta-links/${objectSegment}`,
         request: objectRequest(),
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({
             success: z.boolean(),
             action: z

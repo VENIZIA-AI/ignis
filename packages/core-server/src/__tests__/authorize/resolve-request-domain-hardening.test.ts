@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { IAuthorizationSpec, TAuthorizationDomainResolver } from '@venizia/ignis-kernel';
 import { AuthorizationDomainScopes } from '@venizia/ignis-kernel';
-import { resolveRequestDomain } from '@venizia/ignis-kernel';
+import { RequestDomainResolver } from '@venizia/ignis-kernel';
 import type { TNullable } from '@venizia/ignis-helpers/common';
 
-/** resolveRequestDomain precedence: spec.domain -> declarative -> options.domainResolver -> SYSTEM_WIDE. A falsy or missing resolver returns SYSTEM_WIDE, NOT the next source - fail-closed, since only super-admins hold SYSTEM_WIDE grants. */
+/** RequestDomainResolver.resolveRequestDomain precedence: spec.domain -> declarative -> options.domainResolver -> SYSTEM_WIDE. A falsy or missing resolver returns SYSTEM_WIDE, NOT the next source - fail-closed, since only super-admins hold SYSTEM_WIDE grants. */
 
 // Hono-context stub exposing only the accessors the helper touches.
 function ctxStub(opts: {
@@ -20,8 +20,8 @@ function ctxStub(opts: {
       query: (k: string) => opts.query?.[k],
     },
     get: (k: string) => opts.context?.[k],
-    // Cast is required: stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
-  } as Parameters<typeof resolveRequestDomain>[0]['context'];
+    // Cast is required: stub only implements the accessors RequestDomainResolver.resolveRequestDomain reads, not the full Hono Context shape.
+  } as Parameters<typeof RequestDomainResolver.resolveRequestDomain>[0]['context'];
 }
 
 const SW = AuthorizationDomainScopes.SYSTEM_WIDE;
@@ -38,7 +38,7 @@ async function captureError(run: () => Promise<unknown>): Promise<TNullable<Erro
 
 describe('declarative sources — every `from`', () => {
   test('from=param present', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -51,7 +51,7 @@ describe('declarative sources — every `from`', () => {
   });
 
   test('from=header present', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -64,7 +64,7 @@ describe('declarative sources — every `from`', () => {
   });
 
   test('from=query present', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -77,7 +77,7 @@ describe('declarative sources — every `from`', () => {
   });
 
   test('from=context present', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -92,7 +92,7 @@ describe('declarative sources — every `from`', () => {
   test('each `from` ABSENT → SYSTEM_WIDE', async () => {
     const froms = ['param', 'header', 'query', 'context'] as const;
     for (const from of froms) {
-      const dom = await resolveRequestDomain({
+      const dom = await RequestDomainResolver.resolveRequestDomain({
         spec: { action: 'read', resource: 'Order', domain: { from, key: 'k', type: 'Merchant' } },
         context: ctxStub({}),
         options: undefined,
@@ -104,7 +104,7 @@ describe('declarative sources — every `from`', () => {
 
 describe('declarative — value formatting & edge values', () => {
   test('numeric-looking id stays a string, no quoting ("Merchant_7" not "Merchant_\'7\'")', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -117,7 +117,7 @@ describe('declarative — value formatting & edge values', () => {
   });
 
   test('uuid id formats as Type_<uuid>', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -130,7 +130,7 @@ describe('declarative — value formatting & edge values', () => {
   });
 
   test('context value coerced via String() — number from context becomes "7"', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -143,8 +143,8 @@ describe('declarative — value formatting & edge values', () => {
   });
 
   test('context value of 0 (number) → String(0)="0" is truthy as a string → "Merchant_0"', async () => {
-    // readDeclarative returns String(0)='0'; resolveRequestDomain checks `id ? ...` where '0' is truthy.
-    const dom = await resolveRequestDomain({
+    // RequestDomainResolver.readDeclarative returns String(0)='0'; RequestDomainResolver.resolveRequestDomain checks `id ? ...` where '0' is truthy.
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -157,7 +157,7 @@ describe('declarative — value formatting & edge values', () => {
   });
 
   test('EDGE: empty-string declarative value → falsy → SYSTEM_WIDE (not "Merchant_")', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -171,7 +171,7 @@ describe('declarative — value formatting & edge values', () => {
 
   test('EDGE: context value false → String(false)="false" (truthy string) → "Merchant_false"', async () => {
     // Documents a subtlety: a boolean false in context becomes the literal string "false".
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -183,8 +183,8 @@ describe('declarative — value formatting & edge values', () => {
     expect(dom).toBe('Merchant_false');
   });
 
-  test('EDGE: context value null → readDeclarative returns null → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+  test('EDGE: context value null → RequestDomainResolver.readDeclarative returns null → SYSTEM_WIDE', async () => {
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -199,7 +199,7 @@ describe('declarative — value formatting & edge values', () => {
 
 describe('method resolver (spec.domain as function)', () => {
   test('returns {type,id} → "Type_id"', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order', domain: () => ({ type: 'Organizer', id: '3' }) },
       context: ctxStub({}),
       options: undefined,
@@ -208,7 +208,7 @@ describe('method resolver (spec.domain as function)', () => {
   });
 
   test('numeric id → "Type_7" (no quoting)', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order', domain: () => ({ type: 'Merchant', id: 7 }) },
       context: ctxStub({}),
       options: undefined,
@@ -217,7 +217,7 @@ describe('method resolver (spec.domain as function)', () => {
   });
 
   test('async method resolving a value', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -230,7 +230,7 @@ describe('method resolver (spec.domain as function)', () => {
   });
 
   test('returns null → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order', domain: () => null },
       context: ctxStub({}),
       options: undefined,
@@ -245,7 +245,11 @@ describe('method resolver (spec.domain as function)', () => {
     };
     const spec: IAuthorizationSpec = { action: 'read', resource: 'Order', domain: boom };
     const error = await captureError(() =>
-      resolveRequestDomain({ spec, context: ctxStub({}), options: undefined }),
+      RequestDomainResolver.resolveRequestDomain({
+        spec,
+        context: ctxStub({}),
+        options: undefined,
+      }),
     );
     expect(error?.message).toBe('resolver exploded');
   });
@@ -256,7 +260,11 @@ describe('method resolver (spec.domain as function)', () => {
     };
     const spec: IAuthorizationSpec = { action: 'read', resource: 'Order', domain: boom };
     const error = await captureError(() =>
-      resolveRequestDomain({ spec, context: ctxStub({}), options: undefined }),
+      RequestDomainResolver.resolveRequestDomain({
+        spec,
+        context: ctxStub({}),
+        options: undefined,
+      }),
     );
     expect(error?.message).toBe('sync explode');
   });
@@ -264,7 +272,7 @@ describe('method resolver (spec.domain as function)', () => {
 
 describe('precedence', () => {
   test('method beats declarative-shaped intent and global resolver', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order', domain: () => ({ type: 'Organizer', id: '3' }) },
       context: ctxStub({ params: { m: '7' } }),
       options: { defaultDecision: 'deny', domainResolver: () => ({ type: 'Merchant', id: '1' }) },
@@ -273,7 +281,7 @@ describe('precedence', () => {
   });
 
   test('declarative beats global resolver', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -287,7 +295,7 @@ describe('precedence', () => {
 
   test('declarative MISS does NOT fall through to global — returns SYSTEM_WIDE', async () => {
     // Once spec.domain is declared, a missing value short-circuits to SYSTEM_WIDE; the global resolver is NOT consulted as a fallback.
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -300,7 +308,7 @@ describe('precedence', () => {
   });
 
   test('method MISS (returns null) does NOT fall through to global — returns SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order', domain: () => null },
       context: ctxStub({}),
       options: { defaultDecision: 'deny', domainResolver: () => ({ type: 'Merchant', id: '1' }) },
@@ -309,7 +317,7 @@ describe('precedence', () => {
   });
 
   test('global resolver used only when spec.domain absent', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order' },
       context: ctxStub({}),
       options: { defaultDecision: 'deny', domainResolver: () => ({ type: 'Merchant', id: '9' }) },
@@ -318,7 +326,7 @@ describe('precedence', () => {
   });
 
   test('global resolver returns null → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order' },
       context: ctxStub({}),
       options: { defaultDecision: 'deny', domainResolver: () => null },
@@ -327,7 +335,7 @@ describe('precedence', () => {
   });
 
   test('async global resolver resolving a value', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order' },
       context: ctxStub({}),
       options: {
@@ -340,7 +348,7 @@ describe('precedence', () => {
 
   test('SECURITY: global resolver rejection propagates (fails closed)', async () => {
     const error = await captureError(() =>
-      resolveRequestDomain({
+      RequestDomainResolver.resolveRequestDomain({
         spec: { action: 'read', resource: 'Order' },
         context: ctxStub({}),
         options: {
@@ -355,7 +363,7 @@ describe('precedence', () => {
   });
 
   test('no spec.domain and no global resolver and null options → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: { action: 'read', resource: 'Order' },
       context: ctxStub({}),
       options: null,

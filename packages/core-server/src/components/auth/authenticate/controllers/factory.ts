@@ -1,8 +1,8 @@
 import { BaseRestController } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { controller } from '@venizia/ignis-kernel';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@/utilities';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@/utilities';
 import { AnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -63,13 +63,13 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           path: '/sign-in',
           method: HTTP.Methods.POST,
           request: {
-            body: jsonContent({
+            body: OpenApiResponses.jsonContent({
               description: 'Sign-in request body',
               required: true,
               schema: payload?.signIn?.request?.schema ?? SignInRequestSchema,
             }),
           },
-          responses: jsonResponse({
+          responses: OpenApiResponses.jsonResponse({
             schema: payload?.signIn?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
@@ -90,13 +90,13 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             strategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
           },
           request: {
-            body: jsonContent({
+            body: OpenApiResponses.jsonContent({
               description: 'Sign-up request body',
               required: true,
               schema: payload?.signUp?.request?.schema ?? SignUpRequestSchema,
             }),
           },
-          responses: jsonResponse({
+          responses: OpenApiResponses.jsonResponse({
             schema: payload?.signUp?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
@@ -114,13 +114,13 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           path: '/change-password',
           method: HTTP.Methods.POST,
           request: {
-            body: jsonContent({
+            body: OpenApiResponses.jsonContent({
               description: 'Change password request body',
               required: true,
               schema: payload?.changePassword?.request?.schema ?? ChangePasswordRequestSchema,
             }),
           },
-          responses: jsonResponse({
+          responses: OpenApiResponses.jsonResponse({
             schema: payload?.changePassword?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
@@ -139,7 +139,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           description: 'Refresh access token',
           path: '/token/refresh',
           method: HTTP.Methods.POST,
-          responses: jsonResponse({
+          responses: OpenApiResponses.jsonResponse({
             schema: payload?.refreshToken?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
@@ -147,7 +147,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async (context) => {
           if (!this.service.refreshToken) {
-            return throwNotSupported({
+            return NotSupportedUtility.throwNotSupported({
               scope: AuthController.name,
               feature: 'refreshToken',
               logger: this.logger,
@@ -175,7 +175,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             }),
           },
           responses: {
-            [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+            [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
               description: 'Success Response',
               schema: JWTTokenPayloadSchema.extend({
                 userInformation: (payload?.getUserInformation?.response?.schema ?? AnyObjectSchema)
@@ -198,7 +198,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
 
           if (withUserInformation) {
             if (!this.service.getUserInformation) {
-              return throwNotSupported({
+              return NotSupportedUtility.throwNotSupported({
                 scope: AuthController.name,
                 feature: 'getUserInformation',
                 logger: this.logger,
@@ -218,7 +218,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           description: 'Get current user information',
           path: '/me',
           method: HTTP.Methods.GET,
-          responses: jsonResponse({
+          responses: OpenApiResponses.jsonResponse({
             schema: payload?.getUserInformation?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
@@ -226,7 +226,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async (context) => {
           if (!this.service.getUserInformation) {
-            return throwNotSupported({
+            return NotSupportedUtility.throwNotSupported({
               scope: AuthController.name,
               feature: 'getUserInformation',
               logger: this.logger,

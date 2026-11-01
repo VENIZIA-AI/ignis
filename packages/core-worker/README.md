@@ -23,7 +23,7 @@ Inside the Worker, extend `WorkerApplication` and call `listen()` instead of `st
 ```typescript
 // worker.ts
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, get, jsonResponse } from '@venizia/ignis-kernel';
+import { BaseRestController, controller, get, OpenApiResponses } from '@venizia/ignis-kernel';
 import { WorkerApplication } from '@venizia/ignis-worker';
 import type { Context } from 'hono';
 
@@ -38,7 +38,7 @@ class NoteController extends BaseRestController {
   @get({
     configs: {
       path: '/',
-      responses: jsonResponse({ schema: z.array(z.object({ title: z.string() })) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.array(z.object({ title: z.string() })) }),
     },
   })
   list(context: Context) {

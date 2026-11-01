@@ -3,7 +3,7 @@
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
 > [!NOTE] A SQL capability, not a Postgres one
-> Real transactions belong to the **SQL branch**. `getCapabilities()` returns `{ transactions: true }` on the engine-neutral `BaseRelationalDataSource`, and `beginTransaction()` lives there too, so both Postgres and SQLite open real database transactions. Each engine supplies only its own BEGIN statement: Postgres attaches an isolation level, SQLite a begin mode. The search connectors inherit the engine-neutral `AbstractDataSource` default. Calling `beginTransaction()` on one throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+> Real transactions belong to the **SQL branch**. `getCapabilities()` returns `{ transactions: true }` on the engine-neutral `BaseRelationalDataSource`, and `beginTransaction()` lives there too, so both Postgres and SQLite open real database transactions. Each engine supplies only its own BEGIN statement: Postgres attaches an isolation level, SQLite a begin mode. The search connectors inherit the engine-neutral `AbstractDataSource` default. Calling `beginTransaction()` on one throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `NotSupportedUtility.throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
 
 ## Using Transactions
 
