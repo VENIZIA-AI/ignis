@@ -372,3 +372,42 @@ describe('RecursiveTreeDirections', () => {
     expect(RecursiveTreeDirections.isValid('SIDEWAYS')).toBe(false);
   });
 });
+
+describe("RecursiveTreeSql.walk - start: 'all' (Postgres)", () => {
+  test('every row is a root: the anchor is WHERE 1 = 1, and the SQL without start is unchanged', () => {
+    const all = compile(
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'all',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).sql;
+    const rooted = compile(
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        rootId: 'r',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).sql;
+
+    expect(all).toContain('WHERE 1 = 1');
+    expect(rooted).not.toContain('1 = 1');
+  });
+
+  test('start together with rootId throws', () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'all',
+        rootId: 'r',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).toThrow(/cannot be combined/);
+  });
+});
