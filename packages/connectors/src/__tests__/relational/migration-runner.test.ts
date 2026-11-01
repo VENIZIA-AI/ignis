@@ -82,10 +82,14 @@ describe('RelationalMigrationRunner', () => {
   test('a failing migration rolls back, rethrows, and still releases the connection', async () => {
     const { driver, statements, releaseCount } = buildFakeDriver({ failOn: /CREATE TABLE notes/ });
 
-    const failure = await new RelationalMigrationRunner({ driver })
-      .run({ migrations: MIGRATIONS })
-      .catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await new RelationalMigrationRunner({ driver }).run({ migrations: MIGRATIONS });
+    } catch (error) {
+      failure = error;
+    }
 
+    expect(failure).toBeDefined();
     expect(String(failure)).toContain('boom');
     expect(statements).toContain('ROLLBACK');
     expect(statements).not.toContain('COMMIT');
@@ -98,10 +102,16 @@ describe('RelationalMigrationRunner', () => {
   test('a name outside the safe character set is REFUSED, never escaped', async () => {
     const { driver, statements } = buildFakeDriver();
 
-    const failure = await new RelationalMigrationRunner({ driver })
-      .run({ migrations: [{ name: `x'); DROP TABLE notes; --`, sql: 'SELECT 1' }] })
-      .catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await new RelationalMigrationRunner({ driver }).run({
+        migrations: [{ name: `x'); DROP TABLE notes; --`, sql: 'SELECT 1' }],
+      });
+    } catch (error) {
+      failure = error;
+    }
 
+    expect(failure).toBeDefined();
     expect(String(failure)).toContain('Unsafe migration name');
 
     // Refused BEFORE anything ran: names are validated up front, so a bad one in the middle of a

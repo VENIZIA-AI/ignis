@@ -95,9 +95,12 @@ describe('computing the plan', () => {
         requested: ResponseExtras.parse({ header: 'slow,fast' }),
         offered: throwing,
       });
-      const failure = await ResponseExtras.compute({ plan, offered: throwing }).catch(
-        (error: Error) => error.message,
-      );
+      let failure: string | undefined;
+      try {
+        await ResponseExtras.compute({ plan, offered: throwing });
+      } catch (error) {
+        failure = error instanceof Error ? error.message : String(error);
+      }
 
       await Bun.sleep(20);
       expect(failure).toBe('fast failed');

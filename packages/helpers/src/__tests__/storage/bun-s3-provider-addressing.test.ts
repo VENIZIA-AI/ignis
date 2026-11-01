@@ -164,7 +164,10 @@ describe('BunS3Helper - default is for this process, public is for a browser', (
     }) as unknown as typeof fetch;
 
     try {
-      await helper.getBuckets().catch(() => undefined);
+      await helper.getBuckets();
+    } catch (error) {
+      // The stubbed fetch always throws; the URL it was asked for is what this test asserts.
+      expect(error).toBeInstanceOf(Error);
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -71,7 +71,12 @@ describe('bootChecks.binding.doVerify', () => {
       }),
     });
 
-    const failure = await application.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(failure).toBeInstanceOf(Error);
     expect(String(failure)).toContain('services.BrokenService');
@@ -88,7 +93,12 @@ describe('bootChecks.binding.doVerify', () => {
       }),
     });
 
-    const failure = await application.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(String(failure)).toContain('[verifyBindings] 1 binding(s) cannot be resolved | ');
     expect(Reflect.get(Object(failure), 'extra')).toMatchObject({
@@ -129,7 +139,12 @@ describe('bootChecks.binding.allowManual', () => {
       }),
     });
 
-    const failure = await application.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(failure).toBeInstanceOf(Error);
     expect(String(failure)).toContain('HealthyService');
@@ -231,7 +246,12 @@ describe('bootChecks.binding.allowOverride', () => {
       }),
     });
 
-    const failure = await application.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(failure).toBeInstanceOf(Error);
     expect(String(failure)).toContain(

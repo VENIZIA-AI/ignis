@@ -187,10 +187,12 @@ describe('SQLite refuses a blob-mode json column instead of compiling it', () =>
   test('the same misreading raises malformed JSON when the path reaches an array', async () => {
     const hex = Buffer.from('[1,23]', 'utf8').toString('hex');
 
-    const message = await client.execute(`SELECT json_extract(x'${hex}', '$[0]') AS v`).then(
-      () => '',
-      (error: Error) => error.message,
-    );
+    let message = '';
+    try {
+      await client.execute(`SELECT json_extract(x'${hex}', '$[0]') AS v`);
+    } catch (error) {
+      message = (error as Error).message;
+    }
 
     expect(message).toContain('malformed JSON');
   });

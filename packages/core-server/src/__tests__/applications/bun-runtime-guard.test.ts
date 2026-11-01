@@ -66,7 +66,12 @@ describe('ServerApplication - start()', () => {
   test('refuses on Node.js before touching a hook, a datasource or a socket', async () => {
     const application = new GuardedApplication(NODE);
 
-    const result = await application.start().catch((error: unknown) => error);
+    let result: unknown;
+    try {
+      await application.start();
+    } catch (error) {
+      result = error;
+    }
 
     expect(String(result)).toContain('IGNIS requires Bun >= 1.4 (running on node v24.14.0)');
     expect(application.getServerInstance()).toBeUndefined();

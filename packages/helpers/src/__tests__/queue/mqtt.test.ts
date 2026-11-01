@@ -69,10 +69,12 @@ const flush = async (): Promise<void> => {
 
 /** Awaits a rejection explicitly: bun's `expect(...).rejects` is typed as non-thenable in this repo. */
 const captureRejection = async (opts: { promise: Promise<unknown> }): Promise<Error> => {
-  const outcome = await opts.promise.then(
-    () => null,
-    (error: unknown) => error as Error,
-  );
+  let outcome: Error | null = null;
+  try {
+    await opts.promise;
+  } catch (error) {
+    outcome = error as Error;
+  }
 
   if (!outcome) {
     throw getError({ message: 'Expected the promise to REJECT, but it resolved' });

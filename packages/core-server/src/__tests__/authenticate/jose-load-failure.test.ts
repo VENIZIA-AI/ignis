@@ -107,7 +107,12 @@ describe('a jose that cannot load', () => {
       },
     });
 
-    const firstLoad = await JoseLoader.load().catch((error: unknown) => error);
+    let firstLoad: unknown;
+    try {
+      await JoseLoader.load();
+    } catch (error) {
+      firstLoad = error;
+    }
     const jose = await JoseLoader.load();
 
     expect(firstLoad).toBe(MISSING_JOSE);
@@ -123,9 +128,12 @@ describe('a jose that cannot load', () => {
     async ({ options }) => {
       useImporter({ importer: () => Promise.reject(MISSING_JOSE) });
 
-      const failure = await buildApplication(options)
-        .initialize()
-        .catch((error: unknown) => error);
+      let failure: unknown;
+      try {
+        await buildApplication(options).initialize();
+      } catch (error) {
+        failure = error;
+      }
 
       expect(failure).toBeInstanceOf(Error);
       expect(failure).toHaveProperty(

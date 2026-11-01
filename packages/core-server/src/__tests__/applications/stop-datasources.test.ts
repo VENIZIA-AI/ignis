@@ -143,7 +143,12 @@ describe('stop() closes the datasources the application configured', () => {
       stop: () => Promise.reject(getError({ message: 'server was not running' })),
     } as AnyType;
 
-    const stopResult = await application.stop().catch((error: unknown) => error);
+    let stopResult: unknown;
+    try {
+      await application.stop();
+    } catch (error) {
+      stopResult = error;
+    }
 
     expect(String(stopResult)).toContain('server was not running');
     expect(client.closed).toBe(true);

@@ -203,7 +203,12 @@ describe('RestApplication boot sequence', () => {
     const logger = new RecordingLogger();
     app['logger'] = logger;
 
-    const failure = await app.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await app.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(failure).toBe(boom);
     expect(app.order).toEqual(['staticConfigure', 'registerArtifacts']);

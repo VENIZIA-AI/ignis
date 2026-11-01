@@ -375,6 +375,7 @@ describe('WebSocketServerHelper', () => {
   afterEach(async () => {
     try {
       await helper.shutdown();
+      // eslint-disable-next-line venizia/no-silent-catch -- best-effort test cleanup: a failed shutdown only leaks the helper this test already finished with
     } catch {
       // Ignore errors during cleanup
     }
@@ -2083,6 +2084,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
   afterEach(async () => {
     try {
       await helper.shutdown();
+      // eslint-disable-next-line venizia/no-silent-catch -- best-effort test cleanup: a failed shutdown only leaks the helper this test already finished with
     } catch {
       // Ignore
     }
@@ -2185,6 +2187,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
       try {
         const parsed = JSON.parse(c[1]);
         return parsed.event === WebSocketEvents.HEARTBEAT;
+        // eslint-disable-next-line venizia/no-silent-catch -- a published payload that is not JSON cannot be a heartbeat event; skipping it loses nothing
       } catch {
         return false;
       }
@@ -2211,6 +2214,7 @@ describe('WebSocketEmitter', () => {
   afterEach(async () => {
     try {
       await emitter.shutdown();
+      // eslint-disable-next-line venizia/no-silent-catch -- best-effort test cleanup: a failed shutdown only leaks the emitter this test already finished with
     } catch {
       // Ignore errors during cleanup
     }

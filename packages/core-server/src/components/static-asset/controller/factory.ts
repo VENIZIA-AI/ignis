@@ -1009,17 +1009,17 @@ export class AssetControllerFactory extends BaseHelper {
                 // The copy IS the commit; removing the temporary object is cleanup. A failure here
                 // leaves one object for the lifecycle rule, and failing the request would tell the
                 // caller their upload did not work when it did.
-                await helper
-                  .removeObject({ bucket: bucketRef, object: pendingObject })
-                  .catch((error) => {
-                    this.logger
-                      .for('UPLOAD_COMMIT')
-                      .warn(
-                        'Committed, but the pending object remains | key: %s | error: %s',
-                        pendingObject.key,
-                        error,
-                      );
-                  });
+                try {
+                  await helper.removeObject({ bucket: bucketRef, object: pendingObject });
+                } catch (error) {
+                  this.logger
+                    .for('UPLOAD_COMMIT')
+                    .warn(
+                      'Committed, but the pending object remains | key: %s | error: %s',
+                      pendingObject.key,
+                      error,
+                    );
+                }
 
                 const link = AssetControllerFactory.buildObjectLink({
                   basePath: normalizedBasePath,

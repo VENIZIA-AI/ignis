@@ -84,11 +84,19 @@ export class HttpResponseReader {
 
   /** A failed response's envelope. A body that is not JSON yields `{}`, and the status alone still describes it. */
   static async readError(opts: { response: Response; rootKey?: string }): Promise<TResponsedError> {
-    const text = await opts.response.text().catch(() => '');
+    let text;
+    try {
+      const result = await opts.response.text();
+      text = result;
+      // eslint-disable-next-line venizia/no-silent-catch -- an unreadable body is read as no text; the status alone still describes the failure
+    } catch {
+      text = '';
+    }
 
     let body: unknown;
     try {
       body = text ? JSON.parse(text) : undefined;
+      // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
     } catch {
       return {};
     }
