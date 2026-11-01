@@ -2,11 +2,7 @@ import { EnvironmentKeys } from '@/common/environments';
 import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
-import {
-  SupabasePooler,
-  PoolerModes,
-  type TPoolerMode,
-} from '@venizia/ignis/postgres/supabase';
+import { SupabasePooler, PoolerModes, type TPoolerMode } from '@venizia/ignis/postgres/supabase';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';

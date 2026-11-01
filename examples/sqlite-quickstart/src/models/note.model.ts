@@ -15,7 +15,10 @@ export const noteTable = sqliteTable('notes', {
   title: text('title').notNull(),
   body: text('body'),
   metadata: text('metadata', { mode: 'json' }).$type<{ tags?: string[]; pinned?: boolean }>(),
-  ...SqliteTzEnricher.generateColumnDefs({ modified: { enable: false }, deleted: { enable: false } }),
+  ...SqliteTzEnricher.generateColumnDefs({
+    modified: { enable: false },
+    deleted: { enable: false },
+  }),
 });
 
 export const commentTable = sqliteTable('comments', {
