@@ -188,9 +188,12 @@ describe('BaseApplication - registerDynamicBindings', () => {
       }),
     );
 
-    const failure = await application
-      .runDynamicBindings({ namespace: BindingNamespaces.COMPONENT })
-      .catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.runDynamicBindings({ namespace: BindingNamespaces.COMPONENT });
+    } catch (error) {
+      failure = error;
+    }
     expect(String(failure)).toContain('configure exploded');
 
     shouldFail = false;

@@ -152,12 +152,14 @@ export class RelationalMigrationRunner extends BaseHelper {
       // A FAILED rollback leaves the session inside a transaction. Returning that connection to
       // the pool hands the next borrower an aborted session - the driver contract says such a
       // connection must be destroyed, and the datasource teardown already does exactly that.
-      await connection.execute({ statement: 'ROLLBACK' }).catch((rollbackError: unknown) => {
+      try {
+        await connection.execute({ statement: 'ROLLBACK' });
+      } catch (rollbackError) {
         this.isSessionPoisoned = true;
         this.logger
           .for(this.applyOne.name)
           .error('Rollback failed | name: %s | error: %s', migration.name, rollbackError);
-      });
+      }
 
       throw error;
     }

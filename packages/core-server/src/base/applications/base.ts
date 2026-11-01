@@ -166,14 +166,14 @@ export abstract class BaseApplication extends ServerApplication implements IRest
       );
 
       if (provider) {
-        await provider
-          .shutdown()
-          .catch((shutdownError) =>
-            logger.error(
-              'Failed to shut down partially-built provider during fallback | error: %s',
-              shutdownError,
-            ),
+        try {
+          await provider.shutdown();
+        } catch (shutdownError) {
+          logger.error(
+            'Failed to shut down partially-built provider during fallback | error: %s',
+            shutdownError,
           );
+        }
       }
       const result2 = await SecretsHelperFactory.create({
         provider: SecretProviders.SYSTEM_ENVS,

@@ -40,12 +40,14 @@ describe('Meilisearch rejects hidden fields the same way with or without a filte
 
     try {
       attempt();
+      // eslint-disable-next-line venizia/no-silent-catch -- the test compares only whether each call threw; the error itself is not part of the assertion
     } catch {
       filterlessThrew = true;
     }
 
     try {
       withFilter();
+      // eslint-disable-next-line venizia/no-silent-catch -- the test compares only whether each call threw; the error itself is not part of the assertion
     } catch {
       withFilterThrew = true;
     }

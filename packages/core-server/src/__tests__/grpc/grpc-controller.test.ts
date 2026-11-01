@@ -477,7 +477,12 @@ describe('BaseGrpcController - ConnectRPC peers registered through ModuleUtility
 
     ModuleUtility.setProjectRoot({ projectRoot: root });
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    const error = await ctrl.configure().catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ctrl.configure();
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain("Please install '@connectrpc/connect'");
   });

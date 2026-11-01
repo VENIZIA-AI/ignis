@@ -134,7 +134,12 @@ afterAll(async () => {
 });
 
 const failureOf = async (task: Promise<unknown>) => {
-  const caught = await task.catch((error: unknown) => error);
+  let caught: unknown;
+  try {
+    await task;
+  } catch (error) {
+    caught = error;
+  }
   if (!isApplicationError(caught)) {
     throw new Error(`expected an ApplicationError, got: ${String(caught)}`);
   }

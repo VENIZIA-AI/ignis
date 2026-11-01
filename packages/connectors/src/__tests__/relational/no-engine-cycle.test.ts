@@ -27,6 +27,7 @@ const listFamilyDirectories = (): string[] =>
     .filter((directory) => {
       try {
         return statSync(join(directory, NEUTRAL_TIER)).isDirectory();
+        // eslint-disable-next-line venizia/no-silent-catch -- a missing neutral tier is the expected answer "not a family"; only the stat error text is lost
       } catch {
         // A directory with no neutral tier is not a paradigm family - nothing to walk from.
         return false;
@@ -97,6 +98,7 @@ const resolveSpecifier = (opts: { fromFile: string; specifier: string }): string
       if (statSync(candidate).isFile()) {
         return candidate;
       }
+      // eslint-disable-next-line venizia/no-silent-catch -- a missing candidate is expected, the next resolution form is tried; only the stat error text is lost
     } catch {
       // Candidate does not exist - try the next resolution form.
     }

@@ -119,6 +119,7 @@ class LockManagerStub {
     // `held` promise returned below. This chain exists only to release the lock, which a real
     // `LockManager` does whether the callback resolved or threw.
     this.holder = held
+      // eslint-disable-next-line venizia/no-silent-catch -- the caller sees the rejection through `held`; this chain only releases the lock, so nothing is lost here
       .catch(() => undefined)
       .finally(() => {
         this.holder = undefined;

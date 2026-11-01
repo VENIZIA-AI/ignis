@@ -39,6 +39,7 @@ export class CodemodFiles {
           stdio: ['ignore', 'pipe', 'ignore'],
         },
       );
+      // eslint-disable-next-line venizia/no-silent-catch -- not a git repository or no git: the caller falls back to the directory walk; the git error text is lost
     } catch {
       return undefined;
     }
@@ -74,6 +75,7 @@ export class CodemodFiles {
           maxBuffer: 256 * 1024 * 1024,
           stdio: ['ignore', 'pipe', 'ignore'],
         });
+        // eslint-disable-next-line venizia/no-silent-catch -- not a git repository or no git: nothing to check, so no dirty set; the git error text is lost
       } catch {
         return undefined;
       }

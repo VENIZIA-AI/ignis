@@ -116,7 +116,12 @@ describe('BaseApplication - lifecycle order', () => {
     application = new BrokenApplication({ scope: 'BrokenApplication', config: buildConfigs() });
     application.init();
 
-    const startResult = await application.start().catch((error: unknown) => error);
+    let startResult: unknown;
+    try {
+      await application.start();
+    } catch (error) {
+      startResult = error;
+    }
 
     expect(String(startResult)).toContain('preConfigure exploded');
     expect(application.getServerInstance()).toBeUndefined();
@@ -234,7 +239,12 @@ describe('BaseApplication - post-start hooks', () => {
       },
     });
 
-    const startResult = await application.start().catch((error: unknown) => error);
+    let startResult: unknown;
+    try {
+      await application.start();
+    } catch (error) {
+      startResult = error;
+    }
 
     expect(executed).toEqual(['first', 'third']);
     expect(startResult).toBeInstanceOf(Error);
@@ -279,7 +289,13 @@ describe('BaseApplication - stop()', () => {
       stop: () => Promise.reject(getError({ message: 'server was not running' })),
     } as AnyType;
 
-    const stopResult = await application.stop().catch((error: unknown) => error);
+    let stopResult: unknown;
+    try {
+      await application.stop();
+    } catch (error) {
+      stopResult = error;
+    }
+
     expect(String(stopResult)).toContain('server was not running');
   });
 
@@ -445,7 +461,12 @@ describe('BaseApplication - bootChecks.binding.allowManual', () => {
     });
     application.init();
 
-    const failure = await application.initialize().catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await application.initialize();
+    } catch (error) {
+      failure = error;
+    }
 
     expect(failure).toBeInstanceOf(Error);
     expect(String(failure)).toContain("'Stray' is registered by hand inside preConfigure()");
