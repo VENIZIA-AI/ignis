@@ -1075,7 +1075,6 @@ interface IDiskHelperOptions extends IStorageHelperOptions {
 interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
-  endpoint: string;
   region?: string;               // Default: 'us-east-1'
   sessionToken?: string;
   endpoint: { default: string; public?: string };  // default = this process; public = a browser
