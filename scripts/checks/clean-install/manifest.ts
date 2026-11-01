@@ -107,100 +107,113 @@ export interface IInstallRow {
 
 const REPOSITORY_ROOT = join(import.meta.dir, '../../..');
 
-export const readPackageManifest = (opts: { package: string }): IPackageManifest =>
-  JSON.parse(readFileSync(join(REPOSITORY_ROOT, 'packages', opts.package, 'package.json'), 'utf8'));
-
-/** Every directory under `packages/` with a `package.json`, and whether npm would publish it. */
-export const listPublishedPackages = (): IPublishedPackage[] =>
-  readdirSync(join(REPOSITORY_ROOT, 'packages'))
-    .filter((directory) => existsSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json')))
-    .map((directory) => ({
-      directory,
-      private:
-        JSON.parse(
-          readFileSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json'), 'utf8'),
-        ).private === true,
-    }));
-
-/**
- * A published package with no claim would get no check and drop out of the override closure, so it
- * would be tested nowhere - every one must carry a claim, even an empty `configOnly` one.
- */
-export const assertEveryPackageClaimed = (opts: {
-  packages: IPublishedPackage[];
-  claims: IInstallClaim[];
-}): string[] => {
-  const published = opts.packages.filter((entry) => !entry.private).map((entry) => entry.directory);
-  const unclaimed = published.filter(
-    (directory) => !opts.claims.some((claim) => claim.package === directory),
-  );
-  if (unclaimed.length > 0) {
-    throw new Error(
-      `[clean-install][manifest] published packages with no claim in INSTALL_CLAIMS: ${unclaimed.join(', ')}`,
+export class InstallManifest {
+  static readPackage(opts: { package: string }): IPackageManifest {
+    return JSON.parse(
+      readFileSync(join(REPOSITORY_ROOT, 'packages', opts.package, 'package.json'), 'utf8'),
     );
   }
 
-  return published;
-};
+  /** Every directory under `packages/` with a `package.json`, and whether npm would publish it. */
+  static listPublished(): IPublishedPackage[] {
+    return readdirSync(join(REPOSITORY_ROOT, 'packages'))
+      .filter((directory) =>
+        existsSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json')),
+      )
+      .map((directory) => ({
+        directory,
+        private:
+          JSON.parse(
+            readFileSync(join(REPOSITORY_ROOT, 'packages', directory, 'package.json'), 'utf8'),
+          ).private === true,
+      }));
+  }
 
-/** Peers not marked optional, with their ranges: the gate installs them beside every sub-path of the package. */
-export const getRequiredPeers = (opts: { manifest: IPackageManifest }): Record<string, string> => {
-  const optional = opts.manifest.peerDependenciesMeta ?? {};
-  const peers = Object.entries(opts.manifest.peerDependencies ?? {}).filter(
-    ([name]) => !optional[name]?.optional,
-  );
-  return Object.fromEntries(peers);
-};
-
-/** A runtime entry: not the manifest itself, not a JSON config, not a pattern. */
-const isCodeSubpath = (subpath: string): boolean =>
-  subpath !== './package.json' && !subpath.endsWith('.json') && !subpath.includes('*');
-
-/**
- * Rows come from each package's own `exports` map, never a hand-written list, so a sub-path is
- * gated the moment it is published. A claim naming a sub-path or a peer that does not exist fails
- * here rather than silently gating nothing.
- */
-export const deriveInstallRows = (opts: { claims: IInstallClaim[] }): IInstallRow[] => {
-  const rows: IInstallRow[] = [];
-
-  const runtimeClaims = opts.claims.filter((claim) => !claim.configOnly);
-  for (const claim of runtimeClaims) {
-    const manifest = readPackageManifest({ package: claim.package });
-    const exportsMap = manifest.exports ?? {};
-    const peers = manifest.peerDependencies ?? {};
-
-    const claimedSubpaths = [...Object.keys(claim.requires ?? {})];
-    for (const subpath of claimedSubpaths) {
-      if (!(subpath in exportsMap)) {
-        throw new Error(
-          `[clean-install][manifest] '${claim.package}' names '${subpath}', which its exports map does not publish`,
-        );
-      }
+  /**
+   * A published package with no claim would get no check and drop out of the override closure, so it
+   * would be tested nowhere - every one must carry a claim, even an empty `configOnly` one.
+   */
+  static assertEveryPackageClaimed(opts: {
+    packages: IPublishedPackage[];
+    claims: IInstallClaim[];
+  }): string[] {
+    const published = opts.packages
+      .filter((entry) => !entry.private)
+      .map((entry) => entry.directory);
+    const unclaimed = published.filter(
+      (directory) => !opts.claims.some((claim) => claim.package === directory),
+    );
+    if (unclaimed.length > 0) {
+      throw new Error(
+        `[clean-install][manifest] published packages with no claim in INSTALL_CLAIMS: ${unclaimed.join(', ')}`,
+      );
     }
 
-    const requiredEntries = Object.entries(claim.requires ?? {});
-    for (const [subpath, extras] of requiredEntries) {
-      for (const extra of extras) {
-        if (!(extra in peers)) {
+    return published;
+  }
+
+  /** Peers not marked optional, with their ranges: the gate installs them beside every sub-path of the package. */
+  static getRequiredPeers(opts: { manifest: IPackageManifest }): Record<string, string> {
+    const optional = opts.manifest.peerDependenciesMeta ?? {};
+    const peers = Object.entries(opts.manifest.peerDependencies ?? {}).filter(
+      ([name]) => !optional[name]?.optional,
+    );
+    return Object.fromEntries(peers);
+  }
+
+  /** A runtime entry: not the manifest itself, not a JSON config, not a pattern. */
+  private static isCodeSubpath(subpath: string): boolean {
+    return subpath !== './package.json' && !subpath.endsWith('.json') && !subpath.includes('*');
+  }
+
+  /**
+   * Rows come from each package's own `exports` map, never a hand-written list, so a sub-path is
+   * gated the moment it is published. A claim naming a sub-path or a peer that does not exist fails
+   * here rather than silently gating nothing.
+   */
+  static deriveRows(opts: { claims: IInstallClaim[] }): IInstallRow[] {
+    const rows: IInstallRow[] = [];
+
+    const runtimeClaims = opts.claims.filter((claim) => !claim.configOnly);
+    for (const claim of runtimeClaims) {
+      const manifest = InstallManifest.readPackage({ package: claim.package });
+      const exportsMap = manifest.exports ?? {};
+      const peers = manifest.peerDependencies ?? {};
+
+      const claimedSubpaths = [...Object.keys(claim.requires ?? {})];
+      for (const subpath of claimedSubpaths) {
+        if (!(subpath in exportsMap)) {
           throw new Error(
-            `[clean-install][manifest] '${claim.package}${subpath.slice(1)}' requires '${extra}', which '${manifest.name}' does not declare as a peer`,
+            `[clean-install][manifest] '${claim.package}' names '${subpath}', which its exports map does not publish`,
           );
         }
       }
+
+      const requiredEntries = Object.entries(claim.requires ?? {});
+      for (const [subpath, extras] of requiredEntries) {
+        for (const extra of extras) {
+          if (!(extra in peers)) {
+            throw new Error(
+              `[clean-install][manifest] '${claim.package}${subpath.slice(1)}' requires '${extra}', which '${manifest.name}' does not declare as a peer`,
+            );
+          }
+        }
+      }
+
+      const subpaths = Object.keys(exportsMap).filter((subpath) =>
+        InstallManifest.isCodeSubpath(subpath),
+      );
+      for (const subpath of subpaths) {
+        rows.push({
+          package: claim.package,
+          name: manifest.name,
+          subpath,
+          specifier: subpath === '.' ? manifest.name : `${manifest.name}${subpath.slice(1)}`,
+          extras: [...(claim.requires?.[subpath] ?? [])].sort(),
+        });
+      }
     }
 
-    const subpaths = Object.keys(exportsMap).filter(isCodeSubpath);
-    for (const subpath of subpaths) {
-      rows.push({
-        package: claim.package,
-        name: manifest.name,
-        subpath,
-        specifier: subpath === '.' ? manifest.name : `${manifest.name}${subpath.slice(1)}`,
-        extras: [...(claim.requires?.[subpath] ?? [])].sort(),
-      });
-    }
+    return rows;
   }
-
-  return rows;
-};
+}

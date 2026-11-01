@@ -168,12 +168,12 @@ Over the limit, and with no `onError`, the request answers `413` with `core.requ
 A route whose `request.body.content` declares `multipart/form-data` or `application/x-www-form-urlencoded` gets one more middleware appended, after every application middleware and after the static-asset length guard, and before the route's own validator:
 
 ```
-authenticate -> authorize -> application middleware -> (static-asset maxBytes guard) -> formBodyReader -> validator
+authenticate -> authorize -> application middleware -> (static-asset maxBytes guard) -> FormBodyMiddleware.read -> validator
 ```
 
-`formBodyReader` reads the form through `readFormBody` (from `@venizia/ignis-helpers`) and caches the result, so the validator that runs next reads the same `FormData` instead of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed form is `400 core.request.body_malformed` - the same code `RequestSpyMiddleware`'s own JSON check throws, and the one `parseMultipartBody` throws when a handler parses a form by hand. See [Error Handling Logic](#error-handling-logic) for what a Hono `HTTPException` your own code throws (or a validator's) renders as.
+`FormBodyMiddleware.read` reads the form through `readFormBody` (from `@venizia/ignis-helpers`) and caches the result, so the validator that runs next reads the same `FormData` instead of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed form is `400 core.request.body_malformed` - the same code `RequestSpyMiddleware`'s own JSON check throws, and the one `parseMultipartBody` throws when a handler parses a form by hand. See [Error Handling Logic](#error-handling-logic) for what a Hono `HTTPException` your own code throws (or a validator's) renders as.
 
-`AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `hasFormBody` nor `formBodyReader` is exported from `@venizia/ignis` - they run for every declared form route automatically.
+`AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `FormBodyMiddleware.hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `FormBodyMiddleware.hasFormBody` nor `FormBodyMiddleware.read` is exported from `@venizia/ignis` - they run for every declared form route automatically.
 
 > [!WARNING]
 > Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
