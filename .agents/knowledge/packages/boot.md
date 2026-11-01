@@ -48,7 +48,7 @@ file emitter were removed, see [Build stamp](#build-stamp).
   from `@venizia/ignis-helpers/core` (`TBuildInfoRecord`, `BuildInfoRegistry.UNSPECIFIED`).
 - `src/generator/scanner.ts` - `ArtifactScanner.getInstance().scan({ root, ignore })` -> `IScannedArtifact[]` (a `BaseHelper` singleton; the logger is the instance's).
 - `src/generator/emitter.ts` - `ArtifactIndexEmitter.render({ artifacts, outFile, exportName })` -> text.
-- `src/generator/generator.ts` - `ArtifactIndexGenerator.generate`, `ArtifactIndexGenerator.check`, `IGenerateOptions`; `src/generator/index.ts` keeps the `@deprecated` aliases `generateArtifactIndex` and `checkArtifactIndex` until 0.5.
+- `src/generator/generator.ts` - `ArtifactIndexGenerator.generate`, `ArtifactIndexGenerator.check`, `IGenerateOptions`; the old free functions `generateArtifactIndex` and `checkArtifactIndex` are gone (`devz codemod namespace-functions` moves their callers).
 - `src/generator/common/` - `ArtifactStereotypes` (`BY_DECORATOR`, `ROOT_DECORATOR`, `SOURCE_MODULES`,
   `DEFAULT_IGNORE`, `EMIT_ORDER`, with `SCHEME_SET`/`isValid`), `IScannedArtifact`, `IScanOptions`.
 

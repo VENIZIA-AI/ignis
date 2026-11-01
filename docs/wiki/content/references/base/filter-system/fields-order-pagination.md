@@ -93,7 +93,7 @@ When the order does not name `id`, the relational repository appends `id ASC`, s
 Sorts.parseEntry(opts: { entry: string }): { field: string; direction: 'asc' | 'desc' }
 ```
 
-The free function `parseOrderEntry({ entry })` stays exported as a deprecated alias until 0.5.
+The old free function `parseOrderEntry` is gone; `devz codemod namespace-functions` moves its callers.
 
 Every relational and search dialect (Postgres, SQLite, Typesense, Meilisearch) reads each `order` entry through this one parser, so the same 400s apply everywhere `order` is accepted. It throws a `400`, naming the whole entry, in three cases:
 
@@ -371,7 +371,7 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 - [`packages/connectors/src/relational/core/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/common/types.ts) - `IRelationalQueryDialect.toOrderBy`'s `expressions` option
 - [`packages/connectors/src/relational/core/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/readable.ts) - `find()`'s `filter.limit ?? getDefaultLimit() ?? DEFAULT_LIMIT` resolution
 - [`packages/kernel/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/core/abstract.ts) - `assertLimitWithinCeiling`/`assertFilterLimits`, the `settings.query.limit.max` check
-- [`packages/filter/src/common/order.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/order.ts) - the deprecated `parseOrderEntry` alias; the parser is `Sorts.parseEntry` in [`operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts)
+- [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - the parser, `Sorts.parseEntry`
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TOrderEntry`
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`

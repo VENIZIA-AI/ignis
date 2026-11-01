@@ -44,7 +44,7 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 ## Order entries share one parser
 
 Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
-`Sorts.parseEntry` (`packages/filter/src/common/operators.ts`; the free function `parseOrderEntry` in `order.ts` is a `@deprecated` alias until 0.5), a single static method replacing three
+`Sorts.parseEntry` (`packages/filter/src/common/operators.ts`), a single static method replacing three
 private copies of the same `entry.trim().split(/\s+/)` logic (V-C-16). It returns `TParsedOrderEntry`
 (`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
 

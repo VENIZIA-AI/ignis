@@ -457,7 +457,7 @@ Deterministic: imports sorted by path, class names sorted within each field, one
 
 ## Programmatic API
 
-`@venizia/ignis-boot/generator` exports the same machinery as static methods of `ArtifactIndexGenerator`. The old functions `generateArtifactIndex` and `checkArtifactIndex` stay exported as deprecated aliases until 0.5.
+`@venizia/ignis-boot/generator` exports the same machinery as static methods of `ArtifactIndexGenerator`. The old functions `generateArtifactIndex` and `checkArtifactIndex` are gone; `devz codemod namespace-functions` moves their callers.
 
 ```typescript
 interface IGenerateOptions {

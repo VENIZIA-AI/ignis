@@ -82,7 +82,7 @@ import type {
 // isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
 import { isClass } from '@venizia/ignis-helpers';
 
-// Resolvers (resolveValue and resolveValueAsync stay exported as deprecated aliases until 0.5)
+// Resolvers
 import { ResolverUtility, resolveClass } from '@venizia/ignis-helpers';
 
 // Constants
@@ -271,7 +271,7 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value. The free function `resolveValue({ value })` stays as a deprecated alias of this method until 0.5, and so does `resolveValueAsync`.
+Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
 
 | Input | Result |
 |---|---|

@@ -80,7 +80,7 @@ export default defineConfig({
 Run `vite build`. Point `lib.entry` at `src/main.ts` for the main-thread entry. Neither entry produces a `node:` import.
 
 > [!NOTE] Install `BffFetchBridge` before the application boots
-> `BffFetchBridge.install({ transport, basePath })` answers the page's global `fetch` for requests under its `basePath` and returns the uninstall function. A request sent before it is installed leaves the page and 404s against whatever serves it. The old function `installBffFetch` stays exported as a deprecated alias until 0.5.
+> `BffFetchBridge.install({ transport, basePath })` answers the page's global `fetch` for requests under its `basePath` and returns the uninstall function. A request sent before it is installed leaves the page and 404s against whatever serves it. The old function `installBffFetch` is gone; `devz codemod namespace-functions` moves its callers.
 
 ## When `define: { global: 'globalThis' }` helps
 

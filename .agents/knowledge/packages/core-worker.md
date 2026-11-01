@@ -51,7 +51,7 @@ Eighteen source files, three subsystems, one export entry.
 |---|---|
 | `applications/` | `WorkerApplication` - extends the kernel's `RestApplication`, adds `listen()` and `stop()` |
 | `envelope/` | `BffEnvelope` - `encodeRequest`/`decodeRequest`, `encodeResponse`/`decodeResponse`, `encodeError`/`decodeError`, `toSyntheticUrl` - plus `BFF_SYNTHETIC_ORIGIN` and the envelope types |
-| `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `BffFetchBridge` (`installBffFetch` is its deprecated alias) |
+| `transport/` | `IBffTransport` and its three implementations - `WorkerBffTransport` (one Worker), `SharedBffTransport` (one Worker per origin), `InProcessBffTransport` (no Worker at all) - plus `BffFetchBridge` |
 
 Everything else comes from the kernel. `hono` and `@hono/zod-openapi` are the only peers.
 
@@ -120,7 +120,7 @@ take the single-tab branch, which is the one branch the suite is not about.
 BffFetchBridge.install({ transport: bff, basePath: '/api' });
 ```
 
-The free function `installBffFetch` is a `@deprecated` alias of it until 0.5.
+The old free function `installBffFetch` is gone; `devz codemod namespace-functions` moves its callers.
 
 Routes the page's own `fetch` into a transport for anything under `basePath`, and leaves every other
 call on the network. It returns an uninstall function, and refuses a second install rather than
