@@ -868,7 +868,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (158)
+### `@venizia/ignis-helpers/core` (161)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -881,6 +881,7 @@ generated:
 - `BasePoolHelper` class
 - `blankToUndefined` const
 - `BuildInfoRegistry` class
+- `ConsoleLogger` class
 - `createUuidV4` const
 - `createUuidV5` const
 - `createUuidV7` const
@@ -948,6 +949,7 @@ generated:
 - `IWalkOptions` interface
 - `IZonedTemporalParts` interface
 - `keysToCamel` const
+- `LoggerSlot` class
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `MessageCode` class
@@ -991,6 +993,7 @@ generated:
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
 - `TFetcherLogger` type
+- `TLoggerResolver` type
 - `TLogLevel` type
 - `TNodePredicate` type
 - `toBoolean` const
