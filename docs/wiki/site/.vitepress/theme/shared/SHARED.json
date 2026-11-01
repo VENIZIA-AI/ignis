@@ -1,5 +1,5 @@
 {
-  "fingerprint": "503abfaa9f21eabeddd26abe9256501224fbb3333d52588602dcbde336e3b06e",
+  "fingerprint": "2a606c90a16eb5f328231b822fd1025736460c326a365ff02904030b2d9e8166",
   "files": {
     "ChangelogEntryHead.vue": "f39ba1e011c369954e9a1cdf64dc0f3eefc965365e0e5a4fc99182753db70a2a",
     "ChangelogIndex.vue": "9f0f208dc3dec07c3a41bfed05cb3ebcb14a9f0244c9fc8a50b217fbe68e2553",
@@ -42,7 +42,7 @@
     "theme-switch.css": "2e1e80211023e8429af2b7561f1abf141a9a3d5439062f028e3631f14bdad888",
     "toggle-appearance.ts": "77ea0c377f0d7ba8cecd26580a6e79a5b173c1bc140c80516ddf67f94395c04c",
     "tokens.css": "8155ddc6b8bee8cd528be239b272e9665ea82fc387db8d5c8bbdec20447b4898",
-    "useDust.ts": "3769e3a3c972623c8f6e8ea67dbfe17289e51db18949f29c0d2bfda19e738f61",
+    "useDust.ts": "db3b7422dbda95b9bf01a860b58d88f4f83f77c3f7a45b321600c2f1a51e74cb",
     "useReveal.ts": "85ae4377440194d728f18545aeb2e51790e5c4eb674a511092a35ec974b0157b",
     "useTerminal.ts": "8ab1e37b701c93b73f237a4791128b76d19e90dac4adc626fc249f47283f3ab0",
     "venizia-logo.ts": "743b2255878053ec1e1c94359da71d7dc819b693507d8bd3c270c372dc4289ff",

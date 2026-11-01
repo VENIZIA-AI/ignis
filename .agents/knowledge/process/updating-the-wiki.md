@@ -39,7 +39,11 @@ tags: [process, docs, wiki]
    if any `content/**/*.md` page has no menu link, or if a menu link points at a page that no
    longer exists. The only exemptions are the template skeletons under
    `extensions/components/template/` and `extensions/helpers/template/`, and the content root
-   `index.md` (the script's `UNLISTED` list). A second gate, `make wiki-links-check`, checks that
+   `index.md` (the script's `UNLISTED` list). Right after the VitePress build, `scripts/checks/wiki-build.ts` reads
+   the build output and the built pages: VitePress exits 0 when a component throws while a page is
+   rendered on the server, so it fails on a `ReferenceError`, `TypeError`, Vue warning or hydration
+   message in the output, on a built home page without its footer or its two dust canvases, and on
+   a built inner page that has a footer. A second gate, `make wiki-links-check`, checks that
    every path the wiki and the knowledge bundle name still exists on disk. A third, `make
    wiki-anchors-check`, checks that every `#fragment` a link names resolves - the sidebar gate sees
    a dead page but not a dead anchor, so a renamed heading used to leave every link into it
