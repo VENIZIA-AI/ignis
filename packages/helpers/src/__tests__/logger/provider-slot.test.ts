@@ -178,14 +178,12 @@ describe('LoggerFactory shares its provider across module copies', () => {
     });
   });
 
-  // DEFECT (reported): `use()` re-points only the wrappers of the copy it runs in. A wrapper of the other copy that
-  // already wrote a line keeps its console delegate. `test.failing` turns red once the source re-points it.
-  test.failing(
-    'a logger of the other copy that already wrote a line switches on its next line',
-    async () => {
-      const result = await runInFreshProcess({
-        name: 'two-copies-repoint',
-        body: `
+  // A wrapper of the other copy that already wrote a line takes the new provider on its next line: the wrapper compares
+  // the shared generation counter, which every `use()` and `reset()` moves.
+  test('a logger of the other copy that already wrote a line switches on its next line', async () => {
+    const result = await runInFreshProcess({
+      name: 'two-copies-repoint',
+      body: `
         const { first, second } = loadTwoCopies();
         const early = second.getLogger(['Early']);
         early.info('before');
@@ -193,31 +191,26 @@ describe('LoggerFactory shares its provider across module copies', () => {
         early.info('after');
         const result = seen;
         ${PRINT}`,
-      });
+    });
 
-      expect(JSON.parse(result)).toEqual(['log:[Early] before', 'chosen:Early|info|after']);
-    },
-  );
+    expect(JSON.parse(result)).toEqual(['log:[Early] before', 'chosen:Early|info|after']);
+  });
 
-  // DEFECT (reported): the debug override `use({ level: 'debug' })` sets lives in the debug gate of the copy that ran
-  // it, not in a globalThis slot, so the other copy's console provider still drops debug. The shared level lets the
-  // line through the other copy's wrapper; its own gate then stops it.
-  test.failing(
-    'a debug level set by one copy opens debug for the console provider of the other',
-    async () => {
-      const result = await runInFreshProcess({
-        name: 'two-copies-debug',
-        body: `
+  // The debug override `use({ level: 'debug' })` sets lives in a globalThis slot, so the other copy's console provider
+  // writes debug too.
+  test('a debug level set by one copy opens debug for the console provider of the other', async () => {
+    const result = await runInFreshProcess({
+      name: 'two-copies-debug',
+      body: `
         const { first, second } = loadTwoCopies();
         first.use({ level: 'debug' });
         second.getLogger(['Second']).debug('shown');
         const result = seen;
         ${PRINT}`,
-      });
+    });
 
-      expect(JSON.parse(result)).toEqual(['debug:[Second] shown']);
-    },
-  );
+    expect(JSON.parse(result)).toEqual(['debug:[Second] shown']);
+  });
 });
 
 describe('LoggerFactory.use after loggers exist (one copy, a fresh process)', () => {

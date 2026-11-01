@@ -11,7 +11,8 @@ type TEnvironment = Record<string, string | undefined>;
  * browser has none and there the default is off. `LoggerFactory.use({ level })` overrides it.
  */
 export class LoggerDebugGate {
-  private static forced?: boolean;
+  /** The override lives on globalThis, so `use({ level })` in one copy of the module opens or closes debug in the other. */
+  private static readonly FORCED_SLOT = Symbol.for('ignis:logger-debug-forced');
   private static resolved?: boolean;
 
   /** The environment the host has, `{}` where there is no `process`. */
@@ -40,8 +41,9 @@ export class LoggerDebugGate {
 
   /** Whether `debug` is written now: the override when `use` set one, else the rule on the host's environment, read once. */
   static isOpen(): boolean {
-    if (this.forced !== undefined) {
-      return this.forced;
+    const forced: boolean | undefined = Reflect.get(globalThis, this.FORCED_SLOT);
+    if (forced !== undefined) {
+      return forced;
     }
 
     this.resolved ??= this.evaluate({ env: this.readEnvironment() });
@@ -50,6 +52,11 @@ export class LoggerDebugGate {
 
   /** `LoggerFactory.use({ level })` calls it: an explicit level turns debug on or off whatever the environment says. */
   static force(opts: { isOpen: boolean | undefined }): void {
-    this.forced = opts.isOpen;
+    if (opts.isOpen === undefined) {
+      Reflect.deleteProperty(globalThis, this.FORCED_SLOT);
+      return;
+    }
+
+    Reflect.set(globalThis, this.FORCED_SLOT, opts.isOpen);
   }
 }

@@ -11,18 +11,31 @@ import { type ILogger, type ILoggerProvider, LogLevels, type TLogLevel } from '.
  */
 class LoggerDelegator extends AbstractLogger {
   private _delegate?: ILogger;
+  private _generation = -1;
 
   constructor(private readonly scope: string) {
     super();
   }
 
+  /** Takes the new provider's logger for this scope at once: the wrappers of this copy do not wait for their next line. */
   repoint(provider: ILoggerProvider): void {
     this._delegate = provider.get(this.scope);
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    this._generation = LoggerFactory.currentGeneration();
   }
 
+  /** The provider's logger for this scope, taken again whenever any copy of the module chose another provider (one integer compare per line). */
   private delegate(): ILogger {
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    return (this._delegate ??= LoggerFactory.currentProvider().get(this.scope));
+    const generation = LoggerFactory.currentGeneration();
+
+    if (!this._delegate || this._generation !== generation) {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      this._delegate = LoggerFactory.currentProvider().get(this.scope);
+      this._generation = generation;
+    }
+
+    return this._delegate;
   }
 
   private isEnabled(level: TLogLevel): boolean {
@@ -77,9 +90,10 @@ class LoggerDelegator extends AbstractLogger {
   }
 }
 
-/** A bundle can carry two copies of this module - the application's ESM import and core's CJS require. The chosen provider and the level live in these globalThis slots so `use()` in one copy is seen by the other. */
+/** A bundle can carry two copies of this module - the application's ESM import and core's CJS require. The chosen provider, the level and a counter of choices live in these globalThis slots so `use()` in one copy is seen, on the next line, by the loggers of the other. */
 const PROVIDER_SLOT = Symbol.for('ignis:logger-provider');
 const LEVEL_SLOT = Symbol.for('ignis:logger-level');
+const GENERATION_SLOT = Symbol.for('ignis:logger-generation');
 
 /**
  * The one way to get a logger, and the same everywhere: the server, a script and a browser. It names no provider: the
@@ -112,6 +126,7 @@ export class LoggerFactory {
 
     this.provider = provider;
     Reflect.set(globalThis, PROVIDER_SLOT, provider);
+    this.bumpGeneration();
     for (const wrapper of this.cache.values()) {
       wrapper.repoint(provider);
     }
@@ -129,8 +144,19 @@ export class LoggerFactory {
     return this.provider !== undefined || this.sharedProvider() !== undefined;
   }
 
+  /** The slot first: it holds the latest choice of any copy, and a copy's own `provider` may be older. */
   static currentProvider(): ILoggerProvider {
-    return this.provider ?? this.sharedProvider() ?? ConsoleLogger;
+    return this.sharedProvider() ?? this.provider ?? ConsoleLogger;
+  }
+
+  /** Moves whenever a provider is chosen or reset, in any copy: a wrapper that cached its logger takes it again. */
+  static currentGeneration(): number {
+    const generation: number | undefined = Reflect.get(globalThis, GENERATION_SLOT);
+    return generation ?? 0;
+  }
+
+  private static bumpGeneration(): void {
+    Reflect.set(globalThis, GENERATION_SLOT, this.currentGeneration() + 1);
   }
 
   /** The level the application set, or `undefined`: then every provider applies its own gate. */
@@ -145,12 +171,13 @@ export class LoggerFactory {
     return shared;
   }
 
-  /** Back to the default provider and no level, and every wrapper re-points: for a test, or a host that starts over. */
+  /** Back to the default provider and no level, and every wrapper takes the console again: for a test, or a host that starts over. */
   static reset(): void {
     this.provider = undefined;
     Reflect.deleteProperty(globalThis, PROVIDER_SLOT);
     Reflect.deleteProperty(globalThis, LEVEL_SLOT);
     LoggerDebugGate.force({ isOpen: undefined });
+    this.bumpGeneration();
     for (const wrapper of this.cache.values()) {
       wrapper.repoint(ConsoleLogger);
     }
