@@ -5,6 +5,7 @@ import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
 import { migrateModelSettings } from './model-settings';
+import { NamespaceFunctionsCommand } from './namespace-functions';
 
 const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
 
@@ -66,9 +67,13 @@ export class CodemodCommand {
       return AsyncStyleCommand.run({ root: opts.root, args: rest });
     }
 
+    if (name === 'namespace-functions') {
+      return NamespaceFunctionsCommand.run({ root: opts.root, args: rest });
+    }
+
     if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
       console.log(
-        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}`,
+        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}\n\n${NamespaceFunctionsCommand.USAGE}`,
       );
       return 0;
     }
