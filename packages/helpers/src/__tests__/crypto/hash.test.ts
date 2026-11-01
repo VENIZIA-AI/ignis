@@ -217,3 +217,113 @@ describe('Hash', () => {
     });
   });
 });
+
+describe('Hash - bytes and several parts', () => {
+  const sha256 = Hash.withAlgorithm(HashAlgorithms.SHA256);
+  const binaryKey = Uint8Array.from([0x00, 0xff, 0x80, 0x7f, 0xc3, 0x28, 0xa0, 0xa1, 0x01, 0xfe]);
+  const textBytes = new TextEncoder().encode(MESSAGE);
+
+  describe('hmac: the output is byte-identical whatever form the key and the message take', () => {
+    // The printed QR tokens of a consumer depend on this: the same bytes must give the same token.
+    test('a Buffer key gives the output of the text key with the same bytes', () => {
+      const viaString = sha256.hmac({ message: MESSAGE, secret: SECRET });
+      const viaBuffer = sha256.hmac({ message: MESSAGE, secret: Buffer.from(SECRET, 'utf8') });
+      const viaBytes = sha256.hmac({ message: MESSAGE, secret: new TextEncoder().encode(SECRET) });
+
+      expect(viaBuffer).toBe(viaString);
+      expect(viaBytes).toBe(viaString);
+      expect(viaString).toBe(C.createHmac('sha256', SECRET).update(MESSAGE).digest('hex'));
+    });
+
+    test('a binary key (not valid UTF-8) is the same for a Buffer and a Uint8Array, and equals node:crypto', () => {
+      const viaBuffer = sha256.hmac({ message: MESSAGE, secret: Buffer.from(binaryKey) });
+      const viaBytes = sha256.hmac({ message: MESSAGE, secret: binaryKey });
+
+      expect(viaBytes).toBe(viaBuffer);
+      expect(viaBuffer).toBe(
+        C.createHmac('sha256', Buffer.from(binaryKey)).update(MESSAGE).digest('hex'),
+      );
+    });
+
+    test('a message given as bytes gives the output of the text of the same bytes', () => {
+      const viaText = sha256.hmac({ message: MESSAGE, secret: SECRET });
+
+      expect(sha256.hmac({ message: textBytes, secret: SECRET })).toBe(viaText);
+      expect(sha256.hmac({ message: Buffer.from(MESSAGE), secret: SECRET })).toBe(viaText);
+    });
+
+    test('matches the RFC 4231 test case 1 (a 20-byte binary key), in hex', () => {
+      const key = Uint8Array.from(new Array(20).fill(0x0b));
+      const message = new TextEncoder().encode('Hi There');
+
+      expect(sha256.hmac({ message, secret: key })).toBe(
+        'b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7',
+      );
+    });
+
+    test('an empty key is refused in every form', () => {
+      for (const secret of ['', new Uint8Array(0), Buffer.alloc(0)]) {
+        expect(() => sha256.hmac({ message: MESSAGE, secret })).toThrow(/Missing secret/);
+      }
+    });
+
+    test('the output encodings are unchanged for a bytes key', () => {
+      for (const outputEncoding of [HashOutputEncodings.HEX, HashOutputEncodings.BASE64] as const) {
+        expect(sha256.hmac({ message: MESSAGE, secret: binaryKey, opts: { outputEncoding } })).toBe(
+          C.createHmac('sha256', Buffer.from(binaryKey)).update(MESSAGE).digest(outputEncoding),
+        );
+      }
+    });
+  });
+
+  describe('digest: bytes, and several parts in order', () => {
+    test('bytes give the digest of the same text', () => {
+      expect(sha256.digest({ message: textBytes })).toBe(sha256.digest({ message: MESSAGE }));
+      expect(sha256.digest({ message: Buffer.from(MESSAGE) })).toBe(
+        sha256.digest({ message: MESSAGE }),
+      );
+    });
+
+    test('several parts are one message, in order', () => {
+      const parts = ['IGNIS ', textBytes.slice(6, 10), ' hash test payload'.slice(0)];
+      const joined = Buffer.concat(parts.map((part) => Buffer.from(part)));
+
+      expect(sha256.digest({ message: parts })).toBe(
+        C.createHash('sha256').update(joined).digest('hex'),
+      );
+      expect(sha256.digest({ message: ['a', 'b'] })).toBe(sha256.digest({ message: 'ab' }));
+      expect(sha256.digest({ message: ['b', 'a'] })).not.toBe(sha256.digest({ message: 'ab' }));
+    });
+
+    test('a git blob: the header text, then the bytes, gives the id git would', () => {
+      const content = new TextEncoder().encode('hello\n');
+      const sha1 = Hash.withAlgorithm(HashAlgorithms.SHA1);
+
+      // `printf 'hello\n' | git hash-object --stdin`
+      expect(sha1.digest({ message: [`blob ${content.length}\0`, content] })).toBe(
+        'ce013625030ba8dba906f756967f9e9ca394464a',
+      );
+    });
+
+    test('an empty part changes nothing, and no parts is the digest of the empty message', () => {
+      expect(sha256.digest({ message: ['', MESSAGE, new Uint8Array(0)] })).toBe(
+        sha256.digest({ message: MESSAGE }),
+      );
+      expect(sha256.digest({ message: [] })).toBe(sha256.digest({ message: '' }));
+    });
+
+    test('the existing text form is unchanged: it still equals node:crypto createHash', () => {
+      const algorithms: THashAlgorithm[] = [
+        HashAlgorithms.MD5,
+        HashAlgorithms.SHA256,
+        HashAlgorithms.SHA512,
+      ];
+
+      for (const algorithm of algorithms) {
+        expect(Hash.withAlgorithm(algorithm).digest({ message: MESSAGE })).toBe(
+          C.createHash(algorithm).update(MESSAGE).digest('hex'),
+        );
+      }
+    });
+  });
+});
