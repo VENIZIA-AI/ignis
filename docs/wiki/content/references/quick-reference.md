@@ -648,8 +648,7 @@ import {
   repository,
   TRouteContext,
 } from '@venizia/ignis';
-import { genSalt, hash } from 'bcrypt';
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { PostgresDataSource } from '../datasources';
 import { User } from '../models';
 
@@ -704,9 +703,9 @@ class UserService extends BaseService {
   }
 
   async create(data: CreateUserDto) {
-    // Business logic. Passwords want a slow, salted KDF, so this is `bcrypt`, not the
-    // digest helper - `Hash` is for message digests and HMACs, never for credentials.
-    const hashedPassword = await hash(data.password, await genSalt(10));
+    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialHelper` (bcrypt over
+    // `Bun.password`), not the digest helper - `Hash` is for message digests and HMACs, never for credentials.
+    const hashedPassword = await CredentialHelper.hash({ password: data.password });
 
     return this.userRepository.create({
       data: {

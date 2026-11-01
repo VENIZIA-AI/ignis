@@ -104,10 +104,12 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 **Add Basic auth.** Provide a `verifyCredentials` callback. It becomes the `'basic'` strategy's source of truth.
 
 ```typescript
+import { CredentialHelper } from '@venizia/ignis-helpers';
+
 this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
   verifyCredentials: async ({ credentials, context }) => {
     const user = await userRepo.findByUsername(credentials.username);
-    if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
+    if (user && await CredentialHelper.verify({ password: credentials.password, hash: user.passwordHash })) {
       return { userId: user.id, roles: user.roles };
     }
     return null;
