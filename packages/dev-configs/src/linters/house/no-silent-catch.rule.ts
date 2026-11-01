@@ -1,7 +1,7 @@
 import type { Rule, SourceCode } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AwaitSupport } from './await-support';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { PromiseChainSupport } from './promise-chain-support';
 
 /** Whether a parameter of `owner` (a function or a catch clause) is read or written anywhere. */
@@ -19,7 +19,7 @@ const isParameterUsed = (opts: { owner: Rule.Node; sourceCode: SourceCode }): bo
 const isPlainParameter = (opts: { parameter: unknown }): boolean =>
   opts.parameter === null ||
   opts.parameter === undefined ||
-  nodeType({ node: opts.parameter }) === 'Identifier';
+  AstNode.getType({ node: opts.parameter }) === 'Identifier';
 
 /**
  * `venizia/no-silent-catch`. A handled error leaves a trace (V-C-06). Reported: a `.catch(h)` (also `?.catch`,
@@ -56,9 +56,9 @@ export class NoSilentCatchRule {
             return;
           }
 
-          const args = readField({ node, key: 'arguments' });
+          const args = AstNode.readField({ node, key: 'arguments' });
           const handler: unknown = Array.isArray(args) ? args[0] : undefined;
-          const handlerType = nodeType({ node: handler });
+          const handlerType = AstNode.getType({ node: handler });
           if (
             !AwaitSupport.isNode(handler) ||
             (handlerType !== 'ArrowFunctionExpression' && handlerType !== 'FunctionExpression')
@@ -66,7 +66,7 @@ export class NoSilentCatchRule {
             return;
           }
 
-          const params = readField({ node: handler, key: 'params' });
+          const params = AstNode.readField({ node: handler, key: 'params' });
           if (
             !Array.isArray(params) ||
             !params.every((parameter) => isPlainParameter({ parameter })) ||
@@ -75,11 +75,11 @@ export class NoSilentCatchRule {
             return;
           }
 
-          const body = readField({ node: handler, key: 'body' });
+          const body = AstNode.readField({ node: handler, key: 'body' });
           const isSilent =
-            nodeType({ node: body }) === 'BlockStatement'
+            AstNode.getType({ node: body }) === 'BlockStatement'
               ? PromiseChainSupport.isSilentBlock({
-                  statements: readField({ node: body, key: 'body' }),
+                  statements: AstNode.readField({ node: body, key: 'body' }),
                 })
               : PromiseChainSupport.isConstant({ node: body });
 
@@ -89,16 +89,16 @@ export class NoSilentCatchRule {
         },
         [AstNodeTypes.CATCH_CLAUSE]: (node: Rule.Node) => {
           if (
-            !isPlainParameter({ parameter: readField({ node, key: 'param' }) }) ||
+            !isPlainParameter({ parameter: AstNode.readField({ node, key: 'param' }) }) ||
             isParameterUsed({ owner: node, sourceCode })
           ) {
             return;
           }
 
-          const body = readField({ node, key: 'body' });
+          const body = AstNode.readField({ node, key: 'body' });
           if (
             PromiseChainSupport.isSilentBlock({
-              statements: readField({ node: body, key: 'body' }),
+              statements: AstNode.readField({ node: body, key: 'body' }),
             })
           ) {
             context.report({ node, messageId: 'silentBlock' });

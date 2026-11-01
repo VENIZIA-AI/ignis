@@ -1,7 +1,7 @@
 import type { Rule, Scope, SourceCode } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AwaitSupport } from './await-support';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { PromiseChainSupport } from './promise-chain-support';
 
 const STATEMENT_LISTS = new Set(['BlockStatement', 'Program', 'StaticBlock', 'SwitchCase']);
@@ -27,7 +27,7 @@ const collectValue = (opts: {
   identifiers: unknown[];
 }): boolean => {
   const { node, parameter, identifiers } = opts;
-  const type = nodeType({ node }) ?? '';
+  const type = AstNode.getType({ node }) ?? '';
   const value = (child: unknown) => collectValue({ node: child, parameter, identifiers });
 
   switch (type) {
@@ -45,38 +45,38 @@ const collectValue = (opts: {
       return PromiseChainSupport.isConstant({ node });
     }
     case 'ChainExpression': {
-      return value(readField({ node, key: 'expression' }));
+      return value(AstNode.readField({ node, key: 'expression' }));
     }
     case 'MemberExpression': {
       // Only a read of the error itself: `error.message`, `error?.response.status`.
-      const object = readField({ node, key: 'object' });
+      const object = AstNode.readField({ node, key: 'object' });
       const isRead =
-        readField({ node, key: 'computed' }) !== true ||
-        nodeType({ node: readField({ node, key: 'property' }) }) === 'Literal';
+        AstNode.readField({ node, key: 'computed' }) !== true ||
+        AstNode.getType({ node: AstNode.readField({ node, key: 'property' }) }) === 'Literal';
       const isRooted =
-        nodeType({ node: object }) === 'MemberExpression' ||
-        (nodeType({ node: object }) === 'Identifier' &&
-          readField({ node: object, key: 'name' }) === parameter);
+        AstNode.getType({ node: object }) === 'MemberExpression' ||
+        (AstNode.getType({ node: object }) === 'Identifier' &&
+          AstNode.readField({ node: object, key: 'name' }) === parameter);
 
       return isRead && isRooted && parameter !== undefined && value(object);
     }
     case 'ArrayExpression': {
-      const elements = readField({ node, key: 'elements' });
+      const elements = AstNode.readField({ node, key: 'elements' });
       return (
         Array.isArray(elements) && elements.every((element) => element === null || value(element))
       );
     }
     case 'ObjectExpression': {
-      const properties = readField({ node, key: 'properties' });
+      const properties = AstNode.readField({ node, key: 'properties' });
       return (
         Array.isArray(properties) &&
         properties.every(
           (property) =>
-            nodeType({ node: property }) === 'Property' &&
-            readField({ node: property, key: 'computed' }) !== true &&
-            readField({ node: property, key: 'method' }) !== true &&
-            readField({ node: property, key: 'kind' }) === 'init' &&
-            value(readField({ node: property, key: 'value' })),
+            AstNode.getType({ node: property }) === 'Property' &&
+            AstNode.readField({ node: property, key: 'computed' }) !== true &&
+            AstNode.readField({ node: property, key: 'method' }) !== true &&
+            AstNode.readField({ node: property, key: 'kind' }) === 'init' &&
+            value(AstNode.readField({ node: property, key: 'value' })),
         )
       );
     }
@@ -107,16 +107,16 @@ const isDeclaredAround = (opts: { scope: Scope.Scope | null; name: string }): bo
  */
 const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPlan | undefined => {
   const { awaitNode, sourceCode } = opts;
-  const call = readField({ node: awaitNode, key: 'argument' });
-  const callee = readField({ node: call, key: 'callee' });
-  const args = readField({ node: call, key: 'arguments' });
+  const call = AstNode.readField({ node: awaitNode, key: 'argument' });
+  const callee = AstNode.readField({ node: call, key: 'callee' });
+  const args = AstNode.readField({ node: call, key: 'arguments' });
 
   if (
-    nodeType({ node: call }) !== 'CallExpression' ||
-    readField({ node: call, key: 'optional' }) === true ||
-    nodeType({ node: callee }) !== 'MemberExpression' ||
-    readField({ node: callee, key: 'computed' }) === true ||
-    readField({ node: callee, key: 'optional' }) === true ||
+    AstNode.getType({ node: call }) !== 'CallExpression' ||
+    AstNode.readField({ node: call, key: 'optional' }) === true ||
+    AstNode.getType({ node: callee }) !== 'MemberExpression' ||
+    AstNode.readField({ node: callee, key: 'computed' }) === true ||
+    AstNode.readField({ node: callee, key: 'optional' }) === true ||
     PromiseChainSupport.memberName({ member: callee }) !== 'catch' ||
     !Array.isArray(args) ||
     args.length !== 1
@@ -125,27 +125,27 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   }
 
   const handler: unknown = args[0];
-  const params = readField({ node: handler, key: 'params' });
-  const body = readField({ node: handler, key: 'body' });
+  const params = AstNode.readField({ node: handler, key: 'params' });
+  const body = AstNode.readField({ node: handler, key: 'body' });
   const parameter: unknown = Array.isArray(params) ? params[0] : undefined;
 
   if (
-    nodeType({ node: handler }) !== 'ArrowFunctionExpression' ||
-    readField({ node: handler, key: 'async' }) === true ||
-    nodeType({ node: body }) === 'BlockStatement' ||
-    readField({ node: handler, key: 'returnType' }) ||
-    readField({ node: handler, key: 'typeParameters' }) ||
+    AstNode.getType({ node: handler }) !== 'ArrowFunctionExpression' ||
+    AstNode.readField({ node: handler, key: 'async' }) === true ||
+    AstNode.getType({ node: body }) === 'BlockStatement' ||
+    AstNode.readField({ node: handler, key: 'returnType' }) ||
+    AstNode.readField({ node: handler, key: 'typeParameters' }) ||
     !Array.isArray(params) ||
     params.length > 1 ||
     (parameter !== undefined &&
-      (nodeType({ node: parameter }) !== 'Identifier' ||
-        readField({ node: parameter, key: 'typeAnnotation' }) ||
-        readField({ node: parameter, key: 'optional' }) === true))
+      (AstNode.getType({ node: parameter }) !== 'Identifier' ||
+        AstNode.readField({ node: parameter, key: 'typeAnnotation' }) ||
+        AstNode.readField({ node: parameter, key: 'optional' }) === true))
   ) {
     return undefined;
   }
 
-  const receiver = readField({ node: callee, key: 'object' });
+  const receiver = AstNode.readField({ node: callee, key: 'object' });
   if (
     !AwaitSupport.isNode(receiver) ||
     !AwaitSupport.isNode(body) ||
@@ -158,27 +158,27 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
 
   const declarator = AwaitSupport.parentOf({ node: awaitNode });
   const declaration = AwaitSupport.parentOf({ node: declarator });
-  const id = readField({ node: declarator, key: 'id' });
-  const declarations = readField({ node: declaration, key: 'declarations' });
-  const kind = String(readField({ node: declaration, key: 'kind' }));
+  const id = AstNode.readField({ node: declarator, key: 'id' });
+  const declarations = AstNode.readField({ node: declaration, key: 'declarations' });
+  const kind = String(AstNode.readField({ node: declaration, key: 'kind' }));
 
   if (
-    nodeType({ node: declarator }) !== 'VariableDeclarator' ||
-    readField({ node: declarator, key: 'init' }) !== awaitNode ||
-    readField({ node: declarator, key: 'definite' }) === true ||
-    nodeType({ node: id }) !== 'Identifier' ||
+    AstNode.getType({ node: declarator }) !== 'VariableDeclarator' ||
+    AstNode.readField({ node: declarator, key: 'init' }) !== awaitNode ||
+    AstNode.readField({ node: declarator, key: 'definite' }) === true ||
+    AstNode.getType({ node: id }) !== 'Identifier' ||
     !AwaitSupport.isNode(declarator) ||
     !AwaitSupport.isNode(declaration) ||
     !Array.isArray(declarations) ||
     declarations.length !== 1 ||
     !['const', 'let'].includes(kind) ||
-    !STATEMENT_LISTS.has(nodeType({ node: AwaitSupport.parentOf({ node: declaration }) }) ?? '')
+    !STATEMENT_LISTS.has(AstNode.getType({ node: AwaitSupport.parentOf({ node: declaration }) }) ?? '')
   ) {
     return undefined;
   }
 
-  const name = String(readField({ node: id, key: 'name' }));
-  const typeAnnotation = readField({ node: id, key: 'typeAnnotation' });
+  const name = String(AstNode.readField({ node: id, key: 'name' }));
+  const typeAnnotation = AstNode.readField({ node: id, key: 'typeAnnotation' });
   const annotation = AwaitSupport.isNode(typeAnnotation) ? sourceCode.getText(typeAnnotation) : '';
 
   // `let x;` with no annotation takes its type from the assignments that follow, so TypeScript must see every
@@ -191,7 +191,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     if (reference.identifier === id) {
       continue;
     }
-    const parentType = nodeType({ node: AwaitSupport.parentOf({ node: reference.identifier }) });
+    const parentType = AstNode.getType({ node: AwaitSupport.parentOf({ node: reference.identifier }) });
     if (
       reference.isWrite() ||
       (annotation === '' &&
@@ -204,17 +204,17 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   }
 
   const parameterName =
-    parameter === undefined ? undefined : String(readField({ node: parameter, key: 'name' }));
+    parameter === undefined ? undefined : String(AstNode.readField({ node: parameter, key: 'name' }));
   const identifiers: unknown[] = [];
   if (!collectValue({ node: body, parameter: parameterName, identifiers })) {
     return undefined;
   }
 
   // `x = []` on a `let x;` with no annotation makes an evolving `any[]`, looser than the `never[]` it was.
-  const elements = readField({ node: body, key: 'elements' });
+  const elements = AstNode.readField({ node: body, key: 'elements' });
   if (
     annotation === '' &&
-    nodeType({ node: body }) === 'ArrayExpression' &&
+    AstNode.getType({ node: body }) === 'ArrayExpression' &&
     Array.isArray(elements) &&
     elements.length === 0
   ) {
@@ -230,7 +230,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   const freeNames = new Set(
     identifiers
       .filter((identifier) => !errorReads.has(identifier))
-      .map((identifier) => String(readField({ node: identifier, key: 'name' }))),
+      .map((identifier) => String(AstNode.readField({ node: identifier, key: 'name' }))),
   );
 
   // The fallback is evaluated after the `let`: reading the declared name there would read `undefined`.
@@ -268,8 +268,8 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
       .map((identifier) => {
         const parent = AwaitSupport.parentOf({ node: identifier });
         const isShorthand =
-          nodeType({ node: parent }) === 'Property' &&
-          readField({ node: parent, key: 'shorthand' }) === true;
+          AstNode.getType({ node: parent }) === 'Property' &&
+          AstNode.readField({ node: parent, key: 'shorthand' }) === true;
 
         return {
           range: identifier.range ?? [0, 0],
@@ -333,7 +333,7 @@ export class NoAwaitPromiseChainRule {
       return {
         [AstNodeTypes.AWAIT_EXPRESSION]: (node: Rule.Node) => {
           const method = PromiseChainSupport.chainMethodOf({
-            node: readField({ node, key: 'argument' }),
+            node: AstNode.readField({ node, key: 'argument' }),
           });
           if (method === undefined) {
             return;

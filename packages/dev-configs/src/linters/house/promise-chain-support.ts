@@ -1,4 +1,4 @@
-import { nodeType, readField } from './common';
+import { AstNode } from './common';
 
 const CHAIN_METHODS = new Set(['then', 'catch', 'finally']);
 /** Wrappers that leave the value of the expression they hold unchanged: `x!`, `x as T`, `x satisfies T`, `<T>x`, `a?.b`. */
@@ -17,8 +17,8 @@ export class PromiseChainSupport {
   static unwrap(opts: { node: unknown }): unknown {
     let current = opts.node;
 
-    while (VALUE_WRAPPERS.has(nodeType({ node: current }) ?? '')) {
-      current = readField({ node: current, key: 'expression' });
+    while (VALUE_WRAPPERS.has(AstNode.getType({ node: current }) ?? '')) {
+      current = AstNode.readField({ node: current, key: 'expression' });
     }
 
     return current;
@@ -27,28 +27,28 @@ export class PromiseChainSupport {
   /** The name a member access reads: `a.name`, `a['name']`, ``a[`name`]``; `undefined` for a computed key. */
   static memberName(opts: { member: unknown }): string | undefined {
     const { member } = opts;
-    const property = readField({ node: member, key: 'property' });
+    const property = AstNode.readField({ node: member, key: 'property' });
 
-    if (readField({ node: member, key: 'computed' }) !== true) {
-      const name = readField({ node: property, key: 'name' });
+    if (AstNode.readField({ node: member, key: 'computed' }) !== true) {
+      const name = AstNode.readField({ node: property, key: 'name' });
       return typeof name === 'string' ? name : undefined;
     }
 
-    if (nodeType({ node: property }) === 'Literal') {
-      const value = readField({ node: property, key: 'value' });
+    if (AstNode.getType({ node: property }) === 'Literal') {
+      const value = AstNode.readField({ node: property, key: 'value' });
       return typeof value === 'string' ? value : undefined;
     }
 
-    const expressions = readField({ node: property, key: 'expressions' });
-    const quasis = readField({ node: property, key: 'quasis' });
+    const expressions = AstNode.readField({ node: property, key: 'expressions' });
+    const quasis = AstNode.readField({ node: property, key: 'quasis' });
     if (
-      nodeType({ node: property }) === 'TemplateLiteral' &&
+      AstNode.getType({ node: property }) === 'TemplateLiteral' &&
       Array.isArray(expressions) &&
       expressions.length === 0 &&
       Array.isArray(quasis)
     ) {
-      const cooked = readField({
-        node: readField({ node: quasis[0], key: 'value' }),
+      const cooked = AstNode.readField({
+        node: AstNode.readField({ node: quasis[0], key: 'value' }),
         key: 'cooked',
       });
       return typeof cooked === 'string' ? cooked : undefined;
@@ -63,12 +63,12 @@ export class PromiseChainSupport {
    */
   static chainMethodOf(opts: { node: unknown }): string | undefined {
     const call = PromiseChainSupport.unwrap({ node: opts.node });
-    if (nodeType({ node: call }) !== 'CallExpression') {
+    if (AstNode.getType({ node: call }) !== 'CallExpression') {
       return undefined;
     }
 
-    const callee = PromiseChainSupport.unwrap({ node: readField({ node: call, key: 'callee' }) });
-    if (nodeType({ node: callee }) !== 'MemberExpression') {
+    const callee = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: call, key: 'callee' }) });
+    if (AstNode.getType({ node: callee }) !== 'MemberExpression') {
       return undefined;
     }
 
@@ -84,18 +84,18 @@ export class PromiseChainSupport {
     let current = PromiseChainSupport.unwrap({ node: opts.node });
 
     for (;;) {
-      const type = nodeType({ node: current });
+      const type = AstNode.getType({ node: current });
 
       if (type === 'CallExpression') {
         if (PromiseChainSupport.chainMethodOf({ node: current }) !== undefined) {
           return true;
         }
-        current = PromiseChainSupport.unwrap({ node: readField({ node: current, key: 'callee' }) });
+        current = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: current, key: 'callee' }) });
         continue;
       }
 
       if (type === 'MemberExpression') {
-        current = PromiseChainSupport.unwrap({ node: readField({ node: current, key: 'object' }) });
+        current = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: current, key: 'object' }) });
         continue;
       }
 
@@ -109,7 +109,7 @@ export class PromiseChainSupport {
    */
   static isConstant(opts: { node: unknown }): boolean {
     const node = PromiseChainSupport.unwrapTypes({ node: opts.node });
-    const type = nodeType({ node }) ?? '';
+    const type = AstNode.getType({ node }) ?? '';
     const constant = (child: unknown) => PromiseChainSupport.isConstant({ node: child });
 
     switch (type) {
@@ -117,36 +117,36 @@ export class PromiseChainSupport {
         return true;
       }
       case 'Identifier': {
-        return readField({ node, key: 'name' }) === 'undefined';
+        return AstNode.readField({ node, key: 'name' }) === 'undefined';
       }
       case 'TemplateLiteral': {
-        const expressions = readField({ node, key: 'expressions' });
+        const expressions = AstNode.readField({ node, key: 'expressions' });
         return Array.isArray(expressions) && expressions.length === 0;
       }
       case 'UnaryExpression': {
         return (
-          CONSTANT_UNARY_OPERATORS.has(String(readField({ node, key: 'operator' }))) &&
-          constant(readField({ node, key: 'argument' }))
+          CONSTANT_UNARY_OPERATORS.has(String(AstNode.readField({ node, key: 'operator' }))) &&
+          constant(AstNode.readField({ node, key: 'argument' }))
         );
       }
       case 'ArrayExpression': {
-        const elements = readField({ node, key: 'elements' });
+        const elements = AstNode.readField({ node, key: 'elements' });
         return (
           Array.isArray(elements) &&
           elements.every((element) => element === null || constant(element))
         );
       }
       case 'ObjectExpression': {
-        const properties = readField({ node, key: 'properties' });
+        const properties = AstNode.readField({ node, key: 'properties' });
         return (
           Array.isArray(properties) &&
           properties.every(
             (property) =>
-              nodeType({ node: property }) === 'Property' &&
-              readField({ node: property, key: 'computed' }) !== true &&
-              readField({ node: property, key: 'method' }) !== true &&
-              readField({ node: property, key: 'kind' }) === 'init' &&
-              constant(readField({ node: property, key: 'value' })),
+              AstNode.getType({ node: property }) === 'Property' &&
+              AstNode.readField({ node: property, key: 'computed' }) !== true &&
+              AstNode.readField({ node: property, key: 'method' }) !== true &&
+              AstNode.readField({ node: property, key: 'kind' }) === 'init' &&
+              constant(AstNode.readField({ node: property, key: 'value' })),
           )
         );
       }
@@ -167,26 +167,26 @@ export class PromiseChainSupport {
     return (
       Array.isArray(statements) &&
       statements.every((statement) => {
-        const type = nodeType({ node: statement });
+        const type = AstNode.getType({ node: statement });
 
         if (type === 'EmptyStatement') {
           return true;
         }
 
         if (type === 'ReturnStatement') {
-          const argument = readField({ node: statement, key: 'argument' });
+          const argument = AstNode.readField({ node: statement, key: 'argument' });
           return argument === null || PromiseChainSupport.isConstant({ node: argument });
         }
 
-        const expression = readField({ node: statement, key: 'expression' });
+        const expression = AstNode.readField({ node: statement, key: 'expression' });
         return (
           type === 'ExpressionStatement' &&
-          nodeType({ node: expression }) === 'AssignmentExpression' &&
-          readField({ node: expression, key: 'operator' }) === '=' &&
+          AstNode.getType({ node: expression }) === 'AssignmentExpression' &&
+          AstNode.readField({ node: expression, key: 'operator' }) === '=' &&
           PromiseChainSupport.isPlainTarget({
-            node: readField({ node: expression, key: 'left' }),
+            node: AstNode.readField({ node: expression, key: 'left' }),
           }) &&
-          PromiseChainSupport.isConstant({ node: readField({ node: expression, key: 'right' }) })
+          PromiseChainSupport.isConstant({ node: AstNode.readField({ node: expression, key: 'right' }) })
         );
       })
     );
@@ -195,7 +195,7 @@ export class PromiseChainSupport {
   /** `name`, `this.name`, `a.b.c`: an assignment target that reads no computed key and calls nothing. */
   static isPlainTarget(opts: { node: unknown }): boolean {
     const { node } = opts;
-    const type = nodeType({ node });
+    const type = AstNode.getType({ node });
 
     if (type === 'Identifier' || type === 'ThisExpression') {
       return true;
@@ -203,8 +203,8 @@ export class PromiseChainSupport {
 
     return (
       type === 'MemberExpression' &&
-      readField({ node, key: 'computed' }) !== true &&
-      PromiseChainSupport.isPlainTarget({ node: readField({ node, key: 'object' }) })
+      AstNode.readField({ node, key: 'computed' }) !== true &&
+      PromiseChainSupport.isPlainTarget({ node: AstNode.readField({ node, key: 'object' }) })
     );
   }
 
@@ -213,10 +213,10 @@ export class PromiseChainSupport {
     let current = opts.node;
 
     while (
-      VALUE_WRAPPERS.has(nodeType({ node: current }) ?? '') &&
-      nodeType({ node: current }) !== 'ChainExpression'
+      VALUE_WRAPPERS.has(AstNode.getType({ node: current }) ?? '') &&
+      AstNode.getType({ node: current }) !== 'ChainExpression'
     ) {
-      current = readField({ node: current, key: 'expression' });
+      current = AstNode.readField({ node: current, key: 'expression' });
     }
 
     return current;
