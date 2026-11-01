@@ -163,12 +163,14 @@ describe('configs.middlewares.bodyLimit', () => {
   });
 
   test('a maxSize that is not a non-negative number is refused at boot, naming the key', async () => {
-    const refusal = await buildServer({
-      middlewares: { bodyLimit: { enable: true, maxSize: Number('ten') } },
-    }).then(
-      () => undefined,
-      (error: unknown) => error,
-    );
+    let refusal: unknown;
+    try {
+      await buildServer({
+        middlewares: { bodyLimit: { enable: true, maxSize: Number('ten') } },
+      });
+    } catch (error) {
+      refusal = error;
+    }
 
     expect(String(refusal)).toContain('configs.middlewares.bodyLimit.maxSize');
   });

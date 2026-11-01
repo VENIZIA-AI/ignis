@@ -88,13 +88,15 @@ export class HttpResponseReader {
     try {
       const result = await opts.response.text();
       text = result;
-    } catch (error) {
+      // eslint-disable-next-line venizia/no-silent-catch -- an unreadable body is read as no text; the status alone still describes the failure
+    } catch {
       text = '';
     }
 
     let body: unknown;
     try {
       body = text ? JSON.parse(text) : undefined;
+      // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON yields `{}`; the status alone still describes the failure
     } catch {
       return {};
     }

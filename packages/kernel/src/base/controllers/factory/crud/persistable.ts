@@ -156,7 +156,8 @@ export abstract class PersistableCrudController<
     try {
       const result = await context.req.json<{ where?: TWhere<TDataObject> }>();
       body = result;
-    } catch (error) {
+      // eslint-disable-next-line venizia/no-silent-catch -- a body that is not JSON is not a `where`; the bulk delete then relies on the query alone and nothing else is lost
+    } catch {
       body = undefined;
     }
 

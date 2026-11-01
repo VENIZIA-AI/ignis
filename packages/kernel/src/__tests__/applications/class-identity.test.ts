@@ -61,12 +61,12 @@ describe('two classes that derive one binding key fail registration, naming the 
   test('a collision throws instead of binding the second over the first', async () => {
     const { first, second } = twoClassesNamedZz();
 
-    const failure = await buildApplication()
-      .registerArtifacts({ services: [first, second] })
-      .then(
-        () => 'registered',
-        (error: Error) => error.message,
-      );
+    let failure = 'registered';
+    try {
+      await buildApplication().registerArtifacts({ services: [first, second] });
+    } catch (error) {
+      failure = error instanceof Error ? error.message : String(error);
+    }
 
     expect(failure).toMatch(/Two classes derive the binding key 'services\.zz'/);
   });
