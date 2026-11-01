@@ -12,12 +12,12 @@ generated:
 
 **1133 source files across 9 packages.**
 
-## boot  (26 source files)
+## boot  (27 source files)
 
 | Subsystem | Files |
 |---|---|
 | `bun/` | 8 |
-| `generator/` | 7 |
+| `generator/` | 8 |
 | `build-info/` | 5 |
 | `common/` | 2 |
 | `vite/` | 2 |
@@ -64,12 +64,12 @@ generated:
 | `testing/` | 5 |
 | `compilers/` | 2 |
 
-## filter  (9 source files)
+## filter  (8 source files)
 
 | Subsystem | Files |
 |---|---|
-| `common/` | 4 |
 | `schemas/` | 4 |
+| `common/` | 3 |
 
 ## helpers  (311 source files)
 
