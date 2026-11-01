@@ -27,7 +27,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       name: PostgresDataSource.name,
       config: {
         host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
-        port: ParseUtility.toInt({ input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT) }),
+        port: ParseUtility.toInt({
+          input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
+        }),
         database: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
         user: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
         password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),

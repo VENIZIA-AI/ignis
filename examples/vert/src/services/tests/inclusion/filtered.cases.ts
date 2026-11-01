@@ -17,7 +17,11 @@ export class FilteredCases extends BaseTestCases {
     try {
       // Create test data
       const product = await productRepo.create({
-        data: { code: `SCOPE_FILTER_PROD_${ParseUtility.getUID()}`, name: 'Scoped Product', price: 100 },
+        data: {
+          code: `SCOPE_FILTER_PROD_${ParseUtility.getUID()}`,
+          name: 'Scoped Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
@@ -120,7 +124,11 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `SCOPE_ORDER_PROD_${ParseUtility.getUID()}`, name: 'Ordered Product', price: 100 },
+        data: {
+          code: `SCOPE_ORDER_PROD_${ParseUtility.getUID()}`,
+          name: 'Ordered Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
@@ -203,7 +211,11 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `SCOPE_LIMIT_PROD_${ParseUtility.getUID()}`, name: 'Limited Product', price: 100 },
+        data: {
+          code: `SCOPE_LIMIT_PROD_${ParseUtility.getUID()}`,
+          name: 'Limited Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
@@ -277,7 +289,11 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `FIELD_SEL_PROD_${ParseUtility.getUID()}`, name: 'Field Select Product', price: 100 },
+        data: {
+          code: `FIELD_SEL_PROD_${ParseUtility.getUID()}`,
+          name: 'Field Select Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 

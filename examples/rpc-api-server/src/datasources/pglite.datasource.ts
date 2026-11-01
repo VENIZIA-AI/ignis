@@ -27,7 +27,9 @@ export class PGliteDataSource extends BasePostgresDataSource<
   constructor() {
     super({
       name: PGliteDataSource.name,
-      config: { dataDir: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_PGLITE_DATA_DIR }) },
+      config: {
+        dataDir: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_PGLITE_DATA_DIR }),
+      },
     });
   }
 

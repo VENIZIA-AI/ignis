@@ -455,7 +455,10 @@ export class AssetControllerFactory extends BaseHelper {
                 const inlineName = objectName.split('/').pop() ?? objectName;
                 ctx.header(
                   HTTP.Headers.CONTENT_DISPOSITION,
-                  RequestUtility.buildContentDispositionHeader({ filename: inlineName, type: 'attachment' }),
+                  RequestUtility.buildContentDispositionHeader({
+                    filename: inlineName,
+                    type: 'attachment',
+                  }),
                 );
               }
 
@@ -532,7 +535,10 @@ export class AssetControllerFactory extends BaseHelper {
               const fileName = objectName.split('/').pop() ?? objectName;
               ctx.header(
                 HTTP.Headers.CONTENT_DISPOSITION,
-                RequestUtility.buildContentDispositionHeader({ filename: fileName, type: 'attachment' }),
+                RequestUtility.buildContentDispositionHeader({
+                  filename: fileName,
+                  type: 'attachment',
+                }),
               );
               ctx.header('x-content-type-options', 'nosniff');
               ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, 'sandbox');

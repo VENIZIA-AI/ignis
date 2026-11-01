@@ -21,10 +21,14 @@ import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
   host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_HOST }) ?? '0.0.0.0',
-  port: parseInt(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432'),
+  port: parseInt(
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432',
+  ),
   database: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_DATABASE }) ?? 'db',
-  user: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
-  password: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
+  user:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
+  password:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
 });
 
 const username = process.argv[2];

@@ -31,7 +31,10 @@ export class SqliteDataSource extends BaseSqliteDataSource<
   constructor() {
     super({
       name: SqliteDataSource.name,
-      config: { url: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SQLITE_URL }) ?? DEFAULT_URL },
+      config: {
+        url:
+          ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SQLITE_URL }) ?? DEFAULT_URL,
+      },
     });
   }
 

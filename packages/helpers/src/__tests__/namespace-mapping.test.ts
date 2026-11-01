@@ -23,9 +23,10 @@ interface IMappingEntry {
   keepsOptions?: boolean;
 }
 
-const { HELPERS_MAPPINGS } = (await import(MAPPING_SOURCE)) as {
-  HELPERS_MAPPINGS: ReadonlyArray<IMappingEntry>;
-};
+const mappingModule: { HELPERS_MAPPINGS: ReadonlyArray<IMappingEntry> } = await import(
+  MAPPING_SOURCE
+);
+const { HELPERS_MAPPINGS } = mappingModule;
 
 /** The module specifier of each entry the table names, mapped to the source file behind it. */
 const SOURCES: Record<string, string> = {

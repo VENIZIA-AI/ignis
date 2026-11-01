@@ -38,7 +38,9 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
         getTokenExpiresFn: () =>
-          ParseUtility.toInt({ input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN) }),
+          ParseUtility.toInt({
+            input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
+          }),
       },
     });
 

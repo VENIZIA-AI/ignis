@@ -42,7 +42,11 @@ export class CreateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case2CreateAll] CreateAll (batch create)');
 
-    const codes = [`REPO_BATCH_${ParseUtility.getUID()}`, `REPO_BATCH_${ParseUtility.getUID()}`, `REPO_BATCH_${ParseUtility.getUID()}`];
+    const codes = [
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+    ];
 
     try {
       const result = await repo.createAll({

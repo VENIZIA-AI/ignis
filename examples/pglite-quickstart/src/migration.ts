@@ -9,6 +9,8 @@ export default defineConfig({
   out: './migration',
   schema: './src/models/note.model.ts',
   dbCredentials: {
-    url: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_PGLITE_DATA_DIR }) ?? './app_data/database/pgdata',
+    url:
+      ParseUtility.blankToUndefined({ input: process.env.APP_ENV_PGLITE_DATA_DIR }) ??
+      './app_data/database/pgdata',
   },
 });

@@ -436,8 +436,18 @@ export class CombinedCases extends BaseTestCases {
             price: 100,
             tags: [testTag, 'featured'],
           },
-          { code: `COMBO_B_${ParseUtility.getUID()}`, name: 'Product B', price: 200, tags: [testTag, 'sale'] },
-          { code: `COMBO_C_${ParseUtility.getUID()}`, name: 'Product C', price: 300, tags: [testTag] },
+          {
+            code: `COMBO_B_${ParseUtility.getUID()}`,
+            name: 'Product B',
+            price: 200,
+            tags: [testTag, 'sale'],
+          },
+          {
+            code: `COMBO_C_${ParseUtility.getUID()}`,
+            name: 'Product C',
+            price: 300,
+            tags: [testTag],
+          },
         ],
       });
 

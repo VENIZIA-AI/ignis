@@ -16,10 +16,14 @@ import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
   host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_HOST }) ?? '0.0.0.0',
-  port: parseInt(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432'),
+  port: parseInt(
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432',
+  ),
   database: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_DATABASE }) ?? 'db',
-  user: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
-  password: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
+  user:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
+  password:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
 });
 
 const seed = async () => {
@@ -116,10 +120,16 @@ const seed = async () => {
 
   // Flush Redis authorization cache to clear stale policies from previous runs
   try {
-    const redisDb = parseInt(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_DB }) ?? '8');
+    const redisDb = parseInt(
+      ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_DB }) ?? '8',
+    );
     const redis = new Redis({
-      host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_HOST }) ?? '0.0.0.0',
-      port: parseInt(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_PORT }) ?? '6379'),
+      host:
+        ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_HOST }) ??
+        '0.0.0.0',
+      port: parseInt(
+        ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_PORT }) ?? '6379',
+      ),
       password: process.env.APP_ENV_AUTHORZ_REDIS_PASSWORD || undefined,
       db: redisDb,
       maxRetriesPerRequest: 1,

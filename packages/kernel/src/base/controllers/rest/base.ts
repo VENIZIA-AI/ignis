@@ -165,7 +165,9 @@ export abstract class BaseRestController<
     // `x-response-extra` marks it, so a client unwraps `{ data, extra }` only when the server says so.
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
     context.header(HTTP.Headers.RESPONSE_EXTRA, Object.keys(computed).join(','));
-    const useCountData = ParseUtility.toBoolean({ input: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true' });
+    const useCountData = ParseUtility.toBoolean({
+      input: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true',
+    });
 
     return useCountData
       ? { count: payload.count, data: payload.data, extra: computed }

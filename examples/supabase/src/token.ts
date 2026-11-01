@@ -18,11 +18,11 @@ export const mintToken = async (opts: { subject: string; role?: string }): Promi
   const { subject, role = 'authenticated' } = opts;
 
   const jwtSecret = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET);
-  const expiresIn = ParseUtility.toInt(
-    { input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
+  const expiresIn = ParseUtility.toInt({
+    input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
       defaultValue: '3600',
-    }) },
-  );
+    }),
+  });
 
   const service = new JWSTokenService({ jwtSecret, getTokenExpiresFn: () => expiresIn });
 

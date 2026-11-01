@@ -324,7 +324,7 @@ class UserService {
 
 ## Message Formatting
 
-`Source ->` [`winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts), [`formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts)
+`Source ->` [`formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts)
 
 ### Logging errors: `%s`, never `%j`
 

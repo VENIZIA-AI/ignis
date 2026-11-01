@@ -78,7 +78,11 @@ export class NestedCases extends BaseTestCases {
         data: [
           { code: `NESTED_SCOPE_P1_${ParseUtility.getUID()}`, name: 'Cheap Product', price: 10 },
           { code: `NESTED_SCOPE_P2_${ParseUtility.getUID()}`, name: 'Medium Product', price: 50 },
-          { code: `NESTED_SCOPE_P3_${ParseUtility.getUID()}`, name: 'Expensive Product', price: 200 },
+          {
+            code: `NESTED_SCOPE_P3_${ParseUtility.getUID()}`,
+            name: 'Expensive Product',
+            price: 200,
+          },
         ],
         options: { shouldSkipDefaultFilter: true },
       });

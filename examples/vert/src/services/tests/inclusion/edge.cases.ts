@@ -89,7 +89,11 @@ export class EdgeCases extends BaseTestCases {
     try {
       // Create product without any relations
       const product = await productRepo.create({
-        data: { code: `EMPTY_REL_PROD_${ParseUtility.getUID()}`, name: 'Lonely Product', price: 100 },
+        data: {
+          code: `EMPTY_REL_PROD_${ParseUtility.getUID()}`,
+          name: 'Lonely Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 

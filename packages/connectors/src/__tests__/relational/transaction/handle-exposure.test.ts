@@ -214,7 +214,10 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
     test('positive control: the same renderers DO show the sentinels when the datasource itself is logged', () => {
       const rendered = [
         util.inspect(dataSource(), { depth: 4 }),
-        LogFormatUtility.formatMessage({ message: 'x %s', args: [{ options: { leaked: dataSource() } }] }),
+        LogFormatUtility.formatMessage({
+          message: 'x %s',
+          args: [{ options: { leaked: dataSource() } }],
+        }),
       ].join('\n');
 
       expect(findSentinels({ rendered }).length).toBeGreaterThan(0);

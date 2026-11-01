@@ -43,7 +43,10 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET ?? '',
         getTokenExpiresFn: () =>
-          Number(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_JWT_EXPIRES_IN }) ?? ONE_DAY_IN_SECONDS),
+          Number(
+            ParseUtility.blankToUndefined({ input: process.env.APP_ENV_JWT_EXPIRES_IN }) ??
+              ONE_DAY_IN_SECONDS,
+          ),
       },
     });
 

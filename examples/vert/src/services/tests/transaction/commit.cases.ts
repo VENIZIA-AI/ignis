@@ -102,7 +102,11 @@ export class CommitCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 10] CreateAll in Transaction');
 
-    const codes = [`TX_BATCH_${ParseUtility.getUID()}`, `TX_BATCH_${ParseUtility.getUID()}`, `TX_BATCH_${ParseUtility.getUID()}`];
+    const codes = [
+      `TX_BATCH_${ParseUtility.getUID()}`,
+      `TX_BATCH_${ParseUtility.getUID()}`,
+      `TX_BATCH_${ParseUtility.getUID()}`,
+    ];
     const transaction = await repo.beginTransaction();
 
     try {

@@ -22,12 +22,21 @@ export class SearchDataSource extends TypesenseDataSource {
       config: {
         nodes: [
           {
-            host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_HOST }) ?? DEFAULT_HOST,
-            port: Number(ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PORT }) ?? DEFAULT_PORT),
-            protocol: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PROTOCOL }) ?? 'http',
+            host:
+              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_HOST }) ??
+              DEFAULT_HOST,
+            port: Number(
+              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PORT }) ??
+                DEFAULT_PORT,
+            ),
+            protocol:
+              ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_PROTOCOL }) ??
+              'http',
           },
         ],
-        apiKey: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_API_KEY }) ?? DEFAULT_API_KEY,
+        apiKey:
+          ParseUtility.blankToUndefined({ input: process.env.APP_ENV_TYPESENSE_API_KEY }) ??
+          DEFAULT_API_KEY,
       },
     });
   }

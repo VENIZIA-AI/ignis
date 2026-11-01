@@ -42,7 +42,10 @@ export class SupabaseDataSource extends BasePostgresDataSource<
         ),
         max: applicationEnvironment.get<number | undefined, string>(
           EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
-          { defaultValue: undefined, transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined) },
+          {
+            defaultValue: undefined,
+            transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined),
+          },
         ),
       },
       // NO schema property - auto-discovered from @repository bindings.
