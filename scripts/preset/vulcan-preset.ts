@@ -102,7 +102,7 @@ const resolveRange = (opts: {
 
     if (resolved === undefined) {
       throw new Error(
-        `[buildPreset] ${name} is "${CATALOG_MARKER}" but the root catalog has no entry for it`,
+        `[VulcanPreset.build] ${name} is "${CATALOG_MARKER}" but the root catalog has no entry for it`,
       );
     }
 
@@ -113,7 +113,9 @@ const resolveRange = (opts: {
     const resolved = opts.versions.get(name);
 
     if (resolved === undefined) {
-      throw new Error(`[buildPreset] ${name} is "${range}" but no workspace package has that name`);
+      throw new Error(
+        `[VulcanPreset.build] ${name} is "${range}" but no workspace package has that name`,
+      );
     }
 
     return resolved;
