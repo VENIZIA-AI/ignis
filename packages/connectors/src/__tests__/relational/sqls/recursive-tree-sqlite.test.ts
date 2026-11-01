@@ -1,3 +1,4 @@
+import { Database } from 'bun:sqlite';
 import { describe, expect, test } from 'bun:test';
 import { integer, sqliteTable, SQLiteSyncDialect, text } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
@@ -305,5 +306,138 @@ describe('RecursiveTreeSql.walk - other guard rails (SQLite)', () => {
         maxDepth: 10,
       }),
     ).toThrow(/table/);
+  });
+});
+
+describe("RecursiveTreeSql.walk - start: 'all' (SQLite, executed)", () => {
+  // a -> b -> c -> d, and a second tree x -> y
+  const rows = [
+    ['a', null],
+    ['b', 'a'],
+    ['c', 'b'],
+    ['d', 'c'],
+    ['x', null],
+    ['y', 'x'],
+  ] as const;
+
+  const run = (opts: { direction: 'UP' | 'DOWN'; filter?: ReturnType<typeof sql> }) => {
+    const db = new Database(':memory:');
+
+    db.run(
+      'CREATE TABLE tree_nodes (id TEXT PRIMARY KEY, parent_id TEXT, label TEXT, weight INTEGER)',
+    );
+    rows.forEach(([id, parentId]) =>
+      db.run('INSERT INTO tree_nodes (id, parent_id) VALUES (?, ?)', [id, parentId]),
+    );
+
+    const query = compile(
+      sql`${RecursiveTreeSql.walk({
+        name: 'walked',
+        table: nodesTable,
+        start: 'all',
+        direction: opts.direction,
+        maxDepth: 10,
+        filter: opts.filter,
+      })} SELECT id, depth FROM walked ORDER BY id, depth`,
+    );
+
+    return db.query(query.sql).all(...(query.params as string[])) as {
+      id: string;
+      depth: number;
+    }[];
+  };
+
+  test('DOWN: every row is a root, so a node shows up once per ancestor-or-self', () => {
+    const counts = new Map<string, number[]>();
+
+    run({ direction: RecursiveTreeDirections.DOWN }).forEach(({ id, depth }) =>
+      counts.set(id, [...(counts.get(id) ?? []), depth]),
+    );
+
+    expect(counts.get('a')).toEqual([0]);
+    expect(counts.get('d')).toEqual([0, 1, 2, 3]);
+    expect(counts.get('y')).toEqual([0, 1]);
+  });
+
+  test('UP: every row comes back with each of its ancestors', () => {
+    const ids = run({ direction: RecursiveTreeDirections.UP }).map(({ id }) => id);
+
+    expect(ids.filter((id) => id === 'a')).toHaveLength(4);
+    expect(ids.filter((id) => id === 'x')).toHaveLength(2);
+  });
+
+  test('a filter narrows the walk at both ends: the rejected row is gone and nothing is reached through it', () => {
+    const walked = run({
+      direction: RecursiveTreeDirections.DOWN,
+      filter: sql`t.id <> 'c'`,
+    });
+
+    expect(walked.map(({ id }) => id)).not.toContain('c');
+    // d is still a root of its own (depth 0), but no longer reached below c (it was depth 1, 2 and 3 there)
+    expect(walked.filter(({ id }) => id === 'd')).toEqual([{ id: 'd', depth: 0 }]);
+  });
+});
+
+describe("RecursiveTreeSql.walk - start: 'all' (SQLite shape and guards)", () => {
+  test('the anchor has no root condition but 1 = 1, and the SQL without start is unchanged', () => {
+    const all = compile(
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'all',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).sql;
+    const rooted = compile(
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        rootId: 'r',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).sql;
+
+    expect(all).toContain('WHERE 1 = 1');
+    expect(all).not.toContain('parent_id" is null');
+    expect(rooted).not.toContain('1 = 1');
+  });
+
+  test('start together with rootId throws', () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'all',
+        rootId: 'r',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).toThrow(/cannot be combined/);
+  });
+
+  test("a value other than 'all' throws, naming it", () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'every' as 'all',
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 3,
+      }),
+    ).toThrow(/every/);
+  });
+
+  test("an UP walk with start 'all' is allowed", () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'w',
+        table: nodesTable,
+        start: 'all',
+        direction: RecursiveTreeDirections.UP,
+        maxDepth: 3,
+      }),
+    ).not.toThrow();
   });
 });
