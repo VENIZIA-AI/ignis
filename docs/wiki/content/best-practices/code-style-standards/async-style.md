@@ -108,7 +108,7 @@ A handler or a `catch` block counts as silent when it does nothing, holds only a
 
 ESLint `no-empty` is different: it reports only an empty block, lets a block with a comment pass, and never sees `.catch(() => null)`. Both report `catch {}`.
 
-The fix of the chain rule keeps behaviour, so `.catch(() => null)` becomes `catch (error) { x = null; }`, and this rule then reports it. That is on purpose: you decide what to log.
+The fix of the chain rule keeps behaviour, so `.catch(() => null)` becomes `catch { x = null; }`, and this rule then reports it. That is on purpose: you decide what to log.
 
 ## Hooks
 

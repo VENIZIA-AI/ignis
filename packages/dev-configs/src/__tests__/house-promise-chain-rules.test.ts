@@ -190,7 +190,7 @@ describe('venizia/no-await-promise-chain: the fix', () => {
           'let value;',
           '  try {',
           '    value = await f();',
-          '  } catch (error) {',
+          '  } catch {',
           '    value = null;',
           '  }',
           '  return value;',
@@ -216,19 +216,19 @@ describe('venizia/no-await-promise-chain: the fix', () => {
     expect(
       fixChainOnly(wrap('const value: string | null = await f().catch(() => null);')),
     ).toContain(
-      'let value: string | null;\n  try {\n    value = await f();\n  } catch (error) {\n    value = null;\n  }',
+      'let value: string | null;\n  try {\n    value = await f();\n  } catch {\n    value = null;\n  }',
     );
     expect(fixChainOnly(wrap('let value = await f().catch(() => 0);'))).toContain(
-      'let value;\n  try {\n    value = await f();\n  } catch (error) {\n    value = 0;\n  }',
+      'let value;\n  try {\n    value = await f();\n  } catch {\n    value = 0;\n  }',
     );
   });
 
-  test("the catch variable takes the handler's parameter name, typed any when the value reads it", () => {
+  test("the catch variable takes the handler's parameter name, typed any when the value reads it, and is left out when nothing reads it", () => {
     expect(
       fixChainOnly(wrap('const message = await f().catch((reason) => reason.message);')),
     ).toContain('} catch (reason: any) {\n    message = reason.message;\n  }');
     expect(fixChainOnly(wrap('const value = await f().catch((ignored) => 0);'))).toContain(
-      '} catch (ignored) {\n    value = 0;\n  }',
+      '} catch {\n    value = 0;\n  }',
     );
   });
 
@@ -236,7 +236,7 @@ describe('venizia/no-await-promise-chain: the fix', () => {
     // `error` is declared around: the catch variable becomes `error2`.
     expect(
       fixChainOnly(wrap('const error = 1;\n  const value = await f().catch(() => error);')),
-    ).toContain('} catch (error2) {\n    value = error;\n  }');
+    ).toContain('} catch {\n    value = error;\n  }');
     // The parameter has the declared name: it is renamed, a shorthand property keeps its key.
     expect(
       fixChainOnly(
@@ -268,7 +268,7 @@ describe('venizia/no-await-promise-chain: the fix', () => {
     const annotated = wrap('const items: string[] = await f().catch(() => []);');
 
     expect(fixChainOnly(bare)).toBe(bare);
-    expect(fixChainOnly(annotated)).toContain('} catch (error) {\n    items = [];\n  }');
+    expect(fixChainOnly(annotated)).toContain('} catch {\n    items = [];\n  }');
   });
 
   test('every unsafe shape is reported and left untouched', () => {
@@ -319,7 +319,7 @@ describe('venizia/no-await-promise-chain: the fix', () => {
       'export const value = await f().catch(() => null);',
     );
     expect(fixChainOnly('const value = await f().catch(() => null);\nuse(value);')).toContain(
-      'let value;\ntry {\n  value = await f();\n} catch (error) {\n  value = null;\n}\nuse(value);',
+      'let value;\ntry {\n  value = await f();\n} catch {\n  value = null;\n}\nuse(value);',
     );
   });
 
@@ -375,7 +375,7 @@ describe('venizia/no-await-promise-chain: the fixed code typechecks', () => {
     // An arrow created after the last assignment keeps the narrowed type (TypeScript 5.4 and later); a function
     // declaration is hoisted and does not, on every supported TypeScript version.
     const errors = typeErrors(
-      'let value;\ntry { value = await f(); } catch (error) { value = null; }\nfunction read() { return value; }\nread();',
+      'let value;\ntry { value = await f(); } catch { value = null; }\nfunction read() { return value; }\nread();',
     );
 
     expect(errors.join('\n')).toContain('TS7034');
@@ -472,7 +472,7 @@ describe('venizia/no-silent-catch', () => {
       },
     );
 
-    expect(out.output).toContain('} catch (error) {');
+    expect(out.output).toContain('} catch {');
     expect(out.messages.map((message) => message.ruleId)).toEqual([SILENT]);
   });
 
