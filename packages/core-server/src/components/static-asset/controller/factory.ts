@@ -794,7 +794,9 @@ export class AssetControllerFactory extends BaseHelper {
                 return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
               }
 
-              const deleteRepository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
+              const deleteRepository = await ResolverUtility.resolveValueAsync({
+                value: metaLink.repository,
+              });
               deleteRepository
                 .deleteAll({
                   where: {
