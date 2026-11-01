@@ -1,7 +1,7 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
 } from '@venizia/ignis/postgres';
@@ -26,8 +26,8 @@ export const ignisExample = pgSchema('ignis_example');
 export const noteTable = ignisExample.table(
   'note',
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
     ownerId: uuid('owner_id')
       .notNull()
       .default(sql`auth.uid()`),

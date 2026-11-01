@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 
-import { parseJsonPath } from '@venizia/ignis-connectors/relational';
+import { JsonPathUtility } from '@venizia/ignis-connectors/relational';
 
 interface ITestCase {
   input: string;
@@ -164,7 +164,7 @@ const testCases: ITestCase[] = [
 describe('parseJsonPath', () => {
   for (const testCase of testCases) {
     test(`parses ${JSON.stringify(testCase.input)}`, () => {
-      const result = parseJsonPath({ key: testCase.input });
+      const result = JsonPathUtility.parseJsonPath({ key: testCase.input });
 
       expect(result.columnName).toBe(testCase.expected.columnName);
       expect(result.path).toEqual(testCase.expected.path);

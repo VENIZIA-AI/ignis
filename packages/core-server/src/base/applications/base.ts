@@ -1,4 +1,4 @@
-import { assertScopeFilterSupported } from '@venizia/ignis-connectors';
+import { ScopeFilterUtility } from '@venizia/ignis-connectors';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BindingNamespaces, CoreBindings } from '@venizia/ignis-kernel';
 import { EnvironmentKeys } from '@/common/environments';
@@ -478,6 +478,6 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    * silent at runtime and opposite: a search-backed model returns too many rows, a context-less one none.
    */
   protected validateScopeFilterSupport(): void {
-    assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });
+    ScopeFilterUtility.assertScopeFilterSupported({ asyncContextEnabled: this.configs.asyncContext?.enable ?? false });
   }
 }

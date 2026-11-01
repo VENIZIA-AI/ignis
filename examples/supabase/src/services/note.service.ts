@@ -3,7 +3,7 @@ import type { TNote } from '@/models/note.model';
 import { type NoteRepository } from '@/repositories/note.repository';
 import { BaseService, inject, service } from '@venizia/ignis';
 import type { IDatabaseTransaction } from '@venizia/ignis/postgres';
-import { withAuthContext } from '@venizia/ignis/postgres/supabase';
+import { SupabaseRls } from '@venizia/ignis/postgres/supabase';
 
 /**
  * Every write and every scoped read goes through `runAsUser`: open a transaction, establish the
@@ -39,7 +39,7 @@ export class NoteService extends BaseService {
     const transaction = await this.dataSource.beginTransaction();
 
     try {
-      await withAuthContext({ transaction, claims });
+      await SupabaseRls.withAuthContext({ transaction, claims });
       const result = await handler(transaction);
       await transaction.commit();
       return result;

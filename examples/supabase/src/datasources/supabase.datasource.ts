@@ -3,7 +3,7 @@ import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@ven
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
 import {
-  buildPostgresJsOptions,
+  SupabasePooler,
   PoolerModes,
   type TPoolerMode,
 } from '@venizia/ignis/postgres/supabase';
@@ -52,7 +52,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<
   override async configure(): Promise<void> {
     const { url, mode, max } = this.settings;
 
-    this.client = postgres(url, buildPostgresJsOptions({ mode, max }));
+    this.client = postgres(url, SupabasePooler.buildPostgresJsOptions({ mode, max }));
 
     // Plain Postgres persists between runs, unlike PGlite - but drizzle tracks applied migrations in
     // its own table, so running this against a database that already has them is a no-op. Mirrors the
