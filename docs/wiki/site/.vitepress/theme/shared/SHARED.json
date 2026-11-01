@@ -1,5 +1,5 @@
 {
-  "fingerprint": "88fab9456c93175fd7882ddc4dc7a3af18c66341d89b76a513301de5cad4db8f",
+  "fingerprint": "cd5b208271d4e4a48ff7c00a20cc924159c016c93b668772aa70b6e3e73f9626",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogEntryHead.vue": "f39ba1e011c369954e9a1cdf64dc0f3eefc965365e0e5a4fc99182753db70a2a",
@@ -19,6 +19,7 @@
     "assets/ignis-logo.svg": "5457a4bd3cf5bdbfd0ff5f3f47a5ddbffbd4645381f2813237bc7de07c443e39",
     "assets/vulcan-logo.svg": "9f712481c19058885c89cf9eb91becbf44d212e32e7aa892ab40ed4a1b005e40",
     "base.css": "975a04d4c0ed1e85178ed5f7445567a2822ab55810162dfec8c016cd8f41e1a5",
+    "build-check.ts": "f998fa731998b51410dcba00dc4029c771a671781ea98ed3581f9dd6b837173d",
     "changelog-entries.ts": "601e1878dd5e5b6d73d8f7e8ae09b4d86d1d2a4d08069714b03312b7a2014f9f",
     "changelog-feed.ts": "65f4c38ac8e1525decf6208f621b2bbac90b98b3428e02f07a4ae674e5c6dc24",
     "changelog-loader.ts": "8c090caed3c345328b1247007e12e07d57f1671e8b9815e8aaa0eb522dbeea7b",
