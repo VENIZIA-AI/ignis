@@ -10,18 +10,18 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-filter', '@venizia/ignis-
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** The 184 public functions that moved into classes (for example `isEmpty`, `uuidV4`, `resolveValue`, `jsonResponse`, `defineAuthController`) no longer exist under their old names, and `devz codemod namespace-functions` rewrites your calls to the class form.
+**In one line.** Run `devz codemod namespace-functions` to rewrite your calls, because 184 public functions (such as `isEmpty`, `uuidV4`, `resolveValue`, `jsonResponse`, `defineAuthController`) no longer exist as standalone functions and now live in classes.
 
 ## What changed
 
-- **The old names are gone, with no alias.** Each function now lives as a static method of a class (for example `isEmpty({ value })` is `ObjectUtility.isEmpty({ value })`, `uuidV4()` is `UuidV4Generator.generate()`). One options object comes first; a function that already took one options object keeps its arguments.
-- **One command moves your code.** `devz codemod namespace-functions` also moves `ApplicationLogger` to `LoggerFactory.getLogger([scope])` (see [the logger entry](/changelogs/2026-11-01-logger-factory-in-core)). It follows named, aliased and namespace imports of the `@venizia/*` packages, adds the class to the import and drops the old name once nothing uses it. It lists with file and line what it cannot rewrite safely.
-- **A few removals have no codemod path** (see "Manual steps").
+- **Update your calls to static methods.** Standalone function names are gone, and IGNIS provides no aliases. Call each function as a static method on its new class (for example, call `ObjectUtility.isEmpty({ value })` instead of `isEmpty({ value })`, and call `UuidV4Generator.generate()` instead of `uuidV4()`). Pass an options object first. Keep the arguments as they were if the function already accepted one options object.
+- **Run one command to rewrite your code.** Run `devz codemod namespace-functions` to update imports and call sites across your project. This command also rewrites `ApplicationLogger` to `LoggerFactory.getLogger([scope])` (see [the logger entry](/changelogs/2026-11-01-logger-factory-in-core)). The codemod tracks named, aliased, and namespace imports from `@venizia/*` packages. It adds the new class to your imports. It removes the old function name once no code uses it. It outputs the file name and line number for any code that it cannot safely rewrite.
+- **Migrate unsupported removals by hand.** Check "Manual steps" for changes that the codemod does not handle.
 
 ## Who is affected
 
-- **Every app or package that imports one of the old names.** Run the codemod once after you upgrade.
-- **An app that only uses decorators, `inject`, `getError`, the middleware DSL (`authenticate`, `authorize`), `field.*`, schema and column builders, mixins and hooks.** No action needed: those stay functions.
+- **Apps and packages that import old function names.** Run the codemod once after you install this IGNIS upgrade.
+- **Apps that use only decorators, `inject`, `getError`, the middleware DSL (`authenticate`, `authorize`), `field.*`, schema and column builders, mixins, and hooks.** Take no action. These APIs remain functions.
 
 ## Breaking changes
 
@@ -59,9 +59,9 @@ Upgrade steps:
 
 These removals cannot be migrated by the codemod:
 
-- **MinIO is removed.** `MinioHelper`, `IMinioHelperOptions`, the `@venizia/ignis-helpers/minio` sub-path, the `minio` optional peer dependency and `StaticAssetStorageTypes.MINIO` (the `storage: 'minio'` option of static-asset) no longer exist. Use `BunS3Helper` from `@venizia/ignis-helpers/bun-s3`, which reaches a MinIO server over the same S3 API (set the endpoint and path-style addressing).
-- **`StaticAssetDefinitions` is removed** (`@venizia/ignis`). Use `AssetDefinitionBuilder.build({})`.
-- **`readAffectedRowCount` is removed** (`@venizia/ignis`), with no replacement: read `rows.length` of a returning statement, or the driver's own count on the raw result.
+- **Switch from MinIO to BunS3Helper.** MinIO support is removed from IGNIS. Do not use `MinioHelper`, `IMinioHelperOptions`, the `@venizia/ignis-helpers/minio` sub-path, the `minio` optional peer dependency, or `StaticAssetStorageTypes.MINIO` (the `storage: 'minio'` option of static-asset). Import `BunS3Helper` from `@venizia/ignis-helpers/bun-s3` instead. Connect to your MinIO server through the S3 API by configuring the custom endpoint and path-style addressing.
+- **Replace `StaticAssetDefinitions`.** `StaticAssetDefinitions` is removed from `@venizia/ignis`. Call `AssetDefinitionBuilder.build({})` instead.
+- **Remove `readAffectedRowCount`.** `readAffectedRowCount` is removed from `@venizia/ignis` without a replacement. Read `rows.length` from a returning statement instead, or read the affected row count directly from the database driver raw result.
 
 ## Details
 
