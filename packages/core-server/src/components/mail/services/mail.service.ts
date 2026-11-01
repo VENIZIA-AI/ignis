@@ -12,7 +12,7 @@ import { MailDefaults, MailErrorCodes, MailErrors, MailKeys } from '../common';
 import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { type AnyType } from '@venizia/ignis-helpers/common';
-import { executePromiseWithLimit } from '@venizia/ignis-helpers';
+import { PromiseUtility } from '@venizia/ignis-helpers';
 import { MailAttachmentUtility } from '../utilities/attachment.utility';
 import { MailBodyUtility } from '../utilities/body.utility';
 
