@@ -12,7 +12,7 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { buildDataRange, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
+import { DataRangeUtility, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
 import type { IdType } from '@venizia/ignis-kernel';
 import type { ISearchResult } from '@/search/core';
 import type { TSearchInput } from '@/search/core/repositories/common';
@@ -128,7 +128,7 @@ export class ReadableSearchRepository<
 
     return {
       data,
-      range: buildDataRange({
+      range: DataRangeUtility.buildDataRange({
         skip: effectiveFilter.skip,
         offset: effectiveFilter.offset,
         dataLength: data.length,

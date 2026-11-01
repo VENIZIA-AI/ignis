@@ -11,7 +11,7 @@ Use `@get`, `@post` decorators with `as const` route configs for full type safet
 **`src/controllers/test/definitions.ts`**
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { Authentication, jsonContent, jsonResponse } from '@venizia/ignis';
+import { Authentication, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 // Define route configs as const for type inference
@@ -20,7 +20,7 @@ export const RouteConfigs = {
   GET_TEST: {
     method: HTTP.Methods.GET,
     path: '/test',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Test decorator GET endpoint',
       schema: z.object({ message: z.string(), method: z.string() }),
     }),
@@ -30,12 +30,12 @@ export const RouteConfigs = {
     path: '/items',
     authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // Secure this endpoint
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Request body for POST',
         schema: z.object({ name: z.string(), age: z.number().int().positive() }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Test decorator POST endpoint',
       schema: z.object({ id: z.string(), name: z.string(), age: z.number() }),
     }),
@@ -220,10 +220,10 @@ IGNIS supports server-side rendering using Hono's JSX middleware. This is useful
 
 **Usage:**
 
-Use `defineJSXRoute` in your controller and `htmlResponse` for documentation.
+Use `defineJSXRoute` in your controller and `OpenApiResponses.htmlResponse` for documentation.
 
 ```typescript
-import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses } from '@venizia/ignis';
 
 @controller({ path: '/pages' })
 export class PageController extends BaseRestController {
@@ -237,7 +237,7 @@ export class PageController extends BaseRestController {
         method: 'get',
         path: '/welcome',
         description: 'Welcome Page',
-        responses: htmlResponse({ description: 'HTML Welcome Page' }),
+        responses: OpenApiResponses.htmlResponse({ description: 'HTML Welcome Page' }),
       },
       handler: (context) => {
         const title = 'Welcome to IGNIS';

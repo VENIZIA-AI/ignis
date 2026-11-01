@@ -1242,7 +1242,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (433)
+### `@venizia/ignis-kernel` (417)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1257,7 +1257,6 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
-- `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
 - `AuthenticateStrategy` class
@@ -1300,7 +1299,6 @@ generated:
 - `BindingValueTypes` class
 - `BootSequence` class
 - `BootSteps` class
-- `buildDataRange` const
 - `CasbinDomainMatchingFunctions` class
 - `CasbinEnforcerCachedDrivers` class
 - `CasbinEnforcerModelDrivers` class
@@ -1311,9 +1309,9 @@ generated:
 - `CommonStatuses` class
 - `component` const
 - `CompressEncodings` class
-- `conditionalCountResponse` const
 - `configuration` const
 - `Container` class
+- `ContextUtility` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -1322,15 +1320,14 @@ generated:
 - `countableHeaders` const
 - `CountSchema` const
 - `DATA_SOURCE_BRAND` const
+- `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `defaultRequestHeaders` const
-- `defineControllerRouteConfigs` const
 - `del` const
-- `emojiFavicon` const
-- `errorResponses` const
+- `EmojiFaviconMiddleware` class
 - `ErrorSchema` const
 - `EventBus` class
 - `EventDispatchRetry` class
@@ -1342,8 +1339,6 @@ generated:
 - `get` const
 - `getDroppedRouteDecorators` const
 - `GrantBuilder` class
-- `htmlContent` const
-- `htmlResponse` const
 - `IApplication` interface
 - `IApplicationConfigs` interface
 - `IApplicationInfo` interface
@@ -1392,7 +1387,6 @@ generated:
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDomainEvent` interface
-- `idParamsSchema` const
 - `IdSchemaTypes` class
 - `IdType` type
 - `IEntityStatics` interface
@@ -1422,6 +1416,7 @@ generated:
 - `InclusionSchema` const
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `IPayloadFieldCodec` interface
 - `IPersistableRepository` interface
 - `IPropertyMetadata` interface
@@ -1460,8 +1455,6 @@ generated:
 - `IWithReadRetry` interface
 - `IWithTransaction` interface
 - `JOSEStandards` class
-- `jsonContent` const
-- `jsonResponse` const
 - `JWKSAlgorithms` class
 - `JWKSKeyDrivers` class
 - `JWKSKeyFormats` class
@@ -1473,20 +1466,21 @@ generated:
 - `MigrationStatuses` class
 - `model` const
 - `ModelTypes` class
+- `ModelUtility` class
 - `notFoundHandler` const
+- `NotSupportedUtility` class
 - `NumberIdType` type
 - `OffsetSchema` const
+- `OpenApiResponses` class
+- `OpenApiSchemas` class
 - `OrderBySchema` const
 - `patch` const
 - `PersistableCrudController` class
-- `pickRegistrationOptions` const
 - `post` const
 - `provide` const
 - `put` const
 - `QueryOperators` class
 - `ReadableCrudController` class
-- `readDeclarative` const
-- `registerFactoryRepositoryInjection` const
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
@@ -1496,14 +1490,8 @@ generated:
 - `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
+- `RequestDomainResolver` class
 - `RequestErrors` const
-- `requiredString` const
-- `resolveCountConfig` const
-- `resolveCreateConfig` const
-- `resolveFindByIdConfig` const
-- `resolveFindConfig` const
-- `resolveFindOneConfig` const
-- `resolveRequestDomain` const
 - `ResolverUtility` class
 - `ResponseExtras` class
 - `ResponseFormats` class
@@ -1527,7 +1515,6 @@ generated:
 - `SignInRequestSchema` const
 - `SignUpRequestSchema` const
 - `SkipSchema` const
-- `snakeToCamel` const
 - `Sorts` class
 - `Statuses` class
 - `StringIdType` type
@@ -1596,7 +1583,6 @@ generated:
 - `TFindRangeOptions` type
 - `TGetTokenExpiresFn` type
 - `TGrantIntent` type
-- `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TInferSchema` type
@@ -1622,8 +1608,6 @@ generated:
 - `TMixinOpts` type
 - `TModelClass` type
 - `TModelType` type
-- `toContentRange` const
-- `toEntityId` const
 - `TOffset` type
 - `TOrderBy` type
 - `TOrderEntry` type
@@ -1695,9 +1679,9 @@ generated:
 - `IArtifactRegistrationOptions` interface
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `MetadataRegistry` class
 - `model` const
-- `pickRegistrationOptions` const
 - `provide` const
 - `repository` const
 - `service` const
@@ -1709,8 +1693,8 @@ generated:
 - `AbstractDataSource` class
 - `AbstractEntity` class
 - `AbstractRepository` class
-- `buildDataRange` const
 - `CoreErrorCodes` class
+- `DataRangeUtility` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `HttpExtraRequest` class
@@ -1723,6 +1707,7 @@ generated:
 - `IReadableRepository` interface
 - `IRepository` interface
 - `IUpdatableRepository` interface
+- `NotSupportedUtility` class
 - `RepositoryOperationScopes` class
 - `RepositoryTypes` class
 - `SchemaTypes` class
@@ -1735,7 +1720,6 @@ generated:
 - `TExtraResult` type
 - `TFields` type
 - `TFilter` type
-- `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
@@ -1746,21 +1730,26 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (127)
+### `@venizia/ignis-connectors` (132)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
 - `AbstractSearchDataSource` class
-- `AuditUserResolver` class
+- `assertScopeFilterSupported` const
 - `BaseRelationalDataSource` class
 - `BaseRelationalEntity` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
+- `createRelations` const
 - `DefaultRelationalRepository` class
 - `DefaultSearchRepository` class
+- `defineSearchCollection` const
+- `deriveSearchDocumentSchema` const
 - `field` const
 - `FilterBuilder` class
+- `getCachedColumns` const
+- `getIdType` const
 - `IAliasInfo` interface
 - `IConnectorDriver` interface
 - `ICountOptions` interface
@@ -1799,6 +1788,7 @@ generated:
 - `ISearchSynonymScoped` interface
 - `ISearchSynonymSetScoped` interface
 - `ISelectOptions` interface
+- `isJsonPath` const
 - `isRelationalTransaction` const
 - `IStatementResult` interface
 - `ISynonym` interface
@@ -1806,12 +1796,12 @@ generated:
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
-- `JsonPathUtility` class
 - `many` const
 - `ModelFactory` class
 - `MultiSearchEntrySchema` const
 - `MultiSearchInputSchema` const
 - `one` const
+- `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `PersistableSearchRepository` class
 - `ReadableRelationalRepository` class
@@ -1819,22 +1809,17 @@ generated:
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
-- `RelationalEntityUtility` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
+- `resolveAuditUserId` const
 - `ScopeFilterDenial` class
-- `ScopeFilterUtility` class
 - `ScopeWriteOperations` class
 - `SearchBaseRepository` class
-- `SearchCollectionFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
 - `SearchInputSchema` const
 - `SearchModes` class
-- `SearchQueryParamsUtility` class
 - `SoftDeletableRelationalRepository` class
 - `TableColumnCache` class
 - `TColumnDefinition` type
@@ -1849,6 +1834,8 @@ generated:
 - `TIdColumn` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toRelationConfigs` const
+- `toSearchQueryParams` const
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1874,6 +1861,8 @@ generated:
 - `TTableSchemaWithId` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
+- `validateJsonColumnType` const
+- `validateJsonPathComponents` const
 - `VectorDistances` class
 
 ### `@venizia/ignis-connectors/http` (22)
@@ -1912,14 +1901,16 @@ generated:
 - `TRawSqlQuery` type
 - `TRawSqlSchema` type
 
-### `@venizia/ignis-connectors/relational` (72)
+### `@venizia/ignis-connectors/relational` (76)
 
 - `AbstractRelationalDataSource` class
-- `AuditUserResolver` class
 - `BaseRelationalDataSource` class
 - `BaseRelationalEntity` class
+- `createRelations` const
 - `DefaultRelationalRepository` class
 - `FilterBuilder` class
+- `getCachedColumns` const
+- `getIdType` const
 - `ICountOptions` interface
 - `IDefinedEntity` interface
 - `IEntity` interface
@@ -1938,26 +1929,25 @@ generated:
 - `IRelationalTransaction` interface
 - `IRemoveOptions` interface
 - `ISelectOptions` interface
+- `isJsonPath` const
 - `isRelationalTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
-- `JsonPathUtility` class
 - `many` const
 - `ModelFactory` class
 - `one` const
+- `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
-- `RelationalEntityUtility` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
+- `resolveAuditUserId` const
 - `ScopeFilterDenial` class
 - `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
@@ -1970,6 +1960,7 @@ generated:
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -1986,8 +1977,10 @@ generated:
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `validateJsonColumnType` const
+- `validateJsonPathComponents` const
 
-### `@venizia/ignis-connectors/postgres` (79)
+### `@venizia/ignis-connectors/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -1996,7 +1989,20 @@ generated:
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
 - `BigIntModes` class
+- `createRelations` const
 - `DefaultCRUDRepository` class
+- `enrichDataTypes` const
+- `enrichId` const
+- `enrichPrincipal` const
+- `enrichTz` const
+- `enrichUserAudit` const
+- `generateDataTypeColumnDefs` const
+- `generateIdColumnDefs` const
+- `generatePrincipalColumnDefs` const
+- `generateTzColumnDefs` const
+- `generateUserAuditColumnDefs` const
+- `getCachedColumns` const
+- `getIdType` const
 - `IDatabaseExtraOptions` interface
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
@@ -2017,21 +2023,13 @@ generated:
 - `one` const
 - `PersistableRepository` class
 - `PostgresBaseRepository` class
-- `PostgresDataTypeEnricher` class
 - `PostgresFilterBuilder` class
-- `PostgresIdEnricher` class
-- `PostgresPrincipalEnricher` class
 - `PostgresQueryDialect` class
 - `PostgresQueryExecutor` class
 - `PostgresQueryOperators` class
-- `PostgresTzEnricher` class
-- `PostgresUserAuditEnricher` class
 - `ReadableRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
-- `RelationalEntityUtility` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
@@ -2047,6 +2045,7 @@ generated:
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2088,6 +2087,7 @@ generated:
 - `authenticatedRole` const
 - `authUid` const
 - `authUsers` const
+- `buildPostgresJsOptions` const
 - `IPostgresJsOptions` interface
 - `PoolerModes` class
 - `postgresRole` const
@@ -2095,16 +2095,26 @@ generated:
 - `realtimeTopic` const
 - `serviceRole` const
 - `supabaseAuthAdminRole` const
-- `SupabasePooler` class
-- `SupabaseRls` class
 - `TPoolerMode` type
+- `withAuthContext` const
 
-### `@venizia/ignis-connectors/sqlite` (72)
+### `@venizia/ignis-connectors/sqlite` (77)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
 - `BaseSqliteEntity` class
 - `DefaultSqliteRepository` class
+- `enrichDataTypes` const
+- `enrichId` const
+- `enrichPrincipal` const
+- `enrichTz` const
+- `enrichUserAudit` const
+- `generateDataTypeColumnDefs` const
+- `generateIdColumnDefs` const
+- `generatePrincipalColumnDefs` const
+- `generateTzColumnDefs` const
+- `generateUserAuditColumnDefs` const
+- `getIdType` const
 - `IDefinedEntity` interface
 - `IEntity` interface
 - `IManyRelation` interface
@@ -2128,21 +2138,14 @@ generated:
 - `ReadableSqliteRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
-- `RelationalEntityUtility` class
-- `RelationDeclarations` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
-- `SqliteDataTypeEnricher` class
 - `SqliteFilterBuilder` class
-- `SqliteIdEnricher` class
-- `SqlitePrincipalEnricher` class
 - `SqliteQueryDialect` class
 - `SqliteQueryExecutor` class
 - `SqliteQueryOperators` class
-- `SqliteTzEnricher` class
 - `SqliteUpdateBuilder` class
-- `SqliteUserAuditEnricher` class
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -2153,6 +2156,7 @@ generated:
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -2179,13 +2183,15 @@ generated:
 - `LibSqlDriver` class
 - `TLibSqlDriverOptions` type
 
-### `@venizia/ignis-connectors/search` (52)
+### `@venizia/ignis-connectors/search` (53)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
 - `DefaultSearchRepository` class
+- `defineSearchCollection` const
+- `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
 - `IImportResult` interface
@@ -2212,17 +2218,16 @@ generated:
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchCollectionFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
 - `SearchInputSchema` const
 - `SearchModes` class
-- `SearchQueryParamsUtility` class
 - `TCompiledWhere` type
 - `TFieldFlags` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toSearchQueryParams` const
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -2234,21 +2239,25 @@ generated:
 - `TypesenseBaseRepository` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/search/controllers` (5)
+### `@venizia/ignis-connectors/search/controllers` (6)
 
 - `AbstractSearchController` class
+- `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
 - `TSearchScopeResolver` type
 
-### `@venizia/ignis-connectors/typesense` (75)
+### `@venizia/ignis-connectors/typesense` (76)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
+- `compileTypesenseCollection` const
 - `DefaultSearchRepository` class
+- `defineSearchCollection` const
+- `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
 - `IImportResult` interface
@@ -2282,13 +2291,11 @@ generated:
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchCollectionFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
 - `SearchInputSchema` const
 - `SearchModes` class
-- `SearchQueryParamsUtility` class
 - `TCollectionCreateSchema` type
 - `TCollectionFieldSchema` type
 - `TCollectionSchema` type
@@ -2298,6 +2305,7 @@ generated:
 - `TImportResponse` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toSearchQueryParams` const
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -2312,7 +2320,6 @@ generated:
 - `TTypesenseImportAction` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
-- `TypesenseCollectionCompiler` class
 - `TypesenseConnector` class
 - `TypesenseDataSource` class
 - `TypesenseDirtyValues` class
@@ -2320,9 +2327,10 @@ generated:
 - `TypesenseQueryDialect` class
 - `VectorDistances` class
 
-### `@venizia/ignis-connectors/typesense/controllers` (5)
+### `@venizia/ignis-connectors/typesense/controllers` (6)
 
 - `AbstractSearchController` class
+- `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
@@ -2330,6 +2338,7 @@ generated:
 
 ### `@venizia/ignis-connectors/meilisearch` (16)
 
+- `compileMeilisearchCollection` const
 - `IMeilisearchClientLike` interface
 - `IMeilisearchConnectorOptions` interface
 - `IMeilisearchDataSourceSettings` interface
@@ -2340,7 +2349,6 @@ generated:
 - `IMeilisearchTask` interface
 - `MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE` const
 - `MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE` const
-- `MeilisearchCollectionCompiler` class
 - `MeilisearchConnector` class
 - `MeilisearchDataSource` class
 - `MeilisearchQueryDialect` class
@@ -2383,7 +2391,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1032)
+### `@venizia/ignis` (1023)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2427,7 +2435,6 @@ generated:
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `assertBunRuntime` const
-- `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
 - `AuthenticateComponent` class
@@ -2496,7 +2503,6 @@ generated:
 - `BindingValueTypes` class
 - `BootSequence` class
 - `BootSteps` class
-- `buildDataRange` const
 - `BuildInfoRegistry` class
 - `BullQueueRoles` class
 - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` const
@@ -2514,7 +2520,6 @@ generated:
 - `CommonStatuses` class
 - `component` const
 - `CompressEncodings` class
-- `conditionalCountResponse` const
 - `configuration` const
 - `ConsoleLogger` class
 - `Container` class
@@ -2522,6 +2527,7 @@ generated:
 - `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
+- `ContextUtility` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -2529,9 +2535,11 @@ generated:
 - `CoreErrorCodes` class
 - `countableHeaders` const
 - `CountSchema` const
+- `createRelations` const
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
 - `DATA_SOURCE_BRAND` const
+- `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
 - `DataTypes` class
@@ -2554,7 +2562,6 @@ generated:
 - `defaultRequestHeaders` const
 - `Defaults` class
 - `defineAuthController` const
-- `defineControllerRouteConfigs` const
 - `del` const
 - `DiskHelper` class
 - `DocumentUITypes` class
@@ -2564,14 +2571,18 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
-- `emojiFavicon` const
+- `EmojiFaviconMiddleware` class
+- `enrichDataTypes` const
+- `enrichId` const
+- `enrichPrincipal` const
+- `enrichTz` const
+- `enrichUserAudit` const
 - `Environment` class
 - `EnvironmentKeys` class
 - `EnvironmentNames` class
 - `Envs` const
 - `ErrorLogLevels` class
 - `ErrorPrettier` class
-- `errorResponses` const
 - `ErrorSchema` const
 - `ErrorScopes` class
 - `ErrorUtility` class
@@ -2591,9 +2602,16 @@ generated:
 - `findResponseHeaders` const
 - `FormBodyUtility` class
 - `fromError` const
+- `generateDataTypeColumnDefs` const
+- `generateIdColumnDefs` const
+- `generatePrincipalColumnDefs` const
+- `generateTzColumnDefs` const
+- `generateUserAuditColumnDefs` const
 - `get` const
+- `getCachedColumns` const
 - `getDroppedRouteDecorators` const
 - `getError` const
+- `getIdType` const
 - `GrantBuilder` class
 - `GRPC` class
 - `GrpcRequestAdapter` class
@@ -2613,8 +2631,6 @@ generated:
 - `HfQueueHelper` class
 - `HookUtility` class
 - `HrTimeUtility` class
-- `htmlContent` const
-- `htmlResponse` const
 - `HTTP` class
 - `IAESKeyringEntry` interface
 - `IApiReferenceOptions` interface
@@ -2688,7 +2704,6 @@ generated:
 - `IDeletableRepository` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
-- `idParamsSchema` const
 - `IdSchemaTypes` class
 - `IdType` type
 - `IDuration` interface
@@ -2747,6 +2762,7 @@ generated:
 - `INextOpaqueUidOptions` interface
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `INodeFetchNetworkRequestOptions` interface
 - `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
@@ -2891,8 +2907,6 @@ generated:
 - `IWorkerThread` interface
 - `IZonedTemporalParts` interface
 - `JOSEStandards` class
-- `jsonContent` const
-- `jsonResponse` const
 - `JWKSAlgorithms` class
 - `JWKSController` class
 - `JWKSIssuerAuthenticationStrategy` class
@@ -2931,6 +2945,7 @@ generated:
 - `model` const
 - `ModelFactory` class
 - `ModelTypes` class
+- `ModelUtility` class
 - `ModuleUtility` class
 - `MultipartStorages` class
 - `NativeTemporalAdapter` class
@@ -2943,32 +2958,29 @@ generated:
 - `NodeFetchNetworkRequest` class
 - `NON_SLUG_CHARACTERS_PATTERN` const
 - `notFoundHandler` const
+- `NotSupportedUtility` class
 - `NumberIdType` type
 - `ObjectUtility` class
 - `OffsetSchema` const
 - `one` const
 - `OpaqueUidHelper` class
+- `OpenApiResponses` class
+- `OpenApiSchemas` class
 - `OrderBySchema` const
 - `ParseUtility` class
 - `patch` const
 - `PerformanceUtility` class
 - `PersistableCrudController` class
 - `PersistableRepository` class
-- `pickRegistrationOptions` const
 - `PolicyConnectorResolver` class
 - `policyDefinitionDomainShapeCheck` const
 - `PolicyLineCodec` class
 - `post` const
 - `PostgresBaseRepository` class
-- `PostgresDataTypeEnricher` class
 - `PostgresFilterBuilder` class
-- `PostgresIdEnricher` class
-- `PostgresPrincipalEnricher` class
 - `PostgresQueryDialect` class
 - `PostgresQueryExecutor` class
 - `PostgresQueryOperators` class
-- `PostgresTzEnricher` class
-- `PostgresUserAuditEnricher` class
 - `PrincipalPolicyEdges` class
 - `PromiseUtility` class
 - `PropsWithChildren` type
@@ -2982,7 +2994,7 @@ generated:
 - `QueueStatuses` class
 - `ReadableCrudController` class
 - `ReadableRepository` class
-- `readDeclarative` const
+- `readAffectedRowCount` const
 - `readResultRows` const
 - `readRuntimeSnapshot` const
 - `RecursiveTreeDirections` class
@@ -2998,11 +3010,7 @@ generated:
 - `RedisSentinelRoles` class
 - `RedisSingleHelper` class
 - `RedisUtility` class
-- `registerFactoryRepositoryInjection` const
-- `RelationalEntityUtility` class
 - `RelationBuilderRegistry` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
 - `RelationTypes` class
 - `repository` const
 - `RepositoryErrorCodes` class
@@ -3011,17 +3019,11 @@ generated:
 - `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
+- `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
-- `requiredString` const
-- `resolveCountConfig` const
-- `resolveCreateConfig` const
-- `resolveFindByIdConfig` const
-- `resolveFindConfig` const
-- `resolveFindOneConfig` const
-- `resolveRequestDomain` const
 - `ResolverUtility` class
 - `ResourceRoleManager` class
 - `ResponseExtras` class
@@ -3067,7 +3069,6 @@ generated:
 - `SignUpRequestSchema` const
 - `SkipSchema` const
 - `SlugHelper` class
-- `snakeToCamel` const
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
 - `SoftDeletableRepository` class
@@ -3207,7 +3208,6 @@ generated:
 - `THfLogLevel` type
 - `THfSink` type
 - `THfSinkBatch` type
-- `throwNotSupported` const
 - `THttpMethod` type
 - `THttpProtocol` type
 - `THttpResultCode` type
@@ -3251,14 +3251,13 @@ generated:
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
-- `toContentRange` const
-- `toEntityId` const
 - `TOffset` type
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type
 - `TOrderBy` type
 - `TOrderEntry` type
+- `toRelationConfigs` const
 - `TOrigin` type
 - `TParsedOrderEntry` type
 - `TPermissionCommonColumns` type
@@ -3418,7 +3417,7 @@ generated:
 - `WhereSchema` const
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis/postgres` (79)
+### `@venizia/ignis/postgres` (85)
 
 - `AbstractPostgresDataSource` class
 - `BaseDataSource` class
@@ -3427,7 +3426,20 @@ generated:
 - `BasePostgresEntity` class
 - `BaseRelationalEntity` class
 - `BigIntModes` class
+- `createRelations` const
 - `DefaultCRUDRepository` class
+- `enrichDataTypes` const
+- `enrichId` const
+- `enrichPrincipal` const
+- `enrichTz` const
+- `enrichUserAudit` const
+- `generateDataTypeColumnDefs` const
+- `generateIdColumnDefs` const
+- `generatePrincipalColumnDefs` const
+- `generateTzColumnDefs` const
+- `generateUserAuditColumnDefs` const
+- `getCachedColumns` const
+- `getIdType` const
 - `IDatabaseExtraOptions` interface
 - `IDatabaseTransaction` interface
 - `IDatabaseTransactionOptions` interface
@@ -3448,21 +3460,13 @@ generated:
 - `one` const
 - `PersistableRepository` class
 - `PostgresBaseRepository` class
-- `PostgresDataTypeEnricher` class
 - `PostgresFilterBuilder` class
-- `PostgresIdEnricher` class
-- `PostgresPrincipalEnricher` class
 - `PostgresQueryDialect` class
 - `PostgresQueryExecutor` class
 - `PostgresQueryOperators` class
-- `PostgresTzEnricher` class
-- `PostgresUserAuditEnricher` class
 - `ReadableRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
-- `RelationalEntityUtility` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
 - `SoftDeletableRepository` class
 - `TableColumnCache` class
 - `TAnyConnector` type
@@ -3478,6 +3482,7 @@ generated:
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
 - `TIsolationLevel` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -3500,14 +3505,16 @@ generated:
 - `TUserAuditEnricherResult` type
 - `UpdateBuilder` class
 
-### `@venizia/ignis/relational` (72)
+### `@venizia/ignis/relational` (76)
 
 - `AbstractRelationalDataSource` class
-- `AuditUserResolver` class
 - `BaseRelationalDataSource` class
 - `BaseRelationalEntity` class
+- `createRelations` const
 - `DefaultRelationalRepository` class
 - `FilterBuilder` class
+- `getCachedColumns` const
+- `getIdType` const
 - `ICountOptions` interface
 - `IDefinedEntity` interface
 - `IEntity` interface
@@ -3526,26 +3533,25 @@ generated:
 - `IRelationalTransaction` interface
 - `IRemoveOptions` interface
 - `ISelectOptions` interface
+- `isJsonPath` const
 - `isRelationalTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `IUpdateOptions` interface
 - `IWriteResult` interface
 - `JSON_PATH_PATTERN` const
-- `JsonPathUtility` class
 - `many` const
 - `ModelFactory` class
 - `one` const
+- `parseJsonPath` const
 - `PersistableRelationalRepository` class
 - `ReadableRelationalRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
 - `RelationalBaseRepository` class
-- `RelationalEntityUtility` class
 - `RelationalMigrationRunner` class
 - `RelationalUpdateBuilder` class
-- `RelationDeclarations` class
-- `RelationsFactory` class
+- `resolveAuditUserId` const
 - `ScopeFilterDenial` class
 - `ScopeWriteOperations` class
 - `SoftDeletableRelationalRepository` class
@@ -3558,6 +3564,7 @@ generated:
 - `TEntityObject` type
 - `TGetIdType` type
 - `TIdColumn` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TRecursiveTreeDirection` type
 - `TRelationalConnectorOf` type
@@ -3574,6 +3581,8 @@ generated:
 - `TTableInsert` type
 - `TTableObject` type
 - `TTableSchemaWithId` type
+- `validateJsonColumnType` const
+- `validateJsonPathComponents` const
 
 ### `@venizia/ignis/postgres/node-postgres` (1)
 
@@ -3594,6 +3603,7 @@ generated:
 - `authenticatedRole` const
 - `authUid` const
 - `authUsers` const
+- `buildPostgresJsOptions` const
 - `IPostgresJsOptions` interface
 - `PoolerModes` class
 - `postgresRole` const
@@ -3601,16 +3611,26 @@ generated:
 - `realtimeTopic` const
 - `serviceRole` const
 - `supabaseAuthAdminRole` const
-- `SupabasePooler` class
-- `SupabaseRls` class
 - `TPoolerMode` type
+- `withAuthContext` const
 
-### `@venizia/ignis/sqlite` (72)
+### `@venizia/ignis/sqlite` (77)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
 - `BaseSqliteEntity` class
 - `DefaultSqliteRepository` class
+- `enrichDataTypes` const
+- `enrichId` const
+- `enrichPrincipal` const
+- `enrichTz` const
+- `enrichUserAudit` const
+- `generateDataTypeColumnDefs` const
+- `generateIdColumnDefs` const
+- `generatePrincipalColumnDefs` const
+- `generateTzColumnDefs` const
+- `generateUserAuditColumnDefs` const
+- `getIdType` const
 - `IDefinedEntity` interface
 - `IEntity` interface
 - `IManyRelation` interface
@@ -3634,21 +3654,14 @@ generated:
 - `ReadableSqliteRepository` class
 - `RecursiveTreeDirections` class
 - `RecursiveTreeSql` class
-- `RelationalEntityUtility` class
-- `RelationDeclarations` class
 - `SoftDeletableSqliteRepository` class
 - `SqliteBaseRepository` class
 - `SqliteBeginModes` class
-- `SqliteDataTypeEnricher` class
 - `SqliteFilterBuilder` class
-- `SqliteIdEnricher` class
-- `SqlitePrincipalEnricher` class
 - `SqliteQueryDialect` class
 - `SqliteQueryExecutor` class
 - `SqliteQueryOperators` class
-- `SqliteTzEnricher` class
 - `SqliteUpdateBuilder` class
-- `SqliteUserAuditEnricher` class
 - `TColumnDefinition` type
 - `TColumnDefinitions` type
 - `TDataTypeEnricherOptions` type
@@ -3659,6 +3672,7 @@ generated:
 - `TIdColumn` type
 - `TIdEnricherOptions` type
 - `TIdEnricherResult` type
+- `toRelationConfigs` const
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TRecursiveTreeDirection` type
@@ -3685,13 +3699,15 @@ generated:
 - `LibSqlDriver` class
 - `TLibSqlDriverOptions` type
 
-### `@venizia/ignis/search` (52)
+### `@venizia/ignis/search` (53)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
 - `DefaultSearchRepository` class
+- `defineSearchCollection` const
+- `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
 - `IImportResult` interface
@@ -3718,17 +3734,16 @@ generated:
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchCollectionFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
 - `SearchInputSchema` const
 - `SearchModes` class
-- `SearchQueryParamsUtility` class
 - `TCompiledWhere` type
 - `TFieldFlags` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toSearchQueryParams` const
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -3740,9 +3755,10 @@ generated:
 - `TypesenseBaseRepository` class
 - `VectorDistances` class
 
-### `@venizia/ignis/search/controllers` (5)
+### `@venizia/ignis/search/controllers` (6)
 
 - `AbstractSearchController` class
+- `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class
@@ -3750,6 +3766,7 @@ generated:
 
 ### `@venizia/ignis/meilisearch` (16)
 
+- `compileMeilisearchCollection` const
 - `IMeilisearchClientLike` interface
 - `IMeilisearchConnectorOptions` interface
 - `IMeilisearchDataSourceSettings` interface
@@ -3760,7 +3777,6 @@ generated:
 - `IMeilisearchTask` interface
 - `MEILISEARCH_DEFAULT_FETCH_PAGE_SIZE` const
 - `MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE` const
-- `MeilisearchCollectionCompiler` class
 - `MeilisearchConnector` class
 - `MeilisearchDataSource` class
 - `MeilisearchQueryDialect` class
@@ -3898,13 +3914,16 @@ generated:
 - `WebSocketBindingKeys` class
 - `WebSocketComponent` class
 
-### `@venizia/ignis/typesense` (75)
+### `@venizia/ignis/typesense` (76)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
 - `BaseSearchDataSource` class
 - `BaseSearchEntity` class
+- `compileTypesenseCollection` const
 - `DefaultSearchRepository` class
+- `defineSearchCollection` const
+- `deriveSearchDocumentSchema` const
 - `field` const
 - `IAliasInfo` interface
 - `IImportResult` interface
@@ -3938,13 +3957,11 @@ generated:
 - `PersistableSearchRepository` class
 - `ReadableSearchRepository` class
 - `SearchBaseRepository` class
-- `SearchCollectionFactory` class
 - `SearchErrors` const
 - `SearchFieldTypes` class
 - `SearchFilterOutcomes` class
 - `SearchInputSchema` const
 - `SearchModes` class
-- `SearchQueryParamsUtility` class
 - `TCollectionCreateSchema` type
 - `TCollectionFieldSchema` type
 - `TCollectionSchema` type
@@ -3954,6 +3971,7 @@ generated:
 - `TImportResponse` type
 - `TMultiSearchEntry` type
 - `TMultiSearchInput` type
+- `toSearchQueryParams` const
 - `TSearchDocument` type
 - `TSearchFieldTsType` type
 - `TSearchFieldType` type
@@ -3968,7 +3986,6 @@ generated:
 - `TTypesenseImportAction` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
-- `TypesenseCollectionCompiler` class
 - `TypesenseConnector` class
 - `TypesenseDataSource` class
 - `TypesenseDirtyValues` class
@@ -3976,9 +3993,10 @@ generated:
 - `TypesenseQueryDialect` class
 - `VectorDistances` class
 
-### `@venizia/ignis/typesense/controllers` (5)
+### `@venizia/ignis/typesense/controllers` (6)
 
 - `AbstractSearchController` class
+- `defineSearchRouteConfigs` const
 - `ISearchControllerOptions` interface
 - `ISearchCustomizableRoutes` interface
 - `SearchControllerFactory` class

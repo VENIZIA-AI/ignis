@@ -15,12 +15,12 @@ export class UserRestPaths {
 }
 
 // common/route-configs.ts
-// jsonResponse({ schema }) expands to a 200 response plus '4XX' and '5XX' error responses
+// OpenApiResponses.jsonResponse({ schema }) expands to a 200 response plus '4XX' and '5XX' error responses
 export const RouteConfigs = {
   GET_USERS: {
     method: HTTP.Methods.GET,
     path: UserRestPaths.ROOT,
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'List of users',
       schema: UserListSchema,
     }),
@@ -31,7 +31,7 @@ export const RouteConfigs = {
     request: {
       params: z.object({ id: z.string() }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'User detail',
       schema: UserSchema,
     }),
@@ -173,20 +173,20 @@ const UserSchema = z.object({
 ## Request Validation
 
 ```typescript
-// Use an explicit status-code map (with jsonContent) when the success
-// code is not 200 - jsonResponse() always keys the success response at 200
+// Use an explicit status-code map (with OpenApiResponses.jsonContent) when the success
+// code is not 200 - OpenApiResponses.jsonResponse() always keys the success response at 200
 export const RouteConfigs = {
   CREATE_USER: {
     method: HTTP.Methods.POST,
     path: '/',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: CreateUserSchema,
         description: 'User data',
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Created user',
         schema: UserSchema,
       }),

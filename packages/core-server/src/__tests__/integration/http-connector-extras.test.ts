@@ -6,7 +6,7 @@ import { Hono } from 'hono';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { Logger } from '@venizia/ignis-helpers/winston';
-import { buildDataRange } from '@venizia/ignis-kernel/repository';
+import { DataRangeUtility } from '@venizia/ignis-kernel/repository';
 import { HttpDataSource, HttpRepository } from '@venizia/ignis-connectors/http';
 import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
@@ -42,7 +42,11 @@ class ExtrasController extends BaseRestController {
           context,
           format: 'array',
           payload: { count: data.length, data },
-          range: buildDataRange({ skip: 0, dataLength: data.length, total: ROWS.length }),
+          range: DataRangeUtility.buildDataRange({
+            skip: 0,
+            dataLength: data.length,
+            total: ROWS.length,
+          }),
           extra: {
             counts: {
               isDefault: true,

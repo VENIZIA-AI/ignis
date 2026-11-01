@@ -924,7 +924,7 @@ import {
   controller,
   get,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -943,7 +943,7 @@ const ProductRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'List of products',
         schema: z.object({
           products: z.array(z.any()),
@@ -959,7 +959,7 @@ const ProductRoutes = {
       params: z.object({ id: z.string().uuid() }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Product details',
         schema: z.any(),
       }),
@@ -1015,7 +1015,7 @@ import {
   put,
   del,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -1026,7 +1026,7 @@ const CartRoutes = {
     method: HTTP.Methods.GET,
     path: '/',
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Current cart',
         schema: z.any(),
       }),
@@ -1036,7 +1036,7 @@ const CartRoutes = {
     method: HTTP.Methods.POST,
     path: '/items',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           productId: z.string().uuid(),
           quantity: z.number().int().positive().default(1),
@@ -1044,7 +1044,7 @@ const CartRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Item added to cart',
         schema: z.any(),
       }),
@@ -1055,14 +1055,14 @@ const CartRoutes = {
     path: '/items/{productId}',
     request: {
       params: z.object({ productId: z.string().uuid() }),
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           quantity: z.number().int().min(0),
         }),
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Item quantity updated',
         schema: z.any(),
       }),
@@ -1152,7 +1152,7 @@ import {
   get,
   post,
   inject,
-  jsonContent,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -1163,7 +1163,7 @@ const OrderRoutes = {
     method: HTTP.Methods.POST,
     path: '/',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           cartId: z.string().uuid(),
           email: z.string().email(),
@@ -1180,7 +1180,7 @@ const OrderRoutes = {
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Created]: OpenApiResponses.jsonContent({
         description: 'Order created',
         schema: z.object({
           order: z.any(),
@@ -1194,14 +1194,14 @@ const OrderRoutes = {
     path: '/{id}/confirm',
     request: {
       params: z.object({ id: z.string().uuid() }),
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         schema: z.object({
           paymentIntentId: z.string(),
         }),
       }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order confirmed',
         schema: z.any(),
       }),
@@ -1214,7 +1214,7 @@ const OrderRoutes = {
       params: z.object({ id: z.string().uuid() }),
     },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Order details',
         schema: z.any(),
       }),

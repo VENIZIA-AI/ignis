@@ -1,5 +1,4 @@
-import { htmlResponse } from '@/base/controllers/common/html-response';
-import { ErrorSchema, errorResponses, jsonResponse } from '@/base/models/common/schemas';
+import { ErrorSchema, OpenApiResponses, OpenApiSchemas } from '@/base/models/common/schemas';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { describe, expect, test } from 'bun:test';
 
@@ -29,8 +28,8 @@ const toResponses = (opts: { responses: TRouteResponses }) => {
 };
 
 describe('error responses use the OpenAPI range keys', () => {
-  test('errorResponses declares ErrorSchema under exactly 4XX and 5XX', () => {
-    const responses = errorResponses();
+  test('OpenApiResponses.errorResponses declares ErrorSchema under exactly 4XX and 5XX', () => {
+    const responses = OpenApiResponses.errorResponses();
 
     expect(Object.keys(responses).sort()).toEqual(['4XX', '5XX']);
     for (const response of Object.values(responses)) {
@@ -39,9 +38,9 @@ describe('error responses use the OpenAPI range keys', () => {
     }
   });
 
-  test('jsonResponse declares the error body under 4XX and 5XX', () => {
+  test('OpenApiResponses.jsonResponse declares the error body under 4XX and 5XX', () => {
     const responses = toResponses({
-      responses: jsonResponse({ schema: z.object({ id: z.string() }) }),
+      responses: OpenApiResponses.jsonResponse({ schema: z.object({ id: z.string() }) }),
     });
 
     expect(Object.keys(responses).sort()).toEqual(['200', '4XX', '5XX']);
@@ -53,8 +52,10 @@ describe('error responses use the OpenAPI range keys', () => {
     }
   });
 
-  test('htmlResponse declares the json error body under 4XX and 5XX', () => {
-    const responses = toResponses({ responses: htmlResponse({ description: 'A page' }) });
+  test('OpenApiResponses.htmlResponse declares the json error body under 4XX and 5XX', () => {
+    const responses = toResponses({
+      responses: OpenApiResponses.htmlResponse({ description: 'A page' }),
+    });
 
     expect(Object.keys(responses).sort()).toEqual(['200', '4XX', '5XX']);
     for (const key of ['4XX', '5XX']) {
@@ -70,8 +71,8 @@ describe('ErrorSchema is one named component', () => {
   test('every route references ErrorResponse, and the document declares it once', () => {
     const document = toDocument({
       routes: {
-        '/json': jsonResponse({ schema: z.object({ id: z.string() }) }),
-        '/html': htmlResponse({ description: 'A page' }),
+        '/json': OpenApiResponses.jsonResponse({ schema: z.object({ id: z.string() }) }),
+        '/html': OpenApiResponses.htmlResponse({ description: 'A page' }),
       },
     });
 
@@ -91,5 +92,14 @@ describe('ErrorSchema is one named component', () => {
       required: ['message'],
       description: 'Error Schema',
     });
+  });
+});
+
+describe('OpenApiSchemas.idParams', () => {
+  test('a number id by default, a string id on request, both under the single key id', () => {
+    expect(Object.keys(OpenApiSchemas.idParams({ idType: 'string' }).shape)).toEqual(['id']);
+    expect(OpenApiSchemas.idParams().safeParse({ id: 7 }).success).toBe(true);
+    expect(OpenApiSchemas.idParams({ idType: 'string' }).safeParse({ id: 7 }).success).toBe(false);
+    expect(OpenApiSchemas.idParams({ idType: 'string' }).safeParse({ id: 'a' }).success).toBe(true);
   });
 });

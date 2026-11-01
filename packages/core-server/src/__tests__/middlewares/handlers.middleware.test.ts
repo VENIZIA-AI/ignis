@@ -1,6 +1,6 @@
 import {
   AppErrorMiddleware,
-  emojiFavicon,
+  EmojiFaviconMiddleware,
   notFoundHandler,
   RequestSpyMiddleware,
 } from '@/base/middlewares';
@@ -39,10 +39,10 @@ describe('notFoundHandler', () => {
   });
 });
 
-describe('emojiFavicon', () => {
+describe('EmojiFaviconMiddleware.create', () => {
   test('/favicon.ico is served as an SVG carrying the configured icon', async () => {
     const application = new Hono();
-    application.use(emojiFavicon({ icon: '🔥' }));
+    application.use(EmojiFaviconMiddleware.create({ icon: '🔥' }));
     application.get('/favicon.ico', (context) => context.text('should not be reached'));
 
     const response = await application.request('/favicon.ico');
@@ -54,7 +54,7 @@ describe('emojiFavicon', () => {
 
   test('every other path falls through to the next handler', async () => {
     const application = new Hono();
-    application.use(emojiFavicon({ icon: '🔥' }));
+    application.use(EmojiFaviconMiddleware.create({ icon: '🔥' }));
     application.get('/ping', (context) => context.text('pong'));
 
     const response = await application.request('/ping');

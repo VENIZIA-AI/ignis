@@ -31,7 +31,7 @@ const SECURE_ROUTE_CONFIG = {
   path: '/secure-data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  responses: jsonResponse({ description: 'Protected data', schema: z.object({ message: z.string() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Protected data', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
 
@@ -42,7 +42,7 @@ const FALLBACK_AUTH_CONFIG = {
   path: '/api/data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC], mode: AuthenticationModes.ANY },
-  responses: jsonResponse({ description: 'Data via JWT or Basic', schema: z.object({ data: z.any() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Data via JWT or Basic', schema: z.object({ data: z.any() }) }),
 } as const;
 ```
 
@@ -53,7 +53,7 @@ const PUBLIC_ROUTE_CONFIG = {
   path: '/public',
   method: HTTP.Methods.GET,
   authenticate: { skip: true },
-  responses: jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
 

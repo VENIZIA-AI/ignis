@@ -8,7 +8,7 @@ import {
   type TAuthorizationDecision,
 } from '@venizia/ignis-kernel';
 import { authorize } from '@venizia/ignis-kernel';
-import { resolveRequestDomain } from '@venizia/ignis-kernel';
+import { RequestDomainResolver } from '@venizia/ignis-kernel';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin';
 import type {
   IAuthorizeOptions,
@@ -278,9 +278,9 @@ describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () 
   });
 });
 
-describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
+describe('RequestDomainResolver.resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
   test('unrecognized declarative `from` → null → SYSTEM_WIDE', async () => {
-    const dom = await resolveRequestDomain({
+    const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
@@ -298,7 +298,7 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
           query: () => undefined,
         },
         get: () => undefined,
-        // Stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
+        // Stub only implements the accessors RequestDomainResolver.resolveRequestDomain reads, not the full Hono Context shape.
       } as any,
       options: undefined,
     });

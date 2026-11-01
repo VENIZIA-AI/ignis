@@ -1,4 +1,4 @@
-import { jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 
 /**
@@ -12,7 +12,7 @@ export const ServiceCertsRouteConfigs = {
   GET_SERVICE_CERTS: {
     path: '/',
     method: 'get',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z
         .object({
           keys: z.array(

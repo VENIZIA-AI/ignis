@@ -10,7 +10,7 @@ tags: [examples, quickstart]
 
 ## What it demonstrates
 
-- `@controller({ path: '/hello' })` with a decorator-based `@get` route, `jsonContent` for the OpenAPI response schema, and the mandatory `binding()` override (empty here, since there is nothing to bind).
+- `@controller({ path: '/hello' })` with a decorator-based `@get` route, `OpenApiResponses.jsonContent` for the OpenAPI response schema, and the mandatory `binding()` override (empty here, since there is nothing to bind).
 - `BaseApplication`'s mandatory configuration hooks (`staticConfigure`, `preConfigure`, `postConfigure`, `setupMiddlewares`) stubbed out explicitly, even where a hook does nothing, so a newcomer sees the complete shape.
 - `ApiReferenceComponent` registered in `preConfigure()` for interactive docs at `/doc/explorer`.
 - Application config passed inline at construction (`host`, `port`, `path: { base: '/api', isStrict: false }`) rather than as an exported config constant imported from `./application`, which is what the larger examples do.

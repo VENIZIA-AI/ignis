@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -167,12 +167,12 @@ function cachedEnforcer(opts: {
 async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: string) {
   const rules = await e.buildRules({
     user: { principalType: 'User', userId },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
 }
 
@@ -243,7 +243,10 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     const N = 12;
     const builds = await Promise.all(
       Array.from({ length: N }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'X' }, context: asTypedContext({}) }),
+        e.buildRules({
+          user: { principalType: 'User', userId: 'X' },
+          context: ContextUtility.asTypedContext({ context: {} }),
+        }),
       ),
     );
 
@@ -270,7 +273,10 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     const N = 8;
     const settled = await Promise.allSettled(
       Array.from({ length: N }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'Y' }, context: asTypedContext({}) }),
+        e.buildRules({
+          user: { principalType: 'User', userId: 'Y' },
+          context: ContextUtility.asTypedContext({ context: {} }),
+        }),
       ),
     );
     // All N reject (fail-closed: buildRules surfaces the adapter error, never silently returns []).
@@ -284,7 +290,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     adapter.shouldThrow = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'Y' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(ok.lines).toEqual(['p, User_Y, SYSTEM_WIDE, Y_secret, read, allow']);
     expect(adapter.calls).toBe(2); // proves the inflight slot was freed, not stuck on the rejected promise
@@ -303,7 +309,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
 
     const rulesA = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const evaluations = await Promise.all(
@@ -315,7 +321,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
             action: 'read',
             domain: 'SYSTEM_WIDE',
           },
-          context: asTypedContext({}),
+          context: ContextUtility.asTypedContext({ context: {} }),
         }),
       ),
     );
@@ -334,7 +340,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
 
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     // Saturating with a burst far beyond what one 20ms-timeout slot can drain is less intrusive than overriding loadPolicyLinesIntoModel to hold the slot; some acquisitions must time out.
@@ -343,7 +349,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
         .evaluate({
           rules,
           request: { resource: 'A_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-          context: asTypedContext({}),
+          context: ContextUtility.asTypedContext({ context: {} }),
         })
         .then(
           (d) => ({ ok: true as const, d }),
@@ -385,7 +391,7 @@ describe('enforcer-pool-stress — corrupt cache variants refetch (no 500)', () 
 
       const rules = await e.buildRules({
         user: { principalType: 'User', userId: 'Z' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
       expect(rules.lines).toEqual(['p, User_Z, SYSTEM_WIDE, Z_secret, read, allow']);
       // Corrupt entry replaced by a clean array.
@@ -409,7 +415,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'G' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;
@@ -422,7 +428,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     client.throwOnGet = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'G' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(ok.lines).toEqual(['p, User_G, SYSTEM_WIDE, G_secret, read, allow']);
 
@@ -440,7 +446,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'S' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;
@@ -451,7 +457,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     client.throwOnSet = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'S' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(ok.lines).toEqual(['p, User_S, SYSTEM_WIDE, S_secret, read, allow']);
     expect(adapter.loadCounts.get('S')).toBe(2);
@@ -471,7 +477,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'K' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;
@@ -498,7 +504,7 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'K' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;
@@ -519,7 +525,7 @@ describe('enforcer-pool-stress — extractUserLines adapter throws (no-cache pat
     try {
       await e.buildRules({
         user: { principalType: 'User', userId: 'N' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;
@@ -598,12 +604,12 @@ describe('enforcer-pool-stress — malformed-but-loadable cached line', () => {
 
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'M' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     const decision = await e.evaluate({
       rules,
       request: { resource: 'M_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(decision).toBe('deny');
 
@@ -623,7 +629,10 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     await Promise.all([
       e.rebuildUserCache({ user: { principalType: 'User', userId: 'A' } }),
       ...Array.from({ length: 6 }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'B' }, context: asTypedContext({}) }),
+        e.buildRules({
+          user: { principalType: 'User', userId: 'B' },
+          context: ContextUtility.asTypedContext({ context: {} }),
+        }),
       ),
     ]);
 
@@ -662,7 +671,7 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     // Warm the cache.
     await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(client.store.has('casbin:User:A')).toBe(true);
 
@@ -688,7 +697,7 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     await e.configure();
     await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const first = await e.invalidateUserCache({ user: { principalType: 'User', userId: 'A' } });

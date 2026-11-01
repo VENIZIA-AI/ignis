@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { AuthorizationDomainScopes, CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -54,10 +54,14 @@ const decide = async (opts: {
   const { enforcer, userId, resource, action, domain } = opts;
   const rules = await enforcer.buildRules({
     user: { principalType: 'User', userId },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   const request = domain ? { resource, action, domain } : { resource, action };
-  return enforcer.evaluate({ rules, request, context: asTypedContext({}) });
+  return enforcer.evaluate({
+    rules,
+    request,
+    context: ContextUtility.asTypedContext({ context: {} }),
+  });
 };
 
 describe('CasbinAuthorizationEnforcer - domain hierarchy: g axis (role assignment cascades down)', () => {

@@ -106,7 +106,7 @@ throw getError({ statusCode: 404, message: 'User not found' });
 this.logger.for('createUser').info('User created | id: %s', user.id);
 
 // ✅ Input Validation
-request: { body: jsonContent({ schema: z.object({ email: z.string().email() }) }) }
+request: { body: OpenApiResponses.jsonContent({ schema: z.object({ email: z.string().email() }) }) }
 ```
 
 ### Anti-Patterns to Avoid

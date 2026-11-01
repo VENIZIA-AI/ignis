@@ -45,7 +45,7 @@ Define routes with Zod schemas so they show up in the generated spec:
 ```typescript
 // src/controllers/hello.controller.ts
 import { z } from '@hono/zod-openapi';
-import { BaseRestController, controller, jsonContent, ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses, ValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/hello' })
@@ -60,7 +60,7 @@ export class HelloController extends BaseRestController {
         path: '/',
         method: 'get',
         responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+          [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
             description: 'A simple hello message',
             schema: z.object({ message: z.string() }),
           }),

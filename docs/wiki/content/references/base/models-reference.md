@@ -13,7 +13,7 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 - [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
 - [`packages/connectors/src/relational/core/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/base.ts) - relational entity `BaseRelationalEntity`
 - [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts) - `ModelFactory.defineEntity`, `TDefinedEntityClass`
-- [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `RelationDeclarations.toRelationConfigs`
+- [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `toRelationConfigs`
 - [`packages/connectors/src/relational/core/repositories/dialect/relations/one.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/relations/one.ts) - how a `one` relation finds its columns
 - [`packages/connectors/src/relational/postgres/models/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/index.ts) - the `BaseEntity`/`BasePostgresEntity` aliases
 - [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
@@ -231,9 +231,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
   }
 
   override getIdType(): TIdSchemaType {
-    return RelationalEntityUtility.getIdType({ entity: this.schema }) === 'number'
-      ? 'number'
-      : 'string';
+    return getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
   }
 
   getSchema<T = unknown>(opts: { type: TSchemaType }): T {
@@ -262,11 +260,11 @@ Declare the table, then build the class from it. The full contract is in [`Model
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
-  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
 });
 
@@ -280,12 +278,12 @@ Define schema and relations as static properties. Repositories auto-resolve them
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, PostgresIdEnricher, RelationTypes } from '@venizia/ignis';
+import { BaseEntity, model, generateIdColumnDefs, RelationTypes } from '@venizia/ignis';
 import type { TRelationConfig } from '@venizia/ignis/postgres';
 import { Comment } from './comment.model';
 
 export const userTable = pgTable('User', {
-  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull(),
 });
@@ -350,7 +348,7 @@ It ships from `@venizia/ignis/postgres` and from `@venizia/ignis-connectors/rela
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
-| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
+| `table` | `TTableSchemaWithId` | - | A plain drizzle table: `pgTable`, `pgSchema(...).table` or `sqliteTable`, with an `id` column - usually `...generateIdColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id |
 | `relations` | `() => TRelationDefinitions` | none | Relations keyed by name, built with `one()` and `many()`. Read on first use and once, so it may name a table declared later in the file |
 
 ### The returned class
@@ -372,7 +370,7 @@ Every other member is inherited: the instance `schema`, `getSchema({ type })`, `
 |---|---|---|
 | `one` | `one(table, metadata?)` | A to-one relation. `metadata` is drizzle's `one()` options, every field optional |
 | `many` | `many(table, metadata?)` | A to-many relation. `metadata.relationName` names the `one` on the other table it pairs with |
-| `RelationDeclarations.toRelationConfigs` | `RelationDeclarations.toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key. |
+| `toRelationConfigs` | `toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key |
 
 A relation points at a **table**, never at an entity class - passing a class does not compile. That is why two entities that relate both ways, a self relation (parent and children), and relations across files all keep their row types.
 
@@ -405,11 +403,11 @@ The inverse side carries no columns. drizzle reads them off the `one()` on the t
 
 ```typescript
 export const userTable = pgTable('User', {
-  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
 });
 
 export const profileTable = pgTable('Profile', {
-  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   userId: text('user_id').notNull().references((): AnyPgColumn => userTable.id),
 });
 
@@ -459,14 +457,14 @@ Hidden properties are excluded at the SQL level - they are never fetched from th
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, PostgresIdEnricher } from '@venizia/ignis';
+import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
 
 @model({
   settings: { hiddenProperties: ['password', 'secret'] },
 })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),
     secret: text('secret'),
@@ -562,33 +560,32 @@ await postRepository.find({
 
 ## Schema enrichers
 
-- **What they are.** Classes in the PostgreSQL connector whose static methods return an object of Drizzle ORM column definitions. The SQLite connector has the same five under `Sqlite*` names (`SqliteIdEnricher`, ...), so both dialects can be imported side by side.
-- **How to use them.** Spread a `generateColumnDefs` result into a `pgTable` definition to add common, standardized fields.
-- **Convenience wrappers.** Each `enrich` method accepts an existing column definitions object as `baseColumns` (or `baseSchema`) and merges the generated columns into it.
-- **Old names.** The functions these classes replace (`generateIdColumnDefs`, `enrichId`, and so on) are removed. `devz codemod namespace-functions` moves your calls.
+- **What they are.** Helper functions in the PostgreSQL connector that return an object of Drizzle ORM column definitions.
+- **How to use them.** Spread a `generate*` result into a `pgTable` definition to add common, standardized fields.
+- **Convenience wrappers.** Each `enrich*` wrapper accepts an existing column definitions object as its first argument and merges the generated columns into it.
 
-| Enricher class | `generateColumnDefs` | `enrich` | Purpose |
-| :--- | :--- | :--- | :--- |
-| `PostgresIdEnricher` | was `generateIdColumnDefs` | was `enrichId` | Adds a primary key `id` column (string, integer, or big integer) |
-| `PostgresTzEnricher` | was `generateTzColumnDefs` | was `enrichTz` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
-| `PostgresUserAuditEnricher` | was `generateUserAuditColumnDefs` | was `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
-| `PostgresPrincipalEnricher` | was `generatePrincipalColumnDefs` | was `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
-| `PostgresDataTypeEnricher` | was `generateDataTypeColumnDefs` | was `enrichDataTypes` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
+| Enricher function | Convenience wrapper | Purpose |
+| :--- | :--- | :--- |
+| `generateIdColumnDefs` | `enrichId` | Adds a primary key `id` column (string, integer, or big integer) |
+| `generateTzColumnDefs` | `enrichTz` | Adds `createdAt`, `modifiedAt`, and optional `deletedAt` timestamp columns |
+| `generateUserAuditColumnDefs` | `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns tracking user audit info |
+| `generatePrincipalColumnDefs` | `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`) |
+| `generateDataTypeColumnDefs` | `enrichDataTypes` | Adds generic value columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) |
 
 ### Combined example
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  PostgresIdEnricher,
-  PostgresTzEnricher,
-  PostgresUserAuditEnricher,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  generateUserAuditColumnDefs,
 } from '@venizia/ignis';
 
 export const myTable = pgTable('MyTable', {
-  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
-  ...PostgresTzEnricher.generateColumnDefs(),
-  ...PostgresUserAuditEnricher.generateColumnDefs({
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  ...generateUserAuditColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },
   }),
@@ -596,14 +593,14 @@ export const myTable = pgTable('MyTable', {
 });
 ```
 
-### `PostgresIdEnricher`
+### `generateIdColumnDefs`
 
 Adds a primary key `id` column with full TypeScript type inference.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/id.enricher.ts)
 
 ```typescript
-PostgresIdEnricher.generateColumnDefs<Opts extends TIdEnricherOptions | undefined>(opts?: Opts): TIdColumnDef<Opts>
+generateIdColumnDefs<Opts extends TIdEnricherOptions | undefined>(opts?: Opts): TIdColumnDef<Opts>
 ```
 
 Options (`TIdEnricherOptions`):
@@ -641,17 +638,17 @@ Notes:
 Convenience wrapper:
 
 ```typescript
-PostgresIdEnricher.enrich(opts: { baseColumns: TColumnDefinitions; opts?: TIdEnricherOptions }): TColumnDefinitions
+enrichId(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDefinitions
 ```
 
-### `PostgresTzEnricher`
+### `generateTzColumnDefs`
 
 Adds timestamp columns for creation, modification, and soft deletion.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts)
 
 ```typescript
-PostgresTzEnricher.generateColumnDefs<Opts extends TTzEnricherOptions | undefined>(opts?: Opts): TTzEnricherResult<Opts>
+generateTzColumnDefs<Opts extends TTzEnricherOptions | undefined>(opts?: Opts): TTzEnricherResult<Opts>
 ```
 
 Options (`TTzEnricherOptions`):
@@ -694,7 +691,7 @@ A generated CRUD route never takes `createdAt` or `modifiedAt` from the request 
 Convenience wrapper:
 
 ```typescript
-PostgresTzEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TTzEnricherOptions }): TColumnDefinitions
+enrichTz(baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions): TColumnDefinitions
 ```
 
 <details>
@@ -720,14 +717,14 @@ await db.update(myTable).set({ deletedAt: null }).where(eq(myTable.id, id));
 
 </details>
 
-### `PostgresUserAuditEnricher`
+### `generateUserAuditColumnDefs`
 
 Adds `createdBy` and `modifiedBy` columns tracking which user created or modified a record.
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/user-audit.enricher.ts)
 
 ```typescript
-PostgresUserAuditEnricher.generateColumnDefs(opts?: TUserAuditEnricherOptions): {
+generateUserAuditColumnDefs(opts?: TUserAuditEnricherOptions): {
   createdBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
   modifiedBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
 }
@@ -785,20 +782,20 @@ The enricher validates `dataType` and throws for invalid values (only `'number'`
 Convenience wrapper:
 
 ```typescript
-PostgresUserAuditEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
-  baseSchema: ColumnDefinitions;
-  opts?: TUserAuditEnricherOptions;
-}): TUserAuditEnricherResult<ColumnDefinitions>
+enrichUserAudit<ColumnDefinitions extends TColumnDefinitions>(
+  baseSchema: ColumnDefinitions,
+  opts?: TUserAuditEnricherOptions,
+): TUserAuditEnricherResult<ColumnDefinitions>
 ```
 
-### `PostgresPrincipalEnricher`
+### `generatePrincipalColumnDefs`
 
 Adds polymorphic principal columns for associating a record with different entity types (a comment can belong to a Post, User, or Product).
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/principal.enricher.ts)
 
 ```typescript
-PostgresPrincipalEnricher.generateColumnDefs<
+generatePrincipalColumnDefs<
   Discriminator extends string = 'principal',
   IdType extends 'number' | 'string' = 'number',
   Nullable extends boolean = false,
@@ -829,11 +826,11 @@ With a custom discriminator such as `'owner'`, columns become `ownerId` / `owner
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { PostgresIdEnricher, PostgresPrincipalEnricher } from '@venizia/ignis';
+import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
 
 export const commentTable = pgTable('Comment', {
-  ...PostgresIdEnricher.generateColumnDefs(),
-  ...PostgresPrincipalEnricher.generateColumnDefs({ polymorphicIdType: 'number' }),
+  ...generateIdColumnDefs(),
+  ...generatePrincipalColumnDefs({ polymorphicIdType: 'number' }),
   content: text('content').notNull(),
 });
 // principalId: integer('principal_id').notNull()
@@ -843,20 +840,20 @@ export const commentTable = pgTable('Comment', {
 Convenience wrapper:
 
 ```typescript
-PostgresPrincipalEnricher.enrich<ColumnDefinitions extends TColumnDefinitions>(opts: {
-  baseSchema: ColumnDefinitions;
-  opts: TPrincipalEnricherOptions;
-}): ColumnDefinitions & TPrincipalColumnDef
+enrichPrincipal<ColumnDefinitions extends TColumnDefinitions>(
+  baseSchema: ColumnDefinitions,
+  opts: TPrincipalEnricherOptions,
+): ColumnDefinitions & TPrincipalColumnDef
 ```
 
-### `PostgresDataTypeEnricher`
+### `generateDataTypeColumnDefs`
 
 Adds polymorphic data storage columns for entities that store values of different types in a single table (key-value stores, settings tables).
 
 `Source ->` [`packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/data-type.enricher.ts)
 
 ```typescript
-PostgresDataTypeEnricher.generateColumnDefs(opts?: TDataTypeEnricherOptions): {
+generateDataTypeColumnDefs(opts?: TDataTypeEnricherOptions): {
   dataType: PgTextBuilderInitial;
   nValue: PgDoublePrecisionBuilderInitial;
   tValue: PgTextBuilderInitial;
@@ -896,13 +893,13 @@ All columns are nullable by default (no `NOT NULL`), since typically only one va
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
-import { BaseEntity, model, PostgresIdEnricher, PostgresDataTypeEnricher } from '@venizia/ignis';
+import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
 
 @model()
 export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
   static override schema = pgTable('AppConfig', {
-    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
-    ...PostgresDataTypeEnricher.generateColumnDefs(),
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateDataTypeColumnDefs(),
     key: text('key').notNull().unique(),
   });
 }
@@ -913,7 +910,7 @@ export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
 Convenience wrapper:
 
 ```typescript
-PostgresDataTypeEnricher.enrich(opts: { baseSchema: TColumnDefinitions; opts?: TDataTypeEnricherOptions }): TColumnDefinitions
+enrichDataTypes(baseSchema: TColumnDefinitions, opts?: TDataTypeEnricherOptions): TColumnDefinitions
 ```
 
 ## Key types
@@ -972,12 +969,14 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 `Source ->` [`packages/kernel/src/base/models/common/schemas.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/schemas.ts), [`packages/kernel/src/base/models/common/utilities.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/common/utilities.ts)
 
-### `idParamsSchema`
+These are static methods of `OpenApiSchemas`, `OpenApiResponses` and `ModelUtility`. The old function names are no longer exported; `devz codemod namespace-functions --write` moves a call of an old name to the class form. `ModelUtility.snakeToCamel` takes `{ shape }`.
+
+### `OpenApiSchemas.idParams`
 
 Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions.
 
 ```typescript
-idParamsSchema(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
+OpenApiSchemas.idParams(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
 ```
 
 | `idType` | Default | Zod type | Examples |
@@ -987,40 +986,40 @@ idParamsSchema(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber 
 
 Throws for invalid `idType` values.
 
-### `jsonContent`
+### `OpenApiResponses.jsonContent`
 
 Creates an OpenAPI JSON content specification:
 
 ```typescript
-jsonContent<T extends z.ZodType>(opts: {
+OpenApiResponses.jsonContent<T extends z.ZodType>(opts: {
   schema: T;
   description: string;
   required?: boolean;
 }): { description, content: { 'application/json': { schema } }, required? }
 ```
 
-### `jsonResponse`
+### `OpenApiResponses.jsonResponse`
 
 Creates a complete OpenAPI response specification with success and error responses:
 
 ```typescript
-jsonResponse<ContentSchema, HeaderSchema>(opts: {
+OpenApiResponses.jsonResponse<ContentSchema, HeaderSchema>(opts: {
   schema: ContentSchema;
   description?: string;  // Default: 'Success Response'
   required?: boolean;
   headers?: HeaderSchema;
 }): {
   200: { description, content, headers? },
-  ...errorResponses()
+  ...OpenApiResponses.errorResponses()
 }
 ```
 
-### `errorResponses`
+### `OpenApiResponses.errorResponses`
 
-The JSON error body of a route, under the two range keys OpenAPI accepts. `jsonResponse()`, `htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
+The JSON error body of a route, under the two range keys OpenAPI accepts. `OpenApiResponses.jsonResponse()`, `OpenApiResponses.htmlResponse()` and the static-asset routes spread it, and so can a route of your own:
 
 ```typescript
-errorResponses(): {
+OpenApiResponses.errorResponses(): {
   '4XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } },
   '5XX': { description: 'Error Response', content: { 'application/json': { schema: ErrorSchema } } }
 }
@@ -1028,12 +1027,12 @@ errorResponses(): {
 
 `ErrorSchema` is the named component `ErrorResponse`, so both keys reference one schema in the generated document.
 
-### `snakeToCamel`
+### `ModelUtility.snakeToCamel`
 
 Converts a Zod schema from snake_case to camelCase, transforming both the schema shape and runtime data. Useful when a database uses snake_case column names but you work in camelCase.
 
 ```typescript
-snakeToCamel<T extends z.ZodRawShape>(shape: T): z.ZodEffects<...>
+ModelUtility.snakeToCamel<T extends z.ZodRawShape>(opts: { shape: T }): z.ZodEffects<...>
 ```
 
 The resulting schema, in order:
@@ -1044,12 +1043,14 @@ The resulting schema, in order:
 
 ```typescript
 import { z } from 'zod';
-import { snakeToCamel } from '@venizia/ignis';
+import { ModelUtility } from '@venizia/ignis';
 
-const userCamelSchema = snakeToCamel({
-  user_id: z.number(),
-  first_name: z.string(),
-  created_at: z.date(),
+const userCamelSchema = ModelUtility.snakeToCamel({
+  shape: {
+    user_id: z.number(),
+    first_name: z.string(),
+    created_at: z.date(),
+  },
 });
 
 const result = userCamelSchema.parse({ user_id: 123, first_name: 'John', created_at: new Date() });
@@ -1062,11 +1063,11 @@ Built on `ParseUtility.keysToCamel()` / `ParseUtility.toCamel()` from `@venizia/
 
 There are two distinct `getIdType`s in the framework - do not confuse them.
 
-| | Neutral instance method | PostgreSQL utility (`RelationalEntityUtility.getIdType`) |
+| | Neutral instance method | PostgreSQL utility function |
 |---|---|---|
-| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `RelationalEntityUtility.getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
-| Signature | `getIdType(): TIdSchemaType` | `RelationalEntityUtility.getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
-| Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
+| Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
+| Signature | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
+| Purpose | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `OpenApiSchemas.idParams` to build the right Zod schema for path parameters. | PostgreSQL-specific - inspects a Drizzle table schema's `id` column and returns its `dataType`, or `'unknown'` if not determinable |
 
 ```typescript
 // Neutral - instance method (default 'string'; BaseEntity overrides based on the column)
@@ -1074,8 +1075,8 @@ const entity = new User();
 entity.getIdType(); // 'string' | 'number'
 
 // PostgreSQL connector - standalone utility inspecting a raw Drizzle schema
-import { RelationalEntityUtility } from '@venizia/ignis/postgres';
-RelationalEntityUtility.getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
+import { getIdType } from '@venizia/ignis/postgres';
+getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
 ```
 
 ## See also
