@@ -29,7 +29,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Environment](./helpers/env/) | Env var management | You need typed, validated env var access | None |
 | [Error](./helpers/error/) | Error utilities | You throw or handle an error | None |
 | [Inversion](./helpers/inversion/) | DI container | You build custom bindings or providers | None |
-| [Logger](./helpers/logger/) | Logging | You need scoped, leveled logging | `winston` or `pino` |
+| [Logger](./helpers/logger/) | Logging | You need scoped, leveled logging | none for the console; `winston` or `pino` optional |
 | [Network](./helpers/network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
 | [Kafka](./helpers/kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
 | [Queue](./helpers/queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |

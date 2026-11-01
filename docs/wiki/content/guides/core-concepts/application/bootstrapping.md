@@ -365,21 +365,19 @@ export const configs: IApplicationConfigs = {
 
 ## Compiling with `bun build --compile`
 
-Four rules, each backed by a measurement:
+Five rules, each backed by a measurement:
 
 1. Keep `process.env.NODE_ENV` a runtime read. The CLI needs `--env=disable`; `Bun.build` needs `define: { 'process.env.NODE_ENV': 'process.env.NODE_ENV' }` - its `env: 'disable'` alone still bakes the build-time value in (measured on Bun 1.4.3). Read the environment through `Environment.ambient` or `Environment.current`, never the dot form: a destructured read stays a runtime read either way.
 2. Do not pass `--minify`. It minifies identifiers and every class name becomes two letters. Use `--minify-whitespace --minify-syntax`.
-3. Register a logger provider at the top of the entrypoint. The winston default is loaded with `createRequire`, which cannot resolve inside a binary, so name the class yourself:
+3. Leave the logger alone. The console is the default provider, and `@venizia/ignis` selects Winston at `initialize()` through an import the bundler sees, so a binary needs no `LoggerFactory.use`. Name a class at the top of the entrypoint only to choose Pino:
 
    ```typescript
    // src/index.ts
    import { LoggerFactory } from '@venizia/ignis-helpers';
-   import { WinstonLogger } from '@venizia/ignis-helpers/winston';
+   import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
-   LoggerFactory.use({ provider: WinstonLogger });
+   LoggerFactory.use({ provider: PinoLogger });
    ```
-
-   Without it the first log call throws `[LoggerFactory] No logger provider is registered and the default (winston) could not be loaded`.
 4. Build every binding key from `Class.name`. bun renames a bundled decorated class (`UserService` -> `UserService2`), so a literal `'services.UserService'` matches nothing.
 5. Use a Postgres datasource. [SQLite](/guides/core-concepts/persistent/sqlite#not-in-a-compiled-binary) and [PGlite](/guides/core-concepts/persistent/pglite#not-in-a-compiled-binary) load native or WebAssembly files a binary does not embed; run them from source.
 
