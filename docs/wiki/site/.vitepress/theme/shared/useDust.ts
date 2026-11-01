@@ -11,7 +11,8 @@
  * What it promises: the canvas ignores the pointer (the listeners are on the window, passive), so buttons
  * and links under it work as before; touch never stirs it; with reduced motion one still frame is drawn and
  * nothing moves; it stops when its canvas is off screen or the tab is hidden; there is no library. The page
- * is complete without it: the parent carries a still pattern of dots in CSS until the canvas is ready.
+ * is complete without it, on a plain background: the canvas is invisible (CSS) until the first frame is drawn,
+ * which happens in the mounting hook itself, and the CSS then fades it in (`data-ready`).
  * The colour is the canvas's CSS `color` (the product's accent), read again when the theme changes.
  */
 import { onBeforeUnmount, onMounted, type Ref } from 'vue';

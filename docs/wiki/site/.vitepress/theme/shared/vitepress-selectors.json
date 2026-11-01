@@ -2,6 +2,31 @@
   "vitepress": "1.6.4",
   "selectors": [
     {
+      "selector": ".VPNav",
+      "file": "components/VPNav.vue",
+      "needle": ".VPNav {"
+    },
+    {
+      "selector": ".VPDoc .aside",
+      "file": "components/VPDoc.vue",
+      "needle": ".aside {"
+    },
+    {
+      "selector": ".VPNavBarTitle",
+      "file": "components/VPNavBarTitle.vue",
+      "needle": ".title {"
+    },
+    {
+      "selector": ".VPSidebar .curtain",
+      "file": "components/VPSidebar.vue",
+      "needle": ".curtain {"
+    },
+    {
+      "selector": ".VPNavBar.has-sidebar",
+      "file": "components/VPNavBar.vue",
+      "needle": ".VPNavBar.has-sidebar .content {"
+    },
+    {
       "selector": ".vp-doc blockquote",
       "file": "styles/components/vp-doc.css",
       "needle": ".vp-doc blockquote {"
@@ -129,9 +154,9 @@
   ],
   "slots": [
     {
-      "slot": "nav-bar-title-after",
+      "slot": "nav-bar-content-before",
       "file": "components/VPNavBar.vue",
-      "needle": "nav-bar-title-after"
+      "needle": "nav-bar-content-before"
     },
     {
       "slot": "nav-bar-content-after",
@@ -152,6 +177,11 @@
       "slot": "doc-before",
       "file": "Layout.vue",
       "needle": "doc-before"
+    },
+    {
+      "slot": "doc-footer-before",
+      "file": "Layout.vue",
+      "needle": "doc-footer-before"
     }
   ]
 }

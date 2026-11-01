@@ -1,0 +1,214 @@
+/*
+ * Shared by the three wikis (IGNIS, ARDOR, VULCAN): a byte-identical copy in each, kept in step by
+ * scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
+ *
+ * The top bar after the Venizia docs frame (Figma "Docs / Top bar", 1728 wide, 119 high): the Venizia
+ * wordmark 97.6 px wide at 40 px from the left, a 1 x 20 px divider, the name of these docs, a 38 px
+ * high search from the content column on, and the venizia.ai link at the right edge, 40 px in. The
+ * default theme's title (the product logo and name) is hidden: the brand is SiteBrand.vue, in the
+ * content area, so on a phone it sits where the title did.
+ *
+ * Kept from the default bar, because the wikis need them and the frame has none: the section links
+ * (Guide, References, Changelog), the light and dark switch and the GitHub icon, at the right.
+ * The wordmark keeps its own colours: --venizia-wordmark (tokens.css) for the letters, #0A6BFF for the arc.
+ */
+
+/* ---- the height: the frame's 119 px at the top of a page from 960 px up, 64 px once it is scrolled, 64 px
+   below 960 px ---------------------------------------------------------------------------------------
+   --vp-nav-height is the bar's full height and stays put: the default theme pads the page by it, so the
+   text never moves when the bar slims. --header-h is the bar's height now, animated; the bar and the pieces
+   that hang from it (the sidebar, the outline, the local menu) read it in place of --vp-nav-height. */
+@property --header-h {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 64px;
+}
+
+:root {
+  --header-h: 64px;
+  --vp-nav-height: 64px;
+}
+
+@media (min-width: 960px) {
+  :root {
+    --header-h: 119px;
+    --vp-nav-height: 119px;
+    transition: --header-h 0.35s var(--ease-out);
+  }
+
+  :root.bar-slim {
+    --header-h: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    transition: none;
+  }
+}
+
+.VPNavBar,
+.VPSidebar,
+.VPDoc .aside,
+.VPLocalNav {
+  --vp-nav-height: var(--header-h);
+}
+
+/* below 960 px the bar is pinned from the first paint, and the local menu (Menu, On this page) sticks under it */
+@media (max-width: 959px) {
+  html .VPNav.VPNav {
+    position: sticky;
+    top: 0;
+  }
+
+  html .VPLocalNav.VPLocalNav {
+    top: var(--vp-nav-height);
+  }
+}
+
+/* ---- the bar ----------------------------------------------------------------------------------- */
+/* the default title (product logo and name) gives way to the brand; the Venizia social link of the
+   wikis' config is the wordmark again, which the brand now shows */
+.VPNavBarTitle,
+.VPSocialLinks .VPSocialLink[aria-label='Venizia'] {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  html .VPNavBar.VPNavBar .wrapper.wrapper {
+    padding: 0 40px;
+  }
+
+  html .VPNavBar.VPNavBar .container.container {
+    max-width: none;
+  }
+
+  /* the content area starts at the left edge now that the title column is hidden: the default theme pads it
+     by the sidebar's width on a page with a sidebar, and further from 1440 px up */
+  html .VPNavBar.has-sidebar.has-sidebar .content.content {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  /* the default theme sticks the sidebar's curtain at a fixed -64px; it follows the bar's height here */
+  html .VPSidebar .curtain {
+    top: calc(var(--vp-nav-height) * -1);
+  }
+
+  html .VPNavBar .content-body {
+    gap: 0;
+  }
+}
+
+.site-brand {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  margin-right: auto;
+}
+
+.site-brand .brand-mark {
+  display: block;
+  line-height: 0;
+}
+
+/* the wordmark: 97.6 px wide as in the frame (the svg is 119 x 28.9, 1:1 with 97.6 x 23.7) */
+.site-brand .brand-mark svg {
+  display: block;
+  width: 97.6px;
+  height: auto;
+}
+
+.site-brand .brand-rule {
+  width: 1px;
+  /* as tall as the wordmark, whose ink is 23.75 px high (the frame draws it 20 px, shorter than the logo) */
+  height: 24px;
+  margin: 0 12px;
+  background: var(--stroke-strong);
+}
+
+.site-brand .brand-name {
+  position: relative;
+  /* the optical centre: the name has no descender, so its ink is the cap height, which sits about 0.75 px above
+     the centre of a 21 px line box; the browser puts text on whole pixels, so this is a one pixel step down
+     that lands the ink on the centre of the wordmark and the divider (checked at both bar heights) */
+  top: 0.75px;
+  color: var(--text-title);
+  font: 400 16px/21px var(--font-sans);
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+@media (min-width: 960px) {
+  /* the brand takes the sidebar's width (the frame: 258 px) and a 20 px gap, so the search starts
+     where the content column does */
+  .site-brand {
+    width: 258px;
+    margin-right: 20px;
+  }
+
+  .VPNavBarSearch {
+    flex: 0 1 480px;
+    min-width: 200px;
+    margin-right: auto;
+    padding-left: 0;
+  }
+
+  .VPNavBarSearch #local-search {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .VPNavBarSearch .DocSearch-Button {
+    width: 100%;
+    max-width: 480px;
+    height: 38px;
+  }
+}
+
+/* ---- the venizia.ai link ----------------------------------------------------------------------- */
+.venizia-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 16px;
+  color: var(--text-body);
+  font: 400 14px/18px var(--font-sans);
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.18s;
+}
+
+.venizia-link:hover {
+  color: var(--text-title);
+}
+
+.venizia-link .arrow {
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  transition: transform 0.25s var(--ease-link);
+}
+
+.venizia-link:hover .arrow {
+  transform: translate(2px, -2px);
+}
+
+/* in the mobile menu it is a link of the list */
+.VPNavScreen .venizia-link {
+  display: flex;
+  margin: 12px 0 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--venizia-nav-divider);
+  font-size: 16px;
+}
+
+@media (max-width: 959px) {
+  .VPNavBar .venizia-link {
+    display: none;
+  }
+}

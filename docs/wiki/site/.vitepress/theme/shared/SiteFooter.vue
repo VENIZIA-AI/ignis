@@ -10,7 +10,7 @@
 -->
 <script setup lang="ts">
 import { ref } from 'vue';
-import { ECOSYSTEM } from './ecosystem';
+import { DOCS_SITES } from './ecosystem';
 import type { THomeContent, TSiteInfo } from './home-types';
 import InstallBox from './InstallBox.vue';
 import { useDust } from './useDust';
@@ -24,9 +24,6 @@ const dust = ref<HTMLCanvasElement | null>(null);
 
 useReveal(root);
 useDust(dust, { cloud: { x: 0.5, y: 0.25, rx: 0.5, ry: 0.5 }, dark: true });
-
-/** The docs of the three products: the ecosystem without the company site, which has its own column. */
-const DOCS = ECOSYSTEM.filter((item) => item.id !== 'venizia');
 
 const isExternal = (href: string): boolean => /^https?:/.test(href);
 const targetOf = (href: string) => (isExternal(href) ? '_blank' : undefined);
@@ -80,7 +77,7 @@ const relOf = (href: string) => (isExternal(href) ? 'noopener noreferrer' : unde
         <div>
           <h4>Docs</h4>
           <a
-            v-for="item in DOCS"
+            v-for="item in DOCS_SITES"
             :key="item.id"
             :href="item.href"
             :aria-current="item.id === site.id ? 'page' : undefined"

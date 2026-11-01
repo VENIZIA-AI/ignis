@@ -25,19 +25,17 @@
   background: var(--foot-bg);
   color: var(--foot-text);
 }
-/* the glow of the product behind the closing pitch, and the still dots that show until the dust canvas is ready */
+/* the glow of the product behind the closing pitch; the dust canvas (useDust.ts) draws over it, with no dot pattern, as venizia.ai's footer */
 .site-footer::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(
-      620px 340px at 50% 22%,
-      color-mix(in srgb, var(--accent-on-dark) 22%, transparent),
-      transparent
-    ),
-    radial-gradient(circle at 1px 1px, #ffffff24 1px, transparent 0) 0 0 / 22px 22px;
+  background: radial-gradient(
+    620px 340px at 50% 22%,
+    color-mix(in srgb, var(--accent-on-dark) 22%, transparent),
+    transparent
+  );
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
   pointer-events: none;
