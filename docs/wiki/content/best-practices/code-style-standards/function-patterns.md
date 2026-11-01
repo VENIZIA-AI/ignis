@@ -84,7 +84,7 @@ Use consistent prefixes based on function purpose:
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
-| `resolve*` | Determine/compute value | `resolveValue()`, `ClassResolver.resolveClass()` |
+| `resolve*` | Determine/compute value | `ResolverUtility.resolveValue()`, `ClassResolver.resolveClass()` |
 
 ### `is*` versus `assert*`
 

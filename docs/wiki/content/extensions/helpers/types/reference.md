@@ -81,8 +81,8 @@ import type {
 
 // isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
 import { isClass } from '@venizia/ignis-helpers';
-
-// Resolver functions
+// Resolver classes
+import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
 import { resolveValue, resolveValueAsync, ClassResolver } from '@venizia/ignis-helpers';
 
 // Constants

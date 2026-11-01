@@ -347,7 +347,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (423)
+### `@venizia/ignis-helpers` (421)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -528,7 +528,6 @@ generated:
 - `ISecretsHelper` interface
 - `ISecretsHelperOptions` interface
 - `ISecretsRegistration` interface
-- `isEmpty` const
 - `ISnowflakeParsedId` interface
 - `isPromiseLike` const
 - `isRedisHelper` const
@@ -614,8 +613,7 @@ generated:
 - `RedisUtility` class
 - `RequestIdGenerator` class
 - `RequestUtility` class
-- `resolveValue` const
-- `resolveValueAsync` const
+- `ResolverUtility` class
 - `RetryBackoffStrategies` class
 - `RetryHelper` class
 - `RetryJitterModes` class
@@ -773,7 +771,7 @@ generated:
 - `WebSocketServerHelper` class
 - `WorkerPoolHelper` class
 
-### `@venizia/ignis-helpers/common` (61)
+### `@venizia/ignis-helpers/common` (59)
 
 - `AnyObject` type
 - `AnyType` type
@@ -798,8 +796,7 @@ generated:
 - `ObjectUtility` class
 - `REDACTED` const
 - `RedactUtility` class
-- `resolveValue` const
-- `resolveValueAsync` const
+- `ResolverUtility` class
 - `RuntimeModules` class
 - `TAbstractClass` type
 - `TAbstractConstructor` type
@@ -2410,7 +2407,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1043)
+### `@venizia/ignis` (1039)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2989,7 +2986,6 @@ generated:
 - `one` const
 - `OpaqueUidHelper` class
 - `OrderBySchema` const
-- `parseOrderEntry` const
 - `ParseUtility` class
 - `patch` const
 - `PerformanceUtility` class
@@ -3055,7 +3051,6 @@ generated:
 - `resolveFindByIdConfig` const
 - `resolveFindConfig` const
 - `resolveFindOneConfig` const
-- `resolveInjectTarget` const
 - `resolveRequestDomain` const
 - `ResolverUtility` class
 - `ResourceRoleManager` class
