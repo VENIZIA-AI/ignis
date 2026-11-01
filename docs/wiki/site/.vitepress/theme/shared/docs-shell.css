@@ -4,39 +4,10 @@
  *
  * The docs shell of an inner page, after the Venizia docs frame (Figma "Docs / Introduction"): a quiet left
  * navigation with no rule and no tinted pill, its active item marked by a square and the product colour;
- * a wide search box in the top bar; an eyebrow, a large title and a lead line above the text; an outline
- * without a rule; the "Getting help" panel and a previous/next card with an arrow button at the end. It
+ * an eyebrow, a large title and a lead line above the text; an outline without a rule; the "Getting help" panel and a previous/next card with an arrow button at the end. It
  * restyles the default theme's own regions and is imported after doc.css, header.css and footer.css, so
  * it wins over them. Inner pages have no footer (SiteLayout).
  */
-
-/* ---- the top bar: the search is wide and starts at the content column -------------------------- */
-@media (min-width: 960px) {
-  .VPNavBar .content-body {
-    gap: 0;
-  }
-
-  .VPNavBarSearch {
-    flex-grow: 0;
-    padding-left: 24px;
-  }
-
-  /* the menu and the icons sit at the right edge, the search at the left */
-  .VPNavBar .VPNavBarMenu {
-    margin-left: auto;
-  }
-
-  .VPNavBarSearch .DocSearch-Button {
-    width: min(420px, 30vw);
-    justify-content: flex-start;
-    gap: 8px;
-    padding: 0 12px;
-  }
-
-  .VPNavBarSearch .DocSearch-Button .DocSearch-Button-Keys {
-    margin-left: auto;
-  }
-}
 
 /* ---- the left navigation: no rule, no pill ----------------------------------------------------- */
 @media (min-width: 960px) {
@@ -175,20 +146,39 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
   gap: 8px;
 }
 
+/* the buttons of the panel: the Figma button at 48 px high (143 x 48), with its 12 px north-east arrow */
 .doc-help-actions a {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  height: 44px;
-  padding: 0 20px;
+  height: 48px;
+  padding: 0 31px 0 23px;
   border: 1px solid transparent;
   border-radius: var(--radius);
   font: 500 14px/1 var(--font-sans);
-  letter-spacing: 0;
+  letter-spacing: -0.015em;
   text-decoration: none;
   text-transform: uppercase;
   transition:
     background-color 0.18s,
     border-color 0.18s;
+}
+
+.doc-help-actions a::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  -webkit-mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  mask: var(--arrow-ne) center / 100% 100% no-repeat;
+  transition: transform 0.25s var(--ease-link);
+}
+
+.doc-help-actions a:hover::after {
+  transform: translate(2px, -2px);
 }
 
 .doc-help-primary {
@@ -219,24 +209,39 @@ html .VPSidebar .VPSidebarItem.level-0.has-active > .item > .text,
   padding: 16px 18px 16px 70px;
 }
 
+.VPDocFooter .pager-link::before,
 .VPDocFooter .pager-link::after {
-  content: '\2192';
+  content: '';
   position: absolute;
   top: 50%;
   right: 17px;
-  display: grid;
-  place-items: center;
   width: 36px;
   height: 36px;
   margin-top: -18px;
-  border: 1px solid var(--stroke-strong);
-  border-radius: var(--radius);
   color: var(--text-title);
-  font: 400 18px/1 var(--font-sans);
 }
 
+/* the box of the arrow button: 36 x 36, a 1px line, 4px radius */
+.VPDocFooter .pager-link::after {
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+}
+
+/* the arrow inside it: the Figma right arrow, mirrored for the previous card */
+.VPDocFooter .pager-link::before {
+  z-index: 1;
+  background: currentColor;
+  -webkit-mask: var(--arrow-right) center / 36px 36px no-repeat;
+  mask: var(--arrow-right) center / 36px 36px no-repeat;
+}
+
+.VPDocFooter .pager-link.prev::before {
+  -webkit-mask-image: var(--arrow-left);
+  mask-image: var(--arrow-left);
+}
+
+.VPDocFooter .pager-link.prev::before,
 .VPDocFooter .pager-link.prev::after {
-  content: '\2190';
   right: auto;
   left: 17px;
 }
