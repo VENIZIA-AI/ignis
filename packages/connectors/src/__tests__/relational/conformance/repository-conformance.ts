@@ -5,7 +5,7 @@ import type { AnyType } from '@venizia/ignis-helpers/common';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
  * The columns every engine's conformance table declares. Types differ per engine - `tags` is a
@@ -184,19 +184,19 @@ export const runRepositoryConformance = (opts: {
      * builds.
      */
     test('find() refuses a limit that is not a non-negative integer', async () => {
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: -1 } }),
         message: /Invalid 'limit'/,
       });
 
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: 1.5 } }),
         message: /Invalid 'limit'/,
       });
     });
 
     test('find() refuses a page above the framework ceiling', async () => {
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: repository.find<IConformanceRow>({ filter: { limit: DEFAULT_MAX_LIMIT + 1 } }),
         message: /exceeds this model's limit/,
       });
@@ -208,7 +208,7 @@ export const runRepositoryConformance = (opts: {
      * check exists at all.
      */
     test('find() refuses a negative limit inside a relation scope', async () => {
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: repository.find<IConformanceRow>({
           filter: { include: [{ relation: 'anything', scope: { limit: -1 } }] },
         }),

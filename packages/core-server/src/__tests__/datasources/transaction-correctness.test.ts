@@ -6,7 +6,7 @@ import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { FakePool } from './fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 @datasource({ driver: NodePostgresDriver })
 class ProbeDataSource extends BasePostgresDataSource<{}> {
@@ -356,7 +356,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new UndecoratedDataSource({ name: 'undecorated', config: {} });
     dataSource.configure();
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });
@@ -379,7 +379,7 @@ describe('beginTransaction - driver wiring', () => {
     const dataSource = new StringDriverDataSource({ name: 'string-driver', config: {} });
     dataSource.configure();
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.beginTransaction(),
       message: /must name a driver CLASS/,
     });

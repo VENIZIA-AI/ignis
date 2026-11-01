@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /**
  * What `defineEntity` promises is that a WRONG shape stops compiling, which a runtime test cannot
@@ -250,7 +250,7 @@ describe('defineEntity keeps the compiler strict', () => {
       }),
     );
 
-    const result = spawnSyncBounded({
+    const result = SpawnHelper.spawnSyncBounded({
       cmd: [process.execPath, TSC, '-p', configPath],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',

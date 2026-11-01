@@ -1,4 +1,4 @@
-import { extraUserColumns, model } from '@venizia/ignis';
+import { AuthModelColumns, model } from '@venizia/ignis';
 import {
   generateIdColumnDefs,
   generateTzColumnDefs,
@@ -10,7 +10,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 export const userTable = pgTable('User', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   ...generateTzColumnDefs(),
-  ...extraUserColumns({ idType: 'string' }),
+  ...AuthModelColumns.buildUser({ idType: 'string' }),
   username: text('username').notNull().unique(),
   email: text('email').notNull().unique(),
   password: text('password'),

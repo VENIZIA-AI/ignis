@@ -4,7 +4,7 @@ import { createClient } from '@libsql/client';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -218,7 +218,7 @@ describe('LibSqlDriver - remote client', () => {
     const remoteClient = createClient({ url: 'http://127.0.0.1:1' });
     const driver = new LibSqlDriver<AnyType>({ client: remoteClient });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: driver.acquire({ schema: {} }),
       message: /Explicit transactions over a 'http' libsql client/,
     });
