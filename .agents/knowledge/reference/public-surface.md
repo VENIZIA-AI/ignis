@@ -336,7 +336,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (421)
+### `@venizia/ignis-helpers` (419)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -358,7 +358,6 @@ generated:
 - `applicationEnvironment` const
 - `ApplicationEnvironment` class
 - `ApplicationError` class
-- `ApplicationLogger` class
 - `BaseCryptoAlgorithm` class
 - `BaseHelper` class
 - `BaseLogger` class
@@ -555,9 +554,9 @@ generated:
 - `LegacyAES` class
 - `LogFormatUtility` class
 - `LoggerConfigUtility` class
+- `LoggerDebugGate` class
 - `LoggerFactory` class
 - `LoggerFormats` class
-- `LoggerResolver` class
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `MemoryStorageHelper` class
@@ -673,7 +672,6 @@ generated:
 - `THttpResultCode` type
 - `TInjectionGetter` type
 - `TLoggerFormat` type
-- `TLoggerResolver` type
 - `TLogLevel` type
 - `TMimeTypes` type
 - `TMixinTarget` type
@@ -822,7 +820,7 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (154)
+### `@venizia/ignis-helpers/core` (153)
 
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
@@ -897,7 +895,7 @@ generated:
 - `IWalkAsyncOptions` interface
 - `IWalkOptions` interface
 - `IZonedTemporalParts` interface
-- `LoggerSlot` class
+- `LoggerFactory` class
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `MessageCode` class
@@ -943,7 +941,6 @@ generated:
 - `TErrorNormalizeTransformFn` type
 - `TErrorScope` type
 - `TFetcherLogger` type
-- `TLoggerResolver` type
 - `TLogLevel` type
 - `TNodePredicate` type
 - `TOnVisit` type
@@ -2356,7 +2353,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1011)
+### `@venizia/ignis` (1010)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2394,7 +2391,6 @@ generated:
 - `applicationEnvironment` const
 - `ApplicationEnvironment` class
 - `ApplicationError` class
-- `ApplicationLogger` class
 - `ArtifactGroup` class
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
@@ -2875,9 +2871,9 @@ generated:
 - `LockStrengths` class
 - `LogFormatUtility` class
 - `LoggerConfigUtility` class
+- `LoggerDebugGate` class
 - `LoggerFactory` class
 - `LoggerFormats` class
-- `LoggerResolver` class
 - `LogLevels` class
 - `LuxonTemporalAdapter` class
 - `many` const
@@ -3010,6 +3006,7 @@ generated:
 - `SequentialQueueHelper` class
 - `ServerApplication` class
 - `ServerBootSteps` class
+- `ServerLoggerStartup` class
 - `serverStream` const
 - `service` const
 - `ServiceAssertion` class
@@ -3193,7 +3190,6 @@ generated:
 - `TLockOptions` type
 - `TLockStrength` type
 - `TLoggerFormat` type
-- `TLoggerResolver` type
 - `TLogLevel` type
 - `TMimeTypes` type
 - `TMixinOpts` type

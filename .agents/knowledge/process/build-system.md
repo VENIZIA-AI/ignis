@@ -149,9 +149,7 @@ tags: [process, build]
     BuildInfoStamp.register()`, so `@venizia/ignis-boot` is a runtime dependency. `tsconfig.json`
     includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`: under `nodenext` a
     package without `"type": "module"` is CommonJS and `compile.ts` cannot use top-level `await`
-    (TS1309). Because imports are hoisted, a binary registers its logger provider
-    (`LoggerFactory.use`) before the module that builds the application, or the build already logs
-    and throws. `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
+    (TS1309). `make preset-smoke` runs typecheck, lint, test and compile on a generated app, checks
     the stamp is inside `dist/bin`, calls `/api/hello` on the binary and checks `clean` removes `dist`.
 
 `make examples-check` type-checks every example (`tsc --noEmit` per `examples/*/tsconfig.json`) against the built

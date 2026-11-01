@@ -441,7 +441,6 @@ import {
 import {
   // Logging
   LoggerFactory,
-  ApplicationLogger,
 
   // Caching
   RedisSingleHelper,

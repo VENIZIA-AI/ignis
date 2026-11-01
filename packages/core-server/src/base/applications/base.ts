@@ -31,6 +31,7 @@ import {
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import { AppErrorMiddleware, EmojiFaviconMiddleware } from '../middlewares';
 import { serveStatic } from 'hono/bun';
+import { ServerLoggerStartup } from './common';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
 import type { IRestApplication } from '@venizia/ignis-kernel';
@@ -428,6 +429,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
    * `getBootSequence()`/`runBootSequence()` throws here before any socket binds.
    */
   override async initialize(): Promise<void> {
+    await ServerLoggerStartup.selectDefault();
     await this.runBootSequence({ steps: this.getBootSequence() });
   }
 

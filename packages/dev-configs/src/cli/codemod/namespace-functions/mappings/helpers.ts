@@ -18,8 +18,8 @@ const KAFKA = '@venizia/ignis-helpers/kafka';
  * inversion table, which lists the helpers entries in its own `modules`.
  *
  * Not here, and still functions: `isPromiseLike`, `isRedisHelper` (type guards), and
- * `applicationLogFormatter` (a value, not a function). `ApplicationLogger.get` stays callable as
- * `get(scope)`, a call the codemod does not follow because the name is the class itself.
+ * `applicationLogFormatter` (a value, not a function). `ApplicationLogger` is removed: `logger-scope.ts` moves
+ * its calls to `LoggerFactory.getLogger([scope])`, a call on a class that no table entry can carry.
  */
 export const HELPERS_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   // utilities/performance.utility.ts
