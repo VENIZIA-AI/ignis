@@ -436,7 +436,7 @@ A failure names the binding that could not resolve (`key`, who needs the missing
 
 The error's `extra` is `{ failures, missing, unmatchedSkips }`. `missing` is a plain record that maps each missing key or class name to the bindings that needed it, for example `{ 'services.Tax': ['services.Invoice'] }`. Nothing is logged and nothing is changed in the container.
 
-The kernel's `verifyBindings` boot step (`bootChecks.binding.doVerify`), `assertApplicationBoots` and ARDOR's boot helper all call it.
+The kernel's `verifyBindings` boot step (`bootChecks.binding.doVerify`), `ApplicationBootAssertion.assert` and ARDOR's boot helper all call it.
 
 ## Utilities
 

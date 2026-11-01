@@ -43,7 +43,7 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 | `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
 | `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
 | `generateDataTypeColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
-| `AuthModelColumns.buildUser` | Auth user fields (the old name `extraUserColumns` is a deprecated alias until 0.5) | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
+| `AuthModelColumns.buildUser` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 

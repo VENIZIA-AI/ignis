@@ -57,7 +57,7 @@ a new sub-path was imported. Rolldown's CommonJS interop shim then read `__filen
 takes inside a Worker, hence the second.
 
 Every package in `PURITY_CLAIMS` now ships ES modules only, and
-`assertBrowserEsmEntry` in `scripts/checks/purity/manifest.ts` fails the gate if a claimed sub-path stops publishing a runtime entry in `dist/esm`. Measured
+`PurityManifest.assertBrowserEsmEntry` in `scripts/checks/purity/manifest.ts` fails the gate if a claimed sub-path stops publishing a runtime entry in `dist/esm`. Measured
 on the production build: the page chunk fell from **682 KB to 54 KB**, because the ESM entry is
 tree-shakeable where the CommonJS one was not.
 

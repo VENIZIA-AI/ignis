@@ -30,7 +30,7 @@ Before starting, ensure you have:
 
 ## Prove the Application Boots
 
-A controller that injects a service nobody registered passes every unit test of its own and then stops the server at boot. `ApplicationBootAssertion.assert` runs the application's own boot in a test and fails with the error boot raises. Apps created from the `ignis` preset ship it as `src/boot.test.ts`, written with the old function name `assertApplicationBoots`, which is a deprecated alias of the same method until 0.5. An existing app adds the same file:
+A controller that injects a service nobody registered passes every unit test of its own and then stops the server at boot. `ApplicationBootAssertion.assert` runs the application's own boot in a test and fails with the error boot raises. Apps created from the `ignis` preset ship it as `src/boot.test.ts`. An existing app adds the same file:
 
 ```typescript
 // src/boot.test.ts

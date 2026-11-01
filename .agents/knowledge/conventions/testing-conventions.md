@@ -50,7 +50,7 @@ symptom for the simpler reason that it has never been built. See
 
 ## Spawning a child process
 
-Call `spawnSyncBounded` from the package's `src/__tests__/spawn.helper.ts`, never `Bun.spawnSync` directly.
+Call `SpawnHelper.spawnSyncBounded` from `@venizia/dev-configs/testing`, never `Bun.spawnSync` directly.
 `spawnSync` blocks the worker thread, so bun's own test timeout cannot fire while it waits, and the
 `timeout` option sends only SIGTERM, which a stuck child can outlive - `compiled-binary.test.ts` once
 stalled the helpers suite for 770s that way. The helper defaults to a 120s bound, always kills with
@@ -63,7 +63,7 @@ refuses `await expect(task).rejects.toThrow()`, and casting it (`as AnyType`) br
 task instead: `expect(await task).toMatchObject(...)` for a resolution, and for a rejection
 `await RejectionHelper.expectRejection({ task, message })` or `expect(await RejectionHelper.rejectionOf({ task })).toBeInstanceOf(Error)`
 from `@venizia/dev-configs/testing` - one copy for IGNIS, ARDOR and BANA (issue #187; the per-package
-copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. The old function names `expectRejection`, `rejectionOf`, `spawnSyncBounded` and `useRepoTmp` are deprecated aliases of the `RejectionHelper`, `SpawnHelper` and `RepoTmp` methods until 0.5. The same entry exports `SpawnHelper.spawnSyncBounded` (a `Bun.spawnSync` with a kill-on-timeout bound, 120 s by default: a sync spawn blocks the worker thread, so bun's own test timeout cannot fire) and `useRepoTmp`; `@venizia/dev-configs/testing/tmpdir-preload` is the `[test] preload` that points TMPDIR at `<repo>/.agents/local/tmp/tests` for a bare `bun test` (VULCAN uses it). A consumer passes it as `--preload @venizia/dev-configs/testing/tmpdir-preload` in a package's `test` script (the `ignis` presets do); a root `bunfig.toml` preload covers a run from the root only, because bun reads only the file of the folder it runs in. Packages here import `spawnSyncBounded` from it; the five `spawn.helper.ts` copies are gone. `rejectionOf` throws when the task resolves. `expectRejection` compares the
+copies are gone). It imports `bun:test`, so clean-install loads it under Bun only. The same entry exports `SpawnHelper.spawnSyncBounded` (a `Bun.spawnSync` with a kill-on-timeout bound, 120 s by default: a sync spawn blocks the worker thread, so bun's own test timeout cannot fire) and `RepoTmp.apply`; `@venizia/dev-configs/testing/tmpdir-preload` is the `[test] preload` that points TMPDIR at `<repo>/.agents/local/tmp/tests` for a bare `bun test` (VULCAN uses it). A consumer passes it as `--preload @venizia/dev-configs/testing/tmpdir-preload` in a package's `test` script (the `ignis` presets do); a root `bunfig.toml` preload covers a run from the root only, because bun reads only the file of the folder it runs in. Packages here import `SpawnHelper` from it; the five `spawn.helper.ts` copies are gone. `RejectionHelper.rejectionOf` throws when the task resolves. `RejectionHelper.expectRejection` compares the
 message as a string on purpose: bun 1.4.2 `toMatchObject` with an asymmetric matcher
 (`expect.stringMatching`) overwrites the matched property on the object it checks, so a later
 `error.message` read returns the matcher - a test that reads the same error twice then fails with

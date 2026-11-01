@@ -567,7 +567,7 @@ The component applies `@controller({ path })` to `JWKSController` dynamically at
 
 ## Controller factory
 
-`AuthControllerFactory.define(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime. The old name `defineAuthController` is a deprecated alias until 0.5.
+`AuthControllerFactory.define(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
 **File:** [`packages/core-server/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/authenticate/controllers/factory.ts)
 

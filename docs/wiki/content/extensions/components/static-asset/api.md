@@ -283,7 +283,7 @@ type TStaticAssetExtraOptions = {
   });
 ```
 
-`AssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link. The old function name `buildObjectLink` is a deprecated alias until 0.5.
+`AssetControllerFactory.buildObjectLink` is public, so a hand-written route can build the same link.
 
 ```typescript
 static buildObjectLink(
@@ -776,7 +776,7 @@ static resolveServedContentType(opts: {
 }): { contentType: string; isRenderable: boolean };
 ```
 
-`AssetControllerFactory.resolveServedContentType` (the old function name `resolveServedContentType` is a deprecated alias until 0.5) runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
+`AssetControllerFactory.resolveServedContentType` runs `helper.getMimeType({ filename: object.key })` and checks the answer against `RENDERABLE_CONTENT_TYPES`:
 
 | Outcome | `contentType` | `isRenderable` | Response |
 |---|---|---|---|

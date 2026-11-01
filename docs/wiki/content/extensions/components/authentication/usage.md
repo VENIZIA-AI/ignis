@@ -422,7 +422,7 @@ export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), .
 export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...AuthModelColumns.buildPolicyDefinition() });
 ```
 
-The old names `extraUserColumns`, `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns` and `policyDefinitionDomainShapeCheck` still work as deprecated aliases of these methods until 0.5. `devz codemod namespace-functions` moves a call to the class form.
+The old function names of these methods are removed. `devz codemod namespace-functions` moves a call written with one to the class form.
 
 **`AuthModelColumns.buildUser(opts?: { idType })`**
 

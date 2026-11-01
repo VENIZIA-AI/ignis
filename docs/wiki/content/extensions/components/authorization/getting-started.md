@@ -38,7 +38,7 @@ Read the [Authentication component's entity column helpers](../authentication/us
 
 Authorization reads three tables directly: `Role`, `Permission`, and `PolicyDefinition`. It never reads `User` - a request only ever carries `principalType` and `userId`, not a database row.
 
-**`Role`**, via `AuthModelColumns.buildRole()` (the old names `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns` and `policyDefinitionDomainShapeCheck` are deprecated aliases until 0.5):
+**`Role`**, via `AuthModelColumns.buildRole()`:
 
 | Column | Type | Meaning |
 |---|---|---|

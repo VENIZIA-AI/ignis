@@ -621,7 +621,7 @@ Measured: a script importing `@venizia/ignis-connectors/postgres` plus a driver 
 same script importing `@venizia/ignis` writes two. A migration or seed script that never constructs
 an application is the case this hits.
 
-`assertNoWorkspaceExternal` runs at manifest module-evaluation time and refuses any `external` under
+`PurityManifest.assertNoWorkspaceExternal` runs at manifest module-evaluation time and refuses any `external` under
 the `@venizia/` scope. An `external` on our own source would hide the exact leak the gate exists to
 catch rather than prove it absent.
 

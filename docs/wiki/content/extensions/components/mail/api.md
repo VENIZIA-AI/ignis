@@ -880,7 +880,7 @@ class MailMimeUtility {
 }
 ```
 
-The old functions `getExpiryTime(minutes)`, `getExpiryTimeInHours(hours)`, `splitAddressList(value)`, `formatAddressHeader(value)` and `buildRawMimeMessage(message)` are deprecated aliases of these methods until 0.5. `isMailTransport` and `isValidMailOptions` stay functions: a type guard needs its positional parameter to narrow.
+The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` and `isValidMailOptions` stay functions: a type guard needs its positional parameter to narrow.
 
 - `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
 - `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
