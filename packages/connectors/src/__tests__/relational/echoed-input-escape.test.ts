@@ -1,5 +1,5 @@
 import type { TWhere } from '@venizia/ignis-filter';
-import { parseOrderEntry } from '@venizia/ignis-filter';
+import { Sorts } from '@venizia/ignis-filter';
 import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect/query-dialect';
 import { assertKnownField } from '@/search/core/repositories/common/dialect-helpers';
 import { describe, expect, test } from 'bun:test';
@@ -120,7 +120,7 @@ describe.each(UNSAFE_IN_ORDER)(
     });
 
     test('parseOrderEntry: invalid direction', () => {
-      const message = messageOf(() => parseOrderEntry({ entry: `name AS${raw}C` }));
+      const message = messageOf(() => Sorts.parseEntry({ entry: `name AS${raw}C` }));
       expectSafe({ message, escaped });
     });
   },

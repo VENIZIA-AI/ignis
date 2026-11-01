@@ -5,7 +5,7 @@ import type {
   IStorageHelper,
   IUploadResult,
 } from '@venizia/ignis-helpers';
-import { resolveValueAsync } from '@venizia/ignis-helpers/common';
+import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import type { TMetaLinkConfig, TStaticAssetStorageType, TUploadQuery } from '../common';
 
@@ -67,7 +67,7 @@ export const createMetaLinkRow = async (opts: {
   }
 
   // Resolved per call so an application that swaps the repository is not pinned to the first one.
-  const repository = await resolveValueAsync({ value: metaLink.repository });
+  const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
   const created = await repository.create({
     data: {
       bucketName: uploadResult.bucket.name,
@@ -106,7 +106,7 @@ export const refreshMetaLinkRows = async (opts: {
 }): Promise<{ count: number; data: AnyType[] }> => {
   const { metaLink, helper, bucket, object, link, fileStat } = opts;
 
-  const repository = await resolveValueAsync({ value: metaLink.repository });
+  const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
   const { mimetype, size, etag, isSynced } = buildStoredObjectFacts({
     helper,
     object,

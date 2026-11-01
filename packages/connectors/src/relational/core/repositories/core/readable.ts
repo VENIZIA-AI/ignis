@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type {
   IExtraOptions,
   TByIdFilter,
@@ -262,7 +262,7 @@ export class ReadableRelationalRepository<
       shouldSkipDefaultFilter: opts?.options?.shouldSkipDefaultFilter,
     });
 
-    const queryOptions = omit({
+    const queryOptions = ObjectUtility.omit({
       source: this.buildQuery({ filter: mergedFilter }),
       keys: ['limit'],
     });

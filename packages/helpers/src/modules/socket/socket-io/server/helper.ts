@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import { HTTP } from '@/common';
 import { RuntimeModules, type TRuntimeModule } from '@/common/constants';
 import { type ValueOrPromise } from '@/common/types';
@@ -581,7 +581,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const sender = this.emitter.compress(true);
 
-    if (destination && !isEmpty({ value: destination })) {
+    if (destination && !ObjectUtility.isEmpty({ value: destination })) {
       sender.to(destination).emit(topic, data);
     } else {
       sender.emit(topic, data);

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { parseOrderEntry, Sorts } from '@venizia/ignis-filter';
+import { Sorts } from '@venizia/ignis-filter';
 import type { TParsedOrderEntry, TSortDirection } from '@venizia/ignis-filter';
 
 /**
@@ -24,7 +24,7 @@ const captureError = (task: () => unknown): ApplicationError => {
   throw new Error('expected the call to throw, but it returned normally');
 };
 
-const parse = (entry: string): TParsedOrderEntry => parseOrderEntry({ entry });
+const parse = (entry: string): TParsedOrderEntry => Sorts.parseEntry({ entry });
 
 const FAST_PATH_SPELLINGS: Array<[string, TSortDirection]> = [
   ['name ASC', Sorts.ASC],

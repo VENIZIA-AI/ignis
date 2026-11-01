@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { Container } from '@/helpers/inversion/container';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -119,7 +119,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
   }): { invokeHandler: TEventHandlerInvoker; description: string } {
     const { container, handler, name } = opts;
 
-    if (isEmpty({ value: handler })) {
+    if (ObjectUtility.isEmpty({ value: handler })) {
       throw getError({
         message: `[EventBus][register] Invalid handler | name: ${name} | Got: ${handler}`,
       });
@@ -128,7 +128,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
     switch (handler.type) {
       case EventHandlerTypes.BINDING_KEY: {
         const { key } = handler;
-        if (isEmpty({ value: key })) {
+        if (ObjectUtility.isEmpty({ value: key })) {
           throw getError({
             message: `[EventBus][register] Invalid handler.key | name: ${name} | Got: ${key}`,
           });
@@ -180,7 +180,7 @@ export class EventBus<TPayloadMap extends object> extends BaseHelper {
   }): void {
     const { name, handler, retry } = opts;
 
-    if (isEmpty({ value: name })) {
+    if (ObjectUtility.isEmpty({ value: name })) {
       throw getError({
         message: `[EventBus][register] Invalid registration | name: ${String(name)}`,
       });

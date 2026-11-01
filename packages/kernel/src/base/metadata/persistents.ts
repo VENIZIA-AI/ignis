@@ -14,7 +14,7 @@ import {
   MetadataRegistry,
   resolveInjectTarget,
 } from '@/helpers/inversion';
-import { resolveClass, resolveValue } from '@venizia/ignis-helpers/common';
+import { resolveClass, ResolverUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
@@ -256,7 +256,7 @@ const resolveRepositoryMetadata = <
     };
   }
 
-  const resolvedModel = resolveValue({ value: metadata.model });
+  const resolvedModel = ResolverUtility.resolveValue({ value: metadata.model });
 
   registry.registerRepositoryBinding({
     repository: target,

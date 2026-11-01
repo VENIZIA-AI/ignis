@@ -1,4 +1,4 @@
-import { resolveValue } from '@venizia/ignis-inversion';
+import { ResolverUtility } from '@venizia/ignis-inversion';
 
 import type { TClass, TResolver } from './types';
 
@@ -24,5 +24,5 @@ export const resolveClass = <T>(opts: {
     return ref;
   }
 
-  return resolveValue({ value: ref });
+  return ResolverUtility.resolveValue({ value: ref });
 };

@@ -14,7 +14,7 @@ import {
   parseMultipartBody,
   type TUploadNaming,
 } from '@venizia/ignis-helpers';
-import { HTTP, resolveValueAsync, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, ResolverUtility, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { type Env } from 'hono';
@@ -140,7 +140,7 @@ const resolveBucket = async (opts: {
     return param ?? '';
   }
 
-  return resolveValueAsync({ value: configured });
+  return ResolverUtility.resolveValueAsync({ value: configured });
 };
 
 /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
@@ -795,7 +795,7 @@ export class AssetControllerFactory extends BaseHelper {
                 return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
               }
 
-              const deleteRepository = await resolveValueAsync({ value: metaLink.repository });
+              const deleteRepository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
               deleteRepository
                 .deleteAll({
                   where: {
