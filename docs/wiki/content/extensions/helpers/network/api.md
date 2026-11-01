@@ -40,7 +40,7 @@ Exhaustive reference for `BaseNetworkRequest` and its fetchers, the TCP/TLS clie
 - [`packages/helpers/src/modules/network/utilities/url-safety/policy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/policy.ts) - `UrlPolicy`
 - [`packages/helpers/src/modules/network/utilities/url-safety/ingest.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/ingest.ts) - `UrlIngest`
 - [`packages/helpers/src/modules/network/utilities/url-safety/common/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/network/utilities/url-safety/common) - `IUrlSafetyPolicy`, `UrlSafetyDefaults`, `UrlSchemes`, `UrlSafetyErrors`
-- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `redactSecrets`, `redactUrlCredentials`
+- [`packages/helpers/src/common/redact.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/redact.ts) - `RedactUtility.redactSecrets`, `RedactUtility.redactUrlCredentials`
 - [`packages/helpers/src/common/constants/http.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/http.ts) - `HTTP.Methods`, `THttpMethod`
 
 ## Architecture
@@ -325,7 +325,7 @@ Dispatches the request via the internal `axios` instance.
 
 - `method` defaults to `HTTP.Methods.GET` and is uppercased before dispatch.
 - HTTPS URLs automatically get an `https.Agent` configured.
-- If `logger` is passed, logs `'URL: %s | Props: %s'` at `info` level with the assembled request config run through `redactSecrets()`.
+- If `logger` is passed, logs `'URL: %s | Props: %s'` at `info` level with the assembled request config run through `RedactUtility.redactSecrets()`.
 
 ---
 
@@ -417,7 +417,7 @@ Dispatches the request using the native `fetch` API. Behavior:
 - If `timeout` is provided, an internal `AbortController` aborts the request after that many milliseconds.
   - The internal timeout signal is **composed**, never substituted, with a caller-supplied `signal`. When both are present, IGNIS builds `AbortSignal.any([signal, timeoutController.signal])`. That way a caller aborting its own signal still cancels the request, even while a timeout is also armed.
   - The timer is cleared as soon as the request settles.
-- If `logger` is passed, logs `'[send] URL: %s | Props: %s | Timeout: %s'` at `debug` level with the request config run through `redactSecrets()`; the body is never logged, only its size. With no logger nothing is logged and no default logger is built, so the call is safe in a browser.
+- If `logger` is passed, logs `'[send] URL: %s | Props: %s | Timeout: %s'` at `debug` level with the request config run through `RedactUtility.redactSecrets()`; the body is never logged, only its size. With no logger nothing is logged and no default logger is built, so the call is safe in a browser.
 
 ---
 
@@ -468,8 +468,6 @@ If `headers` is a `Headers` instance, it is converted to a plain object via `Obj
 QueryStringUtility.toQueryString(opts: { params: AnyObject; nullish?: 'empty' | 'skip'; nested?: 'drop' | 'json' }): string
 ```
 
-The bare function `toQueryString(opts)` is still exported with the same signature as a deprecated alias, removed in 0.5.
-
 Writes `params` as a query string without `node:querystring`, so it works in a browser. The defaults match `node:querystring`: an array repeats its key (`a=1&a=2`), `null` and `undefined` give an empty value (`a=`), an object gives an empty value, a space is `%20`.
 
 | Option | Value | Effect |
@@ -491,7 +489,7 @@ Neither fetcher logs anything by default. `send()` and every shortcut accept an 
 await this.getNetworkService().post({ url, body }, this.logger);
 ```
 
-Whenever a logger is passed, IGNIS runs the assembled request config through `redactSecrets()` before the log line is written. That covers `url`, `method`, `headers`, `body`/`data`, and any other option. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
+Whenever a logger is passed, IGNIS runs the assembled request config through `RedactUtility.redactSecrets()` before the log line is written. That covers `url`, `method`, `headers`, `body`/`data`, and any other option. Redaction matches by key name, case-insensitively, at any depth, against `SECRET_KEY_PATTERN`:
 
 | Key group | Matched spellings |
 |-----------|--------------------|
@@ -557,7 +555,7 @@ configure(): void
 
 Handles a new client connection:
 
-- Assigns a unique ID via `getUID()`.
+- Assigns a unique ID via `ParseUtility.getUID()`.
 - Registers `data`/`error`/`close`/`extraEvents` listeners on the socket.
 - Tracks the client in the `clients` registry.
 - Invokes `onClientConnected`.
@@ -737,7 +735,7 @@ Does **not** call `connect()` automatically. Construction only stores options - 
 protected getLoggableOptions(): unknown
 ```
 
-Returns `redactSecrets(this.options)`. A TLS client's `options` **is** its private key material - `key`/`cert`/`passphrase`. Every internal log call uses this method instead of logging `this.options` directly, or the key would be written to every log file and aggregator downstream.
+Returns `RedactUtility.redactSecrets({ value: this.options })`. A TLS client's `options` **is** its private key material - `key`/`cert`/`passphrase`. Every internal log call uses this method instead of logging `this.options` directly, or the key would be written to every log file and aggregator downstream.
 
 #### Methods
 
@@ -1167,7 +1165,7 @@ const body = await UrlIngest.readCappedBody({ response, policy: { maxBytes: 2 * 
 
 ### Telling a refusal from a retryable failure
 
-Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `UrlPolicy.isRefusedError({ error })` tests it. The old `isUrlRefusedError({ error })` is a deprecated alias until 0.5.
+Every refusal carries the same code, `core.url_safety.url_refused`, from the `UrlSafetyErrors.URL_REFUSED` definition. `UrlPolicy.isRefusedError({ error })` tests it.
 
 A refused url is refused forever. A bad scheme, a non-public address, a host outside the allow-list, a malformed url, too many hops, an oversized body - retrying any of those repeats the same rejection and turns your retry loop into a repeat scanner. Drop the work instead.
 

@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Redis - Full Reference
 
-Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `createRedisHelper` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
+Exhaustive reference for `AbstractRedisHelper`, the three topology classes, the `RedisHelperFactory.create` factory, and every data-API method. For a readable introduction and the common tasks, start with the [Redis overview](/extensions/helpers/redis/).
 
 Backed by **ioredis** under the hood.
 
@@ -16,7 +16,7 @@ Backed by **ioredis** under the hood.
 - [`packages/helpers/src/modules/redis/single/single.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/single/single.helper.ts) - `RedisSingleHelper`
 - [`packages/helpers/src/modules/redis/cluster/cluster.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/cluster/cluster.helper.ts) - `RedisClusterHelper`
 - [`packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts) - `RedisSentinelHelper`
-- [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `createRedisHelper` factory
+- [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `RedisHelperFactory`
 - [`packages/helpers/src/modules/redis/common/interfaces.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/interfaces.ts) - `IRedisHelper` and its nine capability interfaces
 - [`packages/helpers/src/modules/redis/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/types.ts) - option and callback types
 - [`packages/helpers/src/modules/redis/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/common/constants.ts) - `RedisModes`, `RedisSentinelRoles`
@@ -394,7 +394,7 @@ console.log(val); // "world"
 
 `Source ->` [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts)
 
-`RedisHelperFactory.create` is an overloaded factory that returns the concrete type when `mode` is a literal. The bare `createRedisHelper(opts)` is still exported as a deprecated alias until 0.5.
+`RedisHelperFactory.create` is an overloaded factory that returns the concrete type when `mode` is a literal. The old bare `createRedisHelper(opts)` function is removed.
 
 ```typescript
 import { RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';

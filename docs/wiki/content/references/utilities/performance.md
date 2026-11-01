@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `PerformanceUtility` measures and logs how long a code block takes to run, built on `performance.now()` (millisecond resolution). `BaseApplication` uses `PerformanceUtility.executeWithMeasure` internally to time component, controller, and datasource registration during startup.
 
-The old function names (`executeWithPerformanceMeasure`, `getPerformanceCheckpoint`, `getExecutedPerformance`) are still exported as deprecated aliases. They are removed in 0.5; `devz codemod namespace-functions` moves your calls.
+The old function names (`executeWithPerformanceMeasure`, `getPerformanceCheckpoint`, `getExecutedPerformance`) are removed; `devz codemod namespace-functions` moves your calls.
 
 ## In one example
 
@@ -33,11 +33,11 @@ await PerformanceUtility.executeWithMeasure({
 
 ## Methods
 
-| Method | Old name | Signature | What it does |
-|--------|----------|-----------|---------------|
-| `PerformanceUtility.executeWithMeasure` | `executeWithPerformanceMeasure` | `executeWithMeasure<R>(opts: { logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }): Promise<R>` | Runs `task` (sync or async), logging a `START` line before and a `DONE` line after with the elapsed time. Resolves to whatever `task` returns. |
-| `PerformanceUtility.getCheckpoint` | `getPerformanceCheckpoint` | `getCheckpoint(): number` | Returns `performance.now()` - a starting timestamp to pass to `getExecuted`. |
-| `PerformanceUtility.getExecuted` | `getExecutedPerformance` | `getExecuted(opts: { from: number; digit?: number }): number` | Elapsed milliseconds since `from`, rounded to `digit` places (default `6`). |
+| Method | Signature | What it does |
+|--------|-----------|---------------|
+| `PerformanceUtility.executeWithMeasure` | `executeWithMeasure<R>(opts: { logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }): Promise<R>` | Runs `task` (sync or async), logging a `START` line before and a `DONE` line after with the elapsed time. Resolves to whatever `task` returns. |
+| `PerformanceUtility.getCheckpoint` | `getCheckpoint(): number` | Returns `performance.now()` - a starting timestamp to pass to `getExecuted`. |
+| `PerformanceUtility.getExecuted` | `getExecuted(opts: { from: number; digit?: number }): number` | Elapsed milliseconds since `from`, rounded to `digit` places (default `6`). |
 
 ## Notes
 

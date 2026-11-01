@@ -52,13 +52,13 @@ For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this 
 
 ### Get a scoped logger
 
-Use `LoggerFactory.getLogger` with an array of scope segments, or `ApplicationLogger.get` with a single string. Both cache by scope and follow the registered provider.
+Use `LoggerFactory.getLogger` with an array of scope segments, or `ApplicationLogger.get` with a single `{ scope }`. Both cache by scope and follow the registered provider.
 
 ```typescript
 import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
 
 const scoped = LoggerFactory.getLogger(['Payment', 'Stripe']); // [Payment-Stripe]
-const direct = ApplicationLogger.get('MyService');             // [MyService]
+const direct = ApplicationLogger.get({ scope: 'MyService' });  // [MyService]
 ```
 
 ### Scope logs to a method

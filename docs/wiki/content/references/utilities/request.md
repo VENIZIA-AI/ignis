@@ -9,7 +9,7 @@ lastUpdated: 2026-10-30
 
 `RequestUtility` and `FormBodyUtility` handle HTTP request data: parsing `multipart/form-data` bodies for file uploads, and building safe, RFC-compliant `Content-Disposition` headers for downloads.
 
-The old function names (`parseMultipartBody`, `readFormBody`, `createContentDispositionHeader`, ...) are still exported as deprecated aliases with their old signatures. They are removed in 0.5; `devz codemod namespace-functions` moves your calls.
+The old function names (`parseMultipartBody`, `readFormBody`, `createContentDispositionHeader`, ...) are removed; `devz codemod namespace-functions` moves your calls.
 
 ## In one example
 
@@ -46,20 +46,18 @@ export class FileController extends BaseRestController {
 
 ## Methods
 
-| Method | Old name | Signature | What it does |
-|--------|----------|-----------|---------------|
-| `RequestUtility.parseMultipartBody` | `parseMultipartBody` | `parseMultipartBody(opts: { context: { req: any }; storage?: 'memory' \| 'disk'; uploadDir?: string }): Promise<IParsedMultipartBody>` | Parses a `multipart/form-data` body through `FormBodyUtility.readFormBody`. Returns `{ files, fields }` - a form carries both, and text fields posted beside a file are part of the upload. A repeated field name keeps the last value. |
-| `FormBodyUtility.readFormBody` | `readFormBody` | `readFormBody(opts: { req: { formData: () => Promise<FormData> } }): Promise<FormData>` | Reads a form body through the request's own cache, so a later `formData()` call on the same request gets the same result. A body the runtime cannot parse becomes `400 core.request.body_malformed` here, instead of the runtime's own error, which renders as a `500`. On the root barrel and on `@venizia/ignis-helpers/core`; its error definition, `RequestBodyErrors`, is on `/core` only - use the kernel's `RequestErrors.BODY_MALFORMED` instead, which is the same object. |
-| `RequestUtility.sanitizeFilename` | `sanitizeFilename` | `sanitizeFilename({ filename: string }): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
-| `RequestUtility.encodeRfc5987` | `encodeRFC5987` | `encodeRfc5987({ filename: string }): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
-| `RequestUtility.buildContentDispositionHeader` | `createContentDispositionHeader` | `buildContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value: sanitizes the filename, then emits both the ASCII `filename=` and UTF-8 `filename*=` forms. |
-| `RequestUtility.parseContentDisposition` | `parseContentDisposition` | `parseContentDisposition({ header: string \| null \| undefined }): { type?: string; filename?: string }` | Reads the type and filename back out of a `Content-Disposition` value; `filename*` wins over `filename`. |
-
-The deprecated `sanitizeFilename(filename)` and `encodeRFC5987(filename)` aliases keep their positional signature.
+| Method | Signature | What it does |
+|--------|-----------|---------------|
+| `RequestUtility.parseMultipartBody` | `parseMultipartBody(opts: { context: { req: any }; storage?: 'memory' \| 'disk'; uploadDir?: string }): Promise<IParsedMultipartBody>` | Parses a `multipart/form-data` body through `FormBodyUtility.readFormBody`. Returns `{ files, fields }` - a form carries both, and text fields posted beside a file are part of the upload. A repeated field name keeps the last value. |
+| `FormBodyUtility.readFormBody` | `readFormBody(opts: { req: { formData: () => Promise<FormData> } }): Promise<FormData>` | Reads a form body through the request's own cache, so a later `formData()` call on the same request gets the same result. A body the runtime cannot parse becomes `400 core.request.body_malformed` here, instead of the runtime's own error, which renders as a `500`. On the root barrel and on `@venizia/ignis-helpers/core`; its error definition, `RequestBodyErrors`, is on `/core` only - use the kernel's `RequestErrors.BODY_MALFORMED` instead, which is the same object. |
+| `RequestUtility.sanitizeFilename` | `sanitizeFilename({ filename: string }): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
+| `RequestUtility.encodeRfc5987` | `encodeRfc5987({ filename: string }): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
+| `RequestUtility.buildContentDispositionHeader` | `buildContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value: sanitizes the filename, then emits both the ASCII `filename=` and UTF-8 `filename*=` forms. |
+| `RequestUtility.parseContentDisposition` | `parseContentDisposition({ header: string \| null \| undefined }): { type?: string; filename?: string }` | Reads the type and filename back out of a `Content-Disposition` value; `filename*` wins over `filename`. |
 
 ## Parsed file shape
 
-`parseMultipartBody` resolves to `{ files, fields }`. `fields` is a `Record<string, string>` of the text entries; `files` is an array of the `IParsedFile` shape (internal to the module - not separately exported):
+`RequestUtility.parseMultipartBody` resolves to `{ files, fields }`. `fields` is a `Record<string, string>` of the text entries; `files` is an array of the `IParsedFile` shape (internal to the module - not separately exported):
 
 | Field | Type | Present when |
 |-------|------|---------------|
@@ -76,10 +74,10 @@ The deprecated `sanitizeFilename(filename)` and `encodeRFC5987(filename)` aliase
 
 - **`storage` defaults to `'memory'`**; `uploadDir` defaults to `'./uploads'` and is created recursively if it does not exist.
 - **Read a form body yourself with `FormBodyUtility.readFormBody`, not `context.req.formData()`.** A route whose declared body is `multipart/form-data` or `application/x-www-form-urlencoded` already gets a `formBodyReader` middleware that parses it through `FormBodyUtility.readFormBody` and caches the result, so the validator that runs after it never re-reads the stream. Middleware that runs before the validator - an upload guard, for example - should call `FormBodyUtility.readFormBody({ req: context.req })` too: it returns the same cached `FormData`, and a malformed body becomes `400 core.request.body_malformed` instead of an uncaught `TypeError` the framework renders as a `500`.
-- **`sanitizeFilename` is applied automatically** inside `buildContentDispositionHeader` - callers do not need to sanitize twice. It also removes leading dots, collapses repeated dots, and strips `..` sequences to block directory traversal and hidden-file tricks.
+- **`RequestUtility.sanitizeFilename` is applied automatically** inside `buildContentDispositionHeader` - callers do not need to sanitize twice. It also removes leading dots, collapses repeated dots, and strips `..` sequences to block directory traversal and hidden-file tricks.
 - **`buildContentDispositionHeader` always emits both forms** (`filename="..."; filename*=UTF-8''...`). `filename*` carries the real name, so `Kiểm kê.xlsx` downloads as `Kiểm kê.xlsx`; `filename` is the printable-ASCII fallback (`Ki_m k_.xlsx`). `filename*` replaces every control character, format character (bidi overrides like RLO/LRE, zero-width space), and lone surrogate with `_` - **except** the zero-width joiner (U+200D) and non-joiner (U+200C), which stay: they build emoji sequences (a family emoji is several code points joined by U+200D) and join letters in Persian and other scripts, and reorder nothing.
 - **`IRequestedRemark`** is a separately exported interface for describing a request: `{ id: string; url: string; method: string; [extra: string | symbol]: any }`.
-  - It is not consumed internally by `parseMultipartBody` or any other function on this page - it is a general-purpose shape for application code that needs to tag a request with an id, URL, method, and arbitrary extra fields.
+  - It is not consumed internally by `RequestUtility.parseMultipartBody` or any other function on this page - it is a general-purpose shape for application code that needs to tag a request with an id, URL, method, and arbitrary extra fields.
 
 ## See also
 
@@ -90,4 +88,4 @@ The deprecated `sanitizeFilename(filename)` and `encodeRFC5987(filename)` aliase
 **Files:**
 
 - [`packages/helpers/src/utilities/request.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/request.utility.ts)
-- [`packages/helpers/src/utilities/form-body.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/form-body.utility.ts) - `FormBodyUtility` and the deprecated `readFormBody` (root and `/core`), `RequestBodyErrors` (`/core` only)
+- [`packages/helpers/src/utilities/form-body.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/form-body.utility.ts) - `FormBodyUtility` (root and `/core`), `RequestBodyErrors` (`/core` only)

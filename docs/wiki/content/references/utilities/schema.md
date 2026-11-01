@@ -74,7 +74,7 @@ this.defineRoute({
 
 - [Utilities Overview](/references/utilities/) - all utility functions
 - [JSX Utility](/references/utilities/jsx) - `htmlContent()` / `htmlResponse()` for HTML routes
-- [Parse Utility](/references/utilities/parse) - `toCamel()` / `keysToCamel()`, the transforms `snakeToCamel` builds on
+- [Parse Utility](/references/utilities/parse) - `ParseUtility.toCamel()` / `ParseUtility.keysToCamel()`, the transforms `snakeToCamel` builds on
 - [REST Controllers Guide](/guides/core-concepts/rest-controllers) - defining routes with `request`/`responses`
 
 **Files:**

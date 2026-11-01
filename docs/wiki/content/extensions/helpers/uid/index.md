@@ -55,7 +55,7 @@ const tokens = ['alice', 'bob'].map(UuidV4Generator.generate); // map passes (va
 
 The same holds for `UuidV4Generator.create()`, `UuidV7Generator.create()` and `UuidHelper.getInstance().v4` / `.v7`, and for Hono's `requestId({ generator: UuidV7Generator.generate })`, which passes the request context. `generate` reads no `this`, so it is safe to pass detached.
 
-The old names `uuidV4`, `uuidV5`, `uuidV7` and `createUuidV4`, `createUuidV5`, `createUuidV7` are still exported as deprecated aliases until 0.5, with the same behavior; `devz codemod namespace-functions` moves your calls to `UuidV4Generator.generate()`, `UuidV5Generator.generate({ namespace, name })`, `UuidV7Generator.generate()` and `.create()`.
+The old names `uuidV4`, `uuidV5`, `uuidV7` and `createUuidV4`, `createUuidV5`, `createUuidV7` are removed; `devz codemod namespace-functions` moves your calls to `UuidV4Generator.generate()`, `UuidV5Generator.generate({ namespace, name })`, `UuidV7Generator.generate()` and `.create()`.
 
 ### In a browser bundle, import the version you need
 
@@ -375,10 +375,10 @@ Unlike `crypto.randomUUID`, `getRandomValues` works outside a secure context. Th
 **Files:**
 
 - [`packages/helpers/src/modules/uid/uuid/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/helper.ts) - `UuidHelper`
-- [`packages/helpers/src/modules/uid/uuid/v4.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v4.ts) - `UuidV4Generator` (and the deprecated `uuidV4`, `createUuidV4`) - the small path
-- [`packages/helpers/src/modules/uid/uuid/v5.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v5.ts) - `UuidV5Generator` (and the deprecated `uuidV5`, `createUuidV5`)
+- [`packages/helpers/src/modules/uid/uuid/v4.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v4.ts) - `UuidV4Generator` - the small path
+- [`packages/helpers/src/modules/uid/uuid/v5.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v5.ts) - `UuidV5Generator`
 - [`packages/helpers/src/uuid.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/uuid.ts) - the `./uuid` subpath entry
-- [`packages/helpers/src/modules/uid/uuid/v7.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v7.ts) - `UuidV7Generator` (and the deprecated `uuidV7`, `createUuidV7`)
+- [`packages/helpers/src/modules/uid/uuid/v7.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/v7.ts) - `UuidV7Generator`
 - [`packages/helpers/src/modules/uid/uuid/sha1.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/sha1.ts) - the inline SHA-1 behind v5
 - [`packages/helpers/src/modules/uid/uuid/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/uuid/common/constants.ts) - `UuidNamespaces`
 - [`packages/helpers/src/modules/uid/request-id.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/uid/request-id.ts) - `RequestIdGenerator`, a delegate over `v4()`

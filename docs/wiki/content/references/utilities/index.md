@@ -2,7 +2,7 @@
 
 Static-method classes providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use, and every method takes one options object.
 
-The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are still exported as deprecated aliases until 0.5; `devz codemod namespace-functions` moves your calls to the class form.
+The helpers utilities used to be bare functions (`int`, `sleep`, `executePromiseWithLimit`, ...). Those names are removed; `devz codemod namespace-functions` moves your calls to the class form.
 
 ## Quick Reference
 
@@ -83,12 +83,12 @@ if (Statuses.isCompleted(order.status)) {
 
 ## Timing
 
-Two small methods with no page of their own. Both ship from the root of `@venizia/ignis-helpers`. The old `sleep(ms)` and `hrTime()` functions are deprecated aliases until 0.5.
+Two small methods with no page of their own. Both ship from the root of `@venizia/ignis-helpers`. The old `sleep(ms)` and `hrTime()` functions are removed.
 
-| Method | Old name | Signature | What it does |
-|---|---|---|---|
-| `PromiseUtility.sleep` | `sleep` | `sleep({ ms: number }): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
-| `HrTimeUtility.getSeconds` | `hrTime` | `getSeconds(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
+| Method | Signature | What it does |
+|---|---|---|
+| `PromiseUtility.sleep` | `sleep({ ms: number }): Promise<unknown>` | Resolves after `ms` milliseconds, through `setTimeout` |
+| `HrTimeUtility.getSeconds` | `getSeconds(): number` | Seconds from `process.hrtime()`, to nine decimals - for measuring, not for dates. Bun only |
 
 ```typescript
 import { HrTimeUtility, PromiseUtility } from '@venizia/ignis-helpers';
@@ -100,7 +100,7 @@ const elapsedSeconds = HrTimeUtility.getSeconds() - startedAt; // about 0.25
 
 **Files:**
 
-- [`packages/helpers/src/utilities/sleep.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/sleep.utility.ts) - the deprecated `sleep` alias; `PromiseUtility.sleep` lives in `promise.utility.ts`
-- [`packages/helpers/src/utilities/hr-time.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/hr-time.utility.ts) - `HrTimeUtility`, and the deprecated `hrTime`
+- [`packages/helpers/src/utilities/promise.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/promise.utility.ts) - `PromiseUtility.sleep`
+- [`packages/helpers/src/utilities/hr-time.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/hr-time.utility.ts) - `HrTimeUtility`
 
 > **Related:** [Helpers Reference](/extensions/helpers/) | [Core Concepts Guide](../../guides/core-concepts/application/)

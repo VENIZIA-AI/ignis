@@ -680,7 +680,7 @@ import { PinoLogger } from '@venizia/ignis-helpers/pino';
 // first use - which only works when winston is installed and the app is not compiled.
 LoggerFactory.use({ provider: PinoLogger });
 
-const logger: ILogger = ApplicationLogger.get('MyService');
+const logger: ILogger = ApplicationLogger.get({ scope: 'MyService' });
 logger.info('Service started | port: %d | env: %s', 3000, 'production');
 
 // Method-scoped child logger

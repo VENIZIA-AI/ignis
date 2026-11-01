@@ -8,7 +8,7 @@ difficulty: advanced
 
 `PlatformaticKafkaPlugins.build()` returns every Bun bundler plugin `@platformatic/kafka` needs to survive `bun build --compile`. Register them whenever you compile an application that imports a Kafka helper. Skip them, and the binary crashes on its first run.
 
-The old function names `platformaticKafkaPlugins()`, `platformaticWasmPlugin()` and `platformaticRequirePlugin()` are still exported as deprecated aliases until 0.5; `devz codemod namespace-functions` moves your calls to `PlatformaticKafkaPlugins.build()`, `.buildWasmPlugin()` and `.buildRequirePlugin()`.
+The old function names `platformaticKafkaPlugins()`, `platformaticWasmPlugin()` and `platformaticRequirePlugin()` are removed; `devz codemod namespace-functions` moves your calls to `PlatformaticKafkaPlugins.build()`, `.buildWasmPlugin()` and `.buildRequirePlugin()`.
 
 ```typescript
 // .configs/builders/compile.ts
@@ -121,7 +121,5 @@ The binary grows by roughly 76 KB for the base64 wasm module, plus the size of t
 
 **Files:**
 
-- [`packages/helpers/src/modules/queue/kafka/bundler/plugins.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/bundler/plugins.ts) - `PlatformaticKafkaPlugins` (all three builders) and the deprecated `platformaticKafkaPlugins`
-- [`packages/helpers/src/modules/queue/kafka/bundler/platformatic-wasm.plugin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/bundler/platformatic-wasm.plugin.ts) - the deprecated `platformaticWasmPlugin` alias
-- [`packages/helpers/src/modules/queue/kafka/bundler/platformatic-require.plugin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/bundler/platformatic-require.plugin.ts) - the deprecated `platformaticRequirePlugin` alias
+- [`packages/helpers/src/modules/queue/kafka/bundler/plugins.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/bundler/plugins.ts) - `PlatformaticKafkaPlugins` (all three builders)
 - [`packages/helpers/src/modules/queue/kafka/bundler/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/bundler/common/constants.ts) - `KafkaBundlerPluginNames`, `PlatformaticWasmSpecifiers`, `PlatformaticRequireSpecifiers`

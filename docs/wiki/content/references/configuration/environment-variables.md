@@ -289,7 +289,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 ## Storage Variables (MinIO/S3)
 
 > [!NOTE]
-> These are application-level conventions (used by the `vert` reference application), not variables read by the framework. `MinioHelper` and the StaticAsset component receive their configuration programmatically - your application wires these values in.
+> These are application-level conventions (used by the `vert` reference application), not variables read by the framework. `BunS3Helper` and the StaticAsset component receive their configuration programmatically - your application wires these values in.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|

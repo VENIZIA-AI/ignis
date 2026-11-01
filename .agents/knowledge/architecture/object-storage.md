@@ -49,7 +49,7 @@ than one value patched at the edge - see [[storage-endpoint-audiences]] below.
 ### Through the backend - the default, and right for most cases
 
 `POST {base}/objects`. The backend holds the whole file, so bandwidth is paid twice and concurrent
-uploaders multiply memory - which is what `parseMultipartBody.storage: 'memory' | 'disk'` manages.
+uploaders multiply memory - which is what `RequestUtility.parseMultipartBody({ storage: 'memory' | 'disk' })` manages.
 
 It buys the one thing the other two cannot: the backend sees every byte, so it can check magic bytes,
 scan, or re-encode. For a few megabytes this is the correct model and needs nothing else.

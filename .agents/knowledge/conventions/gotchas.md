@@ -486,7 +486,7 @@ The two ways to get it wrong are opposites, which is the whole trap:
   `warn` naming the route and the environment - because it cannot know whether the port is
   reachable, and on a cluster-internal one this is often the right call.
 - **A blank `secretKey`** fails CLOSED: `isStatsAuthorized` refuses every request. Routing that read
-  through `blankToUndefined` would therefore turn a locked route into an open one, the opposite of
+  through `ParseUtility.blankToUndefined` would therefore turn a locked route into an open one, the opposite of
   what that helper buys everywhere else.
 
 The closed-by-default shape is `stats: { enable: Boolean(secretKey), secretKey }` - a host with no
@@ -546,9 +546,10 @@ Uint8Array | DataView`. Narrowing a parameter keeps older bun-types assignable (
 
 ## Four transitive advisories stay by decision - do not "fix" them with an override
 
-`bun audit` reports `decode-uri-component` and `stream-json` under `minio`, and `esbuild`/`vite` 5 under
-`vitepress` and `drizzle-kit`. The patched releases of the first two are ESM-only while `minio` uses
-`require()`; `stream-json` also renamed the `jsonl/Parser.js` path `minio` imports. A workspace-wide
+`bun audit` reports `decode-uri-component` (now through `query-string`, no longer through `minio`, which
+`@venizia/ignis-helpers` dropped with `MinioHelper`; `stream-json` went with it) and `esbuild`/`vite` 5 under
+`vitepress` and `drizzle-kit`. The patched release of `decode-uri-component` is ESM-only while its
+consumer uses `require()`. A workspace-wide
 `esbuild` override forces `vite` 5 onto an esbuild it does not support, and `vitepress` 1.6.4 is the
 latest and pins `vite` 5. All four are dev-server or self-built-input exposures; the changelog
 `2026-09-04-dependency-floors-raised` carries the reasoning. A new advisory beyond these six is a real finding.
@@ -569,13 +570,13 @@ earlier middleware already read cannot be cloned (`req.raw.bodyUsed`): read it t
 environment, and for `application/json` only elsewhere - its own malformed-JSON `400` is a contract,
 the rest is unread. A route whose `request.body.content` declares a form type gets its own
 `formBodyReader` middleware, appended after every application middleware and just ahead of the
-validator, and `parseMultipartBody` maps its own parse failure - both land on
+validator, and `RequestUtility.parseMultipartBody` maps its own parse failure - both land on
 `400 core.request.body_malformed`, the same object as the spy's. Application middleware that calls
 `context.req.formData()` itself, ahead of any framework reader (an upload authorization guard, for
 example), is covered by NONE of this: a malformed body there is a raw `TypeError` outside
 development, which the error envelope renders as a `500`, not a `400`. Call helpers'
-`readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
-route's later `formData()`/`parseMultipartBody()` call gets the same result, and maps the parse
+`FormBodyUtility.readFormBody({ req: context.req })` instead - it reads through the request's own cache, so a
+route's later `formData()`/`RequestUtility.parseMultipartBody()` call gets the same result, and maps the parse
 failure itself.
 
 ## Under `path.isStrict: false`, a route declared with a trailing slash is unreachable

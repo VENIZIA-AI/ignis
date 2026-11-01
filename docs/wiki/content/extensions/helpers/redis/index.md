@@ -45,7 +45,7 @@ console.log(session); // { userId: 42, active: true }
 | Cluster | `RedisClusterHelper` | Data sharded across nodes |
 | Sentinel | `RedisSentinelHelper` | Automatic failover for one logical master |
 
-- **Pick a topology via the factory.** `RedisHelperFactory.create({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`. The old `createRedisHelper(opts)` is a deprecated alias until 0.5.
+- **Pick a topology via the factory.** `RedisHelperFactory.create({ mode })` picks a topology from configuration. Pass a literal `mode` (`RedisModes.SINGLE | CLUSTER | SENTINEL`) and it returns the concrete class, not the generic `IRedisHelper`. The old `createRedisHelper(opts)` function is removed.
 - **Connection lifecycle is automatic.** With `autoConnect: true` (the default), the ioredis client starts connecting inside the constructor. Set `autoConnect: false` and call `connect()` yourself instead.
 - **Reconnect backoff grows with each attempt:** 2 s, then 4 s, then 5 s for every attempt after that. A successful reconnect resets it.
 - **The default does not reconnect at all.** `maxRetry` defaults to `0`, which gives up after the first failed attempt. Pass `-1` to reconnect forever.
@@ -161,7 +161,7 @@ const redis = new RedisSingleHelper({
 });
 ```
 
-The static import is what puts `ioredis` inside the binary; `module` is how the helper finds it. The cluster and Sentinel helpers, and `createRedisHelper`, take the same option. To cover every helper at once, register it at the entrypoint instead: `ModuleUtility.register({ modules: { ioredis } })`.
+The static import is what puts `ioredis` inside the binary; `module` is how the helper finds it. The cluster and Sentinel helpers, and `RedisHelperFactory.create`, take the same option. To cover every helper at once, register it at the entrypoint instead: `ModuleUtility.register({ modules: { ioredis } })`.
 
 ## See also
 
@@ -177,4 +177,4 @@ The static import is what puts `ioredis` inside the binary; `module` is how the 
 - [`packages/helpers/src/modules/redis/single/single.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/single/single.helper.ts) - `RedisSingleHelper`
 - [`packages/helpers/src/modules/redis/cluster/cluster.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/cluster/cluster.helper.ts) - `RedisClusterHelper`
 - [`packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/sentinel/sentinel.helper.ts) - `RedisSentinelHelper`
-- [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `createRedisHelper` factory
+- [`packages/helpers/src/modules/redis/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/redis/factory.ts) - `RedisHelperFactory`
