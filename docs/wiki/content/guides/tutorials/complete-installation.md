@@ -42,7 +42,7 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 - `@venizia/ignis` - Core IGNIS framework (application, controllers, repositories, DI)
 - `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
 - `@venizia/ignis-boot` - `AutoArtifacts`, which finds your decorated classes so you never register them by hand (Bun only)
-- `winston` and its two companions - the default logger. `LoggerFactory` loads it on its own under `bun run`; a compiled binary must register it, as the entry point below does
+- `winston` and its two companions - the server's logger. `@venizia/ignis` selects it at startup; without them the console logs instead
 
 ### Development Dependencies
 
@@ -365,10 +365,6 @@ Create `src/index.ts` - this starts your application:
 import { BuildInfoStamp } from '@venizia/ignis-boot/build-info';
 import { Application, appConfigs } from './application';
 import { LoggerFactory } from '@venizia/ignis-helpers';
-import { WinstonLogger } from '@venizia/ignis-helpers/winston';
-
-// A compiled binary cannot load the default logger at run time: register it before anything logs.
-LoggerFactory.use({ provider: WinstonLogger });
 
 const logger = LoggerFactory.getLogger(['main']);
 

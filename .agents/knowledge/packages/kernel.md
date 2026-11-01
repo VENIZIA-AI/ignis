@@ -207,11 +207,11 @@ that wants the Swagger editor names its own `routes.deleteBy.request.body`. Quer
 `where` absent, so an override that reads only `valid('query')` gets `undefined` for a body-only
 request - the repository refuses an empty `where` without `force` (400).
 
-The `Container` constructor takes its logger through `BaseHelper` (the helpers logger slot), never
-`LoggerFactory` directly. The slot's console fallback is what keeps the constructor - and
-everything extending it, which is every application - browser-pure. A server host still gets the real
-provider: importing `LoggerFactory` as a value anywhere in the process fills the slot, and a logger
-taken before that upgrades itself on its next call.
+The `Container` constructor takes its logger through `BaseHelper`, which calls `LoggerFactory` from
+`@venizia/ignis-helpers/core`. That factory is browser-pure and its default provider is the console,
+which is what keeps the constructor - and everything extending it, which is every application -
+browser-pure. A server host gets the provider the application chose, or Winston when `@venizia/ignis`
+selects it at `initialize()`; a logger taken before that re-points on its next call.
 
 ## TEntityId (`base/models/`)
 

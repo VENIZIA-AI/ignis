@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
 import { SpawnHelper } from '@venizia/dev-configs/testing';
 
-/** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static import in `factory.ts` - it must load lazily, only at the first unregistered log call. */
+/** Guards against winston loading eagerly via a barrel `export * from './winston'` or a static import in `factory.ts` - the default provider is the console, so winston loads only when an application chooses it. */
 const winstonState = async (body: string): Promise<string> => {
   const probe = `
     ${body}
@@ -40,11 +40,11 @@ describe('single-provider loading - winston stays unloaded until it is the chose
     expect(result).toBe('WINSTON_ABSENT');
   });
 
-  test('creating loggers (factory + facades) still loads zero winston modules', async () => {
+  test('creating loggers and their children still loads zero winston modules', async () => {
     const body = `
-      const { LoggerFactory, ApplicationLogger } = await import('./src/index.ts');
+      const { LoggerFactory } = await import('./src/index.ts');
       LoggerFactory.getLogger(['ProbeScope']);
-      ApplicationLogger.get({ scope: 'ProbeScope' }).for('method');
+      LoggerFactory.getLogger(['ProbeScope']).for('method');
     `;
     const result = await winstonState(body);
     expect(result).toBe('WINSTON_ABSENT');
@@ -67,10 +67,22 @@ describe('single-provider loading - winston stays unloaded until it is the chose
     expect(result).toBe('WINSTON_ABSENT');
   });
 
-  test('the lazy default DOES load winston at the first unregistered log call (positive control)', async () => {
+  test('a line through the default provider (the console) loads zero winston modules', async () => {
     const body = `
       const { LoggerFactory } = await import('./src/index.ts');
-      LoggerFactory.getLogger(['DefaultProbe']).info('first line triggers the default');
+      LoggerFactory.getLogger(['DefaultProbe']).info('first line goes to the console');
+      LoggerFactory.getLogger(['DefaultProbe']).for('method').error('and so does a child');
+    `;
+    const result = await winstonState(body);
+    expect(result).toBe('WINSTON_ABSENT');
+  });
+
+  test('an app that chooses winston DOES load it (positive control: the probe sees winston)', async () => {
+    const body = `
+      const { LoggerFactory } = await import('./src/index.ts');
+      const { WinstonLogger } = await import('./src/modules/logger/winston/index.ts');
+      LoggerFactory.use({ provider: WinstonLogger });
+      LoggerFactory.getLogger(['WinstonProbe']).info('routed to winston');
     `;
     const result = await winstonState(body);
     expect(result).toBe('WINSTON_LOADED');

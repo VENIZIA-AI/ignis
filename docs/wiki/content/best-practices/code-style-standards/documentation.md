@@ -14,8 +14,8 @@ Never write:
 
 ```typescript
 // ✅ GOOD - states a constraint the code cannot show
-// winston is an optional peer; a compiled binary must register a provider explicitly,
-// because only a class reference carries one into the bundle.
+// pino is an optional peer; only a value import of the class carries it into a compiled
+// binary, so name the class here instead of resolving it by string.
 LoggerFactory.use({ provider: PinoLogger });
 
 // ❌ BAD - restates the code, narrates history

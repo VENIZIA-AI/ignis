@@ -173,14 +173,14 @@ await PerformanceUtility.executeWithMeasure({
 **Method-scoped logging pattern:**
 
 Any class extending `BaseHelper` (services, controllers, repositories, helpers) already has
-`this.logger`. Acquire one standalone with `ApplicationLogger.get(...)` and always annotate
+`this.logger`. Acquire one standalone with `LoggerFactory.getLogger([scope])` and always annotate
 `ILogger` - never a concrete provider class.
 
 ```typescript
-import { ApplicationLogger, ILogger } from '@venizia/ignis-helpers';
+import { LoggerFactory, ILogger } from '@venizia/ignis-helpers';
 
 class UserService {
-  private logger: ILogger = ApplicationLogger.get({ scope: 'UserService' });
+  private logger: ILogger = LoggerFactory.getLogger(['UserService']);
 
   async createUser(data: TCreateUserRequest) {
     // .for() returns a method-scoped child logger

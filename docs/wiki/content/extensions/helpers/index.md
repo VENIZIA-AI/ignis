@@ -13,7 +13,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Error](./error/) | Error utilities | You throw or handle an error | None |
 | [Secrets & Vault](./secrets/) | Secrets and credentials | You read config or credentials from Vault or a vaulted `.env` | `node-vault` or `@dotenvx/dotenvx` |
 | [Inversion](./inversion/) | DI container | You build custom bindings or providers | None |
-| [Logger](./logger/) | Logging | You need scoped, leveled logging | `winston` or `pino` |
+| [Logger](./logger/) | Logging | You need scoped, leveled logging | none for the console; `winston` or `pino` optional |
 | [Network](./network/) | HTTP/TCP/UDP clients | You call another service over HTTP, TCP, or UDP | `axios`, for the Axios client only |
 | [Kafka](./kafka/) | Kafka messaging | You publish or consume Kafka topics | `@platformatic/kafka` |
 | [Queue](./queue/) | Job queues | You need background or delayed work | `bullmq` or `mqtt` |

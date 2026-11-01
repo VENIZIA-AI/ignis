@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import vm from 'node:vm';
+import { PACKAGE_ROOT } from './package-root';
 
 /**
  * The browser entries must run where Node's globals do not exist - a Worker, a page. A bundle that
@@ -53,6 +54,53 @@ describe('the harness sees a Node global', () => {
     });
 
     expect(() => vm.runInContext(text, createBrowserContext())).toThrow(/global/);
+  });
+});
+
+describe('BaseHelper stays browser-pure', () => {
+  const baseSource = join(PACKAGE_ROOT, 'src/modules/base.ts');
+
+  test('its browser bundle imports nothing from node and reads process only through a guard', async () => {
+    const text = await buildBrowserText({ entry: baseSource });
+
+    expect(text).not.toMatch(/["']node:/);
+    // The one allowed read is `globalThis.process?.env`; with every guarded read taken out, no `process` is left.
+    const guardedRead = /globalThis\.process\?\./g;
+    expect(text).toMatch(guardedRead);
+    expect(text.replace(guardedRead, '')).not.toMatch(/\bprocess\b/);
+    expect(() => vm.runInContext(text, createBrowserContext())).not.toThrow();
+  });
+
+  test('a helper logs to the console with no process, debug off unless a level turns it on', async () => {
+    const factorySource = join(PACKAGE_ROOT, 'src/modules/logger/factory.ts');
+    const text = await buildBrowserText({
+      entry: 'probe.ts',
+      files: {
+        'probe.ts': [
+          `import { BaseHelper } from ${JSON.stringify(baseSource)};`,
+          `import { LoggerFactory } from ${JSON.stringify(factorySource)};`,
+          `const helper = new BaseHelper({ scope: 'Page' });`,
+          `helper.logger.debug('hidden');`,
+          `helper.logger.info('shown');`,
+          `LoggerFactory.use({ level: 'debug' });`,
+          `helper.logger.for('run').debug('now shown');`,
+        ].join('\n'),
+      },
+    });
+
+    const lines: Array<string> = [];
+    const record = (method: string) => (line: string) => lines.push(`${method}:${line}`);
+    const context = createBrowserContext();
+    context.console = {
+      debug: record('debug'),
+      log: record('log'),
+      warn: record('warn'),
+      error: record('error'),
+    };
+
+    vm.runInContext(text, context);
+
+    expect(lines).toEqual(['log:[Page] shown', 'debug:[Page-run] now shown']);
   });
 });
 

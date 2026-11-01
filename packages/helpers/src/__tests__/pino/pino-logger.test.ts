@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
 import pino from 'pino';
 import { LoggerFactory } from '@/modules/logger';
-import { WinstonLogger } from '@/modules/logger/winston';
 import { PinoBackingLogger, PinoLogger } from '@/modules/logger/pino';
 
 interface IParsedLine {
@@ -34,7 +33,7 @@ describe('PinoLogger - behavioral, via an injected in-memory backing', () => {
   });
 
   afterAll(() => {
-    LoggerFactory.use({ provider: WinstonLogger }); // restore the default for other suites
+    LoggerFactory.reset(); // back to the default (the console) for other suites
   });
 
   beforeEach(() => {

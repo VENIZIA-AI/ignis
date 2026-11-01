@@ -612,10 +612,9 @@ peer the sub-path imports and stays in the graph - measured, the entry is pure w
 
 Every driver reaches its logger through `BaseHelper` from `@venizia/ignis-helpers/core`, which is what
 makes them browser-pure - and which means an import graph containing connectors but not
-`@venizia/ignis` never loads the real provider. `BaseHelper.logger` then writes to the console and
-prints one `[BaseHelper] Logging to the console - no logger provider is installed...` warning per
-process. It upgrades itself on its next call once something imports `LoggerFactory` as a value,
-which only the `@venizia/ignis-helpers` ROOT barrel exports - see [helpers](/packages/helpers.md).
+`@venizia/ignis` never selects Winston. `BaseHelper.logger` then writes to the console, the default
+provider, with no warning. The script chooses another with `LoggerFactory.use({ provider })`
+(`LoggerFactory` is exported from `/core`) - see [helpers](/packages/helpers.md).
 
 Measured: a script importing `@venizia/ignis-connectors/postgres` plus a driver logs
 `[SeamProbe] hello` to stdout and writes **zero** files, with `APP_ENV_LOGGER_FOLDER_PATH` set. The
