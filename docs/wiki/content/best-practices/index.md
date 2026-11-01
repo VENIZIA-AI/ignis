@@ -139,7 +139,7 @@ const data: any = await fetchData(); // Use proper types!
 | Input | Validate with Zod schemas at API boundaries |
 | Auth | Protect routes with `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
 | Sensitive data | Use `hiddenProperties` in model settings |
-| File uploads | Use `sanitizeFilename()` for all user-provided filenames |
+| File uploads | Use `RequestUtility.sanitizeFilename()` for all user-provided filenames |
 | CORS | Configure allowed origins explicitly |
 
 ### Performance Checklist

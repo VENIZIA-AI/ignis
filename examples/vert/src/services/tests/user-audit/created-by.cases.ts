@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -15,7 +15,7 @@ export class CreatedByCases extends UserAuditCases {
     this.context.logCase('[CASE 1] Create with explicit createdBy and modifiedBy values');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_EXPLICIT_${uniqueId}`;
       // Create a real User for FK constraint
       const testUserId = await this.createTestUser(`CASE1_${uniqueId}`);
@@ -79,7 +79,7 @@ export class CreatedByCases extends UserAuditCases {
     );
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_NO_CONTEXT_${uniqueId}`;
 
       // Create without explicitly setting audit fields
@@ -140,7 +140,7 @@ export class CreatedByCases extends UserAuditCases {
     this.context.logCase('[CASE 3] CreateAll with explicit audit fields for each record');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       // Create real Users for FK constraint
       const user1 = await this.createTestUser(`CASE3_USER1_${uniqueId}`);
       const user2 = await this.createTestUser(`CASE3_USER2_${uniqueId}`);
@@ -230,7 +230,7 @@ export class CreatedByCases extends UserAuditCases {
     this.context.logCase('[CASE 5] UpdateById - createdBy should remain unchanged');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_CREATED_UNCHANGED_${uniqueId}`;
       // Create real Users for FK constraint
       const originalCreator = await this.createTestUser(`CASE5_CREATOR_${uniqueId}`);

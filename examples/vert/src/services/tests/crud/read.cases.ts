@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case3FindOne] FindOne');
 
-    const code = `REPO_FINDONE_${getUID()}`;
+    const code = `REPO_FINDONE_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -51,7 +51,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case4FindWithFilter] Find with filter (where, order, limit, offset)');
 
-    const group = `REPO_FILTER_${getUID()}`;
+    const group = `REPO_FILTER_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -141,7 +141,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case5FindById] FindById');
 
-    const code = `REPO_FINDBYID_${getUID()}`;
+    const code = `REPO_FINDBYID_${ParseUtility.getUID()}`;
 
     try {
       const created = await repo.create({
@@ -177,7 +177,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case14CountOperation] Count operation with various filters');
 
-    const group = `REPO_COUNT_${getUID()}`;
+    const group = `REPO_COUNT_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -243,7 +243,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case15ExistsWithOperation] ExistsWith operation');
 
-    const code = `REPO_EXISTS_${getUID()}`;
+    const code = `REPO_EXISTS_${ParseUtility.getUID()}`;
 
     try {
       // Check before creating (should not exist)
@@ -296,7 +296,7 @@ export class ReadCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case18FindWithEmptyResult] Find with filter that matches nothing');
 
-    const nonExistentGroup = `NON_EXISTENT_${getUID()}`;
+    const nonExistentGroup = `NON_EXISTENT_${ParseUtility.getUID()}`;
 
     try {
       const results = await repo.find({

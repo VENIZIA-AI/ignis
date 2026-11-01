@@ -1,4 +1,4 @@
-import { blankToUndefined } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 import { BaseHelper } from '@/modules/base';
 import { EnvironmentNames } from './names';
 import { type IApplicationEnvironment } from './common';
@@ -99,7 +99,8 @@ const resolveApplicationEnvironment = (): ApplicationEnvironment => {
   }
 
   const created = new ApplicationEnvironment({
-    prefix: blankToUndefined(process.env.APPLICATION_ENV_PREFIX) ?? 'APP_ENV',
+    prefix:
+      ParseUtility.blankToUndefined({ input: process.env.APPLICATION_ENV_PREFIX }) ?? 'APP_ENV',
     envs: process.env,
   });
   Reflect.set(globalThis, INSTANCE_SLOT, created);

@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -16,35 +16,35 @@ export class ContainsCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `ARRAY_TEST_A_${getUID()}`,
+            code: `ARRAY_TEST_A_${ParseUtility.getUID()}`,
             name: 'Product A',
             description: 'ARRAY_OPERATOR_TEST',
             price: 100,
             tags: ['electronics', 'featured', 'sale'],
           },
           {
-            code: `ARRAY_TEST_B_${getUID()}`,
+            code: `ARRAY_TEST_B_${ParseUtility.getUID()}`,
             name: 'Product B',
             description: 'ARRAY_OPERATOR_TEST',
             price: 200,
             tags: ['electronics', 'premium'],
           },
           {
-            code: `ARRAY_TEST_C_${getUID()}`,
+            code: `ARRAY_TEST_C_${ParseUtility.getUID()}`,
             name: 'Product C',
             description: 'ARRAY_OPERATOR_TEST',
             price: 300,
             tags: ['clothing', 'featured'],
           },
           {
-            code: `ARRAY_TEST_D_${getUID()}`,
+            code: `ARRAY_TEST_D_${ParseUtility.getUID()}`,
             name: 'Product D',
             description: 'ARRAY_OPERATOR_TEST',
             price: 400,
             tags: ['furniture'],
           },
           {
-            code: `ARRAY_TEST_E_${getUID()}`,
+            code: `ARRAY_TEST_E_${ParseUtility.getUID()}`,
             name: 'Product E',
             description: 'ARRAY_OPERATOR_TEST',
             price: 500,

@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -18,18 +18,18 @@ export class SingleCases extends BaseTestCases {
       // Create products
       const products = await productRepo.createAll({
         data: [
-          { name: 'Product A', code: `PROD_A_${getUID()}`, price: 100 },
-          { name: 'Product B', code: `PROD_B_${getUID()}`, price: 200 },
-          { name: 'Product C', code: `PROD_C_${getUID()}`, price: 300 },
+          { name: 'Product A', code: `PROD_A_${ParseUtility.getUID()}`, price: 100 },
+          { name: 'Product B', code: `PROD_B_${ParseUtility.getUID()}`, price: 200 },
+          { name: 'Product C', code: `PROD_C_${ParseUtility.getUID()}`, price: 300 },
         ],
       });
 
       // Create sale channels
       const channels = await saleChannelRepo.createAll({
         data: [
-          { name: 'Online Store', code: `ONLINE_${getUID()}` },
-          { name: 'Retail Store', code: `RETAIL_${getUID()}` },
-          { name: 'Wholesale', code: `WHOLESALE_${getUID()}` },
+          { name: 'Online Store', code: `ONLINE_${ParseUtility.getUID()}` },
+          { name: 'Retail Store', code: `RETAIL_${ParseUtility.getUID()}` },
+          { name: 'Wholesale', code: `WHOLESALE_${ParseUtility.getUID()}` },
         ],
       });
 

@@ -5,6 +5,10 @@ export { EnvironmentNames } from './modules/env/names';
 export * from './modules/error';
 export { LogLevels } from './modules/logger/common/types';
 export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/common/types';
+// The browser-safe logger seam: `LoggerFactory` is node-only, so a browser app installs its own resolver here.
+export { ConsoleLogger } from './modules/logger/base/console';
+export { LoggerSlot } from './modules/logger/slot';
+export type { TLoggerResolver } from './modules/logger/slot';
 export * from './modules/network/http-request/fetcher/base-fetcher';
 // The node fetcher carries no node builtin - its one `querystring.stringify` is written out - so the
 // framework HTTP layer is reachable from a browser bundle, and a connector on HTTP need not
@@ -48,9 +52,9 @@ export { TreeWalker } from './modules/tree/walk';
 // symbol below is verified free of node builtins/globals.
 export { BuildInfoRegistry } from './utilities/build-info.utility';
 export type { IBuildInfo, TBuildInfoRecord } from './utilities/build-info.utility';
-export { blankToUndefined, int, keysToCamel, toBoolean, toCamel } from './utilities/parse.utility';
-export { executeWithPerformanceMeasure } from './utilities/performance.utility';
-export { readFormBody, RequestBodyErrors } from './utilities/form-body.utility';
+export { ParseUtility } from './utilities/parse.utility';
+export { PerformanceUtility } from './utilities/performance.utility';
+export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even

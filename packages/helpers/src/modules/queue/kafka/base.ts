@@ -2,7 +2,7 @@ import type { AnyType } from '@/common';
 import { getError } from '@/modules/error';
 import { BaseHelper } from '@/modules/base';
 import type { Base, BaseOptions, ConnectionPoolEventPayload } from '@platformatic/kafka';
-import { invokeHook } from '../common';
+import { HookUtility } from '../common';
 import {
   KafkaClientEvents,
   KafkaDefaults,
@@ -74,7 +74,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
         this.connectedBrokers.size,
       );
 
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerConnect',
         execution: () => this.onBrokerConnect?.({ broker: payload.broker }),
@@ -98,7 +98,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
         this.connectedBrokers.size,
       );
 
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerDisconnect',
         execution: () => this.onBrokerDisconnect?.({ broker: payload.broker }),

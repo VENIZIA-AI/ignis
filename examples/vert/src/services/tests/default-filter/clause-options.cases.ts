@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class ClauseOptionsCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 12] User limit should override default limit');
 
-    const testCode = `DF_LIMIT_${getUID()}`;
+    const testCode = `DF_LIMIT_${ParseUtility.getUID()}`;
 
     try {
       // Create 5 products
@@ -51,7 +51,7 @@ export class ClauseOptionsCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 13] User order should override default order');
 
-    const testCode = `DF_ORDER_${getUID()}`;
+    const testCode = `DF_ORDER_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -95,7 +95,7 @@ export class ClauseOptionsCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 24] Field selection should work with default filter');
 
-    const testCode = `DF_FIELDS_${getUID()}`;
+    const testCode = `DF_FIELDS_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({

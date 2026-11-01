@@ -16,15 +16,19 @@ import {
   AuthorizationDecisions,
   AuthorizationPolicyBuilder,
 } from '@venizia/ignis';
-import { blankToUndefined } from '@venizia/ignis-helpers';
-import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { ParseUtility } from '@venizia/ignis-helpers';
+import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
-  host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
-  port: parseInt(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
-  database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'db',
-  user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
-  password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
+  host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_HOST }) ?? '0.0.0.0',
+  port: parseInt(
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432',
+  ),
+  database: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_DATABASE }) ?? 'db',
+  user:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
+  password:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
 });
 
 const username = process.argv[2];
@@ -255,7 +259,7 @@ const seedUserPolicies = async () => {
            (id, variant, subject_type, subject_id, target_type, target_id, action, effect, domain_type, domain_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
         [
-          uuidV7(),
+          UuidV7Generator.generate(),
           p.variant,
           p.subjectType,
           p.subjectId,

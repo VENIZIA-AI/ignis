@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -35,7 +35,7 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.create({
         data: {
-          code: `ARRAY_LARGE_${getUID()}`,
+          code: `ARRAY_LARGE_${ParseUtility.getUID()}`,
           name: 'Large Array Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 999,
@@ -88,7 +88,7 @@ export class EdgeCases extends BaseTestCases {
 
       await repo.create({
         data: {
-          code: `ARRAY_SPECIAL_${getUID()}`,
+          code: `ARRAY_SPECIAL_${ParseUtility.getUID()}`,
           name: 'Special Chars Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 888,
@@ -145,7 +145,7 @@ export class EdgeCases extends BaseTestCases {
       // Create product with duplicate tags
       const product = await repo.create({
         data: {
-          code: `ARRAY_DUP_${getUID()}`,
+          code: `ARRAY_DUP_${ParseUtility.getUID()}`,
           name: 'Duplicate Tags Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 777,
@@ -200,7 +200,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       await repo.create({
         data: {
-          code: `ARRAY_CASE_${getUID()}`,
+          code: `ARRAY_CASE_${ParseUtility.getUID()}`,
           name: 'Case Test Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 666,
@@ -252,7 +252,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       const product = await repo.create({
         data: {
-          code: `ARRAY_EMPTY_STR_${getUID()}`,
+          code: `ARRAY_EMPTY_STR_${ParseUtility.getUID()}`,
           name: 'Empty String Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 555,
@@ -300,7 +300,7 @@ export class EdgeCases extends BaseTestCases {
     try {
       const product = await repo.create({
         data: {
-          code: `ARRAY_NUMERIC_${getUID()}`,
+          code: `ARRAY_NUMERIC_${ParseUtility.getUID()}`,
           name: 'Numeric Strings Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 444,
@@ -346,7 +346,7 @@ export class EdgeCases extends BaseTestCases {
       // Create product with null tags (if schema allows)
       const product = await repo.create({
         data: {
-          code: `ARRAY_NULL_${getUID()}`,
+          code: `ARRAY_NULL_${ParseUtility.getUID()}`,
           name: 'Null Tags Product',
           description: 'ARRAY_OPERATOR_TEST',
           price: 333,

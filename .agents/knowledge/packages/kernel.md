@@ -152,7 +152,7 @@ A route whose `request.body.content` declares `multipart/form-data` or
 `application/x-www-form-urlencoded` gets `FormBodyMiddleware.read` (`base/middlewares/form-body/`, not on any
 barrel) appended LAST to its middleware chain, in `AbstractRestController.buildRouteMiddlewares` -
 after authenticate, authorize, and every application middleware. It parses the form through helpers'
-`readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
+`FormBodyUtility.readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
 of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed
 form is `RequestErrors.BODY_MALFORMED` - `400 core.request.body_malformed` - the same object as
 helpers' `RequestBodyErrors.BODY_MALFORMED`, so every form parser in the stack throws one definition.

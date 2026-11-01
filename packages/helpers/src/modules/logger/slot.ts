@@ -19,6 +19,17 @@ export class LoggerSlot {
    */
   static resolve?: TLoggerResolver;
 
+  /**
+   * Installs the logger every helper writes to. A browser app calls it once at startup, because `LoggerFactory` is
+   * node-only: `LoggerSlot.use({ resolver: ({ scopes }) => ConsoleLogger.get({ scope: scopes.join('-') }) })`.
+   *
+   * Call it BEFORE the first log line. A helper that logs before a resolver exists keeps writing to the console, and
+   * the logger it resolves on its first line after one is installed is the one it keeps.
+   */
+  static use(opts: { resolver: TLoggerResolver }): void {
+    LoggerSlot.resolve = opts.resolver;
+  }
+
   /** Writes one line to the console; `emerg` and anything unrecognised land on `error`. */
   private static writeToConsole(opts: {
     prefix: string;

@@ -8,7 +8,7 @@ import { StaticAssetStorageTypes } from '@/components/static-asset/common';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import { parseMultipartBody } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports, OpenApiResponses, MetadataRegistry } from '@venizia/ignis-kernel';
@@ -49,7 +49,7 @@ class HandParsedController extends BaseRestController {
       },
     }).to({
       handler: async (context: TRouteContext) => {
-        const { files } = await parseMultipartBody({ context });
+        const { files } = await RequestUtility.parseMultipartBody({ context });
         return context.json({ count: files.length }, 200);
       },
     });

@@ -4,7 +4,7 @@ import {
   AbstractSecretsHelper,
   SecretProviders,
   SystemEnvsHelper,
-  formatLogMessage,
+  LogFormatUtility,
   type ISecretsRegistration,
 } from '@venizia/ignis-helpers';
 import { Logger } from '@venizia/ignis-helpers/winston';
@@ -44,7 +44,7 @@ afterEach(() => {
 const assertRedactedThroughLogger = (calls: unknown[][]) => {
   expect(calls.length).toBeGreaterThan(0);
   for (const [message, ...args] of calls) {
-    const rendered = formatLogMessage({ message: String(message), args });
+    const rendered = LogFormatUtility.formatMessage({ message: String(message), args });
     expect(rendered).not.toContain('super-secret');
     expect(rendered).not.toContain('X-Vault-Token');
     expect(rendered).toContain('connect ECONNREFUSED');

@@ -1,4 +1,5 @@
-import { toError, voidExecution } from '@/utilities/promise.utility';
+import { ErrorUtility } from '@/utilities/error.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { Worker, type WorkerOptions } from 'node:worker_threads';
 
 import { type ValueOrPromise } from '@/common/types';
@@ -32,7 +33,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     const { scope, execution } = opts;
 
     try {
-      voidExecution({ logger: this.logger, scope, execution: execution() });
+      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
@@ -114,7 +115,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.worker.on('error', (error) => {
       this.invokeHook({
         scope: this.binding.name,
-        execution: () => this.onError({ error: toError(error) }),
+        execution: () => this.onError({ error: ErrorUtility.toError({ error }) }),
       });
     });
 

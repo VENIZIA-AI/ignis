@@ -2,8 +2,8 @@ import type { TConstValue } from '@/common/types';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { getUID } from '@/utilities/parse.utility';
-import { voidExecution } from '@/utilities/promise.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import {
   type ListenOptions,
   type ServerOpts,
@@ -193,7 +193,7 @@ export class BaseNetworkTcpServer<
   onNewConnection(opts: { socket: SocketClientType }) {
     const { socket } = opts;
 
-    const id = getUID();
+    const id = ParseUtility.getUID();
 
     socket.on('data', (data: Buffer | string) => {
       this.invokeHook({
@@ -241,7 +241,7 @@ export class BaseNetworkTcpServer<
 
     for (const extraEvent in this.extraEvents) {
       socket.on(extraEvent, (args) => {
-        voidExecution({
+        PromiseUtility.voidExecution({
           logger: this.logger,
           scope: 'onClientConnect',
           // The async wrapper turns a SYNCHRONOUS throw from the handler into a rejection; calling it bare would throw out of this listener as an uncaught exception.

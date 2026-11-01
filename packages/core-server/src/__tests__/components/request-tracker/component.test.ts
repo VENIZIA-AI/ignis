@@ -10,7 +10,7 @@ import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { HTTP, type AnyType, type ValueOrPromise } from '@venizia/ignis-helpers/common';
-import { parseMultipartBody } from '@venizia/ignis-helpers';
+import { RequestUtility } from '@venizia/ignis-helpers';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const TEST_CONFIGS: IApplicationConfigs = {
@@ -75,7 +75,7 @@ class EchoController extends BaseRestController {
       },
     }).to({
       handler: async (context: TRouteContext) => {
-        const { files } = await parseMultipartBody({ context });
+        const { files } = await RequestUtility.parseMultipartBody({ context });
         return context.json({ names: files.map((file) => file.originalname) }, 200);
       },
     });

@@ -3,7 +3,7 @@ import { DataRangeUtility } from '@/base/repositories/common/types';
 import type { TDataRange } from '@/base/repositories/common/types';
 import type { AnyType, TNullable, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { executeWithPerformanceMeasure, toBoolean } from '@venizia/ignis-helpers/core';
+import { PerformanceUtility, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { Env, Schema } from 'hono';
 import { ResponseFormats } from '../common/constants';
 import type { TResponseFormat } from '../common/constants';
@@ -34,7 +34,7 @@ export abstract class BaseRestController<
 > {
   /** Runs a handler task under performance measurement (fixed logger/level/description). */
   measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R> }) {
-    return executeWithPerformanceMeasure({
+    return PerformanceUtility.executeWithMeasure({
       logger: this.logger,
       level: 'debug',
       scope: opts.scope,
@@ -55,7 +55,7 @@ export abstract class BaseRestController<
   >(opts: { context: RequestContext; payload: ResponseData }) {
     const { context, payload } = opts;
     const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
-    const useCountData = toBoolean(requestCountData);
+    const useCountData = ParseUtility.toBoolean({ input: requestCountData });
 
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
 
@@ -161,7 +161,9 @@ export abstract class BaseRestController<
     // `x-response-extra` marks it, so a client unwraps `{ data, extra }` only when the server says so.
     context.header(HTTP.Headers.RESPONSE_COUNT_DATA, payload.count.toString());
     context.header(HTTP.Headers.RESPONSE_EXTRA, Object.keys(computed).join(','));
-    const useCountData = toBoolean(context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true');
+    const useCountData = ParseUtility.toBoolean({
+      input: context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true',
+    });
 
     return useCountData
       ? { count: payload.count, data: payload.data, extra: computed }

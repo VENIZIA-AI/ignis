@@ -6,7 +6,7 @@
 // example).
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { applicationEnvironment } from '@venizia/ignis-helpers';
-import { uuidV4 } from '@venizia/ignis-helpers/uuid';
+import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import postgres from 'postgres';
 import { z } from '@hono/zod-openapi';
@@ -43,8 +43,8 @@ describe('supabase-example', async () => {
     let application: Application;
     let baseUrl = '';
 
-    const userAId = uuidV4();
-    const userBId = uuidV4();
+    const userAId = UuidV4Generator.generate();
+    const userBId = UuidV4Generator.generate();
     let tokenA = '';
     let tokenB = '';
     let noteAId = '';

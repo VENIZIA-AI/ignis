@@ -176,7 +176,7 @@ authenticate -> authorize -> application middleware -> (static-asset maxBytes gu
 `AbstractRestController.buildRouteMiddlewares` decides whether to append it, with `FormBodyMiddleware.hasFormBody({ content })` reading `restConfig.request?.body?.content`. Neither `FormBodyMiddleware.hasFormBody` nor `FormBodyMiddleware.read` is exported from `@venizia/ignis` - they run for every declared form route automatically.
 
 > [!WARNING]
-> Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
+> Middleware that reads a form body itself - an upload guard running before the route's own validator - is not covered by this reader. Call `FormBodyUtility.readFormBody({ req: context.req })` there too; see [Request Utility](/references/utilities/request#notes).
 
 ## AppErrorMiddleware
 

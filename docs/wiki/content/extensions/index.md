@@ -36,7 +36,7 @@ Every peer dependency below is optional. You install one only when you use the h
 | [Redis](./helpers/redis/) | Redis client | You need a Redis connection - cache, pub/sub, locks | `ioredis` |
 | [Secrets](./helpers/secrets/) | Secret loading and rotation | You read secrets from Vault, dotenv, or the environment | `node-vault` or `@dotenvx/dotenvx` |
 | [Socket.IO](./helpers/socket-io/) | Socket.IO server | You build a custom real-time feature | `socket.io` |
-| [Storage](./helpers/storage/) | File storage | You read/write files to S3 or disk directly | None for the Bun S3 backend, which uses Bun's own client; `minio` for the MinIO one |
+| [Storage](./helpers/storage/) | File storage | You read/write files to S3 or disk directly | None for the Bun S3 backend, which uses Bun's own client (it also reaches MinIO servers) |
 | [Types](./helpers/types/) | Shared types | You need IGNIS's shared TypeScript utility types | None |
 | [UID](./helpers/uid/) | Snowflake IDs | You need unique, sortable IDs | None |
 | [WebSocket](./helpers/websocket/) | WebSocket server | You build a custom real-time feature | None |
