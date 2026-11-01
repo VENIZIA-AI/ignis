@@ -9,7 +9,7 @@ import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
-import { applySearchScope } from './scope';
+import { SearchControllerScope } from './scope';
 import type { TSearchScopeResolver } from './scope';
 
 /** Where the page starts, for `Content-Range`. Friendly modes carry `filter.skip` or `filter.offset`; raw mode carries the engine's own `offset`, or a 1-based `page` with `per_page`/`perPage`. A raw request that names a page but no page size is measured against this page's hit count, so only its last page can be off. */
@@ -70,7 +70,11 @@ export abstract class AbstractSearchController<
     const body = context.req.valid<TSearchInput>('json');
     let input = body;
     if (this.searchScope) {
-      const scoped = await applySearchScope({ resolve: this.searchScope, context, input: body });
+      const scoped = await SearchControllerScope.applySearchScope({
+        resolve: this.searchScope,
+        context,
+        input: body,
+      });
       input = scoped;
     }
 
