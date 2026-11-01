@@ -481,7 +481,7 @@ await articleRepository.updateById({
 });
 ```
 
-This is the same `ErrorUtility.throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
+This is the same `NotSupportedUtility.throwNotSupported` convention used everywhere in the framework for capabilities an engine doesn't implement - see [Connectors](/references/base/connectors) and [Transactions](./transactions).
 
 ## See Also
 

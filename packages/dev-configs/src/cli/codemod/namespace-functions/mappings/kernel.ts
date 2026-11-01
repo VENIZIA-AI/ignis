@@ -163,7 +163,7 @@ export const KERNEL_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
     modules: WITH_REPOSITORY,
     oldName: 'throwNotSupported',
-    className: 'ErrorUtility',
+    className: 'NotSupportedUtility',
     method: 'throwNotSupported',
     params: [],
     keepsOptions: true,

@@ -44,7 +44,7 @@ export {
 } from '@/base/repositories/common/constants';
 export type { TRepositoryType } from '@/base/repositories/common/constants';
 export { CoreErrorCodes, SearchErrorCodes } from '@/common/error-codes';
-export { ErrorUtility } from '@/utilities/error.utility';
+export { NotSupportedUtility } from '@/utilities/not-supported.utility';
 export type { TCount, TDataRange, TDataWithRange } from '@/base/repositories/common/types/results';
 
 export type { IDataSource } from '@/base/datasources/common/types';

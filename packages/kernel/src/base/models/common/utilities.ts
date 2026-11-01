@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { getError, keysToCamel, toCamel } from '@venizia/ignis-helpers/core';
+import { getError, ParseUtility } from '@venizia/ignis-helpers/core';
 import type { TEntityId } from './types';
 
 type TSnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
@@ -29,13 +29,13 @@ export class ModelUtility {
     const { shape } = opts;
     const camelShape = Object.fromEntries(
       Object.entries(shape).map(([key, value]) => {
-        return [toCamel(key), value];
+        return [ParseUtility.toCamel({ input: key }), value];
       }),
     ) as TCamelCaseKeys<T>;
 
     return z
       .object(shape)
-      .transform((data) => keysToCamel(data))
+      .transform((data) => ParseUtility.keysToCamel({ source: data }))
       .pipe(z.object(camelShape));
   }
 }

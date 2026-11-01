@@ -1,5 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
-import { ErrorUtility } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { Client } from '@libsql/client';
 import type { ILogger, IPoolControlOptions } from '@venizia/ignis-helpers/core';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -96,7 +96,7 @@ export class LibSqlDriver<
     // A remote client opens a stream per statement and closes it, so BEGIN would neither hold nor
     // error - the transaction would silently not exist.
     if (this.client.protocol !== FILE_PROTOCOL) {
-      ErrorUtility.throwNotSupported({
+      NotSupportedUtility.throwNotSupported({
         scope: LibSqlDriver.name,
         feature: `Explicit transactions over a '${this.client.protocol}' libsql client - every statement runs on its own connection, so BEGIN cannot hold; use a \`file:\` or \`:memory:\` url, or an embedded replica`,
         logger: this.logger,

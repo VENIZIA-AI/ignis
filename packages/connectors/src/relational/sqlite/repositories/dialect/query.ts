@@ -1,7 +1,7 @@
 import type { IQueryHandlerOptions } from '@venizia/ignis-kernel';
 import { SubqueryUtility } from '@/relational/core/repositories/dialect/internal';
 import { QueryOperators } from '@venizia/ignis-kernel';
-import { ErrorUtility } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import {
   between,
@@ -34,7 +34,7 @@ export class SqliteQueryOperators extends QueryOperators {
   private static reject(opts: { operator: string; reason: string }): never {
     const { operator, reason } = opts;
 
-    return ErrorUtility.throwNotSupported({
+    return NotSupportedUtility.throwNotSupported({
       scope: SqliteQueryOperators.name,
       feature: `Operator '${operator}' - ${reason}`,
       // Not `LoggerFactory`: it reaches the helpers root barrel, which pulls `ioredis` and fails a
