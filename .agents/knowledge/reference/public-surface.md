@@ -2383,7 +2383,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1033)
+### `@venizia/ignis` (1032)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2982,7 +2982,6 @@ generated:
 - `QueueStatuses` class
 - `ReadableCrudController` class
 - `ReadableRepository` class
-- `readAffectedRowCount` const
 - `readDeclarative` const
 - `readResultRows` const
 - `readRuntimeSnapshot` const
