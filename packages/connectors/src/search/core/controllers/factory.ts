@@ -1,9 +1,8 @@
 import type { TEntityDataObject } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import {
-  jsonContent,
-  jsonResponse,
-  registerFactoryRepositoryInjection,
+  OpenApiResponses,
+  ControllerFactory,
   SchemaTypes,
 } from '@venizia/ignis-kernel';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
@@ -99,12 +98,12 @@ export class SearchControllerFactory extends BaseHelper {
         authenticate: resolvedAuthenticate,
         authorize,
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Search input, discriminated by mode',
             schema: SearchInputSchema,
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           description: 'Search results',
           schema: searchResponseSchema,
         }),
@@ -117,12 +116,12 @@ export class SearchControllerFactory extends BaseHelper {
         authenticate: resolvedAuthenticate,
         authorize,
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Multi-search input - one or more per-collection native search params',
             schema: MultiSearchInputSchema,
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           description: 'Federated (or, when union is true, merged) search results',
           schema: multiSearchResponseSchema,
         }),
@@ -206,7 +205,7 @@ export class SearchControllerFactory extends BaseHelper {
     };
 
     Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       target: controllerClass,
       factoryName: 'defineSearchController',
       controllerName: name,
