@@ -29,9 +29,11 @@ export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
 
-export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => {
-  return opts.entity?.id?.dataType ?? 'unknown';
-};
+export class RelationalEntityUtility {
+  static getIdType<T extends TTableSchemaWithId>(opts: { entity: T }) {
+    return opts.entity?.id?.dataType ?? 'unknown';
+  }
+}
 
 /** Static schema + relations contract every entity model implements. */
 export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {

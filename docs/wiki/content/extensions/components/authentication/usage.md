@@ -405,21 +405,25 @@ Column helper functions return pre-configured Drizzle columns for auth-related t
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
-  extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns,
-  generateIdColumnDefs, generateTzColumnDefs,
+  extraUserColumns,
+  extraRoleColumns,
+  extraPermissionColumns,
+  extraPolicyDefinitionColumns,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
 } from '@venizia/ignis';
 
 export const users = pgTable('users', {
-  ...generateIdColumnDefs(),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs(),
+  ...PostgresTzEnricher.generateColumnDefs(),
   ...extraUserColumns(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
 });
 
-export const roles = pgTable('roles', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraRoleColumns() });
-export const permissions = pgTable('permissions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPermissionColumns() });
-export const policyDefinitions = pgTable('policy_definitions', { ...generateIdColumnDefs(), ...generateTzColumnDefs(), ...extraPolicyDefinitionColumns() });
+export const roles = pgTable('roles', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraRoleColumns() });
+export const permissions = pgTable('permissions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPermissionColumns() });
+export const policyDefinitions = pgTable('policy_definitions', { ...PostgresIdEnricher.generateColumnDefs(), ...PostgresTzEnricher.generateColumnDefs(), ...extraPolicyDefinitionColumns() });
 ```
 
 **`extraUserColumns(opts?: { idType })`**

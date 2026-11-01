@@ -4,14 +4,14 @@ import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { sqliteTable, text as sqliteText } from 'drizzle-orm/sqlite-core';
 import {
   BasePostgresEntity,
-  generateTzColumnDefs as generatePostgresTzColumnDefs,
-  generateUserAuditColumnDefs as generatePostgresUserAuditColumnDefs,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
 } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import {
   BaseSqliteEntity,
-  generateTzColumnDefs as generateSqliteTzColumnDefs,
-  generateUserAuditColumnDefs as generateSqliteUserAuditColumnDefs,
+  SqliteTzEnricher,
+  SqliteUserAuditEnricher,
 } from '@/relational/sqlite/models';
 
 const ENRICHED_KEYS = ['createdBy', 'modifiedBy', 'createdAt', 'modifiedAt'];
@@ -20,10 +20,10 @@ const postgresEnrichedTable = pgTable('stamped_keys_pg_enriched', {
   id: text('id').primaryKey(),
   code: text('code').notNull(),
   status: text('status').default('draft'),
-  ...generatePostgresTzColumnDefs({
+  ...PostgresTzEnricher.generateColumnDefs({
     deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
   }),
-  ...generatePostgresUserAuditColumnDefs(),
+  ...PostgresUserAuditEnricher.generateColumnDefs(),
 });
 
 class PostgresEnrichedRow extends BasePostgresEntity<typeof postgresEnrichedTable> {
@@ -32,8 +32,8 @@ class PostgresEnrichedRow extends BasePostgresEntity<typeof postgresEnrichedTabl
 
 const sqliteEnrichedTable = sqliteTable('stamped_keys_sqlite_enriched', {
   id: sqliteText('id').primaryKey(),
-  ...generateSqliteTzColumnDefs(),
-  ...generateSqliteUserAuditColumnDefs(),
+  ...SqliteTzEnricher.generateColumnDefs(),
+  ...SqliteUserAuditEnricher.generateColumnDefs(),
 });
 
 class SqliteEnrichedRow extends BaseSqliteEntity<typeof sqliteEnrichedTable> {
@@ -43,7 +43,7 @@ class SqliteEnrichedRow extends BaseSqliteEntity<typeof sqliteEnrichedTable> {
 /** `modifiedAt` switched off: only the creation time is stamped. */
 const createdOnlyTable = pgTable('stamped_keys_created_only', {
   id: text('id').primaryKey(),
-  ...generatePostgresTzColumnDefs({ modified: { enable: false } }),
+  ...PostgresTzEnricher.generateColumnDefs({ modified: { enable: false } }),
 });
 
 class CreatedOnlyRow extends BasePostgresEntity<typeof createdOnlyTable> {

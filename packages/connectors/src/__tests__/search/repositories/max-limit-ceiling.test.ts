@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers/common';
 import { model } from '@venizia/ignis-kernel';
 import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/search/core/models';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { DefaultSearchRepository } from '@/search/core/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
 import { expectRejection } from '@venizia/dev-configs/testing';
@@ -25,7 +25,7 @@ import { FakeSearchDataSource } from './fake-search-connector';
 
 @model({ type: 'entity', tableName: 'ceiling_default' })
 class DefaultCeilingDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'ceiling_default',
     fields: [field.string('title'), field.string('status')],
   });
@@ -38,7 +38,7 @@ class DefaultCeilingDocument extends BaseSearchEntity {
   settings: { query: { limit: { max: 5000 } } },
 })
 class RaisedCeilingDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'ceiling_raised',
     fields: [field.string('title'), field.string('status')],
   });
@@ -51,7 +51,7 @@ class RaisedCeilingDocument extends BaseSearchEntity {
   settings: { query: { limit: { max: 25 } } },
 })
 class LoweredCeilingDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'ceiling_lowered',
     fields: [field.string('title'), field.string('status')],
   });

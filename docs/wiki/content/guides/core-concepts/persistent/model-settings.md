@@ -42,12 +42,12 @@ That one declaration hides the cost price from every result, hides soft-deleted 
 
 ```typescript
 // src/models/product.table.ts
-import { generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis/postgres';
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const productTable = pgTable('Product', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   merchantId: text('merchant_id').notNull(),
   name: text('name').notNull(),
   costPrice: integer('cost_price').notNull(),
@@ -288,11 +288,11 @@ Some tables hold rows that belong to no merchant. Say `TaxType`: the platform de
 
 ```typescript
 // src/models/tax-type.table.ts
-import { generateIdColumnDefs } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher } from '@venizia/ignis/postgres';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const taxTypeTable = pgTable('TaxType', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   merchantId: text('merchant_id'), // null: a shared type
   name: text('name').notNull(),
   rate: integer('rate').notNull(),
@@ -374,7 +374,7 @@ A refused write is an `ApplicationError` with HTTP status `403` and the code `co
 | `... \| the resolved scope cannot be verified on a write \| column 'merchantId': the operator 'gt' cannot be checked on a write` | The scope is an `or` over several columns, a range or another shape the guard cannot read |
 | `... \| no scope could be resolved for this caller` | `resolve()` returned `null` and `onMissing` is `'deny'`, on a create |
 
-At boot, `assertScopeFilterSupported` refuses an `access` on a search-backed model, an `access` while `asyncContext.enable` is off (every query would match zero rows), a `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
+At boot, `ScopeFilterUtility.assertScopeFilterSupported` refuses an `access` on a search-backed model, an `access` while `asyncContext.enable` is off (every query would match zero rows), a `write.mode` other than `reject` or `assign`, and `columns` that is empty or names a property the model does not have.
 
 ## 5. query.limit
 

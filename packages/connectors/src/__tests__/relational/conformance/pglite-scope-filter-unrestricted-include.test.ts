@@ -5,7 +5,7 @@ import {
   RelationTypes,
   ScopeFilters,
 } from '@venizia/ignis-kernel';
-import { createRelations } from '@/relational/core/repositories/dialect/relations/create';
+import { RelationsFactory } from '@/relational/core/repositories/dialect/relations/create';
 import type { TRelationConfig } from '@/relational/core/repositories/common';
 import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
@@ -124,15 +124,15 @@ class ScopeUnrestrictedReviewEntity extends BasePostgresEntity {
   static override relations = (): TRelationConfig[] => reviewRelationsConfig;
 }
 
-const merchantRelationsBuilt = createRelations({
+const merchantRelationsBuilt = RelationsFactory.create({
   source: merchantTable,
   relations: merchantRelationsConfig,
 });
-const productRelationsBuilt = createRelations({
+const productRelationsBuilt = RelationsFactory.create({
   source: productTable,
   relations: productRelationsConfig,
 });
-const reviewRelationsBuilt = createRelations({
+const reviewRelationsBuilt = RelationsFactory.create({
   source: reviewTable,
   relations: reviewRelationsConfig,
 });

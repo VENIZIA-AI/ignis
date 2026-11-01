@@ -350,7 +350,7 @@ const result = await userRepository.find({
 
 ### WeakMap cache
 
-- **Column metadata is cached per schema.** The filter builder caches table column metadata (`getCachedColumns`) to avoid repeated reflection.
+- **Column metadata is cached per schema.** The filter builder caches table column metadata (`TableColumnCache.get`) to avoid repeated reflection.
 - **Populated on first access.** The first access calls Drizzle's `getTableColumns()` and caches the result; later queries read the `WeakMap` instead.
 - **No configuration needed.** The cache is automatic.
 

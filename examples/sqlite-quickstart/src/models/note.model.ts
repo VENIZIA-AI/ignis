@@ -1,7 +1,7 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  SqliteIdEnricher,
+  SqliteTzEnricher,
   many,
   ModelFactory,
   one,
@@ -11,15 +11,18 @@ import { type AnySQLiteColumn, sqliteTable, text } from 'drizzle-orm/sqlite-core
 
 // SQLite has no `jsonb` or `timestamptz` storage class, so both become text columns.
 export const noteTable = sqliteTable('notes', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   title: text('title').notNull(),
   body: text('body'),
   metadata: text('metadata', { mode: 'json' }).$type<{ tags?: string[]; pinned?: boolean }>(),
-  ...generateTzColumnDefs({ modified: { enable: false }, deleted: { enable: false } }),
+  ...SqliteTzEnricher.generateColumnDefs({
+    modified: { enable: false },
+    deleted: { enable: false },
+  }),
 });
 
 export const commentTable = sqliteTable('comments', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...SqliteIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   noteId: text('note_id')
     .notNull()
     .references((): AnySQLiteColumn => noteTable.id, { onDelete: 'cascade' }),

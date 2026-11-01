@@ -228,8 +228,8 @@ For soft-delete patterns, use `SoftDeletableRepository` which overrides delete o
 ```typescript
 import {
   BasePostgresEntity,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   model,
   repository,
   SoftDeletableRepository,
@@ -244,8 +244,8 @@ import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 })
 export class Category extends BasePostgresEntity<typeof Category.schema> {
   static override schema = pgTable('Category', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
     deletedAt: timestamp('deleted_at', { withTimezone: true }),
     name: text('name').notNull(),
   });

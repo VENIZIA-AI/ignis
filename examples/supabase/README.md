@@ -20,7 +20,7 @@ boot, so there is no separate migrate step. Browse the API at `http://localhost:
 |---|---|
 | `src/models/note.model.ts` | The table, its four RLS policies, and `owner_id default auth.uid()` |
 | `src/datasources/supabase.datasource.ts` | `postgres-js` instead of `pg`; pooler-mode presets from `@venizia/ignis/postgres/supabase` |
-| `src/services/note.service.ts` | `withAuthContext` - opens a transaction, stamps the caller's claims into it, then issues an ordinary repository call |
+| `src/services/note.service.ts` | `SupabaseRls.withAuthContext` - opens a transaction, stamps the caller's claims into it, then issues an ordinary repository call |
 | `src/controllers/note.controller.ts` | Reads the verified token as claims and hands them to the service; no `where owner_id = ...` anywhere |
 | `src/token.ts` | Mints a test token with the app's own secret, standing in for a token Supabase Auth would issue |
 | `db/init/01-auth-shim.sql` | The `authenticated` role and `auth.uid()` function a real Supabase project already has |
@@ -74,9 +74,9 @@ for two users the same way, and checks each sees only their own notes. It skips 
 
 ## Plain Postgres, not the Supabase image
 
-`docker-compose.yml` runs `postgres:16`, not `supabase/postgres`. `withAuthContext` needs exactly two
+`docker-compose.yml` runs `postgres:16`, not `supabase/postgres`. `SupabaseRls.withAuthContext` needs exactly two
 things a real Supabase project provisions: a role it can `SET LOCAL ROLE` into, and an `auth.uid()`
-function that reads the claims `withAuthContext` sets. `db/init/01-auth-shim.sql` creates both in four
+function that reads the claims `SupabaseRls.withAuthContext` sets. `db/init/01-auth-shim.sql` creates both in four
 lines. Nothing in IGNIS calls GoTrue, PostgREST, Kong or any other Supabase service - the JWT is
 verified locally, symmetrically, with a shared secret - so none of them need to run for this example
 to prove the point.
@@ -89,7 +89,7 @@ reads the verified payload as-is (`getClaims`) rather than pretending they are t
 
 ## Nothing else here is Supabase-specific
 
-Everything above except `withAuthContext`, `PoolerModes`, and the Supabase role re-exports is ordinary
+Everything above except `SupabaseRls.withAuthContext`, `PoolerModes`, and the Supabase role re-exports is ordinary
 IGNIS. The repository, the filter syntax, transactions, the controller - all the same as any other
 Postgres example. Supabase is Postgres with a driver preference and an identity convention, and IGNIS
 treats it as exactly that.

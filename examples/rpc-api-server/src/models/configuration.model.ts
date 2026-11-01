@@ -1,16 +1,16 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateUserAuditColumnDefs,
+  PostgresIdEnricher,
+  PostgresUserAuditEnricher,
   ModelFactory,
   type TEntityObject,
 } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const configurationTable = pgTable('configurations', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   // Filled from the JWT of the request that writes the row; the CRUD routes ignore them in the body.
-  ...generateUserAuditColumnDefs({
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'string', columnName: 'created_by' },
     modified: { dataType: 'string', columnName: 'modified_by' },
   }),

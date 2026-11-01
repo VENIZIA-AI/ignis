@@ -13,7 +13,7 @@ import {
 import {
   BaseSearchDataSource,
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   type ISearchCollectionDefinition,
   type ISearchConnector,
@@ -122,7 +122,7 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
 /** BaseSearchEntity's `entity.name` resolves via `COLLECTION_NAME ?? definition.name ?? class name`, which can also diverge from `@model({ tableName })`. */
 @model({ type: 'entity', tableName: 'diverged-search-collection' })
 class DivergedSearchDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'diverged-search-collection',
     fields: [field.string('title', { searchable: true })],
   });

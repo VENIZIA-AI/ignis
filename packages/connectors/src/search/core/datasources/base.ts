@@ -1,7 +1,7 @@
 import type { IDataSource } from '@venizia/ignis-kernel';
 import type { ISearchConnector } from '@/search/core/connector';
 import type { ISearchCollectionDefinition, TSearchSchema } from '@/search/core/models';
-import { toSearchQueryParams } from '@/search/core/repositories/common';
+import { SearchQueryParamsUtility } from '@/search/core/repositories/common';
 import type { ISearchDataSourceOptions } from '@/search/core/datasources/common';
 import type { TMultiSearchEntry } from '@/search/core/repositories/common';
 import { MetadataRegistry } from '@venizia/ignis-kernel/metadata';
@@ -99,11 +99,15 @@ export abstract class BaseSearchDataSource<
     const wireSearches = searches.map((entry) => ({
       collection: entry.collection,
       ...dialect.toWireParams({
-        query: toSearchQueryParams(this.applyHiddenExclusion({ entry, hiddenByCollection })),
+        query: SearchQueryParamsUtility.toSearchQueryParams({
+          input: this.applyHiddenExclusion({ entry, hiddenByCollection }),
+        }),
       }),
     }));
     const wireCommonParams = commonParams
-      ? dialect.toWireParams({ query: toSearchQueryParams(commonParams) })
+      ? dialect.toWireParams({
+          query: SearchQueryParamsUtility.toSearchQueryParams({ input: commonParams }),
+        })
       : undefined;
 
     return this.getConnector().multiSearch({

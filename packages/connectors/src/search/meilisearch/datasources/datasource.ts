@@ -4,7 +4,7 @@ import type { ISearchCollectionDefinition } from '@/search/core/models';
 import type { ISearchQueryDialect } from '@/search/core/repositories/common';
 import type { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from '../compiler';
-import { compileMeilisearchCollection } from '../compiler';
+import { MeilisearchCollectionCompiler } from '../compiler';
 import { MeilisearchConnector } from '../connector';
 import { MeilisearchQueryDialect } from '../repositories/dialect/query-dialect';
 import type { IMeilisearchConnectorOptions, IMeilisearchDataSourceSettings } from '../common';
@@ -46,7 +46,7 @@ export class MeilisearchDataSource extends BaseSearchDataSource<
   }
 
   compileCollection(opts: { definition: ISearchCollectionDefinition }): IMeilisearchIndexPlan {
-    return compileMeilisearchCollection(opts);
+    return MeilisearchCollectionCompiler.compile(opts);
   }
 
   async ensureCollection(opts: { definition: ISearchCollectionDefinition }): Promise<void> {

@@ -1,15 +1,15 @@
 import { extraRoleColumns, model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
 } from '@venizia/ignis/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 export const roleTable = pgTable('Role', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   ...extraRoleColumns(),
 });
 

@@ -1,4 +1,4 @@
-import { generateIdColumnDefs } from '@/relational/sqlite/models';
+import { SqliteIdEnricher } from '@/relational/sqlite/models';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
@@ -14,7 +14,7 @@ import { blob, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-c
  * since the failure mode is a query that compiles and then matches nothing.
  */
 const table = sqliteTable('json_parity_fixture', {
-  ...generateIdColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs(),
   metadata: text('meta_data', { mode: 'json' }),
   payload: blob('payload_blob', { mode: 'json' }),
 });

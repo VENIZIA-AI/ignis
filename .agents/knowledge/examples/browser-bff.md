@@ -64,7 +64,7 @@ tree-shakeable where the CommonJS one was not.
 There was a third: an alias pointing `hono/context-storage` at `src/shims/hono-context-storage.ts`,
 because `@venizia/ignis-connectors/postgres` imported that module and its body constructs an
 `AsyncLocalStorage`. It replaced the module for the entire build, not one call site, so a model using
-`enrichUserAudit` had `createdBy` and `modifiedBy` written as `null` on every row with no error. Both
+`PostgresUserAuditEnricher.enrich` had `createdBy` and `modifiedBy` written as `null` on every row with no error. Both
 the alias and the shim are gone: the enricher now reads
 [`RequestContextRegistry`](/packages/kernel.md), and this Worker installs no resolver, which the
 enricher reads as "no request context" - the state its `allowAnonymous` branch already handled.

@@ -160,12 +160,12 @@ class UserRepository extends DefaultCRUDRepository<typeof userTable> {
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
 import type { TEntityObject } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('users', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
 });
