@@ -11,15 +11,19 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import Redis from 'ioredis';
 import path from 'node:path';
 import { Pool } from 'pg';
-import { blankToUndefined } from '@venizia/ignis-helpers';
-import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { ParseUtility } from '@venizia/ignis-helpers';
+import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 
 const pool = new Pool({
-  host: blankToUndefined(process.env.APP_ENV_POSTGRES_HOST) ?? '0.0.0.0',
-  port: parseInt(blankToUndefined(process.env.APP_ENV_POSTGRES_PORT) ?? '5432'),
-  database: blankToUndefined(process.env.APP_ENV_POSTGRES_DATABASE) ?? 'db',
-  user: blankToUndefined(process.env.APP_ENV_POSTGRES_USERNAME) ?? 'postgres',
-  password: blankToUndefined(process.env.APP_ENV_POSTGRES_PASSWORD) ?? 'password',
+  host: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_HOST }) ?? '0.0.0.0',
+  port: parseInt(
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PORT }) ?? '5432',
+  ),
+  database: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_DATABASE }) ?? 'db',
+  user:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_USERNAME }) ?? 'postgres',
+  password:
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_POSTGRES_PASSWORD }) ?? 'password',
 });
 
 const seed = async () => {
@@ -34,8 +38,8 @@ const seed = async () => {
     await client.query('DELETE FROM "Organization"');
 
     // --- Organizations ---
-    const orgAlphaId = uuidV7();
-    const orgBetaId = uuidV7();
+    const orgAlphaId = UuidV7Generator.generate();
+    const orgBetaId = UuidV7Generator.generate();
 
     for (const [id, identifier, name] of [
       [orgAlphaId, 'org_alpha', 'Alpha Corp'],
@@ -48,10 +52,10 @@ const seed = async () => {
     }
 
     // --- Roles ---
-    const roleSuperAdminId = uuidV7();
-    const roleAdminId = uuidV7();
-    const roleUserId = uuidV7();
-    const roleGuestId = uuidV7();
+    const roleSuperAdminId = UuidV7Generator.generate();
+    const roleAdminId = UuidV7Generator.generate();
+    const roleUserId = UuidV7Generator.generate();
+    const roleGuestId = UuidV7Generator.generate();
 
     for (const [id, identifier, name, priority] of [
       [roleSuperAdminId, '999_super-admin', 'Super Admin', 999],
@@ -66,9 +70,9 @@ const seed = async () => {
     }
 
     // --- Permissions ---
-    const permReadConfigId = uuidV7();
-    const permCreateUserId = uuidV7();
-    const permReadDashboardId = uuidV7();
+    const permReadConfigId = UuidV7Generator.generate();
+    const permCreateUserId = UuidV7Generator.generate();
+    const permReadDashboardId = UuidV7Generator.generate();
 
     for (const [id, code, name, subject, action, method] of [
       [permReadConfigId, 'configuration', 'Read Configuration', 'configuration', 'read', 'GET'],
@@ -116,10 +120,16 @@ const seed = async () => {
 
   // Flush Redis authorization cache to clear stale policies from previous runs
   try {
-    const redisDb = parseInt(blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_DB) ?? '8');
+    const redisDb = parseInt(
+      ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_DB }) ?? '8',
+    );
     const redis = new Redis({
-      host: blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_HOST) ?? '0.0.0.0',
-      port: parseInt(blankToUndefined(process.env.APP_ENV_AUTHORZ_REDIS_PORT) ?? '6379'),
+      host:
+        ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_HOST }) ??
+        '0.0.0.0',
+      port: parseInt(
+        ParseUtility.blankToUndefined({ input: process.env.APP_ENV_AUTHORZ_REDIS_PORT }) ?? '6379',
+      ),
       password: process.env.APP_ENV_AUTHORZ_REDIS_PASSWORD || undefined,
       db: redisDb,
       maxRetriesPerRequest: 1,

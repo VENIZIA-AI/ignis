@@ -1,4 +1,4 @@
-import { int } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 import path from 'node:path';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
@@ -12,7 +12,7 @@ import {
   LOGGER_FORMAT,
   LOGGER_PREFIX,
 } from './common/constants';
-import { resolveLoggerColorize, resolveLoggerLevel, type TLoggerFormat } from '../common';
+import { LoggerConfigUtility, type TLoggerFormat } from '../common';
 import { WinstonFormatFactory } from './formats';
 
 /**
@@ -40,8 +40,8 @@ export class WinstonLoggerFactory {
       },
       formatter,
       format = LOGGER_FORMAT as TLoggerFormat,
-      level = resolveLoggerLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
-      colorize = resolveLoggerColorize() ?? true,
+      level = LoggerConfigUtility.resolveLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
+      colorize = LoggerConfigUtility.resolveColorize() ?? true,
       transports: { info: infoTransportOptions, error: errorTransportOptions },
     } = opts;
 
@@ -128,7 +128,7 @@ export class WinstonLoggerFactory {
     const dgramOptions: Partial<IDgramTransportOptions> = {
       socketOptions: { type: 'udp4' },
       host: process.env.APP_ENV_LOGGER_DGRAM_HOST,
-      port: int(process.env.APP_ENV_LOGGER_DGRAM_PORT),
+      port: ParseUtility.toInt({ input: process.env.APP_ENV_LOGGER_DGRAM_PORT }),
       label: process.env.APP_ENV_LOGGER_DGRAM_LABEL,
       levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map((el) => el.trim()) ?? [],
     };

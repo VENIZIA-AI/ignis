@@ -1,4 +1,4 @@
-import { int } from '@venizia/ignis-helpers/core';
+import { ParseUtility } from '@venizia/ignis-helpers/core';
 import type { IJWTTokenPayload, IPayloadFieldCodec } from './types';
 
 export class AuthenticationFieldCodecs {
@@ -10,7 +10,7 @@ export class AuthenticationFieldCodecs {
     deserialize(opts) {
       return (JSON.parse(opts.raw) as string[]).map((el) => {
         const [id, identifier, priority] = el.split('|');
-        return { id, identifier, priority: int(priority) };
+        return { id, identifier, priority: ParseUtility.toInt({ input: priority }) };
       });
     },
   };

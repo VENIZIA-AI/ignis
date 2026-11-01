@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import winston from 'winston';
-import { resolveLoggerColorize } from '@/modules/logger';
-import { defineCustomLogger } from '@/modules/logger/winston';
+import { LoggerConfigUtility } from '@/modules/logger';
+import { WinstonLoggerFactory } from '@/modules/logger/winston';
 
 const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');
@@ -66,20 +66,20 @@ describe('resolveLoggerColorize - environment policy', () => {
     clearEnv();
     process.env.NODE_ENV = 'development';
 
-    expect(resolveLoggerColorize()).toBeUndefined();
+    expect(LoggerConfigUtility.resolveColorize()).toBeUndefined();
   });
 
   test('an unset NODE_ENV is development, so the decision stays open', () => {
     clearEnv();
 
-    expect(resolveLoggerColorize()).toBeUndefined();
+    expect(LoggerConfigUtility.resolveColorize()).toBeUndefined();
   });
 
   test('production turns color off', () => {
     clearEnv();
     process.env.NODE_ENV = 'production';
 
-    expect(resolveLoggerColorize()).toBe(false);
+    expect(LoggerConfigUtility.resolveColorize()).toBe(false);
   });
 
   // Fail-closed, the same boundary the error sanitizer draws: only our own engineers read a
@@ -90,7 +90,7 @@ describe('resolveLoggerColorize - environment policy', () => {
       clearEnv();
       process.env.NODE_ENV = environment;
 
-      expect(resolveLoggerColorize()).toBe(false);
+      expect(LoggerConfigUtility.resolveColorize()).toBe(false);
     },
   );
 
@@ -99,7 +99,7 @@ describe('resolveLoggerColorize - environment policy', () => {
     process.env.NODE_ENV = 'development';
     process.env.NO_COLOR = '1';
 
-    expect(resolveLoggerColorize()).toBe(false);
+    expect(LoggerConfigUtility.resolveColorize()).toBe(false);
   });
 
   test('an empty NO_COLOR is not set at all', () => {
@@ -107,7 +107,7 @@ describe('resolveLoggerColorize - environment policy', () => {
     process.env.NODE_ENV = 'development';
     process.env.NO_COLOR = '';
 
-    expect(resolveLoggerColorize()).toBeUndefined();
+    expect(LoggerConfigUtility.resolveColorize()).toBeUndefined();
   });
 
   test('APP_ENV_LOGGER_COLOR=true beats production and NO_COLOR', () => {
@@ -116,7 +116,7 @@ describe('resolveLoggerColorize - environment policy', () => {
     process.env.NO_COLOR = '1';
     process.env.APP_ENV_LOGGER_COLOR = 'true';
 
-    expect(resolveLoggerColorize()).toBe(true);
+    expect(LoggerConfigUtility.resolveColorize()).toBe(true);
   });
 
   test('APP_ENV_LOGGER_COLOR=false beats a development environment', () => {
@@ -124,15 +124,17 @@ describe('resolveLoggerColorize - environment policy', () => {
     process.env.NODE_ENV = 'development';
     process.env.APP_ENV_LOGGER_COLOR = 'false';
 
-    expect(resolveLoggerColorize()).toBe(false);
+    expect(LoggerConfigUtility.resolveColorize()).toBe(false);
   });
 
   test('an explicit argument beats every environment variable', () => {
     clearEnv();
     process.env.NODE_ENV = 'production';
 
-    expect(resolveLoggerColorize({ environment: 'development' })).toBeUndefined();
-    expect(resolveLoggerColorize({ configured: '0', environment: 'development' })).toBe(false);
+    expect(LoggerConfigUtility.resolveColorize({ environment: 'development' })).toBeUndefined();
+    expect(
+      LoggerConfigUtility.resolveColorize({ configured: '0', environment: 'development' }),
+    ).toBe(false);
   });
 });
 
@@ -140,7 +142,11 @@ describe('defineCustomLogger - color follows the environment', () => {
   afterEach(restoreEnv);
 
   const buildConsoleOnlyLogger = (extra?: { colorize?: boolean }) =>
-    defineCustomLogger({ format: 'text', ...extra, transports: { info: {}, error: {} } });
+    WinstonLoggerFactory.defineCustomLogger({
+      format: 'text',
+      ...extra,
+      transports: { info: {}, error: {} },
+    });
 
   test('production: the console line carries no ANSI codes', () => {
     clearEnv();

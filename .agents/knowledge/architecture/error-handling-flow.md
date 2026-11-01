@@ -139,7 +139,7 @@ Two rules keep the block short. Only the FIRST dependency frame is kept - it is 
 dropped. A `ZodError`'s message, which is its issue array as pretty JSON, is compressed to one
 `path: reason` line per issue, capped at 10 with the remainder counted off.
 
-`formatLogMessage` routes ANY `Error` bound to a `%s` placeholder through this, so every
+`LogFormatUtility.formatMessage` routes ANY `Error` bound to a `%s` placeholder through this, so every
 `logger.error('... %s', error)` call site in the framework and in consuming apps gets it without
 changing the call.
 

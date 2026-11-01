@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import winston from 'winston';
-import { resolveLoggerLevel } from '@/modules/logger';
-import { defineCustomLogger, resolveDefaultTransportOptions } from '@/modules/logger/winston';
+import { LoggerConfigUtility } from '@/modules/logger';
+import { WinstonLoggerFactory } from '@/modules/logger/winston';
 
 const MESSAGE = Symbol.for('message');
 const LEVEL = Symbol.for('level');
@@ -48,7 +48,7 @@ const findFileTransport = (logger: winston.Logger): winston.transport => {
 };
 
 const buildTextLogger = (extra?: { level?: 'warn'; colorize?: boolean }) => {
-  return defineCustomLogger({
+  return WinstonLoggerFactory.defineCustomLogger({
     format: 'text',
     ...extra,
     transports: {
@@ -89,7 +89,7 @@ describe('defineCustomLogger - format wiring per transport', () => {
   });
 
   test('json mode: console output is one valid JSON line without ANSI codes', () => {
-    const logger = defineCustomLogger({
+    const logger = WinstonLoggerFactory.defineCustomLogger({
       format: 'json',
       transports: { info: {}, error: {} },
     });
@@ -110,7 +110,7 @@ describe('defineCustomLogger - format wiring per transport', () => {
 describe('defineCustomLogger - level control', () => {
   // Console-only: winston's isLevelEnabled honors a transport's OWN level (the info/error file transports are pinned), so only a transport without one reflects the logger-level floor.
   const buildConsoleOnlyLogger = (extra?: { level?: 'warn' }) => {
-    return defineCustomLogger({
+    return WinstonLoggerFactory.defineCustomLogger({
       format: 'text',
       ...extra,
       transports: { info: {}, error: {} },
@@ -131,16 +131,16 @@ describe('defineCustomLogger - level control', () => {
 
 describe('resolveLoggerLevel', () => {
   test('absent value falls back to debug', () => {
-    expect(resolveLoggerLevel({ configured: undefined })).toBe('debug');
-    expect(resolveLoggerLevel({ configured: '' })).toBe('debug');
+    expect(LoggerConfigUtility.resolveLevel({ configured: undefined })).toBe('debug');
+    expect(LoggerConfigUtility.resolveLevel({ configured: '' })).toBe('debug');
   });
 
   test('a valid level is honored', () => {
-    expect(resolveLoggerLevel({ configured: 'warn' })).toBe('warn');
+    expect(LoggerConfigUtility.resolveLevel({ configured: 'warn' })).toBe('warn');
   });
 
   test('an invalid level falls back to debug instead of silently breaking the logger', () => {
-    expect(resolveLoggerLevel({ configured: 'not-a-level' })).toBe('debug');
+    expect(LoggerConfigUtility.resolveLevel({ configured: 'not-a-level' })).toBe('debug');
   });
 });
 
@@ -158,7 +158,7 @@ describe('resolveDefaultTransportOptions - file logging is opt-in', () => {
   test('without APP_ENV_LOGGER_FOLDER_PATH no file transport options are produced', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
 
-    const transports = resolveDefaultTransportOptions();
+    const transports = WinstonLoggerFactory.resolveDefaultTransportOptions();
 
     expect(transports.info.file).toBeUndefined();
     expect(transports.error.file).toBeUndefined();
@@ -167,7 +167,7 @@ describe('resolveDefaultTransportOptions - file logging is opt-in', () => {
   test('with APP_ENV_LOGGER_FOLDER_PATH set the configured folder is honored', () => {
     process.env.APP_ENV_LOGGER_FOLDER_PATH = './app_data/logs';
 
-    const transports = resolveDefaultTransportOptions();
+    const transports = WinstonLoggerFactory.resolveDefaultTransportOptions();
 
     expect(transports.info.file?.folder).toBe('./app_data/logs');
     expect(transports.error.file?.folder).toBe('./app_data/logs');

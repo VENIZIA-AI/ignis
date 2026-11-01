@@ -87,7 +87,7 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 import { ApplicationLogger, type ILogger } from '@venizia/ignis-helpers';
 
 class UserService {
-  private logger: ILogger = ApplicationLogger.get('UserService');
+  private logger: ILogger = ApplicationLogger.get({ scope: 'UserService' });
 
   async createUser(data: TCreateUserRequest) {
     this.logger.for('createUser').info('Creating user: %j', data);
@@ -105,7 +105,7 @@ class UserService {
 }
 ```
 
-Annotate against `ILogger`, never a concrete provider class. Acquire a logger via `BaseHelper.logger` (inside any helper, service, controller or repository), `ApplicationLogger.get('Scope')`, or `LoggerFactory.getLogger(['A', 'B'])`.
+Annotate against `ILogger`, never a concrete provider class. Acquire a logger via `BaseHelper.logger` (inside any helper, service, controller or repository), `ApplicationLogger.get({ scope: 'Scope' })`, or `LoggerFactory.getLogger(['A', 'B'])`.
 
 **Common debugging commands:**
 ```bash

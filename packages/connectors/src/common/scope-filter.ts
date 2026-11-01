@@ -1,4 +1,4 @@
-import { resolveValue } from '@venizia/ignis-helpers/common';
+import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { MetadataRegistry, ScopeWriteGuards } from '@venizia/ignis-kernel';
 import { BaseSearchEntity } from '@/search/core/models';
@@ -22,7 +22,7 @@ export const assertScopeFilterSupported = (opts: { asyncContextEnabled: boolean 
       continue;
     }
 
-    const modelClass = resolveValue({ value: entry.target });
+    const modelClass = ResolverUtility.resolveValue({ value: entry.target });
 
     if (modelClass === BaseSearchEntity || modelClass.prototype instanceof BaseSearchEntity) {
       searchBacked.push(name);

@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import { z } from 'zod';
 import { getError } from '@venizia/ignis-helpers/core';
 
@@ -75,7 +75,7 @@ export const deriveSearchDocumentSchema = (opts: {
       return z.object({ ...shape, id: z.string() });
     }
     case SchemaTypes.UPDATE: {
-      return z.object(omit({ source: shape, keys: ['id'] })).partial();
+      return z.object(ObjectUtility.omit({ source: shape, keys: ['id'] })).partial();
     }
     default: {
       throw getError({

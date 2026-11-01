@@ -1,6 +1,6 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import type { AnyType } from '@/common/types';
-import { executePromiseWithLimit, voidExecution } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
 import { type EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
@@ -503,7 +503,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.publish.name);
     const { topics, payload, useCompress = false } = opts;
 
-    const validTopics = topics?.filter((topic) => !isEmpty({ value: topic }));
+    const validTopics = topics?.filter((topic) => !ObjectUtility.isEmpty({ value: topic }));
     if (!validTopics?.length) {
       logger.error('No topic(s) to publish!');
       return;
@@ -518,7 +518,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const packet = useCompress ? zlib.deflateSync(message) : message;
 
     // `topics` is caller-supplied, so an unbounded fan-out here is a caller-sized burst on one connection.
-    await executePromiseWithLimit({
+    await PromiseUtility.executeWithLimit({
       limit: RedisConcurrency.PUBLISH_LIMIT,
       tasks: validTopics.map((topic) => () => this.client.publish(topic, packet)),
     });
@@ -528,12 +528,12 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.subscribe.name);
     const { topic } = opts;
 
-    if (!topic || isEmpty({ value: topic })) {
+    if (!topic || ObjectUtility.isEmpty({ value: topic })) {
       logger.error('No topic to subscribe!');
       return;
     }
 
-    voidExecution({
+    PromiseUtility.voidExecution({
       logger: this.logger,
       scope: this.subscribe.name,
       execution: this.client.subscribe(topic, (error, count) => {
@@ -551,12 +551,12 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
     const logger = this.logger.for(this.unsubscribe.name);
     const { topic } = opts;
 
-    if (!topic || isEmpty({ value: topic })) {
+    if (!topic || ObjectUtility.isEmpty({ value: topic })) {
       logger.error('No topic to unsubscribe!');
       return;
     }
 
-    voidExecution({
+    PromiseUtility.voidExecution({
       logger: this.logger,
       scope: this.unsubscribe.name,
       execution: this.client.unsubscribe(topic, (error, count) => {

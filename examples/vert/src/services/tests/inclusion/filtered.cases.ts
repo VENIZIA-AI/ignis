@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -17,15 +17,19 @@ export class FilteredCases extends BaseTestCases {
     try {
       // Create test data
       const product = await productRepo.create({
-        data: { code: `SCOPE_FILTER_PROD_${getUID()}`, name: 'Scoped Product', price: 100 },
+        data: {
+          code: `SCOPE_FILTER_PROD_${ParseUtility.getUID()}`,
+          name: 'Scoped Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
       const channel1 = await saleChannelRepo.create({
-        data: { code: `SCOPE_FILTER_CH1_${getUID()}`, name: 'Active Channel' },
+        data: { code: `SCOPE_FILTER_CH1_${ParseUtility.getUID()}`, name: 'Active Channel' },
       });
       const channel2 = await saleChannelRepo.create({
-        data: { code: `SCOPE_FILTER_CH2_${getUID()}`, name: 'Inactive Channel' },
+        data: { code: `SCOPE_FILTER_CH2_${ParseUtility.getUID()}`, name: 'Inactive Channel' },
       });
 
       await junctionRepo.createAll({
@@ -120,15 +124,19 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `SCOPE_ORDER_PROD_${getUID()}`, name: 'Ordered Product', price: 100 },
+        data: {
+          code: `SCOPE_ORDER_PROD_${ParseUtility.getUID()}`,
+          name: 'Ordered Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
       const channels = await saleChannelRepo.createAll({
         data: [
-          { code: `SCOPE_ORDER_CH_A_${getUID()}`, name: 'A Channel' },
-          { code: `SCOPE_ORDER_CH_B_${getUID()}`, name: 'B Channel' },
-          { code: `SCOPE_ORDER_CH_C_${getUID()}`, name: 'C Channel' },
+          { code: `SCOPE_ORDER_CH_A_${ParseUtility.getUID()}`, name: 'A Channel' },
+          { code: `SCOPE_ORDER_CH_B_${ParseUtility.getUID()}`, name: 'B Channel' },
+          { code: `SCOPE_ORDER_CH_C_${ParseUtility.getUID()}`, name: 'C Channel' },
         ],
       });
 
@@ -203,17 +211,21 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `SCOPE_LIMIT_PROD_${getUID()}`, name: 'Limited Product', price: 100 },
+        data: {
+          code: `SCOPE_LIMIT_PROD_${ParseUtility.getUID()}`,
+          name: 'Limited Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
       const channels = await saleChannelRepo.createAll({
         data: [
-          { code: `SCOPE_LIMIT_CH_1_${getUID()}`, name: 'Channel 1' },
-          { code: `SCOPE_LIMIT_CH_2_${getUID()}`, name: 'Channel 2' },
-          { code: `SCOPE_LIMIT_CH_3_${getUID()}`, name: 'Channel 3' },
-          { code: `SCOPE_LIMIT_CH_4_${getUID()}`, name: 'Channel 4' },
-          { code: `SCOPE_LIMIT_CH_5_${getUID()}`, name: 'Channel 5' },
+          { code: `SCOPE_LIMIT_CH_1_${ParseUtility.getUID()}`, name: 'Channel 1' },
+          { code: `SCOPE_LIMIT_CH_2_${ParseUtility.getUID()}`, name: 'Channel 2' },
+          { code: `SCOPE_LIMIT_CH_3_${ParseUtility.getUID()}`, name: 'Channel 3' },
+          { code: `SCOPE_LIMIT_CH_4_${ParseUtility.getUID()}`, name: 'Channel 4' },
+          { code: `SCOPE_LIMIT_CH_5_${ParseUtility.getUID()}`, name: 'Channel 5' },
         ],
       });
 
@@ -277,12 +289,16 @@ export class FilteredCases extends BaseTestCases {
 
     try {
       const product = await productRepo.create({
-        data: { code: `FIELD_SEL_PROD_${getUID()}`, name: 'Field Select Product', price: 100 },
+        data: {
+          code: `FIELD_SEL_PROD_${ParseUtility.getUID()}`,
+          name: 'Field Select Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
       const channel = await saleChannelRepo.create({
-        data: { code: `FIELD_SEL_CH_${getUID()}`, name: 'Field Select Channel' },
+        data: { code: `FIELD_SEL_CH_${ParseUtility.getUID()}`, name: 'Field Select Channel' },
       });
 
       await junctionRepo.create({
@@ -349,7 +365,7 @@ export class FilteredCases extends BaseTestCases {
     const junctionRepo = this.context.saleChannelProductRepository;
     this.context.logCase('[CASE 15] Include With Where On Parent');
 
-    const testGroup = `WHERE_PARENT_${getUID()}`;
+    const testGroup = `WHERE_PARENT_${ParseUtility.getUID()}`;
 
     try {
       const products = await productRepo.createAll({

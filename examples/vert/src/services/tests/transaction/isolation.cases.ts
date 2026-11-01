@@ -1,5 +1,5 @@
 import { IsolationLevels } from '@venizia/ignis/postgres';
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -15,7 +15,7 @@ export class IsolationCases extends BaseTestCases {
       '[CASE 4] Read within Transaction - Uncommitted data visible in transaction',
     );
 
-    const code = `TX_READ_WITHIN_${getUID()}`;
+    const code = `TX_READ_WITHIN_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -84,7 +84,7 @@ export class IsolationCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 9] Isolation Level - SERIALIZABLE');
 
-    const code = `TX_SERIALIZABLE_${getUID()}`;
+    const code = `TX_SERIALIZABLE_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction({
       isolationLevel: IsolationLevels.SERIALIZABLE,
     });
@@ -125,7 +125,7 @@ export class IsolationCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 12] Concurrent Transactions on Same Data');
 
-    const code = `TX_CONCURRENT_${getUID()}`;
+    const code = `TX_CONCURRENT_${ParseUtility.getUID()}`;
 
     try {
       // Create initial record
@@ -253,7 +253,7 @@ export class IsolationCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 19] Transaction With Count and Exists Operations');
 
-    const group = `TX_COUNT_EXISTS_${getUID()}`;
+    const group = `TX_COUNT_EXISTS_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {

@@ -152,7 +152,7 @@ A route whose `request.body.content` declares `multipart/form-data` or
 `application/x-www-form-urlencoded` gets `FormBodyMiddleware.read` (`base/middlewares/form-body/`, not on any
 barrel) appended LAST to its middleware chain, in `AbstractRestController.buildRouteMiddlewares` -
 after authenticate, authorize, and every application middleware. It parses the form through helpers'
-`readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
+`FormBodyUtility.readFormBody` and caches the result, so the route's own validator reads the same `FormData` instead
 of the stream, and never gets a chance to throw its own generic parse failure. Read here, a malformed
 form is `RequestErrors.BODY_MALFORMED` - `400 core.request.body_malformed` - the same object as
 helpers' `RequestBodyErrors.BODY_MALFORMED`, so every form parser in the stack throws one definition.
@@ -300,7 +300,7 @@ inversion releases with the kernel.
 `base/repositories/query-schemas/` is where the filter schemas become server schemas. `filter` builds
 them with plain `zod` so a browser can use them; this module imports `@hono/zod-openapi` for its
 side effect (patching `.openapi()` onto the shared prototype) and calls
-`buildQuerySchemas({ decorate })` to re-export the documented versions under the original names.
+`QuerySchemaFactory.build({ decorate })` to re-export the documented versions under the original names.
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 

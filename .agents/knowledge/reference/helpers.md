@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**46 helper classes across 18 modules, 10 utilities.**
+**45 helper classes across 18 modules, 10 utilities.**
 
 ## Modules
 
@@ -29,7 +29,7 @@ generated:
 | `secrets/` | `AbstractSecretsHelper` · `DotenvVaultHelper` · `HashiCorpVaultHelper` · `SystemEnvsHelper` |
 | `slug/` | `SlugHelper` |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketDeliveryHelper` · `WebSocketServerHelper` |
-| `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
+| `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` |
 | `temporal/` | `AbstractTemporalHelper` · `TemporalHelper` |
 | `tree/` | _(see source)_ |
 | `uid/` | `OpaqueUidHelper` · `SnowflakeUidHelper` · `UuidHelper` |
@@ -37,4 +37,4 @@ generated:
 
 ## Utilities
 
-`build-info` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `request` · `sleep`
+`build-info` · `error` · `form-body` · `hr-time` · `module` · `parse` · `performance` · `project-root` · `promise` · `request`

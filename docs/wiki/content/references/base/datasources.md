@@ -58,7 +58,7 @@ Pass connection settings through the constructor's `config` option. `configure()
 
 ```typescript
 import { Pool } from 'pg';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
@@ -66,7 +66,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       name: PostgresDataSource.name,
       config: {
         host: applicationEnvironment.get<string>('APP_ENV_POSTGRES_HOST'),
-        port: int(applicationEnvironment.get<string>('APP_ENV_POSTGRES_PORT')),
+        port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PORT') }),
         database: applicationEnvironment.get<string>('APP_ENV_POSTGRES_DATABASE'),
         user: applicationEnvironment.get<string>('APP_ENV_POSTGRES_USERNAME'),
         password: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PASSWORD'),

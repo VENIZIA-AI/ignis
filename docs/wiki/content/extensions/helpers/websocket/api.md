@@ -240,7 +240,7 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `outboundTransformer` | `TWebSocketOutboundTransformer` | No | - | Intercepts outbound `{ event, data }` before `socket.send()`; enables per-client encryption |
 | `handshakeFn` | `TWebSocketHandshakeFn` | No | - | Required when `requireEncryption` is `true`. Returns `{ serverPublicKey, salt }` to accept, `null`/`false` to reject |
 
-- **Three callbacks run through `invokeHook()`:** `clientConnectedFn`, `clientDisconnectedFn`, and `messageHandler`. A throw or a rejection there is caught and logged, and nothing else changes.
+- **Three callbacks run through `HookUtility.invoke()`:** `clientConnectedFn`, `clientDisconnectedFn`, and `messageHandler`. A throw or a rejection there is caught and logged, and nothing else changes.
 - **The other three fail differently.** They sit on the connection's own promise chain, so a failure has a visible consequence for the client.
 
 | Callback | On throw or rejection |
@@ -249,7 +249,7 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
 | `handshakeFn` | Runs inside the same chain, so a throw lands in the same handler and closes with `4003`. Returning a falsy value instead closes with `4004 Encryption required` |
 | `validateRoomFn` | Logged as `Failed to join rooms`. The socket stays open and the join simply does not happen |
 
-- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `voidExecution`.
+- **Failures do not crash the process.** A synchronous throw inside a Bun socket handler is caught and logged. A rejected promise is logged the same way, via `PromiseUtility.voidExecution`.
 
 ### `configure()`
 
@@ -261,7 +261,7 @@ Must be called after construction and before accepting connections.
 
 1. Registers `error` listeners on `redisPub` and `redisSub`.
 2. Connects both duplicated clients if their status is `'wait'` (`lazyConnect` mode).
-3. `await Promise.all([waitForRedisReady(redisPub), waitForRedisReady(redisSub)])`.
+3. `await Promise.all([RedisUtility.waitForReady({ client: redisPub }), RedisUtility.waitForReady({ client: redisSub })])`.
 4. Subscribes: `subscribe('ws:broadcast')`, `psubscribe('ws:room:*')`, `psubscribe('ws:client:*')`, `psubscribe('ws:user:*')` - awaited together before proceeding.
 5. Starts the heartbeat timer: `setInterval(heartbeatAll, heartbeatInterval)`.
 
@@ -358,7 +358,7 @@ Routes an incoming message:
 - `authenticate`: delegates to `handleAuthenticate()`.
 - Any other event, when the client is not `AUTHENTICATED`: sends `{ event: 'error', data: { message: 'Not authenticated' } }`.
 - `join` / `leave`: delegate to the internal room handlers.
-- Everything else: delegates to `messageHandler` via `invokeHook()`, if configured; otherwise logged at `debug` and dropped.
+- Everything else: delegates to `messageHandler` via `HookUtility.invoke()`, if configured; otherwise logged at `debug` and dropped.
 
 ### `onClientDisconnect()`
 
@@ -447,7 +447,7 @@ Local delivery only.
 | Condition | Strategy |
 |-----------|----------|
 | No `outboundTransformer`, no `exclude` | Bun native `server.publish(room, payload)` - O(1) C++ fan-out |
-| `outboundTransformer` set, no `exclude` | Iterates room clients via `executePromiseWithLimit` (max `encryptedBatchLimit` concurrent) |
+| `outboundTransformer` set, no `exclude` | Iterates room clients via `PromiseUtility.executeWithLimit` (max `encryptedBatchLimit` concurrent) |
 | `exclude` provided | Always iterates clients individually - Bun pub/sub cannot exclude |
 
 ### `broadcast()`

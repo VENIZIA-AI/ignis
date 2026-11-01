@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 1] Default filter should be automatically applied');
 
-    const testCode = `DF_TEST_${getUID()}`;
+    const testCode = `DF_TEST_${ParseUtility.getUID()}`;
 
     try {
       // Create products: one with price > 0, one with price = 0
@@ -55,7 +55,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 3] User filter should be merged with default filter');
 
-    const testCode = `DF_MERGE_${getUID()}`;
+    const testCode = `DF_MERGE_${ParseUtility.getUID()}`;
 
     try {
       // Create products with different names and prices
@@ -103,7 +103,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 9] Empty user filter should still apply default filter');
 
-    const testCode = `DF_EMPTY_${getUID()}`;
+    const testCode = `DF_EMPTY_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -133,7 +133,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 10] Null values in filter should be handled correctly');
 
-    const testCode = `DF_NULL_${getUID()}`;
+    const testCode = `DF_NULL_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -166,7 +166,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 11] Operators should be merged correctly');
 
-    const testCode = `DF_OPERATOR_${getUID()}`;
+    const testCode = `DF_OPERATOR_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -230,7 +230,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 23] Complex AND/OR should work with default filter');
 
-    const testCode = `DF_ANDOR_${getUID()}`;
+    const testCode = `DF_ANDOR_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -289,7 +289,7 @@ export class WhereCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 28] Original filter should not be mutated');
 
-    const testCode = `DF_INVARIANCE_${getUID()}`;
+    const testCode = `DF_INVARIANCE_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({

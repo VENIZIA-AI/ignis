@@ -35,7 +35,7 @@ Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`.
 | Package | `@venizia/ignis` (core component) + `@venizia/ignis-helpers` (storage helpers) |
 | Component class | `StaticAssetComponent` |
 | Import subpath | `@venizia/ignis/static-asset` - not on the root barrel |
-| Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`), `MinioHelper` (`@venizia/ignis-helpers/minio`, deprecated) |
+| Storage helpers | `DiskHelper`, `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`); a MinIO server is reached through `BunS3Helper` |
 | Runtimes | Both - `BunS3Helper` specifically requires Bun (imports Bun's native `S3Client`) |
 | Optional feature | MetaLink - Postgres-backed upload tracking via `BaseMetaLinkModel`/`BaseMetaLinkRepository` |
 
@@ -72,7 +72,6 @@ import type {
 // Helpers - main entry + storage-backend subpaths
 import { DiskHelper } from '@venizia/ignis-helpers';
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
 ```
 
 ## Binding keys
@@ -126,7 +125,6 @@ type TStaticAssetsComponentOptions<Schema extends TMetaLinkCompatibleSchema = TM
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig<Schema> });
 };
@@ -149,8 +147,8 @@ The constraint is the ROW, not the table: any table whose row carries the MetaLi
 | `controller.rawObjectPath` | `boolean` | `false` | `true` serves a raw nested path, <code v-pre>/objects/photos/2024/f.jpg</code>. A percent-encoded path keeps working either way |
 | `controller.keyPrefix` | `string` | `undefined` | The key scope this controller owns inside a shared bucket, for example `'tenant-a'`. Absent means every key in the bucket. See [`controller.keyPrefix`](#controller-keyprefix) |
 | `controller.routes` | object | `undefined` | Per-route overrides, including the `enabled` switch - see [Per-route overrides](#per-route-overrides) |
-| `storage` | `'disk' \| 'bun-s3' \| 'minio'` | - | Selects which `helper` type is required (discriminated union) |
-| `helper` | `DiskHelper \| BunS3Helper \| MinioHelper` | - | Storage backend instance matching `storage` |
+| `storage` | `'disk' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
+| `helper` | `DiskHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
 | `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth, upload size ceiling |
 | `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
 | `metaLink` | `TMetaLinkConfig<Schema>` | - | Required when `useMetaLink: true`; ignored otherwise |
@@ -304,11 +302,9 @@ This is why every generated link points back at the `objects/{objectName}` strea
 ```typescript
 class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
-  /** @deprecated Use {@link StaticAssetStorageTypes.BUN_S3}, which reaches MinIO over the same S3 API. */
-  static readonly MINIO = 'minio';
   static readonly BUN_S3 = 'bun-s3';
 
-  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO, this.BUN_S3]);
+  static readonly SCHEME_SET = new Set([this.DISK, this.BUN_S3]);
 
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
@@ -316,17 +312,16 @@ class StaticAssetStorageTypes {
 }
 
 type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
-// 'disk' | 'minio' | 'bun-s3'
+// 'disk' | 'bun-s3'
 ```
 
 | Type | Constant | Helper | Requires |
 |------|----------|--------|----------|
 | `'disk'` | `StaticAssetStorageTypes.DISK` | `DiskHelper` | Local filesystem write access |
 | `'bun-s3'` | `StaticAssetStorageTypes.BUN_S3` | `BunS3Helper` | Bun runtime (imports Bun's native `S3Client`) |
-| `'minio'` | `StaticAssetStorageTypes.MINIO` | `MinioHelper` from `@venizia/ignis-helpers/minio` | The `minio` driver |
 
-> [!WARNING]
-> `StaticAssetStorageTypes.MINIO` and `MinioHelper` are `@deprecated`, though still a live arm of the options union. Use `BunS3Helper` with `StaticAssetStorageTypes.BUN_S3`: it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
+> [!NOTE]
+> MinIO is not a storage type of its own. Use `BunS3Helper` with `StaticAssetStorageTypes.BUN_S3` and point `endpoint.default` at the MinIO server (path-style addressing is the default): it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
 
 ## Storage helpers
 
@@ -405,10 +400,9 @@ BaseStorageHelper (abstract - implements the validators, upload, the stream meth
     |
     +-- DiskHelper    (local filesystem)
     +-- BunS3Helper   (Bun-native S3, Bun only)
-    +-- MinioHelper   (minio driver, deprecated)
 ```
 
-`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper` and `MinioHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
+`expiresIn` is an `IDuration` (`{ unit, value }`), not seconds. `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` throw on `DiskHelper`; only `BunS3Helper` implements them. See the [Storage full reference](/extensions/helpers/storage/api#presign-and-object-tagging).
 
 ### Supporting types
 
@@ -554,18 +548,7 @@ const bunS3Helper = new BunS3Helper({
 > [!IMPORTANT]
 > Set `endpoint.public` when the application reaches S3 over an internal address. `host` is inside every SigV4 signature, so a URL signed against the internal endpoint cannot be rewritten to a public one afterwards - the signature breaks. `endpoint.default` stays the host this process talks to.
 
-### `MinioHelper`
-
-```typescript
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
-
-/** @deprecated Use `IBunS3HelperOptions` from `@venizia/ignis-helpers/bun-s3`. */
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-`ClientOptions` is the `minio` driver's own option type, so `endPoint`, `port`, `useSSL`, `accessKey` and `secretKey` pass straight through. Sub-path import only, like `BunS3Helper`.
-
-`MinioHelper` is the one backend that persists an upload metadata dictionary (`originalName`, `normalizeName`, `size`, `encoding`, `mimeType`). It does not implement presigning or object tagging, so those four methods throw.
+To use a MinIO server, point `endpoint.default` at it (`'http://localhost:9000'`) and keep `virtualHostedStyle` at its default `false`. MinIO speaks the same S3 API, so no separate helper or driver is needed.
 
 ## Controller factory
 
@@ -723,7 +706,7 @@ authoritative.
    | Segment count vs. `maxFolderDepth` | `400 "Folder path exceeds max depth of {n}"` if over |
    | Each segment via `isValidSegment()` | `400 "Invalid folder path segment: {segment}"` if any fails |
 
-3. `multipart/form-data` parsed via `parseMultipartBody()`.
+3. `multipart/form-data` parsed via `RequestUtility.parseMultipartBody()`.
 4. Each file's effective buffer is checked non-empty - direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used. Empty content returns `400 "Empty file content | name: {originalName}"`. The same pass checks `buffer.length` against `maxBytes`, the authoritative size check - see [Where `maxBytes` runs](#where-maxbytes-runs).
 5. `helper.upload()` runs the storage-helper-level checks below. Under `controller.keyPrefix`, a key outside the scope is refused there too, with `400 core.static_asset.object_key_out_of_scope` - see [`controller.keyPrefix`](#controller-keyprefix).
 6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })` - regardless of success or failure. Removal errors are logged, never thrown.

@@ -6,7 +6,7 @@ import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import { PGlite } from '@electric-sql/pglite';
 import type { Client } from '@libsql/client';
 import { createClient } from '@libsql/client';
-import { formatLogMessage } from '@venizia/ignis-helpers';
+import { LogFormatUtility } from '@venizia/ignis-helpers';
 import { afterAll, beforeAll, describe, expect, setDefaultTimeout, test } from 'bun:test';
 import util from 'node:util';
 import {
@@ -214,7 +214,10 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
     test('positive control: the same renderers DO show the sentinels when the datasource itself is logged', () => {
       const rendered = [
         util.inspect(dataSource(), { depth: 4 }),
-        formatLogMessage({ message: 'x %s', args: [{ options: { leaked: dataSource() } }] }),
+        LogFormatUtility.formatMessage({
+          message: 'x %s',
+          args: [{ options: { leaked: dataSource() } }],
+        }),
       ].join('\n');
 
       expect(findSentinels({ rendered }).length).toBeGreaterThan(0);
@@ -261,11 +264,11 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
       await withTransaction({
         run: ({ transaction }) => {
           const rendered = [
-            formatLogMessage({
+            LogFormatUtility.formatMessage({
               message: 'Executing with opts: %j',
               args: [buildLoggedPayload({ transaction })],
             }),
-            formatLogMessage({ message: '%j', args: [{ transaction }] }),
+            LogFormatUtility.formatMessage({ message: '%j', args: [{ transaction }] }),
           ].join('\n');
 
           expect(findSentinels({ rendered })).toEqual([]);
@@ -278,11 +281,11 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
       await withTransaction({
         run: ({ transaction }) => {
           const rendered = [
-            formatLogMessage({
+            LogFormatUtility.formatMessage({
               message: 'Executing with opts: %s',
               args: [buildLoggedPayload({ transaction })],
             }),
-            formatLogMessage({ message: '%s', args: [{ transaction }] }),
+            LogFormatUtility.formatMessage({ message: '%s', args: [{ transaction }] }),
           ].join('\n');
 
           expect(findSentinels({ rendered })).toEqual([]);
@@ -298,7 +301,7 @@ for (const { engine, begin, dataSource, allowedKeys } of ENGINES) {
           const rendered = [
             stringifyCycleSafe({ value: copy }),
             util.inspect(copy, { depth: null }),
-            formatLogMessage({ message: '%j %s', args: [copy, copy] }),
+            LogFormatUtility.formatMessage({ message: '%j %s', args: [copy, copy] }),
           ].join('\n');
 
           expect(Object.keys(copy).filter((key) => !allowedKeys.includes(key))).toEqual([]);

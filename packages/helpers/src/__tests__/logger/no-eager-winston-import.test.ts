@@ -44,7 +44,7 @@ describe('single-provider loading - winston stays unloaded until it is the chose
     const body = `
       const { LoggerFactory, ApplicationLogger } = await import('./src/index.ts');
       LoggerFactory.getLogger(['ProbeScope']);
-      ApplicationLogger.get('ProbeScope').for('method');
+      ApplicationLogger.get({ scope: 'ProbeScope' }).for('method');
     `;
     const result = await winstonState(body);
     expect(result).toBe('WINSTON_ABSENT');

@@ -1,7 +1,7 @@
 import { type AnyType } from '@/common/types';
 import { AbstractLogger } from '../base';
 import { type ILogger, LogLevels, SHOULD_LOG_DEBUG, type TLogLevel } from '../common';
-import { formatLogMessage } from '../formatting';
+import { LogFormatUtility } from '../formatting';
 import {
   BUFFER_SIZE,
   ENTRY_SIZE,
@@ -103,7 +103,10 @@ export class HfLogger extends AbstractLogger {
   private writeString(levelCode: number, message: string, args: Array<AnyType>): void {
     if (args.length > 0) {
       // Slow path, documented: args are formatted (deep inspection + redaction) - never dropped.
-      this.writeEntry(levelCode, HfLogger.textEncoder.encode(formatLogMessage({ message, args })));
+      this.writeEntry(
+        levelCode,
+        HfLogger.textEncoder.encode(LogFormatUtility.formatMessage({ message, args })),
+      );
       return;
     }
     this.writeEntry(levelCode, HfLogger.encodeMessage(message));

@@ -67,7 +67,7 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 }
 ```
 
-- **Concurrency defaults to `MailDefaults.BATCH_CONCURRENCY` (`5`).** `sendBatch()` runs every message through `send()` with `executePromiseWithLimit()`.
+- **Concurrency defaults to `MailDefaults.BATCH_CONCURRENCY` (`5`).** `sendBatch()` runs every message through `send()` with `PromiseUtility.executeWithLimit()`.
 - **One bad message never aborts the batch.** A `send()` that throws is caught per-message and converted to `{ success: false, error }`; only a failure of the batch operation itself throws `BATCH_SEND_FAILED`.
 
 ### Message validation

@@ -7,10 +7,10 @@ Optimize your IGNIS application for speed and scalability.
 Identify bottlenecks before optimizing:
 
 ```typescript
-import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
+import { PerformanceUtility } from '@venizia/ignis-helpers';
 
 // `logger` is optional and typed `ILogger` - it falls back to `console` when omitted.
-await executeWithPerformanceMeasure({
+await PerformanceUtility.executeWithMeasure({
   logger: this.logger,
   scope: 'DataProcessing',
   description: 'Process large dataset',

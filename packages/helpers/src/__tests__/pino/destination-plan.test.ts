@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import path from 'node:path';
 import { Defaults } from '@/common/constants';
-import { mapFrequency, mapMaxFilesToCount, resolveDestinationPlan } from '@/modules/logger/pino';
+import { PinoDestination } from '@/modules/logger/pino';
 
 /** Pure cases only - every test saves/restores the envs it touches so suite order never matters; `.env.test` sets `APP_ENV_LOGGER_FOLDER_PATH` ambiently, so tests override or delete it explicitly. */
 const ENV_KEYS = [
@@ -50,7 +50,7 @@ describe('resolveDestinationPlan', () => {
     delete process.env.APP_ENV_LOGGER_FILE_MAX_SIZE;
     delete process.env.APP_ENV_LOGGER_FILE_MAX_FILES;
 
-    const plan = resolveDestinationPlan();
+    const plan = PinoDestination.resolvePlan();
 
     expect(plan.kind).toBe('roll');
     if (plan.kind !== 'roll') {
@@ -67,7 +67,7 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FOLDER_PATH = './app_data/logs';
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '1h';
 
-    const plan = resolveDestinationPlan();
+    const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('hourly');
@@ -78,7 +78,7 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FOLDER_PATH = './app_data/logs';
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '1d';
 
-    const plan = resolveDestinationPlan();
+    const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('daily');
@@ -89,7 +89,7 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FOLDER_PATH = './app_data/logs';
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = '24h';
 
-    const plan = resolveDestinationPlan();
+    const plan = PinoDestination.resolvePlan();
     expect(plan.kind).toBe('roll');
     if (plan.kind === 'roll') {
       expect(plan.options.frequency).toBe('daily');
@@ -101,7 +101,7 @@ describe('resolveDestinationPlan', () => {
     process.env.APP_ENV_LOGGER_FILE_FREQUENCY = 'weird';
 
     const { warnings, restore } = withConsoleWarn();
-    const plan = resolveDestinationPlan();
+    const plan = PinoDestination.resolvePlan();
     restore();
 
     expect(plan.kind).toBe('roll');
@@ -115,40 +115,40 @@ describe('resolveDestinationPlan', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     process.env.APP_ENV_LOGGER_FORMAT = 'text';
 
-    expect(resolveDestinationPlan()).toEqual({ kind: 'pretty' });
+    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'pretty' });
   });
 
   test('no FOLDER_PATH + FORMAT=json -> kind "stdout"', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     process.env.APP_ENV_LOGGER_FORMAT = 'json';
 
-    expect(resolveDestinationPlan()).toEqual({ kind: 'stdout' });
+    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'stdout' });
   });
 
   test('no FOLDER_PATH + FORMAT UNSET -> kind "stdout" (the locked NDJSON default - never pretty)', () => {
     delete process.env.APP_ENV_LOGGER_FOLDER_PATH;
     delete process.env.APP_ENV_LOGGER_FORMAT;
 
-    expect(resolveDestinationPlan()).toEqual({ kind: 'stdout' });
+    expect(PinoDestination.resolvePlan()).toEqual({ kind: 'stdout' });
   });
 });
 
 describe('mapFrequency', () => {
   test('"1h" -> hourly', () => {
-    expect(mapFrequency('1h')).toBe('hourly');
+    expect(PinoDestination.mapFrequency({ value: '1h' })).toBe('hourly');
   });
 
   test('"1d" -> daily', () => {
-    expect(mapFrequency('1d')).toBe('daily');
+    expect(PinoDestination.mapFrequency({ value: '1d' })).toBe('daily');
   });
 
   test('"24h" -> daily', () => {
-    expect(mapFrequency('24h')).toBe('daily');
+    expect(PinoDestination.mapFrequency({ value: '24h' })).toBe('daily');
   });
 
   test('undefined defaults to hourly (the "1h" default) without warning', () => {
     const { warnings, restore } = withConsoleWarn();
-    const result = mapFrequency(undefined);
+    const result = PinoDestination.mapFrequency({ value: undefined });
     restore();
 
     expect(result).toBe('hourly');
@@ -157,7 +157,7 @@ describe('mapFrequency', () => {
 
   test('an unrecognized value falls back to hourly and warns', () => {
     const { warnings, restore } = withConsoleWarn();
-    const result = mapFrequency('weird');
+    const result = PinoDestination.mapFrequency({ value: 'weird' });
     restore();
 
     expect(result).toBe('hourly');
@@ -167,21 +167,21 @@ describe('mapFrequency', () => {
 
 describe('mapMaxFilesToCount', () => {
   test('"5d" + hourly -> 120', () => {
-    expect(mapMaxFilesToCount({ value: '5d', frequency: 'hourly' })).toBe(120);
+    expect(PinoDestination.mapMaxFilesToCount({ value: '5d', frequency: 'hourly' })).toBe(120);
   });
 
   test('"5d" + daily -> 5', () => {
-    expect(mapMaxFilesToCount({ value: '5d', frequency: 'daily' })).toBe(5);
+    expect(PinoDestination.mapMaxFilesToCount({ value: '5d', frequency: 'daily' })).toBe(5);
   });
 
   test('"7" -> 7, regardless of frequency (a bare integer is a literal count)', () => {
-    expect(mapMaxFilesToCount({ value: '7', frequency: 'hourly' })).toBe(7);
-    expect(mapMaxFilesToCount({ value: '7', frequency: 'daily' })).toBe(7);
+    expect(PinoDestination.mapMaxFilesToCount({ value: '7', frequency: 'hourly' })).toBe(7);
+    expect(PinoDestination.mapMaxFilesToCount({ value: '7', frequency: 'daily' })).toBe(7);
   });
 
   test('"x" -> falls back to the default "5d" mapping and warns', () => {
     const { warnings, restore } = withConsoleWarn();
-    const result = mapMaxFilesToCount({ value: 'x', frequency: 'hourly' });
+    const result = PinoDestination.mapMaxFilesToCount({ value: 'x', frequency: 'hourly' });
     restore();
 
     expect(result).toBe(120); // '5d' at hourly
@@ -190,7 +190,7 @@ describe('mapMaxFilesToCount', () => {
 
   test('undefined -> falls back to the default "5d" mapping SILENTLY (unset is normal config)', () => {
     const { warnings, restore } = withConsoleWarn();
-    const result = mapMaxFilesToCount({ value: undefined, frequency: 'daily' });
+    const result = PinoDestination.mapMaxFilesToCount({ value: undefined, frequency: 'daily' });
     restore();
 
     expect(result).toBe(5); // '5d' at daily

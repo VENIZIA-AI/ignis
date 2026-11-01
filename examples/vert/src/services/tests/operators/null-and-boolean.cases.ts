@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -157,7 +157,7 @@ export class NullAndBooleanCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[JSON-BOOL] JSON boolean: Creating and querying boolean value');
 
-    const code = `JSON_BOOL_${getUID()}`;
+    const code = `JSON_BOOL_${ParseUtility.getUID()}`;
 
     try {
       // Create a record with boolean JSON value

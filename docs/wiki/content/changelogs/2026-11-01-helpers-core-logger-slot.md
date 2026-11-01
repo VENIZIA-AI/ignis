@@ -1,6 +1,7 @@
 ---
 title: Install your own logger in a browser app
 description: '@venizia/ignis-helpers/core now exports LoggerSlot and ConsoleLogger, so a browser app can choose the logger every helper writes to, and silence debug lines in production.'
+packages: ['@venizia/ignis-helpers']
 ---
 
 # Changelog - 2026-11-01
