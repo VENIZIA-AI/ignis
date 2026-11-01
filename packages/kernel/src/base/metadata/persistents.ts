@@ -20,9 +20,8 @@ import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';
 import type { AbstractEntity } from '../models';
 import { RepositoryTypes } from '../repositories/common/constants';
-import { injectable, InjectableUtility } from './injectable';
-import { normalizeModelMetadata } from './model-metadata';
-import { assertNoRemovedModelSettings } from './model-settings';
+import { injectable, pickRegistrationOptions } from './injectable';
+import { ModelMetadataUtility } from './model-metadata';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (input: IModelMetadata = {}): ClassDecorator => {
@@ -32,9 +31,15 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
       ...InjectableUtility.pickRegistrationOptions({ metadata: input }),
     })(target);
 
-    const metadata = normalizeModelMetadata({ model: target.name, metadata: input });
+    const metadata = ModelMetadataUtility.normalizeModelMetadata({
+      model: target.name,
+      metadata: input,
+    });
 
-    assertNoRemovedModelSettings({ model: target.name, settings: metadata.settings });
+    ModelMetadataUtility.assertNoRemovedModelSettings({
+      model: target.name,
+      settings: metadata.settings,
+    });
     const { settings } = metadata;
 
     const defaultLimit = settings?.query?.limit?.default;

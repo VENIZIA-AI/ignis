@@ -18,15 +18,7 @@ import type {
 } from '../common';
 import { S3Audiences, isNotFoundError, StoragePresignDefaults, toExpirySeconds } from '../common';
 import type { TS3Audience } from '../common';
-import {
-  buildCopySource,
-  buildPostPolicy,
-  buildPresignedUrl,
-  buildSignedRequest,
-  buildTaggingHeader,
-  buildTaggingXml,
-  parseTaggingXml,
-} from './utility';
+import { S3SignatureUtility } from './utility';
 
 export interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
@@ -158,7 +150,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const endpoint = this.credentials.endpoint.default;
 
-    const { url, headers } = await buildSignedRequest({
+    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
       method: 'GET',
       endpoint,
       path: '/',
@@ -211,7 +203,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const endpoint = this.credentials.endpoint.default;
 
-    const { url, headers } = await buildSignedRequest({
+    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
       method: 'PUT',
       endpoint,
       path: `/${name}`,
@@ -241,7 +233,7 @@ export class BunS3Helper extends BaseStorageHelper {
     const { accessKey, secretKey, region, sessionToken } = this.credentials;
     const endpoint = this.credentials.endpoint.default;
 
-    const { url, headers } = await buildSignedRequest({
+    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
       method: 'DELETE',
       endpoint,
       path: `/${name}`,
@@ -275,7 +267,7 @@ export class BunS3Helper extends BaseStorageHelper {
 
     // `x-amz-copy-source` is what makes this server side: S3 reads the source itself, so a 500 MB
     // object never travels through this process. The encoded value is both signed and sent.
-    const request = await buildSignedRequest({
+    const request = await S3SignatureUtility.buildSignedRequest({
       method: 'PUT',
       endpoint,
       path: `${pathPrefix}/${destination.key}`,
@@ -283,7 +275,12 @@ export class BunS3Helper extends BaseStorageHelper {
       secretKey,
       region,
       sessionToken,
-      headers: { 'x-amz-copy-source': buildCopySource({ bucket: bucket.name, key: source.key }) },
+      headers: {
+        'x-amz-copy-source': S3SignatureUtility.buildCopySource({
+          bucket: bucket.name,
+          key: source.key,
+        }),
+      },
     });
 
     const response = await fetch(request.url, { method: 'PUT', headers: request.headers });
@@ -316,7 +313,7 @@ export class BunS3Helper extends BaseStorageHelper {
       bucket: bucket.name,
       audience: S3Audiences.BROWSER,
     });
-    const { formData, expiresAt } = await buildPostPolicy({
+    const { formData, expiresAt } = await S3SignatureUtility.buildPostPolicy({
       bucket: bucket.name,
       keyPrefix,
       maxBytes,
@@ -356,7 +353,7 @@ export class BunS3Helper extends BaseStorageHelper {
       audience: S3Audiences.BROWSER,
     });
 
-    return buildPresignedUrl({
+    return S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint,
       path: `${pathPrefix}/${object.key}`,
@@ -366,7 +363,9 @@ export class BunS3Helper extends BaseStorageHelper {
       sessionToken,
       expiresInSeconds: toExpirySeconds({ expiresIn, operation: 'presignPut' }),
       headers: {
-        ...(tagging ? { 'x-amz-tagging': buildTaggingHeader({ tags: tagging }) } : {}),
+        ...(tagging
+          ? { 'x-amz-tagging': S3SignatureUtility.buildTaggingHeader({ tags: tagging }) }
+          : {}),
         ...(contentLength === undefined ? {} : { 'content-length': String(contentLength) }),
         ...(contentType ? { 'content-type': contentType } : {}),
       },
@@ -406,7 +405,7 @@ export class BunS3Helper extends BaseStorageHelper {
       audience: S3Audiences.SERVER,
     });
 
-    const { url, headers } = await buildSignedRequest({
+    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
       method: 'GET',
       endpoint,
       path: `${pathPrefix}/${key}`,
@@ -431,7 +430,7 @@ export class BunS3Helper extends BaseStorageHelper {
       });
     }
 
-    return parseTaggingXml({ xml: body });
+    return S3SignatureUtility.parseTaggingXml({ xml: body });
   }
 
   override async replaceObjectTags(
@@ -445,9 +444,9 @@ export class BunS3Helper extends BaseStorageHelper {
       bucket: bucketName,
       audience: S3Audiences.SERVER,
     });
-    const requestBody = buildTaggingXml({ tags });
+    const requestBody = S3SignatureUtility.buildTaggingXml({ tags });
 
-    const { url, headers } = await buildSignedRequest({
+    const { url, headers } = await S3SignatureUtility.buildSignedRequest({
       method: 'PUT',
       endpoint,
       path: `${pathPrefix}/${key}`,

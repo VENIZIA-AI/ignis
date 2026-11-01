@@ -1,5 +1,4 @@
 export * from './auth';
-export * from './controller';
 export * from './health-check';
 export * from './request-tracker';
 export * from './api-reference';

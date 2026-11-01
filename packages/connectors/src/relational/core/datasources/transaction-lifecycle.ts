@@ -51,6 +51,16 @@ export abstract class TransactionLifecycle implements ITransaction {
     endedState: TransactionStates.ROLLED_BACK,
   };
 
+  /** True only for a handle built on `TransactionLifecycle`, from either build, that ended by COMMIT. */
+  static isCommitted(opts: { transaction: object }): boolean {
+    const { transaction } = opts;
+
+    return (
+      TRANSACTION_STATE_KEY in transaction &&
+      transaction[TRANSACTION_STATE_KEY] === TransactionStates.COMMITTED
+    );
+  }
+
   // ES-private, not TS-private: a handle that is logged, spread or serialised must not carry its internals.
   #state: TTransactionState = TransactionStates.ACTIVE;
 

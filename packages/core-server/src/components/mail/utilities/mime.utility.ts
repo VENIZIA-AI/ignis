@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { getError } from '@venizia/ignis-helpers/core';
 import { MailErrorCodes, type IMailAttachment, type IMailMessage } from '../common';
 import { splitAddressList } from './address.utility';
-import { readAttachmentContent } from './attachment.utility';
+import { MailAttachmentUtility } from './attachment.utility';
 
 const CRLF = '\r\n';
 const BASE64_LINE_LENGTH = 76;
@@ -319,8 +319,8 @@ function attachmentNameParams(attribute: 'name' | 'filename', value: string): st
 }
 
 async function attachmentPart(attachment: IMailAttachment, boundary: string): Promise<string> {
-  // No root here: a `path` that did not go through `resolveMailAttachments` is refused, never read.
-  const content = await readAttachmentContent({ attachment });
+  // No root here: a `path` that did not go through `MailAttachmentUtility.resolve` is refused, never read.
+  const content = await MailAttachmentUtility.readContent({ attachment });
   const contentType = attachment.contentType ?? 'application/octet-stream';
   assertNoHeaderInjection({ field: 'attachment.contentType', value: contentType });
 
