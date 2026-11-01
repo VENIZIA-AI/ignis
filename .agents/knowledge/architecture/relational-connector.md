@@ -208,7 +208,7 @@ repository-level convenience over `beginTransaction()`, not a new capability.
 **If `execute` ends the owned transaction itself**, `runInTransaction` never ends it a second time.
 It tells the outcome apart through `TRANSACTION_STATE_KEY` (`transaction-lifecycle.ts`), a
 `Symbol.for('@venizia/ignis-connectors/transaction-state')` well-known symbol read by
-`isTransactionCommitted({ transaction })` (`transaction-state.ts`) - a registry symbol rather than a
+`TransactionLifecycle.isCommitted({ transaction })` (same file) - a registry symbol rather than a
 class check, so it recognises a handle or double built on `TransactionLifecycle` even when the
 repository and the transaction load from different module copies (a `@venizia/ignis/testing` double
 from one installed copy with a `@venizia/ignis-connectors` repository from another).

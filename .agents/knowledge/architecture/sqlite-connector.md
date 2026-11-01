@@ -153,7 +153,7 @@ different SQL.
   ten `FilterBuilder` seam members and inherits the rest: the three mandatory ones (`operators`,
   `buildJsonWhereCondition`, `buildJsonOrderBy`) plus two optional overrides.
   `validateJsonColumn()` narrows rather than replaces the neutral check - it calls `super` and then
-  `assertNotBlobJsonColumn`, because Drizzle reports `dataType: 'json'` for
+  `SqliteJsonPathUtility.assertNotBlobJsonColumn`, because Drizzle reports `dataType: 'json'` for
   `blob(name, { mode: 'json' })` too, and SQLite reads a BLOB argument to a json function as JSONB
   while Drizzle stores JSON text. `jsonNeedsNumericCast()` returns `false`: `json_extract` hands
   back the value in its own type, so there is no cast to apply.

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { type IPlanPackage, planFullSweep } from '../release-plan';
+import { type IPlanPackage, ReleasePlan } from '../release-plan';
 
 const ORDER = [
   'dev-configs',
@@ -32,9 +32,9 @@ const workspace = (changed: string[]): IPlanPackage[] => {
 };
 
 const names = (changed: string[]) =>
-  planFullSweep({ packages: workspace(changed) }).map((entry) => entry.name);
+  ReleasePlan.planFullSweep({ packages: workspace(changed) }).map((entry) => entry.name);
 
-describe('planFullSweep - a synthetic chain', () => {
+describe('ReleasePlan.planFullSweep - a synthetic chain', () => {
   const chain: IPlanPackage[] = [
     { name: 'a', packageName: '@x/a', dependsOn: [], changedFiles: 0 },
     { name: 'b', packageName: '@x/b', dependsOn: ['@x/a'], changedFiles: 0 },
@@ -46,11 +46,11 @@ describe('planFullSweep - a synthetic chain', () => {
   };
 
   test('nothing changed, nothing released', () => {
-    expect(planFullSweep({ packages: withChanged([]) })).toEqual([]);
+    expect(ReleasePlan.planFullSweep({ packages: withChanged([]) })).toEqual([]);
   });
 
   test('a changed package releases itself and every transitive dependent, in order', () => {
-    expect(planFullSweep({ packages: withChanged(['a']) })).toEqual([
+    expect(ReleasePlan.planFullSweep({ packages: withChanged(['a']) })).toEqual([
       { name: 'a' },
       { name: 'b', cascadedFrom: ['@x/a'] },
       { name: 'c', cascadedFrom: ['@x/b'] },
@@ -59,12 +59,12 @@ describe('planFullSweep - a synthetic chain', () => {
 
   test('a package the change does not reach is left out', () => {
     expect(
-      planFullSweep({ packages: withChanged(['a']) }).map((entry) => entry.name),
+      ReleasePlan.planFullSweep({ packages: withChanged(['a']) }).map((entry) => entry.name),
     ).not.toContain('d');
   });
 
   test('a package with its own change is not reported as cascaded', () => {
-    const planned = planFullSweep({ packages: withChanged(['a', 'b']) });
+    const planned = ReleasePlan.planFullSweep({ packages: withChanged(['a', 'b']) });
 
     expect(planned.find((entry) => entry.name === 'b')).toEqual({ name: 'b' });
   });
@@ -75,7 +75,7 @@ describe('planFullSweep - a synthetic chain', () => {
       changedFiles: pkg.name === 'b' ? Number.POSITIVE_INFINITY : 0,
     }));
 
-    expect(planFullSweep({ packages }).map((entry) => entry.name)).toEqual(['b', 'c']);
+    expect(ReleasePlan.planFullSweep({ packages }).map((entry) => entry.name)).toEqual(['b', 'c']);
   });
 
   test('names the packages it cascades from', () => {
@@ -90,14 +90,14 @@ describe('planFullSweep - a synthetic chain', () => {
       },
     ];
 
-    expect(planFullSweep({ packages }).at(-1)).toEqual({
+    expect(ReleasePlan.planFullSweep({ packages }).at(-1)).toEqual({
       name: 'c',
       cascadedFrom: ['@x/a', '@x/b'],
     });
   });
 });
 
-describe('planFullSweep - the real workspace', () => {
+describe('ReleasePlan.planFullSweep - the real workspace', () => {
   test('helpers changed: boot, kernel, connectors, the worker and the server follow; inversion, filter and dev-configs do not', () => {
     expect(names(['helpers'])).toEqual([
       'helpers',

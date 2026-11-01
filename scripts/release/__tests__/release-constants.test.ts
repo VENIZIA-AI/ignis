@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { parseReleaseArgs } from '../release-args';
+import { ReleaseArgs } from '../release-args';
 import { NpmDistTags, ReleaseModes } from '../release-constants';
-import { parsePublished } from '../sync-next-tag';
+import { NextTagSync } from '../sync-next-tag';
 
 describe('release constants', () => {
   test('ReleaseModes holds the seven npm version modes and validates them', () => {
@@ -26,20 +26,24 @@ describe('release constants', () => {
   });
 
   test('--mode accepts a valid mode and refuses an unknown one with the valid list', () => {
-    expect(parseReleaseArgs(['--mode', 'patch']).mode).toBe('patch');
-    expect(parseReleaseArgs([]).mode).toBe('prerelease');
-    expect(() => parseReleaseArgs(['--mode', 'pach'])).toThrow(
+    expect(ReleaseArgs.parse({ args: ['--mode', 'patch'] }).mode).toBe('patch');
+    expect(ReleaseArgs.parse({ args: [] }).mode).toBe('prerelease');
+    expect(() => ReleaseArgs.parse({ args: ['--mode', 'pach'] })).toThrow(
       /--mode must be one of patch, minor/,
     );
-    expect(() => parseReleaseArgs(['--mode'])).toThrow(/got: nothing/);
+    expect(() => ReleaseArgs.parse({ args: ['--mode'] })).toThrow(/got: nothing/);
   });
 
   test('--tag is still validated by NpmDistTags', () => {
-    expect(parsePublished(['--published', '@venizia/ignis@0.4.2', '--tag', 'next'])?.tag).toBe(
-      'next',
-    );
-    expect(() => parsePublished(['--published', '@venizia/ignis@0.4.2', '--tag', 'beta'])).toThrow(
-      /--tag must be latest or next/,
-    );
+    expect(
+      NextTagSync.parsePublished({
+        args: ['--published', '@venizia/ignis@0.4.2', '--tag', 'next'],
+      })?.tag,
+    ).toBe('next');
+    expect(() =>
+      NextTagSync.parsePublished({
+        args: ['--published', '@venizia/ignis@0.4.2', '--tag', 'beta'],
+      }),
+    ).toThrow(/--tag must be latest or next/);
   });
 });
