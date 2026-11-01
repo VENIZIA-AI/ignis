@@ -86,7 +86,9 @@
     "@types/bun": "catalog:",
     "@venizia/dev-configs": "workspace:*",
     "@venizia/vulcan": "0.4.6",
-    "typescript": "catalog:"
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
   },
   "overrides": {
     "@electric-sql/pglite": "0.5.8"
