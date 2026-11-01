@@ -5,6 +5,10 @@ export { EnvironmentNames } from './modules/env/names';
 export * from './modules/error';
 export { LogLevels } from './modules/logger/common/types';
 export type { ILogger, ILoggerProvider, TLogLevel } from './modules/logger/common/types';
+// The browser-safe logger seam: `LoggerFactory` is node-only, so a browser app installs its own resolver here.
+export { ConsoleLogger } from './modules/logger/base/console';
+export { LoggerSlot } from './modules/logger/slot';
+export type { TLoggerResolver } from './modules/logger/slot';
 export * from './modules/network/http-request/fetcher/base-fetcher';
 // The node fetcher carries no node builtin - its one `querystring.stringify` is written out - so the
 // framework HTTP layer is reachable from a browser bundle, and a connector on HTTP need not
