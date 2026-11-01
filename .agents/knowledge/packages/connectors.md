@@ -507,7 +507,7 @@ expression's `asc`/`desc` SQL node is built once and reused in a `WeakMap` keyed
 object (`_orderNodeCache`) - drizzle 0.45 wraps order nodes, never mutates them - which took `build()`
 with one include from 870 to 446 ns.
 
-**Each entry is read through `parseOrderEntry` (`@venizia/ignis-filter`), not a private parser.**
+**Each entry is read through `Sorts.parseEntry` (`@venizia/ignis-filter`), not a private parser.**
 `FilterBuilder`, `TypesenseQueryDialect` and `MeilisearchQueryDialect` used to each carry their own
 copy of the same `entry.trim().split(/\s+/)` logic; all three now call the one shared function (V-C-16,
 in the VULCAN base rules). It throws a `400` naming the whole entry for an empty field, an invalid
@@ -536,7 +536,7 @@ alone. The map is cleared (not LRU-evicted) once it reaches the cap: deleting fr
 JSC `Map` measured slower than accepting one extra parse on the next miss. An entry is cached as soon
 as it parses and fits the length bound - before the column or expression it names is looked up - so
 an entry naming an unknown column is cached too, as long as it is 256 characters or fewer. Only a
-value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens) is
+value `Sorts.parseEntry` itself rejects (empty field, invalid direction, more than two tokens) is
 never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
 this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
 the cache.

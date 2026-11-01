@@ -1,7 +1,7 @@
 import type { IDataSource } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers/common';
-import { resolveValue } from '@venizia/ignis-helpers/common';
+import { ResolverUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
@@ -67,12 +67,12 @@ export const RepositoryMetadataMixin = <
       // Every member of the binding may be a resolver, the escape hatch for circular imports.
       // Reading `.name` off the resolver keys the registry by the arrow's inferred name, and the
       // datasource then silently discovers no schema.
-      const repositoryClass = resolveValue({ value: opts.repository });
+      const repositoryClass = ResolverUtility.resolveValue({ value: opts.repository });
       this.repositoryBindings.set(repositoryClass.name, opts);
       this.repositoryBindingsByClass.set(repositoryClass, opts);
 
-      const dataSourceRef = resolveValue({ value: opts.dataSource });
-      const modelClass = resolveValue({ value: opts.model });
+      const dataSourceRef = ResolverUtility.resolveValue({ value: opts.dataSource });
+      const modelClass = ResolverUtility.resolveValue({ value: opts.model });
 
       if (!this.datasourceModels.has(dataSourceRef)) {
         this.datasourceModels.set(dataSourceRef, new Set());
@@ -133,7 +133,7 @@ export const RepositoryMetadataMixin = <
         return undefined;
       }
 
-      const relations = resolveValue({ value: modelMeta.relationsResolver });
+      const relations = ResolverUtility.resolveValue({ value: modelMeta.relationsResolver });
 
       if (!relations || !modelMeta.schema) {
         return undefined;

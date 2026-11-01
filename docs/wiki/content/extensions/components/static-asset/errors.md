@@ -45,7 +45,7 @@ The eight `core.static_asset.*` codes live on `StaticAssetErrors`; `core.storage
 | <code v-pre>"Invalid folder path segment: {segment}"</code> | One `folderPath` segment fails `isValidSegment()` | `core.static_asset.folder_segment_invalid` | `400` |
 | <code v-pre>"Empty file content \| name: {originalName}"</code> | The uploaded file's buffer is empty after multipart parsing (or after re-reading a disk-spooled file) | `core.static_asset.file_empty` | `400` |
 | <code v-pre>"Invalid maxKeys \| Expected a positive integer \| value: {value}"</code> | `listObjects`'s `maxKeys` query param does not parse to a positive integer | `core.static_asset.max_keys_invalid` | `400` |
-| <code v-pre>[getObject] Object not found \| bucket: {bucket} \| key: {key}</code> (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` and `MinioHelper` map the backend's own failure onto it through `asStorageError` | `core.storage.object_not_found` | `404` |
+| <code v-pre>[getObject] Object not found \| bucket: {bucket} \| key: {key}</code> (also `[getObjectStream]`, `[getStat]`, `[removeObject]`) | No object at that bucket and key. `DiskHelper` throws it directly; `BunS3Helper` maps the backend's own failure onto it through `asStorageError` | `core.storage.object_not_found` | `404` |
 | <code v-pre>Object not found \| key: {key}</code> | The key does not start with `controller.keyPrefix` - answered before any storage call, so a caller learns nothing about a key outside its scope | `core.storage.object_not_found` | `404` |
 | `"Object key is outside the key prefix of this controller"` | A `resolveObjectName` or `extra.normalizeNameFn` key falls outside `controller.keyPrefix` | `core.static_asset.object_key_out_of_scope` | `400` |
 | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `helper.upload()` found no matching bucket via `hasBucket()` | - | `400` (default) |
@@ -110,7 +110,7 @@ await fetch('/assets/buckets/user-uploads', { method: 'POST' });
 
 ### "Empty file content"
 
-- **Cause:** the uploaded file's buffer is empty - either the client sent a zero-byte file field, or `parseMultipartBody` produced no readable content.
+- **Cause:** the uploaded file's buffer is empty - either the client sent a zero-byte file field, or `RequestUtility.parseMultipartBody` produced no readable content.
 - **Fix:** verify the `FormData` field actually carries file bytes before submitting. A zero-byte file is rejected - this is not a size-limit issue.
 
 ### "Invalid maxKeys"

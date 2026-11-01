@@ -42,7 +42,7 @@ a network. `curl` against the dev server returns the SPA shell; the routed URL i
 - **A second tab works.** One tab holds the Worker and the OPFS handle; the rest reach it through
   `SharedBffTransport`. Close the leading tab and a follower is promoted in place, no reload.
 - **react-admin talks to it unmodified.** `DefaultRestDataProvider` points at `/api` and reaches the
-  network through the global `fetch`, which `installBffFetch` answers. Nothing in the front end knows
+  network through the global `fetch`, which `BffFetchBridge.install` answers. Nothing in the front end knows
   a Worker exists.
 
 ## The one workaround left, and the two that were removed

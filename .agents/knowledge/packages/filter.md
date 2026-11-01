@@ -34,7 +34,7 @@ share the `find<R = unknown, const F extends TFields<T>>` shape, so an override 
 `<R = E>` shape stops compiling and a generic caller (`findById<DataObject>`) needs a cast. A field
 list kept in a constant needs `as const`. Pinned by `kernel/src/__tests__/repository-typed-fields.ts`.
 
-`common/order.ts` adds `parseOrderEntry(opts: { entry: string }): TParsedOrderEntry` - the one parser
+`Sorts.parseEntry(opts: { entry: string }): TParsedOrderEntry` (`common/operators.ts`) - the one parser
 every relational and search dialect now shares for a `'field'`/`'field ASC|DESC'` order entry, and the
 `TSortDirection`/`TParsedOrderEntry` types it returns. See
 [filter system - order entries share one parser](/architecture/filter-system.md#order-entries-share-one-parser)
@@ -165,7 +165,7 @@ too, on a **separate entry point**: `@venizia/ignis-filter/schemas`. Separate be
 must not drag `zod` in for consumers who only want the vocabulary - the root re-exports `common/`
 only, and `zod` is reachable from the sub-path alone.
 
-They are built with **plain `zod`**, never `@hono/zod-openapi`, so `buildQuerySchemas({ decorate })`
+They are built with **plain `zod`**, never `@hono/zod-openapi`, so `QuerySchemaFactory.build({ decorate })`
 takes an injected decorator: `.openapi()` returns a NEW schema rather than mutating, and three of the
 eleven decorations sit on inner nodes of a nested tree, so a consumer cannot annotate them after the
 tree is composed. `kernel/src/base/repositories/query-schemas/index.ts` calls the builder with

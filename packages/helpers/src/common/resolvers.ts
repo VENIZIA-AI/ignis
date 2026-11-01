@@ -1,20 +1,22 @@
-import { resolveValue } from '@venizia/ignis-inversion';
+import { ResolverUtility } from '@venizia/ignis-inversion';
 
 import type { TClass, TResolver } from './types';
 
 // The resolver vocabulary and its two readers live in inversion, the lowest layer, because the
 // container branches on them. Re-exported here so the rest of the stack reaches them through the
 // package it already depends on, instead of each layer redeclaring them.
-export { isClass, isEmpty, omit, resolveValue, resolveValueAsync } from '@venizia/ignis-inversion';
+export { isClass, ObjectUtility, ResolverUtility } from '@venizia/ignis-inversion';
 
-/** Resolves a class reference, passing through string binding keys as-is. */
-export const resolveClass = <T>(opts: {
-  ref: TClass<T> | TResolver<TClass<T>> | string;
-}): TClass<T> | string => {
-  const { ref } = opts;
-  if (typeof ref === 'string') {
-    return ref;
+export class ClassResolver {
+  /** Resolves a class reference, passing through string binding keys as-is. */
+  static resolveClass<T>(opts: {
+    ref: TClass<T> | TResolver<TClass<T>> | string;
+  }): TClass<T> | string {
+    const { ref } = opts;
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    return ResolverUtility.resolveValue({ value: ref });
   }
-
-  return resolveValue({ value: ref });
-};
+}

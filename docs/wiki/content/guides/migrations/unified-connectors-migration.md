@@ -55,7 +55,7 @@ const port = applicationEnvironment.get<string>(Keys.PORT, { defaultValue: '3000
 // New capability - transform raw env values in one read:
 const nodes = applicationEnvironment.get<string[], string>(Keys.NODES, {
   defaultValue: [],
-  transform: value => toDelimitedArray(value),
+  transform: value => ParseUtility.toDelimitedArray({ input: value }),
 });
 ```
 
@@ -65,7 +65,7 @@ Measured impact on a consumer: **5 call sites** use the positional form. They fa
 grep -rnE "applicationEnvironment.get(<[^>]*>)?\([^,)]+, [^{]" packages/*/src --include='*.ts'
 ```
 
-New helpers: `toDelimitedArray(input, separator?)` (split + trim + drop empties) and `toTrimmed(input)` from `@venizia/ignis-helpers`.
+New helpers: `ParseUtility.toDelimitedArray({ input, separator? })` (split + trim + drop empties) and `ParseUtility.toTrimmed({ input })` from `@venizia/ignis-helpers`.
 
 ### 3. Purge stale TypeScript build info
 

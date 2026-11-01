@@ -15,31 +15,35 @@ export type TCreateRedisHelperOptions =
   | ({ mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions)
   | ({ mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions);
 
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions,
-): RedisSingleHelper;
+export class RedisHelperFactory {
+  static create(
+    opts: { mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions,
+  ): RedisSingleHelper;
 
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions,
-): RedisClusterHelper;
+  static create(
+    opts: { mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions,
+  ): RedisClusterHelper;
 
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions,
-): RedisSentinelHelper;
+  static create(
+    opts: { mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions,
+  ): RedisSentinelHelper;
 
-export function createRedisHelper(opts: TCreateRedisHelperOptions): AbstractRedisHelper {
-  switch (opts.mode) {
-    case RedisModes.SINGLE: {
-      return new RedisSingleHelper(opts);
-    }
-    case RedisModes.CLUSTER: {
-      return new RedisClusterHelper(opts);
-    }
-    case RedisModes.SENTINEL: {
-      return new RedisSentinelHelper(opts);
-    }
-    default: {
-      throw getError({ message: '[createRedisHelper] Unsupported redis mode!' });
+  static create(opts: TCreateRedisHelperOptions): AbstractRedisHelper;
+
+  static create(opts: TCreateRedisHelperOptions): AbstractRedisHelper {
+    switch (opts.mode) {
+      case RedisModes.SINGLE: {
+        return new RedisSingleHelper(opts);
+      }
+      case RedisModes.CLUSTER: {
+        return new RedisClusterHelper(opts);
+      }
+      case RedisModes.SENTINEL: {
+        return new RedisSentinelHelper(opts);
+      }
+      default: {
+        throw getError({ message: '[RedisHelperFactory.create] Unsupported redis mode!' });
+      }
     }
   }
 }

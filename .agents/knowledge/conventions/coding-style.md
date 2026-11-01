@@ -52,7 +52,7 @@ try {
   await this.worker?.close();
 } catch (error) {
   this.logger.for(this.close.name).error('Error closing BullMQ worker: %s', error);
-  failures.push(toError(error).message);
+  failures.push(ErrorUtility.toError({ error }).message);
 }
 ```
 

@@ -1,10 +1,14 @@
 import { getError } from '@venizia/ignis-inversion';
 import winston from 'winston';
-import { deepSplat } from './formatters';
+import { type AnyType } from '@/common/types';
 import { LOGGER_FORMAT, LOGGER_PREFIX } from './common/constants';
-import { LoggerFormats, resolveLoggerColorize, type TLoggerFormat } from '../common';
+import { LoggerFormats, LoggerConfigUtility, type TLoggerFormat } from '../common';
+import { LogFormatUtility } from '../formatting';
 
 const f = winston.format;
+
+/** Winston stashes the extra arguments of `logger.error(msg, ...args)` under this well-known key. */
+const SPLAT = Symbol.for('splat');
 
 /**
  * Static methods never reach a sibling through `this` - the exported names in `define.ts` are
@@ -17,8 +21,22 @@ export class WinstonFormatFactory {
       f.label({ label: opts.label }),
       f.timestamp(),
       f.errors({ stack: true }),
-      deepSplat(),
+      WinstonFormatFactory.deepSplat(),
     );
+  }
+
+  /** Drop-in replacement for `winston.format.splat()` that formats through {@link LogFormatUtility.formatMessage}; every transport reads `info.message`, so widening it here widens console, file and dgram at once. */
+  static deepSplat() {
+    return f((info) => {
+      const args = (info as AnyType)[SPLAT] as Array<unknown> | undefined;
+
+      if (!args?.length || typeof info.message !== 'string') {
+        return info;
+      }
+
+      info.message = LogFormatUtility.formatMessage({ message: info.message, args });
+      return info;
+    })();
   }
 
   static textLine() {
@@ -33,7 +51,7 @@ export class WinstonFormatFactory {
 
   static pretty(opts: { label: string; colorize?: boolean }) {
     // winston has no terminal detection of its own, so "no opinion" keeps the historical default.
-    const { label, colorize = resolveLoggerColorize() ?? true } = opts;
+    const { label, colorize = LoggerConfigUtility.resolveColorize() ?? true } = opts;
 
     if (colorize) {
       return f.combine(

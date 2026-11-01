@@ -1,5 +1,5 @@
 import { ModuleUtility } from '@/utilities/module.utility';
-import { int } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { type IRedisSingleHelperOptions } from './../common';
@@ -19,7 +19,7 @@ export class RedisSingleHelper extends AbstractRedisHelper<Redis> {
       client: new ioredis.Redis({
         name,
         host,
-        port: int(port),
+        port: ParseUtility.toInt({ input: port }),
         password,
         db: database,
         lazyConnect: !autoConnect,

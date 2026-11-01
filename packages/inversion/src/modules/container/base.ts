@@ -141,7 +141,7 @@ export abstract class BaseContainer extends AbstractContainer {
     const binding = this.getBinding<T>({ key });
     if (binding) {
       // Counted here and nowhere else: constructor injection, property injection, `application.get`
-      // and `verifyBindings` all arrive through this one method. A miss below is not a resolution.
+      // and `BindingVerifier.verify` all arrive through this one method. A miss below is not a resolution.
       if (this.isCountingResolutions) {
         this.resolutionCounts.set(binding.key, (this.resolutionCounts.get(binding.key) ?? 0) + 1);
       }

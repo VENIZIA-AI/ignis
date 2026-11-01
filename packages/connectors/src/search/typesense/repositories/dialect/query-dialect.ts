@@ -12,7 +12,7 @@ import {
   SearchDialectHelper,
 } from '@/search/core/repositories/common/dialect-helpers';
 import type { ITypesenseSearchQuery } from '@/search/typesense/repositories/common';
-import { parseOrderEntry, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 
 /** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
@@ -490,7 +490,7 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     return order
       .map((entry) => {
-        const { field, direction } = parseOrderEntry({ entry });
+        const { field, direction } = Sorts.parseEntry({ entry });
 
         SearchDialectHelper.assertKnownField({
           field,

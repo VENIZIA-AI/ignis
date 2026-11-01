@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { createUuidV7, UuidHelper, UuidNamespaces } from '@/modules/uid';
+import { UuidV7Generator, UuidHelper, UuidNamespaces } from '@/modules/uid';
 import { Sha1Digest } from '@/modules/uid/uuid/sha1';
-import { createUuidV5 } from '@/modules/uid/uuid/v5';
+import { UuidV5Generator } from '@/modules/uid/uuid/v5';
 
 const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -159,7 +159,7 @@ describe('UuidHelper.v5', () => {
   // number fall, so the bound still fails it - after the wait.
   test('a very long name does not keep its buffer afterwards', async () => {
     // Bun reports ArrayBuffer memory under `external`; `arrayBuffers` stays 0 there.
-    const generate = createUuidV5();
+    const generate = UuidV5Generator.create();
     const name = 'x'.repeat(5_000_000);
     generate({ namespace: UuidNamespaces.DNS, name: 'warm' });
     Bun.gc(true);
@@ -233,7 +233,7 @@ describe('UuidHelper.inspect', () => {
 
   // A private sequence: the shared one carries whatever an earlier burst in this process borrowed.
   test('reads the creation time out of a v7 id', () => {
-    const generate = createUuidV7();
+    const generate = UuidV7Generator.create();
     const before = Date.now();
     const inspected = uuid.inspect({ value: generate() });
     const after = Date.now();
@@ -244,7 +244,7 @@ describe('UuidHelper.inspect', () => {
   });
 
   test('a burst leads the clock by the milliseconds it borrowed, and no more', () => {
-    const generate = createUuidV7();
+    const generate = UuidV7Generator.create();
     const count = 20_000;
     const ids = Array.from({ length: count }, () => generate());
     const last = uuid.inspect({ value: ids[count - 1] })?.createdAt?.getTime() ?? 0;

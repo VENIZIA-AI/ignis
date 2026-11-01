@@ -179,7 +179,7 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 // src/datasources/search.datasource.ts
 import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis/typesense';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 @datasource()
 export class SearchDataSource extends TypesenseDataSource {
@@ -190,7 +190,7 @@ export class SearchDataSource extends TypesenseDataSource {
         nodes: [
           {
             host: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_HOST'),
-            port: int(applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT')),
+            port: ParseUtility.toInt({ input: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PORT') }),
             protocol: applicationEnvironment.get<string>('APP_ENV_TYPESENSE_PROTOCOL'),
           },
         ],

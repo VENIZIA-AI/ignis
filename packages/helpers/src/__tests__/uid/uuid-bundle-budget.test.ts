@@ -60,7 +60,7 @@ describe('the ./uuid subpath bundle budget', () => {
   test(`uuidV4 alone stays under ${BUDGETS.v4} B gzip`, async () => {
     const size = await gzippedSize({
       name: 'v4',
-      source: `import { uuidV4 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV4();\n`,
+      source: `import { UuidV4Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV4Generator.generate();\n`,
     });
 
     expect(size).toBeLessThanOrEqual(BUDGETS.v4);
@@ -69,7 +69,7 @@ describe('the ./uuid subpath bundle budget', () => {
   test(`uuidV7 alone stays under ${BUDGETS.v7} B gzip`, async () => {
     const size = await gzippedSize({
       name: 'v7',
-      source: `import { uuidV7 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV7();\n`,
+      source: `import { UuidV7Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV7Generator.generate();\n`,
     });
 
     expect(size).toBeLessThanOrEqual(BUDGETS.v7);
@@ -81,11 +81,11 @@ describe('the ./uuid subpath bundle budget', () => {
     const [v4Only, withV5] = await Promise.all([
       gzippedSize({
         name: 'shake-v4',
-        source: `import { uuidV4 } from '${UUID_ENTRY}';\nglobalThis.probe = uuidV4();\n`,
+        source: `import { UuidV4Generator } from '${UUID_ENTRY}';\nglobalThis.probe = UuidV4Generator.generate();\n`,
       }),
       gzippedSize({
         name: 'shake-v5',
-        source: `import { uuidV4, uuidV5, UuidNamespaces } from '${UUID_ENTRY}';\nglobalThis.probe = [uuidV4(), uuidV5({ namespace: UuidNamespaces.DNS, name: 'x' })];\n`,
+        source: `import { UuidV4Generator, UuidV5Generator, UuidNamespaces } from '${UUID_ENTRY}';\nglobalThis.probe = [UuidV4Generator.generate(), UuidV5Generator.generate({ namespace: UuidNamespaces.DNS, name: 'x' })];\n`,
       }),
     ]);
 

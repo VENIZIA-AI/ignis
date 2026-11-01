@@ -174,7 +174,7 @@ validateEnvs → staticConfigure → preConfigure
 
 `hydrateSecrets()` does four things:
 
-1. Calls `registerSecrets()` and builds the provider via `createSecretsHelper({ provider })`.
+1. Calls `registerSecrets()` and builds the provider via `SecretsHelperFactory.create({ provider })`.
 2. Runs `provider.configure()` (authentication), then merges every `hydrate` entry into `Envs` + `process.env`, and opens every `lease`.
 3. Binds the live provider at `CoreBindings.APPLICATION_CONFIG` (`@app/config`) as a singleton.
 4. Registers a post-stop hook (`secrets.shutdown`) so `provider.shutdown()` runs on teardown, revoking outstanding leases.

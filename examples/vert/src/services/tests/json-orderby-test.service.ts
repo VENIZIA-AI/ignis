@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
 
 // ----------------------------------------------------------------
@@ -35,7 +35,7 @@ export class JsonOrderByTestService extends BaseTestService {
       await repo.createAll({
         data: [
           {
-            code: `JSON_TEST_A_${getUID()}`,
+            code: `JSON_TEST_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -46,7 +46,7 @@ export class JsonOrderByTestService extends BaseTestService {
             },
           },
           {
-            code: `JSON_TEST_B_${getUID()}`,
+            code: `JSON_TEST_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -57,7 +57,7 @@ export class JsonOrderByTestService extends BaseTestService {
             },
           },
           {
-            code: `JSON_TEST_C_${getUID()}`,
+            code: `JSON_TEST_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -68,7 +68,7 @@ export class JsonOrderByTestService extends BaseTestService {
             },
           },
           {
-            code: `JSON_TEST_D_${getUID()}`,
+            code: `JSON_TEST_D_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {
@@ -79,7 +79,7 @@ export class JsonOrderByTestService extends BaseTestService {
             },
           },
           {
-            code: `JSON_TEST_E_${getUID()}`,
+            code: `JSON_TEST_E_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.JSON,
             jValue: {

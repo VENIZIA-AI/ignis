@@ -1,4 +1,4 @@
-import { redactSecrets } from '@/common/redact';
+import { RedactUtility } from '@/common/redact';
 import { MessageCode } from '@/modules/error';
 import util from 'node:util';
 import { LoggerFormats, type TLoggerFormat } from '../common';
@@ -253,7 +253,9 @@ export class ErrorPrettier {
 
     // Nothing recognizable: inspect it (redacted) so an unmodelled shape still reaches the log.
     if (Object.keys(summary).length === 0) {
-      return { message: util.inspect(redactSecrets(value), this.INSPECT_OPTIONS) };
+      return {
+        message: util.inspect(RedactUtility.redactSecrets({ value }), this.INSPECT_OPTIONS),
+      };
     }
 
     return summary;
@@ -350,7 +352,7 @@ export class ErrorPrettier {
     }
 
     if (summary.args !== undefined) {
-      payload.args = redactSecrets(summary.args);
+      payload.args = RedactUtility.redactSecrets({ value: summary.args });
     }
 
     // An ApplicationError has no own `code` and a driver error has no `normalized`, so one field never hides the other.
@@ -375,7 +377,7 @@ export class ErrorPrettier {
 
     const context = extra ?? summary.extra;
     if (context !== undefined && Object.keys(context).length > 0) {
-      payload.extra = redactSecrets(context);
+      payload.extra = RedactUtility.redactSecrets({ value: context });
     }
 
     if (summary.cause !== undefined) {
@@ -411,7 +413,9 @@ export class ErrorPrettier {
 
     // Straight after the message: the reader is looking at `%{field}` and needs the value now, not below the stack.
     if (summary.args !== undefined) {
-      lines.push(`args: ${util.inspect(redactSecrets(summary.args), inspectOptions)}`);
+      lines.push(
+        `args: ${util.inspect(RedactUtility.redactSecrets({ value: summary.args }), inspectOptions)}`,
+      );
     }
 
     this.pushAggregatedErrors({ node: summary, lines });
@@ -448,7 +452,9 @@ export class ErrorPrettier {
     const context = extra ?? summary.extra;
 
     if (context !== undefined && Object.keys(context).length > 0) {
-      lines.push(`extra: ${util.inspect(redactSecrets(context), inspectOptions)}`);
+      lines.push(
+        `extra: ${util.inspect(RedactUtility.redactSecrets({ value: context }), inspectOptions)}`,
+      );
     }
 
     if (summary.stack !== undefined) {

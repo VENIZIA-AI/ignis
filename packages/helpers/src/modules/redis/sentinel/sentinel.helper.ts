@@ -1,5 +1,5 @@
 import { ModuleUtility } from '@/utilities/module.utility';
-import { int } from '@/utilities/parse.utility';
+import { ParseUtility } from '@/utilities/parse.utility';
 import type { Redis } from 'ioredis';
 import { AbstractRedisHelper } from './../base';
 import { type IRedisSentinelHelperOptions, RedisSentinelRoles } from './../common';
@@ -22,7 +22,7 @@ export class RedisSentinelHelper extends AbstractRedisHelper<Redis> {
 
     const normalizedSentinels = sentinels.map((sentinel) => ({
       host: sentinel.host,
-      port: int(sentinel.port ?? 26379),
+      port: ParseUtility.toInt({ input: sentinel.port ?? 26379 }),
     }));
 
     const ioredis =

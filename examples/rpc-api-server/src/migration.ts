@@ -1,4 +1,4 @@
-import { blankToUndefined } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 // drizzle-kit bundles the model files with esbuild and reads the exported tables. `url` is PGlite's
@@ -9,6 +9,8 @@ export default defineConfig({
   out: './migration',
   schema: './src/models',
   dbCredentials: {
-    url: blankToUndefined(process.env.APP_ENV_PGLITE_DATA_DIR) ?? './app_data/database/pgdata',
+    url:
+      ParseUtility.blankToUndefined({ input: process.env.APP_ENV_PGLITE_DATA_DIR }) ??
+      './app_data/database/pgdata',
   },
 });

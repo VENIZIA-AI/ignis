@@ -1,5 +1,5 @@
 import { LockStrengths } from '@venizia/ignis';
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -14,7 +14,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 1] Basic FOR UPDATE - findOne with exclusive lock');
 
-    const code = `LOCK_BASIC_${getUID()}`;
+    const code = `LOCK_BASIC_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -56,7 +56,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 2] FOR UPDATE with find - Lock multiple rows');
 
-    const group = `LOCK_FIND_${getUID()}`;
+    const group = `LOCK_FIND_${ParseUtility.getUID()}`;
 
     await repo.createAll({
       data: [
@@ -102,7 +102,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 3] FOR UPDATE with findById');
 
-    const code = `LOCK_BYID_${getUID()}`;
+    const code = `LOCK_BYID_${ParseUtility.getUID()}`;
 
     const { data: created } = await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 42 },
@@ -141,7 +141,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 4] FOR SHARE - Shared read lock');
 
-    const code = `LOCK_SHARE_${getUID()}`;
+    const code = `LOCK_SHARE_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -180,7 +180,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 5] FOR NO KEY UPDATE - Exclusive lock allowing key share');
 
-    const code = `LOCK_NKU_${getUID()}`;
+    const code = `LOCK_NKU_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -219,7 +219,7 @@ export class StrengthsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 6] FOR KEY SHARE - Weakest lock');
 
-    const code = `LOCK_KS_${getUID()}`;
+    const code = `LOCK_KS_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },

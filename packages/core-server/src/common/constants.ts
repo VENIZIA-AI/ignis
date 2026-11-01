@@ -1,9 +1,9 @@
-import { blankToUndefined } from '@venizia/ignis-helpers/core';
+import { ParseUtility } from '@venizia/ignis-helpers/core';
 
 /** Application-wide constants. */
 export class App {
   static readonly APPLICATION_NAME =
-    blankToUndefined(process.env.APP_ENV_APPLICATION_NAME) ?? 'APP';
+    ParseUtility.blankToUndefined({ input: process.env.APP_ENV_APPLICATION_NAME }) ?? 'APP';
 
   static readonly DEFAULT_QUERY_LIMIT = 50;
   static readonly DEFAULT_QUERY_OFFSET = 0;

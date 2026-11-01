@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class CreateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case1CreateSingle] Create single record');
 
-    const code = `REPO_CREATE_${getUID()}`;
+    const code = `REPO_CREATE_${ParseUtility.getUID()}`;
 
     try {
       const result = await repo.create({
@@ -42,7 +42,11 @@ export class CreateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case2CreateAll] CreateAll (batch create)');
 
-    const codes = [`REPO_BATCH_${getUID()}`, `REPO_BATCH_${getUID()}`, `REPO_BATCH_${getUID()}`];
+    const codes = [
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+      `REPO_BATCH_${ParseUtility.getUID()}`,
+    ];
 
     try {
       const result = await repo.createAll({
@@ -76,7 +80,7 @@ export class CreateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case9CreateWithNullValues] Create with null/undefined values');
 
-    const code = `REPO_NULL_${getUID()}`;
+    const code = `REPO_NULL_${ParseUtility.getUID()}`;
 
     try {
       // Create with explicit null values
@@ -153,7 +157,7 @@ export class CreateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case16ConcurrentCreates] Concurrent create operations');
 
-    const group = `REPO_CONCURRENT_${getUID()}`;
+    const group = `REPO_CONCURRENT_${ParseUtility.getUID()}`;
     const concurrentCount = 10;
 
     try {
@@ -161,7 +165,7 @@ export class CreateCases extends BaseTestCases {
       const promises = Array.from({ length: concurrentCount }, (_, i) =>
         repo.create({
           data: {
-            code: `${group}_${i}_${getUID()}`,
+            code: `${group}_${i}_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: i * 100,
@@ -203,7 +207,7 @@ export class CreateCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
 
       // Test 2: Race condition with duplicate codes (tests unique constraint handling)
-      const duplicateCode = `RACE_DUP_${getUID()}`;
+      const duplicateCode = `RACE_DUP_${ParseUtility.getUID()}`;
       const racePromises = Array.from({ length: 5 }, () =>
         repo
           .create({

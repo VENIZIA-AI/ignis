@@ -21,7 +21,7 @@ class KafkaSchemaRegistryHelper<
 > `KafkaSchemaRegistryHelper` extends `BaseHelper` directly (not `BaseKafkaHelper`) - it has no broker connection or health tracking. It's a configuration wrapper, not a client.
 
 > [!WARNING]
-> Compiling to a standalone binary needs `platformaticRequirePlugin()`. `ConfluentSchemaRegistry` resolves `ajv-draft-04` through `createRequire` at module load, which `bun build --compile` cannot see through. See [Compiling to a Single Binary](./compile-binary).
+> Compiling to a standalone binary needs `PlatformaticKafkaPlugins.buildRequirePlugin()`. `ConfluentSchemaRegistry` resolves `ajv-draft-04` through `createRequire` at module load, which `bun build --compile` cannot see through. See [Compiling to a Single Binary](./compile-binary).
 
 ## Helper API
 

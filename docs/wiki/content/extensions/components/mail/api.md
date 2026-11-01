@@ -278,7 +278,7 @@ See [Attachments](./usage#attachments) for how both apply.
   config: {
     host: applicationEnvironment.get<string>('APP_ENV_MAIL_HOST') ?? 'smtp.gmail.com',
     port: +(applicationEnvironment.get<number>('APP_ENV_MAIL_PORT') ?? 465),
-    secure: toBoolean(applicationEnvironment.get<boolean>('APP_ENV_MAIL_SECURE') ?? true),
+    secure: ParseUtility.toBoolean({ input: applicationEnvironment.get<boolean>('APP_ENV_MAIL_SECURE') ?? true }),
     auth: {
       type: 'oauth2',
       user: applicationEnvironment.get<string>('APP_ENV_MAIL_USER'),
@@ -488,7 +488,7 @@ interface IMailService {
 
 **`sendBatch(messages, options?)`**
 
-Sends every message via `send()` with concurrency bounded by `executePromiseWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
+Sends every message via `send()` with concurrency bounded by `PromiseUtility.executeWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
 
 **`sendTemplate(opts)`**
 

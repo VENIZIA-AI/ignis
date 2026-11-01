@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { getConnInfo } from 'hono/bun';
 
 export class NetworkUtility {
-  private static readonly logger = ApplicationLogger.get('getIncomingIp');
+  private static readonly logger = ApplicationLogger.get({ scope: 'getIncomingIp' });
   /** Latches the warning: an absent conninfo peer fails identically for every later request. */
   private static hasReportedUnavailable = false;
 

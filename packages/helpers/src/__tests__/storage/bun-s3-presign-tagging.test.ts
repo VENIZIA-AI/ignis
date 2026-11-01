@@ -3,7 +3,7 @@
 import { type AnyType } from '@/common';
 import { BunS3Helper } from '@/modules/storage/bun-s3';
 import { DurationUnits } from '@/common';
-import { StoragePresignDefaults, toExpirySeconds } from '@/modules/storage/common';
+import { StoragePresignDefaults, StorageUtility } from '@/modules/storage/common';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const originalFetch = globalThis.fetch;
@@ -40,7 +40,10 @@ describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpo
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
       String(
-        toExpirySeconds({ expiresIn: StoragePresignDefaults.PUT_EXPIRES_IN, operation: 'test' }),
+        StorageUtility.toExpirySeconds({
+          expiresIn: StoragePresignDefaults.PUT_EXPIRES_IN,
+          operation: 'test',
+        }),
       ),
     );
   });
@@ -73,7 +76,10 @@ describe('BunS3Helper.presignPut / presignGet - real S3Client, unreachable endpo
 
     expect(new URL(url).searchParams.get('X-Amz-Expires')).toBe(
       String(
-        toExpirySeconds({ expiresIn: StoragePresignDefaults.GET_EXPIRES_IN, operation: 'test' }),
+        StorageUtility.toExpirySeconds({
+          expiresIn: StoragePresignDefaults.GET_EXPIRES_IN,
+          operation: 'test',
+        }),
       ),
     );
   });

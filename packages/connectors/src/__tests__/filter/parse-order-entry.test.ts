@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@venizia/ignis-helpers/core';
 import type { ApplicationError } from '@venizia/ignis-helpers/core';
-import { parseOrderEntry, Sorts } from '@venizia/ignis-filter';
+import { Sorts } from '@venizia/ignis-filter';
 import type { TParsedOrderEntry, TSortDirection } from '@venizia/ignis-filter';
 
 /**
- * `parseOrderEntry` lives in `@venizia/ignis-filter`, which has no test runner of its own; it is
+ * `Sorts` lives in `@venizia/ignis-filter`, which has no test runner of its own; it is
  * pinned here because every call site it replaces is in this package. The import resolves to the
  * filter package's `dist` - rebuild filter before trusting a run.
  */
@@ -24,7 +24,7 @@ const captureError = (task: () => unknown): ApplicationError => {
   throw new Error('expected the call to throw, but it returned normally');
 };
 
-const parse = (entry: string): TParsedOrderEntry => parseOrderEntry({ entry });
+const parse = (entry: string): TParsedOrderEntry => Sorts.parseEntry({ entry });
 
 const FAST_PATH_SPELLINGS: Array<[string, TSortDirection]> = [
   ['name ASC', Sorts.ASC],
@@ -40,7 +40,7 @@ const MIXED_CASE_SPELLINGS: Array<[string, TSortDirection]> = [
   ['name dEsC', Sorts.DESC],
 ];
 
-describe('parseOrderEntry - accepted forms', () => {
+describe('Sorts.parseEntry - accepted forms', () => {
   test('a bare field defaults to ascending', () => {
     expect(parse('name')).toEqual({ field: 'name', direction: Sorts.ASC });
   });
@@ -65,7 +65,7 @@ describe('parseOrderEntry - accepted forms', () => {
   });
 });
 
-describe('parseOrderEntry - whitespace', () => {
+describe('Sorts.parseEntry - whitespace', () => {
   test.each([
     ['  name DESC', 'leading spaces'],
     ['name DESC  ', 'trailing spaces'],
@@ -90,7 +90,7 @@ describe('parseOrderEntry - whitespace', () => {
   );
 });
 
-describe('parseOrderEntry - only ASCII whitespace separates tokens', () => {
+describe('Sorts.parseEntry - only ASCII whitespace separates tokens', () => {
   test.each([
     ['name\u00a0DESC', 'a non-breaking space'],
     ['name\u2003DESC', 'an em space'],
@@ -104,7 +104,7 @@ describe('parseOrderEntry - only ASCII whitespace separates tokens', () => {
   });
 });
 
-describe('parseOrderEntry - rejected entries are 400s', () => {
+describe('Sorts.parseEntry - rejected entries are 400s', () => {
   test.each([[''], ['   '], ['\t']])('an entry with no field %p is a 400', (entry) => {
     const error = captureError(() => parse(entry));
 
@@ -150,7 +150,7 @@ const hasControlCharacter = (text: string): boolean => {
   return false;
 };
 
-describe('parseOrderEntry - the entry is quoted with JSON.stringify in every message', () => {
+describe('Sorts.parseEntry - the entry is quoted with JSON.stringify in every message', () => {
   test.each([
     ['\n\t\n', 'no field, only line breaks'],
     ['a\nFAKE LOG LINE b', 'too many tokens, one a forged log line'],
@@ -178,7 +178,7 @@ describe('parseOrderEntry - the entry is quoted with JSON.stringify in every mes
   );
 });
 
-describe('parseOrderEntry - result type', () => {
+describe('Sorts.parseEntry - result type', () => {
   test('direction is typed TSortDirection, which is exactly the Sorts values', () => {
     const parsed = parse('name DESC');
 

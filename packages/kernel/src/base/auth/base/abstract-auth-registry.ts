@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import { BindingScopes } from '@venizia/ignis-inversion';
 import type { Container } from '@/helpers/inversion/container';
 import type { TClass } from '@venizia/ignis-helpers/common';
@@ -20,7 +20,7 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
   protected abstract getBindingPrefix(): string;
 
   getKey(opts: { name: string }): string {
-    if (!opts?.name || isEmpty({ value: opts.name })) {
+    if (!opts?.name || ObjectUtility.isEmpty({ value: opts.name })) {
       throw getError({ message: `[getKey] Invalid name | name: ${opts.name}` });
     }
 

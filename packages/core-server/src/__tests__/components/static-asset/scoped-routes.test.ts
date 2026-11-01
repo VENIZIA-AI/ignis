@@ -74,7 +74,7 @@ class FakeMetaLinkRepository {
   }
 }
 
-/** The component reads `repository` through `resolveValueAsync`, so a resolver stands in for the class a fake cannot structurally be. */
+/** The component reads `repository` through `ResolverUtility.resolveValueAsync`, so a resolver stands in for the class a fake cannot structurally be. */
 const toRepositoryResolver = (opts: {
   repository: FakeMetaLinkRepository;
 }): TMetaLinkConfig<AnyType>['repository'] => {

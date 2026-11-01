@@ -32,7 +32,6 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
     requires: {
       './socket-io': ['socket.io', '@socket.io/redis-adapter', '@socket.io/redis-emitter'],
       './mqtt': ['mqtt'],
-      './minio': ['minio'],
       './axios': ['axios'],
       './cron': ['cron'],
       './kafka': ['@platformatic/kafka'],

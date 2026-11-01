@@ -55,7 +55,7 @@ tags: [process, test, bun]
    `@venizia/ignis/testing` (`packages/core-server/src/testing/assert-application-boots.ts`). It wraps
    `registerDynamicBindings` and `getBootSequence` on one instance, skips the `configure()` of datasources
    (and of the components in `skipComponents`) and the two secrets steps, never calls `start()`, rethrows
-   boot's own error, and after boot runs `assertBindingsResolve` from `@venizia/ignis-inversion` over services and
+   boot's own error, and after boot runs `BindingVerifier.assertResolve` from `@venizia/ignis-inversion` over services and
    repositories (`skipBindings` leaves some out; the kernel's own step is off for the run). Components run for real (their `binding()` registers what the check resolves), so one that needs Redis,
    Kafka or S3 is named in `skipComponents`. It adds a duplicate-route check of its own, because
    boot has none. The `ignis` preset generates `src/boot.test.ts` with it; the smoke gate runs that test.

@@ -2,19 +2,18 @@ import { BaseRestController, type TRouteContext } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
 import {
   BaseStorageHelper,
-  createContentDispositionHeader,
+  RequestUtility,
+  StorageUtility,
   type IObjectLocation,
   type IObjectMetadata,
   type IObjectRef,
-  isNotFoundError,
   type IStorageHelper,
   type IUploadFile,
   type IPostPolicy,
   type IUploadResult,
-  parseMultipartBody,
   type TUploadNaming,
 } from '@venizia/ignis-helpers';
-import { HTTP, resolveValueAsync, type ValueOrPromise } from '@venizia/ignis-helpers/common';
+import { HTTP, ResolverUtility, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { AnyType, TValueOrAsyncResolver } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError, UuidHelper } from '@venizia/ignis-helpers/core';
 import { type Env } from 'hono';
@@ -135,7 +134,7 @@ const resolveBucket = async (opts: {
     return param ?? '';
   }
 
-  return resolveValueAsync({ value: configured });
+  return ResolverUtility.resolveValueAsync({ value: configured });
 };
 
 /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
@@ -456,7 +455,10 @@ export class AssetControllerFactory extends BaseHelper {
                 const inlineName = objectName.split('/').pop() ?? objectName;
                 ctx.header(
                   HTTP.Headers.CONTENT_DISPOSITION,
-                  createContentDispositionHeader({ filename: inlineName, type: 'attachment' }),
+                  RequestUtility.buildContentDispositionHeader({
+                    filename: inlineName,
+                    type: 'attachment',
+                  }),
                 );
               }
 
@@ -533,7 +535,10 @@ export class AssetControllerFactory extends BaseHelper {
               const fileName = objectName.split('/').pop() ?? objectName;
               ctx.header(
                 HTTP.Headers.CONTENT_DISPOSITION,
-                createContentDispositionHeader({ filename: fileName, type: 'attachment' }),
+                RequestUtility.buildContentDispositionHeader({
+                  filename: fileName,
+                  type: 'attachment',
+                }),
               );
               ctx.header('x-content-type-options', 'nosniff');
               ctx.header(HTTP.Headers.CONTENT_SECURITY_POLICY, 'sandbox');
@@ -604,7 +609,7 @@ export class AssetControllerFactory extends BaseHelper {
 
               refuseLabelsInQuery({ query: ctx.req.query() });
 
-              const { files: filesArray, fields } = await parseMultipartBody({
+              const { files: filesArray, fields } = await RequestUtility.parseMultipartBody({
                 context: ctx,
                 storage: options?.parseMultipartBody?.storage,
                 uploadDir: options?.parseMultipartBody?.uploadDir,
@@ -785,7 +790,7 @@ export class AssetControllerFactory extends BaseHelper {
                   object: { key: objectName },
                 });
               } catch (error) {
-                if (!isNotFoundError({ error })) {
+                if (!StorageUtility.isNotFoundError({ error })) {
                   throw error;
                 }
               }
@@ -794,7 +799,9 @@ export class AssetControllerFactory extends BaseHelper {
                 return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
               }
 
-              const deleteRepository = await resolveValueAsync({ value: metaLink.repository });
+              const deleteRepository = await ResolverUtility.resolveValueAsync({
+                value: metaLink.repository,
+              });
               deleteRepository
                 .deleteAll({
                   where: {

@@ -11,7 +11,7 @@ import {
   isOperatorObject,
   SearchDialectHelper,
 } from '@/search/core/repositories/common/dialect-helpers';
-import { parseOrderEntry, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
+import { Sorts, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IMeilisearchSearchQuery } from '../common';
 
@@ -412,7 +412,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   private toOrderBy(opts: { order: string[] }): string {
     return opts.order
       .map((entry) => {
-        const { field, direction } = parseOrderEntry({ entry });
+        const { field, direction } = Sorts.parseEntry({ entry });
 
         return `${field}:${direction}`;
       })

@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type {
   ISearchCollectionDefinition,
   ISearchEmbedConfig,
@@ -42,7 +42,7 @@ const buildEmbedder = (opts: {
     });
   }
 
-  const providerConfig = omit({ source: embed.model, keys: ['name'] });
+  const providerConfig = ObjectUtility.omit({ source: embed.model, keys: ['name'] });
   const documentTemplate = embed.from.map((item) => `{{doc.${item}}}`).join(' ');
 
   return { source, model: modelParts.join('/'), ...providerConfig, documentTemplate };

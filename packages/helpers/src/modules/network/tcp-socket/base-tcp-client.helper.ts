@@ -1,5 +1,5 @@
-import { isEmpty } from '@venizia/ignis-inversion';
-import { redactSecrets } from '@/common/redact';
+import { ObjectUtility } from '@venizia/ignis-inversion';
+import { RedactUtility } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { type ValueOrPromise } from '@/common';
 import {
@@ -89,7 +89,7 @@ export class BaseNetworkTcpClient<
 
   /** Redacts before logging - a TLS client's options ARE its private key (`key`/`cert`/`passphrase`). */
   protected getLoggableOptions(): unknown {
-    return redactSecrets(this.options);
+    return RedactUtility.redactSecrets({ value: this.options });
   }
 
   handleConnected() {
@@ -166,7 +166,7 @@ export class BaseNetworkTcpClient<
       return;
     }
 
-    if (isEmpty({ value: this.options })) {
+    if (ObjectUtility.isEmpty({ value: this.options })) {
       this.logger
         .for(this.connect.name)
         .info('[%s] Cannot init TCP Client with null options', this.identifier);

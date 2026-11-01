@@ -12,7 +12,6 @@ import type {
 } from '@venizia/ignis-kernel';
 import {
   DEFAULT_LIMIT,
-  parseOrderEntry,
   QueryOperators,
   RelationTypes,
   ScopeFilterMissingBehaviors,
@@ -23,7 +22,7 @@ import type { TTableObject, TTableSchemaWithId } from '@/relational/core/models/
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
-import { isEmpty, resolveValue } from '@venizia/ignis-helpers/common';
+import { ObjectUtility, ResolverUtility } from '@venizia/ignis-helpers/common';
 import {
   and,
   asc,
@@ -336,7 +335,7 @@ export abstract class FilterBuilder extends BaseHelper {
     }
 
     try {
-      const relationsArray = resolveValue({
+      const relationsArray = ResolverUtility.resolveValue({
         value: modelEntry.relationsResolver,
       }) as Array<TRelationConfig>;
       const relationsRecord: Record<string, TRelationConfig> = {};
@@ -419,7 +418,7 @@ export abstract class FilterBuilder extends BaseHelper {
     const { tableName, schema, where } = opts;
     const columns = this.getColumns(schema);
 
-    if (!columns || isEmpty({ value: columns })) {
+    if (!columns || ObjectUtility.isEmpty({ value: columns })) {
       throw getError({
         message: `[FilterBuilder][toWhere] Table: ${tableName} | Failed to get table columns`,
       });
@@ -540,7 +539,7 @@ export abstract class FilterBuilder extends BaseHelper {
     let parsed = this._orderEntryCache.get(entry);
 
     if (!parsed) {
-      parsed = parseOrderEntry({ entry });
+      parsed = Sorts.parseEntry({ entry });
 
       if (entry.length <= ORDER_ENTRY_CACHE_MAX_LENGTH) {
         // Clearing, not evicting the oldest: deleting from the front of a JSC Map is slow.
@@ -636,7 +635,7 @@ export abstract class FilterBuilder extends BaseHelper {
           : mergedScope;
 
       const hasNoEffectiveFilter =
-        isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
+        ObjectUtility.isEmpty({ value: scopedFilter }) || Object.keys(scopedFilter).length === 0;
       if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
