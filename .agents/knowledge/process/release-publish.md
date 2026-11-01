@@ -174,7 +174,7 @@ and `@venizia/ignis-worker` (`core-worker`).
   tarball keeps that. The loop packs each package after its version bump (and the preset, for `core-server`), records the
   sha256 of the tarball, and checks it again before it publishes that very file. Bun 1.4.4 reads a sibling's version from
   its `package.json` on disk at pack time (measured: no `bun install` is needed between a bump and the pack of the next
-  package), and the loop checks the pin of every sibling in the packed manifest anyway.
+  package), and the loop checks the pin of every sibling in the packed manifest anyway. The loop runs in two passes: the first bumps, packs, checks and publishes every package without waiting for a tarball (a dependent needs only its sibling in the packument, which `isPublished` reads); the second walks the published packages in release order and, for each, waits once until its tarball answers (a tag means installable), moves `highest` and `next`, then makes its release commit, push and tag. A stop in the first pass still records what was published; a stop anywhere is continued with the same plan (a package on npm is recorded without a second publish).
 - The repository secret that held the old token is already deleted. After the first release over trusted
   publishing has passed, the owner sets each package's Publishing access to disallow tokens and revokes the old token.
 

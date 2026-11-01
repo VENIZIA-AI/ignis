@@ -376,15 +376,44 @@ describe('ReleaseRun.execute: a clean run', () => {
     expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  test('the next package starts only after the previous one is tagged', async () => {
+  test('every package is published before any is committed, tagged or waited for', async () => {
+    const world = new FakeWorld();
+    await execute({ world });
+
+    const lastPublish = world.calls.map((call) => call.startsWith('npm publish')).lastIndexOf(true);
+    for (const text of [
+      'wait @venizia/ignis-helpers@0.4.6',
+      'dist-tag add',
+      'sync-next-tag.ts',
+      '[helpers] git commit',
+      'git push origin HEAD:main',
+      'git tag -a helpers-v0.4.6',
+    ]) {
+      expect(indexOfCall(world, text)).toBeGreaterThan(lastPublish);
+    }
+  });
+
+  test('the next package is published without waiting for the tarball of the previous one', async () => {
+    const world = new FakeWorld();
+    await execute({ world });
+
+    expect(indexOfCall(world, '[kernel] npm version')).toBeLessThan(
+      indexOfCall(world, 'wait @venizia/ignis-helpers@0.4.6'),
+    );
+    expect(indexOfCall(world, '[connectors] npm version')).toBeLessThan(
+      indexOfCall(world, 'wait @venizia/ignis-helpers@0.4.6'),
+    );
+  });
+
+  test('then each package, in release order, is waited for, recorded and tagged before the next', async () => {
     const world = new FakeWorld();
     await execute({ world });
 
     expect(indexOfCall(world, 'git push origin helpers-v0.4.6')).toBeLessThan(
-      indexOfCall(world, '[kernel] npm version'),
+      indexOfCall(world, 'wait @venizia/ignis-kernel@0.4.6'),
     );
     expect(indexOfCall(world, 'git push origin kernel-v0.4.6')).toBeLessThan(
-      indexOfCall(world, '[connectors] npm version'),
+      indexOfCall(world, 'wait @venizia/ignis-connectors@0.4.6'),
     );
   });
 
@@ -533,8 +562,11 @@ describe('ReleaseRun.execute: a run that stops', () => {
 
     expect(world.calls.some((call) => /git (pull|rebase|fetch)/.test(call))).toBe(false);
     expect(world.npm.has('@venizia/ignis-kernel@0.4.6')).toBe(true);
+    // Every package was published before the first record; the record stops at kernel, after helpers.
+    expect(world.npm.has('@venizia/ignis-connectors@0.4.6')).toBe(true);
+    expect(world.tags.has('helpers-v0.4.6')).toBe(true);
     expect(world.tags.has('kernel-v0.4.6')).toBe(false);
-    expect(world.calls.some((call) => call.includes('[connectors] npm version'))).toBe(false);
+    expect(world.tags.has('connectors-v0.4.6')).toBe(false);
     expect(world.logs.join('\n')).toMatch(
       /@venizia\/ignis-kernel@0.4.6 is published.*release commit/,
     );
@@ -600,13 +632,16 @@ describe('ReleaseRun.execute: dispatching the same plan again', () => {
     world.checkout();
     const outcomes = await execute({ world });
 
+    // The first run had published all three before its record stopped at kernel: nothing is published twice.
     expect(outcomes.map((outcome) => `${outcome.name}:${outcome.state}`)).toEqual([
       'helpers:skipped',
       'kernel:healed',
-      'connectors:published',
+      'connectors:healed',
     ]);
     expect(world.publishedCount('kernel')).toBe(1);
+    expect(world.publishedCount('connectors')).toBe(1);
     expect(world.tags.has('kernel-v0.4.6')).toBe(true);
+    expect(world.tags.has('connectors-v0.4.6')).toBe(true);
     expect(world.commits.filter((commit) => commit.dir === 'kernel' && commit.pushed)).toHaveLength(
       1,
     );

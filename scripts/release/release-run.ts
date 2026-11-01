@@ -57,6 +57,25 @@ export interface IReleaseOutcome {
   state: TReleaseState;
 }
 
+/** One published package waiting for its git record: the tarball wait, the dist-tags, the release commit, the push and the tag. */
+interface IRecordJob {
+  dir: string;
+  packageName: string;
+  version: string;
+  mode: TReleaseMode;
+  branch: 'develop' | 'main';
+  issue?: string;
+  published: boolean;
+  /** An earlier dispatch published it: this run only records it. */
+  healed: boolean;
+}
+
+/** What one package of the plan gave: its outcome, and the record still to make when it is on npm. */
+interface IReleaseResult {
+  outcome: IReleaseOutcome;
+  record?: IRecordJob;
+}
+
 /** A version or range that names a prerelease: `0.4.9-1`, `^1.0.0-rc.2`. */
 const PRERELEASE_IN_RANGE = /\d+\.\d+\.\d+-[0-9A-Za-z]/;
 
@@ -153,16 +172,19 @@ export class ReleaseRun {
     const directories = await this.listWorkspace({ ports });
     const pending = new Set(entries.map((entry) => entry.name));
     const outcomes: IReleaseOutcome[] = [];
+    const toRecord: IRecordJob[] = [];
 
-    for (const entry of entries) {
-      pending.delete(entry.name);
-      const pendingNames = new Set<string>();
-      for (const dir of pending) {
-        pendingNames.add((await ports.readManifest({ dir })).name);
-      }
+    // Phase 1: bump, pack, check and publish every package. Publishing needs no tarball wait: a dependent package only
+    // needs its sibling in the packument (`isPublished`). Nothing is committed or tagged yet.
+    try {
+      for (const entry of entries) {
+        pending.delete(entry.name);
+        const pendingNames = new Set<string>();
+        for (const dir of pending) {
+          pendingNames.add((await ports.readManifest({ dir })).name);
+        }
 
-      outcomes.push(
-        await this.releaseOne({
+        const result = await this.releaseOne({
           entry,
           mode,
           branch,
@@ -171,12 +193,51 @@ export class ReleaseRun {
           ports,
           directories,
           pendingNames,
-        }),
-      );
+        });
+        outcomes.push(result.outcome);
+        if (result.record) {
+          toRecord.push(result.record);
+        }
+      }
+    } catch (error) {
+      // A stop in phase 1 still records what was published, so git keeps up with npm as far as it can: every package
+      // with a release commit is on npm, and the same plan dispatched again records the rest without publishing it.
+      try {
+        await this.recordAll({ jobs: toRecord, ports });
+      } catch (recordError) {
+        ports.log(
+          `WARNING | the packages published before the stop could not all be recorded: ${recordError instanceof Error ? recordError.message : String(recordError)}`,
+        );
+      }
+      throw error;
     }
+
+    // Phase 2: each published package, in release order, waits once for its tarball (a tag means installable), moves
+    // the dist-tags, then gets its release commit, push and tag.
+    await this.recordAll({ jobs: toRecord, ports });
 
     ports.log(`✓ ${outcomes.length} package(s) of the plan are released`);
     return outcomes;
+  }
+
+  /** Records the published packages one after another, in the order they were published: the first failure stops the run. */
+  private static async recordAll(opts: {
+    jobs: ReadonlyArray<IRecordJob>;
+    ports: IReleasePorts;
+  }): Promise<void> {
+    const { jobs, ports } = opts;
+
+    for (const job of jobs) {
+      const { healed, ...recordOpts } = job;
+      await this.record({ ...recordOpts, ports });
+
+      // A package this run published prints its tag; one an earlier dispatch published prints the `=` the driver reads.
+      ports.log(
+        healed
+          ? `${ReleaseMarkers.RELEASED} ${job.packageName}@${job.version}`
+          : `    ${job.dir}-v${job.version}`,
+      );
+    }
   }
 
   /** The folders of the workspace that exist, in release order. */
@@ -203,7 +264,7 @@ export class ReleaseRun {
     ports: IReleasePorts;
     directories: ReadonlyArray<string>;
     pendingNames: ReadonlySet<string>;
-  }): Promise<IReleaseOutcome> {
+  }): Promise<IReleaseResult> {
     const { entry, mode, branch, issue, tarballs, ports, directories, pendingNames } = opts;
     const dir = entry.name;
     const cwd = `packages/${dir}`;
@@ -217,7 +278,9 @@ export class ReleaseRun {
     });
 
     if (onDisk !== entry.from) {
-      return this.settle({ entry, mode, dir, packageName, onDisk, ports, outcome });
+      return {
+        outcome: await this.settle({ entry, mode, dir, packageName, onDisk, ports, outcome }),
+      };
     }
 
     // The bump first: the target version decides whether this package is already on npm.
@@ -226,7 +289,6 @@ export class ReleaseRun {
       cwd,
     });
     const { version } = await ports.readManifest({ dir });
-    const tag = `${dir}-v${version}`;
 
     // The plan job computed the target without running npm; what npm gave must be that, or nothing is published.
     const target = ReleaseVersion.next({ from: entry.from, mode });
@@ -238,9 +300,10 @@ export class ReleaseRun {
 
     if (await ports.registry.isPublished({ packageName, version })) {
       log(`${packageName}@${version} is already on npm - recording it without publishing`);
-      await this.record({ dir, packageName, version, mode, branch, issue, ports, published: true });
-      log(`${ReleaseMarkers.RELEASED} ${packageName}@${version}`);
-      return outcome('healed', version);
+      return {
+        outcome: outcome('healed', version),
+        record: { dir, packageName, version, mode, branch, issue, published: true, healed: true },
+      };
     }
 
     if (dir === 'core-server') {
@@ -326,19 +389,11 @@ export class ReleaseRun {
     log(`${ReleaseMarkers.PUBLISHED} ${packageName}@${version}`);
     log(`✓ Published ${packageName}@${version} (${npmTag})`);
 
-    await this.record({
-      dir,
-      packageName,
-      version,
-      mode,
-      branch,
-      issue,
-      ports,
-      published: true,
-    });
-
-    log(`    ${tag}`);
-    return outcome('published', version);
+    // The git record waits for phase 2: the next package is published without waiting for this tarball.
+    return {
+      outcome: outcome('published', version),
+      record: { dir, packageName, version, mode, branch, issue, published: true, healed: false },
+    };
   }
 
   /**
