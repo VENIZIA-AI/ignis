@@ -2,7 +2,6 @@ import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
 import { writeChangelogFeed } from './theme/shared/changelog-loader.ts';
 import { venziaCodeTheme } from './theme/shared/code-theme.ts';
-import { VENIZIA_LOGO_SVG } from './theme/shared/venizia-logo.ts';
 
 // ── Sidebar: Core API ──
 // Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
@@ -685,7 +684,6 @@ const config = defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' },
-      { icon: { svg: VENIZIA_LOGO_SVG }, link: 'https://venizia.ai', ariaLabel: 'Venizia' },
     ],
   },
 });
