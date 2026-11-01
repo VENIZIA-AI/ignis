@@ -1,7 +1,7 @@
 import type { ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
 import type { ILogger } from '@/modules/logger';
-import { sleep } from '@/utilities/sleep.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { RetryBackoffStrategies, RetryJitterModes } from './common/constants';
 import type { IRetryBackoffOptions, IRetryContext } from './common/types';
 import { BaseHelper } from '@/modules/base';
@@ -47,7 +47,7 @@ export class RetryHelper extends BaseHelper {
     const { ms, operation, signal } = opts;
 
     if (!signal) {
-      await sleep(ms);
+      await PromiseUtility.sleep({ ms });
       return;
     }
 

@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -14,7 +14,7 @@ export class UserAuditFixture extends BaseTestCases {
       return this.testUsers.get(name)!;
     }
 
-    const uniqueId = getUID();
+    const uniqueId = ParseUtility.getUID();
     const result = await this.context.userRepository.create({
       data: {
         realm: `AUDIT_TEST_USER_${name}_${uniqueId}`,

@@ -1,11 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
-import {
-  executeWithPerformanceMeasure,
-  getExecutedPerformance,
-  getPerformanceCheckpoint,
-} from '@/utilities/performance.utility';
+import { PerformanceUtility } from '@/utilities/performance.utility';
 
 /** `executeWithPerformanceMeasure` resolves from `.then(resolve)` and logs DONE from the later `.finally`, so DONE lands one microtask after the caller resumes - draining the loop once makes that ordering deterministic. */
 const flushPendingLogs = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -40,16 +36,16 @@ const buildLogger = () => {
 
 describe('getPerformanceCheckpoint / getExecutedPerformance', () => {
   test('measure a non-negative elapsed duration', () => {
-    const from = getPerformanceCheckpoint();
+    const from = PerformanceUtility.getCheckpoint();
     expect(typeof from).toBe('number');
 
-    const elapsed = getExecutedPerformance({ from });
+    const elapsed = PerformanceUtility.getExecuted({ from });
     expect(elapsed).toBeGreaterThanOrEqual(0);
   });
 
   test('honour the requested decimal precision', () => {
-    const elapsed = getExecutedPerformance({
-      from: getPerformanceCheckpoint() - 12.3456789,
+    const elapsed = PerformanceUtility.getExecuted({
+      from: PerformanceUtility.getCheckpoint() - 12.3456789,
       digit: 2,
     });
     const decimals = elapsed.toString().split('.')[1] ?? '';
@@ -61,7 +57,7 @@ describe('executeWithPerformanceMeasure', () => {
   test('resolves with the task result and logs START then DONE', async () => {
     const { logger, lines } = buildLogger();
 
-    const result = await executeWithPerformanceMeasure<string>({
+    const result = await PerformanceUtility.executeWithMeasure<string>({
       logger,
       scope: 'TestScope',
       description: 'doing work',
@@ -84,7 +80,7 @@ describe('executeWithPerformanceMeasure', () => {
   test('supports a synchronous task and a custom level', async () => {
     const { logger, lines } = buildLogger();
 
-    const result = await executeWithPerformanceMeasure<number>({
+    const result = await PerformanceUtility.executeWithMeasure<number>({
       logger,
       level: 'info',
       scope: 'Sync',
@@ -98,7 +94,7 @@ describe('executeWithPerformanceMeasure', () => {
   test('includes args in both log lines when provided', async () => {
     const { logger, lines } = buildLogger();
 
-    await executeWithPerformanceMeasure({
+    await PerformanceUtility.executeWithMeasure({
       logger,
       scope: 'WithArgs',
       args: { id: 1 },
@@ -114,7 +110,7 @@ describe('executeWithPerformanceMeasure', () => {
   test('propagates a rejecting task and still logs DONE', async () => {
     const { logger, lines } = buildLogger();
 
-    const execution = executeWithPerformanceMeasure({
+    const execution = PerformanceUtility.executeWithMeasure({
       logger,
       scope: 'Boom',
       task: async () => {
@@ -133,7 +129,7 @@ describe('executeWithPerformanceMeasure', () => {
   test('propagates a synchronously throwing task', async () => {
     const { logger } = buildLogger();
 
-    const execution = executeWithPerformanceMeasure({
+    const execution = PerformanceUtility.executeWithMeasure({
       logger,
       scope: 'SyncBoom',
       task: () => {

@@ -1,6 +1,6 @@
 import { type AnyType } from '@/common/types';
 import { getError, isApplicationError } from '@/modules/error';
-import { invokeHook } from '@/modules/queue/common';
+import { HookUtility } from '@/modules/queue/common';
 import { KafkaClientEvents, KafkaHealthStatuses } from '@/modules/queue/kafka/common/constants';
 import { BaseKafkaHelper } from '@/modules/queue/kafka/base';
 import { EventEmitter } from 'node:events';
@@ -276,7 +276,7 @@ class ExtendingKafkaHelper extends BaseKafkaHelper<AnyType> {
       (payload: { broker: { host: string; port: number } }) => {
         const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
         this.connectedBrokers.add(brokerKey);
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'configureBrokerConnect',
           execution: () => this.onBrokerConnect?.({ broker: payload.broker }),

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { formatLogMessage } from '@/modules/logger';
+import { LogFormatUtility } from '@/modules/logger';
 
 /** A raw node-vault AxiosError logged via `%s` must never leak its live token / AppRole secret - {@link formatLogMessage}'s deep-inspect path redacts by key before inspecting, without collapsing the diagnosis it was opened for. */
 describe('formatLogMessage - secret redaction on the %s deep-inspect path', () => {
@@ -13,7 +13,7 @@ describe('formatLogMessage - secret redaction on the %s deep-inspect path', () =
 
   /** An Error at `%s` is projected by `ErrorPrettier`, so `config` never reaches the line at all - a stronger guarantee than redacting it, and the diagnosis still survives. */
   test('a raw AxiosError at %s renders its message and drops the credential-bearing config', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'Vault call failed | error: %s',
       args: [axiosErrorWithToken()],
     });
@@ -25,7 +25,7 @@ describe('formatLogMessage - secret redaction on the %s deep-inspect path', () =
   });
 
   test('non-secret fields still render at full depth after redaction', () => {
-    const formatted = formatLogMessage({
+    const formatted = LogFormatUtility.formatMessage({
       message: 'boom %s',
       args: [{ outer: { inner: { detail: 'KEEP-ME' } }, token: 'DROP-ME' }],
     });

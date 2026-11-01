@@ -146,7 +146,7 @@ const worker = new BaseWorkerHelper<MyMessageType>({
 |--------|-----------|-------------|
 | `binding` | `binding(): void` | Binds all five event handlers to the internal `Worker` instance. Called automatically by the constructor. Throws `[binding] Invalid worker instance to bind event handlers` if `this.worker` is falsy |
 
-Every handler runs through `invokeHook`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `voidExecution`.
+Every handler runs through `HookUtility.invoke`, which wraps the call in a `try/catch`. A synchronous throw inside a user handler is caught and logged as `"Hook execution FAILED | Error: %s"`, rather than crashing the process. Async rejections are settled the same way, via `PromiseUtility.voidExecution`.
 
 ### AbstractWorkerHelper (subclassing)
 
@@ -287,7 +287,7 @@ bus.onAfterPostMessage = opts => {
 };
 ```
 
-`postMessage` invokes `onBeforePostMessage` before the port write, if set. It invokes `onAfterPostMessage` after the write, if set. Both hooks run through the same `try/catch`-wrapped `invokeHook` used for the port event listeners.
+`postMessage` invokes `onBeforePostMessage` before the port write, if set. It invokes `onAfterPostMessage` after the write, if set. Both hooks run through the same `try/catch`-wrapped `HookUtility.invoke` used for the port event listeners.
 
 ### Sending transferable objects
 

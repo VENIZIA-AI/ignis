@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,8 +12,8 @@ export class CommitCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 1] Commit Success - Multiple creates should persist after commit');
 
-    const code1 = `TX_COMMIT_${getUID()}`;
-    const code2 = `TX_COMMIT_${getUID()}`;
+    const code1 = `TX_COMMIT_${ParseUtility.getUID()}`;
+    const code2 = `TX_COMMIT_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -52,8 +52,8 @@ export class CommitCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 5] Update and Delete in Transaction');
 
-    const code1 = `TX_UPDATE_${getUID()}`;
-    const code2 = `TX_DELETE_${getUID()}`;
+    const code1 = `TX_UPDATE_${ParseUtility.getUID()}`;
+    const code2 = `TX_DELETE_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code: code1, group: 'TX_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -102,7 +102,11 @@ export class CommitCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 10] CreateAll in Transaction');
 
-    const codes = [`TX_BATCH_${getUID()}`, `TX_BATCH_${getUID()}`, `TX_BATCH_${getUID()}`];
+    const codes = [
+      `TX_BATCH_${ParseUtility.getUID()}`,
+      `TX_BATCH_${ParseUtility.getUID()}`,
+      `TX_BATCH_${ParseUtility.getUID()}`,
+    ];
     const transaction = await repo.beginTransaction();
 
     try {

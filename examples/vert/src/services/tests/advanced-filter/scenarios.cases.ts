@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -91,7 +91,7 @@ export class ScenariosCases extends BaseTestCases {
 
     try {
       const channel = await this.context.saleChannelRepository.create({
-        data: { name: 'AdvChannel', code: `CH_${getUID()}` },
+        data: { name: 'AdvChannel', code: `CH_${ParseUtility.getUID()}` },
       });
       const product = (
         await this.context.productRepository.find({

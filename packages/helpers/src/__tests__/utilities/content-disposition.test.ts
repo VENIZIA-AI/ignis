@@ -1,13 +1,10 @@
 /** `filename*` carries the real name; `filename` is the ASCII fallback. Both must be legal header text. */
 
 import { describe, expect, test } from 'bun:test';
-import {
-  createContentDispositionHeader,
-  parseContentDisposition,
-} from '@/utilities/request.utility';
+import { RequestUtility } from '@/utilities/request.utility';
 
 const toHeaderValue = (opts: { filename: string }): string =>
-  createContentDispositionHeader({ filename: opts.filename, type: 'attachment' });
+  RequestUtility.buildContentDispositionHeader({ filename: opts.filename, type: 'attachment' });
 
 describe('createContentDispositionHeader', () => {
   test('a plain ASCII name is written exactly as before', () => {
@@ -25,9 +22,9 @@ describe('createContentDispositionHeader', () => {
   test.each(['Kiểm kê.xlsx', 'Báo cáo [Q3] & tổng hợp #1!.xlsx', '日本語.pdf'])(
     'the name reads back unchanged: %s',
     (filename) => {
-      expect(parseContentDisposition({ header: toHeaderValue({ filename }) }).filename).toBe(
-        filename,
-      );
+      expect(
+        RequestUtility.parseContentDisposition({ header: toHeaderValue({ filename }) }).filename,
+      ).toBe(filename);
     },
   );
 
@@ -57,7 +54,9 @@ describe('createContentDispositionHeader', () => {
       const value = toHeaderValue({ filename });
 
       expect(value).toEndWith(`filename*=UTF-8''${expected}`);
-      expect(parseContentDisposition({ header: value }).filename).not.toMatch(/\p{Cf}/u);
+      expect(RequestUtility.parseContentDisposition({ header: value }).filename).not.toMatch(
+        /\p{Cf}/u,
+      );
     },
   );
 
@@ -68,9 +67,9 @@ describe('createContentDispositionHeader', () => {
       '\u0645\u06CC\u200C\u062E\u0648\u0627\u0647\u0645.txt',
     ],
   ])('%s reads back unchanged', (_label, filename) => {
-    expect(parseContentDisposition({ header: toHeaderValue({ filename }) }).filename).toBe(
-      filename,
-    );
+    expect(
+      RequestUtility.parseContentDisposition({ header: toHeaderValue({ filename }) }).filename,
+    ).toBe(filename);
   });
 
   test('a path is reduced to its last segment in both forms', () => {

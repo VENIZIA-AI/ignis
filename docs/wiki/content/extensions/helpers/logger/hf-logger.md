@@ -89,7 +89,7 @@ const logger: ILogger = HfLogger.get('OrderEngine');
 // encodeMessage() - a Map.get() plus the bytes-path write. ~66ns/call on a cache hit.
 logger.info('Order sent');
 
-// Slow path: any args force formatLogMessage() (deep inspection + secret redaction)
+// Slow path: any args force LogFormatUtility.formatMessage() (deep inspection + secret redaction)
 // and an UNCACHED encode, because dynamic strings must never grow the cache.
 // Correct, but this is not the hot path - use it for control-flow events, not per-tick data.
 logger.info('Order sent: %s', orderId);

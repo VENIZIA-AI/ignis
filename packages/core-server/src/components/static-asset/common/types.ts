@@ -18,7 +18,6 @@ import type {
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { AnyType, TValueOrAsyncResolver, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { TMultipartStorage } from '@venizia/ignis-helpers';
-import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import type { TMetaLinkCompatibleSchema, TMetaLinkSchema } from '../models';
 import type { StaticAssetStorageTypes } from './constants';
 
@@ -176,7 +175,6 @@ export type TStaticAssetsComponentOptions<
   } & (
     | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
-    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
     (
       | { useMetaLink?: false | undefined }

@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -71,14 +71,18 @@ export class NestedCases extends BaseTestCases {
     try {
       // Create channel with multiple products at different prices
       const channel = await saleChannelRepo.create({
-        data: { code: `NESTED_SCOPE_CH_${getUID()}`, name: 'Nested Scope Channel' },
+        data: { code: `NESTED_SCOPE_CH_${ParseUtility.getUID()}`, name: 'Nested Scope Channel' },
       });
 
       const products = await productRepo.createAll({
         data: [
-          { code: `NESTED_SCOPE_P1_${getUID()}`, name: 'Cheap Product', price: 10 },
-          { code: `NESTED_SCOPE_P2_${getUID()}`, name: 'Medium Product', price: 50 },
-          { code: `NESTED_SCOPE_P3_${getUID()}`, name: 'Expensive Product', price: 200 },
+          { code: `NESTED_SCOPE_P1_${ParseUtility.getUID()}`, name: 'Cheap Product', price: 10 },
+          { code: `NESTED_SCOPE_P2_${ParseUtility.getUID()}`, name: 'Medium Product', price: 50 },
+          {
+            code: `NESTED_SCOPE_P3_${ParseUtility.getUID()}`,
+            name: 'Expensive Product',
+            price: 200,
+          },
         ],
         options: { shouldSkipDefaultFilter: true },
       });

@@ -233,7 +233,7 @@ const resolveRepositoryMetadata = <
 
   validateRepositoryMetadata({ metadata, target });
 
-  const resolvedDataSource = resolveClass({ ref: metadata.dataSource });
+  const resolvedDataSource = ClassResolver.resolveClass({ ref: metadata.dataSource });
   if (!resolvedDataSource) {
     throw getError({
       message: `[@repository][${target.name}] The dataSource resolver returned nothing at decoration time | An import cycle leaves the datasource class undefined here; import it without the cycle, or name it as a string`,

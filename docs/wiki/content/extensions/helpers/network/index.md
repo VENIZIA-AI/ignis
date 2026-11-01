@@ -98,7 +98,7 @@ class PaymentGateway extends AxiosNetworkRequest {
 
 ### Log a request with secrets redacted
 
-Pass a logger as the second argument to `send()` or any shortcut method - typically `this.logger` from a `BaseHelper` subclass. The fetcher then logs the URL and config at `info` level. It runs the config through `redactSecrets()` first, so values like `Authorization` or `X-API-Key` reach the log as `'[REDACTED]'`. Without a logger argument, nothing is logged.
+Pass a logger as the second argument to `send()` or any shortcut method - typically `this.logger` from a `BaseHelper` subclass. The fetcher then logs the URL and config at `info` level. It runs the config through `RedactUtility.redactSecrets()` first, so values like `Authorization` or `X-API-Key` reach the log as `'[REDACTED]'`. Without a logger argument, nothing is logged.
 
 ```typescript
 async charge(amount: number, currency: string) {

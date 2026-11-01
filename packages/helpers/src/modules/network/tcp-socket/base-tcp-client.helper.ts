@@ -89,7 +89,7 @@ export class BaseNetworkTcpClient<
 
   /** Redacts before logging - a TLS client's options ARE its private key (`key`/`cert`/`passphrase`). */
   protected getLoggableOptions(): unknown {
-    return redactSecrets(this.options);
+    return RedactUtility.redactSecrets({ value: this.options });
   }
 
   handleConnected() {

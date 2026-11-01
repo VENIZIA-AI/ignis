@@ -16,14 +16,14 @@ Register a logger provider once at the entrypoint, then take scoped loggers and 
 
 ```typescript
 // bun add pino ioredis
-import { createRedisHelper, LoggerFactory, RedisModes } from '@venizia/ignis-helpers';
+import { LoggerFactory, RedisHelperFactory, RedisModes } from '@venizia/ignis-helpers';
 import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
 LoggerFactory.use({ provider: PinoLogger });
 
 const logger = LoggerFactory.getLogger(['CacheService']);
 
-const redis = createRedisHelper({
+const redis = RedisHelperFactory.create({
   mode: RedisModes.SINGLE,
   name: 'cache',
   host: '127.0.0.1',
@@ -60,17 +60,16 @@ A helper that imports an optional peer as a value lives only on its own sub-path
 
 | Sub-path | What it gives | Extra peers |
 |---|---|---|
-| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`createRedisHelper`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `createSecretsHelper`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
+| `.` | Everything peer-free: `LoggerFactory`, `ILogger`, `HfLogger`, Redis helpers (`RedisHelperFactory`), `SequentialQueueHelper`, disk and in-memory storage, `AES` / `RSA` / `ECDH`, fetch and TCP / TLS / UDP helpers, Bun WebSocket server, `SecretsHelperFactory`, `ApplicationEnvironment`, `WorkerPoolHelper`, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `SnowflakeUidHelper`, `ModuleUtility`, `getError` | none to load. `ioredis` to use Redis; `hono` for the JSX types |
 | `./core` | Browser-safe runtime classes: `BaseHelper`, the error module, `RetryHelper`, `TemporalHelper`, `UuidHelper`, `TreeBuilder`, `TreeWalker`, `SlugHelper`, `UrlPolicy`, parse utilities | none |
 | `./common` | Constants, types, redaction and resolvers | none |
-| `./uuid` | `UuidHelper` and the standalone `uuidV4`, `uuidV5`, `uuidV7` | none |
+| `./uuid` | `UuidHelper` and the standalone `UuidV4Generator`, `UuidV5Generator`, `UuidV7Generator` | none |
 | `./temporal` | `TemporalHelper` and the `Native`, `Dayjs`, `Luxon` temporal adapters | none (your own `dayjs` or `luxon` if you pick that adapter) |
 | `./winston` | `WinstonLogger` | `winston`, `winston-transport`, `winston-daily-rotate-file` |
 | `./pino` | `PinoLogger` | `pino` (`pino-pretty` for text output, `pino-roll` for file rotation) |
 | `./bullmq` | `BullMQHelper` | `bullmq` |
 | `./mqtt` | `MQTTClientHelper` | `mqtt` |
 | `./kafka` | `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, schema registry, bundler plugins | `@platformatic/kafka` |
-| `./minio` | `MinioHelper` | `minio` |
 | `./bun-s3` | `BunS3Helper` | none - Bun's native S3 client (Bun only) |
 | `./socket-io` | `SocketIOServerHelper`, `SocketIOClientHelper` | `socket.io`, `@socket.io/redis-adapter`, `@socket.io/redis-emitter`; `socket.io-client` for the client |
 | `./axios` | `AxiosFetcher`, `AxiosNetworkRequest` | `axios` |

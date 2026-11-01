@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { inspect } from 'node:util';
 import { getError } from '@/modules/error';
-import { ErrorPrettier, formatLogMessage } from '@/modules/logger';
+import { ErrorPrettier, LogFormatUtility } from '@/modules/logger';
 
 /** A drizzle-shaped failure: a huge SQL `message` plus `query`/`params`/`stack` that each repeat it, wrapping a raw pg error as `cause` - the shape that floods the log. */
 const buildDrizzleError = () => {
@@ -221,7 +221,7 @@ describe('ErrorPrettier.summarize', () => {
     const error = buildDrizzleError();
 
     const raw = inspect(error, { depth: 5, breakLength: Infinity });
-    const summarized = formatLogMessage({ message: 'Error: %s', args: [error] });
+    const summarized = LogFormatUtility.formatMessage({ message: 'Error: %s', args: [error] });
 
     expect(summarized.length).toBeLessThan(raw.length);
     // The one useful reason still reaches the log.

@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class ValueCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case13BoundaryValues] Test boundary values');
 
-    const group = `REPO_BOUNDARY_${getUID()}`;
+    const group = `REPO_BOUNDARY_${ParseUtility.getUID()}`;
 
     try {
       // Test very large number
@@ -114,7 +114,7 @@ export class ValueCases extends BaseTestCases {
       '[case19DoublePrecisionValues] Test DOUBLE PRECISION floating point values',
     );
 
-    const group = `REPO_DOUBLE_${getUID()}`;
+    const group = `REPO_DOUBLE_${ParseUtility.getUID()}`;
 
     try {
       // Test various DOUBLE PRECISION scenarios

@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class IntegrationCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 19] Default filter should work in transaction context');
 
-    const testCode = `DF_TX_${getUID()}`;
+    const testCode = `DF_TX_${ParseUtility.getUID()}`;
     const transaction = await repo.beginTransaction();
 
     try {
@@ -58,7 +58,7 @@ export class IntegrationCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 20] Default filter should work with relation includes');
 
-    const testCode = `DF_REL_${getUID()}`;
+    const testCode = `DF_REL_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -97,7 +97,7 @@ export class IntegrationCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 25] Concurrent queries should all apply default filter');
 
-    const testCode = `DF_CONCURRENT_${getUID()}`;
+    const testCode = `DF_CONCURRENT_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -141,7 +141,7 @@ export class IntegrationCases extends BaseTestCases {
     const junctionRepo = this.context.saleChannelProductRepository;
     this.context.logCase('[CASE 26] Default filter should work with nested relations');
 
-    const testCode = `DF_NESTED_${getUID()}`;
+    const testCode = `DF_NESTED_${ParseUtility.getUID()}`;
 
     try {
       const product = await productRepo.create({

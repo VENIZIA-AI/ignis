@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -92,14 +92,14 @@ export class CompositionCases extends BaseTestCases {
       await repo.createAll({
         data: [
           {
-            code: `ARRAY_COMBO_1_${getUID()}`,
+            code: `ARRAY_COMBO_1_${ParseUtility.getUID()}`,
             name: 'Combo Product 1',
             description: 'ARRAY_OPERATOR_TEST',
             price: 100,
             tags: ['red', 'blue', 'green'],
           },
           {
-            code: `ARRAY_COMBO_2_${getUID()}`,
+            code: `ARRAY_COMBO_2_${ParseUtility.getUID()}`,
             name: 'Combo Product 2',
             description: 'ARRAY_OPERATOR_TEST',
             price: 200,

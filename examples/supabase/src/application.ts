@@ -13,7 +13,7 @@ import {
   JWSAuthenticationStrategy,
   type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 
 export class Application extends BaseApplication {
@@ -38,7 +38,9 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
         getTokenExpiresFn: () =>
-          int(applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN)),
+          ParseUtility.toInt({
+            input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN),
+          }),
       },
     });
 

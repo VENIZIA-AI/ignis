@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -19,7 +19,7 @@ export class OperatorTestFixture extends BaseTestCases {
         data: [
           // Basic numeric values for comparison operators
           {
-            code: `COMP_NUM_1_${getUID()}`,
+            code: `COMP_NUM_1_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 10,
@@ -28,7 +28,7 @@ export class OperatorTestFixture extends BaseTestCases {
             jValue: { priority: 1, status: 'active', metadata: { level: 1, tags: ['a', 'b'] } },
           },
           {
-            code: `COMP_NUM_2_${getUID()}`,
+            code: `COMP_NUM_2_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 20,
@@ -37,7 +37,7 @@ export class OperatorTestFixture extends BaseTestCases {
             jValue: { priority: 2, status: 'pending', metadata: { level: 2, tags: ['b', 'c'] } },
           },
           {
-            code: `COMP_NUM_3_${getUID()}`,
+            code: `COMP_NUM_3_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 30,
@@ -46,7 +46,7 @@ export class OperatorTestFixture extends BaseTestCases {
             jValue: { priority: 3, status: 'active', metadata: { level: 3, tags: ['c', 'd'] } },
           },
           {
-            code: `COMP_NUM_4_${getUID()}`,
+            code: `COMP_NUM_4_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 40,
@@ -55,7 +55,7 @@ export class OperatorTestFixture extends BaseTestCases {
             jValue: { priority: 4, status: 'inactive', metadata: { level: 4, tags: [] } },
           },
           {
-            code: `COMP_NUM_5_${getUID()}`,
+            code: `COMP_NUM_5_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 50,
@@ -65,7 +65,7 @@ export class OperatorTestFixture extends BaseTestCases {
           },
           // NULL values for null operator tests
           {
-            code: `COMP_NULL_1_${getUID()}`,
+            code: `COMP_NULL_1_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: null,
@@ -74,7 +74,7 @@ export class OperatorTestFixture extends BaseTestCases {
             jValue: { priority: null, status: null, metadata: null },
           },
           {
-            code: `COMP_NULL_2_${getUID()}`,
+            code: `COMP_NULL_2_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: null,
@@ -84,7 +84,7 @@ export class OperatorTestFixture extends BaseTestCases {
           },
           // Empty string for edge cases
           {
-            code: `COMP_EMPTY_${getUID()}`,
+            code: `COMP_EMPTY_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.TEXT,
             nValue: 0,
@@ -94,7 +94,7 @@ export class OperatorTestFixture extends BaseTestCases {
           },
           // Special characters for security tests
           {
-            code: `COMP_SPECIAL_${getUID()}`,
+            code: `COMP_SPECIAL_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.TEXT,
             nValue: 100,
@@ -104,7 +104,7 @@ export class OperatorTestFixture extends BaseTestCases {
           },
           // Large/boundary numbers
           {
-            code: `COMP_LARGE_${getUID()}`,
+            code: `COMP_LARGE_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 2147483647,
@@ -114,7 +114,7 @@ export class OperatorTestFixture extends BaseTestCases {
           },
           // Negative numbers
           {
-            code: `COMP_NEGATIVE_${getUID()}`,
+            code: `COMP_NEGATIVE_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: -100,

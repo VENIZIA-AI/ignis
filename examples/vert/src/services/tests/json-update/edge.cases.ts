@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 12] Error: Non-existent column path');
 
-    const code = `JSON_UPDATE_ERR_COL_${getUID()}`;
+    const code = `JSON_UPDATE_ERR_COL_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -57,7 +57,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 13] Error: JSON path on non-JSON column');
 
-    const code = `JSON_UPDATE_ERR_TYPE_${getUID()}`;
+    const code = `JSON_UPDATE_ERR_TYPE_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -103,7 +103,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 14] Error: Invalid characters in path');
 
-    const code = `JSON_UPDATE_ERR_PATH_${getUID()}`;
+    const code = `JSON_UPDATE_ERR_PATH_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -157,7 +157,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 15] Security: SQL injection in path rejected');
 
-    const code = `JSON_UPDATE_SEC_PATH_${getUID()}`;
+    const code = `JSON_UPDATE_SEC_PATH_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -214,7 +214,7 @@ export class EdgeCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 16] Security: SQL injection in value safely stored');
 
-    const code = `JSON_UPDATE_SEC_VAL_${getUID()}`;
+    const code = `JSON_UPDATE_SEC_VAL_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {

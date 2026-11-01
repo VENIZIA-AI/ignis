@@ -462,9 +462,8 @@ import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ```
 
 > [!NOTE]
-> `MinioHelper` from `@venizia/ignis-helpers/minio` is `@deprecated`. Use `BunS3Helper` from
-> `@venizia/ignis-helpers/bun-s3` instead - it reaches MinIO over the same S3 API, and adds
-> presigned URLs, tagging and byte ranges.
+> `BunS3Helper` from `@venizia/ignis-helpers/bun-s3` reaches MinIO servers over the same S3 API
+> (`endpoint` plus path-style addressing), and adds presigned URLs, tagging and byte ranges.
 
 `Hash` is the crypto surface for digests and HMACs. Both methods are synchronous.
 

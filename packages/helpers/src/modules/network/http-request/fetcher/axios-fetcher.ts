@@ -1,5 +1,5 @@
 import { type AnyObject, HTTP, type THttpMethod } from '@/common';
-import { redactSecrets } from '@/common/redact';
+import { RedactUtility } from '@/common/redact';
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
@@ -84,7 +84,9 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
           : new https.Agent({ keepAlive: true, rejectUnauthorized: opts.rejectUnauthorized }));
     }
 
-    logger?.for(this.send.name).info('URL: %s | Props: %s', url, redactSecrets(props));
+    logger
+      ?.for(this.send.name)
+      .info('URL: %s | Props: %s', url, RedactUtility.redactSecrets({ value: props }));
     return this.worker.request<T>(props);
   }
 }

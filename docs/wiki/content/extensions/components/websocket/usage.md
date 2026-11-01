@@ -241,7 +241,7 @@ The helper picks a delivery path per call, based on encryption and `exclude`:
 |-----------|------|
 | No encryption, no `exclude` | Bun's native `server.publish(topic, payload)` - O(1) C++ fan-out, zero JS iteration |
 | No encryption, `exclude` provided | Iterates clients in the room/broadcast set, skipping excluded IDs |
-| Encryption active | Unsubscribed from Bun topics; iterates clients individually through `outboundTransformer`, bounded by `executePromiseWithLimit({ limit: encryptedBatchLimit })` |
+| Encryption active | Unsubscribed from Bun topics; iterates clients individually through `outboundTransformer`, bounded by `PromiseUtility.executeWithLimit({ limit: encryptedBatchLimit })` |
 | `outboundTransformer` bound at all | **All** room/broadcast sends fall back to per-client iteration, even for non-encrypted clients in the same room - Bun's native pub/sub cannot selectively transform |
 
 > [!IMPORTANT]

@@ -77,14 +77,14 @@ Use consistent prefixes based on function purpose:
 |--------|---------|----------|
 | `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
-| `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
-| `is*` | Boolean validation/check | `isApplicationError()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `to*` | Convert/transform data | `ParseUtility.toCamel()`, `ParseUtility.toBoolean()` |
+| `is*` | Boolean validation/check | `isApplicationError()`, `ParseUtility.isInt()`, `ParseUtility.isFloat()`, `isPromiseLike()` |
 | `has*` | Boolean ownership check | `hasBucket()`, `hasPermission()` |
 | `assert*` | Throws when the condition fails, returns nothing | `assertBucketExists()`, `assertOwner()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
-| `resolve*` | Determine/compute value | `ResolverUtility.resolveValue()`, `resolveClass()` |
+| `resolve*` | Determine/compute value | `resolveValue()`, `ClassResolver.resolveClass()` |
 
 ### `is*` versus `assert*`
 
@@ -107,12 +107,12 @@ const condition = buildValueCondition(column, value);
 const orderBy = buildJsonOrderBy(schema, path, direction);
 
 // Converters - transform data types
-const camelCase = toCamel('snake_case');
-const bool = toBoolean('true');
+const camelCase = ParseUtility.toCamel({ input: 'snake_case' });
+const bool = ParseUtility.toBoolean({ input: 'true' });
 
 // Validators - boolean checks
 if (isApplicationError(error)) { /* ... */ }
-if (isInt(value)) { /* ... */ }
+if (ParseUtility.isInt({ input: value })) { /* ... */ }
 if (isPromiseLike(result)) { /* ... */ }
 
 // Extractors - pull specific data
@@ -156,9 +156,9 @@ async syncData() {
 **With the helper utility:**
 
 ```typescript
-import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
+import { PerformanceUtility } from '@venizia/ignis-helpers';
 
-await executeWithPerformanceMeasure({
+await PerformanceUtility.executeWithMeasure({
   logger: this.logger,
   level: 'info',              // default: 'debug'
   scope: 'DataSync',
@@ -180,7 +180,7 @@ Any class extending `BaseHelper` (services, controllers, repositories, helpers) 
 import { ApplicationLogger, ILogger } from '@venizia/ignis-helpers';
 
 class UserService {
-  private logger: ILogger = ApplicationLogger.get('UserService');
+  private logger: ILogger = ApplicationLogger.get({ scope: 'UserService' });
 
   async createUser(data: TCreateUserRequest) {
     // .for() returns a method-scoped child logger

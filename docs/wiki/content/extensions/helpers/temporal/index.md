@@ -315,7 +315,7 @@ Those five plugins and that zone are what IGNIS configured. Then point every imp
 | `getPreviousWeekday({ date })` | `temporal.previousWeekday({ value })` |
 | `getDateTz({ date, timezone })` | `temporal.format({ value, tz })` for text, with `dddd` for the weekday name; `temporal.parts({ value, tz })` for fields |
 | `getDateTz({ ..., timeOffset })` | `temporal.add({ value, amount: timeOffset, unit: TemporalUnits.HOUR })` |
-| `sleep()`, `hrTime()` | Unchanged - both still ship from `@venizia/ignis-helpers` |
+| `sleep()`, `hrTime()` | `PromiseUtility.sleep({ ms })` and `HrTimeUtility.getSeconds()`, both from `@venizia/ignis-helpers` |
 
 The new weekday methods read the day in the helper's zone. The removed ones read it in the server's own zone.
 

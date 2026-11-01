@@ -7,14 +7,15 @@ import type { TClass, TResolver } from './types';
 // package it already depends on, instead of each layer redeclaring them.
 export { isClass, ObjectUtility, ResolverUtility } from '@venizia/ignis-inversion';
 
-/** Resolves a class reference, passing through string binding keys as-is. */
-export const resolveClass = <T>(opts: {
-  ref: TClass<T> | TResolver<TClass<T>> | string;
-}): TClass<T> | string => {
-  const { ref } = opts;
-  if (typeof ref === 'string') {
-    return ref;
-  }
+export class ClassResolver {
+  /** Resolves a class reference, passing through string binding keys as-is. */
+  static resolveClass<T>(opts: {
+    ref: TClass<T> | TResolver<TClass<T>> | string;
+  }): TClass<T> | string {
+    const { ref } = opts;
+    if (typeof ref === 'string') {
+      return ref;
+    }
 
   return ResolverUtility.resolveValue({ value: ref });
 };

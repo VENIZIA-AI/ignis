@@ -36,7 +36,6 @@
     "logger",
     "logging",
     "message-queue",
-    "minio",
     "mqtt",
     "network",
     "nodejs",
@@ -136,10 +135,6 @@
       "types": "./dist/esm/modules/queue/mqtt/index.d.ts",
       "default": "./dist/esm/modules/queue/mqtt/index.js"
     },
-    "./minio": {
-      "types": "./dist/esm/modules/storage/minio/index.d.ts",
-      "default": "./dist/esm/modules/storage/minio/index.js"
-    },
     "./bun-s3": {
       "types": "./dist/esm/modules/storage/bun-s3/index.d.ts",
       "default": "./dist/esm/modules/storage/bun-s3/index.js"
@@ -202,7 +197,6 @@
     "hono": "catalog:",
     "ioredis": "catalog:",
     "luxon": "^3.7.2",
-    "minio": "^8.0.7",
     "mqtt": "^5.16.1",
     "node-vault": "^0.13.0",
     "oxlint": "catalog:",
@@ -228,7 +222,6 @@
     "cron": "^4.4.0",
     "hono": "^4.13.13",
     "ioredis": "^6.0.0",
-    "minio": "^8.0.7",
     "mqtt": "^5.16.1",
     "node-vault": "^0.13.0",
     "pino": "^10.4.0",
@@ -254,9 +247,6 @@
       "optional": true
     },
     "cron": {
-      "optional": true
-    },
-    "minio": {
       "optional": true
     },
     "mqtt": {
