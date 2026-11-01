@@ -1,4 +1,4 @@
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { IHttpRequestContext, THttpHeaders } from '@/http/common/types';
 import { HttpDataSource } from '@/http/datasource';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -86,7 +86,10 @@ describe('the 401 retry re-resolves the token and rebuilds every header', () => 
     const attempts = stubFetch([{ status: 401 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://api.example.com' });
 
-    await expectRejection({ task: dataSource.read({ paths: ['tickets'] }), message: /401/ });
+    await RejectionHelper.expectRejection({
+      task: dataSource.read({ paths: ['tickets'] }),
+      message: /401/,
+    });
     expect(attempts).toHaveLength(1);
   });
 });
@@ -134,7 +137,10 @@ describe('the recovery hook decides, not the transport', () => {
       },
     });
 
-    await expectRejection({ task: dataSource.read({ paths: ['tickets'] }), message: /401/ });
+    await RejectionHelper.expectRejection({
+      task: dataSource.read({ paths: ['tickets'] }),
+      message: /401/,
+    });
 
     expect(asked).toBe(1);
     expect(attempts).toHaveLength(1);
@@ -148,7 +154,10 @@ describe('the recovery hook decides, not the transport', () => {
       onUnauthorized: () => true,
     });
 
-    await expectRejection({ task: dataSource.read({ paths: ['tickets'] }), message: /401/ });
+    await RejectionHelper.expectRejection({
+      task: dataSource.read({ paths: ['tickets'] }),
+      message: /401/,
+    });
 
     expect(attempts).toHaveLength(2);
   });
@@ -336,7 +345,7 @@ describe('headersResolver runs on every send', () => {
       headersResolver: () => ({ 'X-Request-Count': 'true' }),
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.request({ paths: ['tickets'] }),
       message: /x-request-count is owned by HttpDataSource/,
     });
@@ -438,7 +447,7 @@ describe('a throwing hook fails the request with its own error', () => {
         [hook]: resolver,
       });
 
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: dataSource.read({ paths: ['tickets'] }),
         message: 'session headers unavailable',
       });
@@ -495,7 +504,7 @@ describe('a failed read names the path, never the host or the query', () => {
       query: { filter: { where: { id: { inq: ids } } } },
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task,
       message: /431 \| \/tickets \(\d+ chars\) \| The URL is too long for a GET/,
     });
@@ -507,7 +516,7 @@ describe('a failed read names the path, never the host or the query', () => {
     stubFetch([{ status: 500 }]);
     const dataSource = new HttpDataSource({ baseUrl: 'https://internal.example.com/v1' });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.read({
         paths: ['tickets'],
         query: { filter: { where: { email: 'a@b.c' } } },

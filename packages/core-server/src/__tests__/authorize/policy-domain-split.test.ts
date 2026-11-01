@@ -7,7 +7,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { AuthorizationDomainScopes, AuthorizationPolicyBuilder } from '@venizia/ignis-kernel';
 import { beforeAll, afterAll, describe, expect, test } from 'bun:test';
-import { policyDefinitionDomainShapeCheck } from '@/components/auth/models/entities/policy-definition.model';
+import { AuthModelColumns } from '@/components/auth/models/entities/columns';
 
 const SUBJECT = { type: 'User', id: 'u1' };
 const PERMISSION = { type: 'Permission', id: 'p1' };
@@ -75,7 +75,7 @@ describe('AuthorizationPolicyBuilder domain dual-write', () => {
   });
 });
 
-describe('policyDefinitionDomainShapeCheck against a real Postgres', () => {
+describe('AuthModelColumns.buildPolicyDefinitionDomainShapeCheck against a real Postgres', () => {
   let db: PGlite;
 
   const insert = async (opts: { domainType: string | null; domainId: string | null }) => {
@@ -106,7 +106,7 @@ describe('policyDefinitionDomainShapeCheck against a real Postgres', () => {
         domain_type text,
         domain_id text,
         CONSTRAINT policy_definition_domain_shape CHECK (
-          ${policyDefinitionDomainShapeCheck()}
+          ${AuthModelColumns.buildPolicyDefinitionDomainShapeCheck()}
         )
       )
     `);

@@ -43,7 +43,7 @@ import {
   BaseRestController,
   controller,
   get,
-  jsonContent,
+  OpenApiResponses,
   type TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -61,7 +61,7 @@ export class HelloController extends BaseRestController {
     configs: {
       path: '/',
       responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+        [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
           description: 'Says hello',
           schema: z.object({ message: z.string() }),
         }),

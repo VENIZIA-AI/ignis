@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 
 /**
  * `venizia/no-new-error`. An error is thrown through `getError({ message })` (or an `ApplicationError`),
@@ -24,17 +24,17 @@ export class NoNewErrorRule {
         context.report({ node: opts.node, messageId: 'newError', data: { form: opts.form } });
 
       const isErrorIdentifier = (callee: unknown) =>
-        nodeType({ node: callee }) === 'Identifier' &&
-        readField({ node: callee, key: 'name' }) === 'Error';
+        AstNode.getType({ node: callee }) === 'Identifier' &&
+        AstNode.readField({ node: callee, key: 'name' }) === 'Error';
 
       return {
         [AstNodeTypes.NEW_EXPRESSION]: (node: Rule.Node) => {
-          if (isErrorIdentifier(readField({ node, key: 'callee' }))) {
+          if (isErrorIdentifier(AstNode.readField({ node, key: 'callee' }))) {
             report({ node, form: 'new Error(...)' });
           }
         },
         [AstNodeTypes.CALL_EXPRESSION]: (node: Rule.Node) => {
-          if (isErrorIdentifier(readField({ node, key: 'callee' }))) {
+          if (isErrorIdentifier(AstNode.readField({ node, key: 'callee' }))) {
             report({ node, form: 'Error(...)' });
           }
         },

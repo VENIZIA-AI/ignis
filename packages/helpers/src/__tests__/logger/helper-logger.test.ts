@@ -9,7 +9,7 @@ import type { ILogger } from '@/modules/logger/common/types';
 import { LoggerSlot } from '@/modules/logger/slot';
 import type { TLoggerResolver } from '@/modules/logger/slot';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 class ProbeHelper extends BaseHelper {
   constructor() {
@@ -159,7 +159,10 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
       }
       console.log(JSON.stringify({ warnings: warnings.filter(line => line.includes('no logger provider')).length }));
     `;
-    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = SpawnHelper.spawnSyncBounded({
+      cmd: [process.execPath, '-e', script],
+      stderr: 'pipe',
+    });
     const report: { warnings: number } = JSON.parse(
       run.stdout.toString().trim().split('\n').at(-1) ?? '{}',
     );
@@ -180,7 +183,10 @@ describe('BaseHelper.logger with no resolver in the whole import graph', () => {
       }
       console.log(JSON.stringify({ warnings: warnings.filter(line => line.includes('no logger provider')).length }));
     `;
-    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = SpawnHelper.spawnSyncBounded({
+      cmd: [process.execPath, '-e', script],
+      stderr: 'pipe',
+    });
     const report: { warnings?: number } = JSON.parse(
       run.stdout.toString().trim().split('\n').at(-1) ?? '{}',
     );

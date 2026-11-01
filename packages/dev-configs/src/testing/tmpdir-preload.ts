@@ -4,6 +4,6 @@
  * `bunfig.toml` of the folder it runs in, so a root file applies to a run from the root, not to `bun test`
  * run inside a package: there, pass `--preload @venizia/dev-configs/testing/tmpdir-preload` in the `test` script.
  */
-import { useRepoTmp } from './repo-tmp';
+import { RepoTmp } from './repo-tmp';
 
-useRepoTmp();
+RepoTmp.apply();

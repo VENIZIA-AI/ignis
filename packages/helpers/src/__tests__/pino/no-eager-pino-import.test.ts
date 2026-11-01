@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /** `pino` is an optional peer behind the `/pino` sub-path - nothing reachable from the root or logger barrel may value-import it; a barrel re-export would still compile here but break consumers without pino installed. */
 const loadsPino = async (specifier: string): Promise<boolean> => {
@@ -11,7 +11,7 @@ const loadsPino = async (specifier: string): Promise<boolean> => {
     console.log(loaded ? 'PINO_LOADED' : 'PINO_ABSENT');
   `;
 
-  const result = spawnSyncBounded({
+  const result = SpawnHelper.spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

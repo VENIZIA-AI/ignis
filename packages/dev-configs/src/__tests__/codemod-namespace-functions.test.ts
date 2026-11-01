@@ -20,8 +20,8 @@ import { FILTER_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/fil
 import { HELPERS_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/helpers';
 import { INVERSION_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/inversion';
 import { KERNEL_MAPPINGS } from '../cli/codemod/namespace-functions/mappings/kernel';
-import { findRepositoryRoot, REPO_TMP_DIRECTORY } from '../testing/repo-tmp';
-import { spawnSyncBounded } from '../testing/spawn.helper';
+import { REPO_TMP_DIRECTORY, RepoTmp } from '../testing/repo-tmp';
+import { SpawnHelper } from '../testing/spawn.helper';
 
 /**
  * The example entry, a fixture: `float(input, digit = 2)` of `@venizia/ignis-helpers` as
@@ -559,7 +559,7 @@ describe('NamespaceMappings - the table', () => {
 
 /** A private folder under the repository's test temp folder, never the system temp. */
 const makeScratch = (prefix: string) => {
-  const scratch = join(findRepositoryRoot(), REPO_TMP_DIRECTORY);
+  const scratch = join(RepoTmp.findRoot(), REPO_TMP_DIRECTORY);
   mkdirSync(scratch, { recursive: true });
   const root = mkdtempSync(join(scratch, prefix));
   execFileSync('git', ['init', '-q'], { cwd: root });
@@ -726,7 +726,7 @@ describe('devz codemod namespace-functions - the CLI end to end', () => {
   });
 
   const devz = (args: string[]) => {
-    const result = spawnSyncBounded({ cmd: ['bun', CLI, ...args], cwd: root });
+    const result = SpawnHelper.spawnSyncBounded({ cmd: ['bun', CLI, ...args], cwd: root });
     return {
       exitCode: result.exitCode,
       stdout: result.stdout.toString(),

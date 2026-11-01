@@ -62,7 +62,7 @@ const SECURE_ROUTE = {
 - **Strategies are manual, on purpose.** The component registers *token services* - JWS, JWKS, Basic - never *strategies*. Register strategies yourself after the component, via `AuthenticationStrategyRegistry.getInstance().register(...)`.
 - **The registry is a DI-backed singleton.** `AuthenticationStrategyRegistry` binds each strategy into the container as a singleton, under the key `authentication.strategy.<name>`. A route's `authenticate.strategies` list references strategies by that same name.
 - **`authenticate()` is the middleware entry point.** Route-level `authenticate: { strategies, mode }` config and the standalone `authenticate()` function both run through the same `AuthenticationProvider`, which sets `Authentication.CURRENT_USER` on success. See [Multi-strategy authentication](./usage#multi-strategy-authentication) for what `'any'` and `'all'` mode do.
-- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `defineAuthController()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
+- **The auth controller is optional and generated.** Set `REST_OPTIONS.useAuthController: true` to call `AuthControllerFactory.define()`, which builds a `BaseRestController` subclass at runtime - routes for `/sign-in`, `/sign-up`, `/change-password`, `/token/refresh`, `/who-am-i`, and `/me`. You back it with your own `IAuthService` implementation.
 
 **JOSE standards**
 
@@ -168,4 +168,4 @@ export const users = pgTable('users', {
 - [`packages/kernel/src/base/auth/authenticate/common/types/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authenticate/common/types/index.ts) - all option interfaces
 - [`packages/kernel/src/base/auth/authenticate/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authenticate/common/keys.ts) - `AuthenticateBindingKeys`
 - [`packages/kernel/src/base/auth/authenticate/common/constants/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/auth/authenticate/common/constants/index.ts) - `Authentication`, `JOSEStandards`, `JWKSModes`, `JWKSKeyDrivers`, `JWKSKeyFormats`
-- [`packages/core-server/src/components/auth/models/entities`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities) - `extraUserColumns`, `extraRoleColumns`, `extraPermissionColumns`, `extraPolicyDefinitionColumns`
+- [`packages/core-server/src/components/auth/models/entities`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/auth/models/entities) - `AuthModelColumns.buildUser`, `AuthModelColumns.buildRole`, `AuthModelColumns.buildPermission`, `AuthModelColumns.buildPolicyDefinition`

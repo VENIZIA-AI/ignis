@@ -1,4 +1,4 @@
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { HttpResponseReader } from '@/http/common/readers';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
@@ -198,7 +198,10 @@ describe('an id that names another route is refused before a request is spent', 
         resource: 'users',
       });
 
-      await expectRejection({ task: repository.deleteById({ id }), message: /Invalid id/ });
+      await RejectionHelper.expectRejection({
+        task: repository.deleteById({ id }),
+        message: /Invalid id/,
+      });
       expect(attempts).toHaveLength(0);
     });
   }
@@ -261,7 +264,7 @@ describe('a call adds its own headers and an abort signal', () => {
     const controller = new AbortController();
     controller.abort();
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: buildRepository().find({ filter: {}, options: { signal: controller.signal } }),
       message: /abort/i,
     });
@@ -334,7 +337,7 @@ describe('a missing Content-Range names the cross-origin cause', () => {
       resource: 'users',
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.count({ where: {} }),
       message: /Access-Control-Expose-Headers/,
     });
@@ -479,7 +482,7 @@ describe('review cases', () => {
       },
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: dataSource.read({ paths: ['users'], signal: controller.signal }),
       message: /abort/i,
     });
@@ -571,7 +574,7 @@ describe('list extras, asked for by name', () => {
   test('an unmarked { data, extra } body is not unwrapped as a list', async () => {
     stubFetch([{ status: 200, text: JSON.stringify({ data: [1, 2], extra: { note: 'x' } }) }]);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: new HttpDataSource({ baseUrl: BASE_URL }).read({ paths: ['items'] }),
       message: /neither an array/,
     });

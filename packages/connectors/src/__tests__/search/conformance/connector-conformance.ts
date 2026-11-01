@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import type { ISearchConnector } from '@/search/core';
 
 interface IConformanceDocument extends Record<string, unknown> {
@@ -67,7 +67,7 @@ export const runConnectorConformance = (opts: {
     test('collection.exists() surfaces a genuine failure rather than reporting absence', async () => {
       const { connector: broken } = await buildWithFailingExistenceCheck();
 
-      await expectRejection({
+      await RejectionHelper.expectRejection({
         task: broken.collection.exists({ name: collection }),
         message: /temporarily unavailable/i,
       });

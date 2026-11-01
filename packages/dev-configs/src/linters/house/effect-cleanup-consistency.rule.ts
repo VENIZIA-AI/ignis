@@ -1,6 +1,6 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, nodeType, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { HookSupport } from './hook-support';
 
 /** What the rule knows about the function whose code path is open; one per function, so a nested function is its own. */
@@ -39,7 +39,7 @@ export class EffectCleanupConsistencyRule {
         const current = frame;
         if (
           !current?.hook ||
-          nodeType({ node: readField({ node, key: 'body' }) }) !== 'BlockStatement'
+          AstNode.getType({ node: AstNode.readField({ node, key: 'body' }) }) !== 'BlockStatement'
         ) {
           return;
         }
@@ -53,7 +53,7 @@ export class EffectCleanupConsistencyRule {
       return {
         [AstNodeTypes.CALL_EXPRESSION]: (node: Rule.Node) => {
           const hook = HookSupport.calleeName({ call: node });
-          const args = readField({ node, key: 'arguments' });
+          const args = AstNode.readField({ node, key: 'arguments' });
           if (
             !HookSupport.isEffectHook({ name: hook }) ||
             hook === undefined ||
@@ -87,7 +87,7 @@ export class EffectCleanupConsistencyRule {
             return;
           }
 
-          if (readField({ node, key: 'argument' })) {
+          if (AstNode.readField({ node, key: 'argument' })) {
             frame.returnsValue = true;
           } else {
             frame.returnsNothing = true;

@@ -74,7 +74,7 @@ It does take `tagging`, `contentLength` and `contentType`, all SIGNED and sent b
 merely sent is a tag S3 ignores, so a step gated on reading it back fails silently; signed, it exists
 the moment the object does. `contentLength` stays an exact number, not a ceiling - the equality limit
 above, not an oversight. `contentType` closes the same hole on the RECEIVING side that
-`resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
+`AssetControllerFactory.resolveServedContentType` closes on the serving side: unsigned, the uploader picks the stored type. Built as a query-signed SigV4 URL, because `S3Client.presign` takes a method
 and an expiry and nothing else.
 
 ### POST policy - what `directUpload` uses

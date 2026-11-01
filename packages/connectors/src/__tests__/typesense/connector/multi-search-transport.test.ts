@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { makeHelper } from './fake-client';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 
 /**
  * `/multi_search` is the single transport: `search()` is its arity-1 case and `multiSearch()` its
@@ -214,7 +214,7 @@ describe('search() - a page that cannot be served honestly is refused', () => {
       params: { q: '*', ['per_page']: 12_750 },
     });
 
-    await expectRejection({ task: failure, message: /at most 50/ });
+    await RejectionHelper.expectRejection({ task: failure, message: /at most 50/ });
     expect(callCount(fake)).toBe(0);
   });
 
@@ -241,7 +241,10 @@ describe('search() - a page that cannot be served honestly is refused', () => {
       params: { q: '*', ['per_page']: 500, ['group_by']: 'brand' },
     });
 
-    await expectRejection({ task: failure, message: /grouped search cannot be split/i });
+    await RejectionHelper.expectRejection({
+      task: failure,
+      message: /grouped search cannot be split/i,
+    });
   });
 
   test('a grouped page WITHIN the ceiling is untouched', async () => {
@@ -264,7 +267,7 @@ describe('search() - per-entry errors arrive inside HTTP 200', () => {
 
     // Answering empty here would make a rejected filter indistinguishable from a genuine no-match,
     // and ISearchResult has nowhere to put the error.
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: helper.search({ collection: 'products', params: { q: '*' } }),
       message: /Could not parse the filter query/,
     });
@@ -275,7 +278,7 @@ describe('search() - per-entry errors arrive inside HTTP 200', () => {
       multiSearchResult: { results: [{ code: 500, error: 'Index segment not found on disk' }] },
     });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: helper.search({ collection: 'products', params: { q: '*' } }),
       message: /Index segment not found/,
     });
