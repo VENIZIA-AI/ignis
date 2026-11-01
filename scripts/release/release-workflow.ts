@@ -46,6 +46,9 @@ export class ReleaseWorkflowGuards {
   static readonly TARGET_BRANCH_BY_KIND = 'target-branch-by-kind';
   static readonly NO_FORCE_OR_TAG_MOVE = 'no-force-or-tag-move';
   static readonly PLAN_CHECKS_THE_LABEL = 'plan-checks-the-label';
+  static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
+  static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
+  static readonly PUBLISH_ENVIRONMENT_IS_CLOSED = 'publish-environment-is-closed';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -83,6 +86,9 @@ export class ReleaseWorkflowGuards {
     this.TARGET_BRANCH_BY_KIND,
     this.NO_FORCE_OR_TAG_MOVE,
     this.PLAN_CHECKS_THE_LABEL,
+    this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+    this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+    this.PUBLISH_ENVIRONMENT_IS_CLOSED,
   ]);
 }
 
@@ -99,6 +105,8 @@ interface IWorkflowStep {
   if?: string;
   with?: Record<string, unknown>;
   env?: Record<string, unknown>;
+  'continue-on-error'?: unknown;
+  'timeout-minutes'?: unknown;
 }
 
 interface IWorkflowJob {
@@ -110,6 +118,7 @@ interface IWorkflowJob {
   outputs?: Record<string, unknown>;
   strategy?: { matrix?: unknown };
   env?: Record<string, unknown>;
+  defaults?: unknown;
   'timeout-minutes'?: unknown;
   steps?: IWorkflowStep[];
 }
@@ -119,6 +128,7 @@ interface IWorkflow {
   on?: { workflow_dispatch?: { inputs?: Record<string, { default?: unknown }> } };
   permissions?: Record<string, string> | string;
   env?: Record<string, unknown>;
+  defaults?: unknown;
   jobs?: Record<string, IWorkflowJob>;
 }
 
@@ -134,6 +144,31 @@ const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan'
 const TRIAL_STEP = 'Try the merge back into develop';
 const MERGE_BACK_STEP = 'Merge main back into develop';
 const REPORT_STEP = 'Report - published, merge back not done';
+const GITHUB_RELEASE_STEP = 'Create the GitHub Release';
+/** The variables of the workflow's own `env`, sorted; the one flag a publish step may write to `$GITHUB_ENV`. */
+const WORKFLOW_ENVIRONMENT = ['BUILD_MODE', 'FORCE_JAVASCRIPT_ACTIONS_TO_NODE24', 'TARBALLS'];
+const MERGE_BACK_FLAG_WRITE = 'echo "MERGE_BACK_STARTED=true" >> "$GITHUB_ENV"';
+const GITHUB_RELEASE_COMMAND =
+  'bun scripts/release/github-release.ts create --targets "$TARGETS" --kind "$RELEASE_KIND"';
+/** The only keys the step has: no `if`, `shell`, `uses`, `with`, `id` or `working-directory` to change what runs or when. */
+const GITHUB_RELEASE_KEYS = ['continue-on-error', 'env', 'name', 'run', 'timeout-minutes'];
+const GITHUB_RELEASE_ENV = ['GH_TOKEN', 'RELEASE_KIND', 'TARGETS'];
+const MAXIMUM_GITHUB_RELEASE_TIMEOUT = 10;
+/** The `gh` and `git` commands scripts/release/github-release.ts may issue: it views and creates, nothing else. */
+const GITHUB_RELEASE_COMMANDS = ['release view', 'release create', 'tag', 'log', 'show'];
+const GITHUB_RELEASE_ARGS = /\bargs:\s*\[\s*'([\w-]+)'(?:,\s*'([\w-]+)')?/g;
+/** A quoted forcing flag or refspec (`'+main'`, `':tag'`), as the loop's git commands are checked. */
+const FORCING_FLAG = /'(?:--force|--force-with-lease|-f|--delete|-d|-D)'|'[+:]\S*'/;
+/** A call of `gh`, `git` or `mustGit` in github-release.ts: what follows the parenthesis is read as the arguments. */
+const GITHUB_RELEASE_CALL = /(?:\.gh|\.git|\.mustGit|\bgh)\(/g;
+/** What github-release.ts must not use: a way to reach the network, a shell or the tokens other than through `gh`. */
+const FORBIDDEN_IN_RELEASE_SCRIPT: Array<{ name: string; pattern: RegExp }> = [
+  { name: 'fetch', pattern: /\bfetch\s*\(/ },
+  { name: 'the Bun shell', pattern: /Bun\s*\.\s*\$/ },
+  { name: 'child_process', pattern: /child_process/ },
+  { name: 'GH_TOKEN', pattern: /GH_TOKEN/ },
+  { name: 'GITHUB_TOKEN', pattern: /GITHUB_TOKEN/ },
+];
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
@@ -175,6 +210,10 @@ const withoutComments = (text: string): string => text.replace(/(^|[ \t])#.*$/gm
 /** The same for the script: a `//` comment that starts a line or follows a space (a URL's `//` follows a colon). */
 const withoutScriptComments = (text: string): string => text.replace(/(^|[ \t])\/\/.*$/gm, '');
 
+/** The same for a script's block comments, which name commands it does not run; the lines keep their numbers. */
+const withoutBlockComments = (text: string): string =>
+  text.replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, ''));
+
 const commandsOf = (step: IWorkflowStep | undefined): string => withoutComments(step?.run ?? '');
 
 const stepsOf = (job: IWorkflowJob | undefined): IWorkflowStep[] => job?.steps ?? [];
@@ -197,13 +236,14 @@ const hasOidc = (permissions: unknown): boolean =>
 
 /**
  * Every guard that does not hold, empty when the workflow and the loop are as hardened as the release requires.
- * `runnerText` is `scripts/release/release-run.ts`.
+ * `runnerText` is `scripts/release/release-run.ts`, `releaseScriptText` is `scripts/release/github-release.ts`.
  */
 export const checkReleaseWorkflow = (opts: {
   text: string;
   runnerText: string;
+  releaseScriptText: string;
 }): IReleaseWorkflowViolation[] => {
-  const { text, runnerText } = opts;
+  const { text, runnerText, releaseScriptText } = opts;
   const violations: IReleaseWorkflowViolation[] = [];
   const violate = (guard: string, message: string): void => {
     violations.push({ guard, message });
@@ -333,6 +373,10 @@ export const checkReleaseWorkflow = (opts: {
   const tokenScans: Array<{ label: string; lines: string[] }> = [
     { label: 'the workflow', lines: withoutComments(text).split('\n') },
     { label: 'release-run.ts', lines: withoutScriptComments(runnerText).split('\n') },
+    {
+      label: 'github-release.ts',
+      lines: withoutBlockComments(withoutScriptComments(releaseScriptText)).split('\n'),
+    },
   ];
   for (const { label, lines } of tokenScans) {
     for (const [index, line] of lines.entries()) {
@@ -543,15 +587,24 @@ export const checkReleaseWorkflow = (opts: {
   const release = publishSteps.find((step) => step.name === RELEASE_STEP);
   const afterLoop =
     release === undefined ? [] : publishSteps.slice(publishSteps.indexOf(release) + 1);
+  // A step is found by its name: a second step of the same name would be the one that runs unchecked.
+  const names = publishSteps.map((step) => step.name);
+  const repeated = [...new Set(names.filter((name, index) => names.indexOf(name) !== index))];
   if (
+    repeated.length > 0 ||
     !release ||
     commandsOf(release).trim() !== RELEASE_COMMAND ||
     release.env?.PLAN !== '${{ needs.plan.outputs.plan }}' ||
-    afterLoop.some((step) => step.name !== MERGE_BACK_STEP && step.name !== REPORT_STEP)
+    afterLoop.some(
+      (step) =>
+        step.name !== GITHUB_RELEASE_STEP &&
+        step.name !== MERGE_BACK_STEP &&
+        step.name !== REPORT_STEP,
+    )
   ) {
     violate(
       ReleaseWorkflowGuards.PUBLISH_RUNS_THE_LOOP,
-      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${MERGE_BACK_STEP}' and '${REPORT_STEP}'`,
+      `'${RELEASE_STEP}' must run \`${RELEASE_COMMAND}\`, take \`PLAN\` from the plan job's output and be followed only by '${GITHUB_RELEASE_STEP}', '${MERGE_BACK_STEP}' and '${REPORT_STEP}'; no two steps of the '${PUBLISH_JOB}' job share a name${repeated.length > 0 ? ` (repeated: ${repeated.join(', ')})` : ''}`,
     );
   }
 
@@ -681,6 +734,112 @@ export const checkReleaseWorkflow = (opts: {
     );
   }
 
+  // The GitHub Release of the run is made once the loop is done and before the merge back, by a step that cannot fail
+  // the run, holds no secret (the job's own token, nothing else) and takes the plan and the kind from the plan job.
+  const githubRelease = publishSteps.find((step) => step.name === GITHUB_RELEASE_STEP);
+  // The step is pinned, not searched: its one command is exactly the call, it has no key that changes what runs or
+  // when (`if`, `shell`, `uses`, `working-directory`), its environment is the three variables and its timeout is short.
+  const githubReleasePosition =
+    githubRelease === undefined ? -1 : publishSteps.indexOf(githubRelease);
+  const githubReleaseTimeout = githubRelease?.['timeout-minutes'];
+  if (
+    githubRelease === undefined ||
+    release === undefined ||
+    merge === undefined ||
+    githubReleasePosition < publishSteps.indexOf(release) ||
+    githubReleasePosition > publishSteps.indexOf(merge) ||
+    JSON.stringify(Object.keys(githubRelease).sort()) !== JSON.stringify(GITHUB_RELEASE_KEYS) ||
+    githubRelease['continue-on-error'] !== true ||
+    typeof githubReleaseTimeout !== 'number' ||
+    githubReleaseTimeout < 1 ||
+    githubReleaseTimeout > MAXIMUM_GITHUB_RELEASE_TIMEOUT ||
+    JSON.stringify(Object.keys(githubRelease.env ?? {}).sort()) !==
+      JSON.stringify(GITHUB_RELEASE_ENV) ||
+    githubRelease.env?.GH_TOKEN !== '${{ github.token }}' ||
+    githubRelease.env?.RELEASE_KIND !== '${{ needs.plan.outputs.kind }}' ||
+    githubRelease.env?.TARGETS !== '${{ needs.plan.outputs.targets }}' ||
+    JSON.stringify(githubRelease).includes(SECRET_REFERENCE) ||
+    commandsOf(githubRelease).trim() !== GITHUB_RELEASE_COMMAND
+  ) {
+    violate(
+      ReleaseWorkflowGuards.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
+      `'${GITHUB_RELEASE_STEP}' must come after '${RELEASE_STEP}' and before '${MERGE_BACK_STEP}', have only the keys ${GITHUB_RELEASE_KEYS.join(', ')} (no \`if\`, \`shell\`, \`uses\` or \`working-directory\`), state \`continue-on-error: true\` and a \`timeout-minutes\` of 1 to ${MAXIMUM_GITHUB_RELEASE_TIMEOUT}, have exactly the variables ${GITHUB_RELEASE_ENV.join(', ')} (\`GH_TOKEN\` from \`github.token\`, the other two from the plan job's outputs), reference no secret, and run exactly \`${GITHUB_RELEASE_COMMAND}\`: a Release that cannot be made must never fail or undo a publish`,
+    );
+  }
+
+  // The script that makes the Release views and creates, nothing else. The rule is enforced when it runs (`ghOf`
+  // refuses any other `gh` call before it spawns anything; `github-release.test.ts` runs that). This guard pins the
+  // text that keeps it so: every `gh` and `git` call passes its arguments as an inline array that opens with a
+  // quoted word (no variable, spread, shorthand, split or template), `ghOf` checks them before its one spawn, and
+  // nothing else can reach the network or a process.
+  const releaseScript = withoutBlockComments(withoutScriptComments(releaseScriptText));
+  const releaseScriptCommands = [...releaseScript.matchAll(GITHUB_RELEASE_ARGS)].map((match) =>
+    match[1] === 'release' ? `release ${match[2] ?? ''}` : (match[1] ?? ''),
+  );
+  const releaseScriptProblems = releaseScriptCommands
+    .filter((command) => !GITHUB_RELEASE_COMMANDS.includes(command))
+    .map((command) => `issues '${command}'`);
+  const ghOfBody =
+    /static ghOf\([^)]*\): TGh \{([\s\S]*?)\n {2}\}\n/.exec(releaseScript)?.[1] ?? '';
+  const refusalAt = ghOfBody.indexOf('GithubRelease.refusalOf({ args })');
+  const spawnAt = ghOfBody.indexOf("Bun.spawnSync(['gh', ...args]");
+
+  if (refusalAt < 0 || spawnAt < 0 || refusalAt > spawnAt) {
+    releaseScriptProblems.push('ghOf does not check the arguments with refusalOf before it spawns');
+  }
+  for (const command of ['release view', 'release create']) {
+    if (!releaseScriptCommands.includes(command)) {
+      releaseScriptProblems.push(`never issues '${command}'`);
+    }
+  }
+  if ((releaseScript.match(/Bun\s*\.\s*spawn/g) ?? []).length !== 1) {
+    releaseScriptProblems.push('spawns a process other than the one in ghOf');
+  }
+  for (const { name, pattern } of FORBIDDEN_IN_RELEASE_SCRIPT) {
+    if (pattern.test(releaseScript)) {
+      releaseScriptProblems.push(`uses ${name}`);
+    }
+  }
+  for (const call of releaseScript.matchAll(GITHUB_RELEASE_CALL)) {
+    const rest = releaseScript.slice(call.index + call[0].length);
+    const array = /^\s*\{\s*(?:cwd:\s*[\w.]+,\s*)?args:\s*\[\s*'[\w-]+'([^\]]*)\]/.exec(rest);
+
+    if (array === null || (array[1] ?? '').includes('...')) {
+      releaseScriptProblems.push(
+        `calls ${call[0]} with arguments that are not an inline array of words: ${rest.slice(0, 40).replace(/\s+/g, ' ')}`,
+      );
+    }
+  }
+  if (releaseScriptProblems.length > 0) {
+    violate(
+      ReleaseWorkflowGuards.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
+      `github-release.ts must issue only ${GITHUB_RELEASE_COMMANDS.map((command) => `\`${command}\``).join(', ')}, with the arguments of each call written inline and checked by ghOf before its one spawn: it never deletes, edits or uploads a release. Found: ${releaseScriptProblems.join('; ')}`,
+    );
+  }
+
+  // The environment the publish steps run in is the one the file shows: no default shell, no variable set for the whole
+  // job, and a step may not set one for the steps after it (`GH_REPO`, `PATH`) but the one flag the report reads.
+  const workflowEnvironment = Object.keys(workflow.env ?? {}).sort();
+  const environmentWrites = publishSteps.flatMap((step) =>
+    commandsOf(step)
+      .split('\n')
+      .filter((line) => line.includes('GITHUB_ENV') || line.includes('GITHUB_PATH'))
+      .filter((line) => line.trim() !== MERGE_BACK_FLAG_WRITE)
+      .map((line) => `'${step.name}' writes ${line.trim()}`),
+  );
+  if (
+    workflow.defaults !== undefined ||
+    Object.values(jobs).some((job) => job.defaults !== undefined) ||
+    publish?.env !== undefined ||
+    JSON.stringify(workflowEnvironment) !== JSON.stringify(WORKFLOW_ENVIRONMENT) ||
+    environmentWrites.length > 0
+  ) {
+    violate(
+      ReleaseWorkflowGuards.PUBLISH_ENVIRONMENT_IS_CLOSED,
+      `no \`defaults\` in the workflow or in a job, no \`env\` on the '${PUBLISH_JOB}' job, the workflow \`env\` holds exactly ${WORKFLOW_ENVIRONMENT.join(', ')}, and the '${PUBLISH_JOB}' steps write \`$GITHUB_ENV\` and \`$GITHUB_PATH\` only as \`${MERGE_BACK_FLAG_WRITE}\`${environmentWrites.length > 0 ? ` (found: ${environmentWrites.join('; ')})` : ''}: a step after the Release must run in the environment the file shows`,
+    );
+  }
+
   // Nothing force-pushes, moves or deletes a tag, or deletes a branch: a published version is never chased.
   for (const [jobName, job] of Object.entries(jobs)) {
     for (const step of stepsOf(job)) {
@@ -702,6 +861,13 @@ export const checkReleaseWorkflow = (opts: {
         `release-run.ts runs a git command that forces, moves or deletes: ${array.replace(/\s+/g, ' ')}`,
       );
     }
+  }
+
+  if (FORCING_FLAG.test(releaseScript)) {
+    violate(
+      ReleaseWorkflowGuards.NO_FORCE_OR_TAG_MOVE,
+      'github-release.ts names a flag that forces or deletes; a release never rewrites or removes what it has published',
+    );
   }
 
   return violations;
