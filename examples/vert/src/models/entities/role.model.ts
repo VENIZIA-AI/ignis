@@ -1,7 +1,7 @@
 import { AuthModelColumns, model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
 } from '@venizia/ignis/postgres';

@@ -3,13 +3,13 @@ import type { TNote } from '@/models/note.model';
 import { type NoteRepository } from '@/repositories/note.repository';
 import { BaseService, inject, service } from '@venizia/ignis';
 import type { IDatabaseTransaction } from '@venizia/ignis/postgres';
-import { withAuthContext } from '@venizia/ignis/postgres/supabase';
+import { SupabaseRls } from '@venizia/ignis/postgres/supabase';
 
 /**
  * Every write and every scoped read goes through `runAsUser`: open a transaction, establish the
  * caller's identity inside it, run the repository call, commit.
  *
- * The transaction is not decoration. `withAuthContext` uses `SET LOCAL` / `set_config(..., true)`,
+ * The transaction is not decoration. `SupabaseRls.withAuthContext` uses `SET LOCAL` / `set_config(..., true)`,
  * which is transaction-scoped - and that is what makes it safe behind a pooler. A plain `SET` would
  * leak the caller's identity to whoever borrows the connection next.
  */
@@ -39,7 +39,7 @@ export class NoteService extends BaseService {
     const transaction = await this.dataSource.beginTransaction();
 
     try {
-      await withAuthContext({ transaction, claims });
+      await SupabaseRls.withAuthContext({ transaction, claims });
       const result = await handler(transaction);
       await transaction.commit();
       return result;
@@ -104,7 +104,7 @@ export class NoteService extends BaseService {
   /**
    * The control group. Same repository, same table - but through the pooled connector as the
    * connection's own role, with no auth context established. RLS does not apply: every row comes
-   * back. The only difference between this and `find()` above is `withAuthContext`.
+   * back. The only difference between this and `find()` above is `SupabaseRls.withAuthContext`.
    */
   findUnscoped(): Promise<Array<TNote>> {
     return this.noteRepository.find<TNote>({ filter: {} });

@@ -70,7 +70,8 @@ export class SqliteJsonPathUtility {
    * The `json_extract` expression for one JSON-path key, as the chunks of one flat fragment (every
    * nested `SQL` level costs a render pass); a caller may append a chunk before `sql.fromList`. The
    * Drizzle column chunk is qualified or aliased like a plain key. The path literal is raw text, safe
-   * only because every component has passed `validateJsonPathComponents`, which admits no quote.
+   * only because every component has passed `JsonPathUtility.validateJsonPathComponents`, which admits
+   * no quote.
    *
    * Coalescing loses nothing: a container is either an array or an object, so at most one candidate
    * resolves to non-NULL.

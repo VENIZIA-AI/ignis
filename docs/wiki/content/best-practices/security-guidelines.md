@@ -123,7 +123,7 @@ Configure model properties that should **never be returned** through repository 
 })
 export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
     password: text('password'),      // Never returned via repository
     apiSecret: text('api_secret'),   // Never returned via repository

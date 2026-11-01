@@ -17,8 +17,8 @@ import { BasePostgresDataSource } from '@/relational/postgres/datasources';
 import { PGliteDriver } from '@/relational/postgres/drivers/pglite';
 import {
   BasePostgresEntity,
-  generateTzColumnDefs as generatePostgresTzColumnDefs,
-  generateUserAuditColumnDefs as generatePostgresUserAuditColumnDefs,
+  PostgresTzEnricher,
+  PostgresUserAuditEnricher,
 } from '@/relational/postgres/models';
 import { DefaultCRUDRepository } from '@/relational/postgres/repositories';
 import type { IDatabaseExtraOptions } from '@/relational/postgres/repositories/common';
@@ -27,8 +27,8 @@ import { BaseSqliteDataSource } from '@/relational/sqlite/datasources';
 import { LibSqlDriver } from '@/relational/sqlite/drivers/libsql';
 import {
   BaseSqliteEntity,
-  generateTzColumnDefs as generateSqliteTzColumnDefs,
-  generateUserAuditColumnDefs as generateSqliteUserAuditColumnDefs,
+  SqliteTzEnricher,
+  SqliteUserAuditEnricher,
 } from '@/relational/sqlite/models';
 import { DefaultSqliteRepository } from '@/relational/sqlite/repositories';
 
@@ -62,19 +62,19 @@ const buildColumnOpts = (opts: { allowAnonymous: boolean }) => {
 };
 
 const postgresAnonymousTable = pgTable('pg_user_audit_anonymous', {
-  ...generatePostgresUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: true })),
+  ...PostgresUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: true })),
 });
 
 const postgresStrictTable = pgTable('pg_user_audit_strict', {
-  ...generatePostgresUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: false })),
+  ...PostgresUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: false })),
 });
 
 const sqliteAnonymousTable = sqliteTable('sqlite_user_audit_anonymous', {
-  ...generateSqliteUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: true })),
+  ...SqliteUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: true })),
 });
 
 const sqliteStrictTable = sqliteTable('sqlite_user_audit_strict', {
-  ...generateSqliteUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: false })),
+  ...SqliteUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: false })),
 });
 
 /** `$default` and `$onUpdate` are what drizzle calls per row; reading them back is the only way to exercise the enricher without a live engine. */
@@ -151,15 +151,15 @@ const SQLITE_ROUTE_TABLE = 'libsql_user_audit_route';
 const postgresRouteTable = pgTable(POSTGRES_ROUTE_TABLE, {
   id: pgText('id').primaryKey(),
   code: pgText('code').notNull(),
-  ...generatePostgresTzColumnDefs(),
-  ...generatePostgresUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: true })),
+  ...PostgresTzEnricher.generateColumnDefs(),
+  ...PostgresUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: true })),
 });
 
 const sqliteRouteTable = sqliteTable(SQLITE_ROUTE_TABLE, {
   id: sqliteText('id').primaryKey(),
   code: sqliteText('code').notNull(),
-  ...generateSqliteTzColumnDefs(),
-  ...generateSqliteUserAuditColumnDefs(buildColumnOpts({ allowAnonymous: true })),
+  ...SqliteTzEnricher.generateColumnDefs(),
+  ...SqliteUserAuditEnricher.generateColumnDefs(buildColumnOpts({ allowAnonymous: true })),
 });
 
 @model({ type: 'entity' })

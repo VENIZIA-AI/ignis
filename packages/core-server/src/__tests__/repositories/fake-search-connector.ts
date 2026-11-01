@@ -3,7 +3,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import { model } from '@venizia/ignis-kernel';
 import {
   BaseSearchEntity,
-  defineSearchCollection,
+  SearchCollectionFactory,
   field,
   type IImportResult,
   type ISearchAliasScoped,
@@ -283,7 +283,7 @@ export class FakeSearchDataSource extends TypesenseDataSource {
   },
 })
 export class ProductDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'products',
     fields: [
       field.string('title', { searchable: true }),

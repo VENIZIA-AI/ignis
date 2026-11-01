@@ -207,11 +207,11 @@ Building Drizzle relations needs the relational connector, but the mixin that re
 the browser-pure kernel. `RelationBuilderRegistry`
 (`packages/kernel/src/helpers/inversion/common/relation-builder.ts`) is the seam: the mixin only
 calls `resolve()`, and `BaseRelationalDataSource`'s module body calls
-`set({ builder: createRelations })` on load. One value import the other way drags `drizzle-orm` into
+`set({ builder: RelationsFactory.create })` on load. One value import the other way drags `drizzle-orm` into
 every graph that uses `@repository`.
 
 The install runs from `packages/connectors/src/relational/core/datasources/base.ts`, which reaches
-`createRelations` through a **deep import** of `relational/core/repositories/dialect/relations/create.ts`
+`RelationsFactory` through a **deep import** of `relational/core/repositories/dialect/relations/create.ts`
 rather than a barrel - a `sideEffects: false` bundler drops an unused export's module body even when
 it is reachable through a barrel `export *` chain. A model that declares relations with no builder
 installed throws at resolve time instead of silently producing an empty `with` clause, and

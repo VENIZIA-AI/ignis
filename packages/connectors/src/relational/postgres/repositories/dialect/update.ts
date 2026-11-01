@@ -19,7 +19,7 @@ export class UpdateBuilder extends RelationalUpdateBuilder {
   /**
    * The path and the value are RAW, not bound: `jsonb_set` takes a `text[]` and a `jsonb`, and a
    * bound parameter arrives as untyped text. Safe only because the base has already run every path
-   * component through `validateJsonPathComponents`, whose pattern admits no quote.
+   * component through `JsonPathUtility.validateJsonPathComponents`, whose pattern admits no quote.
    */
   protected override composeJsonSet(opts: { target: SQL; path: string[]; value: any }): SQL {
     const { target, path, value } = opts;

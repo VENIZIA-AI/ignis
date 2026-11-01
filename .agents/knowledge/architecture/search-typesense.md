@@ -25,7 +25,7 @@ The search hierarchy is a deliberate reflection of the relational one:
 
 ## Collections instead of tables
 
-A collection is declared through a neutral DSL (`defineSearchCollection`) and discovered from `@repository` bindings exactly as a pgTable schema is. `discoverCollections()` reads a bound model class's static `searchCollection` first - the dual-schema escape hatch for a Postgres entity that also carries a search index - then falls back to a **shape-guarded** static `schema`, so a pgTable is never mistaken for (and provisioned as) a collection. Search-only entities extend `BaseSearchEntity` and carry the DSL directly.
+A collection is declared through a neutral DSL (`SearchCollectionFactory.define`) and discovered from `@repository` bindings exactly as a pgTable schema is. `discoverCollections()` reads a bound model class's static `searchCollection` first - the dual-schema escape hatch for a Postgres entity that also carries a search index - then falls back to a **shape-guarded** static `schema`, so a pgTable is never mistaken for (and provisioned as) a collection. Search-only entities extend `BaseSearchEntity` and carry the DSL directly.
 
 Provisioning is opt-in and additive-only: `autoProvision` (constructor option, or `APP_ENV_AUTO_PROVISION_COLLECTION`, default false) drives `ensureCollection()` per definition plus synonym set-up; destructive migration is caller policy. Failures propagate so boot fails loudly.
 

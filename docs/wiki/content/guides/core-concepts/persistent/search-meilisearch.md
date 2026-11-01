@@ -1,6 +1,6 @@
 # Search & Meilisearch
 
-IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector: the same `@model`/`@repository`/`@datasource` decorators and the same `defineSearchCollection` field DSL. It also shares the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis/search` module.
+IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector: the same `@model`/`@repository`/`@datasource` decorators and the same `SearchCollectionFactory.define` and `field` DSL. It also shares the same repository tiers and controller factory. All of that lives in the engine-neutral `@venizia/ignis/search` module.
 
 What it does **not** share is the pretence that the two engines are the same. Where Meilisearch differs from Typesense, IGNIS surfaces the difference rather than papering over it.
 
@@ -9,7 +9,7 @@ What it does **not** share is the pretence that the two engines are the same. Wh
 >
 > ```typescript
 > import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
-> import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+> import { BaseSearchEntity, SearchCollectionFactory, field } from '@venizia/ignis/search';
 > ```
 >
 > Install it alongside the framework:
@@ -23,12 +23,12 @@ What it does **not** share is the pretence that the two engines are the same. Wh
 The collection DSL is the same one the Typesense connector uses. What changes is which flags matter.
 
 ```typescript
-import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+import { BaseSearchEntity, SearchCollectionFactory, field } from '@venizia/ignis/search';
 import { model } from '@venizia/ignis';
 
 @model()
 export class ArticleDocument extends BaseSearchEntity {
-  static override schema = defineSearchCollection({
+  static override schema = SearchCollectionFactory.define({
     name: 'articles',
     fields: [
       field.id(),

@@ -1,7 +1,7 @@
 import { model } from '@venizia/ignis';
 import {
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   ModelFactory,
   one,
   type TEntityObject,
@@ -14,8 +14,8 @@ import { saleChannelTable } from './sale-channel.model';
 export const saleChannelProductTable = pgTable(
   'SaleChannelProduct',
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
     productId: text('product_id').notNull(),
     saleChannelId: text('sale_channel_id').notNull(),
   },

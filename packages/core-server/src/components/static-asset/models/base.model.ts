@@ -1,8 +1,8 @@
 import { model } from '@/base/metadata';
 import {
   BaseRelationalEntity,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
   type TTableObject,
   type TTableSchemaWithId,
 } from '@venizia/ignis-connectors/postgres';
@@ -14,8 +14,8 @@ export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkM
   static override schema = pgTable(
     'MetaLink',
     {
-      ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-      ...generateTzColumnDefs(),
+      ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+      ...PostgresTzEnricher.generateColumnDefs(),
       bucketName: text('bucket_name').notNull(),
       objectName: text('object_name').notNull(),
       link: text().notNull(),

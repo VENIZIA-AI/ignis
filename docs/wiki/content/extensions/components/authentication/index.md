@@ -143,12 +143,12 @@ const FALLBACK_AUTH_CONFIG = {
 **Add auth entity columns to a Drizzle table.** Spread helper functions into `pgTable()` for User/Role/Permission/PolicyDefinition columns.
 
 ```typescript
-import { AuthModelColumns, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis';
+import { extraUserColumns, PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis';
 
 export const users = pgTable('users', {
-  ...generateIdColumnDefs(),
-  ...generateTzColumnDefs(),
-  ...AuthModelColumns.buildUser(),
+  ...PostgresIdEnricher.generateColumnDefs(),
+  ...PostgresTzEnricher.generateColumnDefs(),
+  ...extraUserColumns(),
   username: text('username').unique().notNull(),
 });
 ```

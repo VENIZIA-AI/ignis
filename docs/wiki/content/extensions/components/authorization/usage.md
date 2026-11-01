@@ -412,7 +412,7 @@ customRole.identifier; // '100-editor'
 Instead of hardcoding resource strings, declare `authorize.principal` on the model - `@model` auto-populates the static `AUTHORIZATION_SUBJECT` from it.
 
 ```typescript
-import { BasePostgresEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+import { BasePostgresEntity, model, PostgresIdEnricher } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
@@ -420,7 +420,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 })
 export class Article extends BasePostgresEntity<typeof Article.schema> {
   static override schema = pgTable('Article', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
     title: text('title').notNull(),
   });
 }

@@ -8,7 +8,7 @@ export type TRelationBuilder = (opts: {
 
 /**
  * The relational connector installs itself here from its own module body. The mixin must not import
- * the connector: one value import of `createRelations` drags `drizzle-orm` into every graph that
+ * the connector: one value import of `RelationsFactory.create` drags `drizzle-orm` into every graph that
  * uses `@repository`.
  */
 interface IBuilderSlot {

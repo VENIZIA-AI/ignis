@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications';
-import { generateUserAuditColumnDefs } from '@/connectors';
+import { PostgresUserAuditEnricher } from '@/connectors';
 import { RequestTrackerComponent } from '@/components';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -16,7 +16,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 import { afterEach, describe, expect, test } from 'bun:test';
 
 const auditTable = pgTable('request_context_wiring_audit', {
-  ...generateUserAuditColumnDefs({
+  ...PostgresUserAuditEnricher.generateColumnDefs({
     created: { dataType: 'number', columnName: 'created_by', allowAnonymous: true },
     modified: { dataType: 'number', columnName: 'modified_by', allowAnonymous: true },
   }),

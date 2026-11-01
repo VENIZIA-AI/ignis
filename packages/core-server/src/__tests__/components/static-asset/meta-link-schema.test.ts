@@ -13,8 +13,8 @@ import { BaseMetaLinkModel } from '@/components/static-asset/models';
 import {
   BaseRelationalEntity,
   type DefaultCRUDRepository,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
+  PostgresIdEnricher,
+  PostgresTzEnricher,
 } from '@venizia/ignis-connectors/postgres';
 import { boolean, index, integer, jsonb, pgSchema, pgTable, text } from 'drizzle-orm/pg-core';
 import { expect, test } from 'bun:test';
@@ -28,8 +28,8 @@ const applicationSchema = pgSchema('commerce');
 
 /** Every column `BaseMetaLinkModel.schema` declares, so only the Postgres schema differs. */
 const metaLinkColumns = () => ({
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...generateTzColumnDefs(),
+  ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+  ...PostgresTzEnricher.generateColumnDefs(),
   bucketName: text('bucket_name').notNull(),
   objectName: text('object_name').notNull(),
   link: text().notNull(),
@@ -56,8 +56,8 @@ class NamespacedMetaLinkModel extends BaseRelationalEntity<typeof NamespacedMeta
 @model({ migration: { use: false } })
 class IncompleteMetaLinkModel extends BaseRelationalEntity<typeof IncompleteMetaLinkModel.schema> {
   static override schema = pgTable('IncompleteMetaLink', {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
+    ...PostgresTzEnricher.generateColumnDefs(),
     bucketName: text('bucket_name').notNull(),
     link: text().notNull(),
     mimetype: text().notNull(),

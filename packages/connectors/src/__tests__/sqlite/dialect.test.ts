@@ -1,4 +1,4 @@
-import { generateIdColumnDefs } from '@/relational/sqlite/models';
+import { SqliteIdEnricher } from '@/relational/sqlite/models';
 import { SqliteFilterBuilder } from '@/relational/sqlite/repositories/dialect/filter';
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -12,7 +12,7 @@ import { real, SQLiteSyncDialect, sqliteTable, text } from 'drizzle-orm/sqlite-c
  * `SQLiteSyncDialect` is its concrete form and compiles identically.
  */
 const table = sqliteTable('sqlite_dialect_fixture', {
-  ...generateIdColumnDefs(),
+  ...SqliteIdEnricher.generateColumnDefs(),
   title: text('title'),
   score: real('score'),
   // Property and column names diverge on purpose: the JSON expressions are keyed by the SCHEMA
