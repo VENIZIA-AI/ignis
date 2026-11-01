@@ -5,8 +5,7 @@ import {
   controller,
   CoreBindings,
   inject,
-  jsonContent,
-  jsonResponse,
+  OpenApiResponses,
   type TRouteContext,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
@@ -26,9 +25,12 @@ const RouteConfigs = {
     method: HTTP.Methods.POST,
     path: '/messages',
     request: {
-      body: jsonContent({ schema: MessageRequestSchema, description: 'A chat message' }),
+      body: OpenApiResponses.jsonContent({
+        schema: MessageRequestSchema,
+        description: 'A chat message',
+      }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: MessageResponseSchema,
       description: 'The message was pushed to the room every authenticated client joins',
     }),

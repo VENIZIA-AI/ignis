@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { requiredString } from '@venizia/ignis';
+import { OpenApiSchemas } from '@venizia/ignis';
 
 // ================================================================================
 export const SignInRequestSchema = z.object({
@@ -14,8 +14,8 @@ export const SignInRequestSchema = z.object({
     }),
   credential: z
     .object({
-      scheme: requiredString(),
-      value: requiredString({ min: 8 }),
+      scheme: OpenApiSchemas.requiredString(),
+      value: OpenApiSchemas.requiredString({ min: 8 }),
     })
     .openapi({
       required: ['scheme', 'value'],

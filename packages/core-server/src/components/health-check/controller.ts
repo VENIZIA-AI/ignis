@@ -1,6 +1,6 @@
 import { BaseRestController, type TRouteContext } from '@/base/controllers';
 import { api, inject } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import type { IApplicationInfo } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -16,7 +16,7 @@ const RouteConfigs = {
   ROOT: {
     method: HTTP.Methods.GET,
     path: HealthCheckRestPaths.ROOT,
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z.object({ status: z.string(), timestamp: z.iso.datetime() }).openapi({
         description: 'HealthCheck Schema',
         examples: [{ status: 'ok', timestamp: new Date().toISOString() }],
@@ -34,7 +34,7 @@ const RouteConfigs = {
         }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z
         .object({
           status: z.string(),
@@ -64,7 +64,7 @@ const RouteConfigs = {
     method: HTTP.Methods.POST,
     path: HealthCheckRestPaths.PING,
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'PING | Request body',
         schema: z.object({
           type: z.string().optional().default('PING'),
@@ -72,7 +72,7 @@ const RouteConfigs = {
         }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z
         .object({
           type: z.string().optional().default('PONG'),

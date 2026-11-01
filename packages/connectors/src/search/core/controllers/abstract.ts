@@ -1,5 +1,5 @@
 import type { TEntityDataObject, TRouteContext } from '@venizia/ignis-kernel';
-import { BaseRestController, buildDataRange } from '@venizia/ignis-kernel';
+import { BaseRestController, DataRangeUtility } from '@venizia/ignis-kernel';
 import type { AbstractEntity } from '@venizia/ignis-kernel';
 import type { TAnyObjectSchema } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -87,7 +87,11 @@ export abstract class AbstractSearchController<
     const start = resolveSearchStart({ input, hitCount: rs.hits.length });
     this.setListHeaders({
       context,
-      range: buildDataRange({ offset: start, dataLength: rs.hits.length, total: rs.found }),
+      range: DataRangeUtility.buildDataRange({
+        offset: start,
+        dataLength: rs.hits.length,
+        total: rs.found,
+      }),
       count: rs.hits.length,
     });
 

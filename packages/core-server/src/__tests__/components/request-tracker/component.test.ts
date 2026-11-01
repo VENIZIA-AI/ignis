@@ -5,7 +5,7 @@ import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { controller } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
 import type { OpenAPIHono } from '@hono/zod-openapi';
@@ -31,7 +31,7 @@ class EchoController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ requestId: z.string() }),
           description: 'Echo request id',
         }),
@@ -47,12 +47,12 @@ class EchoController extends BaseRestController {
         method: HTTP.Methods.POST,
         path: '/',
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Echo body',
             schema: z.object({ name: z.string() }),
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ name: z.string() }),
           description: 'Echo body back',
         }),
@@ -68,7 +68,7 @@ class EchoController extends BaseRestController {
       configs: {
         method: HTTP.Methods.POST,
         path: '/upload',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ names: z.array(z.string()) }),
           description: 'Echo uploaded file names',
         }),

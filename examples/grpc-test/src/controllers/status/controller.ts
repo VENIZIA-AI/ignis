@@ -1,4 +1,9 @@
-import { BaseRestController, controller, jsonResponse, type TRouteContext } from '@venizia/ignis';
+import {
+  BaseRestController,
+  controller,
+  OpenApiResponses,
+  type TRouteContext,
+} from '@venizia/ignis';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -6,7 +11,7 @@ const RouteConfigs = {
   ROOT: {
     method: HTTP.Methods.GET,
     path: '/',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z.object({ status: z.string(), uptime: z.number() }),
       description: 'Application status',
     }),

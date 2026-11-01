@@ -11,7 +11,7 @@ import type {
   IWriteResult,
 } from '@/relational/core/repositories/common';
 import type { TSqliteConnector } from '@/relational/sqlite/drivers';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { ErrorUtility } from '@venizia/ignis-kernel';
 import type { ILogger } from '@venizia/ignis-helpers/core';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers/common';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
@@ -39,7 +39,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
     // SQLite locks the whole database file, never a row, so there is no `FOR UPDATE` to
     // emit. A write transaction (`BEGIN IMMEDIATE`) already excludes every other writer.
     if (lock) {
-      throwNotSupported({
+      ErrorUtility.throwNotSupported({
         scope: SqliteQueryExecutor.name,
         feature: 'Row-level locking (SELECT ... FOR UPDATE)',
         logger: this.logger,

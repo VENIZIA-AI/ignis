@@ -1,6 +1,6 @@
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
-import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
+import { BaseRestController, controller, OpenApiResponses } from '@venizia/ignis';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers';
 
 /** Server-rendered pages: each handler returns `context.html(<Page />)`. */
@@ -15,7 +15,7 @@ export class ViewController extends BaseRestController {
       configs: {
         path: '/',
         method: HTTP.Methods.GET,
-        responses: htmlResponse({ description: 'Home page' }),
+        responses: OpenApiResponses.htmlResponse({ description: 'Home page' }),
       },
       handler: (context) => context.html(<HomePage />),
     });
@@ -24,7 +24,7 @@ export class ViewController extends BaseRestController {
       configs: {
         path: '/about',
         method: HTTP.Methods.GET,
-        responses: htmlResponse({ description: 'About page' }),
+        responses: OpenApiResponses.htmlResponse({ description: 'About page' }),
       },
       handler: (context) => context.html(<AboutPage />),
     });

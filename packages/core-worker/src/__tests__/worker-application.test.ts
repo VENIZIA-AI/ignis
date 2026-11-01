@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
-import { BaseRestController, controller, jsonResponse } from '@venizia/ignis-kernel';
+import { BaseRestController, controller, OpenApiResponses } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { z } from '@hono/zod-openapi';
@@ -28,7 +28,7 @@ class HelloController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           description: 'Greeting',
           schema: z.object({ message: z.string() }),
         }),

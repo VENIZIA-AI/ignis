@@ -12,7 +12,7 @@ import type {
   TRow,
   TWhere,
 } from '@venizia/ignis-kernel';
-import { buildDataRange, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
+import { DataRangeUtility, DEFAULT_LIMIT, RepositoryOperationScopes } from '@venizia/ignis-kernel';
 import type { IRelationalDataSource } from '@/relational/core/datasources/common';
 import type {
   BaseRelationalEntity,
@@ -215,7 +215,7 @@ export class ReadableRelationalRepository<
 
     return {
       data,
-      range: buildDataRange({
+      range: DataRangeUtility.buildDataRange({
         skip: mergedFilter.skip,
         offset: mergedFilter.offset,
         dataLength: data.length,

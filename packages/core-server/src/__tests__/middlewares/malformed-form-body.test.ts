@@ -11,7 +11,7 @@ import type { OpenAPIHono } from '@hono/zod-openapi';
 import { parseMultipartBody } from '@venizia/ignis-helpers';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
-import { ControllerTransports, jsonResponse, MetadataRegistry } from '@venizia/ignis-kernel';
+import { ControllerTransports, OpenApiResponses, MetadataRegistry } from '@venizia/ignis-kernel';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { FakeStorageHelper } from '../components/static-asset/fake-storage.helper';
 
@@ -42,7 +42,10 @@ class HandParsedController extends BaseRestController {
       configs: {
         method: HTTP.Methods.POST,
         path: '/',
-        responses: jsonResponse({ schema: z.object({ count: z.number() }), description: 'Files' }),
+        responses: OpenApiResponses.jsonResponse({
+          schema: z.object({ count: z.number() }),
+          description: 'Files',
+        }),
       },
     }).to({
       handler: async (context: TRouteContext) => {

@@ -6,7 +6,7 @@ import { BaseComponent } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseRestController, type TRouteContext } from '@/base/controllers';
 import { controller } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { MetadataRegistry } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { HTTP, type ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -17,7 +17,7 @@ const UsersRouteConfigs = {
   LIST: {
     method: HTTP.Methods.GET,
     path: '/',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z.object({ users: z.array(z.string()) }),
       description: 'List users',
     }),
@@ -50,7 +50,7 @@ class OrdersController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ orders: z.array(z.string()) }),
           description: 'List orders',
         }),
@@ -74,7 +74,7 @@ class ProductsController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ products: z.array(z.string()) }),
           description: 'List products',
         }),
@@ -90,12 +90,12 @@ class ProductsController extends BaseRestController {
         method: HTTP.Methods.POST,
         path: '/',
         request: {
-          body: jsonContent({
+          body: OpenApiResponses.jsonContent({
             description: 'Create product',
             schema: z.object({ name: z.string() }),
           }),
         },
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ id: z.string(), name: z.string() }),
           description: 'Created product',
         }),
@@ -119,7 +119,7 @@ class InvoicesController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ invoices: z.array(z.string()) }),
           description: 'List invoices',
         }),
@@ -143,7 +143,7 @@ class StatusController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           schema: z.object({ status: z.string() }),
           description: 'App status',
         }),
@@ -340,7 +340,7 @@ describe('Component → Controller binding integration', () => {
             configs: {
               method: HTTP.Methods.GET,
               path: '/',
-              responses: jsonResponse({
+              responses: OpenApiResponses.jsonResponse({
                 schema: z.object({ tracked: z.boolean() }),
                 description: 'Tracked',
               }),

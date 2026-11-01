@@ -4,7 +4,7 @@ import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kerne
 import {
   BaseRestController,
   controller,
-  jsonResponse,
+  OpenApiResponses,
   RestApplication,
 } from '@venizia/ignis-kernel';
 import type { AnyType } from '@venizia/ignis-helpers/common';
@@ -34,7 +34,7 @@ class HelloController extends BaseRestController {
       configs: {
         method: HTTP.Methods.GET,
         path: '/',
-        responses: jsonResponse({
+        responses: OpenApiResponses.jsonResponse({
           description: 'Greeting',
           schema: z.object({ message: z.string() }),
         }),
