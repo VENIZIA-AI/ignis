@@ -152,7 +152,13 @@ export abstract class PersistableCrudController<
     const { where: queryWhere } = context.req.valid<{ where?: TWhere<TDataObject> }>('query');
     // Read, never validated: a declared body schema would gate the media type and answer 400 to a
     // client that sends a content-type and no body. A body that is not JSON is simply not a `where`.
-    const body = await context.req.json<{ where?: TWhere<TDataObject> }>().catch(() => undefined);
+    let body;
+    try {
+      const result = await context.req.json<{ where?: TWhere<TDataObject> }>();
+      body = result;
+    } catch (error) {
+      body = undefined;
+    }
 
     const resolved = this.resolveBulkWhere({
       context,

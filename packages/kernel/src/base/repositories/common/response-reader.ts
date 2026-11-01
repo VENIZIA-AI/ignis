@@ -84,7 +84,13 @@ export class HttpResponseReader {
 
   /** A failed response's envelope. A body that is not JSON yields `{}`, and the status alone still describes it. */
   static async readError(opts: { response: Response; rootKey?: string }): Promise<TResponsedError> {
-    const text = await opts.response.text().catch(() => '');
+    let text;
+    try {
+      const result = await opts.response.text();
+      text = result;
+    } catch (error) {
+      text = '';
+    }
 
     let body: unknown;
     try {
