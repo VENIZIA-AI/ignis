@@ -19,7 +19,7 @@ import {
   type IResolvedBindings,
   type IServerOptions,
 } from './common';
-import { createBunEngine, createBunFetchHandler } from './handlers';
+import { SocketIOBunHandler } from './handlers';
 
 export class SocketIOComponent extends BaseComponent {
   protected serverOptions: Partial<IServerOptions>;
@@ -103,7 +103,7 @@ export class SocketIOComponent extends BaseComponent {
     this.application.registerPostStartHook({
       identifier: 'socket-io-initialize',
       hook: async () => {
-        const { engine, engineHandler } = await createBunEngine({ serverOptions });
+        const { engine, engineHandler } = await SocketIOBunHandler.createEngine({ serverOptions });
 
         const socketIOHelper = new SocketIOServerHelper({
           runtime: RuntimeModules.BUN,
@@ -126,7 +126,7 @@ export class SocketIOComponent extends BaseComponent {
         const enginePath = serverOptions.path ?? '/socket.io/';
 
         serverInstance!.reload({
-          fetch: createBunFetchHandler({ engine, enginePath, honoServer }),
+          fetch: SocketIOBunHandler.createFetchHandler({ engine, enginePath, honoServer }),
           websocket: engineHandler.websocket,
         });
 
