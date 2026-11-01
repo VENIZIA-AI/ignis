@@ -36,7 +36,7 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 
 **Available Enrichers:**
 
-Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite has the same under `Sqlite*` names). The old function names (`generateIdColumnDefs`, `enrichTz`, ...) are deprecated aliases until 0.5.
+Each enricher is a class with a static `generateColumnDefs` and `enrich` (SQLite has the same under `Sqlite*` names). The old function names (`generateIdColumnDefs`, `enrichTz`, ...) are removed; `devz codemod namespace-functions` moves your calls.
 
 | Enricher | Description | Columns Added |
 |----------|-------------|---------------|

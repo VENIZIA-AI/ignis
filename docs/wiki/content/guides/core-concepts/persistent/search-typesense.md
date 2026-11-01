@@ -18,7 +18,7 @@ IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-
 
 ## Defining a Search Collection
 
-Instead of a Drizzle `pgTable`, define a collection with `SearchCollectionFactory.define` and the `field` DSL (the old function `defineSearchCollection` is a deprecated alias until 0.5):
+Instead of a Drizzle `pgTable`, define a collection with `SearchCollectionFactory.define` and the `field` DSL:
 
 ```typescript
 // src/models/entities/article.model.ts

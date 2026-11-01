@@ -171,7 +171,7 @@ Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it impor
 `@hono/zod-openapi`; the relational sub-paths `drizzle-orm` (plus `drizzle-zod` at `/relational`,
 `/postgres`, `/sqlite`). `./search`, `./typesense` and `./meilisearch` import neither `hono` nor
 `drizzle-orm` - they reach only `kernel/metadata` and `kernel/repository` - so the search
-controllers (`AbstractSearchController`, `SearchControllerFactory` (its `defineRouteConfigs` replaces `defineSearchRouteConfigs`),
+controllers (`AbstractSearchController`, `SearchControllerFactory` with `defineRouteConfigs`,
 `ISearchControllerOptions`, `ISearchCustomizableRoutes`) are NOT exported from them any more, nor
 from the package root: only `./search/controllers` and `./typesense/controllers` carry them, and only
 those two import `@hono/zod-openapi`. `./http` loads with no hono and no `@hono/zod-openapi` either.
@@ -225,10 +225,10 @@ on the shared type names - `TTableObject`, `TRelationConfig` and friends - which
 redeclares rather than re-exports.
 
 So the two package roots deliberately differ. Measured against `dist/`: the connectors root exports
-43 runtime symbols, the Postgres sub-path exports 32, and they share 4 -
-`BaseRelationalEntity`, `RelationalEntityUtility` (and its deprecated alias `getIdType`), `TableColumnCache`
-(alias `getCachedColumns`), `RelationsFactory` (alias `createRelations`). `@venizia/ignis` gets the
-Postgres 32 at its root; `@venizia/ignis-connectors` gets the neutral 43.
+48 runtime symbols, the Postgres sub-path exports 34, and they share 10 -
+`BaseRelationalEntity`, `ModelFactory`, `many`, `one`, `RelationDeclarations`, `RecursiveTreeSql`,
+`RecursiveTreeDirections`, `RelationalEntityUtility`, `TableColumnCache` and `RelationsFactory`.
+`@venizia/ignis` gets the Postgres 34 at its root; `@venizia/ignis-connectors` gets the neutral 48.
 
 ## Two ways to declare a model, both supported
 
@@ -312,11 +312,11 @@ shipped, so nothing migrates from it.
 
 | Tier | What lives there |
 |---|---|
-| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, `ModelFactory` with `one`/`many`/`TEntityObject`, `RecursiveTreeSql`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `resolveAuditUserId` |
-| `relational/postgres` | `BasePostgresDataSource`, three drivers, the column enrichers (`Postgres*Enricher` classes with `generateColumnDefs` and `enrich`; the old `generate*ColumnDefs` / `enrich*` functions are deprecated aliases until 0.5, and `Sqlite*Enricher` is the SQLite twin), `DefaultCRUDRepository` and its chain, `PostgresQueryDialect`, `IsolationLevels` |
+| `relational/core` | `AbstractRelationalDataSource`, `BaseRelationalDataSource`, the `IRelationalDriver` contract, `BaseRelationalEntity`, `ModelFactory` with `one`/`many`/`TEntityObject`, `RecursiveTreeSql`, the five-class repository chain, `FilterBuilder`, `RelationalUpdateBuilder`, `RelationalMigrationRunner`, `AuditUserResolver` |
+| `relational/postgres` | `BasePostgresDataSource`, three drivers, the column enrichers (`Postgres*Enricher` classes with `generateColumnDefs` and `enrich`; `Sqlite*Enricher` is the SQLite twin), `DefaultCRUDRepository` and its chain, `PostgresQueryDialect`, `IsolationLevels` |
 | `relational/postgres/supabase` | `PoolerModes`, `SupabasePooler` and `SupabaseRls` |
 | `relational/sqlite` | `BaseSqliteDataSource`, `LibSqlDriver`, `DefaultSqliteRepository` and its chain, `SqliteQueryDialect`, `SqliteBeginModes` |
-| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory` (replaces `defineSearchCollection`), the search repository chain |
+| `search/core` | `ISearchConnector` and `BaseSearchConnector`, `BaseSearchDataSource`, `SearchCollectionFactory`, the search repository chain |
 | `search/core/controllers` | `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) - published only as `./search/controllers` and `./typesense/controllers` |
 | `search/typesense` | `TypesenseConnector`, `TypesenseDataSource`, `TypesenseQueryDialect`, the collection compiler |
 | `search/meilisearch` | `MeilisearchConnector`, `MeilisearchDataSource`, `MeilisearchQueryDialect`, the collection compiler |

@@ -154,7 +154,7 @@ Supabase exposes three ways in, and one of them silently breaks prepared stateme
 | `PoolerModes.SESSION` | 5432 (pooler) | yes | pooled, one backend per client session |
 | `PoolerModes.TRANSACTION` | 6543 | **no** | serverless / many short-lived connections |
 
-The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend is not there next time. `SupabasePooler.buildPostgresJsOptions` encodes this so you cannot forget it (the old function `buildPostgresJsOptions` is a deprecated alias until 0.5):
+The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend is not there next time. `SupabasePooler.buildPostgresJsOptions` encodes this so you cannot forget it:
 
 ```typescript
 import { datasource } from '@venizia/ignis';
@@ -177,7 +177,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<IDataSourceConfig
 
 ### Row Level Security
 
-`SupabaseRls.withAuthContext` (the old function `withAuthContext` is a deprecated alias until 0.5) sets the Supabase auth context for the remainder of **one transaction**, so `auth.uid()` resolves inside RLS policies:
+`SupabaseRls.withAuthContext` sets the Supabase auth context for the remainder of **one transaction**, so `auth.uid()` resolves inside RLS policies:
 
 ```typescript
 import { SupabaseRls } from '@venizia/ignis/postgres/supabase';

@@ -88,7 +88,7 @@ export class Post extends ModelFactory.defineEntity({
 
 ### The class form
 
-A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `RelationsFactory.create` (the old function `createRelations` is a deprecated alias until 0.5). `RelationsFactory.create` builds the actual Drizzle `relations()` definition - application code never calls it directly.
+A class-based model declares a static `relations` resolver instead, returning an array of `TRelationConfig`. `MetadataRegistry` resolves the array during schema discovery and passes it to `RelationsFactory.create`. `RelationsFactory.create` builds the actual Drizzle `relations()` definition - application code never calls it directly.
 
 ```typescript
 // src/models/user.model.ts
@@ -428,4 +428,4 @@ const comments = await commentRepository.find({
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `RelationTypes`
 - [`packages/connectors/src/relational/postgres/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/common/types.ts) - `TRelationConfig`
 - [`packages/connectors/src/relational/core/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/filter.ts) - `FilterBuilder` (`resolveRelations`, `toInclude`)
-- [`packages/connectors/src/relational/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/relation.ts) - `createRelations` (config -> Drizzle `relations()`)
+- [`packages/connectors/src/relational/postgres/repositories/dialect/relation.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/dialect/relation.ts) - `RelationsFactory` re-export; `RelationsFactory.create` (config -> Drizzle `relations()`)

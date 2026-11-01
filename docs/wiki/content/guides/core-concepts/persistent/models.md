@@ -138,7 +138,7 @@ static override schema = pgTable('User', {
 | `PostgresUserAuditEnricher.generateColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
 | `PostgresDataTypeEnricher.generateColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
 
-The functions these classes replace (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are still exported as deprecated aliases until 0.5. SQLite has the same classes under `Sqlite*` names.
+The functions these classes replace (`generateIdColumnDefs`, `generateTzColumnDefs`, ...) are removed; `devz codemod namespace-functions` moves your calls. SQLite has the same classes under `Sqlite*` names.
 
 :::note User Audit Options
 The `PostgresUserAuditEnricher` enricher defaults both columns to `dataType: 'number'` (integer user ids) - pass `dataType: 'string'` for text ids. It also supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:

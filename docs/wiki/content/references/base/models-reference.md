@@ -13,7 +13,7 @@ Exhaustive reference for the `@model` decorator, the entity class hierarchy, and
 - [`packages/kernel/src/base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts) - neutral `AbstractEntity`
 - [`packages/connectors/src/relational/core/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/base.ts) - relational entity `BaseRelationalEntity`
 - [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts) - `ModelFactory.defineEntity`, `TDefinedEntityClass`
-- [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `toRelationConfigs`
+- [`packages/connectors/src/relational/core/models/relations.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/relations.ts) - `one`, `many`, `RelationDeclarations.toRelationConfigs`
 - [`packages/connectors/src/relational/core/repositories/dialect/relations/one.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/dialect/relations/one.ts) - how a `one` relation finds its columns
 - [`packages/connectors/src/relational/postgres/models/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/index.ts) - the `BaseEntity`/`BasePostgresEntity` aliases
 - [`packages/kernel/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/metadata/persistents.ts) - `@model` decorator
@@ -372,7 +372,7 @@ Every other member is inherited: the instance `schema`, `getSchema({ type })`, `
 |---|---|---|
 | `one` | `one(table, metadata?)` | A to-one relation. `metadata` is drizzle's `one()` options, every field optional |
 | `many` | `many(table, metadata?)` | A to-many relation. `metadata.relationName` names the `one` on the other table it pairs with |
-| `RelationDeclarations.toRelationConfigs` | `RelationDeclarations.toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key. The old function `toRelationConfigs` is a deprecated alias until 0.5 |
+| `RelationDeclarations.toRelationConfigs` | `RelationDeclarations.toRelationConfigs({ relations })` | Flattens the keyed form into `Array<TRelationConfig>`, each named by its key. |
 
 A relation points at a **table**, never at an entity class - passing a class does not compile. That is why two entities that relate both ways, a self relation (parent and children), and relations across files all keep their row types.
 
@@ -565,7 +565,7 @@ await postRepository.find({
 - **What they are.** Classes in the PostgreSQL connector whose static methods return an object of Drizzle ORM column definitions. The SQLite connector has the same five under `Sqlite*` names (`SqliteIdEnricher`, ...), so both dialects can be imported side by side.
 - **How to use them.** Spread a `generateColumnDefs` result into a `pgTable` definition to add common, standardized fields.
 - **Convenience wrappers.** Each `enrich` method accepts an existing column definitions object as `baseColumns` (or `baseSchema`) and merges the generated columns into it.
-- **Old names.** The functions these classes replace (`generateIdColumnDefs`, `enrichId`, and so on) are still exported as deprecated aliases until 0.5. `devz codemod namespace-functions` rewrites the calls.
+- **Old names.** The functions these classes replace (`generateIdColumnDefs`, `enrichId`, and so on) are removed. `devz codemod namespace-functions` moves your calls.
 
 | Enricher class | `generateColumnDefs` | `enrich` | Purpose |
 | :--- | :--- | :--- | :--- |
@@ -1062,7 +1062,7 @@ Built on `keysToCamel()` / `toCamel()` from `@venizia/ignis-helpers`; recursivel
 
 There are two distinct `getIdType`s in the framework - do not confuse them.
 
-| | Neutral instance method | PostgreSQL utility (`RelationalEntityUtility.getIdType`; the old function `getIdType` is a deprecated alias until 0.5) |
+| | Neutral instance method | PostgreSQL utility (`RelationalEntityUtility.getIdType`) |
 |---|---|---|
 | Location | `AbstractEntity.getIdType()` ([`base/models/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/models/base.ts)) | `RelationalEntityUtility.getIdType()` ([`connectors/core/models/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/common/types.ts)) |
 | Signature | `getIdType(): TIdSchemaType` | `RelationalEntityUtility.getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |

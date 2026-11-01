@@ -99,7 +99,7 @@ Notice what you did not write:
   `fields`/`references` for that relation.
 - `many(postTable, { relationName: 'author' })` pairs with the `one()` named `author` on `Post`.
 - The datasource has no schema. It collects the tables from every `@repository` bound to it.
-- `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` gives a text primary key filled with a UUID v7. The enrichers are classes (`Postgres*Enricher`, `Sqlite*Enricher`); the old function names (`generateIdColumnDefs`, ...) are deprecated aliases until 0.5.
+- `PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` gives a text primary key filled with a UUID v7. The enrichers are classes (`Postgres*Enricher`, `Sqlite*Enricher`); the old function names (`generateIdColumnDefs`, ...) are removed, and `devz codemod namespace-functions` moves your calls.
 
 A class that extends `BaseRelationalEntity` with a hand-written static `schema` still works. Both
 styles can live in one application.

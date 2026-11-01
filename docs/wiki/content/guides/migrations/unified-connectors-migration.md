@@ -18,7 +18,7 @@ IGNIS core was restructured around ONE engine-neutral repository family:
 - Canonical class names are the paradigm-family names (`BaseRelationalDataSource`, `BaseRelationalEntity`, `DefaultRelationalRepository`, ...). The engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`).
 - The historical names (`BaseDataSource`, `BaseEntity`, `BasePostgresDataSource`, `BasePostgresEntity`, `DefaultCRUDRepository`, ...) all keep resolving from the same import paths. The one exception is `RDBQueryOperators`, which is **gone** - rename it to `PostgresQueryOperators`. Most are alias re-exports of the SAME classes; the five repository names (`PostgresBaseRepository`, `ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`) are Postgres subclasses of the neutral chain, so they are distinct class objects from their neutral parents. `instanceof`, metadata, and bindings are unaffected. No action required.
 - New capabilities model: `dataSource.getCapabilities()` and a standardized NotSupported error (HTTP 501, `normalized.code` `core.not_supported`) for engine gaps (e.g. transactions on search engines).
-- New engine: the **Typesense search branch** (`BaseSearchEntity`, `defineSearchCollection`, typed `TSearchDocument`, `DefaultSearchRepository`). It does not affect existing postgres code.
+- New engine: the **Typesense search branch** (`BaseSearchEntity`, `SearchCollectionFactory.define`, typed `TSearchDocument`, `DefaultSearchRepository`). It does not affect existing postgres code.
 
 ## Required migrations (in order)
 

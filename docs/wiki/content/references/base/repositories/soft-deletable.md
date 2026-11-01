@@ -12,7 +12,7 @@ Reference for `SoftDeletableRepository` - delete methods set a `deletedAt` times
 
 - [`packages/connectors/src/relational/core/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/repositories/core/soft-deletable.ts) - `SoftDeletableRelationalRepository` - delete/restore overrides, `isStrict` findById, `TDeletedAtColumn`
 - [`packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/repositories/core/soft-deletable.ts) - `SoftDeletableRepository`, the Postgres binding
-- [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts) - `generateTzColumnDefs` - adds the `deletedAt` column
+- [`packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/postgres/models/enrichers/tz.enricher.ts) - `PostgresTzEnricher.generateColumnDefs` - adds the `deletedAt` column
 
 ## Setup
 
