@@ -19,12 +19,15 @@ describe('ResolverUtility.resolveValue', () => {
 
 describe('ResolverUtility.resolveValueAsync', () => {
   test('a resolver that answers a promise is awaited', async () => {
-    expect(await ResolverUtility.resolveValueAsync({ value: async () => 7 })).toBe(7);
+    const result = await ResolverUtility.resolveValueAsync({ value: async () => 7 });
+    expect(result).toBe(7);
   });
 
   test('a value and a class pass through', async () => {
-    expect(await ResolverUtility.resolveValueAsync({ value: 'x' })).toBe('x');
-    expect(await ResolverUtility.resolveValueAsync({ value: Target })).toBe(Target);
+    const result2 = await ResolverUtility.resolveValueAsync({ value: 'x' });
+    expect(result2).toBe('x');
+    const result3 = await ResolverUtility.resolveValueAsync({ value: Target });
+    expect(result3).toBe(Target);
   });
 });
 

@@ -88,7 +88,8 @@ describe('the inversion entries of the namespace-functions table', () => {
     describe(`${entry.oldName} -> ${entry.className}.${entry.method}`, () => {
       for (const specifier of entry.modules) {
         test(`from ${specifier}: the old name is gone`, async () => {
-          expect(await hasOldName({ specifier, oldName: entry.oldName })).toBe(false);
+          const result = await hasOldName({ specifier, oldName: entry.oldName });
+          expect(result).toBe(false);
         });
       }
 
