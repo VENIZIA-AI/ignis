@@ -98,9 +98,9 @@ describe('the kernel entries of the namespace-functions table', () => {
         }
 
         test(`from ${specifier}: the old name is gone`, async () => {
-          const loaded = await loadModule(specifier);
+          const moduleExports = await loadModule(specifier);
 
-          expect(loaded[entry.oldName]).toBeUndefined();
+          expect(moduleExports[entry.oldName]).toBeUndefined();
         });
       }
 
