@@ -133,8 +133,7 @@ import {
   controller,
   post,
   inject,
-  jsonContent,
-  jsonResponse,
+  OpenApiResponses,
   TRouteContext,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
@@ -145,7 +144,7 @@ const NotificationRoutes = {
   SEND: {
     path: '/send',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Notification to send',
         schema: z.object({
           userId: z.string(),
@@ -153,7 +152,7 @@ const NotificationRoutes = {
         }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       schema: z.object({ success: z.boolean() }),
     }),
   },

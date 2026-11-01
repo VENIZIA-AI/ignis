@@ -20,12 +20,15 @@ import {
   BindingNamespaces,
   CoreBindings,
   type IApplicationInfo,
-  jsonResponse,
+  OpenApiResponses,
 } from '@venizia/ignis-kernel';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, spyOn, test } from 'bun:test';
 
-const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
+const okResponse = OpenApiResponses.jsonResponse({
+  schema: z.object({ hit: z.string() }),
+  description: 'ok',
+});
 
 const calls = { failing: 0, counting: 0, component: 0, hydrate: 0, rotatables: 0, override: 0 };
 

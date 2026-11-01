@@ -8,7 +8,7 @@ import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { ControllerFactory } from '@venizia/ignis-kernel';
 import { api, controller, del, get, model, patch, post, put, repository } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import { BasePostgresDataSource, BasePostgresEntity } from '@venizia/ignis-connectors/postgres';
 import { z } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers/common';
@@ -16,7 +16,10 @@ import { HTTP } from '@venizia/ignis-helpers/common';
 import { getDroppedRouteDecorators } from '@venizia/ignis-kernel';
 import { applyMethodDecorator, fakeCrudRepository } from './fixtures';
 
-const okResponse = jsonResponse({ schema: z.object({ hit: z.string() }), description: 'ok' });
+const okResponse = OpenApiResponses.jsonResponse({
+  schema: z.object({ hit: z.string() }),
+  description: 'ok',
+});
 
 // --- 1. The three route APIs -----------------------------------------------------------------
 
@@ -107,7 +110,10 @@ class MixedRoutesController extends BaseRestController {
         method: HTTP.Methods.POST,
         path: '/fluent',
         request: {
-          body: jsonContent({ description: 'body', schema: z.object({ id: z.string() }) }),
+          body: OpenApiResponses.jsonContent({
+            description: 'body',
+            schema: z.object({ id: z.string() }),
+          }),
         },
         responses: okResponse,
       },

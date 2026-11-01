@@ -36,7 +36,7 @@ object as `configs.artifacts`. The `registerArtifacts` boot step - between `stat
 (`packages/kernel/src/base/metadata/injectable.ts`); it refuses a `type` outside
 `ArtifactTypes.SCHEME_SET` at decoration time. `@service`, `@component` and `@configuration` are
 thin calls to it. `@controller`, `@repository`, `@datasource` and `@model` call
-`injectable({ type, ...pickRegistrationOptions({ metadata }) })(target)` first, then their own
+`injectable({ type, ...InjectableUtility.pickRegistrationOptions({ metadata }) })(target)` first, then their own
 setter - one metadata write for the artifact, one for the decorator's own options.
 
 Storage is `MetadataKeys.ARTIFACT` (`Symbol.for('ignis:artifact')`), read with

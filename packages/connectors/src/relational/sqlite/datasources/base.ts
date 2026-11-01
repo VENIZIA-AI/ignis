@@ -1,5 +1,5 @@
 import type { TAnyDataSourceSchema } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import { AbstractSqliteDataSource } from './abstract';
@@ -26,7 +26,7 @@ export abstract class BaseSqliteDataSource<
     // Silently ignoring it would leave the caller believing SERIALIZABLE was honoured; every SQLite
     // transaction already is, so there is nothing to map it onto.
     if (opts?.isolationLevel) {
-      throwNotSupported({
+      NotSupportedUtility.throwNotSupported({
         scope: this.constructor.name,
         feature: `Isolation level '${opts.isolationLevel}' - SQLite has no isolation levels; pass \`beginMode\` (${SqliteBeginModes.DEFERRED} | ${SqliteBeginModes.IMMEDIATE} | ${SqliteBeginModes.EXCLUSIVE}) instead`,
         logger: this.logger,

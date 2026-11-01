@@ -185,7 +185,7 @@ const READ_CONFIGURATIONS_CONFIG = {
     action: AuthorizationActions.READ,
     resource: 'configuration',
   },
-  responses: jsonResponse({ description: 'Configurations', schema: ConfigurationsSchema }),
+  responses: OpenApiResponses.jsonResponse({ description: 'Configurations', schema: ConfigurationsSchema }),
 } as const;
 
 this.defineRoute({

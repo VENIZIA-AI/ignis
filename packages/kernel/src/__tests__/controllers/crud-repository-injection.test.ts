@@ -1,5 +1,4 @@
 import { ControllerFactory } from '@/base/controllers/factory/controller';
-import { registerFactoryRepositoryInjection } from '@/base/controllers/factory/repository-injection';
 import { controller, inject } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
@@ -124,11 +123,11 @@ describe('defineCrudController injects the repository named in repository.name',
   });
 });
 
-describe('registerFactoryRepositoryInjection - the one injection every generated controller uses', () => {
+describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       target: GeneratedProbeController,
       factoryName: 'defineProbeController',
       controllerName: 'GeneratedProbeController',
@@ -143,7 +142,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
   test('the target is a class - a plain function is a compile error', () => {
     const plainFunction = () => undefined;
 
-    registerFactoryRepositoryInjection({
+    ControllerFactory.registerRepositoryInjection({
       // @ts-expect-error - a factory registers the injection on the class it generated, never on a plain function
       target: plainFunction,
       factoryName: 'defineProbeController',
@@ -160,7 +159,7 @@ describe('registerFactoryRepositoryInjection - the one injection every generated
     class NamelessProbeController {}
 
     expect(() =>
-      registerFactoryRepositoryInjection({
+      ControllerFactory.registerRepositoryInjection({
         target: NamelessProbeController,
         factoryName: 'defineProbeController',
         controllerName: 'NamelessProbeController',

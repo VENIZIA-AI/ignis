@@ -9,7 +9,7 @@ REST controllers handle incoming HTTP requests and return JSON responses -- they
 Extend `BaseRestController` and use decorators to define routes:
 
 ```typescript
-import { BaseRestController, controller, get, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -23,7 +23,7 @@ export class UserController extends BaseRestController {
   @get({
     configs: {
       path: '/',
-      responses: jsonResponse({
+      responses: OpenApiResponses.jsonResponse({
         description: 'A list of users',
         schema: z.array(z.object({ id: z.string(), name: z.string() })),
       }),
@@ -72,7 +72,7 @@ The `opts` object contains a `configs` property that defines the route's path, r
 For optimal organization and type safety, define your route configurations in a constant with `as const`. This allows TypeScript to precisely infer the types for your request data and expected responses within your handler methods.
 
 ```typescript
-import { BaseRestController, controller, get, post, jsonContent, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, post, OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -80,7 +80,7 @@ import { z } from '@hono/zod-openapi';
 const TestRoutes = {
   GET_DATA: {
     path: '/',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'A simple message',
       schema: z.object({ message: z.string(), method: z.string() }),
     }),
@@ -88,12 +88,12 @@ const TestRoutes = {
   CREATE_ITEM: {
     path: '/',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Request body for creating an item',
         schema: z.object({ name: z.string(), value: z.number().int().positive() }),
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Created item',
       schema: z.object({ id: z.string(), name: z.string(), value: z.number() }),
     }),
@@ -162,7 +162,7 @@ When using this method, you will override the `binding()` method in your control
 Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
 
 ```typescript
-import { Authentication, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { Authentication, OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -172,7 +172,7 @@ const GetUsersRoute = {
   path: '/',
   method: 'get',
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  responses: jsonResponse({
+  responses: OpenApiResponses.jsonResponse({
     description: 'List of all users',
     schema: z.array(z.object({ id: z.number(), name: z.string() })),
   }),
@@ -191,7 +191,7 @@ this.defineRoute({
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
 ```typescript
-import { jsonResponse, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -200,7 +200,7 @@ import { z } from '@hono/zod-openapi';
 const GetUserByIdRoute = {
   path: '/{id}',
   method: 'get',
-  responses: jsonResponse({
+  responses: OpenApiResponses.jsonResponse({
     description: 'A single user',
     schema: z.object({ id: z.string(), name: z.string() }),
   }),
@@ -267,7 +267,7 @@ For a full list of customization options, see the [**Deep Dive: `ControllerFacto
 Use this method for routes that render HTML pages using JSX components. This is perfect for building server-side rendered web applications.
 
 ```typescript
-import { htmlResponse } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 
 // ... inside the binding() method
 
@@ -276,7 +276,7 @@ this.defineJSXRoute({
     path: '/',
     method: 'get',
     description: 'Home page',
-    responses: htmlResponse({
+    responses: OpenApiResponses.htmlResponse({
       description: 'HTML home page',
     }),
   },
@@ -357,7 +357,7 @@ When you define Zod schemas in your route's `request` configuration (whether wit
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, put, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside a controller class
@@ -370,7 +370,7 @@ const UserSchema = z.object({ name: z.string(), email: z.string().email() });
     request: {
       params: z.object({ id: z.string() }),
       query: z.object({ notify: z.string().optional() }),
-      body: jsonContent({ description: 'User fields to update', schema: UserSchema }),
+      body: OpenApiResponses.jsonContent({ description: 'User fields to update', schema: UserSchema }),
     },
     // ... responses
   },
@@ -394,7 +394,7 @@ Using `context.req.valid()` is the recommended way to access request data as it 
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put, TRouteContext } from '@venizia/ignis';
+import { OpenApiResponses, put, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside a controller class
@@ -404,7 +404,7 @@ const UpdateUserConfig = {
   request: {
     params: z.object({ id: z.string() }),
     query: z.object({ notify: z.string().optional() }),
-    body: jsonContent({
+    body: OpenApiResponses.jsonContent({
       description: 'User fields to update',
       schema: z.object({ name: z.string(), email: z.string().email() }),
     }),

@@ -375,4 +375,4 @@ console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 - [`packages/filter/src/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/operators.ts) - `Sorts` constants
 - [`packages/filter/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/filter/src/common/types.ts) - `TOrderEntry`
 - [`packages/kernel/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`, `DEFAULT_MAX_LIMIT`
-- [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `buildDataRange`
+- [`packages/kernel/src/base/repositories/common/types/results.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/base/repositories/common/types/results.ts) - `TDataRange`, `DataRangeUtility.buildDataRange`

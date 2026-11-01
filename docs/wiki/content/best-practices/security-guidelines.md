@@ -59,13 +59,13 @@ These are the primitives the framework itself uses. Outbound HTTP request config
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, jsonResponse } from '@venizia/ignis';
+import { OpenApiResponses } from '@venizia/ignis';
 
 const CreateUserRoute = {
   method: 'post',
   path: '/users',
   request: {
-    body: jsonContent({
+    body: OpenApiResponses.jsonContent({
       schema: z.object({
         email: z.string().email(),           // Valid email
         age: z.number().int().min(18),       // Adult only
@@ -73,7 +73,7 @@ const CreateUserRoute = {
       }),
     }),
   },
-  responses: jsonResponse({ /* ... */ }),
+  responses: OpenApiResponses.jsonResponse({ /* ... */ }),
 } as const;
 ```
 

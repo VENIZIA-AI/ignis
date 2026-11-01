@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@venizia/ignis-kernel';
@@ -49,12 +49,12 @@ function poolEnforcer(adapter: FilteredAdapter, poolSize = 4) {
 async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: string) {
   const rules = await e.buildRules({
     user: { principalType: 'User', userId },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
-    context: asTypedContext({}),
+    context: ContextUtility.asTypedContext({ context: {} }),
   });
 }
 
@@ -143,7 +143,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     e.destroy();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -152,7 +152,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
       await e.evaluate({
         rules,
         request: { resource: 'A_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-        context: asTypedContext({}),
+        context: ContextUtility.asTypedContext({ context: {} }),
       });
     } catch (err) {
       error = err;

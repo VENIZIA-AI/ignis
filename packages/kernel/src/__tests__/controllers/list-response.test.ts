@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ResponseFormats } from '@/base/controllers/common';
 import type { TRouteContext } from '@/base/controllers/common';
-import { BaseRestController, toContentRange } from '@/base/controllers/rest/base';
+import { BaseRestController } from '@/base/controllers/rest/base';
+import { DataRangeUtility } from '@/base/repositories/common/types';
 
 class ItemsController extends BaseRestController {
   constructor() {
@@ -127,13 +128,26 @@ describe('BaseRestController list responses', () => {
     expect(responseHeaders[HTTP.Headers.CONTENT_RANGE]).toBe('records */7');
   });
 
-  test('toContentRange is exported and pure', () => {
-    expect(toContentRange({ range: { start: 0, end: 9, total: 42 }, count: 10 })).toBe(
-      'records 0-9/42',
-    );
-    expect(toContentRange({ range: { start: 0, end: 0, total: 42 }, count: 0 })).toBe(
-      'records */42',
-    );
+  test('DataRangeUtility.toContentRange is exported and pure', () => {
+    expect(
+      DataRangeUtility.toContentRange({ range: { start: 0, end: 9, total: 42 }, count: 10 }),
+    ).toBe('records 0-9/42');
+    expect(
+      DataRangeUtility.toContentRange({ range: { start: 0, end: 0, total: 42 }, count: 0 }),
+    ).toBe('records */42');
+  });
+
+  test('DataRangeUtility.buildDataRange starts at skip or offset, and an empty page collapses end onto start', () => {
+    expect(DataRangeUtility.buildDataRange({ offset: 3, dataLength: 2, total: 7 })).toEqual({
+      start: 3,
+      end: 4,
+      total: 7,
+    });
+    expect(DataRangeUtility.buildDataRange({ skip: 5, dataLength: 0, total: 7 })).toEqual({
+      start: 5,
+      end: 5,
+      total: 7,
+    });
   });
 
   test('ResponseFormats is a closed set', () => {

@@ -15,7 +15,7 @@ import type {
   TSchemaType,
   TWhere,
 } from '@venizia/ignis-kernel/repository';
-import { AbstractEntity, buildDataRange } from '@venizia/ignis-kernel/repository';
+import { AbstractEntity, DataRangeUtility } from '@venizia/ignis-kernel/repository';
 import type { TSearchInput } from '../search/core/repositories/common/constants';
 import type {
   IHttpCallOptions,
@@ -287,7 +287,7 @@ export class HttpRepository<E extends object = AnyType, P extends object = Parti
     return {
       data,
       // An empty page names no start: take it from the filter, as the server did.
-      range: buildDataRange({
+      range: DataRangeUtility.buildDataRange({
         skip: rs.skip ?? filter.skip,
         offset: filter.offset,
         dataLength: data.length,

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { toEntityId } from '@/base/models/common';
+import { ModelUtility } from '@/base/models/common';
 import type { TEntityId } from '@/base/models/common';
 
 describe('TEntityId', () => {
@@ -19,18 +19,18 @@ describe('TEntityId', () => {
     expect(rejected as string).toBe('M1');
   });
 
-  test('toEntityId is the way in, and the value survives unchanged', () => {
-    const id = toEntityId({ value: 'M1' });
+  test('ModelUtility.toEntityId is the way in, and the value survives unchanged', () => {
+    const id = ModelUtility.toEntityId({ value: 'M1' });
 
     expect(id as string).toBe('M1');
   });
 
   test('an empty string is refused - it collapses a where clause to no condition', () => {
-    expect(() => toEntityId({ value: '' })).toThrow();
+    expect(() => ModelUtility.toEntityId({ value: '' })).toThrow();
   });
 
   test('a branded id still behaves as a string everywhere a string is expected', () => {
-    const id = toEntityId({ value: 'M1' });
+    const id = ModelUtility.toEntityId({ value: 'M1' });
     const asString: string = id;
 
     expect(asString.toUpperCase()).toBe('M1');
@@ -39,7 +39,7 @@ describe('TEntityId', () => {
 
   /** The bug class this catches: both fields are strings at runtime, and only the brand separates them. */
   test('a name cannot be passed where an id is expected', () => {
-    const record = { id: toEntityId({ value: 'M1' }), name: 'Cua hang A' };
+    const record = { id: ModelUtility.toEntityId({ value: 'M1' }), name: 'Cua hang A' };
     const findById = (opts: { id: TEntityId }) => opts.id;
 
     expect(findById({ id: record.id }) as string).toBe('M1');

@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import { asTypedContext } from '@venizia/ignis-kernel';
+import { ContextUtility } from '@venizia/ignis-kernel';
 import { AuthorizationPermissionBuilder } from '@/components/auth/authorize';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
@@ -50,13 +50,13 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const decision = await e.evaluate({
       rules,
       request: { resource: 'Activation.findById', action: 'read', domain: 'Merchant_7' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(decision).toBe('allow');
   });
@@ -71,12 +71,12 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await superE.configure();
     const superRules = await superE.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     const superDecision = await superE.evaluate({
       rules: superRules,
       request: { resource: 'Order', action: 'read' }, // no domain → defaults to SYSTEM_WIDE
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(superDecision).toBe('allow');
 
@@ -89,12 +89,12 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await memberE.configure();
     const memberRules = await memberE.buildRules({
       user: { principalType: 'User', userId: 2 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     const memberDecision = await memberE.evaluate({
       rules: memberRules,
       request: { resource: 'Order', action: 'read' }, // no domain → SYSTEM_WIDE → only super-admin grants match
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(memberDecision).toBe('deny');
   });
@@ -138,16 +138,20 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const request = { resource: 'Module3.Resource10.execute', action: 'op5', domain: 'Merchant_1' };
 
-    const decision = await e.evaluate({ rules, request, context: asTypedContext({}) });
+    const decision = await e.evaluate({
+      rules,
+      request,
+      context: ContextUtility.asTypedContext({ context: {} }),
+    });
     expect(decision).toBe('allow');
 
     objectMatch.mockClear();
-    await e.evaluate({ rules, request, context: asTypedContext({}) });
+    await e.evaluate({ rules, request, context: ContextUtility.asTypedContext({ context: {} }) });
     const callsPerEvaluate = objectMatch.mock.calls.length;
     objectMatch.mockRestore();
 
@@ -244,18 +248,18 @@ describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'u1' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const allow = await e.evaluate({
       rules,
       request: { resource: 'Order', action: 'read', domain: 'Merchant_7' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     const deny = await e.evaluate({
       rules,
       request: { resource: 'Order', action: 'read', domain: 'Merchant_99' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     expect(allow).toBe('allow');
@@ -311,7 +315,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
     // First build → cache miss → writes the cache.
     await enforcer.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const cached = JSON.parse(store.get('casbin:User:1') ?? 'null') as string[];
@@ -323,12 +327,12 @@ describe('scoped + redis cache — cached payload completeness', () => {
     // Second build → cache HIT → enforce nested resource (OrderItem ⊂ Order via g4) in member domain.
     const rules = await enforcer.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     const decision = await enforcer.evaluate({
       rules,
       request: { resource: 'OrderItem', action: 'read', domain: 'Merchant_7' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
     expect(decision).toBe('allow');
   });
@@ -346,13 +350,13 @@ describe('scoped RBAC — explicit deny overrides allow (enforceExSync explain p
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     const decision = await e.evaluate({
       rules,
       request: { resource: 'Activation', action: 'read', domain: 'Merchant_7' },
-      context: asTypedContext({}),
+      context: ContextUtility.asTypedContext({ context: {} }),
     });
 
     // deny-override via casbin "allow-and-deny": the matched policy is the deny rule (non-empty explain).

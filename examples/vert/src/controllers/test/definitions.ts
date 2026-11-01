@@ -1,10 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import {
-  AuthenticateStrategy,
-  type IAuthRouteConfig,
-  jsonContent,
-  jsonResponse,
-} from '@venizia/ignis';
+import { AuthenticateStrategy, type IAuthRouteConfig, OpenApiResponses } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
@@ -16,7 +11,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     path: '/1',
     method: 'get',
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Test message content 1',
         schema: z.object({ message: z.string() }),
       }),
@@ -27,7 +22,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: 'get',
     authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Test message content 1',
         schema: z.object({ message: z.string() }),
       }),
@@ -38,7 +33,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: 'get',
     authenticate: { strategies: [AuthenticateStrategy.BASIC] },
     responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+      [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
         description: 'Test message content 3',
         schema: z.object({ message: z.string() }),
       }),
@@ -47,7 +42,7 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
   ['/4']: {
     method: HTTP.Methods.GET,
     path: '/4',
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Test decorator GET endpoint',
       schema: z.object({ message: z.string(), method: z.string() }),
     }),
@@ -56,12 +51,12 @@ export const RouteConfigs: Record<string, IAuthRouteConfig> = {
     method: HTTP.Methods.POST,
     path: '/5',
     request: {
-      body: jsonContent({
+      body: OpenApiResponses.jsonContent({
         description: 'Request body for POST',
         schema: route5BodySchema,
       }),
     },
-    responses: jsonResponse({
+    responses: OpenApiResponses.jsonResponse({
       description: 'Test decorator POST endpoint',
       schema: z.object({ id: z.string(), name: z.string(), age: z.number() }),
     }),

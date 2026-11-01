@@ -1,4 +1,4 @@
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
 import type { TAuthMode, TAuthStrategy } from '@venizia/ignis-kernel';
 import type { IAuthorizationSpec } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
@@ -32,12 +32,12 @@ export const defineSearchRouteConfigs = (opts: {
       authenticate: resolvedAuthenticate,
       authorize,
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'Search input, discriminated by mode',
           schema: SearchInputSchema,
         }),
       },
-      responses: jsonResponse({
+      responses: OpenApiResponses.jsonResponse({
         description: 'Search results',
         schema: searchResponseSchema,
       }),
@@ -50,12 +50,12 @@ export const defineSearchRouteConfigs = (opts: {
       authenticate: resolvedAuthenticate,
       authorize,
       request: {
-        body: jsonContent({
+        body: OpenApiResponses.jsonContent({
           description: 'Multi-search input - one or more per-collection native search params',
           schema: MultiSearchInputSchema,
         }),
       },
-      responses: jsonResponse({
+      responses: OpenApiResponses.jsonResponse({
         description: 'Federated (or, when union is true, merged) search results',
         schema: multiSearchResponseSchema,
       }),
