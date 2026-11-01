@@ -20,8 +20,3 @@ export class EmojiFaviconMiddleware {
     return mw;
   }
 }
-
-/** @deprecated Use EmojiFaviconMiddleware.create({ icon }). Removed in 0.5. */
-export const emojiFavicon = (opts: { icon: string }): MiddlewareHandler => {
-  return EmojiFaviconMiddleware.create(opts);
-};

@@ -30,7 +30,7 @@ import {
   toBoolean,
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
-import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
+import { AppErrorMiddleware, EmojiFaviconMiddleware } from '../middlewares';
 import { serveStatic } from 'hono/bun';
 import { ServerBootSteps } from './boot-steps';
 import { ServerApplication } from './server';
@@ -367,7 +367,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
         // above (also works around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
         this.component(RequestTrackerComponent);
 
-        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
+        server.use(EmojiFaviconMiddleware.create({ icon: this.configs.favicon ?? '🔥' }));
       },
     });
   }

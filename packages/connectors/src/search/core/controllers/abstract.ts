@@ -17,7 +17,7 @@ const resolveSearchStart = (opts: { input: TSearchInput; hitCount: number }): nu
   const { input, hitCount } = opts;
 
   if (input.mode !== SearchModes.RAW) {
-    // Same precedence as buildDataRange: the repository filter carries skip or offset.
+    // Same precedence as DataRangeUtility.buildDataRange: the repository filter carries skip or offset.
     return input.filter?.skip ?? input.filter?.offset ?? 0;
   }
 

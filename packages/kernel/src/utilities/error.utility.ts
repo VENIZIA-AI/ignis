@@ -20,12 +20,3 @@ export class ErrorUtility {
     });
   }
 }
-
-/** @deprecated Use ErrorUtility.throwNotSupported({ scope, feature, logger }). Removed in 0.5. */
-export const throwNotSupported = (opts: {
-  scope: string;
-  feature: string;
-  logger: ILogger;
-}): never => {
-  return ErrorUtility.throwNotSupported(opts);
-};

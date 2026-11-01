@@ -39,13 +39,3 @@ export class ModelUtility {
       .pipe(z.object(camelShape));
   }
 }
-
-/** @deprecated Use ModelUtility.toEntityId({ value }). Removed in 0.5. */
-export const toEntityId = (opts: { value: string }): TEntityId => {
-  return ModelUtility.toEntityId(opts);
-};
-
-/** @deprecated Use ModelUtility.snakeToCamel({ shape }). Removed in 0.5. */
-export const snakeToCamel = <T extends z.ZodRawShape>(shape: T) => {
-  return ModelUtility.snakeToCamel({ shape });
-};

@@ -1,5 +1,4 @@
 import { ControllerFactory } from '@/base/controllers/factory/controller';
-import { registerFactoryRepositoryInjection } from '@/base/controllers/factory/repository-injection';
 import { controller, inject } from '@/base/metadata';
 import { AbstractEntity } from '@/base/models';
 import { BindingNamespaces } from '@/common/bindings';
@@ -125,24 +124,6 @@ describe('defineCrudController injects the repository named in repository.name',
 });
 
 describe('ControllerFactory.registerRepositoryInjection - the one injection every generated controller uses', () => {
-  test('the deprecated registerFactoryRepositoryInjection records the same metadata', () => {
-    class OldFormProbeController {}
-    class NewFormProbeController {}
-    const base = {
-      factoryName: 'defineProbeController',
-      controllerName: 'ProbeController',
-      repositoryName: 'ProbeRepository',
-    };
-
-    registerFactoryRepositoryInjection({ target: OldFormProbeController, ...base });
-    ControllerFactory.registerRepositoryInjection({ target: NewFormProbeController, ...base });
-
-    const registry = MetadataRegistry.getInstance();
-    expect(registry.getInjectMetadata({ target: OldFormProbeController })).toEqual(
-      registry.getInjectMetadata({ target: NewFormProbeController }),
-    );
-  });
-
   test('records repositories.<name> at parameter 0, required', () => {
     class GeneratedProbeController {}
 

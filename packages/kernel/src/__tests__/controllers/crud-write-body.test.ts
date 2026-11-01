@@ -191,7 +191,7 @@ describe('the default body is the entity schema itself when nothing is dropped',
         serverStampedKeys: ['createdAt'],
       }),
     ).toThrow(
-      '[defineControllerRouteConfigs] Cannot build the default create body | keys to leave out: createdAt | The schema is refined or transformed, so zod cannot remove them | Pass routes.create.request.body',
+      '[RouteConfigResolver.defineControllerRouteConfigs] Cannot build the default create body | keys to leave out: createdAt | The schema is refined or transformed, so zod cannot remove them | Pass routes.create.request.body',
     );
   });
 

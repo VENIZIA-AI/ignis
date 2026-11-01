@@ -8,8 +8,3 @@ export class ContextUtility {
     return opts.context as TContext<E, string>;
   }
 }
-
-/** @deprecated Use ContextUtility.asTypedContext({ context }). Removed in 0.5. */
-export const asTypedContext = <E extends Env>(context: unknown): TContext<E, string> => {
-  return ContextUtility.asTypedContext<E>({ context });
-};

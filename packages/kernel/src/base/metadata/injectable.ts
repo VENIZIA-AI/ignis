@@ -115,10 +115,3 @@ export class InjectableUtility {
     return registration;
   }
 }
-
-/** @deprecated Use InjectableUtility.pickRegistrationOptions({ metadata }). Removed in 0.5. */
-export const pickRegistrationOptions = <ApplicationType = unknown>(opts: {
-  metadata: IArtifactRegistrationOptions<ApplicationType>;
-}): IArtifactRegistrationOptions<ApplicationType> => {
-  return InjectableUtility.pickRegistrationOptions(opts);
-};

@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import { ModelUtility, toEntityId } from '@/base/models/common';
+import { ModelUtility } from '@/base/models/common';
 import type { TEntityId } from '@/base/models/common';
 
 describe('TEntityId', () => {
@@ -19,15 +19,10 @@ describe('TEntityId', () => {
     expect(rejected as string).toBe('M1');
   });
 
-  test('toEntityId is the way in, and the value survives unchanged', () => {
+  test('ModelUtility.toEntityId is the way in, and the value survives unchanged', () => {
     const id = ModelUtility.toEntityId({ value: 'M1' });
 
     expect(id as string).toBe('M1');
-  });
-
-  test('the deprecated toEntityId gives what ModelUtility.toEntityId gives', () => {
-    expect(toEntityId({ value: 'M1' })).toBe(ModelUtility.toEntityId({ value: 'M1' }));
-    expect(() => toEntityId({ value: '' })).toThrow();
   });
 
   test('an empty string is refused - it collapses a where clause to no condition', () => {

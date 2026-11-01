@@ -1,14 +1,4 @@
-import { htmlContent, htmlResponse } from '@/base/controllers/common/html-response';
-import { requiredString } from '@/base/controllers/common/schema-builders';
-import {
-  ErrorSchema,
-  errorResponses,
-  idParamsSchema,
-  jsonContent,
-  jsonResponse,
-  OpenApiResponses,
-  OpenApiSchemas,
-} from '@/base/models/common/schemas';
+import { ErrorSchema, OpenApiResponses, OpenApiSchemas } from '@/base/models/common/schemas';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { describe, expect, test } from 'bun:test';
 
@@ -105,63 +95,11 @@ describe('ErrorSchema is one named component', () => {
   });
 });
 
-describe('the deprecated response and schema functions answer as the classes do', () => {
-  const schema = z.object({ id: z.string() });
-
-  test('jsonContent, errorResponses, jsonResponse', () => {
-    const opts = { schema, description: 'Body', required: true };
-
-    expect(jsonContent(opts)).toEqual(OpenApiResponses.jsonContent(opts));
-    expect(errorResponses()).toEqual(OpenApiResponses.errorResponses());
-    expect(jsonResponse({ schema, description: 'Done' })).toEqual(
-      OpenApiResponses.jsonResponse({ schema, description: 'Done' }),
-    );
-    expect(
-      jsonResponse({ schema, headers: { 'x-trace': { schema: { type: 'string' } } } }),
-    ).toEqual(
-      OpenApiResponses.jsonResponse({
-        schema,
-        headers: { 'x-trace': { schema: { type: 'string' } } },
-      }),
-    );
-  });
-
-  /** Each call builds a fresh zod schema, which `toEqual` cannot compare; the schema's own JSON Schema can be. */
-  const toHtmlProbe = (content: ReturnType<typeof OpenApiResponses.htmlContent>) => {
-    return {
-      description: content.description,
-      required: content.required,
-      html: z.toJSONSchema(content.content['text/html'].schema),
-    };
-  };
-
-  test('htmlContent, htmlResponse', () => {
-    expect(toHtmlProbe(htmlContent({ description: 'A page' }))).toEqual(
-      toHtmlProbe(OpenApiResponses.htmlContent({ description: 'A page' })),
-    );
-    expect(htmlContent({ description: 'A page' }).required).toBe(false);
-
-    const old = htmlResponse({ description: 'A page', required: true });
-    const next = OpenApiResponses.htmlResponse({ description: 'A page', required: true });
-    expect(Object.keys(old).sort()).toEqual(Object.keys(next).sort());
-    expect(toHtmlProbe(old[200])).toEqual(toHtmlProbe(next[200]));
-  });
-
-  test('idParamsSchema, requiredString', () => {
-    expect(Object.keys(idParamsSchema({ idType: 'string' }).shape)).toEqual(['id']);
-    expect(idParamsSchema().safeParse({ id: 7 }).success).toBe(
-      OpenApiSchemas.idParams().safeParse({ id: 7 }).success,
-    );
-    expect(idParamsSchema({ idType: 'string' }).safeParse({ id: 7 }).success).toBe(
-      OpenApiSchemas.idParams({ idType: 'string' }).safeParse({ id: 7 }).success,
-    );
-
-    for (const opts of [undefined, { min: 3 }, { max: 2 }, { fixed: 4 }]) {
-      for (const input of ['', 'ab', 'abcd', 'abcdef']) {
-        expect(requiredString(opts).safeParse(input).success).toBe(
-          OpenApiSchemas.requiredString(opts).safeParse(input).success,
-        );
-      }
-    }
+describe('OpenApiSchemas.idParams', () => {
+  test('a number id by default, a string id on request, both under the single key id', () => {
+    expect(Object.keys(OpenApiSchemas.idParams({ idType: 'string' }).shape)).toEqual(['id']);
+    expect(OpenApiSchemas.idParams().safeParse({ id: 7 }).success).toBe(true);
+    expect(OpenApiSchemas.idParams({ idType: 'string' }).safeParse({ id: 7 }).success).toBe(false);
+    expect(OpenApiSchemas.idParams({ idType: 'string' }).safeParse({ id: 'a' }).success).toBe(true);
   });
 });

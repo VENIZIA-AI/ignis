@@ -183,7 +183,7 @@ describe('declarative — value formatting & edge values', () => {
     expect(dom).toBe('Merchant_false');
   });
 
-  test('EDGE: context value null → readDeclarative returns null → SYSTEM_WIDE', async () => {
+  test('EDGE: context value null → RequestDomainResolver.readDeclarative returns null → SYSTEM_WIDE', async () => {
     const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
         action: 'read',

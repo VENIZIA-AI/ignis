@@ -187,32 +187,3 @@ export class OpenApiResponses {
     };
   }
 }
-
-/** @deprecated Use OpenApiSchemas.idParams({ idType }). Removed in 0.5. */
-export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
-  return OpenApiSchemas.idParams(opts);
-};
-
-/** @deprecated Use OpenApiResponses.jsonContent({ schema, description, required }). Removed in 0.5. */
-export const jsonContent = <T extends z.ZodType>(opts: {
-  schema: T;
-  description: string;
-  required?: boolean;
-}) => {
-  return OpenApiResponses.jsonContent(opts);
-};
-
-/** @deprecated Use OpenApiResponses.errorResponses(). Removed in 0.5. */
-export const errorResponses = () => {
-  return OpenApiResponses.errorResponses();
-};
-
-/** @deprecated Use OpenApiResponses.jsonResponse({ schema, description, required, headers }). Removed in 0.5. */
-export const jsonResponse = <
-  ContentSchema extends z.ZodType,
-  HeaderSchema extends TResponseHeaders | undefined = undefined,
->(
-  opts: TJsonResponseOpts<ContentSchema, HeaderSchema>,
-) => {
-  return OpenApiResponses.jsonResponse(opts);
-};

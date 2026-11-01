@@ -278,7 +278,7 @@ describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () 
   });
 });
 
-describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
+describe('RequestDomainResolver.resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
   test('unrecognized declarative `from` → null → SYSTEM_WIDE', async () => {
     const dom = await RequestDomainResolver.resolveRequestDomain({
       spec: {
@@ -298,7 +298,7 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
           query: () => undefined,
         },
         get: () => undefined,
-        // Stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
+        // Stub only implements the accessors RequestDomainResolver.resolveRequestDomain reads, not the full Hono Context shape.
       } as any,
       options: undefined,
     });

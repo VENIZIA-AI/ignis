@@ -18,11 +18,6 @@ import { AbstractRestController } from './abstract';
 import type { IRequestedExtra, TResponseExtra } from './extras';
 import { ResponseExtras } from './extras';
 
-/** @deprecated Use DataRangeUtility.toContentRange({ range, count }). Removed in 0.5. */
-export const toContentRange = (opts: { range: TDataRange; count: number }): string => {
-  return DataRangeUtility.toContentRange(opts);
-};
-
 /** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
 export abstract class BaseRestController<
   RouteEnv extends Env = Env,

@@ -2,8 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { ResponseFormats } from '@/base/controllers/common';
 import type { TRouteContext } from '@/base/controllers/common';
-import { BaseRestController, toContentRange } from '@/base/controllers/rest/base';
-import { buildDataRange, DataRangeUtility } from '@/base/repositories/common/types';
+import { BaseRestController } from '@/base/controllers/rest/base';
+import { DataRangeUtility } from '@/base/repositories/common/types';
 
 class ItemsController extends BaseRestController {
   constructor() {
@@ -137,16 +137,13 @@ describe('BaseRestController list responses', () => {
     ).toBe('records */42');
   });
 
-  test('the deprecated toContentRange and buildDataRange answer as the class does', () => {
-    const range = { start: 3, end: 4, total: 7 };
-
-    expect(toContentRange({ range, count: 2 })).toBe(
-      DataRangeUtility.toContentRange({ range, count: 2 }),
-    );
-    expect(buildDataRange({ offset: 3, dataLength: 2, total: 7 })).toEqual(
-      DataRangeUtility.buildDataRange({ offset: 3, dataLength: 2, total: 7 }),
-    );
-    expect(buildDataRange({ skip: 5, dataLength: 0, total: 7 })).toEqual({
+  test('DataRangeUtility.buildDataRange starts at skip or offset, and an empty page collapses end onto start', () => {
+    expect(DataRangeUtility.buildDataRange({ offset: 3, dataLength: 2, total: 7 })).toEqual({
+      start: 3,
+      end: 4,
+      total: 7,
+    });
+    expect(DataRangeUtility.buildDataRange({ skip: 5, dataLength: 0, total: 7 })).toEqual({
       start: 5,
       end: 5,
       total: 7,

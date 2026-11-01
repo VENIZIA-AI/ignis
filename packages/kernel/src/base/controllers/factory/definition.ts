@@ -72,7 +72,7 @@ export class RouteConfigResolver {
 
     if (!isObjectSchema || schema.def.checks?.length) {
       throw getError({
-        message: `[defineControllerRouteConfigs] Cannot build the default ${route} body | keys to leave out: ${omittedKeys.join(', ')} | The schema is refined or transformed, so zod cannot remove them | Pass routes.${route}.request.body`,
+        message: `[RouteConfigResolver.defineControllerRouteConfigs] Cannot build the default ${route} body | keys to leave out: ${omittedKeys.join(', ')} | The schema is refined or transformed, so zod cannot remove them | Pass routes.${route}.request.body`,
       });
     }
 
@@ -609,18 +609,3 @@ export class RouteConfigResolver {
     return rs;
   }
 }
-
-/** @deprecated Use RouteConfigResolver.conditionalCountResponse(dataSchema). Removed in 0.5. */
-export const conditionalCountResponse = RouteConfigResolver.conditionalCountResponse;
-/** @deprecated Use RouteConfigResolver.resolveCountConfig({ config, isStrict }). Removed in 0.5. */
-export const resolveCountConfig = RouteConfigResolver.resolveCountConfig;
-/** @deprecated Use RouteConfigResolver.resolveFindConfig({ config, selectSchema }). Removed in 0.5. */
-export const resolveFindConfig = RouteConfigResolver.resolveFindConfig;
-/** @deprecated Use RouteConfigResolver.resolveFindByIdConfig. Removed in 0.5. */
-export const resolveFindByIdConfig = RouteConfigResolver.resolveFindByIdConfig;
-/** @deprecated Use RouteConfigResolver.resolveFindOneConfig. Removed in 0.5. */
-export const resolveFindOneConfig = RouteConfigResolver.resolveFindOneConfig;
-/** @deprecated Use RouteConfigResolver.resolveCreateConfig. Removed in 0.5. */
-export const resolveCreateConfig = RouteConfigResolver.resolveCreateConfig;
-/** @deprecated Use RouteConfigResolver.defineControllerRouteConfigs. Removed in 0.5. */
-export const defineControllerRouteConfigs = RouteConfigResolver.defineControllerRouteConfigs;

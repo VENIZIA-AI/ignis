@@ -12,7 +12,6 @@ export {
   configuration,
   injectable,
   InjectableUtility,
-  pickRegistrationOptions,
   provide,
   service,
 } from '@/base/metadata/injectable';

@@ -31,16 +31,6 @@ export class DataRangeUtility {
   }
 }
 
-/** @deprecated Use DataRangeUtility.buildDataRange({ skip, offset, dataLength, total }). Removed in 0.5. */
-export const buildDataRange = (opts: {
-  skip?: number;
-  offset?: number;
-  dataLength: number;
-  total: number;
-}): TDataRange => {
-  return DataRangeUtility.buildDataRange(opts);
-};
-
 /** The `shouldQueryRange: true` result envelope; `extra` carries what a list answered beside its rows - see `x-request-extra`. */
 export type TDataWithRange<R> = {
   data: Array<R>;

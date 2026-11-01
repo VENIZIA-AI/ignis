@@ -2,7 +2,7 @@ import { BaseRestController } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { controller } from '@venizia/ignis-kernel';
 import { OpenApiResponses } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@/utilities';
+import { ErrorUtility } from '@/utilities';
 import { AnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -147,7 +147,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async (context) => {
           if (!this.service.refreshToken) {
-            return throwNotSupported({
+            return ErrorUtility.throwNotSupported({
               scope: AuthController.name,
               feature: 'refreshToken',
               logger: this.logger,
@@ -198,7 +198,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
 
           if (withUserInformation) {
             if (!this.service.getUserInformation) {
-              return throwNotSupported({
+              return ErrorUtility.throwNotSupported({
                 scope: AuthController.name,
                 feature: 'getUserInformation',
                 logger: this.logger,
@@ -226,7 +226,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async (context) => {
           if (!this.service.getUserInformation) {
-            return throwNotSupported({
+            return ErrorUtility.throwNotSupported({
               scope: AuthController.name,
               feature: 'getUserInformation',
               logger: this.logger,

@@ -99,7 +99,7 @@ describe('shared AbstractRepository core helpers', () => {
     });
   });
 
-  describe('buildDataRange', () => {
+  describe('DataRangeUtility.buildDataRange', () => {
     test('follows the HTTP Content-Range convention (inclusive end index)', () => {
       expect(DataRangeUtility.buildDataRange({ skip: 20, dataLength: 2, total: 100 })).toEqual({
         start: 20,

@@ -67,20 +67,3 @@ export class RequestDomainResolver {
     return AuthorizationDomainScopes.SYSTEM_WIDE;
   }
 }
-
-/** @deprecated Use RequestDomainResolver.readDeclarative({ source, context }). Removed in 0.5. */
-export const readDeclarative = (opts: {
-  source: IAuthorizationDomainSource;
-  context: TContext<Env, string>;
-}): TNullable<string> => {
-  return RequestDomainResolver.readDeclarative(opts);
-};
-
-/** @deprecated Use RequestDomainResolver.resolveRequestDomain({ spec, context, options }). Removed in 0.5. */
-export const resolveRequestDomain = async (opts: {
-  spec: IAuthorizationSpec;
-  context: TContext<Env, string>;
-  options: TNullable<IAuthorizeOptions>;
-}): Promise<string> => {
-  return RequestDomainResolver.resolveRequestDomain(opts);
-};
