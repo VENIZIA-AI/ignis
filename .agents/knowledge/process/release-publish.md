@@ -174,7 +174,7 @@ and `@venizia/ignis-worker` (`core-worker`).
   tarball keeps that. The loop packs each package after its version bump (and the preset, for `core-server`), records the
   sha256 of the tarball, and checks it again before it publishes that very file. Bun 1.4.4 reads a sibling's version from
   its `package.json` on disk at pack time (measured: no `bun install` is needed between a bump and the pack of the next
-  package), and the loop checks the pin of every sibling in the packed manifest anyway. The loop runs in two passes: the first bumps, packs, checks and publishes every package without waiting for a tarball (a dependent needs only its sibling in the packument, which `isPublished` reads); the second walks the published packages in release order and, for each, waits once until its tarball answers (a tag means installable), moves `highest` and `next`, then makes its release commit, push and tag. A stop in the first pass still records what was published; a stop anywhere is continued with the same plan (a package on npm is recorded without a second publish).
+  package), and the loop checks the pin of every sibling in the packed manifest anyway. The loop runs in two passes: the first bumps, packs, checks and publishes every package without waiting for a tarball (the pin check of a dependent trusts the siblings this run published, because the packument lists a version minutes late); the second walks the published packages in release order and, for each, waits once until its tarball answers (a tag means installable), moves `highest` and `next`, then makes its release commit, push and tag. A stop in the first pass still records what was published; a stop anywhere is continued with the same plan (a package on npm is recorded without a second publish).
 - The repository secret that held the old token is already deleted. After the first release over trusted
   publishing has passed, the owner sets each package's Publishing access to disallow tokens and revokes the old token.
 
@@ -258,12 +258,15 @@ IGNIS publishes the atlas index of its own commits, so a project that declares I
    version the workspace has now, a sibling outside the run present on npm); the sha256 is checked against the one recorded
    at the pack; `npm publish "$TARBALLS/<package>.tgz" --access public --tag <dist-tag> --ignore-scripts --provenance`
    (no token: npm signs in with the job's identity and writes the provenance; `patch|minor|major` publish under `latest`,
-   any `pre*` mode under `next`; `--ignore-scripts` because the build already ran); the line `+ <name>@<version>`; a wait
-   until the tarball answers 200; the `highest` dist-tag, moved only if the new version is semver-greater than the current
-   one (a stable shipped late never moves it back; best-effort); `sync-next-tag.ts` (best-effort).
-6. Only now does git change for that package: commit `package.json` as `[#N] chore(<package>): release v<version> [<build_mode>]`,
-   a plain push to `develop`, then the annotated tag `<package>-v<version>` and its push. The next package starts only
-   after that. A push that is rejected (`develop` moved) stops the run: nothing rebases, because a rebase would bring other
+   any `pre*` mode under `next`; `--ignore-scripts` because the build already ran); the line `+ <name>@<version>`. No
+   tarball wait here: the next package is packed and published at once, and a sibling this run published counts as on npm
+   in the pin check (the registry lists it minutes late).
+6. Second pass, over the published packages in the same order. For each: a wait until its tarball answers 200 (a tag means
+   installable); the `highest` dist-tag, moved only if the new version is semver-greater than the current one (a stable
+   shipped late never moves it back; best-effort); `sync-next-tag.ts` (best-effort). Only now does git change for that
+   package: commit `package.json` as `[#N] chore(<package>): release v<version> [<build_mode>]`,
+   a plain push to `develop`, then the annotated tag `<package>-v<version>` and its push; the next package of the pass
+   starts only after that. A stop in the first pass still records the packages it published. A push that is rejected (`develop` moved) stops the run: nothing rebases, because a rebase would bring other
    commits into the working tree between two packs while the build ran once on the dispatched commit.
 7. When the loop is done, the step "Create the GitHub Release" makes the Release of the run on the tag of the last package
    (see [The GitHub Release of a run](#the-github-release-of-a-run)). It cannot fail the run. A stable then merges `main`

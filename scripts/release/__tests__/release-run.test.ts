@@ -36,6 +36,12 @@ class FakeWorld {
     wrongBump: new Set<string>(),
   };
   publishes: string[] = [];
+  /**
+   * The registry lists a version minutes after a publish (measured in this repository): with `packumentLag` on, a version
+   * published by the running process is not visible to `isPublished` until `checkout()` (a later dispatch).
+   */
+  packumentLag = false;
+  private visible = new Set<string>();
   /** The branch of every `git push origin HEAD:<branch>`, in order. */
   pushedTo: string[] = [];
   /** The `--tag` of every `npm publish`, by package. */
@@ -77,6 +83,7 @@ class FakeWorld {
     for (const [dir, pkg] of this.disk) {
       this.origin.set(dir, pkg.version);
       this.npm.add(`${pkg.name}@${pkg.version}`);
+      this.visible.add(`${pkg.name}@${pkg.version}`);
     }
   }
 
@@ -91,6 +98,7 @@ class FakeWorld {
       pkg.version = this.origin.get(dir) ?? pkg.version;
     }
     this.commits = this.commits.filter((commit) => commit.pushed);
+    this.visible = new Set(this.npm);
   }
 
   dirOf(name: string): string {
@@ -127,7 +135,8 @@ class FakeWorld {
         return this.faults.corruptSha && this.shaReads > 1 ? `other-${path}` : `sha-${path}`;
       },
       registry: {
-        isPublished: async ({ packageName, version }) => this.npm.has(`${packageName}@${version}`),
+        isPublished: async ({ packageName, version }) =>
+          (this.packumentLag ? this.visible : this.npm).has(`${packageName}@${version}`),
         waitForTarball: async ({ packageName, version }) => {
           this.calls.push(`wait ${packageName}@${version}`);
           if (this.faults.wait.has(`${packageName}@${version}`)) {
@@ -391,6 +400,24 @@ describe('ReleaseRun.execute: a clean run', () => {
     ]) {
       expect(indexOfCall(world, text)).toBeGreaterThan(lastPublish);
     }
+  });
+
+  test('a sibling this run just published counts as on npm while the packument still lags', async () => {
+    const world = new FakeWorld();
+    world.packumentLag = true;
+
+    const outcomes = await execute({ world });
+
+    expect(outcomes.map((outcome) => `${outcome.name}:${outcome.state}`)).toEqual([
+      'helpers:published',
+      'kernel:published',
+      'connectors:published',
+    ]);
+    expect([...world.tags.keys()]).toEqual([
+      'helpers-v0.4.6',
+      'kernel-v0.4.6',
+      'connectors-v0.4.6',
+    ]);
   });
 
   test('the next package is published without waiting for the tarball of the previous one', async () => {

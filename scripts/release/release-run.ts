@@ -1,10 +1,12 @@
 /**
- * The loop of one release run: the packages of the plan, in dependency order, one after the other.
+ * The loop of one release run: the packages of the plan, in dependency order, in two passes.
  *
- * For each package: work out what state git and npm are in, then (bump, pack, check, publish, wait for the
- * tarball, move the dist-tags) and only then record it in git (release commit, push, tag), so that after any
- * stop git equals the registry. Everything it touches arrives through `ports`, so the order of the calls, the
- * skip and heal states and every way a run can stop are tested without a network, a registry or a remote.
+ * Pass one, for each package: work out what state git and npm are in, then bump, pack, check and publish. Pass two,
+ * for each published package in the same order: wait for its tarball, move the dist-tags, then record it in git
+ * (release commit, push, tag), so a tag always means installable. A stop in pass one still records what was
+ * published, and the same plan dispatched again records the rest without publishing it twice. Everything it touches
+ * arrives through `ports`, so the order of the calls, the skip and heal states and every way a run can stop are
+ * tested without a network, a registry or a remote.
  *
  *   bun scripts/release/release-run.ts plan                   # validate PLAN, print the matrix for the test jobs
  *   bun scripts/release/release-run.ts run                    # release PLAN with BUILD_MODE (the publish job)
@@ -173,6 +175,8 @@ export class ReleaseRun {
     const pending = new Set(entries.map((entry) => entry.name));
     const outcomes: IReleaseOutcome[] = [];
     const toRecord: IRecordJob[] = [];
+    /** `name@version` of every package this run published or found already on npm: the registry lists them late, so the pin check trusts this first. */
+    const releasedHere = new Set<string>();
 
     // Phase 1: bump, pack, check and publish every package. Publishing needs no tarball wait: a dependent package only
     // needs its sibling in the packument (`isPublished`). Nothing is committed or tagged yet.
@@ -193,6 +197,7 @@ export class ReleaseRun {
           ports,
           directories,
           pendingNames,
+          releasedHere,
         });
         outcomes.push(result.outcome);
         if (result.record) {
@@ -228,8 +233,8 @@ export class ReleaseRun {
     const { jobs, ports } = opts;
 
     for (const job of jobs) {
-      const { healed, ...recordOpts } = job;
-      await this.record({ ...recordOpts, ports });
+      const { healed, ...jobFields } = job;
+      await this.record({ ...jobFields, ports });
 
       // A package this run published prints its tag; one an earlier dispatch published prints the `=` the driver reads.
       ports.log(
@@ -264,8 +269,10 @@ export class ReleaseRun {
     ports: IReleasePorts;
     directories: ReadonlyArray<string>;
     pendingNames: ReadonlySet<string>;
+    releasedHere: Set<string>;
   }): Promise<IReleaseResult> {
-    const { entry, mode, branch, issue, tarballs, ports, directories, pendingNames } = opts;
+    const { entry, mode, branch, issue, tarballs, ports, directories, pendingNames, releasedHere } =
+      opts;
     const dir = entry.name;
     const cwd = `packages/${dir}`;
     const { log } = ports;
@@ -300,6 +307,7 @@ export class ReleaseRun {
 
     if (await ports.registry.isPublished({ packageName, version })) {
       log(`${packageName}@${version} is already on npm - recording it without publishing`);
+      releasedHere.add(`${packageName}@${version}`);
       return {
         outcome: outcome('healed', version),
         record: { dir, packageName, version, mode, branch, issue, published: true, healed: true },
@@ -337,8 +345,8 @@ export class ReleaseRun {
       kind: ReleaseKinds.ofMode({ mode }),
     });
 
-    // Every sibling this package ships against is already on npm: one released earlier in this run (its tarball
-    // answered 200 before its commit was made) or one outside the plan.
+    // Every sibling this package ships against is already on npm: one this run published (npm accepted it; the
+    // registry lists it minutes later, so the run's own word counts before the packument) or one outside the plan.
     const manifest = JSON.parse(manifestText) as IPackedManifest;
     for (const [name, pinned] of Object.entries({
       ...manifest.dependencies,
@@ -347,6 +355,7 @@ export class ReleaseRun {
       if (
         siblings.has(name) &&
         !pendingNames.has(name) &&
+        !releasedHere.has(`${name}@${pinned}`) &&
         !(await ports.registry.isPublished({ packageName: name, version: pinned }))
       ) {
         problems.push(`${name}@${pinned} is not on npm`);
@@ -386,6 +395,7 @@ export class ReleaseRun {
       );
       throw error;
     }
+    releasedHere.add(`${packageName}@${version}`);
     log(`${ReleaseMarkers.PUBLISHED} ${packageName}@${version}`);
     log(`✓ Published ${packageName}@${version} (${npmTag})`);
 
@@ -462,7 +472,7 @@ export class ReleaseRun {
   }
 
   /**
-   * After the publish: wait for the tarball, move the dist-tags, then the release commit, the push and the tag.
+   * The second pass, for one published package: wait for the tarball, move the dist-tags, then the release commit, the push and the tag.
    * A failure from here on leaves a published package whose git half is missing; it is reported, never repaired
    * (npm cannot un-publish, and chasing a live version with a force push does more damage than the gap).
    */

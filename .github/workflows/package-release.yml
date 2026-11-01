@@ -36,9 +36,9 @@ on:
         required: false
         default: ''
 
-# ONE run releases the whole plan. The packages are released one after the other in dependency order by
-# scripts/release/release-run.ts (the `publish` job): for each, bump, pack, check, publish, wait until the
-# tarball answers 200, then the release commit and the tag. A run that stops is continued by dispatching the same
+# ONE run releases the whole plan. The packages are released in dependency order by scripts/release/release-run.ts
+# (the `publish` job) in two passes: for each package, bump, pack, check and publish; then, for each published
+# package, wait until the tarball answers 200 and write the release commit and the tag. A run that stops is continued by dispatching the same
 # plan again: what is released is skipped, what is on npm without its commit or tag is recorded without a second
 # publish, and a stale plan stops the run before anything is published.
 #
@@ -448,7 +448,7 @@ jobs:
       && (needs.approve.result == 'success'
       || (needs.approve.result == 'skipped' && needs.plan.outputs.kind == 'prerelease')) }}
     runs-on: ubuntu-26.04
-    # Nine publishes, each followed by a wait of up to fifteen minutes for its tarball, plus the build.
+    # Nine publishes, then up to fifteen minutes of waiting for each tarball, plus the build.
     timeout-minutes: 240
     # The environment holds the publish identity's ref rule (develop and main). It has no reviewers: the owner's
     # approval is the `approve` job's, and only a stable has one. Its settings are GitHub's, not this file's; this
@@ -536,11 +536,12 @@ jobs:
       # -------------------------------------------------------------------------
       # RELEASE - the loop
       # -------------------------------------------------------------------------
-      # Per package: bump, pack, check the manifest and the checksum, publish the packed file with provenance, wait
-      # until its tarball answers 200, move the dist-tags, then the release commit, the push and the tag. The
-      # publish is the only step that cannot be undone, so git is written only after the package is installable:
-      # after any stop, git equals the registry. Reported, never repaired: npm cannot un-publish, and force-pushing
-      # develop to chase a live version does more damage than the gap.
+      # Pass one, per package: bump, pack, check the manifest and the checksum, publish the packed file with
+      # provenance. Pass two, per published package in order: wait until its tarball answers 200, move the dist-tags,
+      # then the release commit, the push and the tag. The publish is the only step that cannot be undone, so git is
+      # written only after the package is installable; a stop in pass one still records what was published, and the
+      # same plan dispatched again records the rest without a second publish. Reported, never repaired: npm cannot
+      # un-publish, and force-pushing develop to chase a live version does more damage than the gap.
       - name: Release the plan
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
