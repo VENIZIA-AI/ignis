@@ -62,7 +62,10 @@ const hash = (x: number, y: number): number => {
 const smooth = (t: number): number => t * t * (3 - 2 * t);
 
 export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOptions): void => {
-  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  // read after mount: on the server there is no window, and a component that touches one while it renders breaks the build
+  let calm: MediaQueryList | null = null;
+
+  const isCalm = (): boolean => calm?.matches ?? false;
 
   let frame = 0;
   let observer: IntersectionObserver | null = null;
@@ -398,7 +401,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
   };
 
   const run = (): void => {
-    if (frame === 0 && !calm.matches) {
+    if (frame === 0 && !isCalm()) {
       last = 0;
       frame = requestAnimationFrame(loop);
     }
@@ -425,7 +428,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
 
   // a mouse or a pen stirs the dust; a finger never does, so a swipe that scrolls the page leaves it alone
   const onMove = (event: PointerEvent): void => {
-    if (event.pointerType === 'touch' || calm.matches) {
+    if (event.pointerType === 'touch' || isCalm()) {
       return;
     }
 
@@ -433,7 +436,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     pointerY = event.clientY;
   };
   const onPress = (event: PointerEvent): void => {
-    if (event.pointerType === 'touch' || calm.matches) {
+    if (event.pointerType === 'touch' || isCalm()) {
       return;
     }
 
@@ -451,7 +454,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     }
   };
   const onMotion = (): void => {
-    if (calm.matches) {
+    if (isCalm()) {
       cancelAnimationFrame(frame);
       frame = 0;
       onLeave();
@@ -468,6 +471,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
       return;
     }
 
+    calm = matchMedia('(prefers-reduced-motion: reduce)');
     fit();
     element.dataset.ready = '';
     resizer = new ResizeObserver(fit);
@@ -475,7 +479,7 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     themes = new MutationObserver(() => {
       readColor();
 
-      if (calm.matches) {
+      if (isCalm()) {
         paint(0, 0, false);
       }
     });
@@ -504,6 +508,6 @@ export const useDust = (canvas: Ref<HTMLCanvasElement | null>, options: TDustOpt
     window.removeEventListener('pointerdown', onPress);
     document.removeEventListener('pointerleave', onLeave);
     document.removeEventListener('visibilitychange', onVisibility);
-    calm.removeEventListener('change', onMotion);
+    calm?.removeEventListener('change', onMotion);
   });
 };
