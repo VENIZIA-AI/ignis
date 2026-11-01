@@ -13,8 +13,8 @@ const USAGE = `Usage: devz codemod namespace-functions [paths...] [--write | --c
 
 Moves calls of an IGNIS function that now lives in a class to the class form, with one options
 object: \`oldName(a, b)\` becomes \`ClassName.method({ first: a, second: b })\`, and an argument named
-like its key is written short (\`{ first }\`). The old names stay as deprecated aliases until 0.5, so
-the code works before and after. A table in @venizia/dev-configs names each moved function.
+like its key is written short (\`{ first }\`). The old names are removed from the packages, so run it
+once after you upgrade. A table in @venizia/dev-configs names each moved function.
 
 It follows a named import (aliased too) and a namespace import (\`ns.oldName(...)\`) from a module the
 table lists, adds the class to that import, and drops the old name once nothing else uses it. It lists

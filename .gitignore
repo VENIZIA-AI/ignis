@@ -81,7 +81,6 @@ Desktop.ini
 # Reusable AI prompts for development workflow
 .local/
 .claude/
-**/*/.claude
 .prompts/
 .superpowers/
 .playwright-mcp/
@@ -94,7 +93,6 @@ openspec
 CLAUDE.md
 CLAUDE.*.md
 GEMINI.md
-**/*/CLAUDE.md
 .serena
 
 docs/temp

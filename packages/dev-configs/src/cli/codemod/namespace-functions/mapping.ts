@@ -1,7 +1,7 @@
 /**
  * The table behind `devz codemod namespace-functions`. One entry per public function that moved into
- * a class: the old name stays exported as a `@deprecated` alias with its old positional signature,
- * and the codemod moves callers to the class form.
+ * a class: the old name is no longer exported, and the codemod moves callers to the class form, so an
+ * entry is the only upgrade path for that name.
  *
  * How an entry is written, in the file of the package that exports the old name
  * (`mappings/<package-dir>.ts`):
@@ -27,7 +27,7 @@
  *
  * So `float(value, 3)` becomes `ParseUtility.toFloat({ input: value, digit: 3 })`, and `float(input)`
  * becomes `ParseUtility.toFloat({ input })`. Add the entry in the pull request that adds the class
- * and the deprecated alias, never before: the codemod would rewrite callers to a method that does not
+ * and removes the old export, never before: the codemod would rewrite callers to a method that does not
  * exist yet. `NamespaceMappings.validate` checks every entry in the test suite.
  */
 

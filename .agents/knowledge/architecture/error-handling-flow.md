@@ -155,14 +155,14 @@ The log level defaults to `error`, but a throw site can lower it by passing `log
 (an expected `404`/`409` logs at `warn` or `info`, `emerg` for a true emergency); a malformed value
 falls back to `error`. Then it is routed:
 
-- **ZodError** -> 422, formatted by `formatZodError`.
-- **DB client error** -> 400. `isDatabaseClientError` accepts only SQLSTATE classes caused by the
+- **ZodError** -> 422, formatted by `ZodErrorHandler.formatZodError`.
+- **DB client error** -> 400. `DatabaseErrorHandler.isDatabaseClientError` accepts only SQLSTATE classes caused by the
   request: `22` (data exception), `23` (integrity constraint violation) and `44` (WITH CHECK OPTION
   violation - a row written through an updatable view fails that view's CHECK). Everything else -
   class `42` syntax/undefined-column, class `53` resources - stays a 500, being the server's bug,
   not the client's. A missing or non-string code (a gRPC numeric code, say) is treated as
   non-client and must never crash this last-resort handler.
-- **Transient DB conflict** -> 409. `isRetryableDatabaseError` matches SQLSTATE `40001`
+- **Transient DB conflict** -> 409. `DatabaseErrorHandler.isRetryableDatabaseError` matches SQLSTATE `40001`
   (serialization failure) and `40P01` (deadlock); the response gets a fixed safe message and a
   retryable message code, since the client can retry the request unchanged.
 - **Intentional domain error** (anything with `statusCode`) -> its own status and message, untouched.
@@ -202,7 +202,7 @@ Production suppresses:
 - **Raw messages of unexpected errors.** When `isProduction && !('statusCode' in error)`, the message
   is replaced with `'Internal Server Error'`. An uncaught throw, a non-client DB error or a connection
   failure may carry SQL text, schema names or connection strings.
-- **DB driver context.** In non-production `isDatabaseClientError` appends `Detail:`, `Table:` and
+- **DB driver context.** In non-production `DatabaseErrorHandler.isDatabaseClientError` appends `Detail:`, `Table:` and
   `Constraint:` lines to aid debugging. In production only the generic base message survives -
   `detail` echoes row values (`Key (email)=(a@b.com) already exists`) and `table`/`constraint` reveal
   schema internals.

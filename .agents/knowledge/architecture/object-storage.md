@@ -114,7 +114,7 @@ Absent, neither route exists.
 The third trip exists because S3 tells the backend nothing. Without it there is no MetaLink row and
 no way to attach the object to anything.
 
-Both paths write that row through ONE builder, `createMetaLinkRow`. They diverged once and the
+Both paths write that row through ONE builder, `AssetMetaLink.createRow`. They diverged once and the
 symptom was a client rendering an empty state with no error. The labels
 `principalType`/`principalId`/`variant` reach the commit as QUERY, because the token carries no
 business fields. A failed row is `metaLink: { error: 'META_LINK_CREATE_FAILED' }` inside a 200 - the
@@ -143,7 +143,7 @@ entirely when the stat carries none) - fed from the first statement's own `RETUR
 read, because `find` applies `DEFAULT_LIMIT` (10) and would silently refresh only part of a larger
 pair. That merge is a read-then-write: a concurrent write to a row's `metadata` landing between the
 two statements is lost. Only when the refresh counts zero rows does it create one, through
-`createMetaLinkRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
+`AssetMetaLink.createRow` - the same builder `upload` uses, so `createMetaLink` and the entry's `storage`
 apply. The response carries `MetaLinkRecreateActions.REFRESHED`/`.CREATED` (a real
 `z.enum(...)` in the OpenAPI document, not `string`), `count`, and every touched row as `metaLinks`
 (`metaLink` stays `metaLinks[0]`, for existing callers). The two steps are still not atomic: two
