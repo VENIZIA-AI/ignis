@@ -93,4 +93,10 @@ const browserPurity = {
 
 // oxlint (.configs/oxlint.config.mts) owns the shared preset; this file adds what oxlint cannot run: the
 // ESQuery selector below, and the naming rule. src/__tests__/browser-purity.test.ts lints with it.
-export default [...houseConfigs, ...asyncStyleConfigs, browserPurity];
+// The two promise-chain rules are off in this repository until it is swept (the sweep PR removes this line).
+export default [
+  ...houseConfigs,
+  ...asyncStyleConfigs,
+  browserPurity,
+  { rules: { 'venizia/no-await-promise-chain': 'off', 'venizia/no-silent-catch': 'off' } },
+];

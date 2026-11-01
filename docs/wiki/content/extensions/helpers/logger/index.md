@@ -148,6 +148,31 @@ A process that imports only connectors or `@venizia/ignis-helpers/core` never lo
 [BaseHelper] Logging to the console - no logger provider is installed. Import `LoggerFactory` from `@venizia/ignis-helpers` at startup.
 ```
 
+### Choose the logger in a browser app
+
+`LoggerFactory` is node-only, so a browser app has no provider to register. Without one every `this.logger` writes its `debug` lines to `console.debug`, where anyone with Verbose on reads them. `@venizia/ignis-helpers/core` carries the seam that decides: install a resolver once at startup, and every helper uses the logger it returns.
+
+```typescript
+import { ConsoleLogger, LoggerSlot } from '@venizia/ignis-helpers/core';
+import type { ILogger } from '@venizia/ignis-helpers/core';
+
+const quietDebug = (logger: ILogger): ILogger => ({
+  debug: () => undefined,
+  info: (message, ...args) => logger.info(message, ...args),
+  warn: (message, ...args) => logger.warn(message, ...args),
+  error: (message, ...args) => logger.error(message, ...args),
+  emerg: (message, ...args) => logger.emerg(message, ...args),
+  log: (level, message, ...args) => logger.log(level, message, ...args),
+  for: (methodName) => quietDebug(logger.for(methodName)),
+});
+
+LoggerSlot.use({
+  resolver: ({ scopes }) => quietDebug(ConsoleLogger.get({ scope: scopes.join('-') })),
+});
+```
+
+Call `LoggerSlot.use` before the first log line of the app. A helper that logged earlier keeps writing to the console until its next line, and the logger a helper resolved on its first line after a resolver exists is the one it keeps, so a second `LoggerSlot.use` does not change helpers that already logged. `ConsoleLogger` and `LoggerSlot` add nothing to a bundle that does not import them; `BaseHelper` alone stays at about 1 KB gzipped.
+
 To log through the real provider, use `LoggerFactory` once at startup. `@venizia/ignis` does this for you.
 
 ```typescript

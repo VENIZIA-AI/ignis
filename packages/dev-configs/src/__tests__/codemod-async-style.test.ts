@@ -67,12 +67,13 @@ describe('devz codemod async-style', () => {
   ].join('\n');
   const RETURN_AWAIT = 'export const run = async () => {\n  return await f();\n};\n';
   const RETURN_AWAIT_FIXED = 'export const run = async () => {\n  return f();\n};\n';
+  // The catch reads the error: `catch { return 0; }` would be a venizia/no-silent-catch finding.
   const RETURN_IN_TRY = [
     'export const run = async () => {',
     '  try {',
     '    return await f();',
-    '  } catch {',
-    '    return 0;',
+    '  } catch (error) {',
+    '    return recover(error);',
     '  }',
     '};',
     '',
@@ -82,9 +83,37 @@ describe('devz codemod async-style', () => {
     '  try {',
     '    const result = await f();',
     '    return result;',
-    '  } catch {',
-    '    return 0;',
+    '  } catch (error) {',
+    '    return recover(error);',
     '  }',
+    '};',
+    '',
+  ].join('\n');
+  const CHAIN = [
+    'export const load = async () => {',
+    '  const user: string | undefined = await f().catch((error) => error.fallback);',
+    '  return user;',
+    '};',
+    '',
+  ].join('\n');
+  // no-await-promise-chain writes `user = await f();` in the try, and no-inline-await then hoists it.
+  const CHAIN_FIXED = [
+    'export const load = async () => {',
+    '  let user: string | undefined;',
+    '  try {',
+    '    const result = await f();',
+    '    user = result;',
+    '  } catch (error: any) {',
+    '    user = error.fallback;',
+    '  }',
+    '  return user;',
+    '};',
+    '',
+  ].join('\n');
+  const CHAIN_NOT_FIXABLE = [
+    'export const load = async () => {',
+    '  const rows = await f().then((list) => list.map(toRow));',
+    '  return rows;',
     '};',
     '',
   ].join('\n');
@@ -151,6 +180,61 @@ describe('devz codemod async-style', () => {
     expect(read('src/a.ts')).toBe(`${INLINE_FIXED}${TERNARY}`);
     expect(warnings.join('\n')).toContain('src/a.ts:6:');
     expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 1 left unfixed');
+  });
+
+  test('const x = await f().catch(h) becomes a let, a try and a catch', async () => {
+    write('src/a.ts', CHAIN);
+    commit();
+
+    const result = await code(['--write']);
+    expect(result).toBe(0);
+    expect(read('src/a.ts')).toBe(CHAIN_FIXED);
+    expect(logs.join('\n')).toContain('changed  src/a.ts  (1 fix(es))');
+    expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 0 left unfixed');
+  });
+
+  test('an awaited .then is listed and left; so is the silent catch a fix leaves', async () => {
+    const silentFallback =
+      'export const load = async () => {\n  const user = await f().catch(() => null);\n  return user;\n};\n';
+    write('src/a.ts', CHAIN_NOT_FIXABLE);
+    write('src/b.ts', silentFallback);
+    commit();
+
+    const result = await code(['--write']);
+    expect(result).toBe(0);
+    expect(read('src/a.ts')).toBe(CHAIN_NOT_FIXABLE);
+    expect(read('src/b.ts')).toContain('} catch (error) {\n    user = null;\n  }');
+    expect(warnings.join('\n')).toContain('src/a.ts:2:16  venizia/no-await-promise-chain');
+    expect(warnings.join('\n')).toContain('src/b.ts:6:5  venizia/no-silent-catch');
+    expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 2 left unfixed');
+  });
+
+  test('a silent .catch in a file with no await is listed, never fixed', async () => {
+    const source = 'export const warm = () => {\n  load().catch(() => undefined);\n};\n';
+    write('src/a.ts', source);
+    commit();
+
+    const result = await code(['--check']);
+    expect(result).toBe(1);
+    expect(read('src/a.ts')).toBe(source);
+    expect(warnings.join('\n')).toContain('src/a.ts:2:16  venizia/no-silent-catch');
+  });
+
+  test('the chain fix is idempotent, and --check is 0 once nothing is left', async () => {
+    write('src/a.ts', CHAIN);
+    commit();
+
+    const result = await code(['--write']);
+    expect(result).toBe(0);
+    commit();
+    logs.length = 0;
+
+    const result2 = await code(['--write']);
+    expect(result2).toBe(0);
+    expect(read('src/a.ts')).toBe(CHAIN_FIXED);
+    expect(logs.join('\n')).toContain('0 file(s) changed, 0 fix(es) applied, 0 left unfixed');
+    const result3 = await code(['--check']);
+    expect(result3).toBe(0);
   });
 
   test('without --write it lists what would change, writes nothing and exits 0', async () => {
@@ -273,7 +357,7 @@ describe('devz codemod async-style', () => {
     expect(read('src/c.tsx')).toBe(RETURN_AWAIT_FIXED);
   });
 
-  test('only the two async-style rules run: other findings are not reported', async () => {
+  test('only the async-style rules run: other findings are not reported', async () => {
     write(
       'src/a.ts',
       'export const run = async (x: any) => { var y = await f(); throw new Error(y); };\n',
