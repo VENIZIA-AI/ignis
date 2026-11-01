@@ -7,6 +7,7 @@
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { PGlite } from '@electric-sql/pglite';
+import { sql } from 'drizzle-orm';
 import { PgDialect, pgTable, text } from 'drizzle-orm/pg-core';
 import { RecursiveTreeDirections, RecursiveTreeSql } from '@venizia/ignis-connectors/postgres';
 import type { IRecursiveTreeOptions } from '@venizia/ignis-connectors/postgres';
@@ -42,10 +43,11 @@ beforeAll(async () => {
   database = new PGlite();
 
   await database.exec('CREATE TABLE merchants (id text primary key, parent_id text);');
-  // A <- B <- C, plus a self-referential pair the schema does not forbid.
+  // A <- B <- C and R <- S (two trees), plus a self-referential pair the schema does not forbid.
   await database.exec(`
     INSERT INTO merchants VALUES
       ('A', NULL), ('B', 'A'), ('C', 'B'),
+      ('R', NULL), ('S', 'R'),
       ('X', 'Y'), ('Y', 'X');
   `);
 });
@@ -106,5 +108,130 @@ describe('RecursiveTreeSql against a real Postgres', () => {
     });
 
     expect(rows).toEqual([]);
+  });
+});
+
+describe('RecursiveTreeSql against a real Postgres - several roots, no root, one filter for both terms', () => {
+  test('several roots: the walk starts from each of them', async () => {
+    const rows = await walk({
+      rootId: ['A', 'R'],
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+    });
+
+    expect(rows.map((row) => row.id).sort()).toEqual(['A', 'B', 'C', 'R', 'S']);
+    expect(
+      rows
+        .filter((row) => row.depth === 0)
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['A', 'R']);
+  });
+
+  test('a list of one root walks like the single id', async () => {
+    const single = await walk({
+      rootId: 'A',
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+    });
+    const listed = await walk({
+      rootId: ['A'],
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+    });
+
+    expect(listed).toEqual(single);
+  });
+
+  test('no root: a DOWN walk starts from every row that has no parent', async () => {
+    const rows = await walk({ direction: RecursiveTreeDirections.DOWN, maxDepth: 32 });
+
+    expect(rows.map((row) => row.id).sort()).toEqual(['A', 'B', 'C', 'R', 'S']);
+    expect(
+      rows
+        .filter((row) => row.depth === 0)
+        .map((row) => row.id)
+        .sort(),
+    ).toEqual(['A', 'R']);
+  });
+
+  test('no root on an UP walk, and an empty list of roots, are refused', () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'tree',
+        table: merchants,
+        direction: RecursiveTreeDirections.UP,
+        maxDepth: 32,
+      }),
+    ).toThrow(/needs at least one root/);
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'tree',
+        table: merchants,
+        rootId: [],
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 32,
+      }),
+    ).toThrow(/empty list of roots/);
+  });
+
+  test('filter is applied to both terms: a rejected row is out of the walk and its subtree is cut off', async () => {
+    const rows = await walk({
+      rootId: 'A',
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+      filter: sql`t.id <> 'B'`,
+    });
+
+    expect(rows.map((row) => row.id)).toEqual(['A']);
+
+    const rejectedRoot = await walk({
+      rootId: 'A',
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+      filter: sql`t.id <> 'A'`,
+    });
+    expect(rejectedRoot).toEqual([]);
+  });
+
+  test('filter equals the same condition passed as anchorFilter (unqualified) and as recursiveFilter (the alias t)', async () => {
+    const once = await walk({
+      rootId: ['A', 'R'],
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+      filter: sql`t.id <> 'C'`,
+    });
+    const twice = await walk({
+      rootId: ['A', 'R'],
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+      anchorFilter: sql`id <> 'C'`,
+      recursiveFilter: sql`t.id <> 'C'`,
+    });
+
+    expect(once).toEqual(twice);
+    expect(once.map((row) => row.id).sort()).toEqual(['A', 'B', 'R', 'S']);
+  });
+
+  test('the walk is a CTE the caller can join: name is the alias', async () => {
+    const cte = RecursiveTreeSql.walk({
+      name: 'subtree',
+      table: merchants,
+      rootId: 'A',
+      direction: RecursiveTreeDirections.DOWN,
+      maxDepth: 32,
+    });
+    const query = new PgDialect().sqlToQuery(cte);
+
+    const rs = await database.query(
+      `${query.sql} SELECT s.id, m.parent_id FROM subtree s JOIN merchants m ON m.id = s.id ORDER BY s.depth`,
+      query.params as unknown[],
+    );
+
+    expect(rs.rows).toEqual([
+      { id: 'A', ['parent_id']: null },
+      { id: 'B', ['parent_id']: 'A' },
+      { id: 'C', ['parent_id']: 'B' },
+    ]);
   });
 });
