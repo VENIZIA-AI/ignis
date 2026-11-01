@@ -13,8 +13,8 @@ import { inject } from '@/base/metadata';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { type AnyType } from '@venizia/ignis-helpers/common';
 import { executePromiseWithLimit } from '@venizia/ignis-helpers';
-import { releaseAttachmentStreams, resolveMailAttachments } from '../utilities/attachment.utility';
-import { assertMailBodyIsText } from '../utilities/body.utility';
+import { MailAttachmentUtility } from '../utilities/attachment.utility';
+import { MailBodyUtility } from '../utilities/body.utility';
 
 export class MailService extends BaseService implements IMailService {
   constructor(
@@ -42,7 +42,7 @@ export class MailService extends BaseService implements IMailService {
 
       // The one place the attachment policy applies: every transport receives bytes, never a path.
       if (message.attachments) {
-        const result2 = await resolveMailAttachments({
+        const result2 = await MailAttachmentUtility.resolve({
           attachments: message.attachments,
           attachmentRoot: this.options.attachmentRoot,
           maxBytes: this.options.maxAttachmentBytes ?? MailDefaults.MAX_ATTACHMENT_BYTES,
@@ -64,7 +64,7 @@ export class MailService extends BaseService implements IMailService {
       return result;
     } catch (error) {
       this.logger.for(this.send.name).error('Error sending email: %s', error);
-      releaseAttachmentStreams({ attachments: message.attachments });
+      MailAttachmentUtility.release({ attachments: message.attachments });
 
       // An error the framework already shaped carries its own status and message code; re-wrapping as 500 would report a caller mistake as a server fault.
       if (isApplicationError(error)) {
@@ -217,7 +217,7 @@ export class MailService extends BaseService implements IMailService {
       });
     }
 
-    assertMailBodyIsText({ message });
+    MailBodyUtility.assertIsText({ message });
   }
 
   protected getDefaultFrom(): string {

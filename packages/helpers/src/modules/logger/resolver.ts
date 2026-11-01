@@ -2,7 +2,7 @@ import { type AnyType } from '@/common/types';
 import { AbstractLogger } from './base/abstract';
 import { ConsoleLogger } from './base/console';
 import { type ILogger, type TLogLevel } from './common/types';
-import { loggerSlot } from './slot';
+import { LoggerSlot } from './slot';
 
 export type TLoggerResolver = (opts: { scopes: Array<string> }) => ILogger;
 
@@ -120,4 +120,4 @@ export class LoggerResolver {
 // graph carrying `LoggerFactory` does - is what upgrades every helper from the console fallback,
 // including helpers constructed before it loaded: the logger is resolved on first use, not in the
 // constructor.
-loggerSlot.resolve = (opts) => LoggerResolver.resolve({ scopes: opts.scopes });
+LoggerSlot.resolve = (opts) => LoggerResolver.resolve({ scopes: opts.scopes });

@@ -44,8 +44,10 @@ tags: [process, build]
    `Makefile` that sets a few variables and includes `make/project.mk`, which defines `typecheck`,
    `build`, `clean`, `rebuild`, `lint` and `lint-fix`. `rebuild` is `typecheck`, then `clean`, then
    `build`. The type-check comes first on purpose - see step 6. The package `package.json` no
-   longer has `build`, `clean`, `rebuild` or `typecheck` scripts; only `prepublishOnly` (`make
-   rebuild`), `force-update` (the shared `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
+   longer has `build`, `clean`, `rebuild` or `typecheck` scripts, and no `prepublishOnly` (the release
+   publishes a tarball packed after the build, with `--ignore-scripts`; a hand-run `npm publish`
+   builds nothing, so run `make <package>` first); only `force-update` (the shared
+   `scripts/build/force-update.sh`) and, for `boot` and `core-server`, `test` (`bun test ./src`). Examples keep their own scripts.
 5. The Makefile variables are `FORMATS` (`esm` by default, or `plain`), `ESM_TSCONFIG`
    (default `.configs/builders/tsconfig.build.json`) and `POST_BUILD` (a package-only shell step
    after the emit). `dev-configs` is `plain` (`tsc` on `tsconfig.json`, output in `dist/`); `boot`
@@ -134,12 +136,15 @@ tags: [process, build]
     leak of such a transitive peer into the entry it was granted to.
 13. **Apps share one script standard**, backend or frontend: the examples and the app preset of
     `presets/app`. `server:dev` runs the app (`NODE_ENV=development bun run
-    src/index.ts`, or the Vite dev server), `compile` is `sh scripts/compile.sh`, `typecheck` is
+    src/index.ts`, or the Vite dev server), `compile` is `bun scripts/compile.ts` for a backend example (the app preset runs
+    `bun .configs/builders/compile.ts`; the two frontend examples keep `sh scripts/compile.sh`),
+    `typecheck` is
     `bun check`, `lint` and `lint:fix` are `devz lint [--fix]`, `test` is `bun test` and `clean`
     is `sh scripts/clean.sh`. There is no `dev`, `start`, `build`, `rebuild`, `preview`, `server:prod` or
-    `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The logic
-    lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs
-    `compile.ts`: `BunCompiler.compile` with `define: await BuildInfoStamp.define()` writes
+    `compile:linux`; domain extras (`migrate:dev`, `seed:authz`, `generate`) stay beside them. The other
+    logic lives in `scripts/*.sh` (POSIX `sh`, `set -eu`, run with `sh`). A backend `compile` runs
+    `compile.ts` straight from the package script, with no `compile.sh` wrapper (compile an example with
+    `bun run compile` in its folder): `BunCompiler.compile` with `define: await BuildInfoStamp.define()` writes
     `dist/bin` (the target comes from `BUN_TARGET`), and `src/index.ts` calls `await
     BuildInfoStamp.register()`, so `@venizia/ignis-boot` is a runtime dependency. `tsconfig.json`
     includes `scripts` and uses `module: preserve` with `moduleResolution: bundler`: under `nodenext` a
