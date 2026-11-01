@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { HookUtility } from '../../common';
@@ -205,7 +205,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   dequeue() {
     const value = this.storage.shift();
 
-    if (value && !isEmpty({ value: value })) {
+    if (value && !ObjectUtility.isEmpty({ value: value })) {
       HookUtility.invoke({
         logger: this.logger,
         scope: this.dequeue.name,

@@ -1,6 +1,6 @@
 import { getError } from '../error';
 import { type AnyType, type TBindingKey, type TClass, type TInjectTarget } from '@/common/types';
-import { resolveInjectTarget } from '@/common/utilities';
+import { ResolverUtility } from '@/common/utilities';
 import { BaseContainer } from './base';
 
 /** Default container: constructor + property injection driven by the decorator metadata registry. */
@@ -35,7 +35,7 @@ export class Container extends BaseContainer {
       });
     }
 
-    const target = resolveInjectTarget({ target: declared });
+    const target = ResolverUtility.resolveInjectTarget({ target: declared });
     if (target === undefined) {
       throw getError({
         message: `[${cls.name}] ${at} names a function that did not return a class`,

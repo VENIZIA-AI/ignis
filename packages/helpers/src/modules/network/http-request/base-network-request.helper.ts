@@ -1,5 +1,5 @@
 import { HTTP } from '@/common/constants/http';
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { type TFetcherVariant } from './common';
@@ -40,7 +40,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     let baseUrl = opts?.baseUrl ?? this.baseUrl ?? '';
     const paths = opts?.paths ?? [];
 
-    if (!baseUrl || isEmpty({ value: baseUrl })) {
+    if (!baseUrl || ObjectUtility.isEmpty({ value: baseUrl })) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: '[getRequestUrl] Invalid configuration for third party request base url!',

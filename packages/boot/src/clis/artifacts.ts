@@ -2,7 +2,7 @@
 import '../common/install-quiet-logger';
 import { relative } from 'node:path';
 import { parseArgs } from 'node:util';
-import { ArtifactIndexEmitter, checkArtifactIndex, generateArtifactIndex } from '../generator';
+import { ArtifactIndexEmitter, ArtifactIndexGenerator } from '../generator';
 import type { IScannedArtifact } from '../generator';
 
 const USAGE =
@@ -44,7 +44,7 @@ const warnIgnored = (opts: { ignored: IScannedArtifact[]; root: string }): void 
 const run = (): number => {
   switch (positionals[0]) {
     case 'generate': {
-      const result = generateArtifactIndex(options);
+      const result = ArtifactIndexGenerator.generate(options);
       console.log(
         `${result.written ? 'wrote' : 'up to date'} ${options.out} | ${result.artifacts.length} artifact(s)`,
       );
@@ -52,7 +52,7 @@ const run = (): number => {
       return 0;
     }
     case 'check': {
-      const result = checkArtifactIndex(options);
+      const result = ArtifactIndexGenerator.check(options);
       warnIgnored({ ignored: result.ignored, root: options.root });
       if (result.isFresh) {
         console.log(`fresh ${options.out}`);

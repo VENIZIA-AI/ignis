@@ -147,7 +147,7 @@ export type TOrderBy = string[] | undefined;
 /** A sort direction, exactly the `Sorts` values. */
 export type TSortDirection = TConstValue<typeof Sorts>;
 
-/** One order entry read by `parseOrderEntry`: the field as written, the direction lower-cased. */
+/** One order entry read by `Sorts.parseEntry`: the field as written, the direction lower-cased. */
 export type TParsedOrderEntry = { field: string; direction: TSortDirection };
 
 /** An order direction in either case. */

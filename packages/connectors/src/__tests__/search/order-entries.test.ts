@@ -6,7 +6,7 @@ import { MeilisearchQueryDialect } from '@/search/meilisearch/repositories/diale
 import { TypesenseQueryDialect } from '@/search/typesense/repositories/dialect/query-dialect';
 
 /**
- * Both search dialects read an order entry through the shared `parseOrderEntry`, so they accept
+ * Both search dialects read an order entry through the shared `Sorts.parseEntry`, so they accept
  * and reject exactly what the relational dialect does - a caller mistake is a 400 that names the
  * whole entry, never a sort that silently drops what it did not understand.
  */

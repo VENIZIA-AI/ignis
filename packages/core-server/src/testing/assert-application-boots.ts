@@ -2,7 +2,7 @@ import type { BaseApplication } from '@/base/applications';
 import { ServerBootSteps, type TServerBootStep } from '@/base/applications';
 import type { AnyType, TClass } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
-import { assertBindingsResolve } from '@venizia/ignis-inversion';
+import { BindingVerifier } from '@venizia/ignis-inversion';
 import {
   type AbstractRestController,
   type Binding,
@@ -376,7 +376,7 @@ export const assertApplicationBoots = async <Application extends BaseApplication
     }
 
     if (verifyBindings) {
-      assertBindingsResolve({
+      BindingVerifier.assertResolve({
         container: target,
         namespaces: [BindingNamespaces.SERVICE, BindingNamespaces.REPOSITORY],
         skip: skipBindings,

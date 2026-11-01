@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import C from 'node:crypto';
 import fs from 'node:fs';
 import { DEFAULT_PAD_END } from '../common';
@@ -82,7 +82,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
   encryptFile(opts: { absolutePath: string; secret: string }): string {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 
@@ -140,7 +140,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
   decryptFile(opts: { absolutePath: string; secret: string }) {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 

@@ -5,7 +5,7 @@ import type { AbstractGrpcController } from '@/base/controllers/grpc';
 import { BindingNamespaces } from '@venizia/ignis-kernel';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@venizia/ignis-kernel';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { IGrpcComponentConfig } from './common/types';
 import { GrpcBindingKeys } from './common/types';
 
@@ -61,7 +61,7 @@ export class GrpcComponent extends BaseComponent {
           continue;
         }
 
-        if (!metadata?.path || isEmpty({ value: metadata.path })) {
+        if (!metadata?.path || ObjectUtility.isEmpty({ value: metadata.path })) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for gRPC controller metadata`,

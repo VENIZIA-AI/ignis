@@ -81,8 +81,8 @@ import type {
 
 // isClass (source-level class-syntax check, re-exported from @venizia/ignis-inversion)
 import { isClass } from '@venizia/ignis-helpers';
-
-// Resolver functions
+// Resolver classes
+import { ResolverUtility, ClassResolver } from '@venizia/ignis-helpers';
 import { resolveValue, resolveValueAsync, ClassResolver } from '@venizia/ignis-helpers';
 
 // Constants
@@ -263,15 +263,15 @@ type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 | `TValueOrResolver<T>` | `T \| TResolver<T>` | Config options that accept an eager value or a sync resolver |
 | `TValueOrAsyncResolver<T>` | `T \| TAsyncResolver<T>` | Config options that accept an eager value or a sync/async resolver |
 
-### resolveValue
+### ResolverUtility.resolveValue
 
 `Source ->` [`resolvers.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/resolvers.ts) (also `resolveValueAsync`, `ClassResolver.resolveClass`)
 
 ```typescript
-const resolveValue: <T>(opts: { value: TValueOrResolver<T> }) => T;
+ResolverUtility.resolveValue<T>(opts: { value: TValueOrResolver<T> }): T;
 ```
 
-Synchronously resolves a lazy value.
+Synchronously resolves a lazy value. The old free functions `resolveValue` and `resolveValueAsync` are gone; `devz codemod namespace-functions` moves their callers.
 
 | Input | Result |
 |---|---|
@@ -279,13 +279,13 @@ Synchronously resolves a lazy value.
 | Class constructor | Returned as-is - detected via `isClass()`, never invoked |
 | Resolver function | Invoked; the return value is returned |
 
-### resolveValueAsync
+### ResolverUtility.resolveValueAsync
 
 ```typescript
-const resolveValueAsync: <T>(opts: { value: TValueOrAsyncResolver<T> }) => Promise<T>;
+ResolverUtility.resolveValueAsync<T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T>;
 ```
 
-Async version of `resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
+Async version of `ResolverUtility.resolveValue`. Same three cases, but the resolver's return value is `await`-ed before being returned.
 
 ### ClassResolver.resolveClass
 
@@ -306,7 +306,7 @@ Resolves lazy class references.
 ### Resolution example
 
 ```typescript
-import { TValueOrAsyncResolver, resolveValueAsync } from '@venizia/ignis-helpers';
+import { TValueOrAsyncResolver, ResolverUtility } from '@venizia/ignis-helpers';
 
 interface DatabaseConfig {
   host: string;
@@ -328,7 +328,7 @@ const config3: ConfigOption = async () => {
 };
 
 // Resolve any of the above uniformly
-const resolved = await resolveValueAsync({ value: config3 });
+const resolved = await ResolverUtility.resolveValueAsync({ value: config3 });
 ```
 
 ## Field Mapping Types

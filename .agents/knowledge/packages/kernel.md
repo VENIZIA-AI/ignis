@@ -300,7 +300,7 @@ inversion releases with the kernel.
 `base/repositories/query-schemas/` is where the filter schemas become server schemas. `filter` builds
 them with plain `zod` so a browser can use them; this module imports `@hono/zod-openapi` for its
 side effect (patching `.openapi()` onto the shared prototype) and calls
-`buildQuerySchemas({ decorate })` to re-export the documented versions under the original names.
+`QuerySchemaFactory.build({ decorate })` to re-export the documented versions under the original names.
 Server code must import them from here, never from `@venizia/ignis-filter/schemas` - the undecorated
 instances validate identically and document nothing.
 
