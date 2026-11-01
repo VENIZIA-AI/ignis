@@ -113,13 +113,19 @@ const result = rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doT
 
 ### Hash or HMAC a message
 
-`Hash` covers one-way digests and keyed HMACs. `digest` takes no secret; `hmac` requires one and throws if it is empty.
+`Hash` covers one-way digests and keyed HMACs. `digest` takes no secret; `hmac` requires one and throws if it is empty. The message (and the HMAC secret) may be text or bytes, and `digest` takes several parts hashed in order as one message, for example a git blob header and the bytes.
 
 ```typescript
 import { Hash, HashAlgorithms } from '@venizia/ignis-helpers';
 
 const checksum = Hash.withAlgorithm(HashAlgorithms.SHA256).digest({ message: 'payload' });
 const signature = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'payload', secret: webhookSecret });
+
+// Bytes and several parts: a Buffer key signs exactly like the text of the same bytes.
+const gitBlobId = Hash.withAlgorithm(HashAlgorithms.SHA1).digest({
+  message: [`blob ${content.length}\0`, content],
+});
+const token = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'payload', secret: keyBytes });
 ```
 
 ### Derive a shared session key with ECDH

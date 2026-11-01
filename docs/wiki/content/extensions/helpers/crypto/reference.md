@@ -477,16 +477,16 @@ const decrypted = await ecdh.decrypt({ message: encrypted, secret: bobKey });
 class Hash extends BaseHelper {
   static withAlgorithm(algorithm: THashAlgorithm): Hash;
 
-  digest(opts: { message: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
-  hmac(opts: { message: string; secret: string; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+  digest(opts: { message: string | Uint8Array | ReadonlyArray<string | Uint8Array>; opts?: { outputEncoding?: THashOutputEncoding } }): string;
+  hmac(opts: { message: string | Uint8Array; secret: string | Uint8Array; opts?: { outputEncoding?: THashOutputEncoding } }): string;
 }
 ```
 
 | Member | Signature | Description |
 |--------|-----------|--------------|
 | `Hash.withAlgorithm(algorithm)` | `(algorithm: THashAlgorithm) => Hash` | Returns a memoized instance for `algorithm` - at most five instances ever exist, one per algorithm |
-| `digest` | `(opts: { message: string; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all |
-| `hmac` | `(opts: { message: string; secret: string; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty; throws via `getError` if empty |
+| `digest` | `(opts: { message: string \| Uint8Array \| ReadonlyArray<string \| Uint8Array>; opts?: IHashExtraOptions }) => string` | Plain digest. Takes no secret at all. Text is hashed as UTF-8, bytes as they are, and an array is several parts hashed in order as one message |
+| `hmac` | `(opts: { message: string \| Uint8Array; secret: string \| Uint8Array; opts?: IHashExtraOptions }) => string` | Keyed HMAC. `secret` is required and validated non-empty in either form; throws via `getError` if empty. A `Buffer` or `Uint8Array` key gives the same output as the text of the same bytes |
 
 | Const-class | Values |
 |---|---|
