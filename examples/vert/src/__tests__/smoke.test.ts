@@ -9,7 +9,7 @@ import {
   BindingNamespaces,
 } from '@venizia/ignis';
 import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
-import { uuidV7 } from '@venizia/ignis-helpers/uuid';
+import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -76,7 +76,7 @@ describe('vert', async () => {
     (await isListening({ port: POSTGRES_PORT })) && (await isListening({ port: REDIS_PORT }));
 
   describe.skipIf(!servicesUp)('against docker compose', () => {
-    const suffix = uuidV7().slice(-12);
+    const suffix = UuidV7Generator.generate().slice(-12);
     const password = 'smoke-password';
     const reader = `reader_${suffix}`;
     const outsider = `outsider_${suffix}`;

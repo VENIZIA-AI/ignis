@@ -4,12 +4,8 @@ import { RuntimeModules, type TRuntimeModule } from '@/common/constants';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import {
-  ensureRedisClientsConnecting,
-  type TRedisClient,
-  waitForRedisReady,
-} from '@/modules/redis';
-import { voidExecution } from '@/utilities/promise.utility';
+import { RedisUtility, type TRedisClient } from '@/modules/redis';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import { type EventEmitter } from 'node:events';
@@ -115,7 +111,7 @@ export class SocketIOServerHelper extends BaseHelper {
     const { scope, execution } = opts;
 
     try {
-      voidExecution({ logger: this.logger, scope, execution: execution() });
+      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
@@ -169,16 +165,16 @@ export class SocketIOServerHelper extends BaseHelper {
       logger.error('Redis emitter error | error: %s', error);
     });
 
-    ensureRedisClientsConnecting({
+    RedisUtility.ensureConnecting({
       clients: [this.redisPub, this.redisSub, this.redisEmitter],
       logger: this.logger,
       scope: this.configure.name,
     });
 
     await Promise.all([
-      waitForRedisReady({ client: this.redisPub }),
-      waitForRedisReady({ client: this.redisSub }),
-      waitForRedisReady({ client: this.redisEmitter }),
+      RedisUtility.waitForReady({ client: this.redisPub }),
+      RedisUtility.waitForReady({ client: this.redisSub }),
+      RedisUtility.waitForReady({ client: this.redisEmitter }),
     ]);
     logger.info('All Redis connections ready');
 
@@ -456,7 +452,7 @@ export class SocketIOServerHelper extends BaseHelper {
           joinLogger.info('Joining rooms | id: %s | rooms: %j', id, allowedRooms);
 
           for (const room of allowedRooms) {
-            voidExecution({
+            PromiseUtility.voidExecution({
               logger: this.logger,
               scope: SocketIOConstants.EVENT_JOIN,
               execution: socket.join(room),
@@ -610,7 +606,7 @@ export class SocketIOServerHelper extends BaseHelper {
         return;
       }
 
-      voidExecution({
+      PromiseUtility.voidExecution({
         logger: this.logger,
         scope: 'close',
         execution: this.io.close((error) => {

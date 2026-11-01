@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -89,7 +89,11 @@ export class EdgeCases extends BaseTestCases {
     try {
       // Create product without any relations
       const product = await productRepo.create({
-        data: { code: `EMPTY_REL_PROD_${getUID()}`, name: 'Lonely Product', price: 100 },
+        data: {
+          code: `EMPTY_REL_PROD_${ParseUtility.getUID()}`,
+          name: 'Lonely Product',
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
@@ -134,7 +138,7 @@ export class EdgeCases extends BaseTestCases {
 
     try {
       // Create a user for creator/modifier relations
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const user = await userRepo.create({
         data: {
           realm: `MULTI_REL_USER_${uniqueId}`,
@@ -148,7 +152,7 @@ export class EdgeCases extends BaseTestCases {
       // Create configuration with creator and modifier (same user for simplicity)
       const config = await configRepo.create({
         data: {
-          code: `MULTI_REL_CFG_${getUID()}`,
+          code: `MULTI_REL_CFG_${ParseUtility.getUID()}`,
           group: 'MULTI_REL_TEST',
           createdBy: user.data.id,
           modifiedBy: user.data.id,
@@ -193,7 +197,7 @@ export class EdgeCases extends BaseTestCases {
     const junctionRepo = this.context.saleChannelProductRepository;
     this.context.logCase('[CASE 14] Find Many With Inclusions');
 
-    const testGroup = `FIND_MANY_${getUID()}`;
+    const testGroup = `FIND_MANY_${ParseUtility.getUID()}`;
 
     try {
       // Create multiple products with relations

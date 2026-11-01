@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 2] shouldSkipDefaultFilter should bypass default filter');
 
-    const testCode = `DF_TEST_${getUID()}`;
+    const testCode = `DF_TEST_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -54,7 +54,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 4] User filter should override default for same key');
 
-    const testCode = `DF_OVERRIDE_${getUID()}`;
+    const testCode = `DF_OVERRIDE_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -94,7 +94,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 5] FindOne should apply default filter');
 
-    const testCode = `DF_FINDONE_${getUID()}`;
+    const testCode = `DF_FINDONE_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -139,7 +139,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 6] FindById should apply default filter');
 
-    const testCode = `DF_FINDBYID_${getUID()}`;
+    const testCode = `DF_FINDBYID_${ParseUtility.getUID()}`;
 
     try {
       const created = await repo.create({
@@ -186,7 +186,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 7] Count should apply default filter');
 
-    const testCode = `DF_COUNT_${getUID()}`;
+    const testCode = `DF_COUNT_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -242,7 +242,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 8] ExistsWith should apply default filter');
 
-    const testCode = `DF_EXISTS_${getUID()}`;
+    const testCode = `DF_EXISTS_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -293,7 +293,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 21] UpdateAll should respect default filter');
 
-    const testCode = `DF_UPDATEALL_${getUID()}`;
+    const testCode = `DF_UPDATEALL_${ParseUtility.getUID()}`;
 
     try {
       // Create products with different prices
@@ -350,7 +350,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 22] DeleteAll should respect default filter');
 
-    const testCode = `DF_DELETEALL_${getUID()}`;
+    const testCode = `DF_DELETEALL_${ParseUtility.getUID()}`;
 
     try {
       await repo.create({
@@ -410,7 +410,7 @@ export class OverrideCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 27] UpdateById should respect default filter');
 
-    const testCode = `DF_UPDATEBYID_${getUID()}`;
+    const testCode = `DF_UPDATEBYID_${ParseUtility.getUID()}`;
 
     try {
       const created = await repo.create({

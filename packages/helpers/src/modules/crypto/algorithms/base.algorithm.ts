@@ -1,7 +1,7 @@
 import C from 'node:crypto';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { int } from '@/utilities';
+import { ParseUtility } from '@/utilities';
 import {
   DEFAULT_CIPHER_BITS,
   DEFAULT_KDF_DIGEST,
@@ -126,7 +126,7 @@ export abstract class BaseCryptoAlgorithm<
   }
 
   getAlgorithmKeySize() {
-    const b = int(this.algorithm?.split('-')?.[1] ?? DEFAULT_CIPHER_BITS);
-    return int(b / 8);
+    const b = ParseUtility.toInt({ input: this.algorithm?.split('-')?.[1] ?? DEFAULT_CIPHER_BITS });
+    return ParseUtility.toInt({ input: b / 8 });
   }
 }

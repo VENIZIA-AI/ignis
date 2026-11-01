@@ -18,7 +18,7 @@ import {
   type TAuthenticationRestOptions,
   type TJWTTokenServiceOptions,
 } from '@venizia/ignis';
-import { blankToUndefined } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import appInfo from '../package.json';
 import {
   ChangePasswordResponseSchema,
@@ -43,7 +43,10 @@ export class Application extends BaseApplication {
       options: {
         jwtSecret: process.env.APP_ENV_JWT_SECRET ?? '',
         getTokenExpiresFn: () =>
-          Number(blankToUndefined(process.env.APP_ENV_JWT_EXPIRES_IN) ?? ONE_DAY_IN_SECONDS),
+          Number(
+            ParseUtility.blankToUndefined({ input: process.env.APP_ENV_JWT_EXPIRES_IN }) ??
+              ONE_DAY_IN_SECONDS,
+          ),
       },
     });
 

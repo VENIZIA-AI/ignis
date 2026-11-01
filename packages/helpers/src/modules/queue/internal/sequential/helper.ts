@@ -1,7 +1,7 @@
 import { isEmpty } from '@venizia/ignis-inversion';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
-import { awaitHook, invokeHook } from '../../common';
+import { HookUtility } from '../../common';
 import {
   type IQueueCallback,
   QueueStatuses,
@@ -66,7 +66,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   protected notifyStateChange(opts: { scope: string; from: TQueueStatus }): Promise<void> {
     const { scope, from } = opts;
 
-    return awaitHook({
+    return HookUtility.execute({
       logger: this.logger,
       scope,
       execution: () => this.onStateChange?.({ identifier: this.identifier, from, to: this.state }),
@@ -77,7 +77,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
   protected notifyStateChangeAsync(opts: { scope: string; from: TQueueStatus }): void {
     const { scope, from } = opts;
 
-    invokeHook({
+    HookUtility.invoke({
       logger: this.logger,
       scope,
       execution: () => this.onStateChange?.({ identifier: this.identifier, from, to: this.state }),
@@ -110,7 +110,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     this.processingEvents.add(this.getElementAt(0));
 
     // A failing handler must never leave the queue PROCESSING forever: the element would stay LOCKED at the head, nextMessage() would refuse every dispatch and storage would grow without bound. The handler owns its retry policy - here the element is logged, dropped, and the queue moves on.
-    await awaitHook({
+    await HookUtility.execute({
       logger: this.logger,
       scope: this.handleMessage.name,
       execution: () =>
@@ -191,7 +191,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     const queueElement: TQueueElement<TElementPayload> = { isLocked: false, payload };
     this.storage.push(queueElement);
     this.totalEvent++;
-    await awaitHook({
+    await HookUtility.execute({
       logger: this.logger,
       scope: this.enqueue.name,
       execution: () => this.onDataEnqueue?.({ identifier: this.identifier, queueElement }),
@@ -206,7 +206,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     const value = this.storage.shift();
 
     if (value && !isEmpty({ value: value })) {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: this.dequeue.name,
         execution: () => this.onDataDequeue?.({ identifier: this.identifier, queueElement: value }),

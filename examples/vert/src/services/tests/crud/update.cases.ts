@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class UpdateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case6UpdateById] UpdateById');
 
-    const code = `REPO_UPDATE_${getUID()}`;
+    const code = `REPO_UPDATE_${ParseUtility.getUID()}`;
 
     try {
       const created = await repo.create({
@@ -54,7 +54,7 @@ export class UpdateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case7UpdateAll] UpdateAll / UpdateBy');
 
-    const group = `REPO_UPDATEALL_${getUID()}`;
+    const group = `REPO_UPDATEALL_${ParseUtility.getUID()}`;
 
     try {
       await repo.createAll({
@@ -148,7 +148,7 @@ export class UpdateCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case17UpdateWithPartialData] Update only specific fields');
 
-    const code = `REPO_PARTIAL_${getUID()}`;
+    const code = `REPO_PARTIAL_${ParseUtility.getUID()}`;
 
     try {
       // Create with all fields

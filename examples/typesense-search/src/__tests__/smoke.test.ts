@@ -5,7 +5,7 @@ import { z } from '@hono/zod-openapi';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import AutoArtifacts from '@venizia/ignis-boot/auto';
 import { getError } from '@venizia/ignis-helpers';
-import { uuidV4 } from '@venizia/ignis-helpers/uuid';
+import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { Application } from '../application';
 
 const HOST = '127.0.0.1';
@@ -46,8 +46,8 @@ describe('typesense-search', () => {
   let application: Application;
   let baseUrl = '';
 
-  const typescriptId = uuidV4();
-  const draftId = uuidV4();
+  const typescriptId = UuidV4Generator.generate();
+  const draftId = UuidV4Generator.generate();
 
   const post = (opts: { path: string; body: object }) =>
     fetch(`${baseUrl}${opts.path}`, {

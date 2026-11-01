@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class MultiPathCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 5] Multiple paths: jValue.theme, jValue.fontSize');
 
-    const code = `JSON_UPDATE_MULTI_${getUID()}`;
+    const code = `JSON_UPDATE_MULTI_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -64,7 +64,7 @@ export class MultiPathCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 6] Multiple paths on different nested levels');
 
-    const code = `JSON_UPDATE_MULTICOL_${getUID()}`;
+    const code = `JSON_UPDATE_MULTICOL_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -119,7 +119,7 @@ export class MultiPathCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 7] Mixed: description + jValue.theme');
 
-    const code = `JSON_UPDATE_MIXED_${getUID()}`;
+    const code = `JSON_UPDATE_MIXED_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {

@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -15,7 +15,7 @@ export class QueriesCases extends UserAuditCases {
     this.context.logCase('[CASE 9] Verify audit fields are correctly stored in database');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_DB_VERIFY_${uniqueId}`;
       // Create real User for FK constraint
       const testUser = await this.createTestUser(`CASE9_DB_${uniqueId}`);
@@ -77,7 +77,7 @@ export class QueriesCases extends UserAuditCases {
     this.context.logCase('[CASE 10] Filter records by createdBy and modifiedBy');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_FILTER_${uniqueId}`;
       // Create real Users for FK constraint
       const userA = await this.createTestUser(`CASE10_A_${uniqueId}`);
@@ -184,7 +184,7 @@ export class QueriesCases extends UserAuditCases {
     this.context.logCase('[CASE 14] Audit fields accessible when including relations');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_RELATION_${uniqueId}`;
 
       // Create a user first for the relation
@@ -268,7 +268,7 @@ export class QueriesCases extends UserAuditCases {
     this.context.logCase('[CASE 17] Count and ExistsWith operations using audit field filters');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_COUNT_EXISTS_${uniqueId}`;
       // Create real Users for FK constraint
       const userA = await this.createTestUser(`CASE17_A_${uniqueId}`);

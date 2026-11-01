@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { like } from 'drizzle-orm';
 import { User } from '../../../models/entities';
 import { BaseTestCases } from '../base-test.cases';
@@ -131,7 +131,7 @@ export class ReadCases extends BaseTestCases {
     this.context.logCase('[CASE 13] Where clause should be able to filter by hidden field');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const knownPassword = `unique_password_${uniqueId}`;
       const testRealm = `HIDDEN_TEST_WHERE_${uniqueId}`;
 
@@ -192,9 +192,9 @@ export class ReadCases extends BaseTestCases {
     this.context.logCase('[CASE 14] Count should work with hidden field in where clause');
 
     try {
-      const uid1 = getUID();
-      const uid2 = getUID();
-      const uid3 = getUID();
+      const uid1 = ParseUtility.getUID();
+      const uid2 = ParseUtility.getUID();
+      const uid3 = ParseUtility.getUID();
       const password1 = `count_pw_${uid1}`;
       const password2 = `count_pw_${uid3}`;
 

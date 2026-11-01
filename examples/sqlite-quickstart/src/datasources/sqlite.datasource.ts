@@ -1,6 +1,6 @@
 import { createClient, type Client } from '@libsql/client';
 import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis';
-import { blankToUndefined } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
 import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';
 import { drizzle } from 'drizzle-orm/libsql';
@@ -31,7 +31,10 @@ export class SqliteDataSource extends BaseSqliteDataSource<
   constructor() {
     super({
       name: SqliteDataSource.name,
-      config: { url: blankToUndefined(process.env.APP_ENV_SQLITE_URL) ?? DEFAULT_URL },
+      config: {
+        url:
+          ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SQLITE_URL }) ?? DEFAULT_URL,
+      },
     });
   }
 

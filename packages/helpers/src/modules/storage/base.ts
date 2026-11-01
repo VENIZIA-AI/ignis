@@ -2,7 +2,7 @@ import { isEmpty } from '@venizia/ignis-inversion';
 import { ContentTypeTable, type IDuration, MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { executePromiseWithLimit } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { Readable } from 'node:stream';
 import {
   type IBucketInfo,
@@ -18,7 +18,7 @@ import {
   type IUploadResult,
   type TUploadNaming,
 } from './common';
-import { isNotFoundError, StorageConcurrency, StorageErrors } from './common';
+import { StorageUtility, StorageConcurrency, StorageErrors } from './common';
 
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   constructor(opts: { scope: string; identifier: string }) {
@@ -454,7 +454,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return [];
     }
 
-    return executePromiseWithLimit({
+    return PromiseUtility.executeWithLimit({
       limit: Math.max(1, opts.limit ?? StorageConcurrency.DEFAULT_LIMIT),
       tasks: items.map((item, index) => () => task({ item, index })),
     });
@@ -464,7 +464,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
   protected asStorageError(opts: IObjectLocation & { error: unknown; operation: string }): unknown {
     const { error, operation, bucket, object } = opts;
 
-    if (!isNotFoundError({ error })) {
+    if (!StorageUtility.isNotFoundError({ error })) {
       return error;
     }
 

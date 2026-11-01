@@ -427,7 +427,7 @@ The constructor calls `configure()` automatically, which connects via `mqtt.conn
 | `onClose` | `(error?: Error) => void` | - | Fired on the `'close'` event. |
 
 > [!NOTE]
-> At connect time, `MQTTClientHelper` logs the broker `url` through `redactUrlCredentials()` and `options` through `redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log. Only `mqtts://user:[REDACTED]@broker:8883` does.
+> At connect time, `MQTTClientHelper` logs the broker `url` through `RedactUtility.redactUrlCredentials()` and `options` through `RedactUtility.redactSecrets()`. A password embedded in the URL (`mqtts://user:hunter2@broker:8883`) never reaches the log. Only `mqtts://user:[REDACTED]@broker:8883` does.
 
 ### Methods
 

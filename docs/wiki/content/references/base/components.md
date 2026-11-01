@@ -723,7 +723,7 @@ The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `in
 
 | Component | Import Path | Key Features |
 |-----------|-------------|-------------|
-| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage. |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, S3 (incl. MinIO)/Disk storage. |
 | **MailComponent** | `@venizia/ignis/mail` | Nodemailer/Mailgun transporters, Direct/BullMQ/InternalQueue executors. |
 | **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter for horizontal scaling. |
 | **WebSocketComponent** | `@venizia/ignis/websocket` | WebSocket support. |

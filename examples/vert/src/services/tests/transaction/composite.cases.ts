@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -13,8 +13,8 @@ export class CompositeCases extends BaseTestCases {
     const productRepo = this.context.productRepository;
     this.context.logCase('[CASE 11] Multiple Repositories in One Transaction');
 
-    const configCode = `TX_MULTI_CFG_${getUID()}`;
-    const productCode = `TX_MULTI_PRD_${getUID()}`;
+    const configCode = `TX_MULTI_CFG_${ParseUtility.getUID()}`;
+    const productCode = `TX_MULTI_PRD_${ParseUtility.getUID()}`;
     const transaction = await configRepo.beginTransaction();
 
     try {
@@ -70,8 +70,8 @@ export class CompositeCases extends BaseTestCases {
     const junctionRepo = this.context.saleChannelProductRepository;
     this.context.logCase('[CASE 17] Transaction With Related Entities');
 
-    const productCode = `TX_REL_PROD_${getUID()}`;
-    const channelCode = `TX_REL_CHAN_${getUID()}`;
+    const productCode = `TX_REL_PROD_${ParseUtility.getUID()}`;
+    const channelCode = `TX_REL_CHAN_${ParseUtility.getUID()}`;
     const transaction = await productRepo.beginTransaction();
 
     try {

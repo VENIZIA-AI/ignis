@@ -8,6 +8,21 @@ difficulty: intermediate
 
 Exhaustive reference for `Logger`, `LoggerFactory`, `HfLogger`/`HfLogFlusher`, the Winston formatter and transport internals, and every environment variable. For a readable introduction and the common tasks, start with the [Logger overview](/extensions/helpers/logger/).
 
+Several functions on this page moved into classes. The old function names are removed, and `devz codemod namespace-functions` moves your calls:
+
+| Old name | New form |
+|---|---|
+| `resolveLoggerLevel(opts)` | `LoggerConfigUtility.resolveLevel(opts)` |
+| `resolveLoggerColorize(opts)` | `LoggerConfigUtility.resolveColorize(opts)` |
+| `formatLogMessage(opts)` | `LogFormatUtility.formatMessage(opts)` |
+| `defineCustomLogger(opts)` | `WinstonLoggerFactory.defineCustomLogger(opts)` |
+| `defineJsonLoggerFormatter(opts)`, `defineLogFormatter(opts)`, `definePrettyLoggerFormatter(opts)` | `WinstonFormatFactory.json(opts)`, `.log(opts)`, `.pretty(opts)` |
+| `resolveDefaultTransportOptions()` | `WinstonLoggerFactory.resolveDefaultTransportOptions()` |
+| `deepSplat()` | `WinstonFormatFactory.deepSplat()` |
+| `ApplicationLogger.get('scope')` | `ApplicationLogger.get({ scope: 'scope' })`; the string form is gone |
+
+`WinstonLoggerFactory` and `WinstonFormatFactory` are exported from `@venizia/ignis-helpers/winston`; `LoggerConfigUtility` and `LogFormatUtility` from `@venizia/ignis-helpers`. `PinoBackingLogger` and `PinoDestination` are exported from `@venizia/ignis-helpers/pino`.
+
 The default provider is **Winston**, paired with `winston-daily-rotate-file` for file rotation. All provider packages are OPTIONAL peers. An application loads exactly ONE provider - see [single-provider loading](#architecture-and-ilogger) below.
 
 **Files:**
@@ -16,11 +31,10 @@ The default provider is **Winston**, paired with `winston-daily-rotate-file` for
 - [`packages/helpers/src/modules/logger/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/constants.ts) - `LogLevels`, `LoggerFormats`
 - [`packages/helpers/src/modules/logger/base/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/abstract.ts) - `AbstractLogger`
 - [`packages/helpers/src/modules/logger/base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts) - `BaseLogger`
-- [`packages/helpers/src/modules/logger/formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts) - `formatLogMessage`, `%s` inspection widening
+- [`packages/helpers/src/modules/logger/formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts) - `LogFormatUtility.formatMessage`, `%s` inspection widening
 - [`packages/helpers/src/modules/logger/winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts) - `WinstonLogger`, `Logger` alias
-- [`packages/helpers/src/modules/logger/winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts) - `defineCustomLogger`
-- [`packages/helpers/src/modules/logger/winston/formats.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formats.ts) - formatters
-- [`packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts) - `deepSplat`
+- [`packages/helpers/src/modules/logger/winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts) - `WinstonLoggerFactory`
+- [`packages/helpers/src/modules/logger/winston/formats.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formats.ts) - `WinstonFormatFactory` (formatters, `deepSplat`)
 - [`packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts) - `DgramTransport`
 - [`packages/helpers/src/modules/logger/hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts) - `HfLogger`
 - [`packages/helpers/src/modules/logger/hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts) - `HfLogFlusher`
@@ -106,27 +120,24 @@ import { LogLevels, LoggerFormats } from '@venizia/ignis-helpers';
 import type { TLogLevel, TLoggerFormat } from '@venizia/ignis-helpers';
 
 // Error rendering - a readable block instead of a raw object dump
-import { ErrorPrettier, formatLogMessage } from '@venizia/ignis-helpers';
+import { ErrorPrettier, LogFormatUtility } from '@venizia/ignis-helpers';
 import type { IErrorSummary } from '@venizia/ignis-helpers';
 
 // Level resolution - provider-neutral
-import { resolveLoggerLevel } from '@venizia/ignis-helpers';
+import { LoggerConfigUtility } from '@venizia/ignis-helpers';
 
 // Winston provider + its utilities - SUB-PATH only (winston is an optional peer)
 import {
   Logger,
   WinstonLogger,
-  defineCustomLogger,
-  defineLogFormatter,
-  defineJsonLoggerFormatter,
-  definePrettyLoggerFormatter,
+  WinstonLoggerFactory,
+  WinstonFormatFactory,
   applicationLogFormatter,
-  resolveDefaultTransportOptions,
 } from '@venizia/ignis-helpers/winston';
 import type { IFileTransportOptions, ICustomLoggerOptions } from '@venizia/ignis-helpers/winston';
 
 // Pino provider - SUB-PATH only (optional peers: pino, pino-pretty, pino-roll)
-import { PinoLogger, setPinoBackingLogger } from '@venizia/ignis-helpers/pino';
+import { PinoLogger, PinoBackingLogger } from '@venizia/ignis-helpers/pino';
 import type { ILoggerProvider } from '@venizia/ignis-helpers';
 
 // UDP transport (winston)
@@ -169,9 +180,9 @@ logger.info('Direct logger access');
 Pass a custom Winston logger instance as the second parameter to use your own transport configuration:
 
 ```typescript
-import { Logger, defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
+import { Logger, WinstonLoggerFactory, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
 
-const customWinstonLogger = defineCustomLogger({
+const customWinstonLogger = WinstonLoggerFactory.defineCustomLogger({
   formatter: applicationLogFormatter,
   transports: {
     info: { file: { prefix: 'custom', folder: './logs' } },
@@ -200,18 +211,18 @@ const custom2 = Logger.get('MyService', customWinstonLogger);
 
 ### ApplicationLogger - the provider-following facade
 
-`ApplicationLogger` is "the APPLICATION's logger." `ApplicationLogger.get(scope)` always returns whatever provider `LoggerFactory.use()` registered - winston, unless the app registered something else. Its type is `ILogger`.
+`ApplicationLogger` is "the APPLICATION's logger." `ApplicationLogger.get({ scope })` always returns whatever provider `LoggerFactory.use()` registered - winston, unless the app registered something else. Its type is `ILogger`.
 
 It is no longer a class alias of `WinstonLogger`. `instanceof ApplicationLogger` is now a compile error - use `instanceof AbstractLogger` to test any provider instance instead. The concrete winston alias still exists, named `Logger`.
 
 ```typescript
 import { ApplicationLogger } from '@venizia/ignis-helpers';
 
-const logger = ApplicationLogger.get('MyService'); // ILogger, follows LoggerFactory.use()
+const logger = ApplicationLogger.get({ scope: 'MyService' }); // ILogger, follows LoggerFactory.use()
 ```
 
 > [!WARNING]
-> The old scope-less `applicationLogger` instance was REMOVED. Use `ApplicationLogger.get('YourScope')` instead. An app that needs a raw winston instance builds one with `defineCustomLogger` (sub-path `/winston`).
+> The old scope-less `applicationLogger` instance was REMOVED. Use `ApplicationLogger.get({ scope: 'YourScope' })` instead. An app that needs a raw winston instance builds one with `WinstonLoggerFactory.defineCustomLogger` (sub-path `/winston`).
 
 ## Log Levels
 
@@ -275,7 +286,7 @@ const level: TLogLevel = 'info';
 
 ### Winston level priority
 
-`defineCustomLogger` configures Winston with these numeric priorities by default:
+`WinstonLoggerFactory.defineCustomLogger` configures Winston with these numeric priorities by default:
 
 | Level | Priority | Color |
 |-------|----------|-------|
@@ -313,7 +324,7 @@ class UserService {
 
 ## Message Formatting
 
-`Source ->` [`winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts), [`formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts)
+`Source ->` [`formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts)
 
 ### Logging errors: `%s`, never `%j`
 
@@ -334,7 +345,7 @@ logger.error('Failed to create user: %j', error);
 ### Object inspection depth for `%s` and `%j`
 
 - **Node hard-codes `depth: 0` for `%s`** in `util.format`. An object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries.
-- **`deepSplat` widens that depth.** The formatter (`formatLogMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston. So nested fields print instead of collapsing.
+- **`WinstonFormatFactory.deepSplat` widens that depth.** The formatter (`LogFormatUtility.formatMessage`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston. So nested fields print instead of collapsing.
 - **`%j` is capped at the same depth**, and keeps JSON semantics. Below the cap it prints `"[Object]"`.
 
 ```typescript
@@ -470,31 +481,27 @@ const fmt: TLoggerFormat = 'text';
 Build formatters directly using the exported helper functions:
 
 ```typescript
-import {
-  defineLogFormatter,
-  defineJsonLoggerFormatter,
-  definePrettyLoggerFormatter,
-} from '@venizia/ignis-helpers/winston';
+import { WinstonFormatFactory } from '@venizia/ignis-helpers/winston';
 
 // Auto-detect from APP_ENV_LOGGER_FORMAT (or override with format option)
-const formatter = defineLogFormatter({ label: 'my-app' });
-const jsonFmt = defineLogFormatter({ label: 'my-app', format: 'json' });
+const formatter = WinstonFormatFactory.log({ label: 'my-app' });
+const jsonFmt = WinstonFormatFactory.log({ label: 'my-app', format: 'json' });
 
 // Or use specific formatters directly
-const jsonFormatter = defineJsonLoggerFormatter({ label: 'my-app' });
-const prettyFormatter = definePrettyLoggerFormatter({ label: 'my-app' });
-const plainFormatter = definePrettyLoggerFormatter({ label: 'my-app', colorize: false });
+const jsonFormatter = WinstonFormatFactory.json({ label: 'my-app' });
+const prettyFormatter = WinstonFormatFactory.pretty({ label: 'my-app' });
+const plainFormatter = WinstonFormatFactory.pretty({ label: 'my-app', colorize: false });
 ```
 
-Without an explicit `colorize`, `definePrettyLoggerFormatter` follows the [Color](#color) rules.
+Without an explicit `colorize`, `WinstonFormatFactory.pretty` follows the [Color](#color) rules.
 
-`defineLogFormatter` throws an `ApplicationError` if `format` (or `APP_ENV_LOGGER_FORMAT`) is not `'json'` or `'text'`.
+`WinstonFormatFactory.log` throws an `ApplicationError` if `format` (or `APP_ENV_LOGGER_FORMAT`) is not `'json'` or `'text'`.
 
 ## Transports
 
 `Source ->` [`winston/logger-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger-factory.ts)
 
-Every logger created by `defineCustomLogger` always includes a **Console** transport. It inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional, registered per transport group (`info`, `error`).
+Every logger created by `WinstonLoggerFactory.defineCustomLogger` always includes a **Console** transport. It inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional, registered per transport group (`info`, `error`).
 
 Formatting happens in two stages:
 
@@ -520,9 +527,9 @@ Winston implements this transport with `DailyRotateFile`. Configure it through e
 **Programmatic configuration:**
 
 ```typescript
-import { defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
+import { WinstonLoggerFactory, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
 
-const customLogger = defineCustomLogger({
+const customLogger = WinstonLoggerFactory.defineCustomLogger({
   formatter: applicationLogFormatter,
   transports: {
     info: {
@@ -651,7 +658,7 @@ interface ICustomLoggerOptions {
 
 Debug logs require **both** conditions to be met:
 
-1. `DEBUG=true` environment variable is set (parsed via `toBoolean`)
+1. `DEBUG=true` environment variable is set (parsed via `ParseUtility.toBoolean`)
 2. `NODE_ENV` is either unset **or** is present in the `Environment.COMMON_ENVS` set
 
 `COMMON_ENVS` includes: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production`. Extend this set with `APP_ENV_EXTRA_LOG_ENVS`:
@@ -707,7 +714,7 @@ flusher.stop();
 |--------|-----------|--------------|
 | `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance (allocates the ring lazily on first call) |
 | `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes. FIFO-bounded cache, capped at `MESSAGE_CACHE_CAP = 4096` |
-| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode, then the bytes-path write. With args: `formatLogMessage` (deep inspection, redaction), then an uncached encode - the slow path |
+| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode, then the bytes-path write. With args: `LogFormatUtility.formatMessage` (deep inspection, redaction), then an uncached encode - the slow path |
 | `logger.log` | `(level: TLogLevel, message: string, ...args: AnyType[]) => void`<br>`(level: TLogLevel, messageBytes: Uint8Array) => void` | Overloaded. The string form follows the `debug`/`info`/... cost model above. The `Uint8Array` form is the legacy bytes hot path, unchanged |
 | `logger.for` | `(methodName: string) => ILogger` | Returns `HfLogger.get(`${scope}-${methodName}`)`, same dash composition as `BaseLogger` |
 
@@ -863,7 +870,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `WinstonLogger` | class | The Winston-backed provider (the default); `Logger` is its permanent concrete alias |
 | `Logger` | class | Concrete winston alias - `Logger.get(scope, customWinstonLogger?)`, `instanceof Logger`; deliberately does NOT follow `use()` |
 | `PinoLogger` | class (sub-path `/pino`) | The throughput provider - register with `LoggerFactory.use` ([guide](/extensions/helpers/logger/pino)) |
-| `ApplicationLogger` | const facade + type (`ILogger`) | `ApplicationLogger.get(scope)` always returns the REGISTERED provider's logger |
+| `ApplicationLogger` | const facade + type (`ILogger`) | `ApplicationLogger.get({ scope })` always returns the REGISTERED provider's logger |
 | `LoggerFactory` | class | Provider registration (`use({ provider })`) + `ILogger` acquisition from scope arrays |
 | `ILoggerProvider` | interface | Static-side contract a provider class satisfies (`get(scope): ILogger`) |
 | `HfLogger` | class | `ILogger`-conformant ring-buffer logger for hot paths |
@@ -872,18 +879,18 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `IErrorSummary` | interface | The projection `summarize` returns - `name`, `message`, `code`, `stack` (frames only), the `pg` diagnostics, and a nested `cause` |
 | `LogLevels` | class (constants) | Log level constants (`ERROR`, `EMERG`, `WARN`, `INFO`, `DEBUG`) with `isValid()` |
 | `LoggerFormats` | class (constants) | Format constants (`JSON`, `TEXT`) with `isValid()` |
-| `defineCustomLogger` | `(opts: ICustomLoggerOptions) => winston.Logger` | Create a fully configured Winston logger |
-| `defineLogFormatter` | `(opts: { label: string; format?: TLoggerFormat }) => winston.Logform.Format` | Create a formatter (auto-detects format from env) |
-| `defineJsonLoggerFormatter` | `(opts: { label: string }) => winston.Logform.Format` | Create a JSON formatter |
-| `definePrettyLoggerFormatter` | `(opts: { label: string; colorize?: boolean }) => winston.Logform.Format` | Create a pretty text formatter; `colorize: false` for files/aggregators |
+| `WinstonLoggerFactory.defineCustomLogger` | `(opts: ICustomLoggerOptions) => winston.Logger` | Create a fully configured Winston logger |
+| `WinstonFormatFactory.log` | `(opts: { label: string; format?: TLoggerFormat }) => winston.Logform.Format` | Create a formatter (auto-detects format from env) |
+| `WinstonFormatFactory.json` | `(opts: { label: string }) => winston.Logform.Format` | Create a JSON formatter |
+| `WinstonFormatFactory.pretty` | `(opts: { label: string; colorize?: boolean }) => winston.Logform.Format` | Create a pretty text formatter; `colorize: false` for files/aggregators |
 | `applicationLogFormatter` | `winston.Logform.Format` | Pre-built formatter using `APP_ENV_APPLICATION_NAME` label |
-| `resolveLoggerLevel` | `(opts: { configured?: string }) => TLogLevel` | Validate a level string; invalid or absent falls back to `debug` |
-| `resolveDefaultTransportOptions` | `() => ICustomLoggerOptions['transports']` | Default transports from `APP_ENV_LOGGER_*`, resolved at call time |
+| `LoggerConfigUtility.resolveLevel` | `(opts: { configured?: string }) => TLogLevel` | Validate a level string; invalid or absent falls back to `debug` |
+| `WinstonLoggerFactory.resolveDefaultTransportOptions` | `() => ICustomLoggerOptions['transports']` | Default transports from `APP_ENV_LOGGER_*`, resolved at call time |
 | `DgramTransport` | class | Custom Winston transport for UDP logging |
 | `TLogLevel` | type | Union of all log level string literals |
 | `TLoggerFormat` | type | Union of `'json' \| 'text'` |
 | `IFileTransportOptions` | interface | Options for daily-rotating file transport |
-| `ICustomLoggerOptions` | interface | Options for `defineCustomLogger` |
+| `ICustomLoggerOptions` | interface | Options for `WinstonLoggerFactory.defineCustomLogger` |
 | `IDgramTransportOptions` | interface | Options for `DgramTransport` |
 
 ## Troubleshooting
@@ -903,7 +910,7 @@ DEBUG=true NODE_ENV=development bun run server:dev
 
 ### "[defineLogger] Invalid logger format | format: {format} | valids: json,text"
 
-**Cause:** The `format` option passed to `defineLogFormatter` (or the `APP_ENV_LOGGER_FORMAT` environment variable) is not `json` or `text`.
+**Cause:** The `format` option passed to `WinstonFormatFactory.log` (or the `APP_ENV_LOGGER_FORMAT` environment variable) is not `json` or `text`.
 
 **Fix:** Set `APP_ENV_LOGGER_FORMAT` to either `json` or `text`:
 

@@ -1,11 +1,7 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import {
-  ensureRedisClientsConnecting,
-  type TRedisClient,
-  waitForRedisReady,
-} from '@/modules/redis';
+import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { type EventEmitter } from 'node:events';
 import {
   type IRedisSocketMessage,
@@ -45,13 +41,13 @@ export class WebSocketEmitter extends BaseHelper {
       logger.error('Redis pub error | error: %s', error);
     });
 
-    ensureRedisClientsConnecting({
+    RedisUtility.ensureConnecting({
       clients: [this.redisPub],
       logger: this.logger,
       scope: this.configure.name,
     });
 
-    await waitForRedisReady({ client: this.redisPub });
+    await RedisUtility.waitForReady({ client: this.redisPub });
     logger.info('WebSocket Emitter READY');
   }
 

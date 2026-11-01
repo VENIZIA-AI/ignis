@@ -31,7 +31,7 @@ The following components require direct subpath imports:
 | :--- | :--- | :--- |
 | **MailComponent** | `@venizia/ignis/mail` | Nodemailer/Mailgun transporters with queue executors |
 | **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter |
-| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, S3 (incl. MinIO)/Disk storage |
 | **WebSocketComponent** | `@venizia/ignis/websocket` | Native WebSocket support |
 
 The `x-request-id` header is not a component feature. `RestApplication.registerDefaultMiddlewares()` installs it on every application, before `initialize()` runs.

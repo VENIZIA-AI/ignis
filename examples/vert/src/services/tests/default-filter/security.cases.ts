@@ -1,4 +1,4 @@
-import { getUID } from '@venizia/ignis-helpers';
+import { ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -58,7 +58,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 15] XSS payloads should be stored and retrieved safely');
 
-    const testCode = `DF_XSS_${getUID()}`;
+    const testCode = `DF_XSS_${ParseUtility.getUID()}`;
     const xssPayload = '<script>alert("xss")</script>';
 
     try {
@@ -127,7 +127,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 17] Very long string values should be handled');
 
-    const testCode = `DF_LONG_${getUID()}`;
+    const testCode = `DF_LONG_${ParseUtility.getUID()}`;
     const longString = 'A'.repeat(10000);
 
     try {
@@ -168,7 +168,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 18] Special characters should be handled correctly');
 
-    const testCode = `DF_SPECIAL_${getUID()}`;
+    const testCode = `DF_SPECIAL_${ParseUtility.getUID()}`;
     const specialChars = 'Test\n\t\r\'"\\`${}[]<>&|;';
 
     try {
@@ -201,7 +201,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 29] SQL injection attempts in order clause');
 
-    const testCode = `DF_ORDER_SEC_${getUID()}`;
+    const testCode = `DF_ORDER_SEC_${ParseUtility.getUID()}`;
 
     try {
       // Create test data
@@ -275,7 +275,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 30] SQL injection attempts in fields selection');
 
-    const testCode = `DF_FIELDS_SEC_${getUID()}`;
+    const testCode = `DF_FIELDS_SEC_${ParseUtility.getUID()}`;
 
     try {
       // Create test data
@@ -343,7 +343,7 @@ export class SecurityCases extends BaseTestCases {
     const repo = this.context.productRepository;
     this.context.logCase('[CASE 31] SQL injection attempts in include/relation');
 
-    const testCode = `DF_INCLUDE_SEC_${getUID()}`;
+    const testCode = `DF_INCLUDE_SEC_${ParseUtility.getUID()}`;
 
     try {
       // Create test data

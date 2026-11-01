@@ -1053,7 +1053,7 @@ const result = userCamelSchema.parse({ user_id: 123, first_name: 'John', created
 // { userId: 123, firstName: 'John', createdAt: Date }
 ```
 
-Built on `keysToCamel()` / `toCamel()` from `@venizia/ignis-helpers`; recursively handles nested objects and preserves arrays.
+Built on `ParseUtility.keysToCamel()` / `ParseUtility.toCamel()` from `@venizia/ignis-helpers`; recursively handles nested objects and preserves arrays.
 
 ### `getIdType`
 

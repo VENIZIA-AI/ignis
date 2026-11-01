@@ -18,15 +18,3 @@ export const UrlSafetyErrors = {
 declare module '@venizia/ignis-inversion' {
   interface IErrorKeyRegistry extends TRegisterErrors<typeof UrlSafetyErrors> {}
 }
-
-/**
- * True when the url will never be allowed, whatever happens next: a bad scheme, a non-public
- * address, a host outside the allow-list, a malformed url, or too many hops. Retrying any of those
- * repeats the same rejection - drop the work instead.
- *
- * A timeout, a DNS failure or a 5xx answers `false`: those are worth another attempt.
- */
-export const isUrlRefusedError = (opts: { error: unknown }): boolean => {
-  const source = opts.error as { normalized?: { code?: string } };
-  return source?.normalized?.code === UrlSafetyErrors.URL_REFUSED.message.code;
-};

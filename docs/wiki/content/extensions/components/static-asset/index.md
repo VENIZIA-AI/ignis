@@ -52,11 +52,10 @@ This registers `GET`/`POST`/`DELETE` on `/assets/buckets/:bucketName`, `POST /as
   |-----------|--------------------|
   | `'disk'` | `DiskHelper` |
   | `'bun-s3'` | `BunS3Helper` |
-  | `'minio'` (deprecated) | `MinioHelper` |
 
-  `StaticAssetStorageTypes.MINIO` is still a live arm of the union, marked `@deprecated`. Use `StaticAssetStorageTypes.BUN_S3` with a `BunS3Helper` instead - it reaches MinIO over the same S3 API.
+  To reach a MinIO server, use `StaticAssetStorageTypes.BUN_S3` with a `BunS3Helper` - it speaks the same S3 API.
 
-- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper`, `BunS3Helper` and `MinioHelper` all extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidBucketName`/`isValidObjectKey`), and upload normalization behave identically regardless of backend.
+- **Every backend implements the same `IStorageHelper` contract.** `DiskHelper` and `BunS3Helper` both extend `BaseStorageHelper`. Bucket/object operations, name validation (`isValidBucketName`/`isValidObjectKey`), and upload normalization behave identically regardless of backend.
 - **Object names can embed folder paths, encoded as one segment.** `objects/{objectName}` percent-encodes the whole `folder/file.ext` string via `encodeURIComponent()`, which also escapes `/`. Hono decodes it before your handler runs - encode the name client-side, and never decode it again.
 - **MetaLink is opt-in.** Set `useMetaLink: true` and provide `metaLink.repository`. IGNIS then persists a database row (`bucket/object/mimetype/size/etag/principal/variant`) alongside every upload. That row lets you query "which files does user X own" without listing a whole bucket.
 - **The default binding is empty.** `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` defaults to `{}`. Bind it with at least one storage backend before `this.component(StaticAssetComponent)` - an empty binding produces zero routes.

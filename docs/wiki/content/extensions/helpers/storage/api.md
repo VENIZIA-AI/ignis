@@ -16,12 +16,11 @@ Every public method takes one options object with nested refs: `{ bucket: { name
 - [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts) - `BunS3Helper`
 - [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `buildSignedRequest` (AWS SigV4 for bucket management)
 - [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts) - `DiskHelper`
-- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts) - `MinioHelper` (deprecated)
 - [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts) - `MemoryStorageHelper`
 - [`packages/helpers/src/modules/storage/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/types.ts) - `IStorageHelper` and every option/result type
 - [`packages/helpers/src/modules/storage/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/constants.ts) - `StoragePresignDefaults`, `StoragePresignLimits`, `StorageConcurrency`
-- [`packages/helpers/src/modules/storage/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/errors.ts) - `StorageErrors`, `isNotFoundError`
-- [`packages/helpers/src/modules/storage/common/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/utility.ts) - `toExpirySeconds`
+- [`packages/helpers/src/modules/storage/common/errors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/errors.ts) - `StorageErrors`
+- [`packages/helpers/src/modules/storage/common/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/common/utility.ts) - `StorageUtility` (`isNotFoundError`, `toExpirySeconds`)
 - [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `ContentTypeTable`, `MimeTypes`
 
 ## Find what you need
@@ -47,8 +46,7 @@ Every public method takes one options object with nested refs: `{ bucket: { name
 BaseHelper
 ├── BaseStorageHelper (abstract, implements IStorageHelper)
 │   ├── BunS3Helper       -- S3-compatible object storage (Bun-native S3Client)
-│   ├── DiskHelper        -- Local filesystem storage
-│   └── MinioHelper       -- MinIO via the minio driver (deprecated)
+│   └── DiskHelper        -- Local filesystem storage
 └── MemoryStorageHelper   -- In-memory key-value store (standalone, not IStorageHelper)
 ```
 
@@ -59,10 +57,10 @@ Every public method takes one options object with nested refs. A bucket is `IBuc
   - Each one is fully reimplemented per backend - no logic is shared between a filesystem read and an S3 `stat()` call.
 
 > [!TIP] Typing rule
-> Declare parameters and bindings as `IStorageHelper` for `BunS3Helper` / `DiskHelper` / `MinioHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).
+> Declare parameters and bindings as `IStorageHelper` for `BunS3Helper` / `DiskHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).
 
-> [!WARNING]
-> `MinioHelper` and `IMinioHelperOptions` are `@deprecated`. Use `BunS3Helper` instead: it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
+> [!NOTE]
+> `BunS3Helper` reaches a MinIO server over the same S3 API: set `endpoint.default` to the MinIO address and keep `virtualHostedStyle` at `false`. It also adds presigned URLs, object tagging and byte ranges.
 
 ### Import paths
 
@@ -72,9 +70,6 @@ import { DiskHelper, MemoryStorageHelper } from '@venizia/ignis-helpers';
 
 // Bun S3 storage (separate sub-path export, Bun runtime only)
 import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
-
-// MinIO (separate sub-path export, deprecated)
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
 
 // Types
 import type {
@@ -316,7 +311,7 @@ writeStream(
 ): Promise<void>;
 ```
 
-- **`getObjectStream` returns a web stream**, which is what a `Response` body wants. `range` includes `end`, exactly like the HTTP header. The base implementation takes the window off the front of the full stream one chunk at a time; `BunS3Helper`, `DiskHelper` and `MinioHelper` each override it with a native ranged read.
+- **`getObjectStream` returns a web stream**, which is what a `Response` body wants. `range` includes `end`, exactly like the HTTP header. The base implementation takes the window off the front of the full stream one chunk at a time; `BunS3Helper` and `DiskHelper` each override it with a native ranged read.
 - **`writeStream` writes an object without its body landing in this process.** The base implementation buffers, which is the thing to avoid, so `BunS3Helper` overrides it and hands Bun the stream directly. `contentType` falls back to `getMimeType({ filename: object.key })`.
 
 ### Protected extension points (implemented per backend)
@@ -389,9 +384,9 @@ class StorageHelperClassName {
 }
 ```
 
-The thrown message names the calling class and the method, so the error tells you which backend to swap rather than returning `undefined` or a broken link. `BunS3Helper` overrides all four. `DiskHelper` has no object storage to presign against, and `MinioHelper` never gained them, so both inherit the throw.
+The thrown message names the calling class and the method, so the error tells you which backend to swap rather than returning `undefined` or a broken link. `BunS3Helper` overrides all four. `DiskHelper` has no object storage to presign against, so it inherits the throw.
 
-`expiresIn` is an `IDuration` (`{ unit, value }`), not a number of seconds. The helper converts it with `toExpirySeconds`, which rounds up to whole seconds.
+`expiresIn` is an `IDuration` (`{ unit, value }`), not a number of seconds. The helper converts it with `StorageUtility.toExpirySeconds`, which rounds up to whole seconds.
 
 | Method | `expiresIn` default | Notes |
 |---|---|---|
@@ -756,29 +751,6 @@ Scans the bucket directory via a local `scanDirectory()` closure. Returns `[]` i
 
 **Returns:** Array of `IObjectInfo` with `name`, `size`, `lastModified`. `etag` is always `undefined` for disk storage.
 
-## MinioHelper
-
-`Source ->` [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts)
-
-MinIO object storage through the `minio` driver. Extends `BaseStorageHelper`. Imported from the `@venizia/ignis-helpers/minio` sub-path, never the root barrel.
-
-> [!WARNING]
-> `MinioHelper` and `IMinioHelperOptions` are `@deprecated` and will be removed. Use `BunS3Helper`: it reaches MinIO over the same S3 API, and adds presigned URLs, object tagging and byte ranges.
-
-```typescript
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
-
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-`ClientOptions` comes from the `minio` package, so every driver option (`endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`) passes straight through.
-
-- `defaultLinkPrefix`: `'/static-assets/'`
-- `writeObject`: `client.putObject(...)` with an `originalName`/`normalizeName`/`size`/`encoding`/`mimeType` metadata dictionary - the one backend that persists one.
-- `removeObjects`: one bulk `client.removeObjects(bucket, keys)` call, not a fan-out.
-- `getObjectStream`: `client.getPartialObject` for a range, a native ranged GET.
-- `presignPut`, `presignGet`, `getObjectTags` and `replaceObjectTags` are not overridden, so all four inherit `BaseStorageHelper`'s throw.
-
 ## MemoryStorageHelper
 
 `Source ->` [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts)
@@ -842,7 +814,7 @@ cache.clear();
 
 ### IStorageHelper
 
-The interface implemented by `BunS3Helper`, `DiskHelper` and `MinioHelper`:
+The interface implemented by `BunS3Helper` and `DiskHelper`:
 
 ```typescript
 interface IStorageHelper {
@@ -959,7 +931,7 @@ class StoragePresignLimits {
 }
 ```
 
-SigV4 refuses a presigned URL valid for longer than 7 days. `toExpirySeconds` throws past this bound, where the unit is still readable, rather than letting the provider reject the finished URL.
+SigV4 refuses a presigned URL valid for longer than 7 days. `StorageUtility.toExpirySeconds` throws past this bound, where the unit is still readable, rather than letting the provider reject the finished URL.
 
 ### StorageConcurrency
 
@@ -983,7 +955,7 @@ const StorageErrors = {
 };
 ```
 
-The one catalogued storage error. `isNotFoundError({ error })` is the matching predicate: it accepts a `404` status, or a `code`/`name` containing `nosuchkey`, `nosuchbucket` or `notfound`.
+The one catalogued storage error. `StorageUtility.isNotFoundError({ error })` is the matching predicate: it accepts a `404` status, or a `code`/`name` containing `nosuchkey`, `nosuchbucket` or `notfound`.
 
 ### IUploadFile
 
@@ -1061,7 +1033,7 @@ interface IListObjectsOptions {
 }
 ```
 
-`useRecursive` defaults to `true` on `BunS3Helper` and `false` on `DiskHelper` and `MinioHelper`. Pass it explicitly when the answer matters.
+`useRecursive` defaults to `true` on `BunS3Helper` and `false` on `DiskHelper`. Pass it explicitly when the answer matters.
 
 ### IDiskHelperOptions
 
@@ -1087,31 +1059,22 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 }
 ```
 
-### IMinioHelperOptions
-
-```typescript
-/** @deprecated Use `IBunS3HelperOptions` from `@venizia/ignis-helpers/bun-s3`. */
-interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
-```
-
-`ClientOptions` is the `minio` driver's own option type.
-
 ## Backend Behavior Matrix
 
-| Behavior | BunS3Helper | DiskHelper | MinioHelper (deprecated) |
-|---|---|---|---|
-| Default link prefix | `/static-assets/` | `/static-resources/` | `/static-assets/` |
-| `getStat().etag` | Yes | Never (`undefined`) | Yes |
-| `getStat().versionId` | No | No | Yes, if versioning enabled |
-| Upload metadata persisted | Content type only | None (mimetype detected at read time) | `originalName`, `normalizeName`, `size`, `encoding`, `mimeType` |
-| `removeObjects` concurrency | Bounded fan-out, limit `16` | Bounded fan-out, limit `16` | Single bulk `client.removeObjects` call |
-| `listObjects.useRecursive` default | `true`; `false` sends `delimiter: '/'` | `false` | `false` |
-| `listObjects` pagination | Loops on `nextContinuationToken` | Full directory scan | The driver paginates past 1000 keys |
-| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat` and `removeObject`. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` | Catalogued `core.storage.object_not_found` via `asStorageError` on `getObject`, `getObjectStream` and `getStat` |
-| `writeStream` | Native streaming write to S3 | Inherits the buffering default | Inherits the buffering default |
-| `getObjectStream` range | Native, via `file.slice` | Native, via `createReadStream({ start, end })` | Native, via `getPartialObject` |
-| Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` | The `minio` driver |
-| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`presignPut` hand-signed so extra headers can be signed, `presignGet` via `client.presign`; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw | Inherits `BaseStorageHelper`'s throw |
+| Behavior | BunS3Helper | DiskHelper |
+|---|---|---|
+| Default link prefix | `/static-assets/` | `/static-resources/` |
+| `getStat().etag` | Yes | Never (`undefined`) |
+| `getStat().versionId` | No | No |
+| Upload metadata persisted | Content type only | None (mimetype detected at read time) |
+| `removeObjects` concurrency | Bounded fan-out, limit `16` | Bounded fan-out, limit `16` |
+| `listObjects.useRecursive` default | `true`; `false` sends `delimiter: '/'` | `false` |
+| `listObjects` pagination | Loops on `nextContinuationToken` | Full directory scan |
+| Missing object | Catalogued `core.storage.object_not_found` via `asStorageError` on `getStat` and `removeObject`. `getObject` is lazy, so its failure arrives on the stream | Catalogued `core.storage.object_not_found`, thrown directly by every read and by `removeObject` |
+| `writeStream` | Native streaming write to S3 | Inherits the buffering default |
+| `getObjectStream` range | Native, via `file.slice` | Native, via `createReadStream({ start, end })` |
+| Bucket-management transport | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
+| `presignPut` / `presignGet` / `getObjectTags` / `replaceObjectTags` | Implemented (`presignPut` hand-signed so extra headers can be signed, `presignGet` via `client.presign`; tagging via hand-built signed HTTP) | Inherits `BaseStorageHelper`'s throw |
 
 ## Troubleshooting
 
@@ -1232,7 +1195,7 @@ const file: IUploadFile = {
 
 ### "[getObject] Object not found | bucket: {bucket} | key: {key}"
 
-**Cause:** The object is not there. `DiskHelper` checks existence before opening a read stream and throws directly; `BunS3Helper` and `MinioHelper` map the backend's own "not there" failure onto the same error. Either way it is the catalogued `core.storage.object_not_found`: status `404`, category `BUSINESS`. The same message shape covers `[getObjectStream]`, `[getStat]` and `[removeObject]`.
+**Cause:** The object is not there. `DiskHelper` checks existence before opening a read stream and throws directly; `BunS3Helper` maps the backend's own "not there" failure onto the same error. Either way it is the catalogued `core.storage.object_not_found`: status `404`, category `BUSINESS`. The same message shape covers `[getObjectStream]`, `[getStat]` and `[removeObject]`.
 
 **Fix:** Handle the rejection, or check first.
 
@@ -1254,15 +1217,15 @@ try {
 
 **Cause:** The same catalogued 404, raised while deleting.
 
-**Fix:** Handle the rejection, or use `isNotFoundError({ error })` to treat a missing object as a successful delete.
+**Fix:** Handle the rejection, or use `StorageUtility.isNotFoundError({ error })` to treat a missing object as a successful delete.
 
 ```typescript
-import { isNotFoundError } from '@venizia/ignis-helpers';
+import { StorageUtility } from '@venizia/ignis-helpers';
 
 try {
   await storage.removeObject({ bucket: { name: 'my-bucket' }, object: { key: 'file.pdf' } });
 } catch (error) {
-  if (!isNotFoundError({ error })) {
+  if (!StorageUtility.isNotFoundError({ error })) {
     throw error;
   }
 }

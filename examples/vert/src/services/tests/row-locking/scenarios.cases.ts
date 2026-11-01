@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -13,7 +13,7 @@ export class ScenariosCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 7] FOR UPDATE SKIP LOCKED - Skip already-locked rows');
 
-    const group = `LOCK_SKIP_${getUID()}`;
+    const group = `LOCK_SKIP_${ParseUtility.getUID()}`;
 
     await repo.createAll({
       data: [
@@ -81,7 +81,7 @@ export class ScenariosCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 8] FOR UPDATE NOWAIT - Fail immediately when row locked');
 
-    const code = `LOCK_NOWAIT_${getUID()}`;
+    const code = `LOCK_NOWAIT_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -144,7 +144,7 @@ export class ScenariosCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 12] Lock and update - Read-modify-write with FOR UPDATE');
 
-    const code = `LOCK_UPDATE_${getUID()}`;
+    const code = `LOCK_UPDATE_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -202,8 +202,8 @@ export class ScenariosCases extends BaseTestCases {
     const productRepo = this.context.productRepository;
     this.context.logCase('[CASE 13] Lock across multiple repositories in same transaction');
 
-    const configCode = `LOCK_MULTI_CFG_${getUID()}`;
-    const productCode = `LOCK_MULTI_PRD_${getUID()}`;
+    const configCode = `LOCK_MULTI_CFG_${ParseUtility.getUID()}`;
+    const productCode = `LOCK_MULTI_PRD_${ParseUtility.getUID()}`;
 
     await configRepo.create({
       data: { code: configCode, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },
@@ -269,7 +269,7 @@ export class ScenariosCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 14] FOR SHARE allows concurrent readers');
 
-    const code = `LOCK_SHARE_CONC_${getUID()}`;
+    const code = `LOCK_SHARE_CONC_${ParseUtility.getUID()}`;
 
     await repo.create({
       data: { code, group: 'LOCK_TEST', dataType: DataTypes.NUMBER, nValue: 100 },

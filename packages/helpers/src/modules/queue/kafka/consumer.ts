@@ -1,6 +1,6 @@
 import { getError } from '@/modules/error';
-import { sleep } from '@/utilities/sleep.utility';
-import { toError } from '@/utilities/promise.utility';
+import { ErrorUtility } from '@/utilities/error.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import type {
   ConsumerGroupJoinPayload,
   ConsumerGroupLeavePayload,
@@ -10,7 +10,7 @@ import type {
   Offsets,
 } from '@platformatic/kafka';
 import { Consumer } from '@platformatic/kafka';
-import { invokeHook } from '../common';
+import { HookUtility } from '../common';
 import { BaseKafkaHelper } from './base';
 import {
   KafkaBrokersDownReasons,
@@ -309,12 +309,12 @@ export class KafkaConsumerHelper<
         await messageHandler({ message });
         await doneHandler?.({ message });
       } catch (error) {
-        const normalizedError = toError(error);
+        const normalizedError = ErrorUtility.toError({ error });
         this.logger.error(
           '[startConsumeLoop] Message processing error: %s',
           normalizedError.message,
         );
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'startConsumeLoop',
           execution: () => errorHandler?.({ error: normalizedError, message }),
@@ -377,7 +377,7 @@ export class KafkaConsumerHelper<
       return;
     }
 
-    invokeHook({
+    HookUtility.invoke({
       logger: this.logger,
       scope: opts.scope,
       execution: () =>
@@ -399,13 +399,13 @@ export class KafkaConsumerHelper<
         this.consumeStartOptions?.topics,
       );
     } catch (error) {
-      const normalizedError = toError(error);
+      const normalizedError = ErrorUtility.toError({ error });
       this.logger.error(
         '[drainStream] Stream error: %s | Topics: %j',
         normalizedError.message,
         this.consumeStartOptions?.topics,
       );
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'drainStream',
         execution: () =>
@@ -434,7 +434,7 @@ export class KafkaConsumerHelper<
       this.consumeStartOptions?.topics,
       this.getConnectedBrokerCount(),
     );
-    await sleep(delayMs);
+    await PromiseUtility.sleep({ ms: delayMs });
 
     if (!this.consumeStartOptions) {
       return;
@@ -454,7 +454,7 @@ export class KafkaConsumerHelper<
         await this.rebuildClient();
         this.sessionLikelyStale = false;
       } catch (error) {
-        const normalizedError = toError(error);
+        const normalizedError = ErrorUtility.toError({ error });
         this.logger.error(
           '[attemptReconnect] Client rebuild failed (%d/%d): %s | Topics: %j',
           attempt,
@@ -462,7 +462,7 @@ export class KafkaConsumerHelper<
           normalizedError.message,
           this.consumeStartOptions?.topics,
         );
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'attemptReconnect',
           execution: () =>
@@ -502,7 +502,7 @@ export class KafkaConsumerHelper<
         shouldRebuildClient,
       );
     } catch (error) {
-      const normalizedError = toError(error);
+      const normalizedError = ErrorUtility.toError({ error });
       this.logger.error(
         '[attemptReconnect] Failed (%d/%d): %s | Topics: %j | ConnectedBrokers: %d',
         attempt,
@@ -511,7 +511,7 @@ export class KafkaConsumerHelper<
         this.consumeStartOptions?.topics,
         this.getConnectedBrokerCount(),
       );
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'attemptReconnect',
         execution: () =>
@@ -545,7 +545,7 @@ export class KafkaConsumerHelper<
       } catch (error) {
         this.logger.warn(
           '[rebuildClient] Failed to restart lag monitoring on new client | Error: %s',
-          toError(error).message,
+          ErrorUtility.toError({ error }).message,
         );
       }
     }
@@ -553,7 +553,7 @@ export class KafkaConsumerHelper<
     this.closeOldClient(oldClient).catch((error) => {
       this.logger.warn(
         '[rebuildClient] background close of old client failed (ignored) | Error: %s',
-        toError(error).message,
+        ErrorUtility.toError({ error }).message,
       );
     });
   }
@@ -611,7 +611,10 @@ export class KafkaConsumerHelper<
     try {
       await stream?.close();
     } catch (error) {
-      this.logger.warn('[closeStream] Error closing stream: %s', toError(error).message);
+      this.logger.warn(
+        '[closeStream] Error closing stream: %s',
+        ErrorUtility.toError({ error }).message,
+      );
     }
 
     await this.consumeLoop;
@@ -645,7 +648,7 @@ export class KafkaConsumerHelper<
         payload.memberId,
         payload.generationId,
       );
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerEvents',
         execution: () =>
@@ -663,7 +666,7 @@ export class KafkaConsumerHelper<
         payload.groupId,
         payload.memberId,
       );
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerEvents',
         execution: () =>
@@ -681,7 +684,7 @@ export class KafkaConsumerHelper<
           '[configureConsumerEvents] Group REBALANCE | GroupId: %s',
           payload.groupId,
         );
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'configureBrokerEvents',
           execution: () => this.onGroupRebalance?.({ groupId: payload.groupId }),
@@ -698,7 +701,7 @@ export class KafkaConsumerHelper<
           payload.memberId,
           payload.error,
         );
-        invokeHook({
+        HookUtility.invoke({
           logger: this.logger,
           scope: 'configureBrokerEvents',
           execution: () =>
@@ -712,7 +715,7 @@ export class KafkaConsumerHelper<
     );
 
     this.client.on(KafkaClientEvents.CONSUMER_LAG, (lag: Offsets) => {
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerEvents',
         execution: () => this.onLag?.({ lag }),
@@ -721,7 +724,7 @@ export class KafkaConsumerHelper<
 
     this.client.on(KafkaClientEvents.CONSUMER_LAG_ERROR, (error: Error) => {
       this.logger.error('[configureConsumerEvents] Lag monitoring ERROR: %s', error);
-      invokeHook({
+      HookUtility.invoke({
         logger: this.logger,
         scope: 'configureBrokerEvents',
         execution: () => this.onLagError?.({ error }),

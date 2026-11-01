@@ -2,13 +2,9 @@ import { HTTP } from '@/common';
 import { type ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import {
-  ensureRedisClientsConnecting,
-  type TRedisClient,
-  waitForRedisReady,
-} from '@/modules/redis';
+import { RedisUtility, type TRedisClient } from '@/modules/redis';
 import { UuidHelper } from '@/modules/uid';
-import { voidExecution } from '@/utilities/promise.utility';
+import { PromiseUtility } from '@/utilities/promise.utility';
 import { type EventEmitter } from 'node:events';
 import {
   type IBunWebSocketConfig,
@@ -186,7 +182,7 @@ export class WebSocketServerHelper<
     const { scope, execution } = opts;
 
     try {
-      voidExecution({ logger: this.logger, scope, execution: execution() });
+      PromiseUtility.voidExecution({ logger: this.logger, scope, execution: execution() });
     } catch (error) {
       this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
     }
@@ -203,15 +199,15 @@ export class WebSocketServerHelper<
       logger.error('Redis sub error | error: %s', error);
     });
 
-    ensureRedisClientsConnecting({
+    RedisUtility.ensureConnecting({
       clients: [this.redisPub, this.redisSub],
       logger: this.logger,
       scope: this.configure.name,
     });
 
     await Promise.all([
-      waitForRedisReady({ client: this.redisPub }),
-      waitForRedisReady({ client: this.redisSub }),
+      RedisUtility.waitForReady({ client: this.redisPub }),
+      RedisUtility.waitForReady({ client: this.redisSub }),
     ]);
     logger.info('All Redis connections ready');
 
@@ -348,7 +344,7 @@ export class WebSocketServerHelper<
       }
     }
 
-    voidExecution({
+    PromiseUtility.voidExecution({
       logger: this.logger,
       scope: this.publishToRedis.name,
       execution: this.redisPub.publish(channel, JSON.stringify(message)),

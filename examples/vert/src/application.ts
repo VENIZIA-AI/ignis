@@ -21,11 +21,10 @@ import {
 import { StaticAssetComponent } from '@venizia/ignis/static-asset';
 import {
   applicationEnvironment,
-  blankToUndefined,
+  ParseUtility,
   Environment,
   getError,
   HTTP,
-  int,
   RedisSingleHelper,
 } from '@venizia/ignis-helpers';
 import { bodyLimit } from 'hono/body-limit';
@@ -39,7 +38,9 @@ import { RepositoryTestService } from './services/repository-test.service';
 
 export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
-  port: int(blankToUndefined(process.env.APP_ENV_SERVER_PORT) ?? '3000'),
+  port: ParseUtility.toInt({
+    input: ParseUtility.blankToUndefined({ input: process.env.APP_ENV_SERVER_PORT }) ?? '3000',
+  }),
   path: { base: process.env.APP_ENV_SERVER_BASE_PATH ?? '/v1/api', isStrict: true },
   error: { rootKey: 'error' },
   debug: { shouldShowRoutes: !Environment.is({ name: Environment.PRODUCTION }) },
@@ -146,9 +147,11 @@ export class Application extends BaseApplication {
       host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
       port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
       password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
-      database: int(
-        applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, { defaultValue: '8' }),
-      ),
+      database: ParseUtility.toInt({
+        input: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB, {
+          defaultValue: '8',
+        }),
+      }),
     });
 
     AuthorizationEnforcerRegistry.getInstance().register({
