@@ -44,7 +44,6 @@ export class NoReturnAwaitRule {
     },
     create: (context) => {
       const { sourceCode } = context;
-      const taken = new Map<unknown, Set<string>>();
 
       const reportAwait = (opts: {
         reported: Rule.Node;
@@ -78,7 +77,6 @@ export class NoReturnAwaitRule {
                     node: opts.statement,
                     base: 'result',
                     sourceCode,
-                    taken,
                   });
                   const indent = AwaitSupport.indentOf({ node: opts.statement, sourceCode });
 

@@ -1,5 +1,5 @@
 import { type ILogger } from '@/modules/logger/common/types';
-import { pinHelperLogger, resolveHelperLogger } from '@/modules/logger/slot';
+import { LoggerSlot } from '@/modules/logger/slot';
 
 export class BaseHelper {
   scope: string;
@@ -15,18 +15,18 @@ export class BaseHelper {
     const scopes = [this.scope, this.identifier].filter(
       (scope) => typeof scope === 'string' && scope.length > 0,
     );
-    const logger = resolveHelperLogger({ scopes });
+    const logger = LoggerSlot.resolveHelperLogger({ scopes });
 
     // Read off a prototype (reflection walks them), pinning would shadow this getter for every instance.
     if (Object.hasOwn(this, 'scope')) {
-      pinHelperLogger({ helper: this, logger });
+      LoggerSlot.pinHelperLogger({ helper: this, logger });
     }
     return logger;
   }
 
   /** Installs one logger on this helper - a test spy, or a host overriding the global resolver. */
   set logger(value: ILogger) {
-    pinHelperLogger({ helper: this, logger: value });
+    LoggerSlot.pinHelperLogger({ helper: this, logger: value });
   }
 
   getIdentifier() {

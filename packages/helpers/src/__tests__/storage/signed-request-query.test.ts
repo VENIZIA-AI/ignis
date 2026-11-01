@@ -1,7 +1,7 @@
 /** buildSignedRequest - canonical query string extension (Task 1) */
 
 import { describe, expect, test } from 'bun:test';
-import { buildSignedRequest } from '@/modules/storage/bun-s3/utility';
+import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 
 const baseRequest = {
   method: 'GET',
@@ -23,14 +23,17 @@ const extractSignature = (authorizationHeader: string): string => {
 
 describe('buildSignedRequest - query string signing', () => {
   test('an absent query leaves the url exactly as before', async () => {
-    const result = await buildSignedRequest({ ...baseRequest });
+    const result = await S3SignatureUtility.buildSignedRequest({ ...baseRequest });
 
     expect(result.url).toBe('http://localhost:9000/my-bucket/my-object');
   });
 
   test('an absent query and an empty query object are byte-identical', async () => {
-    const withoutQuery = await buildSignedRequest({ ...baseRequest });
-    const withEmptyQuery = await buildSignedRequest({ ...baseRequest, query: {} });
+    const withoutQuery = await S3SignatureUtility.buildSignedRequest({ ...baseRequest });
+    const withEmptyQuery = await S3SignatureUtility.buildSignedRequest({
+      ...baseRequest,
+      query: {},
+    });
 
     expect(withEmptyQuery.url).toBe(withoutQuery.url);
     expect(extractSignature(withEmptyQuery.headers.Authorization)).toBe(
@@ -39,8 +42,11 @@ describe('buildSignedRequest - query string signing', () => {
   });
 
   test('a non-empty query changes the signature and is appended to the url', async () => {
-    const withoutQuery = await buildSignedRequest({ ...baseRequest });
-    const withTagging = await buildSignedRequest({ ...baseRequest, query: { tagging: '' } });
+    const withoutQuery = await S3SignatureUtility.buildSignedRequest({ ...baseRequest });
+    const withTagging = await S3SignatureUtility.buildSignedRequest({
+      ...baseRequest,
+      query: { tagging: '' },
+    });
 
     expect(withTagging.url).toBe('http://localhost:9000/my-bucket/my-object?tagging=');
     expect(extractSignature(withTagging.headers.Authorization)).not.toBe(
@@ -49,7 +55,7 @@ describe('buildSignedRequest - query string signing', () => {
   });
 
   test('query keys are sorted and URI-encoded in the url', async () => {
-    const result = await buildSignedRequest({
+    const result = await S3SignatureUtility.buildSignedRequest({
       ...baseRequest,
       query: { versionId: 'abc def', tagging: '' },
     });
@@ -68,7 +74,7 @@ describe('buildSignedRequest - object key encoding', () => {
   const keysNeedingEncoding = ['my file.txt', 'photos/2024/ảnh.png', 'a+b.txt', "it's (1).png"];
 
   test.each(keysNeedingEncoding)('the signed path survives the wire unchanged: %s', async (key) => {
-    const { url } = await buildSignedRequest({
+    const { url } = await S3SignatureUtility.buildSignedRequest({
       ...baseRequest,
       path: `/my-bucket/${key}`,
       query: { tagging: '' },
@@ -80,7 +86,7 @@ describe('buildSignedRequest - object key encoding', () => {
   });
 
   test('a folder separator stays literal, so the key keeps its shape', async () => {
-    const { url } = await buildSignedRequest({
+    const { url } = await S3SignatureUtility.buildSignedRequest({
       ...baseRequest,
       path: '/my-bucket/photos/2024/report card.pdf',
     });
@@ -89,7 +95,10 @@ describe('buildSignedRequest - object key encoding', () => {
   });
 
   test('a key needing no encoding signs exactly as it did before', async () => {
-    const { url } = await buildSignedRequest({ ...baseRequest, path: '/my-bucket/plain-name.txt' });
+    const { url } = await S3SignatureUtility.buildSignedRequest({
+      ...baseRequest,
+      path: '/my-bucket/plain-name.txt',
+    });
 
     expect(url).toBe('http://localhost:9000/my-bucket/plain-name.txt');
   });

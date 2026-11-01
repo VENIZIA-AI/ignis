@@ -38,15 +38,10 @@ import {
   WHITELIST_HEADERS,
 } from '../common';
 import { AssetCommitToken, MetaLinkRecreateActions } from '../common';
-import { buildAssetDefinitions } from './base.definition';
-import {
-  assertKeyInScope,
-  isKeyInScope,
-  normalizeKeyPrefix,
-  resolveScopedListPrefix,
-} from './key-scope';
-import { buildStoredUploadResult, createMetaLinkRow, refreshMetaLinkRows } from './meta-link';
-import { appendDeclaredLengthGuard, readRouteOverride } from './route-options';
+import { AssetDefinitionBuilder } from './base.definition';
+import { AssetKeyScope } from './key-scope';
+import { AssetMetaLink } from './meta-link';
+import { AssetRouteOptions } from './route-options';
 
 export interface IAssetControllerOptions {
   controller: TStaticAssetsComponentOptions[string]['controller'];
@@ -277,14 +272,14 @@ export class AssetControllerFactory extends BaseHelper {
     const scope =
       controller.keyPrefix === undefined
         ? undefined
-        : normalizeKeyPrefix({ keyPrefix: controller.keyPrefix, helper, scope: name });
+        : AssetKeyScope.normalizePrefix({ keyPrefix: controller.keyPrefix, helper, scope: name });
     const keyPrefix = scope?.keyPrefix;
     // `maxFolderDepth` counts the caller's folders; the scope's own are configuration, not input.
     const objectKeyMaxDepth = maxFolderDepth + (scope?.depth ?? 0);
     // The component's own name under a scope: the original name must stay one segment, as without one.
     const isScopedDefaultNaming =
       keyPrefix !== undefined && !resolveObjectName && !options?.normalizeNameFn;
-    const definitions = buildAssetDefinitions({ hasConfiguredBucket, rawObjectPath });
+    const definitions = AssetDefinitionBuilder.build({ hasConfiguredBucket, rawObjectPath });
 
     // The mount path may be declared with or without a leading slash; a link must carry exactly one.
     const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
@@ -333,7 +328,7 @@ export class AssetControllerFactory extends BaseHelper {
         // A single-bucket application has no reason to expose bucket creation or deletion, so the
         // four bucket-management routes are not registered once `bucket` is configured.
         if (!hasConfiguredBucket) {
-          const getBucketsRoute = readRouteOverride({ route: routes?.getBuckets });
+          const getBucketsRoute = AssetRouteOptions.readOverride({ route: routes?.getBuckets });
           if (getBucketsRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKETS, ...getBucketsRoute.override },
@@ -345,7 +340,9 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const getBucketByNameRoute = readRouteOverride({ route: routes?.getBucketByName });
+          const getBucketByNameRoute = AssetRouteOptions.readOverride({
+            route: routes?.getBucketByName,
+          });
           if (getBucketByNameRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.GET_BUCKET_BY_NAME, ...getBucketByNameRoute.override },
@@ -367,7 +364,7 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const createBucketRoute = readRouteOverride({ route: routes?.createBucket });
+          const createBucketRoute = AssetRouteOptions.readOverride({ route: routes?.createBucket });
           if (createBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.CREATE_BUCKET, ...createBucketRoute.override },
@@ -389,7 +386,7 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const deleteBucketRoute = readRouteOverride({ route: routes?.deleteBucket });
+          const deleteBucketRoute = AssetRouteOptions.readOverride({ route: routes?.deleteBucket });
           if (deleteBucketRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.DELETE_BUCKET, ...deleteBucketRoute.override },
@@ -414,7 +411,9 @@ export class AssetControllerFactory extends BaseHelper {
           }
         }
 
-        const getObjectByNameRoute = readRouteOverride({ route: routes?.getObjectByName });
+        const getObjectByNameRoute = AssetRouteOptions.readOverride({
+          route: routes?.getObjectByName,
+        });
         if (getObjectByNameRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.GET_OBJECT_BY_NAME, ...getObjectByNameRoute.override },
@@ -441,7 +440,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              assertKeyInScope({ key: objectName, keyPrefix });
+              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
                 bucket: { name: bucketName },
@@ -494,7 +493,7 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const downloadObjectByNameRoute = readRouteOverride({
+        const downloadObjectByNameRoute = AssetRouteOptions.readOverride({
           route: routes?.downloadObjectByName,
         });
         if (downloadObjectByNameRoute.isEnabled) {
@@ -526,7 +525,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              assertKeyInScope({ key: objectName, keyPrefix });
+              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
 
               const fileStat = await helper.getStat({
                 bucket: { name: bucketName },
@@ -563,12 +562,12 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const uploadRoute = readRouteOverride({ route: routes?.upload });
+        const uploadRoute = AssetRouteOptions.readOverride({ route: routes?.upload });
         if (uploadRoute.isEnabled) {
           const uploadMiddleware =
             maxBytes === undefined
               ? uploadRoute.override.middleware
-              : appendDeclaredLengthGuard({
+              : AssetRouteOptions.appendLengthGuard({
                   middleware: uploadRoute.override.middleware,
                   maxBytes,
                 });
@@ -692,7 +691,7 @@ export class AssetControllerFactory extends BaseHelper {
                             })
                           : defaultKey;
 
-                        if (!isKeyInScope({ key, keyPrefix })) {
+                        if (!AssetKeyScope.isInScope({ key, keyPrefix })) {
                           throw getError({
                             error: StaticAssetErrors.OBJECT_KEY_OUT_OF_SCOPE,
                             message: `Object key is outside the key prefix of this controller | key: ${key} | keyPrefix: ${keyPrefix}`,
@@ -728,7 +727,7 @@ export class AssetControllerFactory extends BaseHelper {
                     object: uploadResult.object,
                   });
 
-                  const createdMetaLink = await createMetaLinkRow({
+                  const createdMetaLink = await AssetMetaLink.createRow({
                     metaLink,
                     helper,
                     storage,
@@ -761,7 +760,7 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const deleteObjectRoute = readRouteOverride({ route: routes?.deleteObject });
+        const deleteObjectRoute = AssetRouteOptions.readOverride({ route: routes?.deleteObject });
         if (deleteObjectRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.DELETE_OBJECT, ...deleteObjectRoute.override },
@@ -788,7 +787,7 @@ export class AssetControllerFactory extends BaseHelper {
               }
 
               // Before any storage call: a key outside the scope must not even be probed.
-              assertKeyInScope({ key: objectName, keyPrefix });
+              AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
 
               // Deliberately idempotent: S3 answers 200 for a key that was never there, and consumers
               // already depend on it. `disk` throws instead, so the two are reconciled here, not below.
@@ -836,7 +835,7 @@ export class AssetControllerFactory extends BaseHelper {
           });
         }
 
-        const listObjectsRoute = readRouteOverride({ route: routes?.listObjects });
+        const listObjectsRoute = AssetRouteOptions.readOverride({ route: routes?.listObjects });
         if (listObjectsRoute.isEnabled) {
           this.bindRoute({
             configs: { ...definitions.LIST_OBJECTS, ...listObjectsRoute.override },
@@ -866,7 +865,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
               }
 
-              const scoped = resolveScopedListPrefix({ prefix, keyPrefix });
+              const scoped = AssetKeyScope.resolveListPrefix({ prefix, keyPrefix });
               if (scoped.isOutOfScope) {
                 return ctx.json([], HTTP.ResultCodes.RS_2.Ok);
               }
@@ -894,7 +893,7 @@ export class AssetControllerFactory extends BaseHelper {
           // The scope rides inside the pending key, so the commit, which strips `pendingPrefix`, lands inside it.
           const policyKeyPrefix = `${pendingPrefix}${keyPrefix ?? ''}`;
 
-          const uploadPolicyRoute = readRouteOverride({ route: routes?.uploadPolicy });
+          const uploadPolicyRoute = AssetRouteOptions.readOverride({ route: routes?.uploadPolicy });
           if (uploadPolicyRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_POLICY, ...uploadPolicyRoute.override },
@@ -948,7 +947,7 @@ export class AssetControllerFactory extends BaseHelper {
             });
           }
 
-          const uploadCommitRoute = readRouteOverride({ route: routes?.uploadCommit });
+          const uploadCommitRoute = AssetRouteOptions.readOverride({ route: routes?.uploadCommit });
           if (uploadCommitRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.UPLOAD_COMMIT, ...uploadCommitRoute.override },
@@ -983,7 +982,7 @@ export class AssetControllerFactory extends BaseHelper {
                 const object = { key: payload.key.slice(pendingPrefix.length) };
 
                 // A token another controller signed with the same secret must not land outside this scope.
-                assertKeyInScope({ key: object.key, keyPrefix });
+                AssetKeyScope.assertInScope({ key: object.key, keyPrefix });
 
                 // Before the copy, so a hook that throws leaves the object under the pending prefix
                 // for a lifecycle rule, rather than stranding it at the final key.
@@ -1023,11 +1022,11 @@ export class AssetControllerFactory extends BaseHelper {
                 if (useMetaLink && metaLink) {
                   try {
                     const fileStat = await helper.getStat({ bucket: bucketRef, object });
-                    const data = await createMetaLinkRow({
+                    const data = await AssetMetaLink.createRow({
                       metaLink,
                       helper,
                       storage,
-                      uploadResult: buildStoredUploadResult({
+                      uploadResult: AssetMetaLink.buildStoredUploadResult({
                         helper,
                         bucket: bucketRef,
                         object,
@@ -1068,7 +1067,9 @@ export class AssetControllerFactory extends BaseHelper {
         }
 
         if (useMetaLink && metaLink) {
-          const recreateMetaLinkRoute = readRouteOverride({ route: routes?.recreateMetaLink });
+          const recreateMetaLinkRoute = AssetRouteOptions.readOverride({
+            route: routes?.recreateMetaLink,
+          });
           if (recreateMetaLinkRoute.isEnabled) {
             this.bindRoute({
               configs: { ...definitions.RECREATE_METALINK, ...recreateMetaLinkRoute.override },
@@ -1102,7 +1103,7 @@ export class AssetControllerFactory extends BaseHelper {
                 }
 
                 // Before any storage call: a key outside the scope must not even be probed.
-                assertKeyInScope({ key: objectName, keyPrefix });
+                AssetKeyScope.assertInScope({ key: objectName, keyPrefix });
 
                 const bucketRef = { name: bucketName };
                 const object = { key: objectName };
@@ -1118,7 +1119,7 @@ export class AssetControllerFactory extends BaseHelper {
                       rawObjectPath,
                     });
 
-                const refreshed = await refreshMetaLinkRows({
+                const refreshed = await AssetMetaLink.refreshRows({
                   metaLink,
                   helper,
                   bucket: bucketRef,
@@ -1142,11 +1143,11 @@ export class AssetControllerFactory extends BaseHelper {
 
                 // Not atomic with the refresh above: two concurrent calls may both create, which the
                 // table allows - rows per pair are deliberately not unique.
-                const created = await createMetaLinkRow({
+                const created = await AssetMetaLink.createRow({
                   metaLink,
                   helper,
                   storage,
-                  uploadResult: buildStoredUploadResult({
+                  uploadResult: AssetMetaLink.buildStoredUploadResult({
                     helper,
                     bucket: bucketRef,
                     object,

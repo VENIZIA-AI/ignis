@@ -1,4 +1,4 @@
-import { buildPresignedUrl } from '@/modules/storage/bun-s3/utility';
+import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 import { describe, expect, test } from 'bun:test';
 
 /** The credentials AWS publishes its signature examples with. They unlock nothing. */
@@ -21,7 +21,7 @@ describe('a presigned URL carries its credential in the query', () => {
    * Single Chunk" - example presigned GET for `examplebucket/test.txt`, 86400s.
    */
   test('it reproduces the signature AWS publishes for the documented example', async () => {
-    const url = await buildPresignedUrl({
+    const url = await S3SignatureUtility.buildPresignedUrl({
       method: 'GET',
       endpoint: 'https://examplebucket.s3.amazonaws.com',
       path: '/test.txt',
@@ -35,7 +35,7 @@ describe('a presigned URL carries its credential in the query', () => {
   });
 
   test('it names host, the credential scope and the expiry', async () => {
-    const url = await buildPresignedUrl({
+    const url = await S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint: 'http://minio:9000',
       path: '/uploads/a.png',
@@ -54,7 +54,7 @@ describe('a presigned URL carries its credential in the query', () => {
   });
 
   test('a session token is signed, not merely appended', async () => {
-    const withToken = await buildPresignedUrl({
+    const withToken = await S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint: 'http://minio:9000',
       path: '/uploads/a.png',
@@ -62,7 +62,7 @@ describe('a presigned URL carries its credential in the query', () => {
       sessionToken: 'a-temporary-token',
       ...EXAMPLE,
     });
-    const without = await buildPresignedUrl({
+    const without = await S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint: 'http://minio:9000',
       path: '/uploads/a.png',
@@ -80,7 +80,7 @@ describe('a presigned URL carries its credential in the query', () => {
 describe('extra headers go INSIDE the signature', () => {
   /** If they were merely sent, S3 would ignore them and the tag would silently not exist. */
   test('each one is listed in X-Amz-SignedHeaders, lowercased and sorted', async () => {
-    const url = await buildPresignedUrl({
+    const url = await S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint: 'http://minio:9000',
       path: '/uploads/a.png',
@@ -96,7 +96,7 @@ describe('extra headers go INSIDE the signature', () => {
 
   test('changing a header value changes the signature', async () => {
     const sign = (tagging: string) =>
-      buildPresignedUrl({
+      S3SignatureUtility.buildPresignedUrl({
         method: 'PUT',
         endpoint: 'http://minio:9000',
         path: '/uploads/a.png',
@@ -115,7 +115,7 @@ describe('extra headers go INSIDE the signature', () => {
   /** SigV4 compares trimmed values, so signing an untrimmed one answers 403 on a header that looks right. */
   test('a padded value signs the same as its trimmed form', async () => {
     const sign = (tagging: string) =>
-      buildPresignedUrl({
+      S3SignatureUtility.buildPresignedUrl({
         method: 'PUT',
         endpoint: 'http://minio:9000',
         path: '/uploads/a.png',
@@ -132,7 +132,7 @@ describe('extra headers go INSIDE the signature', () => {
   });
 
   test('a key with a space is percent-encoded in the path, not left raw', async () => {
-    const url = await buildPresignedUrl({
+    const url = await S3SignatureUtility.buildPresignedUrl({
       method: 'PUT',
       endpoint: 'http://minio:9000',
       path: '/uploads/my report.pdf',

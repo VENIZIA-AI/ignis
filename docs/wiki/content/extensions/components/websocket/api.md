@@ -232,7 +232,7 @@ executePostStartHooks()   <- websocket-initialize hook runs:
 
 ### Fetch handler
 
-`createBunFetchHandler()` builds the `fetch` function passed to `server.reload()`. It routes every incoming request:
+`WebSocketBunHandler.createFetchHandler()` builds the `fetch` function passed to `server.reload()`. It routes every incoming request:
 
 ```
 Incoming Request
@@ -244,7 +244,7 @@ Incoming Request
 ```
 
 ```typescript
-function createBunFetchHandler(opts: {
+WebSocketBunHandler.createFetchHandler(opts: {
   wsPath: string;
   honoServer: OpenAPIHono;
 }): (req: Request, server: TBunServerInstance) => Promise<Response | undefined>
@@ -297,7 +297,7 @@ Registers the `websocket-initialize` post-start hook:
 2. Constructs `WebSocketServerHelper` with all resolved bindings plus the running server instance.
 3. Awaits `wsHelper.configure()` - connects Redis clients, sets up subscriptions, starts the heartbeat timer.
 4. Binds the helper to `WEBSOCKET_INSTANCE`.
-5. Calls `serverInstance.reload({ fetch: createBunFetchHandler(...), websocket: wsHelper.getBunWebSocketHandler() })`.
+5. Calls `serverInstance.reload({ fetch: WebSocketBunHandler.createFetchHandler(...), websocket: wsHelper.getBunWebSocketHandler() })`.
 
 ### Runtime check
 
