@@ -3,8 +3,10 @@ import { relative, resolve } from 'node:path';
 import { CodemodFiles } from '../files';
 import { type INamespaceMapping, NamespaceMappings } from './mapping';
 import { ALL_MAPPINGS } from './mappings';
+import { LoggerScopeRewriter } from './logger-scope';
 import { NamespaceFunctions } from './rewriter';
 
+export * from './logger-scope';
 export * from './mapping';
 export * from './mappings';
 export * from './rewriter';
@@ -21,6 +23,11 @@ table lists, adds the class to that import, and drops the old name once nothing 
 with its file and line, and leaves for you: a call with a spread argument or the wrong number of
 arguments, the old name used as a value (passed, stored, exported, in typeof), a re-export, a type-only
 import, and a file that declares a name the rewrite would collide with.
+
+It also moves the string form of the logger: \`ApplicationLogger.get('scope')\` (a string, a template, an
+identifier or a property access) becomes \`ApplicationLogger.get({ scope: 'scope' })\`, when
+\`ApplicationLogger\` comes from \`@venizia/ignis-helpers\` or \`@venizia/ignis\`. \`Logger.get\` and
+\`HfLogger.get\` are not touched, and a call it cannot decide is listed.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 while a call can be rewritten or is left untouched (for CI)
@@ -143,12 +150,26 @@ export class NamespaceFunctionsCommand {
       for (const file of files) {
         const source = readFileSync(file, 'utf8');
 
-        if (!nameText.test(source)) {
+        if (!nameText.test(source) && !LoggerScopeRewriter.mentions({ source })) {
           continue;
         }
 
         const shown = relative(root, file).split('\\').join('/') || file;
-        const result = NamespaceFunctions.rewrite({ typescript, fileName: file, source, mappings });
+        // The call-shape rule goes first: it only rewrites the argument of a call, so the lines the table pass reports
+        // are the lines of the file.
+        const scoped = LoggerScopeRewriter.rewrite({ typescript, fileName: file, source });
+        const tabled = NamespaceFunctions.rewrite({
+          typescript,
+          fileName: file,
+          source: scoped.output,
+          mappings,
+        });
+        const result = {
+          output: tabled.output,
+          changed: scoped.changed || tabled.changed,
+          rewritten: scoped.rewritten + tabled.rewritten,
+          reports: [...scoped.reports, ...tabled.reports],
+        };
 
         for (const report of result.reports) {
           reportCount += 1;
