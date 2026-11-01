@@ -112,11 +112,3 @@ export class UuidV5Generator {
     return UuidV5Generator.shared(opts);
   }
 }
-
-/** @deprecated Use UuidV5Generator.create(). Removed in 0.5. */
-export const createUuidV5 = (): ((opts: { namespace: string; name: string }) => string) =>
-  UuidV5Generator.create();
-
-/** @deprecated Use UuidV5Generator.generate({ namespace, name }). Removed in 0.5. */
-export const uuidV5: (opts: { namespace: string; name: string }) => string = (opts) =>
-  UuidV5Generator.generate(opts);

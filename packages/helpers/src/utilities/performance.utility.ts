@@ -62,20 +62,3 @@ export class PerformanceUtility {
     });
   }
 }
-
-/** @deprecated Use PerformanceUtility.getCheckpoint(). Removed in 0.5. */
-export const getPerformanceCheckpoint = () => PerformanceUtility.getCheckpoint();
-
-/** @deprecated Use PerformanceUtility.getExecuted({ from, digit }). Removed in 0.5. */
-export const getExecutedPerformance = (opts: { from: number; digit?: number }) =>
-  PerformanceUtility.getExecuted(opts);
-
-/** @deprecated Use PerformanceUtility.executeWithMeasure({ logger, level, description, args, scope, task }). Removed in 0.5. */
-export const executeWithPerformanceMeasure = <R = any>(opts: {
-  logger?: ILogger;
-  level?: string;
-  description?: string;
-  args?: any;
-  scope: string;
-  task: Function;
-}) => PerformanceUtility.executeWithMeasure<R>(opts);

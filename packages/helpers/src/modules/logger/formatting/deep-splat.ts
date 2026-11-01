@@ -106,10 +106,3 @@ export class LogFormatUtility {
     return util.formatWithOptions(inspectOptions, message, ...widened);
   }
 }
-
-/** @deprecated Use LogFormatUtility.formatMessage({ message, args, inspectOptions }). Removed in 0.5. */
-export const formatLogMessage = (opts: {
-  message: string;
-  args: Array<unknown>;
-  inspectOptions?: util.InspectOptions;
-}): string => LogFormatUtility.formatMessage(opts);

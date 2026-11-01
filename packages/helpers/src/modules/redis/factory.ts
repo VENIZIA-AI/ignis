@@ -42,25 +42,8 @@ export class RedisHelperFactory {
         return new RedisSentinelHelper(opts);
       }
       default: {
-        throw getError({ message: '[createRedisHelper] Unsupported redis mode!' });
+        throw getError({ message: '[RedisHelperFactory.create] Unsupported redis mode!' });
       }
     }
   }
-}
-
-/** @deprecated Use RedisHelperFactory.create({ mode, ... }). Removed in 0.5. */
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.SINGLE } & IRedisSingleHelperOptions,
-): RedisSingleHelper;
-
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.CLUSTER } & IRedisClusterHelperOptions,
-): RedisClusterHelper;
-
-export function createRedisHelper(
-  opts: { mode: typeof RedisModes.SENTINEL } & IRedisSentinelHelperOptions,
-): RedisSentinelHelper;
-
-export function createRedisHelper(opts: TCreateRedisHelperOptions): AbstractRedisHelper {
-  return RedisHelperFactory.create(opts);
 }

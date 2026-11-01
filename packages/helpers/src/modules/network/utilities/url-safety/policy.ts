@@ -143,9 +143,5 @@ export class UrlPolicy {
   }
 }
 
-/** @deprecated Use UrlPolicy.isRefusedError({ error }). Removed in 0.5. */
-export const isUrlRefusedError = (opts: { error: unknown }): boolean =>
-  UrlPolicy.isRefusedError(opts);
-
 export { UrlSafetyDefaults, UrlSchemes };
 export type { IUrlSafetyPolicy };

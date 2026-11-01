@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import path from 'node:path';
-import { UuidV4Generator, UuidV7Generator, UuidHelper, uuidV4, uuidV7 } from '@/modules/uid';
+import { UuidV4Generator, UuidV7Generator, UuidHelper } from '@/modules/uid';
 import { PACKAGE_ROOT } from '../package-root';
 import { spawnSyncBounded } from '@venizia/dev-configs/testing';
 
@@ -29,14 +29,12 @@ const callWith = (opts: {
 
 const v7Generators = [
   { name: 'UuidV7Generator.generate', generator: UuidV7Generator.generate },
-  { name: 'uuidV7 (deprecated alias)', generator: uuidV7 },
   { name: 'UuidV7Generator.create()', generator: UuidV7Generator.create() },
   { name: 'UuidHelper.v7', generator: UuidHelper.getInstance().v7 },
 ];
 
 const v4Generators = [
   { name: 'UuidV4Generator.generate', generator: UuidV4Generator.generate },
-  { name: 'uuidV4 (deprecated alias)', generator: uuidV4 },
   { name: 'UuidV4Generator.create()', generator: UuidV4Generator.create() },
   { name: 'UuidHelper.v4', generator: UuidHelper.getInstance().v4 },
 ];

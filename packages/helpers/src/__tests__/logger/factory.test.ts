@@ -146,10 +146,4 @@ describe('ApplicationLogger - the provider-following facade', () => {
       LoggerFactory.getLogger(['FacadeIdentity']),
     );
   });
-
-  test('the string form is a deprecated overload that answers the same wrapper', () => {
-    expect(ApplicationLogger.get('FacadeLegacy')).toBe(
-      ApplicationLogger.get({ scope: 'FacadeLegacy' }),
-    );
-  });
 });

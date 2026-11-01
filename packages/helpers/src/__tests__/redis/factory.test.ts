@@ -7,7 +7,7 @@ import {
   RedisSingleHelper,
 } from '@/modules/redis';
 
-describe('createRedisHelper', () => {
+describe('RedisHelperFactory.create', () => {
   it('builds a single helper', () => {
     const helper = RedisHelperFactory.create({
       mode: RedisModes.SINGLE,

@@ -31,8 +31,3 @@ export class FormBodyUtility {
     }
   }
 }
-
-/** @deprecated Use FormBodyUtility.readFormBody({ req }). Removed in 0.5. */
-export const readFormBody = (opts: {
-  req: { formData: () => Promise<FormData> };
-}): Promise<FormData> => FormBodyUtility.readFormBody(opts);

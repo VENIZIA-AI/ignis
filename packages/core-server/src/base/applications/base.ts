@@ -27,7 +27,6 @@ import {
   PerformanceUtility,
   Environment,
   SecretProviders,
-  toBoolean,
 } from '@venizia/ignis-helpers';
 import { contextStorage, tryGetContext } from 'hono/context-storage';
 import { AppErrorMiddleware, emojiFavicon } from '../middlewares';
@@ -383,7 +382,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     // on. Read once rather than per key, and a blank value reads as unset - the same rule every
     // other env read follows.
     const configured = ParseUtility.blankToUndefined({ input: process.env.ALLOW_EMPTY_ENV_VALUE });
-    const allowsEmpty = configured === undefined || toBoolean(configured);
+    const allowsEmpty = configured === undefined || ParseUtility.toBoolean({ input: configured });
 
     this.logger
       .for(this.initialize.name)

@@ -86,13 +86,3 @@ export class LoggerConfigUtility {
     return undefined;
   }
 }
-
-/** @deprecated Use LoggerConfigUtility.resolveLevel({ configured }). Removed in 0.5. */
-export const resolveLoggerLevel = (opts: { configured?: string }): TLogLevel =>
-  LoggerConfigUtility.resolveLevel(opts);
-
-/** @deprecated Use LoggerConfigUtility.resolveColorize({ configured, environment }). Removed in 0.5. */
-export const resolveLoggerColorize = (opts?: {
-  configured?: string;
-  environment?: string;
-}): boolean | undefined => LoggerConfigUtility.resolveColorize(opts);

@@ -116,9 +116,3 @@ export class UuidV7Generator {
     return UuidV7Generator.shared();
   }
 }
-
-/** @deprecated Use UuidV7Generator.create(). Removed in 0.5. */
-export const createUuidV7 = (): (() => string) => UuidV7Generator.create();
-
-/** @deprecated Use UuidV7Generator.generate(). Removed in 0.5. */
-export const uuidV7 = (): string => UuidV7Generator.generate();

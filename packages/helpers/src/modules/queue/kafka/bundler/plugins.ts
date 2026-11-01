@@ -80,6 +80,3 @@ export class PlatformaticKafkaPlugins {
     ];
   }
 }
-
-/** @deprecated Use PlatformaticKafkaPlugins.build(). Removed in 0.5. */
-export const platformaticKafkaPlugins = (): BunPlugin[] => PlatformaticKafkaPlugins.build();

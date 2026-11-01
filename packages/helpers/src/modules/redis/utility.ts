@@ -76,16 +76,3 @@ export class RedisUtility {
     }
   }
 }
-
-/** @deprecated Use RedisUtility.waitForReady({ client, timeoutMs }). Removed in 0.5. */
-export const waitForRedisReady = (opts: {
-  client: TRedisClient;
-  timeoutMs?: number;
-}): Promise<void> => RedisUtility.waitForReady(opts);
-
-/** @deprecated Use RedisUtility.ensureConnecting({ clients, logger, scope }). Removed in 0.5. */
-export const ensureRedisClientsConnecting = (opts: {
-  clients: TRedisClient[];
-  logger?: ILogger;
-  scope: string;
-}): void => RedisUtility.ensureConnecting(opts);

@@ -42,7 +42,3 @@ export class StorageUtility {
     return seconds;
   }
 }
-
-/** @deprecated Use StorageUtility.toExpirySeconds({ expiresIn, operation }). Removed in 0.5. */
-export const toExpirySeconds = (opts: { expiresIn: IDuration; operation: string }): number =>
-  StorageUtility.toExpirySeconds(opts);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { createUuidV7, uuidV7, UuidV7Generator } from '@/modules/uid';
+import { UuidV7Generator } from '@/modules/uid';
 
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
@@ -33,8 +33,6 @@ test('one shared sequence per realm, so every caller draws from the same counter
 const paths = [
   { name: 'shared UuidV7Generator.generate', build: () => UuidV7Generator.generate },
   { name: 'UuidV7Generator.create()', build: UuidV7Generator.create },
-  { name: 'shared uuidV7 (deprecated alias)', build: () => uuidV7 },
-  { name: 'createUuidV7() (deprecated alias)', build: createUuidV7 },
 ];
 
 for (const path of paths) {

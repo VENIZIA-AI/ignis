@@ -7,6 +7,3 @@ export class ErrorUtility {
     return error instanceof Error ? error : getError({ message: String(error) });
   }
 }
-
-/** @deprecated Use ErrorUtility.toError({ error }). Removed in 0.5. */
-export const toError = (error: unknown): Error => ErrorUtility.toError({ error });

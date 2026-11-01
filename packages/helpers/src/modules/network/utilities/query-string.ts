@@ -103,7 +103,3 @@ export class QueryStringUtility {
     return parts.join(QueryStringSeparators.PAIR);
   }
 }
-
-/** @deprecated Use QueryStringUtility.toQueryString({ params, nullish, nested }). Removed in 0.5. */
-export const toQueryString = (opts: { params: AnyObject } & IQueryStringOptions): string =>
-  QueryStringUtility.toQueryString(opts);

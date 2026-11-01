@@ -121,9 +121,6 @@ export class LoggerFactory {
 export class ApplicationLogger {
   static get(opts: { scope: string }): ILogger;
 
-  /** @deprecated Use ApplicationLogger.get({ scope }). Removed in 0.5. */
-  static get(scope: string): ILogger;
-
   static get(opts: { scope: string } | string): ILogger {
     return LoggerFactory.getLogger([typeof opts === 'string' ? opts : opts.scope]);
   }

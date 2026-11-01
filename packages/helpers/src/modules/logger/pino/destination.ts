@@ -158,17 +158,3 @@ export class PinoDestination {
     }
   }
 }
-
-/** @deprecated Use PinoDestination.mapFrequency({ value }). Removed in 0.5. */
-export const mapFrequency = (value?: string): TFrequency => PinoDestination.mapFrequency({ value });
-
-/** @deprecated Use PinoDestination.mapMaxFilesToCount({ value, frequency }). Removed in 0.5. */
-export const mapMaxFilesToCount = (opts: { value?: string; frequency: TFrequency }): number =>
-  PinoDestination.mapMaxFilesToCount(opts);
-
-/** @deprecated Use PinoDestination.resolvePlan(). Removed in 0.5. */
-export const resolveDestinationPlan = (): TDestinationPlan => PinoDestination.resolvePlan();
-
-/** @deprecated Use PinoDestination.build({ plan }). Removed in 0.5. */
-export const buildDestination = (plan: TDestinationPlan): pino.DestinationStream | undefined =>
-  PinoDestination.build({ plan });

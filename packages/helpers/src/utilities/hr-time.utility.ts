@@ -10,6 +10,3 @@ export class HrTimeUtility {
     return ParseUtility.toFloat({ input: current[0] + current[1] / 10 ** 9, digit: 9 });
   }
 }
-
-/** @deprecated Use HrTimeUtility.getSeconds(). Removed in 0.5. */
-export const hrTime = () => HrTimeUtility.getSeconds();

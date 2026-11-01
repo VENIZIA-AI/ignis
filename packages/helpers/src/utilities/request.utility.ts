@@ -214,27 +214,3 @@ export class RequestUtility {
     return { type, filename: bare ? bare[1].trim() : undefined };
   }
 }
-
-/** @deprecated Use RequestUtility.parseMultipartBody({ context, storage, uploadDir }). Removed in 0.5. */
-export const parseMultipartBody = <C extends { req: any } = { req: any }>(
-  opts: IParseMultipartOptions<C>,
-): Promise<IParsedMultipartBody> => RequestUtility.parseMultipartBody<C>(opts);
-
-/** @deprecated Use RequestUtility.sanitizeFilename({ filename }). Removed in 0.5. */
-export const sanitizeFilename = (filename: string): string =>
-  RequestUtility.sanitizeFilename({ filename });
-
-/** @deprecated Use RequestUtility.encodeRfc5987({ filename }). Removed in 0.5. */
-export const encodeRFC5987 = (filename: string): string =>
-  RequestUtility.encodeRfc5987({ filename });
-
-/** @deprecated Use RequestUtility.buildContentDispositionHeader({ filename, type }). Removed in 0.5. */
-export const createContentDispositionHeader = (opts: {
-  filename: string;
-  type: TContentDispositionType;
-}): string => RequestUtility.buildContentDispositionHeader(opts);
-
-/** @deprecated Use RequestUtility.parseContentDisposition({ header }). Removed in 0.5. */
-export const parseContentDisposition = (opts: {
-  header: string | null | undefined;
-}): { type?: string; filename?: string } => RequestUtility.parseContentDisposition(opts);

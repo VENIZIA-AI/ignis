@@ -57,13 +57,3 @@ export class PinoBackingLogger {
     }
   }
 }
-
-/** @deprecated Use PinoBackingLogger.buildOptions(). Removed in 0.5. */
-export const buildPinoOptions = () => PinoBackingLogger.buildOptions();
-
-/** @deprecated Use PinoBackingLogger.get(). Removed in 0.5. */
-export const getPinoBackingLogger = (): TPinoInstance => PinoBackingLogger.get();
-
-/** @deprecated Use PinoBackingLogger.set({ instance }). Removed in 0.5. */
-export const setPinoBackingLogger = (opts: { instance: TPinoInstance }): void =>
-  PinoBackingLogger.set(opts);

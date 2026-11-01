@@ -63,9 +63,3 @@ export class UuidV4Generator {
     return UuidV4Generator.shared();
   }
 }
-
-/** @deprecated Use UuidV4Generator.create(). Removed in 0.5. */
-export const createUuidV4 = (): (() => string) => UuidV4Generator.create();
-
-/** @deprecated Use UuidV4Generator.generate(). Removed in 0.5. */
-export const uuidV4: () => string = () => UuidV4Generator.generate();

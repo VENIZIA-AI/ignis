@@ -77,17 +77,3 @@ export class PromiseUtility {
     });
   }
 }
-
-/** @deprecated Use PromiseUtility.executeWithLimit({ tasks, limit, onTaskDone }). Removed in 0.5. */
-export const executePromiseWithLimit = <T>(opts: {
-  tasks: Array<TTask<T>>;
-  limit: number;
-  onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void>;
-}) => PromiseUtility.executeWithLimit<T>(opts);
-
-/** @deprecated Use PromiseUtility.voidExecution({ logger, scope, execution }). Removed in 0.5. */
-export const voidExecution = (opts: {
-  logger?: ILogger;
-  scope: string;
-  execution: ValueOrPromise<unknown>;
-}): void => PromiseUtility.voidExecution(opts);

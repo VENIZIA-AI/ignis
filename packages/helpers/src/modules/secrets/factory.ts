@@ -54,10 +54,3 @@ export class SecretsHelperFactory {
     }
   }
 }
-
-/** @deprecated Use SecretsHelperFactory.create({ provider, config, ... }). Removed in 0.5. */
-export async function createSecretsHelper(
-  opts: ISecretsRegistration & { identifier?: string },
-): Promise<ISecretsHelper> {
-  return SecretsHelperFactory.create(opts);
-}

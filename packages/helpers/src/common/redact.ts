@@ -213,18 +213,3 @@ export class RedactUtility {
     return decodeURIComponent(parsed.toString());
   }
 }
-
-/** @deprecated Use RedactUtility.redactSecrets({ value, seen, depth }). Removed in 0.5. */
-export const redactSecrets = (
-  value: unknown,
-  seen?: WeakSet<object>,
-  depth: number = Infinity,
-): unknown => RedactUtility.redactSecrets({ value, seen, depth });
-
-/** @deprecated Use RedactUtility.toJsonSafe({ value, depth }). Removed in 0.5. */
-export const toJsonSafe = (opts: { value: unknown; depth?: number }): unknown =>
-  RedactUtility.toJsonSafe(opts);
-
-/** @deprecated Use RedactUtility.redactUrlCredentials({ url }). Removed in 0.5. */
-export const redactUrlCredentials = (url: string): string =>
-  RedactUtility.redactUrlCredentials({ url });

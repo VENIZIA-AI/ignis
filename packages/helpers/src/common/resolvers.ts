@@ -20,8 +20,3 @@ export class ClassResolver {
     return resolveValue({ value: ref });
   }
 }
-
-/** @deprecated Use ClassResolver.resolveClass({ ref }). Removed in 0.5. */
-export const resolveClass = <T>(opts: {
-  ref: TClass<T> | TResolver<TClass<T>> | string;
-}): TClass<T> | string => ClassResolver.resolveClass<T>(opts);

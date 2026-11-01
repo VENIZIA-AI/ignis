@@ -33,17 +33,3 @@ export class HookUtility {
     }
   }
 }
-
-/** @deprecated Use HookUtility.invoke({ logger, scope, execution }). Removed in 0.5. */
-export const invokeHook = (opts: {
-  logger: ILogger;
-  scope: string;
-  execution: () => ValueOrPromise<unknown>;
-}): void => HookUtility.invoke(opts);
-
-/** @deprecated Use HookUtility.execute({ logger, scope, execution }). Removed in 0.5. */
-export const awaitHook = (opts: {
-  logger: ILogger;
-  scope: string;
-  execution: () => ValueOrPromise<unknown>;
-}): Promise<void> => HookUtility.execute(opts);
