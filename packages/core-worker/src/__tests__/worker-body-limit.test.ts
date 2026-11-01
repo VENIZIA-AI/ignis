@@ -79,11 +79,14 @@ describe('WorkerApplication - configs.middlewares.bodyLimit', () => {
     application.lateMiddlewares = BODY_LIMIT;
     const { port1 } = new MessageChannel();
 
-    const refusal = await application.listen({ scope: port1 }).then(
-      () => undefined,
-      (error: unknown) => error,
-    );
+    let refusal: unknown;
+    try {
+      await application.listen({ scope: port1 });
+    } catch (error) {
+      refusal = error;
+    }
 
+    expect(refusal).toBeDefined();
     expect(String(refusal)).toContain('configs.middlewares.bodyLimit');
     expect(String(refusal)).toContain('constructor config');
     await application.stop();
