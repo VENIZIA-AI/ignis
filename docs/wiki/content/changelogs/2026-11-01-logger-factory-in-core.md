@@ -58,13 +58,17 @@ To upgrade:
 
 1. Run `devz codemod namespace-functions` (dry run), then add `--write`. The logger rewrite is part of it: it moves `ApplicationLogger.get('x')`, `.get(NAME)` and `.get({ scope })` to `LoggerFactory.getLogger([...])` and fixes the import.
 2. Replace each `LoggerSlot.use({ resolver })` with `LoggerFactory.use({ provider, level })`. The codemod does not touch it.
-3. Delete a `LoggerFactory.use` that only existed to keep a compiled binary from failing, unless it picks Pino.
+3. Run your typecheck after the codemod. An identifier argument is taken for a scope (`ApplicationLogger.get(NAME)` becomes `LoggerFactory.getLogger([NAME])`), so one that held the old `{ scope }` object does not type-check, and a use of `ApplicationLogger` that is not a call (a type, a re-export, a value) is listed with its file and line for you to change.
+4. Delete a `LoggerFactory.use` that only existed to keep a compiled binary from failing, unless it picks Pino.
 
 ## Details
 
 - **The debug gate.** Every provider shares one rule: `debug` is off unless `DEBUG` is truthy and `NODE_ENV` is unset or an allowed name (`APP_ENV_EXTRA_LOG_ENVS` adds more). Where there is no `process` (a browser) it is off.
 - **The level overrides the gate.** `level: LogLevels.DEBUG` turns `debug` on and any higher level turns it off, whatever the environment says.
 - **`use` can run late.** Loggers already issued re-point to the new provider on their next line, so call order does not matter.
+- **Lines logged before `initialize()` go to the console.** `@venizia/ignis` picks Winston when the application starts (`initialize()`); a line written earlier (in a constructor, or by a test that calls a method directly) uses the console format. Choose the provider with `LoggerFactory.use` before you build the application if those lines must reach Winston's files.
+- **A level that is not a `LogLevels` value is ignored.** `LoggerFactory.use({ level })` with a typo or an uppercase name from the environment changes nothing: it never opens debug.
+- **The debug gate applies to every provider.** The factory drops `debug` while the gate is closed, so a custom provider needs no gate of its own.
 - **`LoggerFactory.useUnlessChosen({ provider })`** chooses a provider only when the application has not. `@venizia/ignis` uses it for Winston. `isChosen()` and `reset()` complete the surface.
 - **Two module copies share the choice.** The provider and the level live in `globalThis` slots, so a bundle with two copies of `@venizia/ignis-helpers` sees one provider and one level.
 - **A script that imports only helpers** gets the console. Call `LoggerFactory.use({ provider })` with `PinoLogger` or `WinstonLogger` to choose another.

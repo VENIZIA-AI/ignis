@@ -179,13 +179,12 @@ const describeProvider = (build: () => IObservedProvider & { restore?(): void })
     }
   }
 
-  test('no level, gate closed: the provider applies its own gate', () => {
+  test('no level, gate closed: debug never reaches the provider, with or without a gate of its own', () => {
     LoggerFactory.use({ provider: fixture.provider });
     LoggerDebugGate.force({ isOpen: false });
 
-    const expected = fixture.hasOwnDebugGate ? LET_THROUGH.info : LET_THROUGH.debug;
-    expect(writeEveryLevel({ fixture, via: 'method' })).toEqual(expected);
-    expect(writeEveryLevel({ fixture, via: 'log' })).toEqual(expected);
+    expect(writeEveryLevel({ fixture, via: 'method' })).toEqual(LET_THROUGH.info);
+    expect(writeEveryLevel({ fixture, via: 'log' })).toEqual(LET_THROUGH.info);
   });
 
   test('no level, gate open: every level reaches the provider', () => {

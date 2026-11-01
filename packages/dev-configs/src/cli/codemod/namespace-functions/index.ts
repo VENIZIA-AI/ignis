@@ -27,7 +27,9 @@ import, and a file that declares a name the rewrite would collide with.
 It also moves the removed \`ApplicationLogger\`: \`ApplicationLogger.get('scope')\`, \`.get(NAME)\` and
 \`.get({ scope: NAME })\` become \`LoggerFactory.getLogger(['scope'])\`, \`([NAME])\`, and the import follows, when
 \`ApplicationLogger\` comes from \`@venizia/ignis-helpers\` or \`@venizia/ignis\`. \`Logger.get\` and
-\`HfLogger.get\` are not touched, and a call it cannot decide is listed.
+\`HfLogger.get\` are not touched, and a call it cannot decide is listed, as is any other use of
+\`ApplicationLogger\` (a type, a re-export, a value). An identifier argument is taken for a scope: run your
+typecheck afterwards.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 while a call can be rewritten or is left untouched (for CI)
@@ -155,8 +157,8 @@ export class NamespaceFunctionsCommand {
         }
 
         const shown = relative(root, file).split('\\').join('/') || file;
-        // The call-shape rule goes first: it only rewrites the argument of a call, so the lines the table pass reports
-        // are the lines of the file.
+        // The call-shape rule goes first, and its edits are inside one call, so the lines the table pass reports stay
+        // those of the file unless a multi-line `ApplicationLogger.get({ ... })` collapsed onto one line.
         const scoped = LoggerScopeRewriter.rewrite({ typescript, fileName: file, source });
         const tabled = NamespaceFunctions.rewrite({
           typescript,

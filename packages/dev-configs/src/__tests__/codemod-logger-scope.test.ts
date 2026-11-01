@@ -113,3 +113,79 @@ describe('the ApplicationLogger call-shape rule: every form becomes LoggerFactor
     expect(result.reports.map((report) => report.line)).toEqual([2, 3, 4]);
   });
 });
+
+describe('the ApplicationLogger call-shape rule: what it lists or keeps safe', () => {
+  test('a use that is not a call is listed, and the import stays so the file still names it', () => {
+    const result = rewrite(
+      `${HEADER}ApplicationLogger.get('A');\nexport type Alias = typeof ApplicationLogger;\nexport const value = ApplicationLogger;\n`,
+    );
+
+    expect(result.output).toContain("LoggerFactory.getLogger(['A'])");
+    expect(result.output).toContain(
+      "import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';",
+    );
+    expect(result.reports.map((report) => report.line)).toEqual([3, 4]);
+    expect(result.reports[0]?.reason).toContain('no longer exists');
+  });
+
+  test('a re-export of the removed class from a listed module is listed, with no call to rewrite', () => {
+    const source = `export { ApplicationLogger } from '@venizia/ignis-helpers';\n`;
+    const result = rewrite(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.reports).toHaveLength(1);
+    expect(result.reports[0]?.reason).toContain('re-export');
+  });
+
+  test('a type-only import of the removed class is listed', () => {
+    const source = `import type { ApplicationLogger } from '@venizia/ignis-helpers';\ntype T = ApplicationLogger;\n`;
+    const result = rewrite(source);
+
+    expect(result.changed).toBe(false);
+    expect(result.reports.map((report) => report.reason).join(' ')).toContain('type-only import');
+  });
+
+  test('a LoggerFactory imported under another name is the name the calls use', () => {
+    const result = rewrite(
+      `import { ApplicationLogger, LoggerFactory as Factory } from '@venizia/ignis-helpers';\nApplicationLogger.get('A');\n`,
+    );
+
+    expect(result.output).toContain("Factory.getLogger(['A'])");
+    expect(result.output).toContain(
+      "import { LoggerFactory as Factory } from '@venizia/ignis-helpers';",
+    );
+    expect(result.output).not.toContain('ApplicationLogger');
+  });
+
+  test('a LoggerFactory imported in another declaration of a listed module is not imported twice', () => {
+    const result = rewrite(
+      `import { ApplicationLogger } from '@venizia/ignis-helpers';\nimport { LoggerFactory } from '@venizia/ignis';\nApplicationLogger.get('A');\n`,
+    );
+
+    expect(result.output).toContain("LoggerFactory.getLogger(['A'])");
+    expect(result.output.match(/LoggerFactory/g)?.length).toBe(2);
+    expect(result.output).not.toContain('ApplicationLogger');
+  });
+
+  test('a LoggerFactory of the file that is not the framework one stops the file and is listed', () => {
+    const own = rewrite(`${HEADER}class LoggerFactory {}\nApplicationLogger.get('A');\n`);
+    const foreign = rewrite(
+      `${HEADER}import { LoggerFactory } from './mine';\nApplicationLogger.get('A');\n`,
+    );
+
+    for (const result of [own, foreign]) {
+      expect(result.changed).toBe(false);
+      expect(result.reports.map((report) => report.reason).join(' ')).toContain('already declared');
+    }
+  });
+
+  test('a call and an import written over several lines are rewritten', () => {
+    const result = rewrite(
+      `import {\n  ApplicationLogger,\n  ErrorPrettier,\n} from '@venizia/ignis-helpers';\nconst logger = ApplicationLogger.get({\n  scope: NAME,\n});\n`,
+    );
+
+    expect(result.output).toContain('LoggerFactory.getLogger([NAME])');
+    expect(result.output).toContain('LoggerFactory,');
+    expect(result.output).not.toContain('ApplicationLogger');
+  });
+});

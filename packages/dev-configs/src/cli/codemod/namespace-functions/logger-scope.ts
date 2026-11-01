@@ -61,20 +61,34 @@ export class LoggerScopeRewriter {
       true,
     );
 
-    const locals = LoggerScopeRewriter.findLocals({ typescript, sourceFile });
-    if (locals.named.size === 0 && locals.namespaces.size === 0) {
-      return unchanged;
-    }
-
-    const edits: IEdit[] = [];
-    /** Identifiers of the old class that a rewritten call replaced: what is left after them keeps the import. */
-    const rewrittenOwners = new Set<ts.Node>();
     const report = (node: ts.Node, reason: string) => {
       const { line, character } = sourceFile.getLineAndCharacterOfPosition(
         node.getStart(sourceFile),
       );
       reports.push({ line: line + 1, column: character + 1, reason });
     };
+
+    // A re-export or a type-only import of the removed class is not a call: it is listed, never silently kept.
+    LoggerScopeRewriter.reportDeclarations({ typescript, sourceFile, report });
+
+    const locals = LoggerScopeRewriter.findLocals({ typescript, sourceFile });
+    if (locals.named.size === 0 && locals.namespaces.size === 0) {
+      return unchanged;
+    }
+
+    const factory = LoggerScopeRewriter.findFactory({ typescript, sourceFile });
+    if (factory.collision) {
+      report(
+        factory.collision,
+        '`LoggerFactory` is already declared in this file (or imported from another module): rewrite `ApplicationLogger` by hand as `LoggerFactory.getLogger([scope])`',
+      );
+      return unchanged;
+    }
+
+    const factoryName = factory.local ?? LoggerScopeRewriter.TARGET_NAME;
+    const edits: IEdit[] = [];
+    /** Identifiers of the old class that a rewritten call replaced: what is left after them keeps the import. */
+    const rewrittenOwners = new Set<ts.Node>();
 
     const visit = (node: ts.Node): void => {
       if (typescript.isCallExpression(node)) {
@@ -86,6 +100,7 @@ export class LoggerScopeRewriter {
             sourceFile,
             call: node,
             owner,
+            factoryName,
             edits,
             rewrittenOwners,
             report,
@@ -101,7 +116,21 @@ export class LoggerScopeRewriter {
       return unchanged;
     }
 
-    LoggerScopeRewriter.planImports({ typescript, sourceFile, locals, rewrittenOwners, edits });
+    LoggerScopeRewriter.planImports({
+      typescript,
+      sourceFile,
+      locals,
+      rewrittenOwners,
+      hasFactory: factory.local !== undefined,
+      edits,
+    });
+    LoggerScopeRewriter.reportLeftovers({
+      typescript,
+      sourceFile,
+      locals,
+      rewrittenOwners,
+      report,
+    });
 
     let output = source;
     for (const edit of [...edits].sort((first, second) => second.start - first.start)) {
@@ -243,11 +272,13 @@ export class LoggerScopeRewriter {
     sourceFile: ts.SourceFile;
     call: ts.CallExpression;
     owner: ts.Identifier | ts.PropertyAccessExpression;
+    factoryName: string;
     edits: IEdit[];
     rewrittenOwners: Set<ts.Node>;
     report: (node: ts.Node, reason: string) => void;
   }): void {
-    const { typescript, sourceFile, call, owner, edits, rewrittenOwners, report } = opts;
+    const { typescript, sourceFile, call, owner, factoryName, edits, rewrittenOwners, report } =
+      opts;
     const scope = LoggerScopeRewriter.scopeOf({ typescript, sourceFile, call });
 
     if ('reason' in scope) {
@@ -257,7 +288,7 @@ export class LoggerScopeRewriter {
 
     // `<namespace>.ApplicationLogger` keeps its namespace: `helpers.LoggerFactory.getLogger([...])`.
     const ownerText = typescript.isIdentifier(owner)
-      ? LoggerScopeRewriter.TARGET_NAME
+      ? factoryName
       : `${owner.expression.getText(sourceFile)}.${LoggerScopeRewriter.TARGET_NAME}`;
 
     edits.push({
@@ -277,9 +308,11 @@ export class LoggerScopeRewriter {
     sourceFile: ts.SourceFile;
     locals: ILocals;
     rewrittenOwners: Set<ts.Node>;
+    /** `LoggerFactory` is already imported from a listed module (maybe under another name). */
+    hasFactory: boolean;
     edits: IEdit[];
   }): void {
-    const { typescript, sourceFile, locals, rewrittenOwners, edits } = opts;
+    const { typescript, sourceFile, locals, rewrittenOwners, hasFactory, edits } = opts;
 
     for (const [local, specifier] of locals.named) {
       const used = LoggerScopeRewriter.countReferences({ typescript, sourceFile, name: local });
@@ -293,10 +326,7 @@ export class LoggerScopeRewriter {
         continue;
       }
 
-      const hasTarget = imported.elements.some(
-        (element) =>
-          (element.propertyName ?? element.name).text === LoggerScopeRewriter.TARGET_NAME,
-      );
+      const hasTarget = hasFactory;
       const isLeft = used - replaced > 1; // the import specifier itself is one reference
 
       if (isLeft) {
@@ -325,6 +355,153 @@ export class LoggerScopeRewriter {
         });
       }
     }
+  }
+
+  /** A re-export of the removed class from a listed module, or a type-only import of it, is listed. */
+  private static reportDeclarations(opts: {
+    typescript: TTypeScript;
+    sourceFile: ts.SourceFile;
+    report: (node: ts.Node, reason: string) => void;
+  }): void {
+    const { typescript, sourceFile, report } = opts;
+    const named = (element: { propertyName?: ts.ModuleExportName; name: ts.ModuleExportName }) =>
+      (element.propertyName ?? element.name).text === LoggerScopeRewriter.CLASS_NAME;
+
+    for (const statement of sourceFile.statements) {
+      if (
+        typescript.isExportDeclaration(statement) &&
+        statement.moduleSpecifier &&
+        typescript.isStringLiteral(statement.moduleSpecifier) &&
+        LoggerScopeRewriter.MODULES.includes(statement.moduleSpecifier.text) &&
+        statement.exportClause &&
+        typescript.isNamedExports(statement.exportClause) &&
+        statement.exportClause.elements.some(named)
+      ) {
+        report(
+          statement,
+          '`ApplicationLogger` no longer exists: this re-export has no replacement, remove it (`LoggerFactory` is the class)',
+        );
+      }
+
+      if (
+        typescript.isImportDeclaration(statement) &&
+        typescript.isStringLiteral(statement.moduleSpecifier) &&
+        LoggerScopeRewriter.MODULES.includes(statement.moduleSpecifier.text)
+      ) {
+        const bindings = statement.importClause?.namedBindings;
+        const isNamed = bindings && typescript.isNamedImports(bindings);
+        const isTypeImport = statement.importClause?.isTypeOnly === true;
+        const typed =
+          isNamed &&
+          bindings.elements.some(
+            (element) => named(element) && (isTypeImport || element.isTypeOnly),
+          );
+
+        if (typed) {
+          report(
+            statement,
+            '`ApplicationLogger` no longer exists: this type-only import has no replacement, use the type of what `LoggerFactory.getLogger` returns (`ILogger`)',
+          );
+        }
+      }
+    }
+  }
+
+  /** Where `LoggerFactory` stands in the file: imported from a listed module (under which local name), or a name clash. */
+  private static findFactory(opts: { typescript: TTypeScript; sourceFile: ts.SourceFile }): {
+    local?: string;
+    collision?: ts.Node;
+  } {
+    const { typescript, sourceFile } = opts;
+    const found: { local?: string; collision?: ts.Node } = {};
+
+    for (const statement of sourceFile.statements) {
+      if (typescript.isImportDeclaration(statement)) {
+        const bindings = statement.importClause?.namedBindings;
+        if (!bindings || !typescript.isNamedImports(bindings)) {
+          continue;
+        }
+
+        for (const element of bindings.elements) {
+          if ((element.propertyName ?? element.name).text !== LoggerScopeRewriter.TARGET_NAME) {
+            continue;
+          }
+
+          const isListed =
+            typescript.isStringLiteral(statement.moduleSpecifier) &&
+            LoggerScopeRewriter.MODULES.includes(statement.moduleSpecifier.text);
+          if (isListed) {
+            found.local = element.name.text;
+          } else {
+            found.collision = element;
+          }
+        }
+        continue;
+      }
+
+      const isNamedDeclaration =
+        (typescript.isClassDeclaration(statement) ||
+          typescript.isFunctionDeclaration(statement) ||
+          typescript.isInterfaceDeclaration(statement) ||
+          typescript.isTypeAliasDeclaration(statement)) &&
+        statement.name?.text === LoggerScopeRewriter.TARGET_NAME;
+      const isNamedVariable =
+        typescript.isVariableStatement(statement) &&
+        statement.declarationList.declarations.some(
+          (declaration) =>
+            typescript.isIdentifier(declaration.name) &&
+            declaration.name.text === LoggerScopeRewriter.TARGET_NAME,
+        );
+
+      if (isNamedDeclaration || isNamedVariable) {
+        found.collision = statement;
+      }
+    }
+
+    return found;
+  }
+
+  /** Every use of the removed class that is not a call this run rewrote (a type, a value, an export) is listed. */
+  private static reportLeftovers(opts: {
+    typescript: TTypeScript;
+    sourceFile: ts.SourceFile;
+    locals: ILocals;
+    rewrittenOwners: Set<ts.Node>;
+    report: (node: ts.Node, reason: string) => void;
+  }): void {
+    const { typescript, sourceFile, locals, rewrittenOwners, report } = opts;
+
+    const visit = (node: ts.Node): void => {
+      if (typescript.isIdentifier(node) && !rewrittenOwners.has(node)) {
+        const parent = node.parent;
+        const isImportName = typescript.isImportSpecifier(parent);
+        const isProperty = typescript.isPropertyAccessExpression(parent) && parent.name === node;
+        const isLocal = locals.named.has(node.text);
+
+        if (isLocal && !isImportName && !isProperty) {
+          report(
+            node,
+            '`ApplicationLogger` no longer exists and this use is not a call the codemod rewrites: change it by hand (`LoggerFactory` is the class, `ILogger` the type of a logger)',
+          );
+        }
+      }
+
+      if (
+        typescript.isPropertyAccessExpression(node) &&
+        node.name.text === LoggerScopeRewriter.CLASS_NAME &&
+        typescript.isIdentifier(node.expression) &&
+        locals.namespaces.has(node.expression.text) &&
+        !rewrittenOwners.has(node)
+      ) {
+        report(
+          node,
+          '`ApplicationLogger` no longer exists and this use is not a call the codemod rewrites: change it by hand',
+        );
+      }
+
+      typescript.forEachChild(node, visit);
+    };
+    visit(sourceFile);
   }
 
   /** How many identifiers named `name` the file holds, the import specifier included. */

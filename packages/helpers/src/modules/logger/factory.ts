@@ -38,7 +38,12 @@ class LoggerDelegator extends AbstractLogger {
     return this._delegate;
   }
 
+  /** The level the application set, else the shared debug gate for `debug`: a provider that has no gate of its own is gated the same way. */
   private isEnabled(level: TLogLevel): boolean {
+    if (level === LogLevels.DEBUG && !LoggerDebugGate.isOpen()) {
+      return false;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const threshold = LoggerFactory.currentLevel();
     return threshold === undefined || LogLevels.isEnabled({ level, threshold });
@@ -101,19 +106,19 @@ const GENERATION_SLOT = Symbol.for('ignis:logger-generation');
  * node, so it is part of the browser-pure `core` entry.
  */
 export class LoggerFactory {
-  private static provider?: ILoggerProvider;
   private static cache = new Map<string, LoggerDelegator>();
 
   /**
    * Choose the application's provider and/or the level. A provider re-points every wrapper issued so far. The level
    * (a `LogLevels` value the application passes) is applied by the wrapper to every provider alike, and it also
    * decides whether `debug` lines are written at all: `debug` turns the gate on, anything above it turns it off,
-   * whatever the environment says.
+   * whatever the environment says. A level that is not a `LogLevels` value (a typo, an uppercase name from the
+   * environment) is ignored: it must never open debug.
    */
   static use(opts: { provider?: ILoggerProvider; level?: TLogLevel }): void {
     const { provider, level } = opts;
 
-    if (level !== undefined) {
+    if (level !== undefined && LogLevels.isValid(level)) {
       Reflect.set(globalThis, LEVEL_SLOT, level);
       LoggerDebugGate.force({
         isOpen: LogLevels.isEnabled({ level: LogLevels.DEBUG, threshold: level }),
@@ -124,7 +129,6 @@ export class LoggerFactory {
       return;
     }
 
-    this.provider = provider;
     Reflect.set(globalThis, PROVIDER_SLOT, provider);
     this.bumpGeneration();
     for (const wrapper of this.cache.values()) {
@@ -141,12 +145,12 @@ export class LoggerFactory {
 
   /** Whether an application (or a framework default through `useUnlessChosen`) has chosen a provider. */
   static isChosen(): boolean {
-    return this.provider !== undefined || this.sharedProvider() !== undefined;
+    return this.sharedProvider() !== undefined;
   }
 
-  /** The slot first: it holds the latest choice of any copy, and a copy's own `provider` may be older. */
+  /** The slot is the only record of the choice, so a `use()` or a `reset()` in any copy of the module is seen by all. */
   static currentProvider(): ILoggerProvider {
-    return this.sharedProvider() ?? this.provider ?? ConsoleLogger;
+    return this.sharedProvider() ?? ConsoleLogger;
   }
 
   /** Moves whenever a provider is chosen or reset, in any copy: a wrapper that cached its logger takes it again. */
@@ -165,7 +169,7 @@ export class LoggerFactory {
     return level;
   }
 
-  /** The provider another copy of this module chose, if any. */
+  /** The provider chosen by any copy of this module, if any. */
   private static sharedProvider(): ILoggerProvider | undefined {
     const shared: ILoggerProvider | undefined = Reflect.get(globalThis, PROVIDER_SLOT);
     return shared;
@@ -173,7 +177,6 @@ export class LoggerFactory {
 
   /** Back to the default provider and no level, and every wrapper takes the console again: for a test, or a host that starts over. */
   static reset(): void {
-    this.provider = undefined;
     Reflect.deleteProperty(globalThis, PROVIDER_SLOT);
     Reflect.deleteProperty(globalThis, LEVEL_SLOT);
     LoggerDebugGate.force({ isOpen: undefined });

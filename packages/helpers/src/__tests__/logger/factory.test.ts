@@ -290,3 +290,38 @@ describe('LoggerFactory.reset', () => {
     expect(LoggerDebugGate.isOpen()).toBe(LoggerDebugGate.evaluate({ env: process.env }));
   });
 });
+
+describe('LoggerFactory.use - a level that is not a LogLevels value', () => {
+  test('is ignored: it sets no threshold and never opens debug', () => {
+    LoggerDebugGate.force({ isOpen: false });
+
+    for (const level of ['WARN', 'trace', 'verbose', '']) {
+      LoggerFactory.use({ level: level as TLogLevel });
+
+      expect(LoggerFactory.currentLevel()).toBeUndefined();
+      expect(LoggerDebugGate.isOpen()).toBe(false);
+    }
+  });
+
+  test('a valid level after an invalid one still takes effect', () => {
+    LoggerFactory.use({ level: 'trace' as TLogLevel });
+    LoggerFactory.use({ level: LogLevels.WARN });
+
+    expect(LoggerFactory.currentLevel()).toBe(LogLevels.WARN);
+    expect(LoggerDebugGate.isOpen()).toBe(false);
+  });
+});
+
+describe('LoggerFactory - the delegator gates debug for a provider that has no gate of its own', () => {
+  test('with the gate closed, debug never reaches the provider; the other levels do', () => {
+    LoggerDebugGate.force({ isOpen: false });
+    LoggerFactory.use({ provider: RecordingProviderLogger });
+
+    const logger = LoggerFactory.getLogger(['Gated']);
+    logger.debug('hidden');
+    logger.log(LogLevels.DEBUG, 'hidden too');
+    logger.info('kept');
+
+    expect(RecordingProviderLogger.writes.map((write) => write.message)).toEqual(['kept']);
+  });
+});

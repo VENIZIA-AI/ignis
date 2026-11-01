@@ -76,8 +76,9 @@ describe('BaseHelper.logger', () => {
     expect(recorder.lines).toEqual(['Probe-one|info|after', 'Probe-one-method|info|child after']);
   });
 
-  test('with no level set, an upgraded logger passes every line on, so the provider gates debug itself', () => {
+  test('with no level set, an upgraded logger passes every line except debug while the gate is closed', () => {
     silence('debug');
+    LoggerDebugGate.force({ isOpen: false });
     const helper = new ProbeHelper();
     const early = helper.logger;
     const child = early.for('method');
@@ -88,11 +89,19 @@ describe('BaseHelper.logger', () => {
     child.emerg('child');
     early.log(LogLevels.WARN, 'dynamic');
 
-    expect(recorder.lines).toEqual([
-      'Probe-one|debug|direct',
-      'Probe-one-method|emerg|child',
-      'Probe-one|log:warn|dynamic',
-    ]);
+    expect(recorder.lines).toEqual(['Probe-one-method|emerg|child', 'Probe-one|log:warn|dynamic']);
+  });
+
+  test('with no level set and the gate open, debug reaches the provider too', () => {
+    silence('debug');
+    LoggerDebugGate.force({ isOpen: true });
+    const early = new ProbeHelper().logger;
+
+    const recorder = buildRecorder();
+    LoggerFactory.use({ provider: recorder.provider });
+    early.debug('direct');
+
+    expect(recorder.lines).toEqual(['Probe-one|debug|direct']);
   });
 
   test('reading logger off a prototype neither throws nor pins it there', () => {
