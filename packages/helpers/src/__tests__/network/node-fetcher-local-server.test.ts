@@ -70,13 +70,15 @@ describe('NodeFetchNetworkRequest against a local server', () => {
   test('a timeout aborts a slow response', async () => {
     const request = buildRequest();
 
-    const outcome = await request
-      .getNetworkService()
-      .get({ url: request.getRequestUrl({ paths: ['slow'] }), timeout: 30 })
-      .then(
-        () => 'answered',
-        () => 'aborted',
-      );
+    let outcome = 'answered';
+    try {
+      await request
+        .getNetworkService()
+        .get({ url: request.getRequestUrl({ paths: ['slow'] }), timeout: 30 });
+    } catch (error) {
+      expect(error).toBeDefined();
+      outcome = 'aborted';
+    }
 
     expect(outcome).toBe('aborted');
   });
@@ -92,10 +94,13 @@ describe('NodeFetchNetworkRequest against a local server', () => {
 
     controller.abort();
 
-    const outcome = await pending.then(
-      () => 'answered',
-      () => 'aborted',
-    );
+    let outcome = 'answered';
+    try {
+      await pending;
+    } catch (error) {
+      expect(error).toBeDefined();
+      outcome = 'aborted';
+    }
 
     expect(outcome).toBe('aborted');
   });

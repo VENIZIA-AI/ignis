@@ -239,9 +239,12 @@ describe('OpaqueUidHelper - isAvailable', () => {
   });
 
   test('an async check that never accepts rejects instead of looping forever', async () => {
-    const failure = await new OpaqueUidHelper()
-      .nextId({ isAvailable: async () => false, maxAttempts: 3 })
-      .catch((error: unknown) => error);
+    let failure: unknown;
+    try {
+      await new OpaqueUidHelper().nextId({ isAvailable: async () => false, maxAttempts: 3 });
+    } catch (error) {
+      failure = error;
+    }
 
     expect(String(failure)).toContain('No available id after 3 attempts');
   });

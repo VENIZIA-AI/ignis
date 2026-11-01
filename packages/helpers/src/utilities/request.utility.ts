@@ -200,6 +200,7 @@ export class RequestUtility {
 
       try {
         return { type, filename: decodeURIComponent(encoded) };
+        // eslint-disable-next-line venizia/no-silent-catch -- a malformed `filename*` falls through to the plain `filename` parameter; only the extended name is lost
       } catch {
         // A malformed sequence is not worth failing a download over - fall through to `filename`.
       }

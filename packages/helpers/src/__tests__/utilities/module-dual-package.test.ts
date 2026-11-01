@@ -82,9 +82,12 @@ describe('ModuleUtility - a peer that ships an ES module and a CommonJS build', 
   test('preload of a module that is not installed throws the actionable error and registers nothing', async () => {
     useRoot();
 
-    const error = await ModuleUtility.preload({
-      modules: [name, '@definitely/not-installed'],
-    }).catch((caught: unknown) => caught);
+    let error: unknown;
+    try {
+      await ModuleUtility.preload({ modules: [name, '@definitely/not-installed'] });
+    } catch (caught) {
+      error = caught;
+    }
 
     expect(String(error)).toContain("Please install '@definitely/not-installed'");
     expect(ModuleUtility.loadSync<{ flavour: string }>({ module: name }).flavour).toBe('cjs');
