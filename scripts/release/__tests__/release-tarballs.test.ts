@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { tarballUrl, waitForTarball, waitForTarballs } from '../release-tarballs';
+import { ReleaseTarballs } from '../release-tarballs';
 
 /** A registry that answers 404 `misses` times for a URL, then 200. */
 const fakeRegistry = (opts: { misses: Record<string, number> }) => {
@@ -20,23 +20,23 @@ const fakeRegistry = (opts: { misses: Record<string, number> }) => {
 
 const noSleep = async () => {};
 
-describe('tarballUrl', () => {
+describe('ReleaseTarballs.getUrl', () => {
   test('names the file by the unscoped package name', () => {
-    expect(tarballUrl({ packageName: '@venizia/ignis-kernel', version: '0.4.5' })).toBe(
+    expect(ReleaseTarballs.getUrl({ packageName: '@venizia/ignis-kernel', version: '0.4.5' })).toBe(
       'https://registry.npmjs.org/@venizia/ignis-kernel/-/ignis-kernel-0.4.5.tgz',
     );
-    expect(tarballUrl({ packageName: '@venizia/ignis', version: '0.4.5' })).toBe(
+    expect(ReleaseTarballs.getUrl({ packageName: '@venizia/ignis', version: '0.4.5' })).toBe(
       'https://registry.npmjs.org/@venizia/ignis/-/ignis-0.4.5.tgz',
     );
   });
 });
 
-describe('waitForTarball', () => {
+describe('ReleaseTarballs.waitFor', () => {
   test('keeps asking through two 404s and returns on the first 200', async () => {
-    const url = tarballUrl({ packageName: '@venizia/ignis', version: '0.4.5' });
+    const url = ReleaseTarballs.getUrl({ packageName: '@venizia/ignis', version: '0.4.5' });
     const registry = fakeRegistry({ misses: { [url]: 2 } });
 
-    await waitForTarball({
+    await ReleaseTarballs.waitFor({
       packageName: '@venizia/ignis',
       version: '0.4.5',
       fetchFn: registry.fetchFn,
@@ -49,7 +49,7 @@ describe('waitForTarball', () => {
   test('a dropped connection means "not yet", not a failure', async () => {
     let calls = 0;
 
-    await waitForTarball({
+    await ReleaseTarballs.waitFor({
       packageName: '@venizia/ignis',
       version: '0.4.5',
       fetchFn: async () => {
@@ -67,7 +67,7 @@ describe('waitForTarball', () => {
   });
 
   test('gives up after the attempts and names the package and the version', async () => {
-    const error = await waitForTarball({
+    const error = await ReleaseTarballs.waitFor({
       packageName: '@venizia/ignis',
       version: '0.4.5',
       fetchFn: async () => ({ ok: false, status: 404 }),
@@ -80,12 +80,12 @@ describe('waitForTarball', () => {
   });
 });
 
-describe('waitForTarballs', () => {
+describe('ReleaseTarballs.waitForAll', () => {
   test('resolves only when every package of the train answers 200', async () => {
-    const slow = tarballUrl({ packageName: '@venizia/ignis-kernel', version: '0.4.5' });
+    const slow = ReleaseTarballs.getUrl({ packageName: '@venizia/ignis-kernel', version: '0.4.5' });
     const registry = fakeRegistry({ misses: { [slow]: 3 } });
 
-    await waitForTarballs({
+    await ReleaseTarballs.waitForAll({
       packages: [
         { packageName: '@venizia/ignis-helpers', version: '0.4.5' },
         { packageName: '@venizia/ignis-kernel', version: '0.4.5' },
@@ -100,7 +100,7 @@ describe('waitForTarballs', () => {
   });
 
   test('rejects when one package never answers, naming it', async () => {
-    const error = await waitForTarballs({
+    const error = await ReleaseTarballs.waitForAll({
       packages: [
         { packageName: '@venizia/ignis-helpers', version: '0.4.5' },
         { packageName: '@venizia/ignis', version: '0.4.5' },

@@ -20,14 +20,14 @@
  * defines (a patch promotes every prerelease, a minor or a major moves all nine); no package is named for it.
  */
 
-import { parseReleaseArgs } from './release-args';
+import { ReleaseArgs } from './release-args';
 import { ReleaseDispatch } from './release-dispatch';
 import { ReleaseModes, ReleaseOrder } from './release-constants';
 import { ReleaseKinds, ReleaseTargets } from './release-kind';
-import { planFullSweep } from './release-plan';
+import { ReleasePlan } from './release-plan';
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
-import { type IPublishedPackage, waitForTarballs } from './release-tarballs';
-import { type IRunStatus, watchRun } from './release-watch';
+import { type IPublishedPackage, ReleaseTarballs } from './release-tarballs';
+import { type IRunStatus, ReleaseWatch } from './release-watch';
 
 interface IPackageState {
   name: string;
@@ -252,7 +252,7 @@ const waitForNewRun = async (opts: { previousRunId: string }): Promise<string> =
 
 /** Watches the run to its end. A run that waits for an approval is waited for, with no deadline, and said so once. */
 const waitForCompletion = (opts: { runId: string }): Promise<string> =>
-  watchRun({
+  ReleaseWatch.run({
     view: async () => {
       const { stdout } = await run({
         command: ['gh', 'run', 'view', opts.runId, '--json', 'status,conclusion'],
@@ -307,7 +307,7 @@ const main = async (): Promise<void> => {
     plan: planText,
     issue,
     named,
-  } = parseReleaseArgs(Bun.argv.slice(2));
+  } = ReleaseArgs.parse({ args: Bun.argv.slice(2) });
   const unknownNames = named.filter((name) => !ReleaseOrder.isKnown(name));
   if (unknownNames.length > 0) {
     throw new Error(
@@ -370,7 +370,7 @@ const main = async (): Promise<void> => {
     // behind keeps pointing at the old version and consumers install both copies.
     plan = states;
     if (requested.length === 0) {
-      const planned = planFullSweep({ packages: states });
+      const planned = ReleasePlan.planFullSweep({ packages: states });
       for (const entry of planned) {
         if (entry.cascadedFrom) {
           cascadedFrom.set(entry.name, entry.cascadedFrom);
@@ -489,7 +489,7 @@ const main = async (): Promise<void> => {
   // The workflow is green and the packument lists the versions, but a tarball can answer 404 for
   // minutes after that, and an install of the train fails in that window. Done means installable.
   console.log(`\n  waiting until all ${released.length} tarball(s) answer 200...`);
-  await waitForTarballs({ packages: released });
+  await ReleaseTarballs.waitForAll({ packages: released });
 
   console.log(`\n✓ Released ${plan.length} package(s); every tarball answers 200.`);
 };

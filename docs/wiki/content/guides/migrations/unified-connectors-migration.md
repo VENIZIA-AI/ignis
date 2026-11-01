@@ -102,7 +102,7 @@ All IGNIS examples now declare these explicitly.
 ## Rollout procedure (proven order)
 
 1. Bump `@venizia/ignis` -> `0.0.11-0` and `@venizia/ignis-helpers` -> `0.0.10-0` in ONE canary package first - `packages/commerce` is the recommended canary (heaviest transaction + ControllerFactory usage).
-2. Run migrations 1-3 on the canary; `tsc --noEmit` must be clean.
+2. Run migrations 1-3 on the canary; `bun check` must exit 0 (a failing run exits 1, so test for `!= 0`).
 3. Run the canary's test suite.
 4. Green -> apply migrations repo-wide, bump the remaining packages, full suite.
 

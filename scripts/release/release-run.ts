@@ -23,7 +23,7 @@ import { ReleaseKinds, ReleaseTargets, type TReleaseKind } from './release-kind'
 import { type IPlanEntry, ReleasePlanInput } from './release-plan-input';
 import { ReleaseRegistry } from './release-registry';
 import { ReleaseVersion } from './release-version';
-import { waitForTarball } from './release-tarballs';
+import { ReleaseTarballs } from './release-tarballs';
 
 export interface ICommandResult {
   stdout: string;
@@ -301,7 +301,7 @@ export class ReleaseRun {
     }
 
     // Trusted publishing: no token; npm signs in with the job's identity and writes the provenance.
-    // --ignore-scripts: the build already ran, so the prepublishOnly rebuild is skipped.
+    // --ignore-scripts: the build already ran, and a package script must not run in the publish job.
     const npmTag = ReleaseTargets.distTagOf({ version });
     try {
       await ports.run({
@@ -525,7 +525,7 @@ const realPorts = (): IReleasePorts => ({
     new Bun.CryptoHasher('sha256').update(await Bun.file(path).arrayBuffer()).digest('hex'),
   registry: {
     isPublished: (opts) => ReleaseRegistry.isPublished(opts),
-    waitForTarball: (opts) => waitForTarball(opts),
+    waitForTarball: (opts) => ReleaseTarballs.waitFor(opts),
   },
   log: (line) => {
     console.log(line);

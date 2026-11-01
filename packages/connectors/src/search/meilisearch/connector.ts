@@ -9,13 +9,14 @@ import type {
   ISearchSynonymScoped,
 } from '@/search/core';
 import { BaseSearchConnector } from '@/search/core';
+import { RecordUtility } from '@/common/internal';
 import { SearchConnectorInternal } from '@/search/core/internal';
 import type { ISynonym } from '@/search/core/models';
 import { getError, isApplicationError } from '@venizia/ignis-helpers/core';
 import { HTTP } from '@venizia/ignis-helpers/common';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
-import { adaptClient, isRecord, mapSearchResult, MeilisearchInternal } from './internal';
+import { MeilisearchInternal } from './internal';
 import type {
   IMeilisearchClientLike,
   IMeilisearchConnectorOptions,
@@ -57,7 +58,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         this.client = opts.client;
       } else {
         this.rawClient = new Meilisearch({ host: opts.host, apiKey: opts.apiKey });
-        this.client = adaptClient(this.rawClient);
+        this.client = MeilisearchInternal.adaptClient({ sdk: this.rawClient });
       }
 
       opts.onInitialized?.({ name: opts.name });
@@ -379,7 +380,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         const settings = await this.client.index(collection).getSettings();
         const dictionary = settings['synonyms'];
 
-        if (!isRecord(dictionary)) {
+        if (!RecordUtility.isRecord(dictionary)) {
           return [];
         }
 
@@ -655,7 +656,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     });
 
     for (const row of rows) {
-      if (isRecord(row) && row[primaryKey] !== undefined) {
+      if (RecordUtility.isRecord(row) && row[primaryKey] !== undefined) {
         ids.push(String(row[primaryKey]));
       }
     }
@@ -834,12 +835,12 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.search.name,
       run: async () => {
-        const wire = isRecord(params) ? params : {};
+        const wire = RecordUtility.isRecord(params) ? params : {};
         const { q, ...rest } = wire;
         const raw = await this.client
           .index(collection)
           .search(typeof q === 'string' && q !== '*' ? q : null, rest);
-        return mapSearchResult<TDocument>(raw);
+        return MeilisearchInternal.mapSearchResult<TDocument>({ raw });
       },
       tolerate: {
         when: (error) => MeilisearchInternal.isNotFoundError({ error }),
@@ -875,16 +876,19 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.multiSearch.name,
       run: () => {
-        const common = isRecord(commonParams) ? commonParams : {};
+        const common = RecordUtility.isRecord(commonParams) ? commonParams : {};
 
-        const queries = searches.filter(isRecord).map((entry) => {
+        const queries = searches.filter(RecordUtility.isRecord).map((entry) => {
           const { collection, ...rest } = entry;
 
           // `common` first: a per-query param overrides the shared default, never the reverse.
           return { indexUid: collection, q: '', ...common, ...rest };
         });
 
-        return this.client.multiSearch({ queries, ...(isRecord(options) ? options : {}) });
+        return this.client.multiSearch({
+          queries,
+          ...(RecordUtility.isRecord(options) ? options : {}),
+        });
       },
     });
 
@@ -905,7 +909,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.resolvePrimaryKey.name,
       run: () => this.client.getIndex(collection),
     });
-    const primaryKey = isRecord(index) ? index['primaryKey'] : undefined;
+    const primaryKey = RecordUtility.isRecord(index) ? index['primaryKey'] : undefined;
 
     if (typeof primaryKey !== 'string' || primaryKey.length === 0) {
       throw getError({

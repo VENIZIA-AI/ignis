@@ -136,7 +136,7 @@ See the [Full reference](/extensions/helpers/types/reference) for every type, re
 
 - [Full reference](/extensions/helpers/types/reference) - every type, resolver, and constant class
 - [Dependency Injection](/guides/core-concepts/dependency-injection) - `TInjectionGetter` and DI-adjacent types in use
-- [Repository Mixins](/references/base/repositories/mixins) - `TMixinTarget` in use
+- [Advanced Patterns](/best-practices/code-style-standards/advanced-patterns) - `TMixinTarget` in use
 - [Helpers Overview](/extensions/helpers/) - all available helpers
 
 **Files:**
