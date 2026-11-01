@@ -30,7 +30,7 @@ tags: [conventions, gotchas, debugging]
 - [`bun build` folds `process.env.NODE_ENV` into the BUILD machine's value](#bun-build-folds-processenvnode_env-into-the-build-machines-value)
 - [A published env name nobody reads is worse than no name at all](#a-published-env-name-nobody-reads-is-worse-than-no-name-at-all)
 - [The health-check `stats` route is a security default, and `enable` overrides it silently](#the-health-check-stats-route-is-a-security-default-and-enable-overrides-it-silently)
-- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [Compiled binaries: renamed classes, two module copies](#compiled-binaries-renamed-classes-two-module-copies)
 - [A self-refreshing cache must gate its retry on the last attempt, not the last success](#a-self-refreshing-cache-must-gate-its-retry-on-the-last-attempt-not-the-last-success)
 - [A const-value alias without the empty intersection widens to string](#a-const-value-alias-without-the-empty-intersection-widens-to-string)
 - [bun-types 1.4 types binary data as typed arrays and DataView, never a bare ArrayBufferView](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
@@ -87,7 +87,7 @@ Traps worth knowing before you hit them yourself. Look for yours here first.
 - [A type used on a decorated member must come from `import type`](#under-bun-runs-source-a-type-used-on-a-decorated-member-must-come-from-import-type)
 - [A dynamic `import('./own-module')` bundles the barrel with undefined exports](#a-dynamic-importown-module-in-library-code-makes-bun-bundle-the-barrel-with-undefined-exports)
 - [`bun build` folds `process.env.NODE_ENV` into the build machine's value](#bun-build-folds-processenvnodeenv-into-the-build-machines-value)
-- [Compiled binaries: renamed classes, two module copies, no default logger](#compiled-binaries-renamed-classes-two-module-copies-no-default-logger)
+- [Compiled binaries: renamed classes, two module copies](#compiled-binaries-renamed-classes-two-module-copies)
 - [bun-types never accepts a bare `ArrayBufferView`](#bun-types-14-types-binary-data-as-typed-arrays-and-dataview-never-a-bare-arraybufferview)
 
 **DI and decorators**
@@ -303,7 +303,7 @@ move `isApplicationError` already makes for `ApplicationError`, and `isRedisHelp
 Worker are separate realms and still get one registry each, which is correct - they run separate
 applications.
 
-The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider, `applicationEnvironment`
+The same rule holds in helpers, which has no `SingletonRealm`: `LoggerFactory`'s provider and level, `applicationEnvironment`
 and `ModuleUtility`'s registry each live in a `globalThis` slot keyed `Symbol.for('ignis:<name>')` (2026-09-06;
 two of the three were bare module instances before, and a consumer's `AppEnvs.set()` in one copy was invisible to
 the other). A new module-level singleton in helpers follows the same shape, and its test loads the module
@@ -492,7 +492,7 @@ The two ways to get it wrong are opposites, which is the whole trap:
 The closed-by-default shape is `stats: { enable: Boolean(secretKey), secretKey }` - a host with no
 key never mounts the route, and nothing depends on `NODE_ENV`.
 
-## Compiled binaries: renamed classes, two module copies, no default logger
+## Compiled binaries: renamed classes, two module copies
 
 - bun renames a decorated class expression that shadows its own variable - tsc emits
   `let X = X_1 = class X` for every decorated class - so `X.name` becomes `X_1` under
@@ -505,9 +505,10 @@ key never mounts the route, and nothing depends on `NODE_ENV`.
   from a string. `--minify` (identifiers) turns names into `Aw`/`Iw` - use
   `--minify-whitespace --minify-syntax`.
 - If the bundle holds two copies of helpers (two installed versions), `LoggerFactory` keeps the provider
-  in `globalThis[Symbol.for('ignis:logger-provider')]` so `use()` in one copy is seen by the other. Register a provider at the entrypoint
-  (`LoggerFactory.use({ provider: WinstonLogger })`): the winston default is loaded with
-  `createRequire('./winston')`, which cannot resolve inside a binary.
+  and the level in `globalThis[Symbol.for('ignis:logger-provider')]` and `...('ignis:logger-level')` so `use()`
+  in one copy is seen by the other. A binary needs no `use()`: the console is the default and `@venizia/ignis`
+  selects Winston through an import the bundler sees. Name a class (`LoggerFactory.use({ provider: PinoLogger })`)
+  only to choose another provider.
 - Proof recipe: run the binary with `APP_ENV_POSTGRES_HOST=127.0.0.1 APP_ENV_POSTGRES_PORT=1`. It
   must reach `postConfigure` and fail with `ECONNREFUSED`, never at import.
 

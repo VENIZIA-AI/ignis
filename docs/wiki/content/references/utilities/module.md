@@ -131,7 +131,7 @@ Or hand the module to the one helper: `new BullMQHelper({ ..., module: await imp
 - **`assertInstalled` never executes the module** - it only locates the file. Reach for it when you want to fail at startup rather than on first use.
 - **Call it once, at startup, not per request.** Place it in an initialisation hook (`configure`, `binding`, `boot`).
 - **`register` wins over the filesystem.** `load` and `loadSync` check the registry first, so a registered peer is never resolved. `assertInstalled` ignores the registry unless you set `allowRegistered`.
-- **`register` never logs.** It runs at the entrypoint of a compiled binary, which is exactly where no logger provider exists yet.
+- **`register` never logs.** It runs at the entrypoint of a compiled binary, which is exactly where the application has not chosen a logger yet.
 - **Recommended pattern:** declare the dependency in `peerDependenciesMeta` with `optional: true`, then load it through `ModuleUtility` and pass the feature or class name as `scope` so the thrown message pinpoints the caller.
 
 ## See also

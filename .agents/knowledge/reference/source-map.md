@@ -34,12 +34,12 @@ generated:
 | `raw-sql/` | 5 |
 | `testing/` | 2 |
 
-## core-server  (206 source files)
+## core-server  (207 source files)
 
 | Subsystem | Files |
 |---|---|
 | `components/` | 160 |
-| `base/` | 21 |
+| `base/` | 22 |
 | `connectors/` | 14 |
 | `common/` | 3 |
 | `utilities/` | 3 |
@@ -71,11 +71,11 @@ generated:
 | `schemas/` | 4 |
 | `common/` | 3 |
 
-## helpers  (305 source files)
+## helpers  (304 source files)
 
 | Subsystem | Files |
 |---|---|
-| `modules/` | 273 |
+| `modules/` | 272 |
 | `common/` | 17 |
 | `utilities/` | 11 |
 

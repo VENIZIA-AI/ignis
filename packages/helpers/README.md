@@ -12,7 +12,7 @@ The root entry loads with no optional peer installed. Every third-party backend 
 
 ## Example
 
-Register a logger provider once at the entrypoint, then take scoped loggers and helpers anywhere:
+Choose a logger provider once at the entrypoint, then take scoped loggers and helpers anywhere:
 
 ```typescript
 // bun add pino ioredis
@@ -37,7 +37,7 @@ const user = await redis.get({ key: 'user:1', transform: JSON.parse });
 logger.for('warmup').info('Cache warmed | user: %j', user);
 ```
 
-Notice that your code only ever types against `ILogger`. `LoggerFactory.use()` swaps the backend for every logger handed out so far. With no provider registered, the factory falls back to winston on the first log call.
+Notice that your code only ever types against `ILogger`. `LoggerFactory.use()` swaps the backend for every logger handed out so far. With no provider chosen, the factory uses the console; `@venizia/ignis` selects Winston when an application starts.
 
 Dates and IDs need no peer at all:
 
@@ -90,7 +90,7 @@ import { ModuleUtility } from '@venizia/ignis-helpers';
 ModuleUtility.register({ modules: { ioredis } });
 ```
 
-A binary must also call `LoggerFactory.use()` explicitly - the winston fallback cannot reach a bundle. Details: [Module Utility](https://ignis.venizia.ai/references/utilities/module).
+A binary needs no `LoggerFactory.use()`: the console is the default logger. Details: [Module Utility](https://ignis.venizia.ai/references/utilities/module).
 
 ## Where it sits
 

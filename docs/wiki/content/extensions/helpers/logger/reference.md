@@ -19,11 +19,11 @@ Several functions on this page moved into classes. The old function names are re
 | `defineJsonLoggerFormatter(opts)`, `defineLogFormatter(opts)`, `definePrettyLoggerFormatter(opts)` | `WinstonFormatFactory.json(opts)`, `.log(opts)`, `.pretty(opts)` |
 | `resolveDefaultTransportOptions()` | `WinstonLoggerFactory.resolveDefaultTransportOptions()` |
 | `deepSplat()` | `WinstonFormatFactory.deepSplat()` |
-| `ApplicationLogger.get('scope')` | `ApplicationLogger.get({ scope: 'scope' })`; the string form is gone |
+| `ApplicationLogger.get('scope')`, `.get({ scope: 'scope' })` | `LoggerFactory.getLogger(['scope'])`; `ApplicationLogger` is removed |
 
 `WinstonLoggerFactory` and `WinstonFormatFactory` are exported from `@venizia/ignis-helpers/winston`; `LoggerConfigUtility` and `LogFormatUtility` from `@venizia/ignis-helpers`. `PinoBackingLogger` and `PinoDestination` are exported from `@venizia/ignis-helpers/pino`.
 
-The default provider is **Winston**, paired with `winston-daily-rotate-file` for file rotation. All provider packages are OPTIONAL peers. An application loads exactly ONE provider - see [single-provider loading](#architecture-and-ilogger) below.
+The default provider is the **console** (`ConsoleLogger`). `@venizia/ignis` selects **Winston**, paired with `winston-daily-rotate-file` for file rotation, when an application starts, unless the application chose a provider. Winston and Pino packages are OPTIONAL peers. An application loads exactly ONE provider - see [single-provider loading](#architecture-and-ilogger) below.
 
 **Files:**
 
@@ -38,13 +38,15 @@ The default provider is **Winston**, paired with `winston-daily-rotate-file` for
 - [`packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts) - `DgramTransport`
 - [`packages/helpers/src/modules/logger/hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts) - `HfLogger`
 - [`packages/helpers/src/modules/logger/hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts) - `HfLogFlusher`
-- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`, `ApplicationLogger`
+- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`
+- [`packages/helpers/src/modules/logger/base/console.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/console.ts) - `ConsoleLogger`, the default provider
+- [`packages/helpers/src/modules/logger/common/debug-gate.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/debug-gate.ts) - `LoggerDebugGate`
 
 ## Find what you need
 
 | You want to | Go to |
 |---|---|
-| See how provider registration and delegation work | [Architecture and ILogger](#architecture-and-ilogger) |
+| See how provider choice and delegation work | [Architecture and ILogger](#architecture-and-ilogger) |
 | Import the right class from the right sub-path | [Import paths](#import-paths) |
 | Get or cache a scoped logger instance | [Creating an Instance](#creating-an-instance) |
 | Know what each log level means and when to use it | [What each level means](#what-each-level-means) |
@@ -61,25 +63,28 @@ The default provider is **Winston**, paired with `winston-daily-rotate-file` for
 The module follows IGNIS's house format - one folder per concern:
 
 - `common/` - the contract
-- `base/` - provider-independent plumbing
-- `winston/` - the built-in provider
+- `base/` - provider-independent plumbing and the default `ConsoleLogger`
+- `winston/` - the server's provider
 - `hf/` - the separate high-frequency logger
 - `factory.ts` - the single acquisition path
 
 ```
 ILogger (interface)                common/types.ts
   └─ AbstractLogger (abstract)     base/abstract.ts    - the contract as a class, for `instanceof`
+       ├─ ConsoleLogger            base/console.ts      - the default provider, browser-safe
        └─ BaseLogger (abstract)    base/base.ts         - scope, prefix, DEBUG gate, .for(), one write() sink
-            ├─ WinstonLogger       winston/logger.ts      - the built-in provider (default)
+            ├─ WinstonLogger       winston/logger.ts      - the server's provider, selected by @venizia/ignis
             └─ PinoLogger          pino/logger.ts          - sub-path @venizia/ignis-helpers/pino
 ```
 
 - **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
-- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers. The registration is stored on `globalThis` under `Symbol.for('ignis:logger-provider')`, so a bundle that carries two copies of `@venizia/ignis-helpers` still sees one provider. A compiled binary must call `use()` at its entrypoint: the winston default is loaded with `createRequire`, which cannot resolve inside a binary.
+- **Provider choice.** `LoggerFactory.use({ provider, level })` chooses the application's provider and level; both fields are optional. The default provider is `ConsoleLogger`. The factory hands out stable delegating wrappers. The choice is stored on `globalThis` under `Symbol.for('ignis:logger-provider')` (the level under `Symbol.for('ignis:logger-level')`), so a bundle that carries two copies of `@venizia/ignis-helpers` still sees one provider.
 - **`use()` re-points every wrapper, even ones captured at import time.** The per-call cost after that: one property read (measured ~0ns).
-- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston.
-- **The winston default loads only when `use()` was never called first.** It requires the winston peers installed: `bun add winston winston-transport winston-daily-rotate-file`.
-- **Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly.** Only a class reference carries a provider into a bundle.
+- **`level` is applied by the wrapper.** `level` is a `LogLevels` value. The wrapper drops a line below it before the provider sees it, so Console, Winston and Pino agree. Without `level`, each provider applies its own gate. `LoggerFactory.reset()` goes back to the console and no level.
+- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that chooses pino at its entrypoint never loads winston.
+- **`@venizia/ignis` selects Winston at `initialize()`.** It does so unless the application already chose a provider (`LoggerFactory.useUnlessChosen`). It requires the winston peers installed: `bun add winston winston-transport winston-daily-rotate-file`. Without them the console stays.
+- **Compiled binaries (`bun build --compile`) need no mandatory `use()`.** The console is the default, and the Winston choice is a static import in `@venizia/ignis` that the bundler sees. A script that imports only helpers gets the console and calls `use({ provider })` to choose Pino or Winston.
+- **`ConsoleLogger` and `LoggerFactory` are exported from `@venizia/ignis-helpers/core`**, which is browser-pure: `LoggerFactory` imports nothing from node.
 - **Both providers are sub-path only**: `WinstonLogger` at `@venizia/ignis-helpers/winston`, `PinoLogger` at `@venizia/ignis-helpers/pino` ([guide](/extensions/helpers/logger/pino)). The root barrel is provider-free - importing it loads neither.
 
 **Which names follow `use()`:**
@@ -87,16 +92,16 @@ ILogger (interface)                common/types.ts
 | Name | Is | Follows `use()`? |
 |---|---|---|
 | `LoggerFactory.getLogger()` / `BaseHelper.logger` | delegating wrapper | YES |
-| `ApplicationLogger.get()` | facade over the factory; type = `ILogger` | YES |
 | `Logger` / `Logger.get(scope, customWinston?)` | concrete `WinstonLogger` (instanceof, custom winston instances) | NO - names winston deliberately |
-| `WinstonLogger` / `PinoLogger` | concrete providers | are the targets |
+| `ConsoleLogger` / `WinstonLogger` / `PinoLogger` | concrete providers | are the targets |
 
 ## Quick Reference
 
 | Class | Extends | Use Case |
 |-------|---------|----------|
 | `Logger` | `BaseLogger` -> `AbstractLogger` (`ILogger`) | General-purpose scoped logger with caching (permanent alias of `WinstonLogger`) |
-| `LoggerFactory` | - | Provider registration (`use`) + `ILogger` acquisition from scope arrays |
+| `LoggerFactory` | - | Provider and level choice (`use`) + `ILogger` acquisition from scope arrays |
+| `ConsoleLogger` | `AbstractLogger` (`ILogger`) | The default provider; writes to the console, works in a browser |
 | `PinoLogger` | `BaseLogger` (`ILogger`) | Throughput provider - NDJSON, sub-path only ([guide](/extensions/helpers/logger/pino)) |
 | `HfLogger` | `AbstractLogger` (`ILogger`) | Ring-buffer logger for hot paths - bytes path ~59ns, string no-args path ~66ns |
 | `HfLogFlusher` | - | Background flusher for `HfLogger` entries |
@@ -106,8 +111,11 @@ ILogger (interface)                common/types.ts
 
 ```typescript
 // Core classes - provider-neutral, root barrel
-import { LoggerFactory, ApplicationLogger } from '@venizia/ignis-helpers';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 import type { ILogger } from '@venizia/ignis-helpers';
+
+// Browser-pure - the same factory and the default console provider, from the core entry
+import { LoggerFactory, ConsoleLogger, LogLevels } from '@venizia/ignis-helpers/core';
 
 // Abstract tiers - implementing ILogger yourself, or instanceof checks
 import { AbstractLogger, BaseLogger } from '@venizia/ignis-helpers';
@@ -209,20 +217,27 @@ const custom2 = Logger.get('MyService', customWinstonLogger);
 // custom1 !== custom2 (fresh wrapper each call, same backing Winston instance)
 ```
 
-### ApplicationLogger - the provider-following facade
+### Choosing the provider and the level
 
-`ApplicationLogger` is "the APPLICATION's logger." `ApplicationLogger.get({ scope })` always returns whatever provider `LoggerFactory.use()` registered - winston, unless the app registered something else. Its type is `ILogger`.
-
-It is no longer a class alias of `WinstonLogger`. `instanceof ApplicationLogger` is now a compile error - use `instanceof AbstractLogger` to test any provider instance instead. The concrete winston alias still exists, named `Logger`.
+`LoggerFactory.use({ provider?, level? })` is the one call. `provider` is any `ILoggerProvider` (a class with a static `get(scope: string): ILogger`): `ConsoleLogger`, `WinstonLogger` or `PinoLogger`. `level` is a `LogLevels` value.
 
 ```typescript
-import { ApplicationLogger } from '@venizia/ignis-helpers';
+import { LoggerFactory, LogLevels } from '@venizia/ignis-helpers';
+import { PinoLogger } from '@venizia/ignis-helpers/pino';
 
-const logger = ApplicationLogger.get({ scope: 'MyService' }); // ILogger, follows LoggerFactory.use()
+LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 ```
 
+| Method | What it does |
+|---|---|
+| `use({ provider?, level? })` | Chooses the provider (re-pointing every logger issued so far) and/or the level |
+| `useUnlessChosen({ provider })` | Chooses the provider only when none was chosen - a framework's startup default, never an override |
+| `isChosen()` | Whether a provider was chosen, by the application or through `useUnlessChosen` |
+| `reset()` | Back to the console and no level; every logger re-points. For a test or a host that starts over |
+| `getLogger(scopes)` | The cached logger for the scopes joined with `-` |
+
 > [!WARNING]
-> The old scope-less `applicationLogger` instance was REMOVED. Use `ApplicationLogger.get({ scope: 'YourScope' })` instead. An app that needs a raw winston instance builds one with `WinstonLoggerFactory.defineCustomLogger` (sub-path `/winston`).
+> `ApplicationLogger` was REMOVED, and so was the scope-less `applicationLogger` instance. Use `LoggerFactory.getLogger(['YourScope'])`; `devz codemod namespace-functions` rewrites the calls. `instanceof AbstractLogger` tests any provider instance. An app that needs a raw winston instance builds one with `WinstonLoggerFactory.defineCustomLogger` (sub-path `/winston`).
 
 ## Log Levels
 
@@ -262,7 +277,7 @@ Each provider numbers those levels internally, and the numbers disagree. Read th
 Winston gives `emerg` and `error` the same number, so a winston transport cannot admit `emerg` while rejecting `error`.
 
 > [!NOTE]
-> Two gates apply to `debug`; only one applies to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits all five levels). `debug()` also requires the `DEBUG` env gate.
+> Two gates apply to `debug`; only one applies to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits all five levels). `debug()` also requires the `DEBUG` env gate. A `level` passed to `LoggerFactory.use` sits in front of both and applies to every provider.
 >
 > The vocabulary was deliberately trimmed to these five (2026-07-18). `alert`/`http`/`verbose`/`silly` had zero call sites and no consuming infrastructure. `http` may return as an access-line level if the request-correlation feature lands.
 
@@ -656,10 +671,12 @@ interface ICustomLoggerOptions {
 
 `Source ->` [`base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts)
 
-Debug logs require **both** conditions to be met:
+The rule lives in `LoggerDebugGate` (`common/debug-gate.ts`) and every provider shares it, so Console, Winston, Pino and `HfLogger` agree. Debug logs require **both** conditions to be met:
 
-1. `DEBUG=true` environment variable is set (parsed via `ParseUtility.toBoolean`)
+1. `DEBUG` is truthy (set, and not empty, `false` or `0`)
 2. `NODE_ENV` is either unset **or** is present in the `Environment.COMMON_ENVS` set
+
+Where there is no `process` (a browser) the gate is closed: `debug` is off.
 
 `COMMON_ENVS` includes: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production`. Extend this set with `APP_ENV_EXTRA_LOG_ENVS`:
 
@@ -670,7 +687,9 @@ APP_ENV_EXTRA_LOG_ENVS=qa,preview   # Comma-separated additional environments
 ```
 
 > [!IMPORTANT]
-> The debug flag check is pre-computed at module load time. Changing `DEBUG` or `NODE_ENV` at runtime has no effect - the values are captured once when the module is first imported.
+> The gate reads the environment once, on the first `debug` call. Changing `DEBUG` or `NODE_ENV` at runtime has no effect.
+
+`LoggerFactory.use({ level })` overrides the gate: `level: LogLevels.DEBUG` turns `debug` on, and any level above it (`info`, `warn`, `error`) turns it off, whatever the environment says. A browser app uses this to keep debug lines out of production.
 
 ## High-Frequency Logger
 
@@ -867,11 +886,12 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `ILogger` | interface | The logging contract every consumer types against - one direct method per level (`debug`, `info`, `warn`, `error`, `emerg`), plus `log` and `for` |
 | `AbstractLogger` | abstract class | `ILogger` as a class - the `instanceof` check that works for EVERY provider |
 | `BaseLogger` | abstract class | Provider-independent plumbing shared by every implementation: scope, prefix, the `DEBUG` gate, `.for()`, one abstract `write()` sink |
-| `WinstonLogger` | class | The Winston-backed provider (the default); `Logger` is its permanent concrete alias |
+| `WinstonLogger` | class | The Winston-backed provider (`@venizia/ignis` selects it at startup); `Logger` is its permanent concrete alias |
 | `Logger` | class | Concrete winston alias - `Logger.get(scope, customWinstonLogger?)`, `instanceof Logger`; deliberately does NOT follow `use()` |
-| `PinoLogger` | class (sub-path `/pino`) | The throughput provider - register with `LoggerFactory.use` ([guide](/extensions/helpers/logger/pino)) |
-| `ApplicationLogger` | const facade + type (`ILogger`) | `ApplicationLogger.get({ scope })` always returns the REGISTERED provider's logger |
-| `LoggerFactory` | class | Provider registration (`use({ provider })`) + `ILogger` acquisition from scope arrays |
+| `PinoLogger` | class (sub-path `/pino`) | The throughput provider - choose it with `LoggerFactory.use` ([guide](/extensions/helpers/logger/pino)) |
+| `ConsoleLogger` | class | The default provider - `ConsoleLogger.get(scope)`; also exported from `@venizia/ignis-helpers/core` |
+| `LoggerFactory` | class | Provider and level choice (`use({ provider, level })`, `useUnlessChosen`, `isChosen`, `reset`) + `ILogger` acquisition from scope arrays; also exported from `/core` |
+| `LoggerDebugGate` | class | The rule behind `debug`: off unless `DEBUG` is truthy and the environment is allowed, off where there is no `process`; `LoggerFactory.use({ level })` overrides it |
 | `ILoggerProvider` | interface | Static-side contract a provider class satisfies (`get(scope): ILogger`) |
 | `HfLogger` | class | `ILogger`-conformant ring-buffer logger for hot paths |
 | `HfLogFlusher` | class | Background flusher for `HfLogger` |
@@ -897,10 +917,10 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 
 ### Debug logs not appearing
 
-**Cause:** Debug logging requires both `DEBUG=true` AND a `NODE_ENV` that is either unset or present in the `COMMON_ENVS` set. These values are pre-computed at module load time.
+**Cause:** Debug logging requires both a truthy `DEBUG` AND a `NODE_ENV` that is either unset or present in the `COMMON_ENVS` set, and a browser has no `process`, so there it is off. These values are read once, on the first `debug` call. A `level` passed to `LoggerFactory.use` overrides all of it.
 
 **Fix:**
-1. Verify `DEBUG=true` is set in your environment.
+1. Verify `DEBUG=true` is set in your environment, or pass `LoggerFactory.use({ level: LogLevels.DEBUG })`.
 2. Verify `NODE_ENV` is set to one of: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` - or is unset entirely.
 3. If you use a custom environment name (for example, `qa`), add it to `APP_ENV_EXTRA_LOG_ENVS=qa`.
 

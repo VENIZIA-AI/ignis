@@ -15,7 +15,7 @@ packages: ['@venizia/ignis-inversion', '@venizia/ignis-filter', '@venizia/ignis-
 ## What changed
 
 - **The old names are gone, with no alias.** Each function now lives as a static method of a class (for example `isEmpty({ value })` is `ObjectUtility.isEmpty({ value })`, `uuidV4()` is `UuidV4Generator.generate()`). One options object comes first; a function that already took one options object keeps its arguments.
-- **One command moves your code.** `devz codemod namespace-functions` also moves `ApplicationLogger.get('scope')` (the string form, now only `ApplicationLogger.get({ scope: 'scope' })`). It follows named, aliased and namespace imports of the `@venizia/*` packages, adds the class to the import and drops the old name once nothing uses it. It lists with file and line what it cannot rewrite safely.
+- **One command moves your code.** `devz codemod namespace-functions` also moves `ApplicationLogger` to `LoggerFactory.getLogger([scope])` (see [the logger entry](/changelogs/2026-11-01-logger-factory-in-core)). It follows named, aliased and namespace imports of the `@venizia/*` packages, adds the class to the import and drops the old name once nothing uses it. It lists with file and line what it cannot rewrite safely.
 - **A few removals have no codemod path** (see "Manual steps").
 
 ## Who is affected
