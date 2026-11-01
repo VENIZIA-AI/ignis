@@ -1,4 +1,4 @@
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import { BaseHelper } from '@/modules/base';
 import { PromiseUtility } from '@/utilities/promise.utility';
 import { CronJob, type CronOnCompleteCommand, CronTime } from 'cron';
@@ -43,7 +43,7 @@ export class CronHelper extends BaseHelper {
 
   /** Builds the job. Synchronous, so the constructor still THROWS on a bad cronTime. */
   protected buildInstance(): void {
-    if (!this.cronTime || isEmpty({ value: this.cronTime })) {
+    if (!this.cronTime || ObjectUtility.isEmpty({ value: this.cronTime })) {
       throw ApplicationError.getError({
         message: '[CronHelper][configure] Invalid cronTime to configure application cron!',
       });

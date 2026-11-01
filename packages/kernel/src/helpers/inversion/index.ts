@@ -6,7 +6,7 @@ export {
   BindingValueTypes,
   isClass,
   isClassProvider,
-  resolveInjectTarget,
+  ResolverUtility,
   type IProvider,
   type TBindingKey,
   type TBindingScope,

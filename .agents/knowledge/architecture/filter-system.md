@@ -22,7 +22,7 @@ A filter is a plain options object: `{ where, order, limit, offset, skip, fields
 
 The vocabulary is also **browser-safe**, and that is enforced rather than assumed - centrally, not per package. `devz check purity` (the engine in `packages/dev-configs/src/checks/purity/`; this repository owns only the claims in `scripts/checks/purity/manifest.ts`) bundles each claimed package's built `dist` entry with `bun build --target=browser` and fails on any leftover node builtin import, any unresolved external import, or any node global (`process.`, `__dirname`, `__filename`, `createRequire(`) surviving in the bundled text. `make purity` checks every entry in the manifest, `make purity-filter` only this package.
 
-The zod schemas that validate a filter arriving over HTTP come in two layers. `packages/filter/src/schemas/builder.ts` builds them with plain `zod`, so a browser can use them; `packages/kernel/src/base/repositories/query-schemas/index.ts` calls `buildQuerySchemas({ decorate })` to add the `@hono/zod-openapi` documentation metadata - a server concern, and the load-bearing side-effect `import '@hono/zod-openapi'` that patches `.openapi()` onto the shared prototype sits in that kernel file. The repository base classes live in the browser-pure `@venizia/ignis-kernel` package, not in `core/src/base/repositories/`, and kernel re-exports the filter package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
+The zod schemas that validate a filter arriving over HTTP come in two layers. `packages/filter/src/schemas/builder.ts` builds them with plain `zod`, so a browser can use them; `packages/kernel/src/base/repositories/query-schemas/index.ts` calls `QuerySchemaFactory.build({ decorate })` to add the `@hono/zod-openapi` documentation metadata - a server concern, and the load-bearing side-effect `import '@hono/zod-openapi'` that patches `.openapi()` onto the shared prototype sits in that kernel file. The repository base classes live in the browser-pure `@venizia/ignis-kernel` package, not in `core/src/base/repositories/`, and kernel re-exports the filter package from `base/repositories/common/index.ts`, so every existing `@venizia/ignis-core` import keeps resolving.
 
 ## Operators
 
@@ -44,7 +44,7 @@ The zod schemas that validate a filter arriving over HTTP come in two layers. `p
 ## Order entries share one parser
 
 Every `order` entry - relational and both search dialects (Typesense, Meilisearch) - is read by
-`parseOrderEntry` (`packages/filter/src/common/order.ts`), a single exported function replacing three
+`Sorts.parseEntry` (`packages/filter/src/common/operators.ts`), a single static method replacing three
 private copies of the same `entry.trim().split(/\s+/)` logic (V-C-16). It returns `TParsedOrderEntry`
 (`{ field: string; direction: TSortDirection }`) and throws a `400` naming the whole entry for:
 
@@ -76,7 +76,7 @@ not the bytes. The map is **cleared**, not LRU-evicted, once full: deleting from
 `Map` measured slower than accepting one more parse on the next miss. An entry is cached as soon as
 its tokens parse and it fits the length bound - before the column or expression it names is looked
 up - so an entry naming an unknown column is cached too, as long as it is 256 characters or fewer;
-only a value `parseOrderEntry` itself rejects (empty field, invalid direction, more than two tokens)
+only a value `Sorts.parseEntry` itself rejects (empty field, invalid direction, more than two tokens)
 is never cached. Measured on the built dist (`score DESC`, request-shaped): about 53 ns/call before
 this change, about 250 ns/call for the parser running uncached on every call, about 37 ns/call with
 the cache.

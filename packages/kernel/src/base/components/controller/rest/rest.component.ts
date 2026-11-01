@@ -6,7 +6,7 @@ import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversio
 import { BaseComponent } from '../../base';
 import type { Env, Schema } from 'hono';
 import { getError } from '@venizia/ignis-helpers/core';
-import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
+import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { IRestComponentConfig } from './common/types';
 import { RestBindingKeys } from './common/types';
 
@@ -56,7 +56,7 @@ export class RestComponent<
           return;
         }
 
-        if (!metadata?.path || isEmpty({ value: metadata.path })) {
+        if (!metadata?.path || ObjectUtility.isEmpty({ value: metadata.path })) {
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,

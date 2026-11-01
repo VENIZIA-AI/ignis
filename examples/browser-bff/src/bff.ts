@@ -18,7 +18,7 @@ export const bff = new SharedBffTransport({
 
 /**
  * The Worker application mounts its controllers under `/api` (see `worker/index.ts`). Everything below
- * this prefix is answered by the BFF; `installBffFetch` uses it to decide what to intercept, and the
+ * this prefix is answered by the BFF; `BffFetchBridge.install` uses it to decide what to intercept, and the
  * data provider uses it as its base URL.
  */
 export const BFF_BASE_PATH = '/api';

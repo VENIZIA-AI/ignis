@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import type { TTableSchemaWithId } from '@/relational/core/models/common';
 import type {
   ICountOptions,
@@ -93,7 +93,7 @@ export class SqliteQueryExecutor implements IRelationalQueryExecutor<TSqliteConn
 
     // Drizzle's `findFirst` config type structurally forbids `limit` - it always fetches one row.
     // This is the only place that knows that, so the strip happens here whatever the caller passed.
-    const queryOptions = omit({ source: opts.query, keys: ['limit'] });
+    const queryOptions = ObjectUtility.omit({ source: opts.query, keys: ['limit'] });
     const result = await queryInterface.findFirst(queryOptions);
 
     // Same drizzle-relational-query-versus-caller-generic boundary as `findMany` above.

@@ -1,9 +1,9 @@
-import { buildQuerySchemas } from '@venizia/ignis-filter/schemas';
+import { QuerySchemaFactory } from '@venizia/ignis-filter/schemas';
 import { z } from 'zod';
 import type { TConstValue } from '@venizia/ignis-helpers/common';
 
 const { FieldsSchema, LimitSchema, OffsetSchema, OrderBySchema, SkipSchema, WhereSchema } =
-  buildQuerySchemas({
+  QuerySchemaFactory.build({
     // zod's own `.meta()`, which the OpenAPI generator reads: this layer must load without hono.
     decorate: (schema, metadata) => (schema instanceof z.ZodType ? schema.meta(metadata) : schema),
   });

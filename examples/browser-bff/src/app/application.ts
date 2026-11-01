@@ -44,7 +44,7 @@ const PASSTHROUGH_I18N_PROVIDER: I18nProvider = {
 /**
  * The same container-and-bindings shape a server-backed `ra-core-infra` app uses. Nothing here is
  * BFF-specific: the data provider is the stock `DefaultRestDataProvider` pointed at a normal URL,
- * and `installBffFetch` is what makes that URL resolve to the Worker instead of the network.
+ * and `BffFetchBridge.install` is what makes that URL resolve to the Worker instead of the network.
  *
  * That is the point of the example - swapping the backend for an in-browser one costs zero changes
  * to the application wiring.

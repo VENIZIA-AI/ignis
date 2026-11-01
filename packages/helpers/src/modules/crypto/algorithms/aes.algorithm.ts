@@ -1,5 +1,5 @@
 import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
-import { isEmpty } from '@venizia/ignis-inversion';
+import { ObjectUtility } from '@venizia/ignis-inversion';
 import C from 'node:crypto';
 import fs from 'node:fs';
 import { getError } from '@/modules/error';
@@ -58,7 +58,7 @@ export class AES extends BaseCryptoAlgorithm<
     const { secret, kdfSalt, kdfIterations } = opts;
     const entry = Array.isArray(secret) ? secret[0] : { id: DEFAULT_KEY_ID, secret };
 
-    if (!entry || isEmpty({ value: entry.secret })) {
+    if (!entry || ObjectUtility.isEmpty({ value: entry.secret })) {
       throw getError({ message: '[AES][resolveEncryptKey] Missing secret or empty keyring' });
     }
 
@@ -92,7 +92,7 @@ export class AES extends BaseCryptoAlgorithm<
     }
 
     // Without this the empty secret derives a key from '' and fails as an opaque OpenSSL error, hiding a plain configuration mistake.
-    if (isEmpty({ value: entry.secret })) {
+    if (ObjectUtility.isEmpty({ value: entry.secret })) {
       throw getError({
         message: `[AES][resolveDecryptKey] Keyring entry for key id "${id}" has an empty secret`,
       });
@@ -153,7 +153,7 @@ export class AES extends BaseCryptoAlgorithm<
   encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 
@@ -221,7 +221,7 @@ export class AES extends BaseCryptoAlgorithm<
   decryptFile(opts: { absolutePath: string; secret: TAESSecret }) {
     const { absolutePath, secret } = opts;
 
-    if (!absolutePath || isEmpty({ value: absolutePath })) {
+    if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
       return '';
     }
 

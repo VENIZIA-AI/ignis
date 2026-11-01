@@ -23,7 +23,7 @@ The note is still there after the reload. The database lives in the origin priva
 | `vite.config.ts` | Adds `IgnisArtifactsVitePlugin` (from `@venizia/ignis-boot/vite`) to `worker.plugins`, which builds the decorated-class list into the Worker bundle |
 | `src/worker/index.ts` | The Worker entry: passes `AutoArtifacts` as `artifacts`, and calls `listen()` in place of `start()` |
 | `src/bff.ts` | The page side: a `SharedBffTransport` that starts the Worker |
-| `src/main.tsx` | `installBffFetch` routes `fetch('/api/...')` to the Worker, then renders the react-admin page |
+| `src/main.tsx` | `BffFetchBridge.install` routes `fetch('/api/...')` to the Worker, then renders the react-admin page |
 
 The react-admin page uses the stock `DefaultRestDataProvider` pointed at `/api`. Nothing in it knows
 a Worker answers. The page shows notes only; comments are reachable through the API below.
