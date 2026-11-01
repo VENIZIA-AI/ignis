@@ -7,11 +7,7 @@ import { Container } from '../modules/container/container';
 import { ApplicationError } from '../modules/error';
 import { inject } from '../modules/metadata/injectors';
 import { metadataRegistry } from '../modules/registry/registry';
-import {
-  assertBindingsResolve,
-  BindingVerifier,
-  verifyBindings,
-} from '../modules/container/verifier';
+import { BindingVerifier } from '../modules/container/verifier';
 
 const calls = { alpha: 0, beta: 0, gamma: 0 };
 
@@ -364,43 +360,5 @@ describe('the core stays portable', () => {
     BindingVerifier.verify({ container, namespaces: NAMESPACES });
 
     expect(get).toHaveBeenCalledTimes(3);
-  });
-});
-
-describe('the deprecated aliases give what BindingVerifier gives', () => {
-  test('verifyBindings', () => {
-    container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
-    const options = { container, namespaces: NAMESPACES, skip: [AlphaService] };
-
-    const old = verifyBindings(options);
-    const next = BindingVerifier.verify(options);
-
-    expect(old.verified).toEqual(next.verified);
-    expect(old.unmatchedSkips).toEqual(next.unmatchedSkips);
-    expect(old.failures.map((failure) => failure.key)).toEqual(
-      next.failures.map((failure) => failure.key),
-    );
-  });
-
-  test('assertBindingsResolve throws the same message, and returns the same result when clean', () => {
-    const clean = { container, namespaces: NAMESPACES, scope: 'alias' };
-    expect(assertBindingsResolve(clean).verified).toEqual(
-      BindingVerifier.assertResolve(clean).verified,
-    );
-
-    container.bind({ key: 'services.NeedsMissingKey' }).toClass(NeedsMissingKey);
-    const messageOf = (run: () => unknown): string => {
-      try {
-        run();
-      } catch (error) {
-        return (error as Error).message;
-      }
-      return '';
-    };
-
-    const failing = { container, namespaces: NAMESPACES, scope: 'alias' };
-    const old = messageOf(() => assertBindingsResolve(failing));
-    expect(old).toStartWith('[alias] 1 binding(s) cannot be resolved | ');
-    expect(old).toBe(messageOf(() => BindingVerifier.assertResolve(failing)));
   });
 });

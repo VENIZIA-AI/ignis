@@ -114,24 +114,3 @@ export class ResolverUtility {
     return isClass(resolved) ? resolved : undefined;
   }
 }
-
-/** @deprecated Use ObjectUtility.isEmpty({ value }). Removed in 0.5. */
-export const isEmpty = (opts: { value: unknown }): boolean => ObjectUtility.isEmpty(opts);
-
-/** @deprecated Use ObjectUtility.omit({ source, keys }). Removed in 0.5. */
-export const omit = <T extends object, K extends PropertyKey>(opts: {
-  source: T;
-  keys: readonly K[];
-}): Omit<T, Extract<K, keyof T>> => ObjectUtility.omit(opts);
-
-/** @deprecated Use ResolverUtility.resolveValue({ value }). Removed in 0.5. */
-export const resolveValue = <T>(opts: { value: TValueOrResolver<T> }): T =>
-  ResolverUtility.resolveValue(opts);
-
-/** @deprecated Use ResolverUtility.resolveValueAsync({ value }). Removed in 0.5. */
-export const resolveValueAsync = <T>(opts: { value: TValueOrAsyncResolver<T> }): Promise<T> =>
-  ResolverUtility.resolveValueAsync(opts);
-
-/** @deprecated Use ResolverUtility.resolveInjectTarget({ target }). Removed in 0.5. */
-export const resolveInjectTarget = (opts: { target: TInjectTarget }): TClass<AnyType> | undefined =>
-  ResolverUtility.resolveInjectTarget(opts);

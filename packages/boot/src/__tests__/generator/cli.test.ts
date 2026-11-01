@@ -1,4 +1,4 @@
-import { ArtifactIndexGenerator, checkArtifactIndex, generateArtifactIndex } from '@/generator';
+import { ArtifactIndexGenerator } from '@/generator';
 import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -52,7 +52,7 @@ describe('ArtifactIndexGenerator.generate / ArtifactIndexGenerator.check', () =>
   });
 });
 
-describe('checkArtifactIndex - the header is not drift', () => {
+describe('ArtifactIndexGenerator.check - the header is not drift', () => {
   test('a file whose first line differs but whose body matches is fresh; a body change is stale', () => {
     const out = outputFile('artifacts.ts');
     const generated = ArtifactIndexGenerator.generate({ root: FIXTURES, out });
@@ -233,22 +233,5 @@ describe('generate / check with --source-module', () => {
     );
 
     rmSync(directory, { recursive: true, force: true });
-  });
-});
-
-describe('the deprecated aliases give what ArtifactIndexGenerator gives', () => {
-  test('generateArtifactIndex and checkArtifactIndex', () => {
-    const oldOut = outputFile('old.ts');
-    const newOut = outputFile('new.ts');
-
-    const fromOld = generateArtifactIndex({ root: FIXTURES, out: oldOut });
-    const fromNew = ArtifactIndexGenerator.generate({ root: FIXTURES, out: newOut });
-    expect(fromOld.written).toBe(fromNew.written);
-    expect(fromOld.artifacts).toEqual(fromNew.artifacts);
-
-    const checkedOld = checkArtifactIndex({ root: FIXTURES, out: oldOut });
-    const checkedNew = ArtifactIndexGenerator.check({ root: FIXTURES, out: oldOut });
-    expect(checkedOld).toEqual(checkedNew);
-    expect(checkedOld.isFresh).toBe(true);
   });
 });

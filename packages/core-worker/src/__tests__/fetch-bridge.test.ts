@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { BffFetchBridge, installBffFetch } from '@/transport/fetch-bridge';
+import { BffFetchBridge } from '@/transport/fetch-bridge';
 import type { IBffTransport } from '@/transport/common/types';
 
 /** Records what reached the transport, so a test can assert the request was routed intact. */
@@ -47,34 +47,6 @@ const createCarrier = () => {
 
   return { carrier, networkCalls };
 };
-
-describe('the deprecated installBffFetch gives what BffFetchBridge.install gives', () => {
-  test('it routes the same, and its uninstall puts the previous fetch back', async () => {
-    const { transport, seen } = createRecordingTransport();
-    const { carrier } = createCarrier();
-    const previous = carrier.fetch;
-
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
-    await carrier.fetch('https://app.test/api/notes');
-    expect(seen).toHaveLength(1);
-
-    uninstall();
-    expect(carrier.fetch).toBe(previous);
-  });
-
-  test('it refuses a second install and an empty basePath with the same errors', () => {
-    const { transport } = createRecordingTransport();
-    const { carrier } = createCarrier();
-
-    expect(() => installBffFetch({ transport, basePath: '', carrier })).toThrow(/Invalid basePath/);
-
-    const uninstall = installBffFetch({ transport, basePath: '/api', carrier });
-    expect(() => BffFetchBridge.install({ transport, basePath: '/api', carrier })).toThrow(
-      /already installed/,
-    );
-    uninstall();
-  });
-});
 
 describe('BffFetchBridge.install', () => {
   test('routes a matching path to the transport', async () => {
@@ -246,7 +218,7 @@ describe('BffFetchBridge.install', () => {
   });
 });
 
-describe('installBffFetch - which requests it claims', () => {
+describe('BffFetchBridge.install - which requests it claims', () => {
   test('a matching path on another origin goes to the network, not the BFF', async () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier, networkCalls } = createCarrier();
@@ -319,7 +291,7 @@ describe('installBffFetch - which requests it claims', () => {
   });
 });
 
-describe('installBffFetch - origin is opt-in', () => {
+describe('BffFetchBridge.install - origin is opt-in', () => {
   test('without an origin, a matching path on any origin is claimed, as before', async () => {
     const { transport, seen } = createRecordingTransport();
     const { carrier } = createCarrier();

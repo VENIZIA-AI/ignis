@@ -52,7 +52,9 @@ export const INVERSION_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     keepsOptions: true,
   },
   {
-    modules: ['@venizia/ignis-inversion'],
+    // The kernel re-exports it by name (`helpers/inversion/index.ts`, `export *` up to its root), and
+    // `@venizia/ignis` re-exports the kernel.
+    modules: ['@venizia/ignis-inversion', '@venizia/ignis-kernel', '@venizia/ignis'],
     oldName: 'resolveInjectTarget',
     className: 'ResolverUtility',
     method: 'resolveInjectTarget',

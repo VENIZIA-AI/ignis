@@ -1,10 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import {
-  ResolverUtility,
-  resolveInjectTarget,
-  resolveValue,
-  resolveValueAsync,
-} from '@/common/utilities';
+import { ResolverUtility } from '@/common/utilities';
 
 class Target {}
 
@@ -43,29 +38,5 @@ describe('ResolverUtility.resolveInjectTarget', () => {
     expect(
       ResolverUtility.resolveInjectTarget({ target: (() => 'nope') as unknown as () => never }),
     ).toBeUndefined();
-  });
-});
-
-describe('the deprecated aliases give what ResolverUtility gives', () => {
-  test('resolveValue', () => {
-    const values: unknown[] = [5, () => 'called', Target];
-    for (const value of values) {
-      expect(resolveValue({ value })).toBe(ResolverUtility.resolveValue({ value }));
-    }
-  });
-
-  test('resolveValueAsync', async () => {
-    const values: unknown[] = [5, async () => 7, Target];
-    for (const value of values) {
-      expect(await resolveValueAsync({ value })).toBe(
-        await ResolverUtility.resolveValueAsync({ value }),
-      );
-    }
-  });
-
-  test('resolveInjectTarget', () => {
-    for (const target of [Target, () => Target]) {
-      expect(resolveInjectTarget({ target })).toBe(ResolverUtility.resolveInjectTarget({ target }));
-    }
   });
 });

@@ -119,7 +119,7 @@ describe.each(UNSAFE_IN_ORDER)(
       expectSafe({ message, escaped });
     });
 
-    test('parseOrderEntry: invalid direction', () => {
+    test('Sorts.parseEntry: invalid direction', () => {
       const message = messageOf(() => Sorts.parseEntry({ entry: `name AS${raw}C` }));
       expectSafe({ message, escaped });
     });

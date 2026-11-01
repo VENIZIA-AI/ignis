@@ -1,4 +1,4 @@
-import { isEmpty, ObjectUtility, omit } from '@/common/utilities';
+import { ObjectUtility } from '@/common/utilities';
 import { describe, expect, test } from 'bun:test';
 
 /**
@@ -76,19 +76,5 @@ describe('ObjectUtility.omit', () => {
     const source = { a: 1, b: 2 };
     ObjectUtility.omit({ source: source, keys: ['a'] });
     expect(source).toEqual({ a: 1, b: 2 });
-  });
-});
-
-describe('the deprecated aliases give what the class gives', () => {
-  test('isEmpty', () => {
-    const samples: unknown[] = [null, '', ' ', [], [1], new Map(), { a: 1 }, {}, 0];
-    for (const value of samples) {
-      expect(isEmpty({ value })).toBe(ObjectUtility.isEmpty({ value }));
-    }
-  });
-
-  test('omit', () => {
-    const options = { source: { a: 1, b: 2, c: 3 }, keys: ['a', 'zzz'] };
-    expect(omit(options)).toEqual(ObjectUtility.omit(options));
   });
 });

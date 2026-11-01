@@ -1,18 +1,17 @@
-import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 /**
- * The codemod table of this package (`devz codemod namespace-functions`) against the real exports:
- * the old name is still a function, the class has the method, and the old call and the new call
- * agree. The table is read from its source by path, not through a package import.
+ * The codemod table of this package (`devz codemod namespace-functions`) is the only upgrade path
+ * for the old function names: every entry names a class method that exists, and the old name is no
+ * longer exported from any module the entry lists. The table is read from its source by path, not
+ * through a package import.
  */
 const ROOT = resolve(import.meta.dir, '../../../..');
 const MAPPING_FILE = join(
   ROOT,
   'packages/dev-configs/src/cli/codemod/namespace-functions/mappings/inversion.ts',
 );
-const HELPERS_RESOLVERS = join(ROOT, 'packages/helpers/src/common/resolvers.ts');
 
 interface IMapping {
   modules: string[];
@@ -27,80 +26,79 @@ interface IMapping {
 const mappingModule = await import(MAPPING_FILE);
 const { INVERSION_MAPPINGS } = mappingModule as { INVERSION_MAPPINGS: ReadonlyArray<IMapping> };
 
-const entry: Record<string, unknown> = await import('../index');
-
-/** The module specifiers that resolve to this package's own entry. */
-const OWN_ENTRY = '@venizia/ignis-inversion';
-
-class SampleTarget {}
-
-/** A sample call of the old form, per old name: its positional arguments. */
-const SAMPLES: Record<string, () => unknown[]> = {
-  isEmpty: () => [{ value: {} }],
-  omit: () => [{ source: { a: 1, b: 2 }, keys: ['a'] }],
-  resolveValue: () => [{ value: () => 1 }],
-  resolveValueAsync: () => [{ value: async () => 2 }],
-  resolveInjectTarget: () => [{ target: () => SampleTarget }],
-  verifyBindings: () => [{ container: new (entry.Container as any)(), namespaces: ['x'] }],
-  assertBindingsResolve: () => [
-    { container: new (entry.Container as any)(), namespaces: ['x'], scope: 'sample' },
-  ],
+/**
+ * The source file behind each specifier the table names. The helpers and the kernel re-export this
+ * package's names one by one, so they are the places an old name could outlive its removal;
+ * `@venizia/ignis` re-exports the kernel with `export *`. The helpers load from source on top of this
+ * package's build; the kernel needs the helpers' build, which this package's test must not wait for,
+ * so its re-export list is read as text.
+ */
+const SOURCES: Record<string, string> = {
+  '@venizia/ignis-inversion': 'packages/inversion/src/index.ts',
+  '@venizia/ignis-helpers': 'packages/helpers/src/index.ts',
+  '@venizia/ignis-helpers/common': 'packages/helpers/src/common/index.ts',
 };
+const KERNEL_REEXPORT = 'packages/kernel/src/helpers/inversion/index.ts';
+const KERNEL_SPECIFIERS = ['@venizia/ignis-kernel', '@venizia/ignis'];
 
-/** The options object the new form takes, built from the old positional arguments and `params`. */
-const toOptions = (mapping: IMapping, args: unknown[]): unknown => {
-  if (mapping.keepsOptions) {
-    return args[0];
+const loadModule = async (specifier: string): Promise<Record<string, unknown>> => {
+  const source = SOURCES[specifier];
+  if (!source) {
+    throw new Error(`no source file is mapped to ${specifier}`);
   }
 
-  const options: Record<string, unknown> = {};
-  mapping.params.forEach((parameter, index) => {
-    if (index < args.length) {
-      options[parameter.key] = args[index];
-    }
-  });
-  return options;
+  return import(join(ROOT, source));
 };
 
-describe('the inversion mapping table', () => {
-  test('it has entries, and every entry has a sample', () => {
+const hasOldName = async (opts: { specifier: string; oldName: string }): Promise<boolean> => {
+  const { specifier, oldName } = opts;
+
+  if (KERNEL_SPECIFIERS.includes(specifier)) {
+    const text = await Bun.file(join(ROOT, KERNEL_REEXPORT)).text();
+    return new RegExp(`\\b${oldName}\\b`).test(text);
+  }
+
+  const loaded = await loadModule(specifier);
+  return loaded[oldName] !== undefined;
+};
+
+describe('the inversion entries of the namespace-functions table', () => {
+  test('the table is not empty', () => {
     expect(INVERSION_MAPPINGS.length).toBeGreaterThan(0);
-    for (const mapping of INVERSION_MAPPINGS) {
-      expect(SAMPLES[mapping.oldName]).toBeDefined();
-    }
   });
 
-  for (const mapping of INVERSION_MAPPINGS) {
-    test(`${mapping.oldName} -> ${mapping.className}.${mapping.method}`, async () => {
-      const oldFunction = entry[mapping.oldName];
-      const classRef = entry[mapping.className] as Record<string, unknown> | undefined;
+  test('no old name appears twice for the same module', () => {
+    const seen = new Set<string>();
+    const repeated: string[] = [];
 
-      expect(typeof oldFunction).toBe('function');
-      expect(typeof classRef?.[mapping.method]).toBe('function');
-
-      const args = SAMPLES[mapping.oldName]!();
-      const fromOld = await Reflect.apply(oldFunction as () => unknown, undefined, args);
-      const fromNew = await (classRef![mapping.method] as (opts: unknown) => unknown)(
-        toOptions(mapping, args),
-      );
-
-      expect(fromNew).toEqual(fromOld);
-    });
-  }
-
-  test('every specifier is this package or a helpers entry that re-exports the old name and the class', () => {
-    const helpers = readFileSync(HELPERS_RESOLVERS, 'utf8');
-
-    for (const mapping of INVERSION_MAPPINGS) {
-      for (const module of mapping.modules) {
-        if (module === OWN_ENTRY) {
-          continue;
+    for (const entry of INVERSION_MAPPINGS) {
+      for (const specifier of entry.modules) {
+        const key = `${specifier}#${entry.oldName}`;
+        if (seen.has(key)) {
+          repeated.push(key);
         }
-
-        expect(['@venizia/ignis-helpers', '@venizia/ignis-helpers/common']).toContain(module);
-        expect(helpers).toMatch(new RegExp(`\\b${mapping.oldName}\\b`));
-        expect(helpers).toMatch(new RegExp(`\\b${mapping.className}\\b`));
+        seen.add(key);
       }
     }
+
+    expect(repeated).toEqual([]);
   });
+
+  for (const entry of INVERSION_MAPPINGS) {
+    describe(`${entry.oldName} -> ${entry.className}.${entry.method}`, () => {
+      for (const specifier of entry.modules) {
+        test(`from ${specifier}: the old name is gone`, async () => {
+          expect(await hasOldName({ specifier, oldName: entry.oldName })).toBe(false);
+        });
+      }
+
+      test('the class has the static method', async () => {
+        const loaded = await loadModule('@venizia/ignis-inversion');
+        const klass = loaded[entry.className] as Record<string, unknown> | undefined;
+
+        expect(typeof klass).toBe('function');
+        expect(typeof klass?.[entry.method]).toBe('function');
+      });
+    });
+  }
 });

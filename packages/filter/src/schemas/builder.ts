@@ -195,7 +195,3 @@ export class QuerySchemaFactory {
 }
 
 export type TQuerySchemas = ReturnType<typeof QuerySchemaFactory.build>;
-
-/** @deprecated Use QuerySchemaFactory.build({ decorate }). Removed in 0.5. */
-export const buildQuerySchemas = (opts?: { decorate?: TSchemaDecorator }): TQuerySchemas =>
-  QuerySchemaFactory.build(opts);

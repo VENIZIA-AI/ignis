@@ -153,7 +153,3 @@ export class BffFetchBridge {
     };
   }
 }
-
-/** @deprecated Use BffFetchBridge.install({ transport, basePath, origin, carrier }). Removed in 0.5. */
-export const installBffFetch = (opts: IInstallBffFetchOptions): (() => void) =>
-  BffFetchBridge.install(opts);

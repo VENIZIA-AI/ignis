@@ -198,12 +198,3 @@ export class BindingVerifier {
     });
   }
 }
-
-/** @deprecated Use BindingVerifier.verify({ container, namespaces, skip }). Removed in 0.5. */
-export const verifyBindings = (opts: IVerifyBindingsOptions): IBindingVerification =>
-  BindingVerifier.verify(opts);
-
-/** @deprecated Use BindingVerifier.assertResolve({ container, namespaces, skip, scope }). Removed in 0.5. */
-export const assertBindingsResolve = (
-  opts: IVerifyBindingsOptions & { scope: string },
-): IBindingVerification => BindingVerifier.assertResolve(opts);

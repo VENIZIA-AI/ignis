@@ -27,7 +27,7 @@ import { PostgresQueryDialect } from '@/relational/postgres/repositories/dialect
 import { SqliteQueryDialect } from '@/relational/sqlite/repositories/dialect/query-dialect';
 
 /**
- * `toOrderBy` reads each entry through `parseOrderEntry` and resolves its key against an optional
+ * `toOrderBy` reads each entry through `Sorts.parseEntry` and resolves its key against an optional
  * `expressions` map before the JSON path and the schema column. The runtime blocks sort a JOIN on
  * PGlite and libsql, because a joined column and a computed `COALESCE` are exactly what the schema
  * columns cannot name.
