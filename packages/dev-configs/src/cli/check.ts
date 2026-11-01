@@ -1,15 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, isAbsolute, relative, resolve } from 'node:path';
-import { findCatalogProblems } from '../checks/catalog';
-import { runModuleCycles } from '../checks/module-cycles';
-import { checkPurity } from '../checks/purity/run';
+import { CatalogCheck } from '../checks/catalog';
+import { ModuleCyclesCheck } from '../checks/module-cycles';
+import { PurityCheck } from '../checks/purity/run';
 import { SplitReport } from '../checks/split-report';
-import { checkControls } from '../checks/test-controls';
+import { TestControlsCheck } from '../checks/test-controls';
 import type { IControlEntry } from '../checks/test-controls';
-import { findDeadTestCode } from '../checks/test-dead-code';
-import { formatLedgerResults, replayLedger } from '../checks/test-mutate';
+import { DeadTestCodeCheck } from '../checks/test-dead-code';
+import { TestMutateCheck } from '../checks/test-mutate';
 import type { ILedger } from '../checks/test-mutate';
-import { analyseJunit, formatTestWeight } from '../checks/test-weight';
+import { TestWeightCheck } from '../checks/test-weight';
 import type { IPurityClaim, IPurityOptions } from '../checks/purity/manifest';
 
 const USAGE = `Usage: devz check <name> [options]
@@ -159,7 +159,10 @@ export class CheckCommand {
     }
 
     const top = parsed.values.top?.[0] === undefined ? undefined : Number(parsed.values.top[0]);
-    for (const line of formatTestWeight({ report: analyseJunit({ reports }), top })) {
+    for (const line of TestWeightCheck.formatReport({
+      report: TestWeightCheck.analyseJunit({ reports }),
+      top,
+    })) {
       console.log(line);
     }
 
@@ -172,7 +175,7 @@ export class CheckCommand {
       return USAGE_ERROR_CODE;
     }
 
-    const candidates = findDeadTestCode({ root: opts.root });
+    const candidates = DeadTestCodeCheck.find({ root: opts.root });
     for (const kind of ['unreferenced', 'folder-referenced'] as const) {
       const own = candidates.filter((candidate) => candidate.kind === kind);
       console.log(`${kind}: ${own.length}`);
@@ -206,8 +209,8 @@ export class CheckCommand {
       return USAGE_ERROR_CODE;
     }
 
-    const results = replayLedger({ root: opts.root, ledger });
-    for (const line of formatLedgerResults(results)) {
+    const results = TestMutateCheck.replayLedger({ root: opts.root, ledger });
+    for (const line of TestMutateCheck.formatLedgerResults({ results })) {
       console.log(line);
     }
 
@@ -233,7 +236,7 @@ export class CheckCommand {
       return USAGE_ERROR_CODE;
     }
 
-    const report = await checkControls({ root: opts.root, controls: registry.controls });
+    const report = await TestControlsCheck.run({ root: opts.root, controls: registry.controls });
     if (report.problems.length === 0) {
       console.log(`test-controls: OK - ${report.checked} registered controls found`);
       return 0;
@@ -280,7 +283,7 @@ export class CheckCommand {
       return USAGE_ERROR_CODE;
     }
 
-    const report = await findCatalogProblems({
+    const report = await CatalogCheck.find({
       root: opts.root,
       globs: parsed.values.glob,
       pinned: parsed.values.pinned,
@@ -315,7 +318,7 @@ export class CheckCommand {
     }
 
     if (name === 'module-cycles') {
-      return runModuleCycles({
+      return ModuleCyclesCheck.run({
         args: rest,
         print: (line) => console.log(line),
         printError: (line) => console.error(line),
@@ -382,7 +385,7 @@ export class CheckCommand {
     }
 
     const lines: string[] = [];
-    const report = await checkPurity({
+    const report = await PurityCheck.run({
       root,
       claims: claimsModule.PURITY_CLAIMS,
       options: claimsModule.PURITY_OPTIONS,

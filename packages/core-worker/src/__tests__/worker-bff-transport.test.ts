@@ -8,8 +8,8 @@ import type {
   IBffRequestEnvelope,
   IBffResponseEnvelope,
 } from '@/envelope/common';
-import { expectRejection } from '@venizia/dev-configs/testing';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 type TMessageListener = (event: MessageEvent) => void;
 
@@ -150,7 +150,7 @@ describe('WorkerBffTransport', () => {
     };
     worker.respond(errorEnvelope);
 
-    await expectRejection({ task: fetchPromise, message: 'deliberate failure' });
+    await RejectionHelper.expectRejection({ task: fetchPromise, message: 'deliberate failure' });
   });
 
   test('ignores a message whose id does not match the in-flight request', async () => {
@@ -465,7 +465,10 @@ describe('WorkerBffTransport outside a secure context', () => {
       console.log(JSON.stringify({ ids: posted.map(envelope => envelope.id), draws }));
       process.exit(0);
     `;
-    const run = spawnSyncBounded({ cmd: [process.execPath, '-e', script], stderr: 'pipe' });
+    const run = SpawnHelper.spawnSyncBounded({
+      cmd: [process.execPath, '-e', script],
+      stderr: 'pipe',
+    });
     const report: { ids: Array<string>; draws: number } = JSON.parse(
       lastJsonLine({ output: run.stdout.toString() }),
     );

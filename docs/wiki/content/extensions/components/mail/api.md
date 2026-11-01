@@ -865,9 +865,22 @@ function isMailTransport(value: AnyType): value is IMailTransport;
 function isValidMailOptions(options: AnyType): options is TMailOptions;
 
 // verification.utility.ts
-function getExpiryTime(minutes: number): Date;         // Date `minutes` minutes from now
-function getExpiryTimeInHours(hours: number): Date;     // Date `hours` hours from now
+class MailVerificationUtility {
+  static getExpiryTime(opts: { minutes: number }): Date;       // Date `minutes` minutes from now
+  static getExpiryTimeInHours(opts: { hours: number }): Date;  // Date `hours` hours from now
+}
+
+// address.utility.ts, mime.utility.ts
+class MailAddressUtility {
+  static splitList(opts: { value: string | string[] }): string[];
+}
+class MailMimeUtility {
+  static formatAddressHeader(opts: { value: string | string[] }): string;
+  static buildRawMessage(opts: { message: IMailMessage }): Promise<Buffer>;
+}
 ```
+
+The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` and `isValidMailOptions` stay functions: a type guard needs its positional parameter to narrow.
 
 - `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
 - `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.

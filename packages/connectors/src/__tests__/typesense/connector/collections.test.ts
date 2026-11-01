@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { ApplicationError } from '@venizia/ignis-helpers/core';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };
@@ -56,7 +56,7 @@ describe('TypesenseConnector collections', () => {
 
   test('collectionExists surfaces an infrastructure failure instead of reporting absence', async () => {
     const { helper } = makeHelper({ throwOn: { 'collections.exists': new Error('network') } });
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: helper.collectionExists({ name: 'products' }),
       message: /temporarily unavailable/i,
     });

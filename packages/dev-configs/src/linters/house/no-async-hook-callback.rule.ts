@@ -1,7 +1,7 @@
 import type { Rule } from 'eslint';
 import type { TRuleSeverity } from '../rules/common';
 import { AwaitSupport } from './await-support';
-import { AstNodeTypes, HOUSE_PLUGIN_NAMESPACE, readField } from './common';
+import { AstNode, AstNodeTypes, HOUSE_PLUGIN_NAMESPACE } from './common';
 import { HookSupport } from './hook-support';
 
 /**
@@ -31,7 +31,7 @@ export class NoAsyncHookCallbackRule {
           return;
         }
 
-        const args = readField({ node, key: 'arguments' });
+        const args = AstNode.readField({ node, key: 'arguments' });
         if (!Array.isArray(args)) {
           return;
         }

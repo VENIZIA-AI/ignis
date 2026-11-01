@@ -9,7 +9,7 @@ import type {
   IVerificationTokenGenerator,
 } from '../../common';
 import { MailKeys } from '../../common';
-import { getExpiryTime, getExpiryTimeInHours } from '../../utilities';
+import { MailVerificationUtility } from '../../utilities';
 
 export class DefaultVerificationDataGenerator
   extends BaseHelper
@@ -33,12 +33,16 @@ export class DefaultVerificationDataGenerator
     return {
       verificationCode: code,
       codeGeneratedAt: now,
-      codeExpiresAt: getExpiryTime(options.codeExpiryMinutes).toISOString(),
+      codeExpiresAt: MailVerificationUtility.getExpiryTime({
+        minutes: options.codeExpiryMinutes,
+      }).toISOString(),
       codeAttempts: 0,
 
       verificationToken: token,
       tokenGeneratedAt: now,
-      tokenExpiresAt: getExpiryTimeInHours(options.tokenExpiryHours).toISOString(),
+      tokenExpiresAt: MailVerificationUtility.getExpiryTimeInHours({
+        hours: options.tokenExpiryHours,
+      }).toISOString(),
 
       lastCodeSentAt: now,
     };

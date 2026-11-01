@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /**
  * A browser app installs its logger through `@venizia/ignis-helpers/core`: `LoggerFactory` is node-only. The slot is
@@ -25,7 +25,7 @@ const run = (body: string): string => {
     process.stdout.write('RESULT:' + JSON.stringify(seen) + '\\n');
   `;
 
-  const result = spawnSyncBounded({
+  const result = SpawnHelper.spawnSyncBounded({
     cmd: ['bun', '-e', probe],
     cwd: PACKAGE_ROOT,
     stdout: 'pipe',

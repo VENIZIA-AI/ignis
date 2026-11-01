@@ -20,7 +20,7 @@ export class NoRestrictedPropertiesRule {
     {
       property: 'randomUUID',
       message:
-        'crypto.randomUUID exists only in a secure context (https, localhost) - on a plain-http origin it is undefined. Use uuidV4 from @venizia/ignis-helpers/uuid.',
+        'crypto.randomUUID exists only in a secure context (https, localhost) - on a plain-http origin it is undefined. Use UuidV4Generator.generate() from @venizia/ignis-helpers/uuid.',
     },
   ];
 

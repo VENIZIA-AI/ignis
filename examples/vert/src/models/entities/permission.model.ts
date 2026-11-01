@@ -1,4 +1,4 @@
-import { extraPermissionColumns, model } from '@venizia/ignis';
+import { AuthModelColumns, model } from '@venizia/ignis';
 import {
   PostgresIdEnricher,
   PostgresTzEnricher,
@@ -10,7 +10,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 export const permissionTable = pgTable('Permission', {
   ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraPermissionColumns({ idType: 'string' }),
+  ...AuthModelColumns.buildPermission({ idType: 'string' }),
 });
 
 @model()

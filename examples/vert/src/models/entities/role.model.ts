@@ -1,4 +1,4 @@
-import { extraRoleColumns, model } from '@venizia/ignis';
+import { AuthModelColumns, model } from '@venizia/ignis';
 import {
   PostgresIdEnricher,
   PostgresTzEnricher,
@@ -10,7 +10,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 export const roleTable = pgTable('Role', {
   ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraRoleColumns(),
+  ...AuthModelColumns.buildRole(),
 });
 
 @model()

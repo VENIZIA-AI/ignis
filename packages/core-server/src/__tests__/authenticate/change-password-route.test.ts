@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import { BaseApplication } from '@/base/applications';
 import { AppErrorMiddleware } from '@/base/middlewares';
-import { defineAuthController } from '@/components/auth/authenticate/controllers';
+import { AuthControllerFactory } from '@/components/auth/authenticate/controllers';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyObject, ValueOrPromise } from '@venizia/ignis-helpers/common';
 import {
@@ -94,7 +94,7 @@ const mountAuthController = async (opts: {
     strategies: [{ name: 'jwt', strategy: SignedInStrategy }],
   });
 
-  const AuthController = defineAuthController({ serviceKey: SERVICE_KEY });
+  const AuthController = AuthControllerFactory.define({ serviceKey: SERVICE_KEY });
   application.controller(AuthController);
   await application.registerControllers();
 

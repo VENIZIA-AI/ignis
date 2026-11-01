@@ -5,7 +5,7 @@ import { DEFAULT_MAX_LIMIT } from '@venizia/ignis-kernel';
 import { BaseSearchEntity, SearchCollectionFactory, field } from '@/search/core/models';
 import { DefaultSearchRepository } from '@/search/core/repositories';
 import { SearchModes } from '@/search/core/repositories/common';
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { FakeSearchDataSource } from './fake-search-connector';
 
 /**
@@ -68,7 +68,7 @@ describe('page-size ceiling - the framework default', () => {
   test(`a model declaring no maxLimit gets ${DEFAULT_MAX_LIMIT}`, async () => {
     const { repository, connector } = buildRepository(DefaultCeilingDocument);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.find({ filter: { limit: DEFAULT_MAX_LIMIT + 1 } }),
       message: /exceeds this model's limit/,
     });
@@ -108,7 +108,7 @@ describe('page-size ceiling - a model overrides it in both directions', () => {
   test('a raised ceiling is still a ceiling', async () => {
     const { repository } = buildRepository(RaisedCeilingDocument);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.find({ filter: { limit: 5001 } }),
       message: /maximum: 5000/,
     });
@@ -117,7 +117,7 @@ describe('page-size ceiling - a model overrides it in both directions', () => {
   test('maxLimit lowers the ceiling below the framework default', async () => {
     const { repository } = buildRepository(LoweredCeilingDocument);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.find({ filter: { limit: 100 } }),
       message: /maximum: 25/,
     });
@@ -128,7 +128,7 @@ describe('page-size ceiling - it applies wherever a caller-supplied limit reache
   test('find() is bounded', async () => {
     const { repository } = buildRepository(DefaultCeilingDocument);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.find({ filter: { limit: 2000 } }),
       message: /exceeds this model's limit/,
     });
@@ -138,7 +138,7 @@ describe('page-size ceiling - it applies wherever a caller-supplied limit reache
   test('search() is bounded too - it is not a way around find()', async () => {
     const { repository } = buildRepository(DefaultCeilingDocument);
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: repository.search({
         mode: SearchModes.KEYWORD,
         query: 'shoe',

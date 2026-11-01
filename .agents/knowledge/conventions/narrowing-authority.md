@@ -21,7 +21,7 @@ union: a default that is today's closed set, plus a way for an application to de
 
 ```typescript
 // The default accepts only IGNIS's seven variants; an application declares its own explicitly.
-extraPolicyDefinitionColumns({ extraVariants: ['merchant_role'] });
+AuthModelColumns.buildPolicyDefinition({ extraVariants: ['merchant_role'] });
 ```
 
 Reject `TKnown | (string & {})` for this. It accepts every string, so it re-opens the exact bug class

@@ -1,4 +1,4 @@
-import { extraPolicyDefinitionColumns, model } from '@venizia/ignis';
+import { AuthModelColumns, model } from '@venizia/ignis';
 import {
   PostgresIdEnricher,
   PostgresTzEnricher,
@@ -11,7 +11,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 export const policyDefinitionTable = pgTable('PolicyDefinition', {
   ...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } }),
   ...PostgresTzEnricher.generateColumnDefs(),
-  ...extraPolicyDefinitionColumns({ idType: 'string' }),
+  ...AuthModelColumns.buildPolicyDefinition({ idType: 'string' }),
 });
 
 @model()

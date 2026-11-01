@@ -1,4 +1,4 @@
-import { expectRejection } from '@venizia/dev-configs/testing';
+import { RejectionHelper } from '@venizia/dev-configs/testing';
 import { HttpDataSource } from '@/http/datasource';
 import { HttpRepository } from '@/http/repository';
 import { afterEach, describe, expect, test } from 'bun:test';
@@ -103,7 +103,7 @@ describe('search maps onto the IGNIS search route', () => {
   test('a body that is not the search envelope throws, never an empty page', async () => {
     stubFetch({ body: [] });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: build().search({ input: { mode: 'keyword', query: 'a' } }),
       message: /no \{ found, hits \} envelope/,
     });
@@ -112,7 +112,7 @@ describe('search maps onto the IGNIS search route', () => {
   test('a server error is the error it threw', async () => {
     stubFetch({ status: 422, body: { message: 'bad input' } });
 
-    await expectRejection({
+    await RejectionHelper.expectRejection({
       task: build().search({ input: { mode: 'keyword', query: 'a' } }),
       message: /bad input/,
     });

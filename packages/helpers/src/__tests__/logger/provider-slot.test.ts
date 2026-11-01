@@ -3,7 +3,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PACKAGE_ROOT } from '../package-root';
-import { spawnSyncBounded } from '@venizia/dev-configs/testing';
+import { SpawnHelper } from '@venizia/dev-configs/testing';
 
 /** Each case runs in a fresh process: the factory is module state, and the slot is process-global. */
 const runInFreshProcess = async (opts: { name: string; body: string }): Promise<string> => {
@@ -18,7 +18,7 @@ const runInFreshProcess = async (opts: { name: string; body: string }): Promise<
         `const fakeProvider = { name: 'fake', get: () => fakeLogger };\n` +
         opts.body.replace('__FACTORY__', JSON.stringify(factoryPath)),
     );
-    const result = spawnSyncBounded({
+    const result = SpawnHelper.spawnSyncBounded({
       cmd: ['bun', script],
       cwd: PACKAGE_ROOT,
       stdout: 'pipe',

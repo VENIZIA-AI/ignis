@@ -225,10 +225,10 @@ builtins by design (measured 2026-09-18; the optional peers themselves are lazy)
 two, and the derivation fails if either stops being published.
 
 `external` narrows what a row measures, so it is printed next to every verdict. It may only exempt a
-third party's packaging - `assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
+third party's packaging - `PurityManifest.assertNoWorkspaceExternal` refuses any `@venizia/` specifier at manifest
 load time.
 
-Every claimed package ships ES modules only, and `assertBrowserEsmEntry` refuses a claim whose sub-path
+Every claimed package ships ES modules only, and `PurityManifest.assertBrowserEsmEntry` refuses a claim whose sub-path
 publishes no runtime entry in `dist/esm`. A package that a browser bundler cannot take as ES modules
 would need a per-consumer workaround, so the claim would not be true. Entries are probed per runtime
 condition, and there is only `default` now, so the waived impure sub-paths are

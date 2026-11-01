@@ -3,7 +3,6 @@ import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@venizia/ignis-kernel';
 import { ControllerTransports } from '@venizia/ignis-kernel';
 import { BaseMetaLinkModel } from '@/components/static-asset/models';
-import { findLabelsInQuery } from '@/components/static-asset/controller/factory';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import type {
   TDefineExtraRoutes,
@@ -1347,32 +1346,38 @@ describe('the upload query carries a display order', () => {
   });
 });
 
-describe('findLabelsInQuery names a caller that never migrated', () => {
+describe('AssetControllerFactory.findLabelsInQuery names a caller that never migrated', () => {
   /**
    * Labels belong in the body. This predicate names the ones a caller still puts in the URL, which
    * the upload routes refuse.
    */
   test('it names every label still arriving in the query', () => {
-    expect(findLabelsInQuery({ query: { principalId: '42', variant: 'original' } })).toEqual([
-      'principalId',
-      'variant',
-    ]);
+    expect(
+      AssetControllerFactory.findLabelsInQuery({
+        query: { principalId: '42', variant: 'original' },
+      }),
+    ).toEqual(['principalId', 'variant']);
   });
 
   test('it returns them in a stable order, not the order they were sent', () => {
-    expect(findLabelsInQuery({ query: { variant: 'a', principalType: 'Product' } })).toEqual([
-      'principalType',
-      'variant',
-    ]);
+    expect(
+      AssetControllerFactory.findLabelsInQuery({
+        query: { variant: 'a', principalType: 'Product' },
+      }),
+    ).toEqual(['principalType', 'variant']);
   });
 
   test('an unrelated query parameter is not a label', () => {
-    expect(findLabelsInQuery({ query: { prefix: 'photos/', maxKeys: '10' } })).toEqual([]);
+    expect(
+      AssetControllerFactory.findLabelsInQuery({ query: { prefix: 'photos/', maxKeys: '10' } }),
+    ).toEqual([]);
   });
 
   /** An empty value still means the caller put it there, so it is still the wrong place. */
   test('an empty value still counts', () => {
-    expect(findLabelsInQuery({ query: { folderPath: '' } })).toEqual(['folderPath']);
+    expect(AssetControllerFactory.findLabelsInQuery({ query: { folderPath: '' } })).toEqual([
+      'folderPath',
+    ]);
   });
 });
 
