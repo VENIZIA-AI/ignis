@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { type AnyType } from '@/common';
-import { loggerSlot } from '@/modules/logger/slot';
+import { LoggerSlot } from '@/modules/logger/slot';
 import { NodeFetcher, NodeFetchNetworkRequest } from '@/modules/network';
 
 const originalFetch = globalThis.fetch;
-const originalResolve = loggerSlot.resolve;
+const originalResolve = LoggerSlot.resolve;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  loggerSlot.resolve = originalResolve;
+  LoggerSlot.resolve = originalResolve;
 });
 
 interface ICaptured {
@@ -169,7 +169,7 @@ describe('NodeFetcher - logging', () => {
   test('with no logger, no default logger is resolved - a browser never reaches the node provider', async () => {
     captureRequest();
     let resolved = 0;
-    loggerSlot.resolve = () => {
+    LoggerSlot.resolve = () => {
       resolved += 1;
       throw new Error('the default logger must not be built by a request');
     };
