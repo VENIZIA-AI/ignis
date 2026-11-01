@@ -313,7 +313,7 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
  * `await x.then` (no call), or an `await` inside a callback of a chain.
  *
  * The fix is made for one shape only, `const|let x = await f().catch(() => <value>)` (see `planFix` for every
- * condition), and writes `let x; try { x = await f(); } catch (error) { x = <value>; }`: the `const` becomes a
+ * condition), and writes `let x; try { x = await f(); } catch (error) { x = <value>; }` (`catch { ... }` when the value does not read the error): the `const` becomes a
  * `let`, a type annotation stays, the catch variable takes the handler's parameter name (`error` without one,
  * renamed when the name is taken), and is typed `any` when the value reads it, as the handler's parameter was.
  * The try also catches a synchronous throw of `f()`, which the chain let through. Everything else is reported.
@@ -355,7 +355,8 @@ export class NoAwaitPromiseChainRule {
               ? (fixer) => {
                   const indent = AwaitSupport.indentOf({ node: plan.declaration, sourceCode });
                   const inner = `${indent}  `;
-                  const binding = plan.isErrorRead ? `${plan.catchName}: any` : plan.catchName;
+                  // The optional catch binding when nothing reads the error: a named one would be an unused variable.
+                  const head = plan.isErrorRead ? `catch (${plan.catchName}: any)` : 'catch';
 
                   return fixer.replaceText(
                     plan.declaration,
@@ -363,7 +364,7 @@ export class NoAwaitPromiseChainRule {
                       `let ${plan.name}${plan.annotation};`,
                       `${indent}try {`,
                       `${inner}${plan.name} = await ${plan.receiverText};`,
-                      `${indent}} catch (${binding}) {`,
+                      `${indent}} ${head} {`,
                       `${inner}${plan.name} = ${plan.valueText};`,
                       `${indent}}`,
                     ].join('\n'),

@@ -72,7 +72,7 @@ reported: `return f().then(...)`, a chain as a statement, `await Promise.all(xs.
 answer: the rule is about one expression).
 
 The fixer covers one shape: `const|let x[: T] = await f().catch(() => <value>)` (or `(error) => <value>`), alone
-in a declaration in a statement list. It writes `let x[: T]; try { x = await f(); } catch (error) { x = <value>; }`
+in a declaration in a statement list. It writes `let x[: T]; try { x = await f(); } catch (error) { x = <value>; }` (`catch { x = <value>; }` when the value does not read the error, so no unused variable is left)
 and, with `no-inline-await` also on, the assignment is then hoisted to `const result = await f(); x = result;`.
 Conditions, all required:
 

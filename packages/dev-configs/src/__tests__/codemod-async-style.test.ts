@@ -203,7 +203,7 @@ describe('devz codemod async-style', () => {
     const result = await code(['--write']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(CHAIN_NOT_FIXABLE);
-    expect(read('src/b.ts')).toContain('} catch (error) {\n    user = null;\n  }');
+    expect(read('src/b.ts')).toContain('} catch {\n    user = null;\n  }');
     expect(warnings.join('\n')).toContain('src/a.ts:2:16  venizia/no-await-promise-chain');
     expect(warnings.join('\n')).toContain('src/b.ts:6:5  venizia/no-silent-catch');
     expect(logs.join('\n')).toContain('1 file(s) changed, 1 fix(es) applied, 2 left unfixed');
