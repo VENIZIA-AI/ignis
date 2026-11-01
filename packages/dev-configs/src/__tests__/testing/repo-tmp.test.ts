@@ -12,7 +12,7 @@ mkdirSync(join(root, 'packages/deep/src'), { recursive: true });
 
 afterAll(() => rmSync(root, { recursive: true, force: true }));
 
-describe('findRepositoryRoot', () => {
+describe('RepoTmp.findRoot', () => {
   test('walks up to the nearest folder holding .git', () => {
     expect(RepoTmp.findRoot({ start: join(root, 'packages/deep/src') })).toBe(root);
   });
@@ -26,7 +26,7 @@ describe('findRepositoryRoot', () => {
   });
 });
 
-describe('useRepoTmp (in a child process: it replaces Bun.spawn)', () => {
+describe('RepoTmp.apply (in a child process: it replaces Bun.spawn)', () => {
   const run = (opts: { env?: Record<string, string> } = {}) => {
     const result = SpawnHelper.spawnSyncBounded({
       cmd: ['bun', join(__dirname, 'fixtures/repo-tmp.script.ts'), root],

@@ -68,7 +68,7 @@ const run = async (opts: {
   return { report, out, err };
 };
 
-describe('assertNoWorkspaceExternal', () => {
+describe('PurityManifest.assertNoWorkspaceExternal', () => {
   test('rejects an entry that externalises a workspace package, naming the entry and the package', () => {
     const poisoned: IPurityEntry[] = [
       {
@@ -125,7 +125,7 @@ describe('assertNoWorkspaceExternal', () => {
   });
 });
 
-describe('deriveEntries', () => {
+describe('PurityManifest.deriveEntries', () => {
   const root = repository({
     lib: {
       exports: {
@@ -202,7 +202,7 @@ describe('deriveEntries', () => {
   });
 });
 
-describe('assertBrowserEsmEntry', () => {
+describe('PurityManifest.assertBrowserEsmEntry', () => {
   const root = repository({
     esm: { exports: { '.': { types: './dist/esm/index.d.ts', default: './dist/esm/index.js' } } },
     dual: {
@@ -232,7 +232,7 @@ describe('assertBrowserEsmEntry', () => {
     ).toThrow(/runtime entry is not in dist\/esm/);
   });
 
-  test('buildManifest checks it only when the repository asks for it', () => {
+  test('PurityManifest.build checks it only when the repository asks for it', () => {
     expect(PurityManifest.build({ claims: [{ package: 'dual' }], root }).length).toBe(2);
     expect(() =>
       PurityManifest.build({
@@ -244,7 +244,7 @@ describe('assertBrowserEsmEntry', () => {
   });
 });
 
-describe('checkPurity', () => {
+describe('PurityCheck.run', () => {
   const root = repository({
     pure: {
       exports: { '.': { types: './index.d.ts', default: './index.js' } },

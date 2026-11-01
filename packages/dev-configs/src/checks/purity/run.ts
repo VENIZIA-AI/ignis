@@ -185,17 +185,3 @@ export class PurityCheck {
     return { rows: verdicts, failed, waived, checked: rows.length - waived };
   }
 }
-
-/** @deprecated Use `PurityCheck.run({ root, claims, options, filter, claimsFile, print, printError })`. Removed in 0.5. */
-export const checkPurity = (opts: {
-  root: string;
-  claims: IPurityClaim[];
-  options?: IPurityOptions;
-  /** Only the rows of this package; a token that matches nothing is a broken gate and returns `undefined`. */
-  filter?: string;
-  /** The claims file, repository-relative, named in the hint printed for a stale waiver. */
-  claimsFile: string;
-  print: (line: string) => void;
-  /** Where the no-match message goes (stderr for the command): it is an error, not a report line. */
-  printError: (line: string) => void;
-}): Promise<IPurityReport | undefined> => PurityCheck.run(opts);

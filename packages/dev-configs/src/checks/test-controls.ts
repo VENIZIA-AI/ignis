@@ -130,13 +130,3 @@ export class TestControlsCheck {
     return { checked: opts.controls.length, problems };
   }
 }
-
-/** @deprecated Use `TestControlsCheck.listTitles({ source, fileName })`. Removed in 0.5. */
-export const listTestTitles = (opts: { source: string; fileName?: string }): Promise<string[]> =>
-  TestControlsCheck.listTitles(opts);
-
-/** @deprecated Use `TestControlsCheck.run({ root, controls })`. Removed in 0.5. */
-export const checkControls = (opts: {
-  root: string;
-  controls: IControlEntry[];
-}): Promise<IControlsReport> => TestControlsCheck.run(opts);

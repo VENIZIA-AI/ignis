@@ -378,16 +378,3 @@ export class PurityProbe {
     };
   }
 }
-
-/** @deprecated Use `PurityProbe.stripBundlerPathComments({ text })`. Removed in 0.5. */
-export const stripBundlerPathComments = (text: string): string =>
-  PurityProbe.stripBundlerPathComments({ text });
-
-/** @deprecated Use `PurityProbe.probeEntry({ entry, cwd, external, scratchDir })`. Removed in 0.5. */
-export const probeEntry = (opts: {
-  entry: string;
-  cwd: string;
-  external?: string[];
-  /** Defaults to {@link PURITY_SCRATCH_DIR} under `cwd`. */
-  scratchDir?: string;
-}): Promise<IPurityResult> => PurityProbe.probeEntry(opts);

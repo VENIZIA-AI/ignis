@@ -41,7 +41,7 @@ describe('readAffectedRowCount', () => {
   });
 });
 
-describe('readResultRows', () => {
+describe('DrizzleResultUtility.readResultRows', () => {
   interface IRow {
     id: number;
   }

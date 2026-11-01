@@ -5,7 +5,7 @@ test('a child that outlives its bound is killed, and the call throws naming the 
   const started = performance.now();
 
   expect(() => SpawnHelper.spawnSyncBounded({ cmd: ['sleep', '30'], timeout: 300 })).toThrow(
-    '[spawnSyncBounded] did not exit within 300 ms, killed | cmd: sleep 30',
+    '[SpawnHelper.spawnSyncBounded] did not exit within 300 ms, killed | cmd: sleep 30',
   );
   expect(performance.now() - started).toBeLessThan(5_000);
 });

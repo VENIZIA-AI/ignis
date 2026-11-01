@@ -57,16 +57,3 @@ export class AssetCommitToken {
     return payload;
   }
 }
-
-/** @deprecated Use `AssetCommitToken.build({ payload, secretKey })`. Removed in 0.5. */
-export const buildCommitToken = (opts: {
-  payload: ICommitTokenPayload;
-  secretKey: string;
-}): string => AssetCommitToken.build(opts);
-
-/** @deprecated Use `AssetCommitToken.read({ token, secretKey, now })`. Removed in 0.5. */
-export const readCommitToken = (opts: {
-  token: string;
-  secretKey: string;
-  now?: number;
-}): ICommitTokenPayload => AssetCommitToken.read(opts);

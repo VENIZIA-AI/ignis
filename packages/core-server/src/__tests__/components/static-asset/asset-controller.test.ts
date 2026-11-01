@@ -1344,7 +1344,7 @@ describe('the upload query carries a display order', () => {
   });
 });
 
-describe('findLabelsInQuery names a caller that never migrated', () => {
+describe('AssetControllerFactory.findLabelsInQuery names a caller that never migrated', () => {
   /**
    * Labels belong in the body. This predicate names the ones a caller still puts in the URL, which
    * the upload routes refuse.

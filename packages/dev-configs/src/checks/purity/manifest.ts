@@ -321,27 +321,3 @@ export class PurityManifest {
     });
   }
 }
-
-/** @deprecated Use `PurityManifest.assertNoWorkspaceExternal({ manifest, workspaceScope })`. Removed in 0.5. */
-export const assertNoWorkspaceExternal = (
-  manifest: IPurityEntry[],
-  workspaceScope: string = DEFAULT_WORKSPACE_SCOPE,
-): IPurityEntry[] => PurityManifest.assertNoWorkspaceExternal({ manifest, workspaceScope });
-
-/** @deprecated Use `PurityManifest.deriveEntries({ claim, root })`. Removed in 0.5. */
-export const deriveEntries = (opts: { claim: IPurityClaim; root: string }): IPurityEntry[] =>
-  PurityManifest.deriveEntries(opts);
-
-/** @deprecated Use `PurityManifest.assertBrowserEsmEntry({ claims, root, esmEntryPrefix })`. Removed in 0.5. */
-export const assertBrowserEsmEntry = (opts: {
-  claims: IPurityClaim[];
-  root: string;
-  esmEntryPrefix: string;
-}): IPurityClaim[] => PurityManifest.assertBrowserEsmEntry(opts);
-
-/** @deprecated Use `PurityManifest.build({ claims, root, options })`. Removed in 0.5. */
-export const buildManifest = (opts: {
-  claims: IPurityClaim[];
-  root: string;
-  options?: IPurityOptions;
-}): IPurityEntry[] => PurityManifest.build(opts);

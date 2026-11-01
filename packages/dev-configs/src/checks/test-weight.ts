@@ -201,11 +201,3 @@ export class TestWeightCheck {
     return lines;
   }
 }
-
-/** @deprecated Use `TestWeightCheck.analyseJunit({ reports })`. Removed in 0.5. */
-export const analyseJunit = (opts: { reports: ITestWeightInput[] }): ITestWeightReport =>
-  TestWeightCheck.analyseJunit(opts);
-
-/** @deprecated Use `TestWeightCheck.formatReport({ report, top })`. Removed in 0.5. */
-export const formatTestWeight = (opts: { report: ITestWeightReport; top?: number }): string[] =>
-  TestWeightCheck.formatReport(opts);

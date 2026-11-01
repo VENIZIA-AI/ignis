@@ -162,10 +162,3 @@ export class ModuleCyclesCheck {
     return cycles.length > max ? 1 : 0;
   }
 }
-
-/** @deprecated Use `ModuleCyclesCheck.run({ args, print, printError })`. Removed in 0.5. */
-export const runModuleCycles = (opts: {
-  args: string[];
-  print: (line: string) => void;
-  printError: (line: string) => void;
-}): number => ModuleCyclesCheck.run(opts);

@@ -52,7 +52,7 @@ export class DrizzleResultUtility {
 
     if (typeof result !== 'object') {
       throw getError({
-        message: `[readResultRows] Unrecognized driver result | expected pg.QueryResult or postgres-js RowList | got: ${typeof result}`,
+        message: `[DrizzleResultUtility.readResultRows] Unrecognized driver result | expected pg.QueryResult or postgres-js RowList | got: ${typeof result}`,
       });
     }
 
@@ -64,11 +64,7 @@ export class DrizzleResultUtility {
     }
 
     throw getError({
-      message: `[readResultRows] Unrecognized driver result | expected an array (postgres-js) or a 'rows' array (node-postgres) | got keys: ${Object.keys(result).join(', ')}`,
+      message: `[DrizzleResultUtility.readResultRows] Unrecognized driver result | expected an array (postgres-js) or a 'rows' array (node-postgres) | got keys: ${Object.keys(result).join(', ')}`,
     });
   }
 }
-
-/** @deprecated Use `DrizzleResultUtility.readResultRows({ result })`. Removed in 0.5. */
-export const readResultRows = <TRow>(opts: { result: unknown }): TRow[] =>
-  DrizzleResultUtility.readResultRows<TRow>(opts);

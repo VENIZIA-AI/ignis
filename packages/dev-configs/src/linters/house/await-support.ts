@@ -224,7 +224,7 @@ export class AwaitSupport {
     let current: unknown = opts.node;
 
     while (AwaitSupport.isNode(current)) {
-      if (FUNCTION_TYPES.has(nodeType({ node: current }) ?? '')) {
+      if (FUNCTION_TYPES.has(AstNode.getType({ node: current }) ?? '')) {
         outermost = current;
       }
       current = AwaitSupport.parentOf({ node: current });

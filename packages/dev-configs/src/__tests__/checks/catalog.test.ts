@@ -32,7 +32,7 @@ const CATALOG = {
   workspaces: { packages: ['packages/*'], catalog: { zod: '4.5.4', hono: '4.1.0' } },
 };
 
-describe('findCatalogProblems', () => {
+describe('CatalogCheck.find', () => {
   test('every catalogued dependency referenced as catalog: is clean and counted', async () => {
     const root = workspace({
       root: CATALOG,

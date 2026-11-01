@@ -1,5 +1,4 @@
 import type { TIdSchemaType } from '@venizia/ignis-kernel';
-import { AuthModelColumns } from './columns';
 
 export type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
   idType?: TIdSchemaType;
@@ -11,10 +10,3 @@ export type TPolicyDefinitionOptions<ExtraVariant extends string = never> = {
    */
   extraVariants?: ReadonlyArray<ExtraVariant>;
 };
-
-/** @deprecated Use `AuthModelColumns.buildPolicyDefinition(opts)`. Removed in 0.5. */
-export const extraPolicyDefinitionColumns = AuthModelColumns.buildPolicyDefinition;
-
-/** @deprecated Use `AuthModelColumns.buildPolicyDefinitionDomainShapeCheck(opts)`. Removed in 0.5. */
-export const policyDefinitionDomainShapeCheck =
-  AuthModelColumns.buildPolicyDefinitionDomainShapeCheck;

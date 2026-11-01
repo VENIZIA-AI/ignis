@@ -273,14 +273,3 @@ export class TestMutateCheck {
     return lines;
   }
 }
-
-/** @deprecated Use `TestMutateCheck.replayLedger({ root, ledger, scratch })`. Removed in 0.5. */
-export const replayLedger = (opts: {
-  root: string;
-  ledger: ILedger;
-  scratch?: string;
-}): ILedgerResult[] => TestMutateCheck.replayLedger(opts);
-
-/** @deprecated Use `TestMutateCheck.formatLedgerResults({ results })`. Removed in 0.5. */
-export const formatLedgerResults = (results: ILedgerResult[]): string[] =>
-  TestMutateCheck.formatLedgerResults({ results });

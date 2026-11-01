@@ -254,7 +254,3 @@ export class AuthControllerFactory {
     return AuthController;
   }
 }
-
-/** @deprecated Use `AuthControllerFactory.define(opts)`. Removed in 0.5. */
-export const defineAuthController = (opts: TDefineAuthControllerOpts) =>
-  AuthControllerFactory.define(opts);

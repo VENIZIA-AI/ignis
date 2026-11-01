@@ -77,7 +77,3 @@ export class DeadTestCodeCheck {
     return candidates;
   }
 }
-
-/** @deprecated Use `DeadTestCodeCheck.find({ root })`. Removed in 0.5. */
-export const findDeadTestCode = (opts: { root: string }): IDeadTestCodeCandidate[] =>
-  DeadTestCodeCheck.find(opts);

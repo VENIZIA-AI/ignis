@@ -71,13 +71,6 @@ export class BunRuntimeGuard {
   }
 }
 
-/** @deprecated Use `BunRuntimeGuard.readSnapshot()`. Removed in 0.5. */
-export const readRuntimeSnapshot = (): IRuntimeSnapshot => BunRuntimeGuard.readSnapshot();
-
-/** @deprecated Use `BunRuntimeGuard.assert({ runtime })`. Removed in 0.5. */
-export const assertBunRuntime = (opts: { runtime?: IRuntimeSnapshot } = {}): void =>
-  BunRuntimeGuard.assert(opts);
-
 const DEFAULT_SHUTDOWN_SIGNALS: NodeJS.Signals[] = ['SIGTERM', 'SIGINT'];
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
 

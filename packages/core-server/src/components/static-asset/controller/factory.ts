@@ -72,13 +72,19 @@ const UPLOAD_LABEL_NAMES = [
   'folderPath',
 ] as const;
 
+/** The body of `AssetControllerFactory.findLabelsInQuery`, callable from the helpers above the class. */
+const listLabelsInQuery = (opts: {
+  query: Record<string, string>;
+  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
+}): string[] => (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
+
 /** Refused before the body is read: a route that ignored them would store an unlabelled row. */
 const refuseLabelsInQuery = (opts: {
   query: Record<string, string>;
   names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
   reason?: string;
 }): void => {
-  const names = AssetControllerFactory.findLabelsInQuery(opts);
+  const names = listLabelsInQuery(opts);
   if (names.length > 0) {
     throw getError({
       error: StaticAssetErrors.LABELS_IN_QUERY,
@@ -209,7 +215,7 @@ export class AssetControllerFactory extends BaseHelper {
     query: Record<string, string>;
     names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
   }): string[] {
-    return (opts.names ?? UPLOAD_LABEL_NAMES).filter((name) => opts.query[name] !== undefined);
+    return listLabelsInQuery(opts);
   }
 
   /** The URL of one object, in the shape its controller serves: no `/buckets/<name>` with a configured bucket, and a raw path with `rawObjectPath`. */
@@ -1185,25 +1191,3 @@ export class AssetControllerFactory extends BaseHelper {
     return GeneratedStaticAssetController;
   }
 }
-
-/** @deprecated Use `AssetControllerFactory.findLabelsInQuery({ query, names })`. Removed in 0.5. */
-export const findLabelsInQuery = (opts: {
-  query: Record<string, string>;
-  names?: ReadonlyArray<(typeof UPLOAD_LABEL_NAMES)[number]>;
-}): string[] => AssetControllerFactory.findLabelsInQuery(opts);
-
-/** @deprecated Use `AssetControllerFactory.buildObjectLink({ basePath, bucket, object, ... })`. Removed in 0.5. */
-export const buildObjectLink = (
-  opts: IObjectLocation & {
-    basePath: string;
-    hasConfiguredBucket?: boolean;
-    rawObjectPath?: boolean;
-  },
-): string => AssetControllerFactory.buildObjectLink(opts);
-
-/** @deprecated Use `AssetControllerFactory.resolveServedContentType({ helper, object })`. Removed in 0.5. */
-export const resolveServedContentType = (opts: {
-  helper: IStorageHelper;
-  object: IObjectRef;
-}): { contentType: string; isRenderable: boolean } =>
-  AssetControllerFactory.resolveServedContentType(opts);

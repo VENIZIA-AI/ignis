@@ -93,6 +93,11 @@ function encodeAddress(address: string): string {
   return `${encodeWord(name)} <${addr}>`;
 }
 
+/** The body of `MailMimeUtility.formatAddressHeader`, callable from the header builder. */
+function formatAddressList(value: string | string[]): string {
+  return MailAddressUtility.splitList({ value }).map(encodeAddress).join(', ');
+}
+
 /**
  * RFC 5322 §2.2.3 header folding: inserting CRLF immediately before an existing whitespace
  * character splits one logical header value across physical lines without changing its content
@@ -220,32 +225,22 @@ function buildHeaders(message: IMailMessage): string[] {
 
   if (message.from) {
     assertNoAddressListInjection({ field: 'from', value: message.from });
-    headers.push(
-      foldHeaderLine(`From: ${MailMimeUtility.formatAddressHeader({ value: message.from })}`),
-    );
+    headers.push(foldHeaderLine(`From: ${formatAddressList(message.from)}`));
   }
 
   if (message.to) {
     assertNoAddressListInjection({ field: 'to', value: message.to });
-    headers.push(
-      foldHeaderLine(`To: ${MailMimeUtility.formatAddressHeader({ value: message.to })}`),
-    );
+    headers.push(foldHeaderLine(`To: ${formatAddressList(message.to)}`));
   }
 
   if (message.cc) {
     assertNoAddressListInjection({ field: 'cc', value: message.cc });
-    headers.push(
-      foldHeaderLine(`Cc: ${MailMimeUtility.formatAddressHeader({ value: message.cc })}`),
-    );
+    headers.push(foldHeaderLine(`Cc: ${formatAddressList(message.cc)}`));
   }
 
   if (message.replyTo) {
     assertNoAddressListInjection({ field: 'replyTo', value: message.replyTo });
-    headers.push(
-      foldHeaderLine(
-        `Reply-To: ${MailMimeUtility.formatAddressHeader({ value: message.replyTo })}`,
-      ),
-    );
+    headers.push(foldHeaderLine(`Reply-To: ${formatAddressList(message.replyTo)}`));
   }
 
   // Checked, never emitted: a `Bcc:` header would disclose the blind recipients, so they travel as
@@ -367,7 +362,7 @@ export class MailMimeUtility {
    * comma-separated string or array into individual mailboxes, RFC 2047-encodes each display name,
    * and rejoins with `, ` - the same shape whether the caller passed a string or an array. */
   static formatAddressHeader(opts: { value: string | string[] }): string {
-    return MailAddressUtility.splitList({ value: opts.value }).map(encodeAddress).join(', ');
+    return formatAddressList(opts.value);
   }
 
   /**
@@ -481,14 +476,4 @@ export class MailMimeUtility {
 
     return Buffer.from([...headers, '', bodyParts.join(CRLF)].join(CRLF), 'utf-8');
   }
-}
-
-/** @deprecated Use `MailMimeUtility.formatAddressHeader({ value })`. Removed in 0.5. */
-export function formatAddressHeader(value: string | string[]): string {
-  return MailMimeUtility.formatAddressHeader({ value });
-}
-
-/** @deprecated Use `MailMimeUtility.buildRawMessage({ message })`. Removed in 0.5. */
-export async function buildRawMimeMessage(message: IMailMessage): Promise<Buffer> {
-  return MailMimeUtility.buildRawMessage({ message });
 }

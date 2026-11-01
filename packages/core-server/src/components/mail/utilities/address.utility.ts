@@ -39,8 +39,3 @@ export class MailAddressUtility {
     return addresses;
   }
 }
-
-/** @deprecated Use `MailAddressUtility.splitList({ value })`. Removed in 0.5. */
-export function splitAddressList(value: string | string[]): string[] {
-  return MailAddressUtility.splitList({ value });
-}

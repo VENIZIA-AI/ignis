@@ -30,9 +30,3 @@ export class AstNode {
     return typeof type === 'string' ? type : undefined;
   }
 }
-
-/** @deprecated Use `AstNode.readField({ node, key })`. Removed in 0.5. */
-export const readField = (opts: { node: unknown; key: string }): unknown => AstNode.readField(opts);
-
-/** @deprecated Use `AstNode.getType({ node })`. Removed in 0.5. */
-export const nodeType = (opts: { node: unknown }): string | undefined => AstNode.getType(opts);

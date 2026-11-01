@@ -7,7 +7,7 @@ export class BunCompiler {
   /**
    * `plugins` is a parameter, never resolved here - `dev-configs` sits below every other IGNIS
    * package (see the Makefile chain) and must not import a plugin factory such as
-   * `platformaticKafkaPlugins()` from `helpers`, which would invert that chain.
+   * `PlatformaticKafkaPlugins.build()` from `helpers`, which would invert that chain.
    */
   static async compile(
     opts: {

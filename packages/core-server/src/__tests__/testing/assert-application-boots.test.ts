@@ -299,7 +299,7 @@ const FULL: IPlan = {
   controllers: [AccountController],
 };
 
-describe('assertApplicationBoots - the boot path', () => {
+describe('ApplicationBootAssertion.assert - the boot path', () => {
   test('C1/C2 an unregistered injection is rejected with the very error boot raises', async () => {
     const application = new PlannedApplication({ controllers: [BrokenController] });
     const boot = application.initialize.bind(application);
@@ -396,7 +396,7 @@ describe('assertApplicationBoots - the boot path', () => {
   });
 });
 
-describe('assertApplicationBoots - the shared verification core', () => {
+describe('ApplicationBootAssertion.assert - the shared verification core', () => {
   const ORPHANED: IPlan = { ...FULL, services: [AccountService, OrphanService] };
 
   test('I3 the rejection is the core error: it says what is missing and who needs it', async () => {
@@ -473,7 +473,7 @@ describe('assertApplicationBoots - the shared verification core', () => {
   });
 });
 
-describe('assertApplicationBoots - datasources and components', () => {
+describe('ApplicationBootAssertion.assert - datasources and components', () => {
   test('C7 positive control: a plain initialize() fails at the datasource', async () => {
     const application = new PlannedApplication(FULL);
     application.init();
@@ -568,7 +568,7 @@ describe('assertApplicationBoots - datasources and components', () => {
   });
 });
 
-describe('assertApplicationBoots - a failing component names the way out', () => {
+describe('ApplicationBootAssertion.assert - a failing component names the way out', () => {
   const planned = () => new PlannedApplication({ ...FULL, components: [ThrowingComponent] });
 
   test('a boot that fails inside a component logs one line naming skipComponents, and rejects with the original error', async () => {
@@ -642,7 +642,7 @@ describe('assertApplicationBoots - a failing component names the way out', () =>
   });
 });
 
-describe('assertApplicationBoots - steps and secrets', () => {
+describe('ApplicationBootAssertion.assert - steps and secrets', () => {
   test('C13 without skipSteps the two secrets steps do not run', async () => {
     await ApplicationBootAssertion.assert({ application: new PlannedApplication(FULL) });
 
@@ -677,7 +677,7 @@ describe('assertApplicationBoots - steps and secrets', () => {
   });
 });
 
-describe('assertApplicationBoots - guards', () => {
+describe('ApplicationBootAssertion.assert - guards', () => {
   test('C16 the same instance a second time is refused, also after a failed first call', async () => {
     const good = new PlannedApplication(FULL);
     await ApplicationBootAssertion.assert({ application: good });
@@ -761,7 +761,7 @@ describe('assertApplicationBoots - guards', () => {
   });
 });
 
-describe("assertApplicationBoots - duplicate routes (the helper's own check)", () => {
+describe("ApplicationBootAssertion.assert - duplicate routes (the helper's own check)", () => {
   const DUPLICATES: IPlan = { controllers: [FirstDuplicateController, SecondDuplicateController] };
 
   test('C27 the same method and path mounted twice rejects, naming both controllers', async () => {
@@ -813,7 +813,7 @@ describe("assertApplicationBoots - duplicate routes (the helper's own check)", (
   });
 });
 
-describe('assertApplicationBoots - what it never does', () => {
+describe('ApplicationBootAssertion.assert - what it never does', () => {
   test('A1 it never calls start(), never listens and never configures what is skipped', async () => {
     const application = new PlannedApplication({ ...FULL, components: [CountingComponent] });
     const start = spyOn(application, 'start');

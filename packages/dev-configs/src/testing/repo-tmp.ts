@@ -80,10 +80,3 @@ export class RepoTmp {
     return testTmp;
   }
 }
-
-/** @deprecated Use `RepoTmp.findRoot({ start })`. Removed in 0.5. */
-export const findRepositoryRoot = (start: string = process.cwd()): string =>
-  RepoTmp.findRoot({ start });
-
-/** @deprecated Use `RepoTmp.apply({ root })`. Removed in 0.5. */
-export const useRepoTmp = (opts: { root?: string } = {}): string => RepoTmp.apply(opts);

@@ -23,13 +23,10 @@ export class SpawnHelper {
     if (result.exitedDueToTimeout) {
       // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
       throw new Error(
-        `[spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
+        `[SpawnHelper.spawnSyncBounded] did not exit within ${timeout} ms, killed | cmd: ${opts.cmd.join(' ').slice(0, 200)}`,
       );
     }
 
     return result;
   }
 }
-
-/** @deprecated Use `SpawnHelper.spawnSyncBounded({ cmd, ... })`. Removed in 0.5. */
-export const spawnSyncBounded = SpawnHelper.spawnSyncBounded;

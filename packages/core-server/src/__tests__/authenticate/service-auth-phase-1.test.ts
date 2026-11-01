@@ -108,7 +108,7 @@ describe('the registry is the source of truth for a strategy name', () => {
   });
 
   /**
-   * What the FRAMEWORK does, and it must never throw. `defineAuthController` hard-codes `'jwt'` on
+   * What the FRAMEWORK does, and it must never throw. `AuthControllerFactory.define` hard-codes `'jwt'` on
    * four of its routes, and a route listing several strategies in ANY mode tolerates one that does
    * not resolve - throwing here would stop applications booting that work today.
    */
@@ -145,7 +145,7 @@ describe('the registry is the source of truth for a strategy name', () => {
  * The regression this suite exists to prevent, and the reason the framework reports rather than
  * throws.
  *
- * `defineAuthController` hard-codes `strategies: ['jwt']` on four routes it registers
+ * `AuthControllerFactory.define` hard-codes `strategies: ['jwt']` on four routes it registers
  * unconditionally. An application that registers its JWT strategy under a custom name - the exact
  * configuration this release adds support for - has 'jwt' unregistered. A boot-time THROW would
  * kill such an application at `registerControllers()`, so the feature would break the configuration

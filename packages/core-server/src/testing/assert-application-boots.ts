@@ -101,7 +101,7 @@ const matchesTarget = (opts: {
 };
 
 const fail = (message: string): never => {
-  throw getError({ message: `[assertApplicationBoots] ${message}` });
+  throw getError({ message: `[ApplicationBootAssertion.assert] ${message}` });
 };
 
 /** Replaces `object[name]` and returns the way back, even when `name` was inherited. */
@@ -271,11 +271,11 @@ export class ApplicationBootAssertion {
     // The components whose `configure()` is running, innermost last: when the boot rejects, the last one is where it failed.
     const configuringComponents: string[] = [];
 
-    const neutralise = async (opts: {
+    const neutralise = async (entry: {
       namespace: string;
       binding: Binding<AnyType>;
     }): Promise<void> => {
-      const { namespace, binding } = opts;
+      const { namespace, binding } = entry;
       const isDataSource = namespace === BindingNamespaces.DATASOURCE;
       const isComponent = namespace === BindingNamespaces.COMPONENT;
       if (!isDataSource && !isComponent) {
@@ -304,23 +304,23 @@ export class ApplicationBootAssertion {
       name: string;
     }>;
 
-    const wrappedRegister = async (opts: IDynamicBindingsOptions): Promise<void> => {
+    const wrappedRegister = async (sweepOptions: IDynamicBindingsOptions): Promise<void> => {
       sweepsSeen += 1;
-      const userBefore = opts.onBeforeConfigure;
-      const userAfter = opts.onAfterConfigure;
+      const userBefore = sweepOptions.onBeforeConfigure;
+      const userAfter = sweepOptions.onAfterConfigure;
 
       return originalRegisterDynamicBindings.call(target, {
-        ...opts,
+        ...sweepOptions,
         onBeforeConfigure: async ({ binding }) => {
-          await neutralise({ namespace: opts.namespace, binding });
-          if (opts.namespace === BindingNamespaces.COMPONENT) {
+          await neutralise({ namespace: sweepOptions.namespace, binding });
+          if (sweepOptions.namespace === BindingNamespaces.COMPONENT) {
             const instance = target.get<AnyType>({ key: binding.key, isOptional: true });
             configuringComponents.push(String(instance?.constructor?.name ?? binding.key));
           }
           await userBefore?.({ binding });
         },
         onAfterConfigure: async ({ binding, instance }) => {
-          if (opts.namespace === BindingNamespaces.COMPONENT) {
+          if (sweepOptions.namespace === BindingNamespaces.COMPONENT) {
             configuringComponents.pop();
           }
           await userAfter?.({ binding, instance });
@@ -404,7 +404,7 @@ export class ApplicationBootAssertion {
       const failing = configuringComponents.at(-1);
       if (failing) {
         target.logger
-          .for('assertApplicationBoots')
+          .for('ApplicationBootAssertion.assert')
           .warn(
             `The boot failed inside component ${failing} | If it needs infrastructure, skipComponents: ['${failing}'] skips it, and skipBindings lists the services that depend on it`,
           );
@@ -424,9 +424,3 @@ export class ApplicationBootAssertion {
     }
   }
 }
-
-/** @deprecated Use `ApplicationBootAssertion.assert({ application, options })`. Removed in 0.5. */
-export const assertApplicationBoots = <Application extends BaseApplication>(
-  application: Application | (() => Application | Promise<Application>),
-  options: IAssertApplicationBootsOptions = {},
-): Promise<Application> => ApplicationBootAssertion.assert({ application, options });

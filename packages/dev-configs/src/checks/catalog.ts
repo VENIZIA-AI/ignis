@@ -161,7 +161,3 @@ export class CatalogCheck {
     return { problems, entries: catalogKeys.length, referenced: referenced.size, noCatalog: false };
   }
 }
-
-/** @deprecated Use `CatalogCheck.find(opts)`. Removed in 0.5. */
-export const findCatalogProblems = (opts: ICatalogOptions = {}): Promise<ICatalogReport> =>
-  CatalogCheck.find(opts);

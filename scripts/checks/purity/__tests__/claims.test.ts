@@ -37,7 +37,7 @@ const readPublishedTargets = (opts: { package: string }): string[] => {
   return [...new Set(targets)];
 };
 
-describe('assertNoWorkspaceExternal', () => {
+describe('PurityManifest.assertNoWorkspaceExternal', () => {
   test('the real manifest passes - nothing externalises a workspace package', () => {
     expect(() =>
       PurityManifest.assertNoWorkspaceExternal({ manifest: PURITY_MANIFEST }),

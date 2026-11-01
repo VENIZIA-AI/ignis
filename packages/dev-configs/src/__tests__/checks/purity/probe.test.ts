@@ -7,7 +7,7 @@ const PROCESS_PATTERN = GLOBAL_PATTERNS.find((g) => g.name === 'process')!;
 const FIXTURES = join(__dirname, 'fixtures');
 const REPOSITORY_ROOT = join(__dirname, '../../../../../..');
 
-describe('probeEntry', () => {
+describe('PurityProbe.probeEntry', () => {
   test('passes an entry with no node builtin and no node global', async () => {
     const result = await PurityProbe.probeEntry({
       entry: join(FIXTURES, 'pure.entry.ts'),
@@ -138,7 +138,7 @@ describe('probeEntry', () => {
   // (an entry-path comment ends in `.entry.ts`, not `.js`, and a `-comment` suffix lands on a hyphen,
   // not a dot - neither matches `BUNDLER_PATH_COMMENT`), so this asserts the strip against the exact
   // real string instead of hoping a filename reproduces the collision.
-  describe('stripBundlerPathComments', () => {
+  describe('PurityProbe.stripBundlerPathComments', () => {
     test('removes the real collision - a bundler path comment containing "-process."', () => {
       const bundled =
         '// packages/core-worker/dist/transport/in-process.js\nvar x = 1;\n// packages/core-server/dist/index.js\n';

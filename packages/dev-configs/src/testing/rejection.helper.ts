@@ -38,13 +38,3 @@ export class RejectionHelper {
     expect(reason instanceof Error ? reason.message : String(reason)).toMatch(message);
   }
 }
-
-/** @deprecated Use `RejectionHelper.rejectionOf({ task })`. Removed in 0.5. */
-export const rejectionOf = async (task: Promise<unknown>): Promise<unknown> =>
-  RejectionHelper.rejectionOf({ task });
-
-/** @deprecated Use `RejectionHelper.expectRejection({ task, message })`. Removed in 0.5. */
-export const expectRejection = async (opts: {
-  task: Promise<unknown>;
-  message: string | RegExp;
-}): Promise<void> => RejectionHelper.expectRejection(opts);
