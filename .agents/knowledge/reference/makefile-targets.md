@@ -42,7 +42,7 @@ generated:
 | `make core-server` | `connectors boot` | Rebuild one package, after its dependencies. |
 | `make core-worker` | `kernel` | Rebuild one package, after its dependencies. |
 | `make dev-configs` | - | Rebuild one package, after its dependencies. |
-| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages. |
+| `make docs` | - | Rebuilds wiki (VitePress) for GitHub Pages; fails on a server render error or a home page without footer and canvases. |
 | `make examples-check` | - | Gate: every example type-checks against the built packages. Needs a build. |
 | `make filter` | `inversion` | Rebuild one package, after its dependencies. |
 | `make fmt-files` | - | Format check / write of package.json, .github, .agents, .configs, presets and examples. |

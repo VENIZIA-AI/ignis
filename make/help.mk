@@ -20,7 +20,7 @@ help:
 	@$(HELP_ROW) "update" "Alias of 'install'; to raise one package's deps use 'update-<pkg>'."
 	@$(HELP_ROW) "clean" "Clean build artifacts from all packages."
 	@$(HELP_ROW) "setup-hooks" "Configure git to use .githooks directory."
-	@$(HELP_ROW) "docs" "Rebuilds wiki (VitePress) for GitHub Pages."
+	@$(HELP_ROW) "docs" "Rebuilds wiki (VitePress) for GitHub Pages; fails on a server render error or a home page without footer and canvases."
 	@echo ""
 	@echo "Per package - <pkg> is one of:"
 	@echo "  $(PACKAGES)"
