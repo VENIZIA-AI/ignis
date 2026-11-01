@@ -1,7 +1,6 @@
 import { type TConstValue } from '@/common/types';
 import { Environment } from '@/modules/env';
 import { ParseUtility } from '@/utilities/parse.utility';
-import { LoggerDebugGate } from './debug-gate';
 import { LogLevels, type TLogLevel } from './types';
 
 // -------------------------------------------------------------
@@ -19,13 +18,6 @@ export class LoggerFormats {
 export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
 
 // -------------------------------------------------------------
-/**
- * The debug() rule as it stood when this module loaded: DEBUG truthy and NODE_ENV unset or allowlisted (the rule is
- * `LoggerDebugGate.evaluate`). A snapshot: the loggers read `LoggerDebugGate.isOpen()` instead, which
- * `LoggerFactory.use({ level })` can override.
- */
-export const SHOULD_LOG_DEBUG = LoggerDebugGate.evaluate({ env: process.env });
-
 export class LoggerConfigUtility {
   /** The logger's own level, below which a line never reaches ANY transport. Defaults to `debug` - level gating belongs to the wrapper and each transport, and a stricter default here would silently drop lines the wrapper already let through. */
   static resolveLevel(opts: { configured?: string }): TLogLevel {
