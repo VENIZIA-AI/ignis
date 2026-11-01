@@ -508,7 +508,14 @@ describe('a failed read names the path, never the host or the query', () => {
       task,
       message: /431 \| \/tickets \(\d+ chars\) \| The URL is too long for a GET/,
     });
-    const error = await task.catch((rejected: Error) => rejected);
+    let error: unknown;
+    try {
+      await task;
+    } catch (rejected) {
+      error = rejected;
+    }
+
+    expect(error).toBeInstanceOf(Error);
     expect((error as Error).message.length).toBeLessThan(500);
   });
 
