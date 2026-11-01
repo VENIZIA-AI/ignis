@@ -17,6 +17,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis', '@venizia/dev-configs']
 - **`LoggerFactory` and `ConsoleLogger` are exported from `@venizia/ignis-helpers/core`.** The factory imports nothing from node, so a browser bundle uses it too. The default provider is the console.
 - **A compiled binary needs no `LoggerFactory.use`.** `@venizia/ignis` selects Winston at `initialize()` unless your application already chose a provider. If `winston` is not installed, the console stays.
 - **`LoggerFactory.use({ provider, level })` chooses the provider and the level.** The level is a `LogLevels` value and applies to every provider the same way.
+- **`SHOULD_LOG_DEBUG` is removed.** It was a snapshot of the debug rule taken when the module loaded; the loggers now read the live gate, which `LoggerFactory.use({ level })` can change. Nothing in IGNIS read the constant; if yours did, ask `LoggerDebugGate.isOpen()`.
 - **`ApplicationLogger`, `LoggerSlot`, `LoggerResolver`, `ResolvedLogger` and `TLoggerResolver` are removed.** So is the one-time "Logging to the console - no logger provider is installed" warning.
 
 ## Who is affected

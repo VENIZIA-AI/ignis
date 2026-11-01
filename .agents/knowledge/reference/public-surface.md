@@ -336,7 +336,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (419)
+### `@venizia/ignis-helpers` (418)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -612,7 +612,6 @@ generated:
 - `SecretProviders` class
 - `SecretsHelperFactory` class
 - `SequentialQueueHelper` class
-- `SHOULD_LOG_DEBUG` const
 - `SlugHelper` class
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
@@ -2353,7 +2352,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1010)
+### `@venizia/ignis` (1009)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -3015,7 +3014,6 @@ generated:
 - `ServiceAuthenticationStrategy` class
 - `ServiceCertsController` class
 - `ServiceCertsRouteConfigs` const
-- `SHOULD_LOG_DEBUG` const
 - `SignInRequestSchema` const
 - `SignUpRequestSchema` const
 - `SkipSchema` const

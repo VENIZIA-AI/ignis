@@ -94,7 +94,7 @@ logger.info('Order sent');
 // Correct, but this is not the hot path - use it for control-flow events, not per-tick data.
 logger.info('Order sent: %s', orderId);
 
-// debug() returns before any encoding when SHOULD_LOG_DEBUG is false (same gate as Logger).
+// debug() returns before any encoding when the debug gate is closed (same gate as Logger: LoggerDebugGate).
 logger.debug('Verbose diagnostic');
 
 // .for() composes a sub-scope the same way BaseLogger does.
