@@ -155,13 +155,24 @@ describe('RecursiveTreeSql against a real Postgres - several roots, no root, one
     ).toEqual(['A', 'R']);
   });
 
-  test('no root on an UP walk, and an empty list of roots, are refused', async () => {
-    await expect(walk({ direction: RecursiveTreeDirections.UP, maxDepth: 32 })).rejects.toThrow(
-      /needs at least one root/,
-    );
-    await expect(
-      walk({ rootId: [], direction: RecursiveTreeDirections.DOWN, maxDepth: 32 }),
-    ).rejects.toThrow(/empty list of roots/);
+  test('no root on an UP walk, and an empty list of roots, are refused', () => {
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'tree',
+        table: merchants,
+        direction: RecursiveTreeDirections.UP,
+        maxDepth: 32,
+      }),
+    ).toThrow(/needs at least one root/);
+    expect(() =>
+      RecursiveTreeSql.walk({
+        name: 'tree',
+        table: merchants,
+        rootId: [],
+        direction: RecursiveTreeDirections.DOWN,
+        maxDepth: 32,
+      }),
+    ).toThrow(/empty list of roots/);
   });
 
   test('filter is applied to both terms: a rejected row is out of the walk and its subtree is cut off', async () => {
