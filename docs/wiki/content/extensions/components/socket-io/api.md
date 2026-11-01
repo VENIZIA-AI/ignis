@@ -248,7 +248,7 @@ A custom fetch function intercepts WebSocket upgrade requests before they reach 
 2. If it matches, delegates to `@socket.io/bun-engine` via `engine.handleRequest(req, server)`.
 3. If it doesn't, delegates to Hono's normal `server.fetch(req, server)` handler.
 
-Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`createBunEngine()`](#post-start-hooks) in Internals for the full CORS bridging code.
+Socket.IO and `@socket.io/bun-engine` define CORS slightly differently, so the component extracts each field explicitly instead of casting with `as any`. See [`SocketIOBunHandler.createEngine()`](#post-start-hooks) in Internals for the full CORS bridging code.
 
 ## Server helper API reference
 
@@ -434,35 +434,37 @@ Reads every binding key from the DI container and validates the required ones.
 
 The component registers one hook, `'socket-io-initialize'`, in `registerBunHook()`:
 
-1. Calls `createBunEngine({ serverOptions })`, which dynamically imports `@socket.io/bun-engine` and builds a `BunEngine` instance with CORS bridging.
+1. Calls `SocketIOBunHandler.createEngine({ serverOptions })`, which dynamically imports `@socket.io/bun-engine` and builds a `BunEngine` instance with CORS bridging.
 2. Constructs `SocketIOServerHelper` with `runtime: RuntimeModules.BUN`.
 3. Awaits `socketIOHelper.configure()`.
 4. Binds the helper to `SOCKET_IO_INSTANCE`.
 5. Calls `serverInstance.reload({ fetch, websocket })` to wire the engine into the running Bun server.
 
 ```typescript
-async function createBunEngine(opts: {
-  serverOptions: Partial<ServerOptions>;
-}): Promise<{ engine: any; engineHandler: any }> {
-  const { serverOptions } = opts;
-  const { Server: BunEngine } = await import('@socket.io/bun-engine');
+class SocketIOBunHandler {
+  static async createEngine(opts: {
+    serverOptions: Partial<ServerOptions>;
+  }): Promise<{ engine: any; engineHandler: any }> {
+    const { serverOptions } = opts;
+    const { Server: BunEngine } = await import('@socket.io/bun-engine');
 
-  const corsConfig = typeof serverOptions.cors === 'object' ? serverOptions.cors : undefined;
-  const engine = new BunEngine({
-    path: serverOptions.path ?? '/socket.io/',
-    ...(corsConfig && {
-      cors: {
-        origin: corsConfig.origin as string | RegExp | (string | RegExp)[] | undefined,
-        methods: corsConfig.methods,
-        credentials: corsConfig.credentials,
-        allowedHeaders: corsConfig.allowedHeaders,
-        exposedHeaders: corsConfig.exposedHeaders,
-        maxAge: corsConfig.maxAge,
-      },
-    }),
-  });
+    const corsConfig = typeof serverOptions.cors === 'object' ? serverOptions.cors : undefined;
+    const engine = new BunEngine({
+      path: serverOptions.path ?? '/socket.io/',
+      ...(corsConfig && {
+        cors: {
+          origin: corsConfig.origin as string | RegExp | (string | RegExp)[] | undefined,
+          methods: corsConfig.methods,
+          credentials: corsConfig.credentials,
+          allowedHeaders: corsConfig.allowedHeaders,
+          exposedHeaders: corsConfig.exposedHeaders,
+          maxAge: corsConfig.maxAge,
+        },
+      }),
+    });
 
-  return { engine, engineHandler: engine.handler() };
+    return { engine, engineHandler: engine.handler() };
+  }
 }
 ```
 
