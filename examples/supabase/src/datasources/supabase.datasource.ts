@@ -3,7 +3,7 @@ import { datasource, type TAnyDataSourceSchema, type ValueOrPromise } from '@ven
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
 import { SupabasePooler, PoolerModes, type TPoolerMode } from '@venizia/ignis/postgres/supabase';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
@@ -38,7 +38,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<
         ),
         max: applicationEnvironment.get<number | undefined, string>(
           EnvironmentKeys.APP_ENV_SUPABASE_POOL_MAX,
-          { defaultValue: undefined, transform: (value) => (value ? int(value) : undefined) },
+          { defaultValue: undefined, transform: (value) => (value ? ParseUtility.toInt({ input: value }) : undefined) },
         ),
       },
       // NO schema property - auto-discovered from @repository bindings.

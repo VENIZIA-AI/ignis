@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import { describe, test, expect } from 'bun:test';
 import type { ISearchFieldDefinition } from '@/search/core/models';
 import {
@@ -302,7 +302,7 @@ describe('search-collection DSL', () => {
 
     test('SELECT treats optional fields as optional', () => {
       const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'select' });
-      const docWithoutRating = omit({
+      const docWithoutRating = ObjectUtility.omit({
         source: validDocument as typeof validDocument & { rating?: number },
         keys: ['rating'],
       });
@@ -313,7 +313,7 @@ describe('search-collection DSL', () => {
 
     test('CREATE requires id even if not marked optional elsewhere', () => {
       const schema = SearchCollectionFactory.deriveDocumentSchema({ definition, type: 'create' });
-      const docWithoutId = omit({ source: validDocument, keys: ['id'] });
+      const docWithoutId = ObjectUtility.omit({ source: validDocument, keys: ['id'] });
       const result = schema.safeParse(docWithoutId);
 
       expect(result.success).toBe(false);

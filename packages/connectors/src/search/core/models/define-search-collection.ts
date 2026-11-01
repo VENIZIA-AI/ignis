@@ -1,4 +1,4 @@
-import { omit } from '@venizia/ignis-helpers/common';
+import { ObjectUtility } from '@venizia/ignis-helpers/common';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { TSchemaType } from '@venizia/ignis-kernel';
 import { SchemaTypes } from '@venizia/ignis-kernel/repository';
@@ -201,7 +201,7 @@ export class SearchCollectionFactory {
         return z.object({ ...shape, id: z.string() });
       }
       case SchemaTypes.UPDATE: {
-        return z.object(omit({ source: shape, keys: ['id'] })).partial();
+        return z.object(ObjectUtility.omit({ source: shape, keys: ['id'] })).partial();
       }
       default: {
         throw getError({
