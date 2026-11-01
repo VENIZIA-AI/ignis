@@ -1,8 +1,8 @@
 import { BaseRestController } from '@venizia/ignis-kernel';
 import { inject } from '@venizia/ignis-kernel';
 import { controller } from '@venizia/ignis-kernel';
-import { jsonContent, jsonResponse } from '@venizia/ignis-kernel';
-import { throwNotSupported } from '@/utilities';
+import { OpenApiResponses } from '@venizia/ignis-kernel';
+import { NotSupportedUtility } from '@venizia/ignis-kernel';
 import { AnyObjectSchema } from '@venizia/ignis-kernel';
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers/core';
@@ -70,13 +70,13 @@ export class AuthControllerFactory {
             path: '/sign-in',
             method: HTTP.Methods.POST,
             request: {
-              body: jsonContent({
+              body: OpenApiResponses.jsonContent({
                 description: 'Sign-in request body',
                 required: true,
                 schema: payload?.signIn?.request?.schema ?? SignInRequestSchema,
               }),
             },
-            responses: jsonResponse({
+            responses: OpenApiResponses.jsonResponse({
               schema: payload?.signIn?.response?.schema ?? AnyObjectSchema,
               description: 'Success Response',
             }),
@@ -97,13 +97,13 @@ export class AuthControllerFactory {
               strategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
             },
             request: {
-              body: jsonContent({
+              body: OpenApiResponses.jsonContent({
                 description: 'Sign-up request body',
                 required: true,
                 schema: payload?.signUp?.request?.schema ?? SignUpRequestSchema,
               }),
             },
-            responses: jsonResponse({
+            responses: OpenApiResponses.jsonResponse({
               schema: payload?.signUp?.response?.schema ?? AnyObjectSchema,
               description: 'Success Response',
             }),
@@ -121,13 +121,13 @@ export class AuthControllerFactory {
             path: '/change-password',
             method: HTTP.Methods.POST,
             request: {
-              body: jsonContent({
+              body: OpenApiResponses.jsonContent({
                 description: 'Change password request body',
                 required: true,
                 schema: payload?.changePassword?.request?.schema ?? ChangePasswordRequestSchema,
               }),
             },
-            responses: jsonResponse({
+            responses: OpenApiResponses.jsonResponse({
               schema: payload?.changePassword?.response?.schema ?? AnyObjectSchema,
               description: 'Success Response',
             }),
@@ -146,7 +146,7 @@ export class AuthControllerFactory {
             description: 'Refresh access token',
             path: '/token/refresh',
             method: HTTP.Methods.POST,
-            responses: jsonResponse({
+            responses: OpenApiResponses.jsonResponse({
               schema: payload?.refreshToken?.response?.schema ?? AnyObjectSchema,
               description: 'Success Response',
             }),
@@ -154,7 +154,7 @@ export class AuthControllerFactory {
           },
           handler: async (context) => {
             if (!this.service.refreshToken) {
-              return throwNotSupported({
+              return NotSupportedUtility.throwNotSupported({
                 scope: AuthController.name,
                 feature: 'refreshToken',
                 logger: this.logger,
@@ -182,7 +182,7 @@ export class AuthControllerFactory {
               }),
             },
             responses: {
-              [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+              [HTTP.ResultCodes.RS_2.Ok]: OpenApiResponses.jsonContent({
                 description: 'Success Response',
                 schema: JWTTokenPayloadSchema.extend({
                   userInformation: (
@@ -207,7 +207,7 @@ export class AuthControllerFactory {
 
             if (withUserInformation) {
               if (!this.service.getUserInformation) {
-                return throwNotSupported({
+                return NotSupportedUtility.throwNotSupported({
                   scope: AuthController.name,
                   feature: 'getUserInformation',
                   logger: this.logger,
@@ -227,7 +227,7 @@ export class AuthControllerFactory {
             description: 'Get current user information',
             path: '/me',
             method: HTTP.Methods.GET,
-            responses: jsonResponse({
+            responses: OpenApiResponses.jsonResponse({
               schema: payload?.getUserInformation?.response?.schema ?? AnyObjectSchema,
               description: 'Success Response',
             }),
@@ -235,7 +235,7 @@ export class AuthControllerFactory {
           },
           handler: async (context) => {
             if (!this.service.getUserInformation) {
-              return throwNotSupported({
+              return NotSupportedUtility.throwNotSupported({
                 scope: AuthController.name,
                 feature: 'getUserInformation',
                 logger: this.logger,
