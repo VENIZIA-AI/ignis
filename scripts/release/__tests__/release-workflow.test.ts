@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { checkReleaseWorkflow, ReleaseWorkflowGuards } from '../release-workflow';
+import { ReleaseWorkflowCheck, ReleaseWorkflowGuards } from '../release-workflow';
 
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
 const WORKFLOW = readFileSync(resolve(ROOT, '.github/workflows/package-release.yml'), 'utf8');
@@ -39,7 +39,7 @@ const guardsOf = (opts: {
   releaseScriptText?: string;
 }): string[] => [
   ...new Set(
-    checkReleaseWorkflow({
+    ReleaseWorkflowCheck.check({
       text: opts.text ?? WORKFLOW,
       runnerText: opts.runnerText ?? RUNNER,
       releaseScriptText: opts.releaseScriptText ?? RELEASE_SCRIPT,
@@ -60,7 +60,7 @@ const MOVE_GITHUB_RELEASE_STEP: IEdit[] = [{ find: GITHUB_RELEASE_STEP_TEXT, rep
 describe('the release workflow keeps its guards', () => {
   test('the workflow and the loop as committed have no violation', () => {
     expect(
-      checkReleaseWorkflow({
+      ReleaseWorkflowCheck.check({
         text: WORKFLOW,
         runnerText: RUNNER,
         releaseScriptText: RELEASE_SCRIPT,
@@ -1179,7 +1179,7 @@ describe('the release holds no registry token', () => {
     });
 
     expect(
-      checkReleaseWorkflow({
+      ReleaseWorkflowCheck.check({
         text: commented,
         runnerText: `// NPM_CONFIG_TOKEN is gone\n${RUNNER}`,
         releaseScriptText: `// secrets.GITHUB_TOKEN is not read\n${RELEASE_SCRIPT}`,
@@ -1188,7 +1188,7 @@ describe('the release holds no registry token', () => {
   });
 
   test('a token named in github-release.ts is noticed, with the file and the line', () => {
-    const violations = checkReleaseWorkflow({
+    const violations = ReleaseWorkflowCheck.check({
       text: WORKFLOW,
       runnerText: RUNNER,
       releaseScriptText: `${RELEASE_SCRIPT}\nconst leak = process.env.NODE_AUTH_TOKEN;\n`,
@@ -1208,7 +1208,11 @@ describe('the release holds no registry token', () => {
     const line = leaked.split('\n').findIndex((entry) => entry.includes('LEAK:')) + 1;
 
     expect(
-      checkReleaseWorkflow({ text: leaked, runnerText: RUNNER, releaseScriptText: RELEASE_SCRIPT })
+      ReleaseWorkflowCheck.check({
+        text: leaked,
+        runnerText: RUNNER,
+        releaseScriptText: RELEASE_SCRIPT,
+      })
         .filter((violation) => violation.guard === ReleaseWorkflowGuards.NO_NPM_TOKEN)
         .map((violation) => violation.message),
     ).toEqual([expect.stringContaining(`the workflow, line ${line}`)]);

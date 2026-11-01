@@ -8,14 +8,8 @@ import type {
 } from '@/search/core/repositories/common';
 import { SearchFilterOutcomes, SearchModes } from '@/search/core/repositories/common';
 import {
-  assertKnownField,
   isOperatorObject,
-  parenthesize,
-  reduceCompiled,
-  throwUnsupportedOperator,
-  toFieldsCsv,
-  toFilterClause,
-  toSearchPage,
+  SearchDialectHelper,
 } from '@/search/core/repositories/common/dialect-helpers';
 import { parseOrderEntry, QueryOperators, type TFilter, type TWhere } from '@venizia/ignis-filter';
 import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
@@ -201,11 +195,11 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
 
     const effectiveSkip = skip ?? offset;
     if (effectiveSkip !== undefined) {
-      query.page = toSearchPage({ skip: effectiveSkip, limit });
+      query.page = SearchDialectHelper.toSearchPage({ skip: effectiveSkip, limit });
     }
 
     if (fields) {
-      query.includeFields = toFieldsCsv({ fields });
+      query.includeFields = SearchDialectHelper.toFieldsCsv({ fields });
     }
 
     return query;
@@ -377,7 +371,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       }
     }
 
-    return reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+    return SearchDialectHelper.reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
   }
 
   /** @see ISearchQueryDialect.canExpress */
@@ -388,12 +382,16 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
   /** @see ISearchQueryDialect.conjoin */
   conjoin(opts: { clauses: TCompiledWhere[] }): TCompiledWhere {
     const { clauses } = opts;
-    const combined = reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+    const combined = SearchDialectHelper.reduceCompiled({
+      clauses,
+      isDisjunction: false,
+      joiner: ' AND ',
+    });
 
     // Parenthesised once two clauses actually join, reproducing byte-for-byte what the previous
     // `{ and: [defaultWhere, where] }` merge emitted through the logical-group path.
     return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
-      ? parenthesize(combined)
+      ? SearchDialectHelper.parenthesize({ compiled: combined })
       : combined;
   }
 
@@ -435,9 +433,13 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     // An empty member (`{}`) compiles to matchAll and the algebra absorbs it correctly: identity
     // under `and`, absorbing under `or`. Dropping it by string-length, as this once did, is what
     // turned `or: []` into "no constraint".
-    return parenthesize(
-      reduceCompiled({ clauses, isDisjunction, joiner: isDisjunction ? ' OR ' : ' AND ' }),
-    );
+    return SearchDialectHelper.parenthesize({
+      compiled: SearchDialectHelper.reduceCompiled({
+        clauses,
+        isDisjunction,
+        joiner: isDisjunction ? ' OR ' : ' AND ',
+      }),
+    });
   }
 
   private compileFieldClause(opts: {
@@ -453,30 +455,38 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       });
     }
 
-    assertKnownField({ field, engine: ENGINE, capabilities });
+    SearchDialectHelper.assertKnownField({ field, engine: ENGINE, capabilities });
 
     if (Array.isArray(value)) {
       // Mirrors relational `buildValueCondition`: an empty IN-list can match nothing, so it is
       // absorbing false - NOT the malformed `field IN []` this used to emit.
       return value.length === 0
         ? { outcome: SearchFilterOutcomes.MATCH_NONE }
-        : toFilterClause(`${field} IN [${this.escapeArray({ field, value })}]`);
+        : SearchDialectHelper.toFilterClause({
+            filterBy: `${field} IN [${this.escapeArray({ field, value })}]`,
+          });
     }
 
     if (!isOperatorObject(value)) {
-      return toFilterClause(`${field} = ${this.escapeValue({ field, value })}`);
+      return SearchDialectHelper.toFilterClause({
+        filterBy: `${field} = ${this.escapeValue({ field, value })}`,
+      });
     }
 
     const clauses = Object.entries(value).map(([operator, operand]) =>
       this.compileOperatorClause({ field, operator, value: operand }),
     );
 
-    const combined = reduceCompiled({ clauses, isDisjunction: false, joiner: ' AND ' });
+    const combined = SearchDialectHelper.reduceCompiled({
+      clauses,
+      isDisjunction: false,
+      joiner: ' AND ',
+    });
 
     // Parenthesised only when more than one operator actually contributed a filter, preserving the
     // exact shape callers already assert on for the single-operator case.
     return clauses.filter((clause) => clause.outcome === SearchFilterOutcomes.FILTER).length > 1
-      ? parenthesize(combined)
+      ? SearchDialectHelper.parenthesize({ compiled: combined })
       : combined;
   }
 
@@ -490,30 +500,42 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
     switch (operator) {
       case QueryOperators.EQ:
       case QueryOperators.IS: {
-        return toFilterClause(
-          value === null ? `${field} IS NULL` : `${field} = ${this.escapeValue({ field, value })}`,
-        );
+        return SearchDialectHelper.toFilterClause({
+          filterBy:
+            value === null
+              ? `${field} IS NULL`
+              : `${field} = ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.NEQ:
       case QueryOperators.NE:
       case QueryOperators.IS_NOT: {
-        return toFilterClause(
-          value === null
-            ? `${field} IS NOT NULL`
-            : `${field} != ${this.escapeValue({ field, value })}`,
-        );
+        return SearchDialectHelper.toFilterClause({
+          filterBy:
+            value === null
+              ? `${field} IS NOT NULL`
+              : `${field} != ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.GT: {
-        return toFilterClause(`${field} > ${this.escapeValue({ field, value })}`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} > ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.GTE: {
-        return toFilterClause(`${field} >= ${this.escapeValue({ field, value })}`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} >= ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.LT: {
-        return toFilterClause(`${field} < ${this.escapeValue({ field, value })}`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} < ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.LTE: {
-        return toFilterClause(`${field} <= ${this.escapeValue({ field, value })}`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} <= ${this.escapeValue({ field, value })}`,
+        });
       }
       case QueryOperators.IN:
       case QueryOperators.INQ: {
@@ -521,31 +543,39 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_NONE };
         }
-        return toFilterClause(`${field} IN [${this.escapeArray({ field, value })}]`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} IN [${this.escapeArray({ field, value })}]`,
+        });
       }
       case QueryOperators.NIN: {
         // Relational: `nin: []` -> sql`true`. Excluding nothing excludes nothing.
         if (Array.isArray(value) && value.length === 0) {
           return { outcome: SearchFilterOutcomes.MATCH_ALL };
         }
-        return toFilterClause(`${field} NOT IN [${this.escapeArray({ field, value })}]`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} NOT IN [${this.escapeArray({ field, value })}]`,
+        });
       }
       case QueryOperators.BETWEEN: {
-        return toFilterClause(`${field} ${this.escapeBetween({ field, value })}`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `${field} ${this.escapeBetween({ field, value })}`,
+        });
       }
       case QueryOperators.NOT_BETWEEN: {
         // De Morgan: NOT (min <= x <= max) is (x < min) OR (x > max). Exact for any field that
         // HAS a value; see the missing-value note on the Typesense side.
         const [min, max] = this.assertBetweenTuple({ field, value });
-        return toFilterClause(
-          `(${field} < ${this.escapeValue({ field, value: min })} OR ${field} > ${this.escapeValue({ field, value: max })})`,
-        );
+        return SearchDialectHelper.toFilterClause({
+          filterBy: `(${field} < ${this.escapeValue({ field, value: min })} OR ${field} > ${this.escapeValue({ field, value: max })})`,
+        });
       }
       case QueryOperators.EXISTS: {
-        return toFilterClause(value === false ? `${field} NOT EXISTS` : `${field} EXISTS`);
+        return SearchDialectHelper.toFilterClause({
+          filterBy: value === false ? `${field} NOT EXISTS` : `${field} EXISTS`,
+        });
       }
       case QueryOperators.NOT_EXISTS: {
-        return toFilterClause(`${field} NOT EXISTS`);
+        return SearchDialectHelper.toFilterClause({ filterBy: `${field} NOT EXISTS` });
       }
       default: {
         this.logger
@@ -556,7 +586,7 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
             field,
             ENGINE,
           );
-        return throwUnsupportedOperator({ operator, field, engine: ENGINE });
+        return SearchDialectHelper.throwUnsupportedOperator({ operator, field, engine: ENGINE });
       }
     }
   }
