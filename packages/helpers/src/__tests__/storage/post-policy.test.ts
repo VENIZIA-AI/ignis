@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { buildPostPolicy } from '@/modules/storage/bun-s3/utility';
+import { S3SignatureUtility } from '@/modules/storage/bun-s3/utility';
 
 const CREDENTIALS = {
   accessKey: 'AKIAEXAMPLE',
@@ -13,7 +13,7 @@ const decodePolicy = (formData: Record<string, string>): { conditions: unknown[]
 
 describe('buildPostPolicy', () => {
   test('it bounds the size, which is the whole reason this is not a presigned PUT', async () => {
-    const { formData } = await buildPostPolicy({
+    const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',
@@ -29,7 +29,7 @@ describe('buildPostPolicy', () => {
   });
 
   test('it confines the key to the prefix, so a caller cannot name the final object', async () => {
-    const { formData } = await buildPostPolicy({
+    const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',
@@ -41,7 +41,7 @@ describe('buildPostPolicy', () => {
   });
 
   test('a content type becomes a condition; absent leaves none', async () => {
-    const withType = await buildPostPolicy({
+    const withType = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',
@@ -49,7 +49,7 @@ describe('buildPostPolicy', () => {
       expiresInSeconds: 900,
       contentType: 'image/png',
     });
-    const withoutType = await buildPostPolicy({
+    const withoutType = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',
@@ -66,7 +66,7 @@ describe('buildPostPolicy', () => {
   });
 
   test('the form carries what S3 needs to verify the signature', async () => {
-    const { formData } = await buildPostPolicy({
+    const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',
@@ -82,7 +82,7 @@ describe('buildPostPolicy', () => {
   });
 
   test('a session token is carried when the credentials have one, and absent otherwise', async () => {
-    const { formData } = await buildPostPolicy({
+    const { formData } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       sessionToken: 'session-abc',
       bucket: 'uploads',
@@ -99,7 +99,7 @@ describe('buildPostPolicy', () => {
 
   test('the expiry is the one asked for, in the shape S3 parses', async () => {
     const before = Date.now();
-    const { expiresAt } = await buildPostPolicy({
+    const { expiresAt } = await S3SignatureUtility.buildPostPolicy({
       ...CREDENTIALS,
       bucket: 'uploads',
       keyPrefix: 'pending/',

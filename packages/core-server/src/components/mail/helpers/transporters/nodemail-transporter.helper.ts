@@ -8,11 +8,8 @@ import type {
   TNodemailerConfig,
   TNodemailerModule,
 } from '../../common';
-import {
-  releaseAttachmentStreams,
-  resolveMailAttachments,
-} from '../../utilities/attachment.utility';
-import { assertMailBodyIsText } from '../../utilities/body.utility';
+import { MailAttachmentUtility } from '../../utilities/attachment.utility';
+import { MailBodyUtility } from '../../utilities/body.utility';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
   private transporter: AnyType;
@@ -37,12 +34,12 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
   async send(message: IMailMessage): Promise<IMailSendResult> {
     try {
-      assertMailBodyIsText({ message });
+      MailBodyUtility.assertIsText({ message });
 
       // No root: MailService resolved paths already; one that reaches here is refused, not read.
-      let attachments: Awaited<ReturnType<typeof resolveMailAttachments>> | undefined;
+      let attachments: Awaited<ReturnType<typeof MailAttachmentUtility.resolve>> | undefined;
       if (message.attachments) {
-        const resolved = await resolveMailAttachments({ attachments: message.attachments });
+        const resolved = await MailAttachmentUtility.resolve({ attachments: message.attachments });
         attachments = resolved;
       }
 
@@ -72,7 +69,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
       };
     } catch (error) {
       this.logger.for(this.send.name).error('Nodemailer send failed: %s', error);
-      releaseAttachmentStreams({ attachments: message.attachments });
+      MailAttachmentUtility.release({ attachments: message.attachments });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
