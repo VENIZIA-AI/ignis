@@ -7,7 +7,7 @@ import {
   MessageCode,
   MessageTemplate,
 } from '@venizia/ignis-helpers/core';
-import { HTTP, toJsonSafe } from '@venizia/ignis-helpers/common';
+import { HTTP, RedactUtility } from '@venizia/ignis-helpers/common';
 import type { IProvider } from '@venizia/ignis-inversion';
 import type { Context } from 'hono';
 import type { ErrorHandler, HTTPResponseError } from 'hono/types';
@@ -59,7 +59,7 @@ const renderValue = (opts: { value: unknown }): string => {
     return value;
   }
 
-  const safe = toJsonSafe({ value });
+  const safe = RedactUtility.toJsonSafe({ value });
 
   try {
     return JSON.stringify(safe) ?? String(value);

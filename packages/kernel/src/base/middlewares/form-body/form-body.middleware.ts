@@ -1,5 +1,5 @@
 import { HTTP } from '@venizia/ignis-helpers/common';
-import { readFormBody } from '@venizia/ignis-helpers/core';
+import { FormBodyUtility } from '@venizia/ignis-helpers/core';
 import type { MiddlewareHandler } from 'hono/types';
 
 const FORM_CONTENT_TYPES = [
@@ -22,7 +22,7 @@ export const formBodyReader: MiddlewareHandler = async (context, next) => {
   const contentType = context.req.header(HTTP.Headers.CONTENT_TYPE) ?? '';
 
   if (FORM_CONTENT_TYPES.some((formType) => contentType.includes(formType))) {
-    await readFormBody({ req: context.req });
+    await FormBodyUtility.readFormBody({ req: context.req });
   }
 
   await next();

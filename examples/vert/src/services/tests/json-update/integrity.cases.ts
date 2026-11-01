@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -14,7 +14,7 @@ export class IntegrityCases extends BaseTestCases {
       '[CASE 8] Different value types: string, number, boolean, null, object, array',
     );
 
-    const code = `JSON_UPDATE_TYPES_${getUID()}`;
+    const code = `JSON_UPDATE_TYPES_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -77,7 +77,7 @@ export class IntegrityCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 9] Verify sibling fields preserved');
 
-    const code = `JSON_UPDATE_SIBLING_${getUID()}`;
+    const code = `JSON_UPDATE_SIBLING_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -144,7 +144,7 @@ export class IntegrityCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 10] Create missing intermediate keys');
 
-    const code = `JSON_UPDATE_CREATE_${getUID()}`;
+    const code = `JSON_UPDATE_CREATE_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -190,7 +190,7 @@ export class IntegrityCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 11] Bulk update with JSON paths');
 
-    const groupId = `JSON_BULK_${getUID()}`;
+    const groupId = `JSON_BULK_${ParseUtility.getUID()}`;
 
     try {
       // Create multiple configs

@@ -43,7 +43,7 @@ import type {
   TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 import type { TStaticAssetsComponentOptions } from '@venizia/ignis/static-asset';
-import { applicationEnvironment, DiskHelper, getError, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, DiskHelper, getError, ParseUtility } from '@venizia/ignis-helpers';
 import { MetaLinkRepository } from '@/repositories/meta-link.repository';
 
 /**
@@ -151,7 +151,7 @@ export class PlatformComponent extends BaseComponent {
           if (!expiresIn) {
             throw getError({ message: '[getTokenExpiresFn] APP_ENV_JWT_EXPIRES_IN is not set' });
           }
-          return int(expiresIn);
+          return ParseUtility.toInt({ input: expiresIn });
         },
       },
     };

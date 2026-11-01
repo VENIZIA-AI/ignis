@@ -1,7 +1,7 @@
 import { EnvironmentKeys } from '@/common/environments';
 import { JWSTokenService } from '@venizia/ignis';
 import type { IJWTTokenPayload } from '@venizia/ignis';
-import { applicationEnvironment, int } from '@venizia/ignis-helpers';
+import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 /**
  * Mints a token with IGNIS's own `JWSTokenService` - the exact class `JWSAuthenticationStrategy`
@@ -18,10 +18,10 @@ export const mintToken = async (opts: { subject: string; role?: string }): Promi
   const { subject, role = 'authenticated' } = opts;
 
   const jwtSecret = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET);
-  const expiresIn = int(
-    applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
+  const expiresIn = ParseUtility.toInt(
+    { input: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN, {
       defaultValue: '3600',
-    }),
+    }) },
   );
 
   const service = new JWSTokenService({ jwtSecret, getTokenExpiresFn: () => expiresIn });

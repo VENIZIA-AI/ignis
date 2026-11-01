@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class PathsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 1] Baseline: Update normal columns');
 
-    const code = `JSON_UPDATE_BASELINE_${getUID()}`;
+    const code = `JSON_UPDATE_BASELINE_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -62,7 +62,7 @@ export class PathsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 2] Simple JSON path: jValue.theme');
 
-    const code = `JSON_UPDATE_SIMPLE_${getUID()}`;
+    const code = `JSON_UPDATE_SIMPLE_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -112,7 +112,7 @@ export class PathsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 3] Nested JSON path: jValue.settings.display.fontSize');
 
-    const code = `JSON_UPDATE_NESTED_${getUID()}`;
+    const code = `JSON_UPDATE_NESTED_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {
@@ -169,7 +169,7 @@ export class PathsCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[CASE 4] Array index path: jValue.addresses[0].primary');
 
-    const code = `JSON_UPDATE_ARRAY_${getUID()}`;
+    const code = `JSON_UPDATE_ARRAY_${ParseUtility.getUID()}`;
     const group = 'JSON_UPDATE_TEST';
 
     try {

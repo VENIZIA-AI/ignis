@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../../models/entities';
 import { UserAuditCases } from './support';
@@ -15,7 +15,7 @@ export class ModifiedByCases extends UserAuditCases {
     this.context.logCase('[CASE 4] UpdateById - modifiedBy should change to new user');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_UPDATE_${uniqueId}`;
       // Create real Users for FK constraint
       const originalUser = await this.createTestUser(`CASE4_CREATOR_${uniqueId}`);
@@ -87,7 +87,7 @@ export class ModifiedByCases extends UserAuditCases {
     this.context.logCase('[CASE 6] UpdateAll - modifiedBy should change for all matching records');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const group = `AUDIT_UPDATEALL_${uniqueId}`;
       // Create real Users for FK constraint
       const originalUser = await this.createTestUser(`CASE6_ORIGINAL_${uniqueId}`);
@@ -185,7 +185,7 @@ export class ModifiedByCases extends UserAuditCases {
     this.context.logCase('[CASE 7] Simulate user switch - update by different user');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_USER_SWITCH_${uniqueId}`;
       // Create real Users for FK constraint
       const adminUser = await this.createTestUser(`CASE7_ADMIN_${uniqueId}`);
@@ -276,7 +276,7 @@ export class ModifiedByCases extends UserAuditCases {
     this.context.logCase('[CASE 13] Concurrent updates - verify modifiedBy reflects last writer');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_CONCURRENT_${uniqueId}`;
       // Create real Users for FK constraint
       const creator = await this.createTestUser(`CASE13_CREATOR_${uniqueId}`);
@@ -367,7 +367,7 @@ export class ModifiedByCases extends UserAuditCases {
     this.context.logCase('[CASE 15] Multiple sequential updates track modifiedBy history');
 
     try {
-      const uniqueId = getUID();
+      const uniqueId = ParseUtility.getUID();
       const testCode = `AUDIT_SEQUENTIAL_${uniqueId}`;
       // Create real Users for FK constraint
       const creator = await this.createTestUser(`CASE15_CREATOR_${uniqueId}`);

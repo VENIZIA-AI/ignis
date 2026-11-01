@@ -1,4 +1,4 @@
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 
 // ----------------------------------------------------------------
@@ -12,7 +12,7 @@ export class DeleteCases extends BaseTestCases {
     const repo = this.context.configurationRepository;
     this.context.logCase('[case8DeleteByIdAndDeleteAll] DeleteById and DeleteAll');
 
-    const group = `REPO_DELETE_${getUID()}`;
+    const group = `REPO_DELETE_${ParseUtility.getUID()}`;
 
     try {
       const created = await repo.createAll({

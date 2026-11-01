@@ -1,5 +1,5 @@
 import { service } from '@venizia/ignis';
-import { DataTypes, getUID } from '@venizia/ignis-helpers';
+import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestService } from './base-test.service';
 
 // ----------------------------------------------------------------
@@ -34,7 +34,7 @@ export class FieldSelectionTestService extends BaseTestService {
       await repo.createAll({
         data: [
           {
-            code: `FIELDS_A_${getUID()}`,
+            code: `FIELDS_A_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 100,
@@ -42,7 +42,7 @@ export class FieldSelectionTestService extends BaseTestService {
             jValue: { key: 'valueA' },
           },
           {
-            code: `FIELDS_B_${getUID()}`,
+            code: `FIELDS_B_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 200,
@@ -50,7 +50,7 @@ export class FieldSelectionTestService extends BaseTestService {
             jValue: { key: 'valueB' },
           },
           {
-            code: `FIELDS_C_${getUID()}`,
+            code: `FIELDS_C_${ParseUtility.getUID()}`,
             group,
             dataType: DataTypes.NUMBER,
             nValue: 300,
