@@ -68,7 +68,7 @@ export class AssetMetaLink {
     }
 
     // Resolved per call so an application that swaps the repository is not pinned to the first one.
-    const repository = await resolveValueAsync({ value: metaLink.repository });
+    const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
     const created = await repository.create({
       data: {
         bucketName: uploadResult.bucket.name,
@@ -107,7 +107,7 @@ export class AssetMetaLink {
   }): Promise<{ count: number; data: AnyType[] }> {
     const { metaLink, helper, bucket, object, link, fileStat } = opts;
 
-    const repository = await resolveValueAsync({ value: metaLink.repository });
+    const repository = await ResolverUtility.resolveValueAsync({ value: metaLink.repository });
     const { mimetype, size, etag, isSynced } = AssetMetaLink.buildStoredObjectFacts({
       helper,
       object,
