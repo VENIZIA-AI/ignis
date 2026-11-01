@@ -17,5 +17,6 @@ export class ClassResolver {
       return ref;
     }
 
-  return ResolverUtility.resolveValue({ value: ref });
-};
+    return ResolverUtility.resolveValue({ value: ref });
+  }
+}

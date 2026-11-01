@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants/http';
-import { ObjectUtility } from '@venizia/ignis-inversion';
-import { redactSecrets, redactUrlCredentials } from '@/common/redact';
+import { isEmpty } from '@venizia/ignis-inversion';
+import { RedactUtility } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import mqtt from 'mqtt';
@@ -56,7 +56,7 @@ export class MQTTClientHelper extends BaseHelper {
       return;
     }
 
-    if (ObjectUtility.isEmpty({ value: this.url })) {
+    if (isEmpty({ value: this.url })) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: '[configure] Invalid url to configure mqtt client!',

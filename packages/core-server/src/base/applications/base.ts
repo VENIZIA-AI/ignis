@@ -19,8 +19,8 @@ import type {
   ISecretsHelper,
   ISecretsRegistration,
 } from '@venizia/ignis-helpers';
-import { blankToUndefined, getError } from '@venizia/ignis-helpers/core';
-import { HTTP, ObjectUtility } from '@venizia/ignis-helpers/common';
+import { ParseUtility, getError } from '@venizia/ignis-helpers/core';
+import { HTTP, isEmpty } from '@venizia/ignis-helpers/common';
 import {
   applicationEnvironment,
   SecretsHelperFactory,
@@ -405,7 +405,7 @@ export abstract class BaseApplication extends ServerApplication implements IRest
     for (const argKey of envKeys) {
       const argValue = applicationEnvironment.get<string | number>(argKey);
 
-      if (!ObjectUtility.isEmpty({ value: argValue })) {
+      if (!isEmpty({ value: argValue })) {
         continue;
       }
 

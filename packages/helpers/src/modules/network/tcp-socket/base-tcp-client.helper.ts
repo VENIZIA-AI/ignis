@@ -1,5 +1,5 @@
-import { ObjectUtility } from '@venizia/ignis-inversion';
-import { redactSecrets } from '@/common/redact';
+import { isEmpty } from '@venizia/ignis-inversion';
+import { RedactUtility } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { type ValueOrPromise } from '@/common';
 import {
@@ -166,7 +166,7 @@ export class BaseNetworkTcpClient<
       return;
     }
 
-    if (ObjectUtility.isEmpty({ value: this.options })) {
+    if (isEmpty({ value: this.options })) {
       this.logger
         .for(this.connect.name)
         .info('[%s] Cannot init TCP Client with null options', this.identifier);
