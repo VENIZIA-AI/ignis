@@ -313,7 +313,13 @@ describe('Hash - bytes and several parts', () => {
     });
 
     test('the existing text form is unchanged: it still equals node:crypto createHash', () => {
-      for (const algorithm of [HashAlgorithms.MD5, HashAlgorithms.SHA256, HashAlgorithms.SHA512]) {
+      const algorithms: THashAlgorithm[] = [
+        HashAlgorithms.MD5,
+        HashAlgorithms.SHA256,
+        HashAlgorithms.SHA512,
+      ];
+
+      for (const algorithm of algorithms) {
         expect(Hash.withAlgorithm(algorithm).digest({ message: MESSAGE })).toBe(
           C.createHash(algorithm).update(MESSAGE).digest('hex'),
         );
