@@ -3,15 +3,18 @@
   scripts/wiki-shared in VULCAN. Edit it there, never in a copy.
 
   The Layout of a wiki: the default theme's, with the version chip beside the title, the ecosystem
-  switcher in the header and in the mobile menu, the light and dark switch, and the footer. `site` is
+  switcher in the header and in the mobile menu, the light and dark switch, the line above an inner page's
+  title, the "Getting help" block at its end, and the footer. `site` is
   the wiki's identity, `version` the version its chip shows, and `home` the content of its home page,
-  whose closing pitch the footer shows on the home page only.
+  whose closing pitch the footer shows. The footer is on the home page only; inner pages have none.
 -->
 <script setup lang="ts">
 import { useData } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import { computed } from 'vue';
 import ChangelogEntryHead from './ChangelogEntryHead.vue';
+import DocEyebrow from './DocEyebrow.vue';
+import DocsHelp from './DocsHelp.vue';
 import EcosystemSwitcher from './EcosystemSwitcher.vue';
 import type { THomeContent, TSiteInfo } from './home-types';
 import SiteFooter from './SiteFooter.vue';
@@ -26,9 +29,7 @@ const { page } = useData();
 const isChangelogEntry = computed(() =>
   /^changelogs\/\d{4}-\d{2}-\d{2}-/.test(page.value.relativePath),
 );
-const homeOnHome = computed(() =>
-  page.value.relativePath === 'index.md' ? (props.home ?? null) : null,
-);
+const isHome = computed(() => page.value.relativePath === 'index.md');
 </script>
 
 <template>
@@ -44,9 +45,13 @@ const homeOnHome = computed(() =>
     </template>
     <template #doc-before>
       <ChangelogEntryHead v-if="isChangelogEntry" />
+      <DocEyebrow v-else :site="site" />
+    </template>
+    <template #doc-footer-before>
+      <DocsHelp :site="site" />
     </template>
     <template #layout-bottom>
-      <SiteFooter :site="site" :home="homeOnHome" />
+      <SiteFooter v-if="isHome" :site="site" :home="home ?? null" />
     </template>
   </Layout>
 </template>

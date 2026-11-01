@@ -125,6 +125,19 @@
   mask-image: linear-gradient(to bottom, #000 0%, transparent 78%);
   pointer-events: none;
 }
+/* the dust canvas (useDust.ts): behind the hero's content, in the product's accent; the still dots above show until it is ready */
+.vh .dust {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--accent);
+  pointer-events: none;
+}
+.vh .hero:has(.dust[data-ready])::before {
+  opacity: 0;
+}
 .vh .hero::after {
   content: '';
   position: absolute;
@@ -141,7 +154,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: clamp(32px, 3.4vw, 48px);
-  align-items: center;
+  /* the copy and the window start at the same height: centred on each other, the shorter one began lower */
+  align-items: start;
 }
 
 /* the headline runs the full width above the two columns */
@@ -422,13 +436,22 @@
   color: var(--accent-on-dark);
   font-weight: 600;
 }
+/* the caret takes no room (the block is painted by ::after), so a command wraps in the same places while it is typed */
 .vh .caret {
+  position: relative;
   display: none;
-  width: 0.55em;
+  width: 0;
   height: 1.15em;
-  margin-left: 2px;
-  background: var(--win-text);
   vertical-align: text-bottom;
+}
+.vh .caret::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 0.55em;
+  height: 100%;
+  background: var(--win-text);
 }
 .js .vh .term-cmd .prompt,
 .js .vh .term-cmd .typed-rest {
@@ -653,13 +676,26 @@
 .vh .steps {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: var(--space-6);
+  column-gap: var(--space-6);
+  row-gap: 0;
   counter-reset: step;
 }
 .vh .step {
   min-width: 0;
+  margin-bottom: var(--space-6);
   border-top: 1px solid var(--stroke-strong);
   padding-top: var(--space-4);
+}
+/* A step is four rows (number, heading, text, terminal) of the grid it sits in, so the rows are shared:
+   the headings, the texts and the terminals of steps side by side start at the same height, and each
+   terminal fills its row, as tall as the tallest of them. The height is final from the first paint. */
+@supports (grid-template-rows: subgrid) {
+  .vh .step {
+    display: grid;
+    grid-row: span 4;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
 }
 .vh .step::before {
   counter-increment: step;
@@ -683,6 +719,7 @@
 }
 .vh .step .win-panel {
   display: block;
+  box-sizing: border-box;
   max-height: none;
   border: 1px solid var(--win-stroke);
   border-radius: var(--radius);
