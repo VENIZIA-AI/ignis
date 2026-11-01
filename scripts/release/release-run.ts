@@ -179,7 +179,8 @@ export class ReleaseRun {
     const releasedHere = new Set<string>();
 
     // Phase 1: bump, pack, check and publish every package. Publishing needs no tarball wait: a dependent package only
-    // needs its sibling in the packument (`isPublished`). Nothing is committed or tagged yet.
+    // needs its sibling to be on npm, which the pin check takes from `releasedHere` (this run published it) before it asks
+    // the registry. Nothing is committed or tagged yet.
     try {
       for (const entry of entries) {
         pending.delete(entry.name);
