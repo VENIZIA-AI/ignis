@@ -19,6 +19,7 @@ import './header.css';
 import './theme-switch.css';
 import './home.css';
 import './footer.css';
+import './docs-shell.css';
 import './changelog.css';
 import ChangelogIndex from './ChangelogIndex.vue';
 import SiteLayout from './SiteLayout.vue';
