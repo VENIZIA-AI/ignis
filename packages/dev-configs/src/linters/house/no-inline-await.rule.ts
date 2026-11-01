@@ -28,7 +28,6 @@ export class NoInlineAwaitRule {
     },
     create: (context) => {
       const { sourceCode } = context;
-      const taken = new Map<unknown, Set<string>>();
 
       return {
         [AstNodeTypes.AWAIT_EXPRESSION]: (node: Rule.Node) => {
@@ -58,12 +57,7 @@ export class NoInlineAwaitRule {
             messageId: 'inline',
             fix: canFix
               ? (fixer) => {
-                  const name = AwaitSupport.freshName({
-                    node,
-                    base: 'result',
-                    sourceCode,
-                    taken,
-                  });
+                  const name = AwaitSupport.freshName({ node, base: 'result', sourceCode });
                   const [start, end] = AwaitSupport.replaceRangeOf({ awaitNode: node, sourceCode });
                   const indent = AwaitSupport.indentOf({ node: statement, sourceCode });
 
