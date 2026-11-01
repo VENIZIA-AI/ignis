@@ -67,7 +67,9 @@ export class PromiseChainSupport {
       return undefined;
     }
 
-    const callee = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: call, key: 'callee' }) });
+    const callee = PromiseChainSupport.unwrap({
+      node: AstNode.readField({ node: call, key: 'callee' }),
+    });
     if (AstNode.getType({ node: callee }) !== 'MemberExpression') {
       return undefined;
     }
@@ -90,12 +92,16 @@ export class PromiseChainSupport {
         if (PromiseChainSupport.chainMethodOf({ node: current }) !== undefined) {
           return true;
         }
-        current = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: current, key: 'callee' }) });
+        current = PromiseChainSupport.unwrap({
+          node: AstNode.readField({ node: current, key: 'callee' }),
+        });
         continue;
       }
 
       if (type === 'MemberExpression') {
-        current = PromiseChainSupport.unwrap({ node: AstNode.readField({ node: current, key: 'object' }) });
+        current = PromiseChainSupport.unwrap({
+          node: AstNode.readField({ node: current, key: 'object' }),
+        });
         continue;
       }
 
@@ -186,7 +192,9 @@ export class PromiseChainSupport {
           PromiseChainSupport.isPlainTarget({
             node: AstNode.readField({ node: expression, key: 'left' }),
           }) &&
-          PromiseChainSupport.isConstant({ node: AstNode.readField({ node: expression, key: 'right' }) })
+          PromiseChainSupport.isConstant({
+            node: AstNode.readField({ node: expression, key: 'right' }),
+          })
         );
       })
     );

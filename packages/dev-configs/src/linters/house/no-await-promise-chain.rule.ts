@@ -172,7 +172,9 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     !Array.isArray(declarations) ||
     declarations.length !== 1 ||
     !['const', 'let'].includes(kind) ||
-    !STATEMENT_LISTS.has(AstNode.getType({ node: AwaitSupport.parentOf({ node: declaration }) }) ?? '')
+    !STATEMENT_LISTS.has(
+      AstNode.getType({ node: AwaitSupport.parentOf({ node: declaration }) }) ?? '',
+    )
   ) {
     return undefined;
   }
@@ -191,7 +193,9 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
     if (reference.identifier === id) {
       continue;
     }
-    const parentType = AstNode.getType({ node: AwaitSupport.parentOf({ node: reference.identifier }) });
+    const parentType = AstNode.getType({
+      node: AwaitSupport.parentOf({ node: reference.identifier }),
+    });
     if (
       reference.isWrite() ||
       (annotation === '' &&
@@ -204,7 +208,9 @@ const planFix = (opts: { awaitNode: Rule.Node; sourceCode: SourceCode }): IFixPl
   }
 
   const parameterName =
-    parameter === undefined ? undefined : String(AstNode.readField({ node: parameter, key: 'name' }));
+    parameter === undefined
+      ? undefined
+      : String(AstNode.readField({ node: parameter, key: 'name' }));
   const identifiers: unknown[] = [];
   if (!collectValue({ node: body, parameter: parameterName, identifiers })) {
     return undefined;
