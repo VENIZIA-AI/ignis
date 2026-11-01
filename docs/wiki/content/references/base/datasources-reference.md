@@ -133,7 +133,7 @@ abstract class AbstractDataSource<
 | `discoverDefinitions({ read, kind })` | Walks the bound model classes, reads a connector-specific artifact via `read`, and returns a name-keyed registry. Skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. Shared plumbing every connector's own `discoverSchema()`-equivalent builds on |
 
 > [!NOTE] NotSupported convention
-> Every capability an engine does not implement - transactions, row-level locking, an isolation level SQLite has no concept of - uses the same `NotSupportedUtility.throwNotSupported` utility ([`packages/kernel/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/error.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how a connector signals "not applicable to this engine" instead of silently no-op-ing.
+> Every capability an engine does not implement - transactions, row-level locking, an isolation level SQLite has no concept of - uses the same `NotSupportedUtility.throwNotSupported` utility ([`packages/kernel/src/utilities/not-supported.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/kernel/src/utilities/not-supported.utility.ts)). It produces a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how a connector signals "not applicable to this engine" instead of silently no-op-ing.
 
 ### `IDataSourceCapabilities`
 

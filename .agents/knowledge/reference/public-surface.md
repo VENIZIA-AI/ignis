@@ -1253,7 +1253,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (434)
+### `@venizia/ignis-kernel` (418)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1268,7 +1268,6 @@ generated:
 - `ArtifactIndexFields` class
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
-- `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
 - `AuthenticateStrategy` class
@@ -1311,7 +1310,6 @@ generated:
 - `BindingValueTypes` class
 - `BootSequence` class
 - `BootSteps` class
-- `buildDataRange` const
 - `CasbinDomainMatchingFunctions` class
 - `CasbinEnforcerCachedDrivers` class
 - `CasbinEnforcerModelDrivers` class
@@ -1322,9 +1320,9 @@ generated:
 - `CommonStatuses` class
 - `component` const
 - `CompressEncodings` class
-- `conditionalCountResponse` const
 - `configuration` const
 - `Container` class
+- `ContextUtility` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -1333,15 +1331,14 @@ generated:
 - `countableHeaders` const
 - `CountSchema` const
 - `DATA_SOURCE_BRAND` const
+- `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `defaultRequestHeaders` const
-- `defineControllerRouteConfigs` const
 - `del` const
-- `emojiFavicon` const
-- `errorResponses` const
+- `EmojiFaviconMiddleware` class
 - `ErrorSchema` const
 - `EventBus` class
 - `EventDispatchRetry` class
@@ -1353,8 +1350,6 @@ generated:
 - `get` const
 - `getDroppedRouteDecorators` const
 - `GrantBuilder` class
-- `htmlContent` const
-- `htmlResponse` const
 - `IApplication` interface
 - `IApplicationConfigs` interface
 - `IApplicationInfo` interface
@@ -1403,7 +1398,6 @@ generated:
 - `IDefineRouteOptions` interface
 - `IDeletableRepository` interface
 - `IDomainEvent` interface
-- `idParamsSchema` const
 - `IdSchemaTypes` class
 - `IdType` type
 - `IEntityStatics` interface
@@ -1433,6 +1427,7 @@ generated:
 - `InclusionSchema` const
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `IPayloadFieldCodec` interface
 - `IPersistableRepository` interface
 - `IPropertyMetadata` interface
@@ -1471,8 +1466,6 @@ generated:
 - `IWithReadRetry` interface
 - `IWithTransaction` interface
 - `JOSEStandards` class
-- `jsonContent` const
-- `jsonResponse` const
 - `JWKSAlgorithms` class
 - `JWKSKeyDrivers` class
 - `JWKSKeyFormats` class
@@ -1484,21 +1477,22 @@ generated:
 - `MigrationStatuses` class
 - `model` const
 - `ModelTypes` class
+- `ModelUtility` class
 - `notFoundHandler` const
+- `NotSupportedUtility` class
 - `NumberIdType` type
 - `OffsetSchema` const
+- `OpenApiResponses` class
+- `OpenApiSchemas` class
 - `OrderBySchema` const
 - `parseOrderEntry` const
 - `patch` const
 - `PersistableCrudController` class
-- `pickRegistrationOptions` const
 - `post` const
 - `provide` const
 - `put` const
 - `QueryOperators` class
 - `ReadableCrudController` class
-- `readDeclarative` const
-- `registerFactoryRepositoryInjection` const
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
@@ -1508,15 +1502,9 @@ generated:
 - `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
+- `RequestDomainResolver` class
 - `RequestErrors` const
-- `requiredString` const
-- `resolveCountConfig` const
-- `resolveCreateConfig` const
-- `resolveFindByIdConfig` const
-- `resolveFindConfig` const
-- `resolveFindOneConfig` const
 - `resolveInjectTarget` const
-- `resolveRequestDomain` const
 - `ResponseExtras` class
 - `ResponseFormats` class
 - `RestApplication` class
@@ -1539,7 +1527,6 @@ generated:
 - `SignInRequestSchema` const
 - `SignUpRequestSchema` const
 - `SkipSchema` const
-- `snakeToCamel` const
 - `Sorts` class
 - `Statuses` class
 - `StringIdType` type
@@ -1608,7 +1595,6 @@ generated:
 - `TFindRangeOptions` type
 - `TGetTokenExpiresFn` type
 - `TGrantIntent` type
-- `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TInferSchema` type
@@ -1634,8 +1620,6 @@ generated:
 - `TMixinOpts` type
 - `TModelClass` type
 - `TModelType` type
-- `toContentRange` const
-- `toEntityId` const
 - `TOffset` type
 - `TOrderBy` type
 - `TOrderEntry` type
@@ -1707,9 +1691,9 @@ generated:
 - `IArtifactRegistrationOptions` interface
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `MetadataRegistry` class
 - `model` const
-- `pickRegistrationOptions` const
 - `provide` const
 - `repository` const
 - `service` const
@@ -1721,8 +1705,8 @@ generated:
 - `AbstractDataSource` class
 - `AbstractEntity` class
 - `AbstractRepository` class
-- `buildDataRange` const
 - `CoreErrorCodes` class
+- `DataRangeUtility` class
 - `DEFAULT_LIMIT` const
 - `DEFAULT_MAX_LIMIT` const
 - `HttpExtraRequest` class
@@ -1735,6 +1719,7 @@ generated:
 - `IReadableRepository` interface
 - `IRepository` interface
 - `IUpdatableRepository` interface
+- `NotSupportedUtility` class
 - `RepositoryOperationScopes` class
 - `RepositoryTypes` class
 - `SchemaTypes` class
@@ -1747,7 +1732,6 @@ generated:
 - `TExtraResult` type
 - `TFields` type
 - `TFilter` type
-- `throwNotSupported` const
 - `TIdSchemaType` type
 - `TInclusion` type
 - `TRepositoryType` type
@@ -2419,7 +2403,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1043)
+### `@venizia/ignis` (1027)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2463,7 +2447,6 @@ generated:
 - `ArtifactNamespaces` class
 - `ArtifactTypes` class
 - `assertBunRuntime` const
-- `asTypedContext` const
 - `authenticate` const
 - `AuthenticateBindingKeys` class
 - `AuthenticateComponent` class
@@ -2532,7 +2515,6 @@ generated:
 - `BindingValueTypes` class
 - `BootSequence` class
 - `BootSteps` class
-- `buildDataRange` const
 - `BuildInfoRegistry` class
 - `BullQueueRoles` class
 - `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` const
@@ -2550,7 +2532,6 @@ generated:
 - `CommonStatuses` class
 - `component` const
 - `CompressEncodings` class
-- `conditionalCountResponse` const
 - `configuration` const
 - `ConsoleLogger` class
 - `Container` class
@@ -2558,6 +2539,7 @@ generated:
 - `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
+- `ContextUtility` class
 - `controller` const
 - `ControllerFactory` class
 - `ControllerTransports` class
@@ -2569,6 +2551,7 @@ generated:
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
 - `DATA_SOURCE_BRAND` const
+- `DataRangeUtility` class
 - `datasource` const
 - `DataSourceDrivers` class
 - `DataTypes` class
@@ -2591,7 +2574,6 @@ generated:
 - `defaultRequestHeaders` const
 - `Defaults` class
 - `defineAuthController` const
-- `defineControllerRouteConfigs` const
 - `del` const
 - `DiskHelper` class
 - `DocumentUITypes` class
@@ -2601,7 +2583,7 @@ generated:
 - `DurationUnits` class
 - `ECDH` class
 - `ECDHAlgorithmType` type
-- `emojiFavicon` const
+- `EmojiFaviconMiddleware` class
 - `enrichDataTypes` const
 - `enrichId` const
 - `enrichPrincipal` const
@@ -2613,7 +2595,6 @@ generated:
 - `Envs` const
 - `ErrorLogLevels` class
 - `ErrorPrettier` class
-- `errorResponses` const
 - `ErrorSchema` const
 - `ErrorScopes` class
 - `ErrorUtility` class
@@ -2662,8 +2643,6 @@ generated:
 - `HfQueueHelper` class
 - `HookUtility` class
 - `HrTimeUtility` class
-- `htmlContent` const
-- `htmlResponse` const
 - `HTTP` class
 - `IAESKeyringEntry` interface
 - `IApiReferenceOptions` interface
@@ -2737,7 +2716,6 @@ generated:
 - `IDeletableRepository` interface
 - `IDiskHelperOptions` interface
 - `IDomainEvent` interface
-- `idParamsSchema` const
 - `IdSchemaTypes` class
 - `IdType` type
 - `IDuration` interface
@@ -2796,6 +2774,7 @@ generated:
 - `INextOpaqueUidOptions` interface
 - `inject` const
 - `injectable` const
+- `InjectableUtility` class
 - `INodeFetchNetworkRequestOptions` interface
 - `INodeFetchRequestOptions` interface
 - `INodeWithPath` interface
@@ -2941,8 +2920,6 @@ generated:
 - `IWorkerThread` interface
 - `IZonedTemporalParts` interface
 - `JOSEStandards` class
-- `jsonContent` const
-- `jsonResponse` const
 - `JWKSAlgorithms` class
 - `JWKSController` class
 - `JWKSIssuerAuthenticationStrategy` class
@@ -2981,6 +2958,7 @@ generated:
 - `model` const
 - `ModelFactory` class
 - `ModelTypes` class
+- `ModelUtility` class
 - `ModuleUtility` class
 - `MultipartStorages` class
 - `NativeTemporalAdapter` class
@@ -2993,11 +2971,14 @@ generated:
 - `NodeFetchNetworkRequest` class
 - `NON_SLUG_CHARACTERS_PATTERN` const
 - `notFoundHandler` const
+- `NotSupportedUtility` class
 - `NumberIdType` type
 - `OffsetSchema` const
 - `omit` const
 - `one` const
 - `OpaqueUidHelper` class
+- `OpenApiResponses` class
+- `OpenApiSchemas` class
 - `OrderBySchema` const
 - `parseOrderEntry` const
 - `ParseUtility` class
@@ -3005,7 +2986,6 @@ generated:
 - `PerformanceUtility` class
 - `PersistableCrudController` class
 - `PersistableRepository` class
-- `pickRegistrationOptions` const
 - `PolicyConnectorResolver` class
 - `policyDefinitionDomainShapeCheck` const
 - `PolicyLineCodec` class
@@ -3029,7 +3009,6 @@ generated:
 - `ReadableCrudController` class
 - `ReadableRepository` class
 - `readAffectedRowCount` const
-- `readDeclarative` const
 - `readResultRows` const
 - `readRuntimeSnapshot` const
 - `RecursiveTreeDirections` class
@@ -3045,7 +3024,6 @@ generated:
 - `RedisSentinelRoles` class
 - `RedisSingleHelper` class
 - `RedisUtility` class
-- `registerFactoryRepositoryInjection` const
 - `RelationBuilderRegistry` class
 - `RelationTypes` class
 - `repository` const
@@ -3055,18 +3033,12 @@ generated:
 - `RepositoryTypes` class
 - `REQUEST_ID_KEY` const
 - `RequestContextRegistry` class
+- `RequestDomainResolver` class
 - `RequestErrors` const
 - `RequestIdGenerator` class
 - `RequestTrackerComponent` class
 - `RequestUtility` class
-- `requiredString` const
-- `resolveCountConfig` const
-- `resolveCreateConfig` const
-- `resolveFindByIdConfig` const
-- `resolveFindConfig` const
-- `resolveFindOneConfig` const
 - `resolveInjectTarget` const
-- `resolveRequestDomain` const
 - `resolveValue` const
 - `resolveValueAsync` const
 - `ResourceRoleManager` class
@@ -3113,7 +3085,6 @@ generated:
 - `SignUpRequestSchema` const
 - `SkipSchema` const
 - `SlugHelper` class
-- `snakeToCamel` const
 - `SnowflakeConfig` class
 - `SnowflakeUidHelper` class
 - `SoftDeletableRepository` class
@@ -3253,7 +3224,6 @@ generated:
 - `THfLogLevel` type
 - `THfSink` type
 - `THfSinkBatch` type
-- `throwNotSupported` const
 - `THttpMethod` type
 - `THttpProtocol` type
 - `THttpResultCode` type
@@ -3297,8 +3267,6 @@ generated:
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
-- `toContentRange` const
-- `toEntityId` const
 - `TOffset` type
 - `TOnVisit` type
 - `TOnVisitAsync` type
