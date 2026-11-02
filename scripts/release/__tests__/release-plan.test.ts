@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { type IPlanPackage, ReleasePlan } from '../release-plan';
 
@@ -25,7 +26,7 @@ const workspace = (changed: string[]): IPlanPackage[] => {
     return {
       name,
       packageName: manifest.name,
-      dependsOn: Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
+      dependsOn: ReleasePlan.dependsOn({ manifest }),
       changedFiles: changed.includes(name) ? 3 : 0,
     };
   });
@@ -131,8 +132,8 @@ describe('ReleasePlan.planFullSweep - the real workspace', () => {
     ]);
   });
 
-  test('dev-configs changed alone releases only itself: nothing ships it', () => {
-    expect(names(['dev-configs'])).toEqual(['dev-configs']);
+  test('dev-configs changed releases itself and core-server: its preset lists dev-configs as a devDependency', () => {
+    expect(names(['dev-configs'])).toEqual(['dev-configs', 'core-server']);
   });
 
   test('invariant: whatever changes, no package that stays behind depends on a released one', () => {
@@ -150,6 +151,120 @@ describe('ReleasePlan.planFullSweep - the real workspace', () => {
           expect(folder !== undefined && released.has(folder)).toBe(false);
         }
       }
+    }
+  });
+});
+
+describe('ReleasePlan - a package that ships presets is released with the tools its packed devDependencies list', () => {
+  // `@venizia/ignis` (core-server) has `@venizia/ignis-boot` and `@venizia/dev-configs` as devDependencies, and the
+  // preset of a new project reads them as its catalog. 0.4.7-3 went out with a boot that threw under Node and the
+  // 0.4.7-4 plan released only dev-configs and boot, so a fresh project still got the broken boot.
+  test('boot changed: core-server is released too, for boot', () => {
+    const planned = ReleasePlan.planFullSweep({ packages: workspace(['boot']) });
+    const coreServer = planned.find((entry) => entry.name === 'core-server');
+
+    expect(coreServer?.cascadedFrom).toContain('@venizia/ignis-boot');
+  });
+
+  test('dev-configs changed: core-server is released too, for dev-configs', () => {
+    const planned = ReleasePlan.planFullSweep({ packages: workspace(['dev-configs']) });
+    const coreServer = planned.find((entry) => entry.name === 'core-server');
+
+    expect(coreServer?.cascadedFrom).toContain('@venizia/dev-configs');
+  });
+
+  test('the real core-server manifest ships presets and lists both tools', () => {
+    const manifest = JSON.parse(
+      readFileSync(join(REPO, 'packages', 'core-server', 'package.json'), 'utf8'),
+    );
+    const dependsOn = ReleasePlan.dependsOn({ manifest });
+
+    expect(Object.keys(manifest.vulcan.presets).length).toBeGreaterThan(0);
+    expect(dependsOn).toContain('@venizia/ignis-boot');
+    expect(dependsOn).toContain('@venizia/dev-configs');
+  });
+
+  test('a package with no presets keeps its devDependencies out', () => {
+    const dependsOn = ReleasePlan.dependsOn({
+      manifest: {
+        dependencies: { '@x/a': '1.0.0' },
+        peerDependencies: { '@x/b': '^1.0.0' },
+        devDependencies: { '@x/tool': 'workspace:*' },
+      },
+    });
+
+    expect(dependsOn).toEqual(['@x/a', '@x/b']);
+  });
+
+  test('a package with presets takes its devDependencies in, once each', () => {
+    const dependsOn = ReleasePlan.dependsOn({
+      manifest: {
+        dependencies: { '@x/a': '1.0.0' },
+        devDependencies: { '@x/a': 'workspace:*', '@x/tool': 'workspace:*' },
+        vulcan: { presets: { app: './dist/presets/app/preset.json' } },
+      },
+    });
+
+    expect(dependsOn.sort()).toEqual(['@x/a', '@x/tool']);
+  });
+
+  test('a synthetic preset package is cascaded from a tool it only lists as a devDependency', () => {
+    const packages: IPlanPackage[] = [
+      { name: 'tool', packageName: '@x/tool', dependsOn: [], changedFiles: 4 },
+      {
+        name: 'app',
+        packageName: '@x/app',
+        dependsOn: ReleasePlan.dependsOn({
+          manifest: {
+            devDependencies: { '@x/tool': 'workspace:*' },
+            vulcan: { presets: { app: './preset.json' } },
+          },
+        }),
+        changedFiles: 0,
+      },
+      {
+        name: 'plain',
+        packageName: '@x/plain',
+        dependsOn: ReleasePlan.dependsOn({
+          manifest: { devDependencies: { '@x/tool': 'workspace:*' } },
+        }),
+        changedFiles: 0,
+      },
+    ];
+
+    expect(ReleasePlan.planFullSweep({ packages })).toEqual([
+      { name: 'tool' },
+      { name: 'app', cascadedFrom: ['@x/tool'] },
+    ]);
+  });
+});
+
+describe('the packed manifest of a preset package takes its devDependency versions from the workspace at pack time', () => {
+  test('bun pm pack of core-server writes the workspace versions of boot and dev-configs, not workspace:*', () => {
+    const destination = mkdtempSync(join(tmpdir(), 'ignis-plan-pack-'));
+    try {
+      const packed = Bun.spawnSync({
+        cmd: ['bun', 'pm', 'pack', '--destination', destination, '--ignore-scripts', '--quiet'],
+        cwd: join(REPO, 'packages', 'core-server'),
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      expect(packed.exitCode).toBe(0);
+
+      const tarball = readdirSync(destination).find((file) => file.endsWith('.tgz')) ?? '';
+      const extracted = Bun.spawnSync({
+        cmd: ['tar', '-xzOf', join(destination, tarball), 'package/package.json'],
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      const packedManifest = JSON.parse(extracted.stdout.toString());
+      const versionOf = (name: string) =>
+        JSON.parse(readFileSync(join(REPO, 'packages', name, 'package.json'), 'utf8')).version;
+
+      expect(packedManifest.devDependencies['@venizia/ignis-boot']).toBe(versionOf('boot'));
+      expect(packedManifest.devDependencies['@venizia/dev-configs']).toBe(versionOf('dev-configs'));
+    } finally {
+      rmSync(destination, { recursive: true, force: true });
     }
   });
 });

@@ -155,8 +155,9 @@ const collectState = async (opts: {
         distTag: opts.distTag,
       }),
       changedFiles: await countChangedSinceRelease({ name }),
-      // Only what is published counts: `dependencies` and `peerDependencies`, never `devDependencies`.
-      dependsOn: Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
+      // What is published counts: `dependencies` and `peerDependencies`, and the `devDependencies` of a package that
+      // ships presets (a preset reads them as its catalog); see `ReleasePlan.dependsOn`.
+      dependsOn: ReleasePlan.dependsOn({ manifest }),
     });
   }
 
