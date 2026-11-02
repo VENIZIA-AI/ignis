@@ -49,6 +49,7 @@ export class ReleaseWorkflowGuards {
   static readonly GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH = 'github-release-never-fails-a-publish';
   static readonly GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES = 'github-release-only-views-and-creates';
   static readonly PUBLISH_ENVIRONMENT_IS_CLOSED = 'publish-environment-is-closed';
+  static readonly ATLAS_INDEX_JOB_CONFINED = 'atlas-index-job-confined';
 
   static readonly SCHEME_SET = new Set<string>([
     this.REF_BY_KIND,
@@ -89,6 +90,7 @@ export class ReleaseWorkflowGuards {
     this.GITHUB_RELEASE_NEVER_FAILS_A_PUBLISH,
     this.GITHUB_RELEASE_ONLY_VIEWS_AND_CREATES,
     this.PUBLISH_ENVIRONMENT_IS_CLOSED,
+    this.ATLAS_INDEX_JOB_CONFINED,
   ]);
 }
 
@@ -116,7 +118,8 @@ interface IWorkflowJob {
   permissions?: Record<string, string> | string;
   environment?: unknown;
   outputs?: Record<string, unknown>;
-  strategy?: { matrix?: unknown };
+  strategy?: { matrix?: unknown; 'fail-fast'?: unknown; 'max-parallel'?: unknown };
+  'continue-on-error'?: unknown;
   env?: Record<string, unknown>;
   defaults?: unknown;
   'timeout-minutes'?: unknown;
@@ -137,7 +140,16 @@ const TEST_JOB = 'test';
 const SCRIPTS_JOB = 'scripts';
 const PUBLISH_JOB = 'publish';
 const APPROVE_JOB = 'approve';
+const ATLAS_JOB = 'atlas-index';
 const GATE_JOBS = [PLAN_JOB, TEST_JOB, SCRIPTS_JOB];
+/** The pair of each release tag, published by VULCAN's action after `publish`: the one place the workflow reads a secret. */
+const ATLAS_ACTION = 'VENIZIA-AI/vulcan/.github/actions/atlas-index@';
+const ATLAS_KEY_LINE = 'ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}';
+const ATLAS_CONDITION =
+  "${{ !cancelled() && (needs.publish.result == 'success' || needs.publish.result == 'failure') }}";
+const ATLAS_STEP_CONDITION = "${{ steps.tag.outputs.tag != '' }}";
+const ATLAS_MATRIX = '${{ fromJSON(needs.plan.outputs.matrix).package }}';
+const ATLAS_REF = '${{ steps.tag.outputs.tag }}';
 const STABLE_CONDITION = "${{ needs.plan.outputs.kind == 'stable' }}";
 const APPROVAL_ENVIRONMENT = 'release-approval';
 const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan';
@@ -284,7 +296,7 @@ export class ReleaseWorkflowCheck {
 
     const publishPermissions = publish?.permissions;
     const writers = Object.entries(jobs)
-      .filter(([name, job]) => name !== PUBLISH_JOB && writesOf(job))
+      .filter(([name, job]) => name !== PUBLISH_JOB && name !== ATLAS_JOB && writesOf(job))
       .map(([name]) => name);
     if (
       typeof publishPermissions !== 'object' ||
@@ -294,6 +306,42 @@ export class ReleaseWorkflowCheck {
       violate(
         ReleaseWorkflowGuards.WRITE_ON_PUBLISH_ONLY,
         `only the '${PUBLISH_JOB}' job may write, and it must state \`contents: write\`${writers.length > 0 ? ` (also writing: ${writers.join(', ')})` : ''}`,
+      );
+    }
+
+    const atlas = jobs[ATLAS_JOB];
+    const atlasSecretSteps = stepsOf(atlas).filter((step) =>
+      JSON.stringify(step).includes(SECRET_REFERENCE),
+    );
+    const atlasKeyStep = atlasSecretSteps[0];
+    const atlasCheckout = stepsOf(atlas).find((step) => step.uses?.startsWith('actions/checkout@'));
+    const atlasTagStep = stepsOf(atlas).find((step) => step.id === 'tag');
+    const atlasConfined =
+      atlas !== undefined &&
+      [...needsOf(atlas)].sort().join(',') === [PLAN_JOB, PUBLISH_JOB].join(',') &&
+      atlas.if === ATLAS_CONDITION &&
+      JSON.stringify(atlas.permissions) === JSON.stringify({ contents: 'write' }) &&
+      atlas.environment === undefined &&
+      atlas['continue-on-error'] === true &&
+      atlas.strategy?.['fail-fast'] === false &&
+      atlas.strategy?.['max-parallel'] === 1 &&
+      JSON.stringify(atlas.strategy?.matrix) === JSON.stringify({ package: ATLAS_MATRIX }) &&
+      atlasCheckout?.with?.['fetch-depth'] === 0 &&
+      atlasCheckout?.with?.['persist-credentials'] === false &&
+      atlasTagStep !== undefined &&
+      !(atlasTagStep.run ?? '').includes('${{') &&
+      atlasSecretSteps.length === 1 &&
+      atlasKeyStep?.uses?.startsWith(ATLAS_ACTION) === true &&
+      FULL_COMMIT.test(atlasKeyStep.uses ?? '') &&
+      atlasKeyStep.if === ATLAS_STEP_CONDITION &&
+      JSON.stringify(atlasKeyStep.env) ===
+        JSON.stringify({ ATLAS_INDEX_KEY: '${{ secrets.ATLAS_INDEX_KEY }}' }) &&
+      JSON.stringify(atlasKeyStep.with) === JSON.stringify({ ref: ATLAS_REF }) &&
+      withoutComments(text).split(SECRET_REFERENCE).length === 2;
+    if (!atlasConfined) {
+      violate(
+        ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+        `the '${ATLAS_JOB}' job must need '${PLAN_JOB}' and '${PUBLISH_JOB}' and run after the publish, whether it ended well or failed (a tag stays); hold \`contents: write\` and nothing else (no \`id-token\`, no environment); continue on error; run one tag at a time over the plan matrix; check out the whole history without keeping credentials; and read ATLAS_INDEX_KEY, the one secret of the workflow, on the single step that runs VULCAN's pinned atlas-index action with only \`ref\` set`,
       );
     }
 
@@ -381,7 +429,10 @@ export class ReleaseWorkflowCheck {
     ];
     for (const { label, lines } of tokenScans) {
       for (const [index, line] of lines.entries()) {
-        const leaked = [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name));
+        const allowed = label === 'the workflow' && line.trim() === ATLAS_KEY_LINE;
+        const leaked = allowed
+          ? undefined
+          : [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name));
         if (leaked !== undefined) {
           violate(
             ReleaseWorkflowGuards.NO_NPM_TOKEN,

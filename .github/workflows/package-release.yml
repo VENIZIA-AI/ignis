@@ -603,3 +603,82 @@ jobs:
           echo "  the usual cause is a conflict that is more than a version; read the merge step above"
           echo "  finish it: dispatch the same plan again on main - it publishes nothing, tags nothing and merges back (a new run, a new approval)"
           echo "  or by hand: merge origin/main into develop in a worktree of develop, resolve, commit and push"
+
+  # ---------------------------------------------------------------------------------------------
+  # ATLAS INDEX - the signed atlas pair of each release tag. The release commits and tags are pushed with the Actions
+  # token, and GitHub starts no workflow from such a push, so the `atlas-index` job of deploy-docs.yml never runs for
+  # them and a consumer on a release commit would build the index itself. Each package of the plan has its own tag
+  # `<dir>-v<version>` on its own release commit: one run of VULCAN's action per tag, with `ref`, builds the pair of that
+  # tag's commit from this one full-history checkout. It is a job of its own after `publish`, holding `contents: write`
+  # and nothing else: no `id-token`, no environment, so the signing key never shares a job with the npm publish
+  # identity. The action does nothing while ATLAS_INDEX_KEY is empty and refuses a tag whose commit is not on main or
+  # develop; the job never fails a release that has published. The key is the one secret of this workflow, and the one
+  # `deploy-docs.yml` uses, on the one step that publishes.
+  # ---------------------------------------------------------------------------------------------
+  atlas-index:
+    name: Atlas index ${{ matrix.package }}
+    needs: [plan, publish]
+    # A tag is pushed as soon as its package is installable, so a publish that stopped halfway still left tags: this job
+    # runs after a failed publish too, and a package whose tag is not there is skipped by the tag step.
+    if: ${{ !cancelled() && (needs.publish.result == 'success' || needs.publish.result == 'failure') }}
+    runs-on: ubuntu-26.04
+    continue-on-error: true
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    # Each run uploads to the one release `atlas-index` of this repository: one tag at a time.
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        package: ${{ fromJSON(needs.plan.outputs.matrix).package }}
+
+    steps:
+      # The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.4.4'
+
+      # The action runs the project's installed atlas (`vulcan x atlas index publish`).
+      - name: Install
+        run: bun install
+
+      # `<dir>-v<version>`, the tag `release-run.ts` makes for the package, from the versions the plan gave.
+      - name: Name the tag
+        id: tag
+        env:
+          RELEASED_PACKAGE: ${{ matrix.package }}
+          TARGETS: ${{ needs.plan.outputs.targets }}
+        run: |
+          TAG=""
+          IFS=',' read -ra PAIRS <<< "$TARGETS"
+          for PAIR in "${PAIRS[@]}"; do
+            if [ "${PAIR%%=*}" = "$RELEASED_PACKAGE" ]; then
+              TAG="${PAIR%%=*}-v${PAIR#*=}"
+            fi
+          done
+          [ -n "$TAG" ] || { echo "ERROR | $RELEASED_PACKAGE is not in the plan targets: $TARGETS"; exit 1; }
+
+          # The tag is in this clone (the checkout fetched every tag), or the package was not released by this run.
+          if git rev-parse --verify --quiet "refs/tags/$TAG" > /dev/null; then
+            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+            echo "$TAG is not a tag of this repository - no pair to publish"
+          fi
+
+      - name: Publish the atlas index of the tag
+        if: ${{ steps.tag.outputs.tag != '' }}
+        uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@6670969acce876a29c11d9f1da319992fdd3e282 # vulcan-v0.4.9-1
+        with:
+          ref: ${{ steps.tag.outputs.tag }}
+        env:
+          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}

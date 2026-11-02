@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { ReleaseWorkflowCheck, ReleaseWorkflowGuards } from '../release-workflow';
 
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
@@ -69,7 +70,7 @@ describe('the release workflow keeps its guards', () => {
   });
 
   test('the guard list and the mutations below cover each other', () => {
-    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(38);
+    expect(ReleaseWorkflowGuards.SCHEME_SET.size).toBe(39);
   });
 });
 
@@ -1135,6 +1136,121 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         },
       ],
     },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    permissions:\n      contents: write\n    # Each run uploads',
+          replace:
+            '    permissions:\n      contents: write\n      id-token: write\n    # Each run uploads',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    permissions:\n      contents: write\n    # Each run uploads',
+          replace:
+            '    permissions:\n      contents: write\n      packages: write\n    # Each run uploads',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    runs-on: ubuntu-26.04\n    continue-on-error: true\n',
+          replace:
+            '    runs-on: ubuntu-26.04\n    environment: npm-release\n    continue-on-error: true\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    runs-on: ubuntu-26.04\n    continue-on-error: true\n',
+          replace: '    runs-on: ubuntu-26.04\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    needs: [plan, publish]\n    # A tag is pushed',
+          replace: '    needs: [plan]\n    # A tag is pushed',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "(needs.publish.result == 'success' || needs.publish.result == 'failure') }}\n    runs-on",
+          replace: "needs.publish.result != 'cancelled' }}\n    runs-on",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '      max-parallel: 1\n',
+          replace: '      max-parallel: 4\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          replace:
+            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n        run: bun install\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '          ref: ${{ steps.tag.outputs.tag }}\n        env:',
+          replace:
+            '          ref: ${{ steps.tag.outputs.tag }}\n          key-env: ATLAS_INDEX_KEY\n        env:',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "        if: ${{ steps.tag.outputs.tag != '' }}\n",
+          replace: '',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: false\n",
+          replace:
+            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n          persist-credentials: true\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
+          replace:
+            '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  OTHER: ${{ secrets.ATLAS_INDEX_KEY }}\n',
+        },
+      ],
+    },
   ];
 
   test('the table names every guard', () => {
@@ -1166,7 +1282,9 @@ describe('the release holds no registry token', () => {
   const TOKEN = /secrets\.|NPM_ACCESS_TOKEN|NPM_CONFIG_TOKEN|NODE_AUTH_TOKEN/;
 
   test('the committed workflow and loop, comments aside, read no secret and name no npm token', () => {
-    expect(withoutComments(WORKFLOW)).not.toMatch(TOKEN);
+    // The one exception is the atlas job's key line, which `atlas-index-job-confined` confines.
+    const KEY_LINE = '          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n';
+    expect(withoutComments(WORKFLOW).replace(KEY_LINE, '')).not.toMatch(TOKEN);
     expect(withoutScriptComments(RUNNER)).not.toMatch(TOKEN);
     expect(withoutScriptComments(RELEASE_SCRIPT)).not.toMatch(TOKEN);
   });
@@ -1276,5 +1394,155 @@ describe('release-run.ts plan, run as the plan job runs it', () => {
 
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr.toString()).toContain('the issue must be a number or empty');
+  });
+});
+
+describe('the atlas pair of each release tag', () => {
+  const parsed = Bun.YAML.parse(WORKFLOW) as {
+    jobs: Record<
+      string,
+      {
+        steps?: Array<{
+          id?: string;
+          name?: string;
+          run?: string;
+          uses?: string;
+          with?: Record<string, unknown>;
+        }>;
+      }
+    >;
+  };
+  const steps = parsed.jobs['atlas-index']?.steps ?? [];
+  const nameTheTag = steps.find((step) => step.id === 'tag')?.run ?? '';
+  const publishStep = steps.find((step) => step.uses?.includes('actions/atlas-index@'));
+
+  const runTagStep = (opts: { tags: string[]; targets: string; released: string }) => {
+    const repository = mkdtempSync(join(tmpdir(), 'ignis-atlas-tag-'));
+    try {
+      const output = join(repository, 'github-output');
+      const git = (args: string[]) =>
+        Bun.spawnSync({ cmd: ['git', ...args], cwd: repository, stdout: 'pipe', stderr: 'pipe' });
+      git(['init', '-q']);
+      git([
+        '-c',
+        'user.name=t',
+        '-c',
+        'user.email=t@t',
+        'commit',
+        '-q',
+        '--allow-empty',
+        '-m',
+        'x',
+      ]);
+      for (const tag of opts.tags) {
+        git(['tag', tag]);
+      }
+
+      const result = Bun.spawnSync({
+        cmd: ['bash', '-e', '-c', nameTheTag],
+        cwd: repository,
+        env: {
+          PATH: process.env.PATH ?? '',
+          GITHUB_OUTPUT: output,
+          RELEASED_PACKAGE: opts.released,
+          TARGETS: opts.targets,
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+
+      return {
+        exitCode: result.exitCode,
+        written: existsSync(output) ? readFileSync(output, 'utf8').trim() : '',
+      };
+    } finally {
+      rmSync(repository, { recursive: true, force: true });
+    }
+  };
+
+  test('a package of the plan gets the tag release-run.ts makes for it, when that tag exists', () => {
+    expect(RUNNER).toContain('`${dir}-v${version}`');
+
+    const run = runTagStep({
+      tags: ['boot-v0.4.7-5', 'core-server-v0.4.7-5'],
+      targets: 'dev-configs=0.4.7-5,boot=0.4.7-5,core-server=0.4.7-5',
+      released: 'boot',
+    });
+
+    expect(run).toEqual({ exitCode: 0, written: 'tag=boot-v0.4.7-5' });
+  });
+
+  test('a package whose tag is not there (a publish that stopped before it) gets no pair and does not fail', () => {
+    const run = runTagStep({
+      tags: ['boot-v0.4.7-5'],
+      targets: 'boot=0.4.7-5,core-server=0.4.7-5',
+      released: 'core-server',
+    });
+
+    expect(run).toEqual({ exitCode: 0, written: 'tag=' });
+  });
+
+  test('a package that is not in the plan targets is an error', () => {
+    const run = runTagStep({ tags: [], targets: 'boot=0.4.7-5', released: 'helpers' });
+
+    expect(run.exitCode).not.toBe(0);
+  });
+
+  test('the action step runs only when a tag was found, with that tag as its only input', () => {
+    expect(publishStep?.with).toEqual({ ref: '${{ steps.tag.outputs.tag }}' });
+  });
+
+  test('the action is pinned at the commit deploy-docs.yml pins, and passes inputs the action declares', () => {
+    const deployDocs = readFileSync(resolve(ROOT, '.github/workflows/deploy-docs.yml'), 'utf8');
+    const pin = (text: string) =>
+      /uses: (VENIZIA-AI\/vulcan\/\.github\/actions\/atlas-index@[0-9a-f]{40}) # (\S+)/
+        .exec(text)
+        ?.slice(1, 3);
+    // action.yml at that commit declares exactly `key-env` and `ref`; the release job passes `ref` only.
+    const declared = ['key-env', 'ref'];
+
+    expect(pin(WORKFLOW)).toBeDefined();
+    expect(pin(WORKFLOW)).toEqual(pin(deployDocs));
+    expect(Object.keys(publishStep?.with ?? {}).every((name) => declared.includes(name))).toBe(
+      true,
+    );
+  });
+
+  test('the installed atlas accepts the flags the action passes, offline, and uploads nothing', () => {
+    const publish = (env: Record<string, string>) =>
+      Bun.spawnSync({
+        cmd: [
+          'bun',
+          'x',
+          '--no-install',
+          'vulcan',
+          'x',
+          'atlas',
+          'index',
+          'publish',
+          '--key-env',
+          'ATLAS_INDEX_KEY',
+          '--ref',
+          'boot-v0.0.0',
+        ],
+        cwd: ROOT,
+        env: {
+          PATH: process.env.PATH ?? '',
+          HOME: process.env.HOME ?? '',
+          GITHUB_REPOSITORY: 'VENIZIA-AI/ignis',
+          GITHUB_TOKEN: 'x',
+          ...env,
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }).stdout.toString();
+
+    // A manual run with no key publishes nothing; a push refuses a ref. Both prove the flag is read.
+    expect(publish({ GITHUB_EVENT_NAME: 'workflow_dispatch', ATLAS_INDEX_KEY: '' })).toContain(
+      'ATLAS_INDEX_KEY is empty',
+    );
+    expect(publish({ GITHUB_EVENT_NAME: 'push', ATLAS_INDEX_KEY: 'k' })).toContain(
+      'a ref can only be given to a manual run',
+    );
   });
 });
