@@ -273,6 +273,8 @@ Same options, same rules as PostgreSQL - see [Read Retry](/references/base/repos
 - On Meilisearch, the duplicate pre-check is not atomic, so two concurrent creates of the same id can both pass it. See the [Meilisearch guide](./search-meilisearch) and use the connector upsert when that's possible.
 - **`updateById()` against a missing id throws `404` (`normalized.code: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
 - **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
+- **A request the engine rejects is a 4xx, not a 503.** A 400 or 422 throws that status with the engine message kept, a 404 the verb does not tolerate throws `404 core.search_engine.not_found`, and a 409 throws `409 core.search_engine.already_exists`. Only a transport failure, a 5xx, a 401/403, a 408 or a 429 throws the sanitized `503 core.search_engine.dependency_unavailable`.
+- **Typesense `import` does not throw `ImportError`.** The connector passes `throwOnFail: false`, so a rejected row is in `count.fail` and `responses` of the result.
 
 ## Searching with `search({ mode })`
 

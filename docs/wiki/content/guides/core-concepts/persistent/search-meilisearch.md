@@ -157,7 +157,7 @@ The experimental `documents/edit` route would do this server-side, but it is gat
 
 When a batch fails, the batches after the failure point did not land. The thrown error's `details` carry `{ totalCount, processedCount }`, so a caller can resume from `processedCount` rather than replaying the whole import.
 
-**Meilisearch error classification reads the real SDK error shape.** A thrown `MeilisearchApiError` carries its body under `error.cause.code` and its HTTP status under `error.response.status`, not top-level `code`/`httpStatus`. Reading only the flat shape misclassifies a legitimate 404 (for example the existence probe inside `create()`) as an unrelated 503 dependency failure. The classifier checks both the flat shape (task-error responses) and the nested `cause`/`response` shape (thrown SDK errors).
+**Meilisearch error classification reads the real SDK error shape.** A thrown `MeilisearchApiError` carries its body under `error.cause.code` and its HTTP status under `error.response.status`, not top-level `code`/`httpStatus`. Reading only the flat shape misclassifies a legitimate 404 (for example the existence probe inside `create()`) as an unrelated 503 dependency failure. The same two shapes feed the mapping of an engine 400, 404, 409 or 422 to its 4xx error. The classifier checks both the flat shape (task-error responses) and the nested `cause`/`response` shape (thrown SDK errors).
 
 **`createCollection`/`ensureCollection` are idempotent.** An `index_already_exists` failure is tolerated and logged rather than thrown. Boot-time provisioning against an already-provisioned collection (a restart, a second app instance) succeeds instead of crashing.
 
