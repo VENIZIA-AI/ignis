@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dir, '..', '..', '..');
@@ -67,8 +67,101 @@ describe('deploy-docs.yml', () => {
     expect(workflow).not.toMatch(/\n {4}paths:/);
   });
 
-  test('the atlas index is published on a push, and a manual run does not start it', () => {
-    expect(atlas?.if).toBe("github.event_name == 'push'");
+  test('the atlas index is published on a push, and on a manual run that asked for it', () => {
+    expect(atlas?.if).toBe(
+      "github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.job == 'atlas-index')",
+    );
+  });
+
+  test('a manual run picks a job (docs by default) and may name a ref for the atlas job', () => {
+    const inputs = (
+      parsed.on?.['workflow_dispatch'] as { inputs?: Record<string, Record<string, unknown>> }
+    ).inputs;
+
+    expect(Object.keys(inputs ?? {}).sort()).toEqual(['job', 'ref']);
+    expect(inputs?.['job']).toMatchObject({
+      type: 'choice',
+      options: ['docs', 'atlas-index'],
+      default: 'docs',
+    });
+    expect(inputs?.['ref']).toMatchObject({ type: 'string', default: '' });
+  });
+
+  test('the atlas action gets the ref input and nothing else, and the input is never checked out', () => {
+    const publish = (atlas?.steps ?? []).find((step) =>
+      step.uses?.includes('actions/atlas-index@'),
+    );
+
+    expect(publish?.with).toEqual({ ref: '${{ inputs.ref }}' });
+    expect(
+      JSON.stringify(atlas?.steps?.filter((step) => step.uses?.startsWith('actions/checkout@'))),
+    ).not.toContain('inputs.ref');
+  });
+
+  test('the action input names are the ones VULCAN declares at the pinned commit', () => {
+    // action.yml at the pinned commit (vulcan-v0.4.9-1) declares exactly these two inputs; we pass only `ref`.
+    const declared = ['key-env', 'ref'];
+    const publish = (atlas?.steps ?? []).find((step) =>
+      step.uses?.includes('actions/atlas-index@'),
+    );
+
+    expect(Object.keys(publish?.with ?? {}).every((name) => declared.includes(name))).toBe(true);
+  });
+
+  describe('the check that gates the wiki, run as the workflow runs it', () => {
+    const script =
+      (jobs['changes']?.steps ?? []).find((step) => step.run?.includes('docs=false'))?.run ?? '';
+
+    const docsFor = (env: Record<string, string>): string => {
+      const outputFile = join(
+        ROOT,
+        'app_data',
+        `docs-output-${Math.random().toString(36).slice(2)}`,
+      );
+      mkdirSync(join(ROOT, 'app_data'), { recursive: true });
+      const result = Bun.spawnSync({
+        cmd: ['bash', '-c', script],
+        cwd: ROOT,
+        env: {
+          PATH: process.env.PATH ?? '',
+          GITHUB_OUTPUT: outputFile,
+          GITHUB_SHA: 'HEAD',
+          BEFORE: '',
+          REF: '',
+          ...env,
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      const written = existsSync(outputFile) ? readFileSync(outputFile, 'utf8') : '';
+      rmSync(outputFile, { force: true });
+
+      expect(result.exitCode).toBe(0);
+      return written.trim();
+    };
+
+    test('a manual run for the wiki deploys it', () => {
+      expect(docsFor({ EVENT: 'workflow_dispatch', JOB: 'docs' })).toBe('docs=true');
+    });
+
+    test('a manual run for the atlas index does not redeploy the wiki', () => {
+      expect(docsFor({ EVENT: 'workflow_dispatch', JOB: 'atlas-index' })).toBe('docs=false');
+    });
+
+    test('a push to main or of a tag never deploys the wiki; a push to develop with no readable old head does', () => {
+      expect(docsFor({ EVENT: 'push', REF: 'refs/heads/main', JOB: '' })).toBe('docs=false');
+      expect(docsFor({ EVENT: 'push', REF: 'refs/tags/core-server-v1.0.0', JOB: '' })).toBe(
+        'docs=false',
+      );
+      expect(
+        docsFor({
+          EVENT: 'push',
+          REF: 'refs/heads/develop',
+          BEFORE: '0000000000000000000000000000000000000000',
+          JOB: '',
+        }),
+      ).toBe('docs=true');
+    });
   });
 
   test('read-only by default; Pages access only on the two wiki jobs; the one job that uploads can write', () => {
@@ -91,7 +184,7 @@ describe('deploy-docs.yml', () => {
 
   test('the Pages deployments queue in one group, and each ref has its own atlas queue', () => {
     expect(jobs['deploy']?.concurrency).toEqual({ group: 'pages', 'cancel-in-progress': false });
-    expect(atlas?.concurrency?.group).toBe('atlas-index-${{ github.ref }}');
+    expect(atlas?.concurrency?.group).toBe('atlas-index-${{ inputs.ref || github.ref }}');
   });
 
   test('the key is read only by the step that publishes', () => {
