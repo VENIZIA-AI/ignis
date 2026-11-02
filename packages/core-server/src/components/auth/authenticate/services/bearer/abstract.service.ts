@@ -157,7 +157,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return JSON.stringify(value);
   }
 
-  encryptPayload(payload: IJWTTokenPayload): Record<string, any> {
+  async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
     }
@@ -178,14 +178,14 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         continue;
       }
 
-      const encryptedKey = this.aes.encrypt({
+      const encryptedKey = await this.aes.encrypt({
         message: key,
         secret: this.applicationSecret,
       });
 
       const serialized = this.serializeField({ key, value });
 
-      rs[encryptedKey] = this.aes.encrypt({
+      rs[encryptedKey] = await this.aes.encrypt({
         message: serialized,
         secret: this.applicationSecret,
       });
@@ -260,7 +260,9 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return signer;
   }
 
-  decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
+  async decryptPayload(opts: {
+    result: JWTVerifyResult<IJWTTokenPayload>;
+  }): Promise<IJWTTokenPayload> {
     const { payload, protectedHeader } = opts.result;
 
     if (!this.aes || !this.applicationSecret) {
@@ -278,11 +280,11 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         continue;
       }
 
-      const decryptedKey = this.aes.decrypt({
+      const decryptedKey = await this.aes.decrypt({
         message: key,
         secret: this.applicationSecret,
       });
-      const decryptedValue = this.aes.decrypt({
+      const decryptedValue = await this.aes.decrypt({
         message: payload[key],
         secret: this.applicationSecret,
       });

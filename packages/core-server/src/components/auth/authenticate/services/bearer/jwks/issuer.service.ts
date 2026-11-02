@@ -188,7 +188,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     await this.ensureInitialized();
     const { jwtVerify } = await JoseLoader.load();
     const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
-    return this.decryptPayload({ result });
+    return await this.decryptPayload({ result });
   }
 
   override async getSigner(opts: {
@@ -202,7 +202,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     const now = Math.floor(Date.now() / 1000);
     const expiresIn = await opts.getTokenExpiresFn();
 
-    const encryptedPayload = this.encryptPayload(opts.payload);
+    const encryptedPayload = await this.encryptPayload(opts.payload);
 
     const signer = new SignJWT({ ...encryptedPayload })
       .setProtectedHeader({ alg: this.options.algorithm, kid: this.options.kid })

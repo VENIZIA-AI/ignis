@@ -1,0 +1,459 @@
+{
+  "note": "Recorded with the synchronous node:crypto implementation of AES, LegacyAES, RSA and the PBKDF2 key derivation, before they moved to crypto.subtle. TEST-ONLY RSA key pair: never used outside tests.",
+  "aes": [
+    {
+      "name": "aes-256-cbc short plain",
+      "algorithm": "aes-256-cbc",
+      "secret": "correct horse battery staple",
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEG0ZG4JiOrY12cu8osdPqb/I/7ms1X95vxUgv+AxkIiS"
+    },
+    {
+      "name": "aes-256-cbc short multibyte",
+      "algorithm": "aes-256-cbc",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEL2NgM8R0JxYT58rLNUuBtOHgDPZX4wfSkhlPuJOYraV"
+    },
+    {
+      "name": "aes-256-cbc empty plain",
+      "algorithm": "aes-256-cbc",
+      "secret": "correct horse battery staple",
+      "message": "",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEJrXhSIJW8FJxRvfqoRd944="
+    },
+    {
+      "name": "aes-256-cbc empty multibyte",
+      "algorithm": "aes-256-cbc",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEK5HSUBfoxZHvud5VueECSs="
+    },
+    {
+      "name": "aes-256-cbc long plain",
+      "algorithm": "aes-256-cbc",
+      "secret": "correct horse battery staple",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEBN/NohbuRafBjcEvUx5jm060zwNkhSWyHH+ZLkB+NbiOtjKMhVDTpycNlyQfuJPBGuO5dDkFttwBxAD7EgpiUZU7ajfQBqyZDlGc4I1PADBIU4zjQM0kU/zmcrFxL5Wnx62rt96EnTjo2PFMaOcek+wbJkmF02ZbXF0UizCq4YO7wUcMNtgOhfc9nQy6iG9XY9BUaeIAaxny231ce8e6Z42bn3+eobgWZUr5BPAKKB+ZfLWuT+L5LJ/ukfsHIJXAAMmbwuqRRqvN40dkyAdrMFrVFE8OKmjIQUJladtXMuMRRTQjLPwn6DgtgKR2TnTAE4dJSeGgOBaIef9ALcYxsmdMDKDTEHemgahqaYJiKU3rOQCpEzgXD0B4oYzFQwZeRcWTUyXl4BZ2nGs+eA3aEmtyWY4+acpgu1vAdrpn4akobb/Oq2jqEOcDirO1POJfk4QWIW+aZzzGETmKueLAzfm7BMWkZRLAeBNjxAT4/gxlrCOLEQKH4c3rDSsHjtMMcWnV+cLyQn/ylsGEfD6ZNPmhV3m18FYafbaJjax7br+2zK/gclhC9IJJzSffGi4KA=="
+    },
+    {
+      "name": "aes-256-cbc long multibyte",
+      "algorithm": "aes-256-cbc",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEEUqt7CDNwtRh81EUPYkQeQLCl5/f9EOyCyVDwyKCpKTIAOdfgV1WGED7t9E+zC46o9BPUIliz32oii2sjfBvM6ZlxvLBH3fEi44GHan4NA276poy50gy8iKET3CWLszoqLcvOu39KmQ8efJH/GV4DFThh8ZizX+LzVbynqpPmp+fplKU40ZUFfcEW/v6Njs4aigAqdsjHUwL+ZNv1oRdnRWNfAOw7KGDQh1NVzFOEcTNt0OUakwY8jiR3WQ4PTvfMDcV4MAMvXFWsTU6K5puwDyICRxyNO1VgPyd6Z+SjA3+QeXPf8nGa1fWLxbNtP36dYbk+angs4ulq77kWYQ9jnJgApx2sQSXyc1XHydD9zmFx9Lrfo5eH0tly6lzltdK9ZH+NKd+HaG36FwqcX0fXzKsbnXO5Fzm+zGknK2YrsazgsftmZ6ZWMh4sYYJThMEQMuR55JH2XHby27QI5rSLbm6NLKMUKqBD4kGMmIK1qyNY0TeqTVEPnqDUABduyBnmT4FWcmsaR/0Esc/9OQbeOM3hHWGLtoHpCtKV/kCNtWQ2KHfipoD1aSzfNxqXGAaw=="
+    },
+    {
+      "name": "aes-256-cbc block16 plain",
+      "algorithm": "aes-256-cbc",
+      "secret": "correct horse battery staple",
+      "message": "exactly16bytes!!",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEHDAYZAI/yA/hM2tCGtz3Fnpsu1EML9+yQSOB9oSWdcX"
+    },
+    {
+      "name": "aes-256-cbc block16 multibyte",
+      "algorithm": "aes-256-cbc",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "exactly16bytes!!",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEJYGEkm+ub+Nr3MJbtbd7AGdxVNFaTO11gcalqTRcJda"
+    },
+    {
+      "name": "aes-256-cbc custom kdf",
+      "algorithm": "aes-256-cbc",
+      "secret": "correct horse battery staple",
+      "message": "héllo wörld 😀",
+      "kdf": {
+        "kdfSalt": "per-deployment-salt-0123",
+        "kdfIterations": 1000
+      },
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PENmj1CXhLl2oQKV6oi3E/oZomFyamU1D4DdqHXcsDtHL"
+    },
+    {
+      "name": "aes-256-cbc keyring",
+      "algorithm": "aes-256-cbc",
+      "secret": [
+        {
+          "id": "k2",
+          "secret": "second-secret"
+        },
+        {
+          "id": "k1",
+          "secret": "first-secret"
+        }
+      ],
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQJrMgECAwQFBgcICQoLDA0ODxB1m3nne8nCX+6Teud+bklh6UT8iftGJpRzmzxVPnCV3g=="
+    },
+    {
+      "name": "aes-256-gcm short plain",
+      "algorithm": "aes-256-gcm",
+      "secret": "correct horse battery staple",
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEBz4QzNFJC293L0s9eOBCF9yZe+vZ7IQhIyOcNuVKlYoz7g="
+    },
+    {
+      "name": "aes-256-gcm short multibyte",
+      "algorithm": "aes-256-gcm",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEJNmRmrnrNaDSdiqgrl9P8jC6bTNvC9ICqtwfvHlJzee7io="
+    },
+    {
+      "name": "aes-256-gcm empty plain",
+      "algorithm": "aes-256-gcm",
+      "secret": "correct horse battery staple",
+      "message": "",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEP0bqbyJ6LTCLHtaeOmXFL4="
+    },
+    {
+      "name": "aes-256-gcm empty multibyte",
+      "algorithm": "aes-256-gcm",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEPi8vT5dBP7yOfbaJ+EisV0="
+    },
+    {
+      "name": "aes-256-gcm long plain",
+      "algorithm": "aes-256-gcm",
+      "secret": "correct horse battery staple",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEOY/1hqE+ZoelOrVjGUabmtOziPjeqhZkCQYYMWefciXMVdSjZnbP+c2GCpNdxOk80P8dnvfXui5gSIHZrARAFeDYS+VsG2vFHrqkihOtm5FQqqF/aPUtYy2PlnK4wdk9bgXfPG3k+97Op3P5vZmLFmSnQgPmHsC1l4FDZgTakE4k2FGw8d5Uc3s7iG4Zz9VpXJ/VIVt6ewQAsZWPPpoS6qFYgH0TdFt2kMq40IxCkWHXheN+tU7371mYUfpQzQoGt260sVKCbAYrakAWb9Xy9MoJ3eKDv0u7+JcWmoyXDNoepQiacjA82Y9q/K9p5erRYFHT1EDNHKNfQLkRQYip7SzdgO23yxsuAWr31Wm9V1DJnn0YFAWHMXzXvAwW2Rz2fL2xHTmEhV5iz93xBV13+rBINrsSim39tL8TtdCKSqTE7VuMXzE/Ge/GVp46/N5e4euW8lQeVYfiFz34bWQaShqk4YErBmqntIVniCxPQR/CV6xNQXfbQ+a4ONYvwz5PSWm8f4R7/rj/8HG11a2M728VVR3x4MlyEuZGNrYWiHa+DMaWwrgC6K/sx8+MpGNvMvTpaLUuNA="
+    },
+    {
+      "name": "aes-256-gcm long multibyte",
+      "algorithm": "aes-256-gcm",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEKeKBl9+IE/Erk8nEXpx3dD+QniBoTUBHgPmbu/ucKkhEMXa1htm3vQUd1KZk/OlWvWuKmLE6+iW3uvfqe9zgZULgZQm//q01W2DY24Knxm0XO/kAcneTjzDhEbzYFqqpFs6KOFV3Eyc288o9fC3N8zv6gu/xKIBlULPzKgbo3kysWOFtn7ddb4HbTNGeO3k0MVVvE6yJhwWV+WD25HIj2aGsjD1BwIO7eVZHHOwNPYEaPGN9IcOdxvxZ0l3qg1GuOCGWgMJ9Q8xE13DC1a7X06cxmY3TSaEjuCG+3wx5rcEUvt4elunuTR6GEcQCQ8nlNBRFW01cppxkqZGm5xK/DWlORGfS8rPnS5iq7AuXK6qrsum5gJt0HyqkI3hkZG+XEUuThJmKNxlbnozjPrDM7sWUVU4dzLhQztMwE7cM8xnuIb24YGOZnErKr96+P00dV7ffVzMc9u1t5tzvZwbA7hHgICDYasig65VZD9WGmL/2AiV2iPcyTKQX7SbMtWDUPF7h6ToEs0MnN3rDPAzXsJ8JUkD/CSmBJ4ynMC/fgaBo2CyjlDeMam0IBlAnttZm/WRkGvkZHU="
+    },
+    {
+      "name": "aes-256-gcm block16 plain",
+      "algorithm": "aes-256-gcm",
+      "secret": "correct horse battery staple",
+      "message": "exactly16bytes!!",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PELbaGYKviAFDxMdbpSNECRV/3iegf7FJwnlae8OUeYeW"
+    },
+    {
+      "name": "aes-256-gcm block16 multibyte",
+      "algorithm": "aes-256-gcm",
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "message": "exactly16bytes!!",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PEF+rHYe/8QVrDvVYw/8nxT3PUnzCpCwRTF6kdenkdOYg"
+    },
+    {
+      "name": "aes-256-gcm custom kdf",
+      "algorithm": "aes-256-gcm",
+      "secret": "correct horse battery staple",
+      "message": "héllo wörld 😀",
+      "kdf": {
+        "kdfSalt": "per-deployment-salt-0123",
+        "kdfIterations": 1000
+      },
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQEwAQIDBAUGBwgJCgsMDQ4PELJoLEh+EY+f463EuilcnoSF+DaVM2ackXtMmDerNQBa+eI="
+    },
+    {
+      "name": "aes-256-gcm keyring",
+      "algorithm": "aes-256-gcm",
+      "secret": [
+        {
+          "id": "k2",
+          "secret": "second-secret"
+        },
+        {
+          "id": "k1",
+          "secret": "first-secret"
+        }
+      ],
+      "message": "héllo wörld 😀",
+      "kdf": null,
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQJrMgECAwQFBgcICQoLDA0ODxCj/uTzXEnfZz9IYOW9oqph/kEzEpEPzlok1XnbkWdEb9me"
+    }
+  ],
+  "legacy": [
+    {
+      "name": "aes-256-cbc short short",
+      "algorithm": "aes-256-cbc",
+      "secret": "short-secret",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PENGDE6ZsaR2QMCCVthEDzeF84+U5W3RyzQzM06at2lZh"
+    },
+    {
+      "name": "aes-256-cbc empty short",
+      "algorithm": "aes-256-cbc",
+      "secret": "short-secret",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEGMwNe3W3QtpdkG2RzhT5gc="
+    },
+    {
+      "name": "aes-256-cbc long short",
+      "algorithm": "aes-256-cbc",
+      "secret": "short-secret",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEDCxs2Pi2BsJ2ltrIobkMhi7+iRk6hQu43zJS2YNDWfHTTmXCShSLsZfSk/9J8zkNDqKqXHZ0bRd+L0na/AtHIjc7wb+awCxVMm4it5cRrQaO/MoLxusswrNhQDIx/Vjs3Zi+CVZRLhqS1YLT7CrKtsk4OVNBGDUmVdj29jbpmf34VTiTRh3aBgSgJ0AH0qG0cRaPD0rSY1/+GEZWrhxy306bOP2j90zyJlEnBjUX4TvUBP/Pvg7lMt1BIynwxJ/g4d9VSuRS+VL3oU2JVdMhLeMGcpxJbA4NL59JGgTyODMZXMtmoUxeQi5KgEZefIoBmrIRJNZ/875LAOs6IIm6HNJPjYlOCUhSUOVC4fK/a9c5INOOtz+LM+eiUBOTs/ITPB3j80I8SovO5g7OFhsQs7uAraFgUP+6PgQer9Vdp9khsJc0U9tkkyNxZZy58MeK/d06kO3D7ucJsDiDoTejAIdUuEH6zb/lhgpoEYgeP0avsTDL9aG2ejKmSOTL2aUFHXKDZQzOdP+TkaEmsDCoORWnzgo1nB7cqhMg54DcyzPc2a6WwRI0/TMXQX+8RTTEg=="
+    },
+    {
+      "name": "aes-256-cbc block16 short",
+      "algorithm": "aes-256-cbc",
+      "secret": "short-secret",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEHDCkF0OBte+EpOClzvOvyNIhotTuZEEnlReoAVcKxqQ"
+    },
+    {
+      "name": "aes-256-cbc short exact32",
+      "algorithm": "aes-256-cbc",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PENFPx7Hx0WFcQL2Fb9zJ7XexKsaf6EcxRlPPw+KuAfvQ"
+    },
+    {
+      "name": "aes-256-cbc empty exact32",
+      "algorithm": "aes-256-cbc",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEH6HAWyxaQMCmyKnvRcvpoU="
+    },
+    {
+      "name": "aes-256-cbc long exact32",
+      "algorithm": "aes-256-cbc",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEE7BqWttUNsXNJTJiPWLJFC2RH0XcVaWKp0jkOf78vY27OLv9Mws8/ZyigaZnT/NthrRhizRWRTxdIqECF+CmJYUKMdxgmMXdtzsLy9DHpAt+VThsris9PNUtLEfWSJQpb5mKqwWA6j4Jzr3vGqbSL8EdEmCzcpRr2qRkz+PyGjuGBvRF1VCuvUtinNDxeCst5MwCT9D5pk1cBFW/ZTXKplqGlDYUNqEJkRvIGUuhhW3deQE7CMzxWxRmWlk5Pq+ELE1FgyE8Di0HGXmGPyzWEjIcrOQEKobcShLM3qHFP+V2Vf9kowCEeLjHyvrjlhtDhrwq+Z00cp+LDAjZdsRfP855jdhBh09gu2no2XqGgA2PTltRH4i3ghbiF1qFfU98ONHl8zzVVhdPuLlWIq8oK0/Xri/bXouvvQ/y4KgQryJbAEKWr7ze3GOTZC0YQEcj9qBpTxfZLcHPJP7zE80CVjj7+RQkXHYpFoQlUWeN79OTm+oOV1fvJDlk5VgHf3IVnlkq7RM0HV8fOgexGBm8SrK3mvrKZlZXBK4b1B3dxLGD8gjw3T8FGj2JuPEvOOmgg=="
+    },
+    {
+      "name": "aes-256-cbc block16 exact32",
+      "algorithm": "aes-256-cbc",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PELdIROtgYx//YVhTb3e+PGxfVGV+Dw59xVGI0OxKpDWz"
+    },
+    {
+      "name": "aes-256-cbc short long",
+      "algorithm": "aes-256-cbc",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEJaafH95SED+5+IDZ8wlr3sQwkKPCVyxO4VPgM0eXcyK"
+    },
+    {
+      "name": "aes-256-cbc empty long",
+      "algorithm": "aes-256-cbc",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PECazgp+UCsrkeVTqNmPBLe8="
+    },
+    {
+      "name": "aes-256-cbc long long",
+      "algorithm": "aes-256-cbc",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEIWtFDw6z2qNias2+e1EQKNXW3f3ZY9YV9jcnTcTYv2lGqVn0F1qlgNdT0Hun4auLFxtMeKt7HFOZ9vffDkTA4n7VEBKv9slskMa4nFpHwbDYud/4KSHnvfxBAOSBeIHcLmo3hRYq7l/0upzQm4IIVNWQOfvtBW1emyyc3NT/Uku+AVpfkQtz/SI5Snm1q/THD7RRyhV+EZRjppTcKP8mVL+nDb9Sl6qXtmOLi4gBrHyfb0qQsG9gzJXnneLPtxOp5wkKN5ssSsNLaw7BOh6af7dHSL041YwgMbJPSupBE8LoiBCUk2qW7YWVkeIDihCSw8Fi3+HSqOLs+IGULtL/C1UYNKwH7xXGn4nPYszyIQvR7EwhzzTnsKGgUo27mVlGjf8LP05GXdo7ASOfynPq0OryZTyrI5CZJTbGjCOslYEE/VZUTOGUmpQI9R6RgBd+4oPpDLq7AUvm98AEaPPb+4AsU8jObSSOHAAIyCb3mCiHIV81ywYMQDPZEdYYfIPyg0BgKlv+FqwX+Qn/fUNQW/OSI+iThh7rbghd3AIne8ORYZ0DKUMlrgKPQKv66+qVg=="
+    },
+    {
+      "name": "aes-256-cbc block16 long",
+      "algorithm": "aes-256-cbc",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PECdYoaI3uAIx1qCUbdM6yjju7NnLDMxCvdEgyOgH/sRx"
+    },
+    {
+      "name": "aes-256-gcm short short",
+      "algorithm": "aes-256-gcm",
+      "secret": "short-secret",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEKzTe3XaUrq66xCHD7mK4/qF2fx9sEHZDAzKkIW3sxg4njc="
+    },
+    {
+      "name": "aes-256-gcm empty short",
+      "algorithm": "aes-256-gcm",
+      "secret": "short-secret",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEDfuLX3UnbwcvO7MCn5JlSs="
+    },
+    {
+      "name": "aes-256-gcm long short",
+      "algorithm": "aes-256-gcm",
+      "secret": "short-secret",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PED2U1pHpU+XQUrwxW/duZi65cjAxrVuQGKRcgJu85IaHYNgN+uDbt/atA6wkl5ynGx9sNUppOgUSGa6k6JUV7bNnaQ56wtyOkkBnxKeKeFjDpOZRTHlETjMvfAnCbYccLB+va+QNiIUVUTdjvGBVN1EJxE1tBOBNXwzh/49L4LmWlXsA5+dbXIGkNgwhC4GY9W9ITKXeSFvSiBpvKlo6ugzTIwThvZ0YocgWmYX4PdwHaOqKMMS6okgVAG/jNlO0BREjPkNyXmp7Z/thyx/FmOQ4sjJ61pTZ0jgS/gG23YM0o1NScEaOAGdOJ20saJzadtho5gJDSZiukYh979jYAWzFzoVoLkwJxJ4we1U8a+/A0Vc7Q9mPXl6aGfPtNYGnaSGnqRCx5nSAFnYKCPPryhX4rswoRptI9ZnzwUzLavg1aXdrd5ia31FjYupNNckmXSJmOficLq+tVufPEhkwSXFYgJOdByzG9oaTOgqb8ADwJ1ljGflhEg8i9P/HaC0qiVm8LCKjWdExj5MzvhcafHBq7vVF/Qv2wNYCkUtG7baxaYbmLZGc/Z8fXSPsSYSt1GkNIs+10nA="
+    },
+    {
+      "name": "aes-256-gcm block16 short",
+      "algorithm": "aes-256-gcm",
+      "secret": "short-secret",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEKrJ+gdFSPFCV80RP4AJIpKIYjRyqEKASvkem5224MmG"
+    },
+    {
+      "name": "aes-256-gcm short exact32",
+      "algorithm": "aes-256-gcm",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PELlj8AkSkSv6Lkq9L+TJ2RDVHk+ech2OoIG7AmE20FAlaeU="
+    },
+    {
+      "name": "aes-256-gcm empty exact32",
+      "algorithm": "aes-256-gcm",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEMFmMWzpPZzVlbXIGumyqr0="
+    },
+    {
+      "name": "aes-256-gcm long exact32",
+      "algorithm": "aes-256-gcm",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEGo7pUsMYMvDiMKt1Q/o6sDptYPSbwfHtCktEn89h86alwqz1H12r3Abw6Kzc2zOoBOLbv/IKnh8Nk69w9cHPx9L9lTiEk4qwmN5TWTwneZcqJufkvXYsbnwysFujQqmZNj3UylpqUBs5QtyyxhEnnbK1lr9bXXw9q836vhPczjNNWJdhhQQagilnGXUNqho+ZFJ2TwWkYPF5tkAmZRBseQz6du0gEN5F3IKHqEj8pEDB+NqgrFB6c2fOLF7dcLNAniCLzKgi1LvDtUygHgc3yd97/NQETsFZyWCC6RI4pPNiinLKs/epxU0y6/T/hL6u6U04U0gwOl7HOrANZwSIeF4TsGbY33JWmBcJvMp9TMR/X33N6iMUVmhEZ9RtwcJ6BwxkLI9M3Aqxbpa/bJ+wBBQvtUq3VRrUTqkvL9SVITbr3Eq88QqhfRXgwlp2xNTsoHzglZY7WxghQcu8H+EF/xPoK5CFiU59IWYDMFNl5Ee5YyZMR656HWEdCbV72G4WKvwGizHpOjoB0H2j+knh7wkCm84rHCpEVvaGOvESNQtc4dJeFZIw+Dor7A2il0K7clJufYQxw0="
+    },
+    {
+      "name": "aes-256-gcm block16 exact32",
+      "algorithm": "aes-256-gcm",
+      "secret": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEJv7ZLDKdFCSd0ryjLZTVCvYpYeRah7X5nRvCXk3g4Gb"
+    },
+    {
+      "name": "aes-256-gcm short long",
+      "algorithm": "aes-256-gcm",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEFk3PCrVMCDGpbR6tgCaQKrJZqG3vKixzNSX6YaOCS357SA="
+    },
+    {
+      "name": "aes-256-gcm empty long",
+      "algorithm": "aes-256-gcm",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEG6MvhAO6DZq4+9Ep/mxq+E="
+    },
+    {
+      "name": "aes-256-gcm long long",
+      "algorithm": "aes-256-gcm",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog. héllo wörld 😀",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEOWwvJ2p8YS3rDrDlEO6UCn1zW37obL42HwB+ZiFXrNGE8/TdkHyAxmwKmleAE2AYcM/u0xDdjOSMOxMOmXAClZ/EQP8OioJYci67tnyPqnErSV6wzgXhtRH3B6b8q0BQF+xTjmg6DcPRXksdhnvhl4NayQ5y7qHieA9LaadQXIUcDf42+eegf4/xOxEUb7OS4P3cRnFgf2+qYRdHllnfhJ2SCS9NieVXGTgI2SqdMEcSFiGtEYongWrziHczubHEcBhiQd08UkgUPeleMP28ciPbeUD3fNJ4HnlQWeknxoVn8uVx180Zz3LQK5I4NB9MsPZWxrb2zubFLCAg9zE2svcIfHhgb0K7+dM0jExfpnsjRknTViQcADHpitcYl8VxyMSrlpuxzfjjcN5ENyr/TEs1KV8VUH4urZ7HO4bQZWk6wjECmWMfqxejhECDt6u10Xp5JkCRVSHxbTaQeae5j21KFjqB6zcHJYKIWVzPSS6e7grmLaZeV4kYb5A/9N8tiC3a7jw0MBvLtDKq232x/2B8Un26En74m6odlrnI90TNyddI83Ej1lvVuwseRWDr8Xcy5dzPoM="
+    },
+    {
+      "name": "aes-256-gcm block16 long",
+      "algorithm": "aes-256-gcm",
+      "secret": "a-secret-that-is-clearly-longer-than-thirty-two-characters",
+      "message": "exactly16bytes!!",
+      "ivHex": "0102030405060708090a0b0c0d0e0f10",
+      "stored": "AQIDBAUGBwgJCgsMDQ4PEG4MmmHVUxFASK2fXOH4IXvE3Wm4pKvoiiFD4p6PWvxH"
+    }
+  ],
+  "derivedKeys": [
+    {
+      "secret": "correct horse battery staple",
+      "length": 32,
+      "kdf": null,
+      "keyHex": "18d76ae964a38bb580863d144a16d28ab55671a872e74707cb43dc12dd13572b"
+    },
+    {
+      "secret": "correct horse battery staple",
+      "length": 16,
+      "kdf": null,
+      "keyHex": "18d76ae964a38bb580863d144a16d28a"
+    },
+    {
+      "secret": "",
+      "length": 32,
+      "kdf": null,
+      "keyHex": "a2e4c0873b6a281a5fe81d8e53c8109d4be8bfcef210faa32ada84d1596f2df7"
+    },
+    {
+      "secret": "bí-mật-🔑-mật-khẩu",
+      "length": 32,
+      "kdf": null,
+      "keyHex": "be7a73a9413b21b07f31e0ccb0d384bdcc64b14f2b04c2b8b4f9892fdc073d74"
+    },
+    {
+      "secret": "correct horse battery staple",
+      "length": 32,
+      "kdf": {
+        "kdfSalt": "per-deployment-salt-0123",
+        "kdfIterations": 1000
+      },
+      "keyHex": "b6a6ea5db0efd2fa8019d614736aef41ee4c575586a649a06dbc0a5aaf47552b"
+    }
+  ],
+  "rsa": {
+    "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxPNP6J9ocd1f7/wno0D55mQIwH9T8IhKRS7zDyt7ui4xwWjRbzhqJPWUAcOUPC68zrNg8zi5eg7REqUuMGxHb71Cpql4Psb16U6nBKnejQ3pdWKkWrWKz/sKZrik9RTACw7uFRF9AW9hU0h2u0ULnpnwdTfSN1d+YSpvv+WRPFpTxMfbWYlN7/6DjzpH8HLj7Y8pWccPMpOoubM4vi5H1uSfboVR8Px8r1ipsB8dKFLunCM1ykEMqvmPhI2a8kq8Ve7uAUxqUdIbSQjKMTtb2NZx2FqJc3ygRu4tT273aBCUqcQtl5z9xnND0A6IgzjYGwuo4V3ViLbbBtZW1TVduQIDAQAB",
+    "privateKey": "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDE80/on2hx3V/v/CejQPnmZAjAf1PwiEpFLvMPK3u6LjHBaNFvOGok9ZQBw5Q8LrzOs2DzOLl6DtESpS4wbEdvvUKmqXg+xvXpTqcEqd6NDel1YqRatYrP+wpmuKT1FMALDu4VEX0Bb2FTSHa7RQuemfB1N9I3V35hKm+/5ZE8WlPEx9tZiU3v/oOPOkfwcuPtjylZxw8yk6i5szi+LkfW5J9uhVHw/HyvWKmwHx0oUu6cIzXKQQyq+Y+EjZrySrxV7u4BTGpR0htJCMoxO1vY1nHYWolzfKBG7i1PbvdoEJSpxC2XnP3Gc0PQDoiDONgbC6jhXdWIttsG1lbVNV25AgMBAAECggEAA2p/ycZpCfo3saUx8qPmqbi1X6cIYk5vhlgVqmnRSgXcLPv9JPS+1OWxs7RMGAf3VE5PbvczsrKlgkan60+sz1r3otsjN9MyMkyf+uWviOAIxcrTFF6Gz2EYmYvtPYcm0RJJA3Jzv1B/85vjm6TWD6H2e3FUoGCFvkLy4FUnofBcfJqUeigPvRQPQ3rqUkWuBpzhVPSg5610X7NasIGNdYHUD0Q5K2iBwKCqvLkGDVf1JOYSakKHFrBMxPAPHw9ijR/s3wqj4qEd40pcrmqc0JyeJ1InLvgbKYTP2IlJwiWUYOIzosD5rIksIx1IfPHfwmZYoJ1LQECvyq+AaA5Y0QKBgQD0qsLh1PjKn6wCWc5N6dnIS8jH3T768R3gwkiW38usGWE2K0b1HrJQMPlpZzuq/7dLgiUY8OHRfRGnxChaAjDWshLYegxdFbL+1CeY+Tpxjf8ACrfcQtEB0JKwCeC5R4iHMUe6lKtwY0I/hGOH5GYU2fsQ5OEuyJtwMNRRl2XCSQKBgQDOErtgvi6M/DHidoiJ7mzTAqWAwx2+sz4MZVfyGomKUeHChNtz53eCJaNXqBDseBYzs3aYkNRFqyreSTtEO6FPAkG/0vABY1hu26a6YCpzwv9vVvlCkmAMtn4Dxqpkul5my0yPLEhNnzUbUK//6+x04Af2vlsIAzmOus3HXs2/8QKBgHXQfINOkHbRqHyBTiyKfQpMI+TKDve7f42pQFcWcPbwSbVR5ZtHKsoeqxssULko5dSAWOjHpZXAye2lMWEWSPo5SYXgT2/LcSPweRjaemAP5kjY4Gw56HcdPmVyfDn7zix7eHTJ/jviMBZx45OeUeGcjZ8295AVnXPKr5KSerexAoGBAK25Su/uxG2keiVxSgAF2QY2d/HKC3xlvQxUL0TxrDvIdas3t43Jd41nT4GpNMM1JXpmc7eAeQNWnmgQkn8eSgnCXE1rdVumNboXQEJkqcU3gYGKb834ejKdcjSaubD7EHRWNO+KJFYTvoCNkCIO8SNCblRL+5AQr+gsgSfvO0LxAoGBAKvzc1VblLeZsNijyvsHPu8pUCBBAIOT2fqAT4vf/32y6dPpZ/Wp+wWUwxg4nzOUvc3sX4hHdd8ERaG6WP0M+XxI5ugOACn7jDh+qH6d+qSGdPGN/sv06XnIo0LLBjHuaWEgFdT+pGJ3bcc16rWW5cGuMr9XmToYLefdNN0C9ee5",
+    "stored": [
+      {
+        "name": "short",
+        "message": "héllo rsa 😀",
+        "stored": "Z5ObpWi6g2QYih0L67YPV1SFsnzMwai1gPaV7qTivzUc9AqFNKs/TMkeuZHquQK1HZg8FUjvakvAVmQkCUX/fUEloOSxZkcM7UVmXuEmQFXdtbqJq58e3RNt+i7aHj83udY1m3A1y1zTmKbMl89QchOhapHzezzmNAjqZwwuGEHiicl4AR0Drt0kvuJE3IvadB41GoL3Ee13VJyvZDq46RPM5wr4sdwepM0QOs7Y40XNipuEz1VQYbViN0R3MA4v2UHnQ/nLs9toWNRezoFpdu5RL/N3qbmRs2vac4qFXNOUBqjDkkcPzEbhEZZ25hHuVwPaTrQ7lz3LGCrg1sK0qw=="
+      },
+      {
+        "name": "max",
+        "message": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "stored": "AktJYMKQ1JHaIo/TAwS84FoxPBNwagHhMOYuApaJ/QrUVgx08gIDs1uBTZC2UN/W5Y4GXtbSSOrm83gYm+NGOphd+dVSY+J+jj//ylc1r7KA64hfUYABZ98KCjswessxfqmKNUX6SsSu7u6vknMV/h4TYuay6WZKzYkPjkaWxU3MI+wpraYbEYFB4y6g7187CMV/GLrMMb25taNqu8NV4U5BAoJeIrqRnj+mXLCK3SypAWzdAleSP6tfNNi2YUX4xlUWLtwyn8cQBjJu6+PG58Qn9XeWO+4qsjsgPM2YIQ9Omi11ANoj2owggY4JmqZErSJTmKLnpeQKNxEWQifV+g=="
+      },
+      {
+        "name": "single",
+        "message": "x",
+        "stored": "ftoDlYGT4MqdyJcnsACPeuOuP6LXh4jSnYYIUN1JmxTD6VzHW48/zjQbBlu9NLdyuBPfuZj89fJ4M2pd3E+ox8rnnn64aLi2sxLrKonCUOWW/45bKUbNW1mK/x2BxI9WgZaeOwuhujHJMe0sziar7QcrKPkBQg0qax01NJm0NsQNuXFGDhq0UeUJxB7/+sh6H34sEdEomhREc6L3K8V7+p1LcpAvuuDg+0Bj+iMhOEXpFCgy8jU96gT3MwGrgWZW03ntQpcUtGSQEk/dAiQqFJAPqUr9PYEg6OLx6x7g9tJcYSyGtvaolMa11NgSlSinWiDXPiymKSfX4maEaadI4Q=="
+      }
+    ]
+  }
+}
