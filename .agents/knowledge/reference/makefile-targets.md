@@ -10,7 +10,7 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**120 targets.**
+**118 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
@@ -22,7 +22,6 @@ generated:
 | `make build-all` | `core core-worker boot docs surface-check wiki-links-check wiki-anchors-check` | Rebuilds all packages in order, then the wiki and its checks. |
 | `make build-checks` | - | Gate: the built output - self-contained sourcemaps, the oxlint subpath loads no ESLint. Needs a build. |
 | `make catalog-check` | - | Gate: every catalogued dep is referenced as "catalog:", none drifted. |
-| `make changelogs-migrate` | - | Write a packages: list into every changelog that declares none. |
 | `make clean` | - | Clean build artifacts from all packages. |
 | `make clean-install` | - | Load every published sub-path from packed tarballs in an empty project. |
 | `make clean-install-boot` | - | Load one package's sub-paths from a clean install. Needs a build. |
@@ -52,7 +51,6 @@ generated:
 | `make install` | - | Install all dependencies with bun. |
 | `make inversion` | `dev-configs` | Rebuild one package, after its dependencies. |
 | `make kernel` | `helpers filter` | Rebuild one package, after its dependencies. |
-| `make knowledge-symbols-check` | - | Fail when a symbol a concept names is gone or its signature changed |
 | `make lint` | `lint-packages` | lint-<pkg> for every package. |
 | `make lint-all` | `lint-packages lint-scripts lint-files lint-wiki` | lint-packages, lint-scripts, lint-files (package.json, .github, .agents, .configs, presets, examples) and lint-wiki. |
 | `make lint-boot` | - | oxlint + ESLint (naming-convention) + bun fmt check of one package. |
