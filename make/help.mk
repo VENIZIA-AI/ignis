@@ -65,7 +65,7 @@ help:
 	@$(HELP_ROW) "changelogs-migrate" "Write a packages: list into every changelog that declares none."
 	@$(HELP_ROW) "wiki-links-check" "Gate: every source path the wiki and knowledge bundle name exists."
 	@$(HELP_ROW) "wiki-anchors-check" "Gate: every wiki '#fragment' link resolves. Needs a build (make docs)."
-	@$(HELP_ROW) "agent-setup / vulcan-sync" "Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN."
+	@$(HELP_ROW) "vulcan-sync" "Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN."
 	@$(HELP_ROW) "vulcan-doctor" "Gate: the project follows VULCAN (config, Makefile include, rules, adapters)."
 	@echo ""
 	@echo "Release and dependencies:"

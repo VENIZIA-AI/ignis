@@ -114,10 +114,13 @@ describe('deploy-docs.yml', () => {
 
     expect(uses.length).toBe(3);
     expect(
-      uses.every((value) => /^[\w.-]+\/[\w.\/-]+@[0-9a-f]{40} # v\d+(\.\d+)*$/.test(value)),
+      uses.every((value) =>
+        /^[\w.-]+\/[\w.\/-]+@[0-9a-f]{40} # (vulcan-)?v\d+(\.\d+)*(-\d+)?$/.test(value),
+      ),
     ).toBe(true);
-    expect(uses.find((value) => value.startsWith('VENIZIA-AI/vulcan/'))).toContain(
-      `# v${vulcanVersion}`,
+    // VULCAN names its tags `vulcan-v<version>` from 0.4.8 on (`v<version>` before).
+    expect(uses.find((value) => value.startsWith('VENIZIA-AI/vulcan/'))).toMatch(
+      new RegExp(`# (vulcan-)?v${vulcanVersion.replaceAll('.', '\\.')}$`),
     );
   });
 

@@ -24,9 +24,9 @@ describe('PresetSmoke.getDefaultVulcanCommand - the preset smoke never runs an u
     expect(PresetSmoke.getDefaultVulcanCommand({ root })).toBe('bun x @venizia/vulcan@0.4.9');
   });
 
-  test('this repository pins an exact version, not a tag', () => {
+  test('this repository pins an exact version (a prerelease counts), not a tag', () => {
     expect(PresetSmoke.getDefaultVulcanCommand({ root: ROOT })).toMatch(
-      /^bun x @venizia\/vulcan@\d+\.\d+\.\d+$/,
+      /^bun x @venizia\/vulcan@\d+\.\d+\.\d+(-\d+)?$/,
     );
   });
 
@@ -37,5 +37,21 @@ describe('PresetSmoke.getDefaultVulcanCommand - the preset smoke never runs an u
     expect(() => PresetSmoke.getDefaultVulcanCommand({ root: rootWith({}) })).toThrow(
       /exact version/,
     );
+  });
+});
+
+describe('PresetSmoke.supportsSharedKind - the shared-kind step runs from the first VULCAN that has --shared', () => {
+  test('orders prereleases and stable versions around the minimum', () => {
+    expect(PresetSmoke.supportsSharedKind({ version: '0.4.8' })).toBe(false);
+    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9-0' })).toBe(true);
+    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9-1' })).toBe(true);
+    expect(PresetSmoke.supportsSharedKind({ version: '0.4.9' })).toBe(true);
+    expect(PresetSmoke.supportsSharedKind({ version: '0.4.10' })).toBe(true);
+  });
+
+  test('the pin of this repository is at or above the minimum, so the step runs and cannot be skipped by a bump', () => {
+    const pinned = PresetSmoke.getPinnedVulcanVersion({ root: ROOT });
+
+    expect(PresetSmoke.supportsSharedKind({ version: pinned })).toBe(true);
   });
 });

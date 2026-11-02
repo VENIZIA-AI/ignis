@@ -65,7 +65,7 @@ rules - W write boundaries, S security, P process, B build and quality, C code a
 VULCAN base `V-C-*` plus IGNIS's C-03, C-04, C-05, C-18) -
 numbered so they are cited by ID in reviews and reports. The two that cost the most when skipped are
 P-09, every status message opens with the minimap, and B-05, a downstream test suite runs `dist`,
-not `src`. `make agent-setup` links the per-tool files (`CLAUDE.md`, `GEMINI.md`, ...) to the one
+not `src`. `make vulcan-sync` links the per-tool files (`CLAUDE.md`, `GEMINI.md`, ...) to the one
 `AGENTS.md` that routes to both homes.
 
 This bundle (`.agents/knowledge/`) holds the facts, and is the agent-facing source of truth - prefer

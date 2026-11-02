@@ -37,7 +37,7 @@ tags: [process, build]
    sets `PACKAGES` and includes one file per job: `make/build.mk`, `knowledge.mk`, `release.mk`,
    `lint.mk`, `test.mk` and `help.mk`. The root `Makefile` also includes
    `node_modules/@venizia/vulcan/base/make/vulcan.mk` (with `-include`, so a fresh clone can still
-   `bun install`), which supplies `okf-*`, `surface-*`, `symbols-*`, `releases-*`, `agent-setup` and
+   `bun install`), which supplies `okf-*`, `surface-*`, `symbols-*`, `releases-*`, `vulcan-sync` and
    `vulcan-doctor` from the pinned `@venizia/vulcan` package. Every per-package target (`<pkg>`, `update-`, `lint-`, `fmt-`,
    `test-`, `purity-`, `clean-install-<pkg>`) is generated from `PACKAGES`, so a new package needs only
    that list and, for `make <pkg>`, its line in the dependency graph in `build.mk`. Every package has a

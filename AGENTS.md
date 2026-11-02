@@ -7,7 +7,7 @@ This is the **only tracked instruction file**. Tool-specific files (`CLAUDE.md`,
 are gitignored adapters that point at this one, written per developer by VULCAN:
 
 ```bash
-make agent-setup      # = bun x --no-install vulcan sync
+make vulcan-sync      # = bun x --no-install vulcan sync
 ```
 
 ## Must read first
@@ -83,11 +83,11 @@ Code ships.
 
 ## Per-tool files (CLAUDE.md, GEMINI.md, ...)
 
-This `AGENTS.md` is the single source. `make agent-setup` (`vulcan sync`) writes each tool's file as a
+This `AGENTS.md` is the single source. `make vulcan-sync` (`vulcan sync`) writes each tool's file as a
 pointer to it (`CLAUDE.md` holds `@AGENTS.md`), never a copy, and writes `.claude/`: VULCAN's settings
 and hooks (its session digest and the `guard-writes` check) and the shipped skills - `docs-update`
 (it applies the D rules in `.agents/rules.md`), `docs-writing` and `knowledge-sync`. The
 digest names the rules sessions drop most (`digest.oftenDropped` in `.configs/vulcan.config.mts`) and
-prints the minimap shape from `.agents/rules.md`. Re-run `make agent-setup` after a pull that touched
+prints the minimap shape from `.agents/rules.md`. Re-run `make vulcan-sync` after a pull that touched
 `.configs/vulcan.config.mts` or the pinned VULCAN version; `make vulcan-doctor`
 says when you need to.

@@ -10,11 +10,10 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Playbook: [build system](/process/build-system.md).
 
-**121 targets.**
+**120 targets.**
 
 | Target | Depends on | Description |
 |---|---|---|
-| `make agent-setup` | `vulcan-sync` | Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN. |
 | `make all` | `build` | Rebuilds all packages (alias for 'build-all'). |
 | `make atlas-releases` | - | Print the releases atlas computes from the git tags. |
 | `make atlas-symbols` | - | Print the symbols atlas reads from the built .d.ts. |
