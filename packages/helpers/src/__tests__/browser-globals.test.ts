@@ -116,3 +116,46 @@ describe('the browser entries run with no Node global', () => {
     });
   }
 });
+
+describe('ECDH runs with no Buffer', () => {
+  const ecdhSource = join(PACKAGE_ROOT, 'src/modules/crypto/algorithms/ecdh.algorithm.ts');
+
+  test('a full exchange, encrypt and decrypt works in a scope without Buffer, process or Bun', async () => {
+    const text = await buildBrowserText({
+      entry: 'probe.ts',
+      files: {
+        'probe.ts': [
+          `import { ECDH } from ${JSON.stringify(ecdhSource)};`,
+          `const server = ECDH.withAlgorithm();`,
+          `const client = ECDH.withAlgorithm();`,
+          `const run = async () => {`,
+          `  const serverPair = await server.generateKeyPair();`,
+          `  const clientPair = await client.generateKeyPair();`,
+          `  const clientPublic = await server.importPublicKey({ rawKeyB64: clientPair.publicKeyB64 });`,
+          `  const serverPublic = await client.importPublicKey({ rawKeyB64: serverPair.publicKeyB64 });`,
+          `  const serverSide = await server.deriveAESKey({ privateKey: serverPair.keyPair.privateKey, peerPublicKey: clientPublic });`,
+          `  const clientSide = await client.deriveAESKey({ privateKey: clientPair.keyPair.privateKey, peerPublicKey: serverPublic, salt: serverSide.salt });`,
+          `  const big = 'xin chào '.repeat(20000);`,
+          `  const payload = await client.encrypt({ message: big, secret: clientSide.key, opts: { additionalData: 'ctx' } });`,
+          `  const message = await server.decrypt({ message: payload, secret: serverSide.key, opts: { additionalData: 'ctx' } });`,
+          `  return message === big && typeof Buffer === 'undefined' && typeof process === 'undefined';`,
+          `};`,
+          `report(run());`,
+        ].join('\n'),
+      },
+    });
+
+    expect(text).not.toMatch(/["']node:/);
+    // `globalThis` inside this scope is the host's (the copy of Bun's own names carries it), so the probe hands its result
+    // over through a plain function and checks `Buffer` and `process` by bare name, which the scope really lacks.
+    const context = createBrowserContext();
+    let pending: unknown;
+    context.report = (value: unknown) => {
+      pending = value;
+    };
+    vm.runInContext(text, context);
+    const result = await pending;
+
+    expect(result).toBe(true);
+  });
+});
