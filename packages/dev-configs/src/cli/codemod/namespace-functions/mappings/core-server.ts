@@ -1,8 +1,10 @@
 import type { INamespaceMapping } from '../mapping';
 
 /**
- * The functions of `@venizia/ignis` that moved into a class. An entry with `keepsOptions` is a
- * function that already took ONE options object: its class method takes the same one.
+ * The functions of `@venizia/ignis` that moved into a class. An entry with `keepsOptions` keeps its
+ * arguments and only the callee changes: the function already took ONE options object and its class
+ * method takes the same one, or (the two mail type guards) the parameter stays positional because a
+ * type predicate narrows its own parameter.
  */
 export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
   {
@@ -64,6 +66,22 @@ export const CORE_SERVER_MAPPINGS: ReadonlyArray<INamespaceMapping> = [
     oldName: 'policyDefinitionDomainShapeCheck',
     className: 'AuthModelColumns',
     method: 'buildPolicyDefinitionDomainShapeCheck',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: ['@venizia/ignis/mail'],
+    oldName: 'isMailTransport',
+    className: 'MailTypeUtility',
+    method: 'isTransport',
+    params: [],
+    keepsOptions: true,
+  },
+  {
+    modules: ['@venizia/ignis/mail'],
+    oldName: 'isValidMailOptions',
+    className: 'MailTypeUtility',
+    method: 'isValidOptions',
     params: [],
     keepsOptions: true,
   },

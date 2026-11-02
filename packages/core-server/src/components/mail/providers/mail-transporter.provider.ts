@@ -16,7 +16,7 @@ import {
   MailgunTransportHelper,
   NodemailerTransportHelper,
 } from '../helpers';
-import { isMailTransport } from '../utilities';
+import { MailTypeUtility } from '../utilities';
 
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
 
@@ -109,7 +109,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       });
     }
 
-    if (!isMailTransport(options.config)) {
+    if (!MailTypeUtility.isTransport(options.config)) {
       const missingMethods: string[] = [];
       const config = options.config as Record<string, unknown>;
 

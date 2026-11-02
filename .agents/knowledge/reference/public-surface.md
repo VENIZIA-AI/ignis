@@ -3720,7 +3720,7 @@ generated:
 - `SocketIOBindingKeys` class
 - `SocketIOComponent` class
 
-### `@venizia/ignis/mail` (66)
+### `@venizia/ignis/mail` (65)
 
 - `AmazonSesTransportHelper` class
 - `BullMQExecutorModes` class
@@ -3748,8 +3748,6 @@ generated:
 - `INodemailerMailOptions` interface
 - `InternalQueueMailExecutorHelper` class
 - `IQueueJobPayload` interface
-- `isMailTransport` function
-- `isValidMailOptions` function
 - `ITemplate` interface
 - `IVerificationCodeGenerator` interface
 - `IVerificationData` interface
@@ -3771,6 +3769,7 @@ generated:
 - `MailQueueExecutorTypes` class
 - `MailService` class
 - `MailTransportProvider` class
+- `MailTypeUtility` class
 - `MailVerificationUtility` class
 - `NodemailerTransportHelper` class
 - `NumericCodeGenerator` class
