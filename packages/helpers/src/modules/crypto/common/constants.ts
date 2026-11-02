@@ -61,3 +61,19 @@ export class HashOutputEncodings {
 export type THashOutputEncoding = TConstValue<typeof HashOutputEncodings>;
 
 export const DEFAULT_HASH_OUTPUT_ENCODING: THashOutputEncoding = HashOutputEncodings.HEX;
+
+export class CredentialAlgorithms {
+  /** What `Bun.password` writes by default, with its default parameters. */
+  static readonly ARGON2ID = 'argon2id';
+  static readonly BCRYPT = 'bcrypt';
+
+  static readonly SCHEME_SET = new Set<string>([this.ARGON2ID, this.BCRYPT]);
+
+  static isValid(value: string): value is TCredentialAlgorithm {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TCredentialAlgorithm = TConstValue<typeof CredentialAlgorithms>;
+
+export const DEFAULT_CREDENTIAL_ALGORITHM: TCredentialAlgorithm = CredentialAlgorithms.ARGON2ID;

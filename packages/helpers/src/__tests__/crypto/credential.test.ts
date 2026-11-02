@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { CredentialHelper } from '@/modules/crypto';
+import { Rejection } from './rejection';
 
 /**
  * Hashes written by the `bcrypt` package 6.0.0 (cost 4), kept as fixtures so the helper is proven against
@@ -33,10 +34,85 @@ const expectVerify = async (cases: { password: unknown; hash: unknown; expected:
   }
 };
 
-describe('CredentialHelper.hash', () => {
+describe('CredentialHelper.hash - argon2id by default', () => {
+  test('the default is argon2id with the parameters Bun.password uses by default', async () => {
+    const hash = await CredentialHelper.hash({ password: 'hunter2' });
+    const reference = await Bun.password.hash('hunter2');
+
+    expect(hash).toStartWith('$argon2id$');
+    // The parameter block ("v=19$m=65536,t=2,p=1") is the same as Bun's own default output.
+    expect(hash.split('$').slice(1, 4)).toEqual(reference.split('$').slice(1, 4));
+  });
+
+  test('saying argon2id is the same as saying nothing', async () => {
+    const hash = await CredentialHelper.hash({ password: 'hunter2', algorithm: 'argon2id' });
+
+    expect(hash).toStartWith('$argon2id$v=19$m=65536,t=2,p=1$');
+  });
+
+  test('a hash verifies, and the salt differs every time', async () => {
+    const a = await CredentialHelper.hash({ password: 'hunter2' });
+    const b = await CredentialHelper.hash({ password: 'hunter2' });
+
+    expect(a).not.toBe(b);
+
+    return expectVerify([
+      { password: 'hunter2', hash: a, expected: true },
+      { password: 'hunter2', hash: b, expected: true },
+      { password: 'hunter3', hash: a, expected: false },
+    ]);
+  });
+
+  test('a password over 72 bytes is read in full: argon2id has no 72-byte limit', async () => {
+    const hash = await CredentialHelper.hash({ password: LONG });
+
+    return expectVerify([
+      { password: LONG, hash, expected: true },
+      { password: LONG.slice(0, 72), hash, expected: false },
+      { password: `${LONG}x`, hash, expected: false },
+    ]);
+  });
+
+  test('a cost with argon2id is refused, by default or by name, and the message says how to keep bcrypt', async () => {
+    const byDefault = await Rejection.messageOf({
+      promise: CredentialHelper.hash({ password: 'hunter2', cost: 10 }),
+    });
+    const byName = await Rejection.messageOf({
+      promise: CredentialHelper.hash({ password: 'hunter2', algorithm: 'argon2id', cost: 10 }),
+    });
+
+    expect(byDefault).toContain('cost applies to bcrypt only');
+    expect(byDefault).toContain("algorithm: 'bcrypt'");
+    expect(byName).toBe(byDefault);
+  });
+
+  test.each(['scrypt', 'argon2i', 'BCRYPT', '', null, 7])(
+    'an algorithm of %p is refused',
+    async (algorithm) => {
+      const message = await Rejection.messageOf({
+        promise: CredentialHelper.hash({
+          password: 'hunter2',
+          algorithm: algorithm as unknown as 'bcrypt',
+        }),
+      });
+
+      expect(message).toContain('Invalid algorithm');
+    },
+  );
+
+  test.each(['', undefined, null, 123, {}])('a password of %p is refused', async (password) => {
+    const message = await Rejection.messageOf({
+      promise: CredentialHelper.hash({ password: password as unknown as string }),
+    });
+
+    expect(message).toContain('Invalid password');
+  });
+});
+
+describe('CredentialHelper.hash - bcrypt on request', () => {
   test('writes a 60-character bcrypt hash that verifies, with a different salt every time', async () => {
-    const a = await CredentialHelper.hash({ password: 'hunter2', cost: 4 });
-    const b = await CredentialHelper.hash({ password: 'hunter2', cost: 4 });
+    const a = await CredentialHelper.hash({ password: 'hunter2', algorithm: 'bcrypt', cost: 4 });
+    const b = await CredentialHelper.hash({ password: 'hunter2', algorithm: 'bcrypt', cost: 4 });
 
     expect(a).toMatch(/^\$2b\$04\$/);
     expect(a).toHaveLength(60);
@@ -45,20 +121,32 @@ describe('CredentialHelper.hash', () => {
     return expectVerify([{ password: 'hunter2', hash: a, expected: true }]);
   });
 
-  test('the default cost is 10', () => {
-    return expect(CredentialHelper.hash({ password: 'hunter2' })).resolves.toMatch(/^\$2b\$10\$/);
+  test('the default bcrypt cost is 10', async () => {
+    const hash = await CredentialHelper.hash({ password: 'hunter2', algorithm: 'bcrypt' });
+
+    expect(hash).toStartWith('$2b$10$');
   });
 
-  test.each([3, 32, 4.5, Number.NaN])('a cost of %p is refused', (cost) => {
-    return expect(CredentialHelper.hash({ password: 'hunter2', cost })).rejects.toThrow(
-      /Invalid cost/,
-    );
+  test.each([3, 32, 4.5, Number.NaN])('a cost of %p is refused', async (cost) => {
+    const message = await Rejection.messageOf({
+      promise: CredentialHelper.hash({
+        password: 'hunter2',
+        algorithm: 'bcrypt',
+        cost: cost as unknown as number,
+      }),
+    });
+
+    expect(message).toContain('Invalid cost');
   });
 
-  test.each(['', undefined, null, 123, {}])('a password of %p is refused', (password) => {
-    return expect(
-      CredentialHelper.hash({ password: password as unknown as string }),
-    ).rejects.toThrow(/Invalid password/);
+  test('a bcrypt hash written on request is read back, over 72 bytes too', async () => {
+    const hash = await CredentialHelper.hash({
+      password: LONG,
+      algorithm: 'bcrypt',
+      cost: 4,
+    });
+
+    return expectVerify([{ password: LONG, hash, expected: true }]);
   });
 });
 
@@ -117,7 +205,7 @@ describe('CredentialHelper.verify - hashes written by the bcrypt package are rea
 describe('CredentialHelper.verify - a hash the helper wrote for a long password never needs the retry', () => {
   test('it verifies on the first attempt, and its 72-byte prefix and a sibling with that prefix do not', async () => {
     const long = `${'a'.repeat(72)}tail-one`;
-    const hash = await CredentialHelper.hash({ password: long, cost: 4 });
+    const hash = await CredentialHelper.hash({ password: long, algorithm: 'bcrypt', cost: 4 });
 
     const direct = await Bun.password.verify(long, hash);
 
