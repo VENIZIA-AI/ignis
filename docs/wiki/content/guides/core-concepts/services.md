@@ -197,8 +197,7 @@ The following is representative of `examples/vert/src/services/authentication.se
 
 ```typescript
 import { BaseService, IAuthService, inject, JWKSIssuerTokenService, service, TContext } from '@venizia/ignis';
-import { getError, HTTP } from '@venizia/ignis-helpers';
-import { compare, genSalt, hash } from 'bcrypt';
+import { getError, HTTP, CredentialHelper } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 @service()
@@ -230,7 +229,10 @@ export class AuthenticationService
       });
     }
 
-    const isValid = await compare(opts.credential.value, user.password);
+    const isValid = await CredentialHelper.verify({
+      password: opts.credential.value,
+      hash: user.password,
+    });
     if (!isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -257,8 +259,7 @@ export class AuthenticationService
       });
     }
 
-    const salt = await genSalt();
-    const hashedPassword = await hash(opts.credential, salt);
+    const hashedPassword = await CredentialHelper.hash({ password: opts.credential });
 
     await this.userRepository.create({ data: { username: opts.username, password: hashedPassword } });
 
