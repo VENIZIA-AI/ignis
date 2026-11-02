@@ -18,12 +18,14 @@ import { AES } from '@venizia/ignis-helpers';
 const aes = AES.withAlgorithm('aes-256-gcm');
 const secret = 'my-application-secret-key';
 
-const encrypted = aes.encrypt({ message: 'This is a secret message.', secret });
+const encrypted = await aes.encrypt({ message: 'This is a secret message.', secret });
 // => base64 envelope: [version][idLen][id][iv][authTag][ciphertext]
 
-const decrypted = aes.decrypt({ message: encrypted, secret });
+const decrypted = await aes.decrypt({ message: encrypted, secret });
 // => 'This is a secret message.'
 ```
+
+`AES` and `RSA` are async: `encrypt`, `decrypt`, `encryptFile`, `decryptFile` and `generateDERKeyPair` return a Promise over `crypto.subtle`, so `await` them.
 
 `RSA` and `ECDH` follow the same `withAlgorithm()` factory + `encrypt`/`decrypt` shape. Only the secret type and the speed/message-size trade-offs differ.
 
@@ -40,7 +42,7 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 | `normalizeSecretKey()` | Derives a key from your secret with PBKDF2-SHA256, 100,000 iterations. It never pads and never truncates |
 | `getAlgorithmKeySize()` | Parses the bit size out of the algorithm name and returns it in **bytes** - `32` from `aes-256-gcm`, not `256` |
 
-`normalizeSecretKey()` takes `{ secret, length, kdfSalt?, kdfIterations? }` and returns a `Buffer` of `length` bytes.
+`normalizeSecretKey()` takes `{ secret, length, kdfSalt?, kdfIterations? }` and returns a `Promise<Buffer>` of `length` bytes.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
@@ -58,8 +60,8 @@ The pad-or-truncate behaviour that predates this lives on `LegacyAES.normalizeSe
 
 | Class | Base class | Secret type | Async | Best for |
 |-------|-----------|--------------|-------|----------|
-| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - a `string` or an `IAESKeyringEntry[]` | No | Encrypting data at rest, fast bulk encryption |
-| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Public-key encryption, small payloads |
+| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - a `string` or an `IAESKeyringEntry[]` | Yes | Encrypting data at rest, fast bulk encryption |
+| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | Yes | Public-key encryption, small payloads |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Session key exchange with forward secrecy |
 | `Hash` | `BaseHelper` | `string` (HMAC only, no secret for a plain digest) | No | Digests and HMACs - no `decrypt`, a digest cannot be reversed |
 | `CredentialHelper` | none (static methods) | none | Yes | Storing and checking passwords: bcrypt over `Bun.password` |
@@ -81,11 +83,11 @@ const aesCbc = AES.withAlgorithm('aes-256-cbc'); // no tamper detection
 
 ### Encrypt a file
 
-`encryptFile`/`decryptFile` read the file synchronously, treat its contents as UTF-8, then run the same `encrypt`/`decrypt` as strings. They take `{ absolutePath, secret }` and nothing else, so they always use the default salt and iteration count. Read the file yourself and call `encrypt` if you need a custom `kdfSalt`.
+`encryptFile`/`decryptFile` read the file synchronously, treat its contents as UTF-8, then run the same `encrypt`/`decrypt` as strings and resolve to the result. They take `{ absolutePath, secret }` and nothing else, so they always use the default salt and iteration count. Read the file yourself and call `encrypt` if you need a custom `kdfSalt`.
 
 ```typescript
-const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret });
-const decrypted = aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret });
+const encrypted = await aes.encryptFile({ absolutePath: '/path/to/config.json', secret });
+const decrypted = await aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret });
 ```
 
 ### Generate an RSA key pair and encrypt with it
@@ -96,10 +98,10 @@ Keys are DER-encoded (`SPKI` public, `PKCS8` private). Base64-encode them to pas
 import { RSA } from '@venizia/ignis-helpers';
 
 const rsa = RSA.withAlgorithm();
-const { publicKey, privateKey } = rsa.generateDERKeyPair(); // default 2048-bit modulus
+const { publicKey, privateKey } = await rsa.generateDERKeyPair(); // default 2048-bit modulus
 
-const encrypted = rsa.encrypt({ message: 'secret data', secret: publicKey.toString('base64') });
-const decrypted = rsa.decrypt({ message: encrypted, secret: privateKey.toString('base64') });
+const encrypted = await rsa.encrypt({ message: 'secret data', secret: publicKey.toString('base64') });
+const decrypted = await rsa.decrypt({ message: encrypted, secret: privateKey.toString('base64') });
 // => 'secret data'
 ```
 
@@ -108,7 +110,7 @@ const decrypted = rsa.decrypt({ message: encrypted, secret: privateKey.toString(
 Pass `opts: { doThrow: false }` to get the original message back on error instead of an exception. Use this when a decryption failure should be a fallback path, not a crash.
 
 ```typescript
-const result = rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doThrow: false } });
+const result = await rsa.encrypt({ message: 'test', secret: 'invalid-key', opts: { doThrow: false } });
 // result === 'test' (original message, no throw)
 ```
 

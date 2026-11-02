@@ -1,8 +1,8 @@
 import { ObjectUtility } from '@venizia/ignis-inversion';
-import C from 'node:crypto';
 import fs from 'node:fs';
 import { DEFAULT_PAD_END } from '../common';
-import type { AESAlgorithmType } from './aes.algorithm';
+import { AESAlgorithms, type AESAlgorithmType } from './aes.constants';
+import { AesEngine } from './aes.engine';
 import { BaseCryptoAlgorithm } from './base.algorithm';
 
 const DEFAULT_LENGTH = 16;
@@ -18,14 +18,15 @@ interface IAESExtraOptions {
  * Frozen back-compat format - keys come from `normalizeSecretKeyLegacy` (padEnd/truncate), never
  * PBKDF2. `kdfSalt`/`kdfIterations` are deliberately absent from `IAESExtraOptions`: there is no
  * salt to override, so the option would type-check and silently do nothing.
+ * `encrypt` and `decrypt` are async: the cipher runs over `crypto.subtle`.
  */
 export class LegacyAES extends BaseCryptoAlgorithm<
   AESAlgorithmType,
   string,
   string,
   string,
-  string,
-  string,
+  Promise<string>,
+  Promise<string>,
   IAESExtraOptions
 > {
   constructor(opts: { algorithm: AESAlgorithmType }) {
@@ -36,10 +37,14 @@ export class LegacyAES extends BaseCryptoAlgorithm<
     return new LegacyAES({ algorithm });
   }
 
-  encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+  async encrypt(opts: {
+    message: string;
+    secret: string;
+    opts?: IAESExtraOptions;
+  }): Promise<string> {
     const { message, secret } = opts;
     const {
-      iv = C.randomBytes(DEFAULT_LENGTH),
+      iv = Buffer.from(crypto.getRandomValues(new Uint8Array(DEFAULT_LENGTH))),
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
       doThrow = true,
@@ -51,23 +56,19 @@ export class LegacyAES extends BaseCryptoAlgorithm<
         length: this.getAlgorithmKeySize(),
       });
 
-      const cipher = C.createCipheriv(this.algorithm, Buffer.from(secretKey), iv);
+      const { cipherText, authTag } = await AesEngine.seal({
+        algorithm: this.algorithm,
+        key: Buffer.from(secretKey),
+        iv,
+        plain: Buffer.from(message, inputEncoding),
+      });
 
-      const parts = [iv];
-      const cipherText = cipher.update(message, inputEncoding);
-      const cipherFinal = cipher.final();
+      const parts: Uint8Array[] = [iv];
 
-      switch (this.algorithm) {
-        case 'aes-256-cbc': {
-          break;
-        }
-        case 'aes-256-gcm': {
-          parts.push((cipher as C.CipherGCM).getAuthTag());
-          break;
-        }
+      if (authTag !== null) {
+        parts.push(authTag);
       }
       parts.push(cipherText);
-      parts.push(cipherFinal);
 
       return Buffer.concat(parts).toString(outputEncoding);
     } catch (error) {
@@ -79,7 +80,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
     }
   }
 
-  encryptFile(opts: { absolutePath: string; secret: string }): string {
+  async encryptFile(opts: { absolutePath: string; secret: string }): Promise<string> {
     const { absolutePath, secret } = opts;
 
     if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
@@ -88,46 +89,41 @@ export class LegacyAES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const encrypted = this.encrypt({ message: fileContent, secret });
-    return encrypted;
+    return this.encrypt({ message: fileContent, secret });
   }
 
-  decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+  async decrypt(opts: {
+    message: string;
+    secret: string;
+    opts?: IAESExtraOptions;
+  }): Promise<string> {
     const { message, secret } = opts;
     const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts.opts ?? {};
 
     try {
-      const iv =
-        opts.opts?.iv ??
-        Buffer.from(message, inputEncoding).subarray(0, DEFAULT_LENGTH) ??
-        Buffer.alloc(DEFAULT_LENGTH, 0);
+      const raw = Buffer.from(message, inputEncoding);
+      const iv = opts.opts?.iv ?? raw.subarray(0, DEFAULT_LENGTH);
       let messageIndex = iv.length;
 
       const secretKey = this.normalizeSecretKeyLegacy({
         secret,
         length: this.getAlgorithmKeySize(),
       });
-      const decipher = C.createDecipheriv(this.algorithm, Buffer.from(secretKey), iv);
 
-      switch (this.algorithm) {
-        case 'aes-256-cbc': {
-          break;
-        }
-        case 'aes-256-gcm': {
-          const authTag = Buffer.from(message, inputEncoding).subarray(
-            iv.length,
-            iv.length + DEFAULT_LENGTH,
-          );
-          messageIndex += authTag.length;
-          (decipher as C.DecipherGCM).setAuthTag(authTag);
-          break;
-        }
+      let authTag: Uint8Array | null = null;
+      if (this.algorithm === AESAlgorithms.AES_256_GCM) {
+        authTag = raw.subarray(iv.length, iv.length + DEFAULT_LENGTH);
+        messageIndex += authTag.length;
       }
 
-      const cipherText = Buffer.from(message, inputEncoding).subarray(messageIndex);
-      return Buffer.concat([decipher.update(cipherText), decipher.final()]).toString(
-        outputEncoding,
-      );
+      const plain = await AesEngine.open({
+        algorithm: this.algorithm,
+        key: Buffer.from(secretKey),
+        iv,
+        cipherText: raw.subarray(messageIndex),
+        authTag,
+      });
+      return Buffer.from(plain).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;
@@ -137,7 +133,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
     }
   }
 
-  decryptFile(opts: { absolutePath: string; secret: string }) {
+  async decryptFile(opts: { absolutePath: string; secret: string }): Promise<string> {
     const { absolutePath, secret } = opts;
 
     if (!absolutePath || ObjectUtility.isEmpty({ value: absolutePath })) {
@@ -146,8 +142,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const decrypted = this.decrypt({ message: fileContent, secret });
-    return decrypted;
+    return this.decrypt({ message: fileContent, secret });
   }
 
   private normalizeSecretKeyLegacy(opts: { secret: string; length: number; padEnd?: string }) {

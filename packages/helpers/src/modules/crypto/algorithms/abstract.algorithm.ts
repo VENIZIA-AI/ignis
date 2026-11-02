@@ -5,7 +5,7 @@ import type { ICryptoAlgorithm } from '../common/types';
  * The contract of a crypto algorithm class, with no runtime dependency beyond `BaseHelper`: no `node:*`, no
  * key derivation. It lives in its own file so a browser-pure class (`ECDH`, over `crypto.subtle`) can extend it
  * and ride `@venizia/ignis-helpers/core`. `BaseCryptoAlgorithm` (`base.algorithm.ts`, which needs
- * `node:crypto`) extends it for the synchronous Node algorithms.
+ * `Buffer`) extends it for the server algorithms (`AES`, `LegacyAES`, `RSA`).
  */
 export abstract class AbstractCryptoAlgorithm<
   AlgorithmType extends string,

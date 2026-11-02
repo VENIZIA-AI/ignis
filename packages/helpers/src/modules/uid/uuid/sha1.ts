@@ -1,5 +1,5 @@
 /**
- * SHA-1 over bytes, synchronous, no host API - `node:crypto` fails the purity gate and
+ * SHA-1 over bytes, synchronous, no host API - a host module would fail the purity gate and
  * `crypto.subtle` is async and secure-context only.
  *
  * Only UUID v5 uses it. SHA-1 is broken against a chosen-prefix collision: never sign, authenticate
