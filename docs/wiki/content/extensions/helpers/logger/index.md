@@ -161,6 +161,15 @@ LoggerFactory.use({ provider: PinoLogger, level: LogLevels.INFO });
 - **`use` can run after loggers exist.** Loggers already issued, children from `.for()` included, re-point to the new provider on their next line. Nothing has to be rebuilt.
 - **`useUnlessChosen({ provider })`** chooses a provider only when the application has not. It is for a framework's startup default, never an override. `LoggerFactory.isChosen()` says whether one was chosen.
 
+**In a React project,** `react-hooks/rules-of-hooks` reports `LoggerFactory.use(...)` and `LoggerFactory.useUnlessChosen(...)` when they run inside a plain function or at the top level of a module: a call named `use*` on a `PascalCase` object reads as a hook. They are not hooks, and the rule has no option to exclude a name, so say so at the call site, with the reason:
+
+```typescript
+// eslint-disable-next-line react-hooks/rules-of-hooks -- LoggerFactory.use is a static method, not a React hook
+LoggerFactory.use({ level: LogLevels.INFO });
+```
+
+Do not copy the method into a variable to dodge the report (`const { use } = LoggerFactory`): `use` reads `this`, and a detached call fails.
+
 A browser app that keeps debug lines out of production:
 
 ```typescript
