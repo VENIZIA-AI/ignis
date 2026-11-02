@@ -286,7 +286,7 @@ describe('drop-redundant-casts', () => {
     test('--write writes the file, and a second run finds nothing', async () => {
       write('src/a.ts', redundant);
 
-      const result = await code(['--write']);
+      const result = await code(['--write', '--all']);
       expect(result).toBe(0);
       expect(read('src/a.ts')).toBe("const name: string = 'x';\nexport const label = name;\n");
       const result2 = await code(['--check']);
@@ -367,7 +367,7 @@ describe('drop-redundant-casts', () => {
       write('.gitignore', 'src/generated/\n');
       write('src/generated/a.ts', redundant);
 
-      const result = await code(['--write']);
+      const result = await code(['--write', '--all']);
       expect(result).toBe(0);
       expect(read('src/generated/a.ts')).toBe(redundant);
     });

@@ -21,6 +21,7 @@ fixes: what to log is your decision.
 
   --write    write the changed files (without it, nothing is written)
   --check    dry run that exits 1 when anything would change or is left unfixed (for CI)
+  --all      with --write and no path: rewrite every source file under the working directory (--write needs a path or --all)
   --help     print this text and exit
 
 With no flag it lists what would change and writes nothing. Inside a git repository it reads the
@@ -36,12 +37,14 @@ const ASYNC_TEXT = /\b(await|catch)\b/;
 class AsyncStyleFlags {
   static readonly WRITE = '--write';
   static readonly CHECK = '--check';
+  static readonly ALL = '--all';
   static readonly HELP = '--help';
   static readonly HELP_SHORT = '-h';
 
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.CHECK,
+    this.ALL,
     this.HELP,
     this.HELP_SHORT,
   ]);
@@ -236,6 +239,17 @@ export class AsyncStyleCommand {
       console.error(
         `devz codemod: ${AsyncStyleFlags.WRITE} and ${AsyncStyleFlags.CHECK} contradict each other\n${USAGE}`,
       );
+      return USAGE_ERROR_CODE;
+    }
+
+    const refusal = CodemodFiles.refusal({
+      command: 'async-style',
+      isWrite,
+      isAll: flags.includes(AsyncStyleFlags.ALL),
+      paths,
+    });
+    if (refusal) {
+      console.error(`${refusal}\n${USAGE}`);
       return USAGE_ERROR_CODE;
     }
 

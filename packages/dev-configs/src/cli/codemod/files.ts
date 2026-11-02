@@ -23,6 +23,31 @@ export class CodemodFiles {
     return CodemodFiles.fromGit({ target }) ?? CodemodFiles.fromWalk({ target });
   }
 
+  /**
+   * Why a call must be refused, or `undefined` when it may go on. `--write` with no path rewrote every source
+   * file under the working directory, which is how one command typed without a path changed 134 clean files: a
+   * codemod that rewrites broadly needs a path or an explicit `--all`. A dry run (and `--check`) with no path still
+   * lists the whole tree.
+   */
+  static refusal(opts: {
+    command: string;
+    isWrite: boolean;
+    isAll: boolean;
+    paths: ReadonlyArray<string>;
+  }): string | undefined {
+    const { command, isWrite, isAll, paths } = opts;
+
+    if (isAll && paths.length > 0) {
+      return `devz codemod ${command}: --all and a path contradict each other (--all means the whole working tree)`;
+    }
+
+    if (isWrite && !isAll && paths.length === 0) {
+      return `devz codemod ${command}: --write needs a path, or --all to rewrite every source file under the working directory (nothing was written)`;
+    }
+
+    return undefined;
+  }
+
   /** Tracked files plus untracked files git does not ignore; `undefined` outside a repository or without git. */
   static fromGit(opts: { target: string }): string[] | undefined {
     const { target } = opts;

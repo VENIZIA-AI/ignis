@@ -331,7 +331,7 @@ describe('devz codemod const-classes - the command', () => {
   test('--write converts the file, and a second run finds nothing', async () => {
     write('src/a.ts', source);
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toContain('export class Modes {');
     const result2 = await code(['--check']);
@@ -359,7 +359,7 @@ describe('devz codemod const-classes - the command', () => {
       }),
     );
 
-    const result = await code(['--write', '--import-from', './helpers']);
+    const result = await code(['--write', '--all', '--import-from', './helpers']);
     expect(result).toBe(0);
 
     const configFile = ts.readConfigFile(join(root, 'tsconfig.json'), ts.sys.readFile);
@@ -386,7 +386,7 @@ describe('devz codemod const-classes - the command', () => {
 
     emitted['src/a.ts#TMode'].class = 'FileModes';
     write('names.json', JSON.stringify(emitted));
-    const result2 = await code(['--write', '--map', 'names.json']);
+    const result2 = await code(['--write', '--all', '--map', 'names.json']);
     expect(result2).toBe(0);
     expect(read('src/a.ts')).toContain('export class FileModes {');
   });
@@ -395,9 +395,9 @@ describe('devz codemod const-classes - the command', () => {
     write('src/a.ts', source);
     write('bad.json', '[1, 2]');
 
-    const result = await code(['--write', '--map', 'bad.json']);
+    const result = await code(['--write', '--all', '--map', 'bad.json']);
     expect(result).toBe(2);
-    const result2 = await code(['--write', '--map', 'missing.json']);
+    const result2 = await code(['--write', '--all', '--map', 'missing.json']);
     expect(result2).toBe(2);
     expect(errors.join('\n')).toContain('cannot read the mapping file');
     expect(read('src/a.ts')).toBe(source);
