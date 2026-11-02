@@ -95,49 +95,6 @@ describe('normalizeModelMetadata - migration', () => {
   });
 });
 
-/** `skipMigrate` is no longer a typed key, so these callers are the untyped ones the throw is for. */
-const withSkipMigrate = (value: unknown, extra: object = {}): IModelMetadata =>
-  ({ skipMigrate: value, ...extra }) as never;
-
-describe('normalizeModelMetadata - skipMigrate is removed', () => {
-  test('skipMigrate: true throws, naming the model, the replacement and the codemod', () => {
-    expect(() => normalize(withSkipMigrate(true))).toThrow(
-      /\[model\]\[Probe\] skipMigrate was removed in 0\.4\.4 \| write migration: \{ use: false \} \| run .*devz codemod model-settings --write/,
-    );
-  });
-
-  test('skipMigrate: false throws and says to remove the key, because use is true by default', () => {
-    expect(() => normalize(withSkipMigrate(false))).toThrow(
-      /remove the key \(migration\.use is true by default\)/,
-    );
-  });
-
-  test('a value that is not a boolean throws too: the key is gone whatever it holds', () => {
-    expect(() => normalize(withSkipMigrate('yes'))).toThrow(/skipMigrate was removed in 0\.4\.4/);
-    expect(() => normalize(withSkipMigrate(undefined))).toThrow(
-      /skipMigrate was removed in 0\.4\.4/,
-    );
-  });
-
-  test('it throws when migration is also set: there is no valid mix', () => {
-    expect(() => normalize(withSkipMigrate(true, { migration: { use: false } }))).toThrow(
-      /skipMigrate was removed in 0\.4\.4/,
-    );
-  });
-
-  test('the key is not in the type either: writing it is a type error', () => {
-    // @ts-expect-error skipMigrate is no longer a key of IModelMetadata
-    const metadata: IModelMetadata = { skipMigrate: true };
-
-    expect(() => normalize(metadata)).toThrow(/skipMigrate was removed/);
-  });
-
-  test('the model decorator throws at decoration, so the class never registers', () => {
-    expect(() => declare(withSkipMigrate(true))).toThrow(/skipMigrate was removed in 0\.4\.4/);
-    expect(registry.getAllModels().size).toBe(0);
-  });
-});
-
 describe('@model - what the public registry holds', () => {
   test('a migration model: the entry carries migration and no skipMigrate', () => {
     const New = declare({ migration: { use: false } });

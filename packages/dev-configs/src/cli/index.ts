@@ -11,7 +11,6 @@ Commands:
   check purity --claims <file> [package] [--json]  probe every entry claimed browser-pure (needs a build)
   check module-cycles | split-report | catalog   shared repository gates; devz check --help lists their options
   clean                                         remove dist, node_modules/.cache and *.tsbuildinfo
-  codemod model-settings [paths...] [--write]   move @model settings to the grouped shape (dry run unless --write)
   codemod drop-redundant-casts [paths...]       remove \`as X\` casts the compiler no longer needs (dry run unless --write)
   codemod const-classes [paths...]              turn a string-literal union into a const class (dry run unless --write)
   codemod async-style [paths...]                apply the async-style lint fixers and list the rest (dry run unless --write)

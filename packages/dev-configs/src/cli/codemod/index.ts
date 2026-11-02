@@ -1,59 +1,33 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
 import { AsyncStyleCommand } from './async-style';
 import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
-import { CodemodFiles } from './files';
-import { ModelSettingsCodemod } from './model-settings';
 import { NamespaceFunctionsCommand } from './namespace-functions';
 
-const USAGE = `Usage: devz codemod model-settings [paths...] [--write | --check]
+const USAGE = [
+  DropRedundantCastsCommand.USAGE,
+  ConstClassesCommand.USAGE,
+  AsyncStyleCommand.USAGE,
+  NamespaceFunctionsCommand.USAGE,
+  ConnectorImportsCommand.USAGE,
+].join('\n\n');
 
-Moves @model settings to the grouped shape and skipMigrate to migration.use.
-
-  --write    write the changed files (without it, nothing is written)
-  --check    dry run that exits 1 when anything would change or is left untouched (for CI)
-  --help     print this text and exit
-
-With no flag it lists what would change and writes nothing. Inside a git repository it reads the
-files git knows (tracked, or untracked and not ignored), so ignored folders are never touched.`;
-
-/** A file that can hold a `@model` call: the decorator, an aliased import of it, or `ns.model(`. */
-const MODEL_TEXT = /@model\b|\bmodel\s+as\s+\w+|\.model\(/;
+/** The codemods `devz codemod <name>` runs. */
+const NAMES = [
+  'drop-redundant-casts',
+  'const-classes',
+  'async-style',
+  'namespace-functions',
+  'connector-imports',
+].join(', ');
 
 /** A usage error: nothing was read or written. */
 const USAGE_ERROR_CODE = 2;
 
-class CodemodFlags {
-  static readonly WRITE = '--write';
-  static readonly CHECK = '--check';
-  static readonly HELP = '--help';
-  static readonly HELP_SHORT = '-h';
-
-  static readonly SCHEME_SET = new Set<string>([
-    this.WRITE,
-    this.CHECK,
-    this.HELP,
-    this.HELP_SHORT,
-  ]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
-}
-
-/**
- * `devz codemod model-settings [paths...] [--write | --check]`: moves `@model` settings from the
- * flat keys (`defaultFilter`, `defaultLimit`, `maxLimit`, `scopeFilter`) to `query` and `access`,
- * and `skipMigrate` to `migration.use`. It is a dry run unless `--write` is given: it lists what
- * would change. `--check` is the same dry run, and exits 1 when anything would change or is
- * left untouched (an untouched model still throws when its decorator runs).
- */
+/** `devz codemod <name> [args]`: hands the arguments to the codemod called `name`. */
 export class CodemodCommand {
   static async run(opts: { root: string; args: string[] }): Promise<number> {
     const { args } = opts;
-
     const [name, ...rest] = args;
 
     if (name === 'drop-redundant-casts') {
@@ -76,106 +50,14 @@ export class CodemodCommand {
       return ConnectorImportsCommand.run({ root: opts.root, args: rest });
     }
 
-    if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
-      console.log(
-        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}\n\n${NamespaceFunctionsCommand.USAGE}\n\n${ConnectorImportsCommand.USAGE}`,
-      );
+    if (args.includes('--help') || args.includes('-h')) {
+      console.log(USAGE);
       return 0;
     }
 
-    if (name !== 'model-settings') {
-      console.error(`devz codemod: unknown codemod "${name ?? ''}"\n${USAGE}`);
-      return USAGE_ERROR_CODE;
-    }
-
-    const unknown = rest.filter(
-      (argument) => argument.startsWith('-') && !CodemodFlags.isValid(argument),
+    console.error(
+      `devz codemod: unknown codemod "${name ?? ''}" | the codemods are: ${NAMES}\n\n${USAGE}`,
     );
-    if (unknown.length > 0) {
-      console.error(
-        `devz codemod: unknown option ${unknown.map((flag) => `"${flag}"`).join(', ')}\n${USAGE}`,
-      );
-      return USAGE_ERROR_CODE;
-    }
-
-    const isWrite = rest.includes(CodemodFlags.WRITE);
-    const isCheck = rest.includes(CodemodFlags.CHECK);
-
-    if (isWrite && isCheck) {
-      console.error(
-        `devz codemod: ${CodemodFlags.WRITE} and ${CodemodFlags.CHECK} contradict each other\n${USAGE}`,
-      );
-      return USAGE_ERROR_CODE;
-    }
-
-    const paths = rest.filter((argument) => !argument.startsWith('-'));
-    const targets = (paths.length > 0 ? paths : ['.']).map((path) => resolve(opts.root, path));
-
-    let typescript: typeof import('typescript');
-    try {
-      const result2 = await import('typescript');
-      typescript = result2.default;
-    } catch {
-      console.error('devz codemod: the "typescript" package is required to read your sources');
-      return 1;
-    }
-
-    let changedCount = 0;
-    let reportCount = 0;
-
-    for (const target of targets) {
-      const files = CodemodFiles.collect({ target });
-
-      if (files.length === 0 && paths.length > 0) {
-        console.warn(
-          `devz codemod: no source files under "${relative(opts.root, target) || target}" (git ignores the path, or it holds none): nothing was read`,
-        );
-      }
-
-      for (const file of files) {
-        const source = readFileSync(file, 'utf8');
-
-        if (!MODEL_TEXT.test(source)) {
-          continue;
-        }
-
-        const result = ModelSettingsCodemod.migrate({ typescript, fileName: file, source });
-        const shown = relative(opts.root, file) || file;
-
-        for (const report of result.reports) {
-          reportCount += 1;
-          console.warn(`${shown}:${report.line}:${report.column}  ${report.reason}`);
-        }
-
-        if (!result.changed) {
-          continue;
-        }
-
-        changedCount += 1;
-        console.log(
-          `${isWrite ? 'changed' : 'would change'}  ${shown}  (${result.rewritten} model(s))`,
-        );
-
-        if (isWrite) {
-          writeFileSync(file, result.output);
-        }
-      }
-    }
-
-    console.log(
-      `devz codemod model-settings: ${changedCount} file(s) ${isWrite ? 'changed' : 'would change'}, ${reportCount} left untouched`,
-    );
-
-    if (!isWrite && changedCount > 0) {
-      console.log(`Nothing was written. Run again with ${CodemodFlags.WRITE} to apply.`);
-    }
-
-    if (isCheck && changedCount === 0 && reportCount > 0) {
-      console.log(
-        'Nothing to rewrite, but the models above throw when the decorator runs: fix them by hand.',
-      );
-    }
-
-    return isCheck && (changedCount > 0 || reportCount > 0) ? 1 : 0;
+    return USAGE_ERROR_CODE;
   }
 }
