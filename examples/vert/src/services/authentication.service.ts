@@ -103,9 +103,14 @@ export class AuthenticationService
       .where(eq(userTable.username, opts.identifier.value))
       .limit(1);
 
-    const isValid = user?.password
-      ? await CredentialHelper.verify({ password: opts.credential.value, hash: user.password })
-      : false;
+    let isValid = false;
+    if (user?.password) {
+      const isCredentialMatched = await CredentialHelper.verify({
+        password: opts.credential.value,
+        hash: user.password,
+      });
+      isValid = isCredentialMatched;
+    }
     if (!user || !isValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -160,7 +165,11 @@ export class AuthenticationService
       throw getError({ statusCode: HTTP.ResultCodes.RS_4.NotFound, message: 'User not found' });
     }
 
-    if (!(await CredentialHelper.verify({ password: opts.oldCredential, hash: user.password }))) {
+    const isOldCredentialValid = await CredentialHelper.verify({
+      password: opts.oldCredential,
+      hash: user.password,
+    });
+    if (!isOldCredentialValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid old password',

@@ -135,8 +135,9 @@ export class EdgeCases extends BaseTestCases {
           });
           this.context.logger.error('[CASE 14] FAILED | Path should be rejected: %s', path);
           allRejected = false;
-        } catch {
+        } catch (error) {
           // Expected to throw
+          this.context.logger.info('[CASE 14] Rejected: %s', (error as Error).message);
         }
       }
 
@@ -192,8 +193,9 @@ export class EdgeCases extends BaseTestCases {
             path.substring(0, 40),
           );
           allRejected = false;
-        } catch {
+        } catch (error) {
           // Expected - SQL injection should be rejected
+          this.context.logger.info('[CASE 15] Rejected: %s', (error as Error).message);
         }
       }
 

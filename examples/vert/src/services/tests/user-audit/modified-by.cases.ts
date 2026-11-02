@@ -240,10 +240,11 @@ export class ModifiedByCases extends UserAuditCases {
       });
 
       // Verify supervisor's update
-      [dbRecord] = await connector
+      const [latestRecord] = await connector
         .select()
         .from(Configuration.schema)
         .where(eq(Configuration.schema.id, recordId));
+      dbRecord = latestRecord;
 
       if (
         dbRecord?.createdBy === adminUser &&

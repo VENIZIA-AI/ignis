@@ -50,9 +50,11 @@ export class PGliteDataSource extends BasePostgresDataSource<
     } catch (error) {
       // OPFS access handles are exclusive: an instance left open makes every retry fail until the
       // site data is cleared by hand. A failed close is logged so it cannot hide the real cause.
-      await client.close().catch((closeError: unknown) => {
+      try {
+        await client.close();
+      } catch (closeError: unknown) {
         this.logger.error('[configure] Failed to close PGlite | error: %s', closeError);
-      });
+      }
       throw error;
     }
   }

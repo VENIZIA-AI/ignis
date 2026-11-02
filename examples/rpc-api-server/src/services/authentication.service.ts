@@ -54,8 +54,9 @@ export class AuthenticationService
 
     // This check has a race; the unique constraint on `username` is the real guard against two
     // concurrent sign-ups.
+    const passwordHash = await Bun.password.hash(opts.credential);
     const { data: user } = await this.userRepository.create({
-      data: { username: opts.username, password: await Bun.password.hash(opts.credential) },
+      data: { username: opts.username, password: passwordHash },
     });
     return { id: user.id, username: user.username };
   }
@@ -64,7 +65,12 @@ export class AuthenticationService
     const user = await this.userRepository.findOne({
       filter: { where: { username: opts.identifier.value } },
     });
-    if (!user || !(await Bun.password.verify(opts.credential.value, user.password))) {
+    let isPasswordValid = false;
+    if (user) {
+      const passwordMatches = await Bun.password.verify(opts.credential.value, user.password);
+      isPasswordValid = passwordMatches;
+    }
+    if (!user || !isPasswordValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid username or password',
@@ -83,16 +89,22 @@ export class AuthenticationService
     const { userId } = context.get(Authentication.CURRENT_USER);
     const user = await this.userRepository.findById({ id: String(userId) });
 
-    if (!user || !(await Bun.password.verify(opts.oldCredential, user.password))) {
+    let isPasswordValid = false;
+    if (user) {
+      const passwordMatches = await Bun.password.verify(opts.oldCredential, user.password);
+      isPasswordValid = passwordMatches;
+    }
+    if (!user || !isPasswordValid) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid old password',
       });
     }
 
+    const passwordHash = await Bun.password.hash(opts.newCredential);
     await this.userRepository.updateById({
       id: user.id,
-      data: { password: await Bun.password.hash(opts.newCredential) },
+      data: { password: passwordHash },
     });
     return { id: user.id };
   }

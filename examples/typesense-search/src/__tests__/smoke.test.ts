@@ -66,7 +66,8 @@ describe('typesense-search', () => {
 
     while (Date.now() < deadline) {
       const response = await post({ path: '/articles/search', body: opts.body });
-      const result = SearchResponse.parse(await response.json());
+      const payload = await response.json();
+      const result = SearchResponse.parse(payload);
 
       if (opts.predicate(result)) {
         return result;
@@ -127,7 +128,8 @@ describe('typesense-search', () => {
       },
     });
     expect(response.status).toBe(201);
-    expect(ArticleResponse.parse(await response.json()).data.id).toBe(typescriptId);
+    const payload = await response.json();
+    expect(ArticleResponse.parse(payload).data.id).toBe(typescriptId);
 
     // A second document, in a different category, gives the filter test something to exclude.
     const draft = await post({

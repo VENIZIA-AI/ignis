@@ -83,7 +83,11 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -146,7 +150,11 @@ export class EdgeCases extends BaseTestCases {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.context.logger.error('[CASE 19] FAILED | Error: %s', (error as Error).message);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -239,7 +247,11 @@ export class EdgeCases extends BaseTestCases {
       this.context.logger.error(
         '[CASE 20] This likely means numeric casting crashed on non-numeric values',
       );
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

@@ -199,13 +199,13 @@ export class IsolationCases extends BaseTestCases {
       } catch (error) {
         try {
           await tx1.rollback();
-        } catch {
-          /* ignore */
+        } catch (rollbackError) {
+          this.context.logger.error('tx1 rollback failed: %s', (rollbackError as Error).message);
         }
         try {
           await tx2.rollback();
-        } catch {
-          /* ignore */
+        } catch (rollbackError) {
+          this.context.logger.error('tx2 rollback failed: %s', (rollbackError as Error).message);
         }
         throw error;
       }
@@ -213,7 +213,11 @@ export class IsolationCases extends BaseTestCases {
       await repo.deleteAll({ where: { code } });
     } catch (error) {
       this.context.logger.error('[CASE 12] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { group: 'TX_CONCURRENT_TEST' } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group: 'TX_CONCURRENT_TEST' } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -309,8 +313,8 @@ export class IsolationCases extends BaseTestCases {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
       this.context.logger.error('[CASE 19] FAILED with error: %o', error);
     }

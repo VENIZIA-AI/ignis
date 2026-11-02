@@ -72,7 +72,8 @@ describe('rpc-api-server', () => {
     });
     expect(response.status).toBe(200);
 
-    const user = SignUpResponse.parse(await response.json());
+    const payload = await response.json();
+    const user = SignUpResponse.parse(payload);
     expect(user.username).toBe('smoke_user');
     userId = user.id;
   });
@@ -87,7 +88,8 @@ describe('rpc-api-server', () => {
       },
     });
     expect(response.status).toBe(200);
-    token = SignInResponse.parse(await response.json()).token;
+    const payload = await response.json();
+    token = SignInResponse.parse(payload).token;
   });
 
   test('POST /auth/sign-in rejects a wrong password', async () => {
@@ -116,7 +118,8 @@ describe('rpc-api-server', () => {
     });
     expect(response.status).toBe(201);
 
-    const { data } = ConfigurationResponse.parse(await response.json());
+    const payload = await response.json();
+    const { data } = ConfigurationResponse.parse(payload);
     expect(data.createdBy).toBe(userId);
     configurationId = data.id;
   });
@@ -136,7 +139,8 @@ describe('rpc-api-server', () => {
       token,
     });
     expect(response.status).toBe(200);
-    expect(ConfigurationResponse.parse(await response.json()).data.group).toBe('APPEARANCE');
+    const payload = await response.json();
+    expect(ConfigurationResponse.parse(payload).data.group).toBe('APPEARANCE');
   });
 
   test('DELETE /configurations/:id removes it', async () => {
@@ -154,23 +158,24 @@ describe('rpc-api-server', () => {
       token,
     });
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ count: 0, data: null });
+    const payload = await response.json();
+    expect(payload).toEqual({ count: 0, data: null });
   });
 
   test('GET / renders the JSX home page', async () => {
     const response = await fetch(baseUrl);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('text/html');
-    expect(await response.text()).toContain('<h1>');
+    const html = await response.text();
+    expect(html).toContain('<h1>');
   });
 
   test('GET /doc/openapi.json describes the auth and CRUD routes', async () => {
     const response = await fetch(`${baseUrl}/doc/openapi.json`);
     expect(response.status).toBe(200);
 
-    const { paths } = z
-      .object({ paths: z.record(z.string(), z.unknown()) })
-      .parse(await response.json());
+    const payload = await response.json();
+    const { paths } = z.object({ paths: z.record(z.string(), z.unknown()) }).parse(payload);
     expect(Object.keys(paths)).toEqual(
       expect.arrayContaining(['/auth/sign-in', '/auth/sign-up', '/configurations']),
     );

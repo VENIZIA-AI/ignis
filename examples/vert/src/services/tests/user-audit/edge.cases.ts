@@ -54,10 +54,11 @@ export class EdgeCases extends UserAuditCases {
       });
 
       // Verify
-      [dbRecord] = await connector
+      const [latestRecord] = await connector
         .select()
         .from(Configuration.schema)
         .where(eq(Configuration.schema.code, testCode));
+      dbRecord = latestRecord;
 
       if (dbRecord?.modifiedBy === lateUser) {
         this.context.logger.info(
@@ -226,10 +227,11 @@ export class EdgeCases extends UserAuditCases {
       await transaction.rollback();
 
       // Verify changes did NOT persist
-      [dbRecord] = await connector
+      const [latestRecord] = await connector
         .select()
         .from(Configuration.schema)
         .where(eq(Configuration.schema.id, recordId));
+      dbRecord = latestRecord;
 
       if (dbRecord?.modifiedBy === originalUser && dbRecord?.nValue === 100) {
         this.context.logger.info(
