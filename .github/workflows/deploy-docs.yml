@@ -7,9 +7,12 @@ run-name: 'Docs · ${{ github.ref_name }}'
 #   docs         a push to develop that touches docs/wiki/ builds the wiki and deploys it to GitHub Pages
 #   atlas-index  a push to main, develop or a tag publishes the signed atlas index of that commit
 #
-# A manual run deploys the wiki, which is what the old deploy workflow did on a manual run:
+# A manual run picks one job with `job` (default `docs`, which is what the old deploy workflow did):
 #
 #   gh workflow run deploy-docs.yml --ref develop
+#   gh workflow run deploy-docs.yml --ref develop -f job=atlas-index -f ref=core-server-v0.4.7-4
+#
+# `job=atlas-index` publishes the pair and does not deploy the wiki.
 #
 # The file keeps its name: the github-pages environment and the release docs name it.
 on:
@@ -20,6 +23,20 @@ on:
     tags:
       - '*'
   workflow_dispatch:
+    inputs:
+      job:
+        type: choice
+        description: 'Which job a manual run starts'
+        options:
+          - docs
+          - atlas-index
+        required: true
+        default: 'docs'
+      ref:
+        type: string
+        description: 'atlas-index only: a tag or a branch whose commit to publish instead of the one this run starts on (empty = the commit this run started on)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -30,7 +47,7 @@ env:
 jobs:
   # Whether the wiki needs a deploy. A path filter on the trigger would also stop the atlas index on a push that does
   # not touch the wiki, so the filter is this check: a push to develop deploys when docs/wiki/ changed between the
-  # old and the new head (and when the old head cannot be read), a manual run always deploys.
+  # old and the new head (and when the old head cannot be read), a manual run deploys when it asked for `docs`.
   changes:
     name: What changed
     runs-on: ubuntu-26.04
@@ -48,11 +65,12 @@ jobs:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           BEFORE: ${{ github.event.before }}
+          JOB: ${{ inputs.job }}
         run: |
           docs=false
 
           if [ "$EVENT" = "workflow_dispatch" ]; then
-            docs=true
+            [ "$JOB" = "docs" ] && docs=true
           elif [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/develop" ]; then
             if [ -z "${BEFORE//0/}" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
               docs=true
@@ -120,21 +138,22 @@ jobs:
   # Publishes the signed atlas index of each commit atlas can be asked for (main, develop and the release tags) to
   # the release `atlas-index` of this repository, so a project that reads IGNIS as a source downloads it instead of
   # building it. The private key is the Actions secret ATLAS_INDEX_KEY; its public half is `atlas.index.keys` in
-  # .configs/vulcan.config.mts. VULCAN's action refuses anything but a push to those refs and does nothing while the
-  # secret is empty. It is pinned by commit, the one of the installed VULCAN release.
+  # .configs/vulcan.config.mts. VULCAN's action refuses anything but a push or a manual run, for those refs, and does
+  # nothing while the secret is empty. It is pinned by commit, the one of the installed VULCAN release.
   #
-  # Known limit: the release workflow pushes its release commits and tags with the Actions token, and GitHub
-  # starts no workflow from those pushes, so a release tag of IGNIS gets no pair from this job. The next
-  # push to develop covers the head. VULCAN 0.4.7 makes its own release run the action; IGNIS gets that when it
-  # moves to it.
+  # The release workflow pushes its release commits and tags with the Actions token, and GitHub starts no workflow from
+  # those pushes, so this job does not run for them on its own. A manual run makes the pair of one of them:
+  # `-f job=atlas-index -f ref=<tag or branch>` publishes the pair of that commit (it must be on main or develop) and
+  # deploys no wiki. The ref is never checked out: the action refuses a name that is not a plain tag or branch before it
+  # builds anything.
   atlas-index:
     name: Publish the pair
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.job == 'atlas-index')
     runs-on: ubuntu-26.04
     permissions:
       contents: write
     concurrency:
-      group: atlas-index-${{ github.ref }}
+      group: atlas-index-${{ inputs.ref || github.ref }}
       cancel-in-progress: false
 
     steps:
@@ -155,5 +174,7 @@ jobs:
 
       - name: Publish the atlas index
         uses: VENIZIA-AI/vulcan/.github/actions/atlas-index@6670969acce876a29c11d9f1da319992fdd3e282 # vulcan-v0.4.9-1
+        with:
+          ref: ${{ inputs.ref }}
         env:
           ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}
