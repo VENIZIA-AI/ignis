@@ -105,13 +105,21 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
   });
 
   test('many tokens issued and verified at once, from a cold key cache, all round-trip', async () => {
-    const service = buildService({ applicationSecret: `cold-secret-${crypto.randomUUID()}-padding` });
+    const service = buildService({
+      applicationSecret: `cold-secret-${crypto.randomUUID()}-padding`,
+    });
     const tokens = await Promise.all(
-      Array.from({ length: 16 }, (_, index) => service.generate({ payload: { userId: index, roles: [] } })),
+      Array.from({ length: 16 }, (_, index) =>
+        service.generate({ payload: { userId: index, roles: [] } }),
+      ),
     );
-    const verified = await Promise.all(tokens.map((token) => service.verify({ type: 'Bearer', token })));
+    const verified = await Promise.all(
+      tokens.map((token) => service.verify({ type: 'Bearer', token })),
+    );
 
-    expect(verified.map((entry) => entry.userId)).toEqual(Array.from({ length: 16 }, (_, index) => index));
+    expect(verified.map((entry) => entry.userId)).toEqual(
+      Array.from({ length: 16 }, (_, index) => index),
+    );
   });
 
   test('a cipher that answers at once (a string, not a promise) is still accepted', async () => {

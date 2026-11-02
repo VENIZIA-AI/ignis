@@ -116,13 +116,9 @@ export abstract class BaseCryptoAlgorithm<
     }
 
     const encoder = new TextEncoder();
-    const material = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(secret),
-      'PBKDF2',
-      false,
-      ['deriveBits'],
-    );
+    const material = await crypto.subtle.importKey('raw', encoder.encode(secret), 'PBKDF2', false, [
+      'deriveBits',
+    ]);
     const bits = await crypto.subtle.deriveBits(
       { name: 'PBKDF2', hash, salt: encoder.encode(salt), iterations },
       material,

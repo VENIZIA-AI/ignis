@@ -23,7 +23,9 @@ type TAesFixture = {
 };
 
 const aesFixtures = fixtures.aes as TAesFixture[];
-const legacyFixtures = fixtures.legacy as Array<Omit<TAesFixture, 'kdf' | 'secret'> & { secret: string }>;
+const legacyFixtures = fixtures.legacy as Array<
+  Omit<TAesFixture, 'kdf' | 'secret'> & { secret: string }
+>;
 
 describe('AES: what is stored still reads, and the same input writes the same bytes', () => {
   for (const fixture of aesFixtures) {
@@ -188,14 +190,24 @@ describe('PBKDF2 key derivation: the same key bytes as the synchronous implement
     const cipher = AES.withAlgorithm('aes-256-cbc');
     const secret = `failing-secret-${crypto.randomUUID()}`;
 
-    await expect(cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 })).rejects.toThrow();
-    await expect(cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 })).rejects.toThrow();
-    expect((await cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 10 })).length).toBe(32);
+    await expect(
+      cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+    ).rejects.toThrow();
+    await expect(
+      cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+    ).rejects.toThrow();
+    expect(
+      (await cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 10 })).length,
+    ).toBe(32);
   });
 
   test('a salt under 16 bytes is refused', async () => {
     await expect(
-      AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({ secret: 's', length: 32, kdfSalt: 'short' }),
+      AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({
+        secret: 's',
+        length: 32,
+        kdfSalt: 'short',
+      }),
     ).rejects.toThrow(/at least 16 bytes/);
   });
 });
@@ -206,7 +218,9 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
 
   for (const stored of fixtures.rsa.stored) {
     test(`decrypts the ciphertext stored for "${stored.name}"`, async () => {
-      expect(await rsa.decrypt({ message: stored.stored, secret: privateKey })).toBe(stored.message);
+      expect(await rsa.decrypt({ message: stored.stored, secret: privateKey })).toBe(
+        stored.message,
+      );
     });
   }
 
@@ -253,7 +267,9 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
   });
 
   test('a modulus under 2048 bits is refused', async () => {
-    await expect(rsa.generateDERKeyPair({ modulus: 1024 })).rejects.toThrow(/below the 2048-bit minimum/);
+    await expect(rsa.generateDERKeyPair({ modulus: 1024 })).rejects.toThrow(
+      /below the 2048-bit minimum/,
+    );
   });
 
   test('a wrong key or a damaged ciphertext is refused, and doThrow: false hands the message back', async () => {

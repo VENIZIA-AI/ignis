@@ -23,8 +23,8 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 
 | Class | Extends | Secret type | Async | Runtime API |
 |-------|---------|--------------|-------|-------------|
-| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | No | Node `node:crypto` |
-| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Node `node:crypto` |
+| `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | Yes | Web Crypto (`crypto.subtle`) |
+| `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | Yes | Web Crypto (`crypto.subtle`) |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Web Crypto (`crypto.subtle`) |
 | `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Node `node:crypto` |
 
@@ -105,10 +105,10 @@ interface ICryptoAlgorithm<
 |--------|-----------|--------------|
 | constructor | `(opts: { scope: string; algorithm: AlgorithmType })` | Sets `this.algorithm`, calls `validateAlgorithmName` |
 | `validateAlgorithmName` | `(opts: { algorithm: AlgorithmType }) => void` | Throws if `algorithm` is empty/falsy |
-| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Buffer` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
+| `normalizeSecretKey` | `(opts: { secret: string; length: number; kdfSalt?: string; kdfIterations?: number }) => Promise<Buffer>` | Derives a `length`-byte key with PBKDF2-SHA256, 100,000 iterations. Results are memoised per secret, salt, iteration count and length |
 | `getAlgorithmKeySize` | `() => number` | Parses the bit size out of `this.algorithm` (`256` from `'aes-256-gcm'`), divides by 8, and returns the **byte** count - `32`, not `256` |
 
-`normalizeSecretKey` never pads and never truncates. It always runs the KDF.
+`normalizeSecretKey` never pads and never truncates. It always runs the KDF, over `crypto.subtle`, and resolves to the key.
 
 | Option | Type | Default | Meaning |
 |---|---|---|---|
@@ -142,12 +142,12 @@ const aes = AES.withAlgorithm('aes-256-gcm'); // or 'aes-256-cbc'
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): string
+encrypt(opts: { message: string; secret: TAESSecret; opts?: IAESExtraOptions }): Promise<string>
 ```
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
-| `iv` | `Buffer` | `crypto.randomBytes(16)` | Initialization vector |
+| `iv` | `Buffer` | 16 random bytes from `crypto.getRandomValues` | Initialization vector |
 | `inputEncoding` | `crypto.Encoding` | `'utf-8'` | Encoding of `message` |
 | `outputEncoding` | `crypto.Encoding` | `'base64'` | Encoding of the returned ciphertext |
 | `doThrow` | `boolean` | `true` | If `false`, returns the original `message` instead of throwing on error |
@@ -168,7 +168,7 @@ The version byte is `0x01`. The key id is the entry `decrypt` looks up in a keyr
 ```typescript
 import C from 'node:crypto';
 
-const encrypted = aes.encrypt({
+const encrypted = await aes.encrypt({
   message: 'hello',
   secret: 'my-secret',
   opts: {
@@ -183,7 +183,7 @@ const encrypted = aes.encrypt({
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): string
+decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }): Promise<string>
 ```
 
 `decrypt` takes no `iv`. The envelope carries the one `encrypt` used, so passing another would be ignored - the option is absent from `IAESDecryptOptions` and supplying it is a compile error.
@@ -202,22 +202,22 @@ decrypt(opts: { message: string; secret: TAESSecret; opts?: IAESDecryptOptions }
 For `aes-256-gcm`, the next 16 bytes after the IV are read as the auth tag. That tag is passed to `setAuthTag` before the remaining bytes are treated as ciphertext.
 
 > [!WARNING]
-> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws `Unsupported state or unable to authenticate data`. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
+> Decrypting `aes-256-gcm` ciphertext with an `aes-256-cbc` instance (or vice versa) throws, and the returned Promise rejects. The two modes produce incompatible byte layouts - always encrypt and decrypt with the same one.
 
 ### `encryptFile` / `decryptFile`
 
 ```typescript
-encryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
-decryptFile(opts: { absolutePath: string; secret: TAESSecret }): string
+encryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string>
+decryptFile(opts: { absolutePath: string; secret: TAESSecret }): Promise<string>
 ```
 
-Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then call `encrypt`/`decrypt` on the string content using default extra-options. If `absolutePath` is empty or falsy, both return `''` without touching the filesystem.
+Both read the file synchronously via `fs.readFileSync`, decode it as UTF-8, then `await` `encrypt`/`decrypt` on the string content using default extra-options. If `absolutePath` is empty or falsy, both resolve to `''` without touching the filesystem.
 
 Neither takes an options object, so neither can carry a custom `kdfSalt` or `kdfIterations`. Read the file yourself and call `encrypt`/`decrypt` directly when you need those.
 
 ```typescript
-const encrypted = aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
-const decrypted = aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret: 'my-secret' });
+const encrypted = await aes.encryptFile({ absolutePath: '/path/to/config.json', secret: 'my-secret' });
+const decrypted = await aes.decryptFile({ absolutePath: '/path/to/config.json.enc', secret: 'my-secret' });
 ```
 
 ### Key rotation with a keyring
@@ -230,8 +230,8 @@ const KEYRING = [
   { id: '1', secret: process.env.APP_ENV_SECRET_V1! }, // retired - still needed to read old rows
 ];
 
-const fresh = aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'
-const old = aes.decrypt({ message: rowFromLastYear, secret: KEYRING }); // resolved by its own id
+const fresh = await aes.encrypt({ message: 'payload', secret: KEYRING }); // tagged id '2'
+const old = await aes.decrypt({ message: rowFromLastYear, secret: KEYRING }); // resolved by its own id
 ```
 
 Rotating means prepending a new entry, not re-encrypting the estate. Drop an old entry only once nothing carries its id any more - `decrypt` throws `No key in keyring matches ciphertext key id` when it cannot resolve one, and a keyring entry with an empty `secret` is refused by name rather than failing later inside OpenSSL.
@@ -247,25 +247,25 @@ Rotating means prepending a new entry, not re-encrypting the estate. Drop an old
 
 `LegacyAES` reproduces the pre-PBKDF2 behaviour exactly: the key is the secret padded with `'0'` (or truncated) to the algorithm's key size, and the output is `IV [+ GCM auth tag] + ciphertext` with no version header.
 
-Reach for it when you hold data written by an earlier IGNIS and do not want to re-encrypt it. The API mirrors `AES`, minus the keyring - `secret` is a plain string.
+Reach for it when you hold data written by an earlier IGNIS and do not want to re-encrypt it. The API mirrors `AES`, minus the keyring - `secret` is a plain string. Like `AES`, its `encrypt`, `decrypt`, `encryptFile` and `decryptFile` return a Promise.
 
 ```typescript
 import { LegacyAES } from '@venizia/ignis-helpers';
 
 const legacy = LegacyAES.withAlgorithm('aes-256-cbc');
-const plaintext = legacy.decrypt({ message: rowWrittenBeforeTheUpgrade, secret: APPLICATION_SECRET });
+const plaintext = await legacy.decrypt({ message: rowWrittenBeforeTheUpgrade, secret: APPLICATION_SECRET });
 ```
 
 The two formats never cross-decrypt, by design. `AES` rejects a legacy envelope on its version byte; `LegacyAES` fails the auth tag on a new one. Nothing falls back silently in either direction.
 
 ### IPayloadCipher - choosing the cipher a component uses
 
-A component that encrypts on your behalf takes `IPayloadCipher`, the string-in/string-out slice both classes satisfy:
+A component that encrypts on your behalf takes `IPayloadCipher`, the string-in/string-out slice both classes satisfy. A cipher may answer at once with a string or with a Promise of one; `AES` and `LegacyAES` answer with a Promise:
 
 ```typescript
 export interface IPayloadCipher {
-  encrypt(opts: { message: string; secret: string }): string;
-  decrypt(opts: { message: string; secret: string }): string;
+  encrypt(opts: { message: string; secret: string }): string | Promise<string>;
+  decrypt(opts: { message: string; secret: string }): string | Promise<string>;
 }
 ```
 
@@ -293,12 +293,12 @@ const rsa = RSA.withAlgorithm(); // no parameters - always algorithm 'rsa'
 ### `generateDERKeyPair`
 
 ```typescript
-generateDERKeyPair(opts?: { modulus: number }): { publicKey: Buffer; privateKey: Buffer }
+generateDERKeyPair(opts?: { modulus: number }): Promise<{ publicKey: Buffer; privateKey: Buffer }>
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `modulus` | `number` | `MINIMUM_RSA_MODULUS_BITS`, `2048` | RSA modulus length in bits, passed to `crypto.generateKeyPairSync` |
+| `modulus` | `number` | `MINIMUM_RSA_MODULUS_BITS`, `2048` | RSA modulus length in bits, passed to `crypto.subtle.generateKey` |
 
 A `modulus` below `MINIMUM_RSA_MODULUS_BITS` throws `[RSA][generateDERKeyPair] Modulus N is below the 2048-bit minimum`. The key is refused rather than generated. A weak key that exists is a weak key someone will end up using. 2048 bits is the NIST SP 800-57 Part 1 floor past 2030.
 
@@ -307,10 +307,10 @@ A `modulus` below `MINIMUM_RSA_MODULUS_BITS` throws `[RSA][generateDERKeyPair] M
 ### `encrypt`
 
 ```typescript
-encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): string
+encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Promise<string>
 ```
 
-`secret` is the base64-encoded public key (SPKI/DER). Internally builds a public key via `crypto.createPublicKey({ format: 'der', type: 'spki' })` and calls `crypto.publicEncrypt`.
+`secret` is the base64-encoded public key (SPKI/DER). It is imported with `crypto.subtle.importKey('spki', ...)`, and the message is encrypted with `crypto.subtle.encrypt` under RSA-OAEP with SHA-1.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
@@ -322,10 +322,10 @@ encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): str
 ### `decrypt`
 
 ```typescript
-decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): string
+decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): Promise<string>
 ```
 
-`secret` is the base64-encoded private key (PKCS8/DER). Internally builds a private key via `crypto.createPrivateKey({ format: 'der', type: 'pkcs8' })` and calls `crypto.privateDecrypt`.
+`secret` is the base64-encoded private key (PKCS8/DER). It is imported with `crypto.subtle.importKey('pkcs8', ...)`, and the message is decrypted with `crypto.subtle.decrypt` under RSA-OAEP with SHA-1.
 
 | Option (`opts.opts`) | Type | Default | Description |
 |-----------------------|------|---------|-------------|
@@ -336,15 +336,15 @@ decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }): str
 
 ```typescript
 const rsa = RSA.withAlgorithm();
-const { publicKey, privateKey } = rsa.generateDERKeyPair({ modulus: 4096 });
+const { publicKey, privateKey } = await rsa.generateDERKeyPair({ modulus: 4096 });
 
-const encrypted = rsa.encrypt({
+const encrypted = await rsa.encrypt({
   message: 'hello',
   secret: publicKey.toString('base64'),
   opts: { outputEncoding: 'hex', doThrow: false },
 });
 
-const decrypted = rsa.decrypt({
+const decrypted = await rsa.decrypt({
   message: encrypted,
   secret: privateKey.toString('base64'),
   opts: { inputEncoding: { key: 'base64', message: 'hex' } },
@@ -529,14 +529,14 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 | Method | Class | Returns | Description |
 |--------|-------|---------|-------------|
 | `AES.withAlgorithm(algorithm)` | `AES` | `AES` | Create an AES instance with CBC or GCM mode |
-| `encrypt(opts)` | `AES` | `string` | Encrypt a string message |
-| `decrypt(opts)` | `AES` | `string` | Decrypt a ciphertext string |
-| `encryptFile(opts)` | `AES` | `string` | Encrypt file contents to a string |
-| `decryptFile(opts)` | `AES` | `string` | Decrypt file contents to a string |
+| `encrypt(opts)` | `AES` | `Promise<string>` | Encrypt a string message |
+| `decrypt(opts)` | `AES` | `Promise<string>` | Decrypt a ciphertext string |
+| `encryptFile(opts)` | `AES` | `Promise<string>` | Encrypt file contents to a string |
+| `decryptFile(opts)` | `AES` | `Promise<string>` | Decrypt file contents to a string |
 | `RSA.withAlgorithm()` | `RSA` | `RSA` | Create an RSA instance |
-| `generateDERKeyPair(opts?)` | `RSA` | `{ publicKey: Buffer; privateKey: Buffer }` | Generate a DER-format key pair |
-| `encrypt(opts)` | `RSA` | `string` | Encrypt with a public key |
-| `decrypt(opts)` | `RSA` | `string` | Decrypt with a private key |
+| `generateDERKeyPair(opts?)` | `RSA` | `Promise<{ publicKey: Buffer; privateKey: Buffer }>` | Generate a DER-format key pair |
+| `encrypt(opts)` | `RSA` | `Promise<string>` | Encrypt with a public key |
+| `decrypt(opts)` | `RSA` | `Promise<string>` | Decrypt with a private key |
 | `ECDH.withAlgorithm(opts?)` | `ECDH` | `ECDH` | Create an ECDH instance. Passing options requires `algorithm` alongside `hkdfInfo` |
 | `generateKeyPair()` | `ECDH` | `Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }>` | Generate a P-256 key pair |
 | `importPublicKey(opts)` | `ECDH` | `Promise<CryptoKey>` | Import a peer's base64 public key |
@@ -569,7 +569,7 @@ const ecdh = ECDH.withAlgorithm();             // no parameter needed
 
 **Fix:** Pass base64 strings through exactly as produced by the methods that generated them (`publicKeyB64`, `salt`, `iv`, `ct`). Do not trim, re-encode, or modify them.
 
-### "Unsupported state or unable to authenticate data"
+### "OperationError: The operation failed for an operation-specific reason"
 
 **Cause:** Either the ciphertext or auth tag was modified in transit, or encrypt and decrypt used different algorithm modes. The two modes produce incompatible byte layouts.
 

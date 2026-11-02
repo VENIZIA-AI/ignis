@@ -8,7 +8,9 @@ const TAG_BITS = TAG_BYTES * 8;
 /** What `crypto.subtle` takes. Every array here is backed by an `ArrayBuffer`; none is shared memory. */
 type TBytes = Uint8Array<ArrayBuffer>;
 
-type TCipherParams = { name: 'AES-CBC'; iv: TBytes } | { name: 'AES-GCM'; iv: TBytes; tagLength: number };
+type TCipherParams =
+  | { name: 'AES-CBC'; iv: TBytes }
+  | { name: 'AES-GCM'; iv: TBytes; tagLength: number };
 
 /**
  * AES-CBC and AES-GCM over `crypto.subtle`, shared by `AES` and `LegacyAES`. It keeps the layout of the
@@ -27,7 +29,11 @@ export class AesEngine {
     const { algorithm, key, iv, plain } = opts;
     const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: 'encrypt' });
     const sealed = new Uint8Array(
-      await crypto.subtle.encrypt(AesEngine.getParams({ algorithm, iv }), cryptoKey, plain as TBytes),
+      await crypto.subtle.encrypt(
+        AesEngine.getParams({ algorithm, iv }),
+        cryptoKey,
+        plain as TBytes,
+      ),
     );
 
     if (algorithm === AESAlgorithms.AES_256_GCM) {
@@ -65,7 +71,11 @@ export class AesEngine {
     }
 
     return new Uint8Array(
-      await crypto.subtle.decrypt(AesEngine.getParams({ algorithm, iv }), cryptoKey, input as TBytes),
+      await crypto.subtle.decrypt(
+        AesEngine.getParams({ algorithm, iv }),
+        cryptoKey,
+        input as TBytes,
+      ),
     );
   }
 
@@ -84,19 +94,20 @@ export class AesEngine {
       });
     }
 
-    return await crypto.subtle.importKey('raw', key as TBytes, { name: AesEngine.getName({ algorithm }) }, false, [
-      usage,
-    ]);
+    return await crypto.subtle.importKey(
+      'raw',
+      key as TBytes,
+      { name: AesEngine.getName({ algorithm }) },
+      false,
+      [usage],
+    );
   }
 
   private static getName(opts: { algorithm: AESAlgorithmType }): 'AES-CBC' | 'AES-GCM' {
     return opts.algorithm === AESAlgorithms.AES_256_GCM ? 'AES-GCM' : 'AES-CBC';
   }
 
-  private static getParams(opts: {
-    algorithm: AESAlgorithmType;
-    iv: Uint8Array;
-  }): TCipherParams {
+  private static getParams(opts: { algorithm: AESAlgorithmType; iv: Uint8Array }): TCipherParams {
     const { algorithm, iv } = opts;
 
     if (iv.length !== IV_BYTES) {
