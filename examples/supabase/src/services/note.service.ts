@@ -2,8 +2,8 @@ import { type SupabaseDataSource } from '@/datasources/supabase.datasource';
 import type { TNote } from '@/models/note.model';
 import { type NoteRepository } from '@/repositories/note.repository';
 import { BaseService, inject, service } from '@venizia/ignis';
-import type { IDatabaseTransaction } from '@venizia/ignis/postgres';
-import { SupabaseRls } from '@venizia/ignis/postgres/supabase';
+import type { IDatabaseTransaction } from '@venizia/ignis-connectors/postgres';
+import { SupabaseRls } from '@venizia/ignis-connectors/postgres/supabase';
 
 /**
  * Every write and every scoped read goes through `runAsUser`: open a transaction, establish the

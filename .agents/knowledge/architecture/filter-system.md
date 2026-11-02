@@ -109,7 +109,7 @@ SQLite mirrors the last two: `SqliteFilterBuilder` (`packages/connectors/src/rel
 
 The update transform has the same two-tier shape: `RelationalUpdateBuilder` (`packages/connectors/src/relational/core/repositories/dialect/update.ts`) is abstract with one abstract member, `composeJsonSet()`, and each engine overrides only that.
 
-**Export placement matters.** `FilterBuilder` resolves only from `@venizia/ignis/relational`. `PostgresFilterBuilder` resolves from `@venizia/ignis` and `@venizia/ignis/postgres`. There is no `FilterBuilder` alias in the Postgres tier - it would publish two different classes under one name across sibling sub-paths.
+**Export placement matters.** `FilterBuilder` resolves only from `@venizia/ignis-connectors/relational`. `PostgresFilterBuilder` resolves from `@venizia/ignis` and `@venizia/ignis-connectors/postgres`. There is no `FilterBuilder` alias in the Postgres tier - it would publish two different classes under one name across sibling sub-paths.
 
 A repository never constructs any of them; it asks its datasource for `getQueryDialect()`, which caches one `PostgresQueryDialect` instance statically on `AbstractPostgresDataSource`. `FilterBuilder` memoizes resolved relations per schema in a `WeakMap` (registry lookups are safe to cache because `@model` settings are immutable after boot); `TableColumnCache.get()` does the same for table columns. It declares the JSON-path methods `abstract` and spells no `#>>`/`#>` itself, so a second SQL engine gets a compile error rather than Postgres SQL. See [Relational connector](/architecture/relational-connector.md) for the exact override list.
 

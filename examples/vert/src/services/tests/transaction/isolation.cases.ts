@@ -1,4 +1,4 @@
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 import { DataTypes, ParseUtility } from '@venizia/ignis-helpers';
 import { BaseTestCases } from '../base-test.cases';
 

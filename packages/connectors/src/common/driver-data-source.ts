@@ -163,7 +163,7 @@ export abstract class AbstractDriverDataSource<
     const savedSettings = { ...(this.settings as AnyObject) };
 
     // Rotation only takes effect through this.settings + configure(); a configure() that
-    // hard-codes its connection string or reads Envs directly rebuilds with stale credentials.
+    // hard-codes its connection string or reads the environment directly rebuilds with stale credentials.
     Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
 
     // configure() overwrites this.client, so the new pool is captured

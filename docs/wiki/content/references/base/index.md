@@ -163,6 +163,6 @@ Each SQL engine binds every rung with one thin subclass. The bindings are siblin
 | `SoftDeletableRelationalRepository` | `SoftDeletableRepository` | `SoftDeletableSqliteRepository` |
 
 > [!NOTE] Where each name resolves
-> The Postgres names come from `@venizia/ignis` or `@venizia/ignis/postgres`, the SQLite names from `@venizia/ignis/sqlite`, and the neutral `*Relational*` names from `@venizia/ignis/relational`. The neutral names are deliberately absent from the engine subpaths, so `RelationalBaseRepository` and `BaseRelationalDataSource` do **not** resolve from `@venizia/ignis` or `@venizia/ignis/postgres`.
+> The Postgres names come from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`, the SQLite names from `@venizia/ignis-connectors/sqlite`, and the neutral `*Relational*` names from `@venizia/ignis-connectors/relational`. The neutral names are deliberately absent from the engine subpaths, so `RelationalBaseRepository` and `BaseRelationalDataSource` do **not** resolve from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`.
 
 > **Related:** [Core Concepts Guide](../../guides/core-concepts/application/) | [Persistent Layer Guide](../../guides/core-concepts/persistent/)

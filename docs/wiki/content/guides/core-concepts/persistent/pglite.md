@@ -6,8 +6,8 @@ PGlite is PostgreSQL compiled to WebAssembly. It runs inside your Bun process, w
 import { PGlite } from '@electric-sql/pglite';
 import { datasource } from '@venizia/ignis';
 import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { PGliteDriver } from '@venizia/ignis/postgres/pglite';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 
 @datasource({ driver: PGliteDriver })
 export class TestDataSource extends BasePostgresDataSource<{}, TAnyDataSourceSchema, {}, PGlite> {
@@ -52,8 +52,8 @@ Point PGlite at a directory and it persists there:
 import { PGlite } from '@electric-sql/pglite';
 import { datasource } from '@venizia/ignis';
 import type { TAnyDataSourceSchema, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { PGliteDriver } from '@venizia/ignis/postgres/pglite';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { PGliteDriver } from '@venizia/ignis-connectors/postgres/pglite';
 
 interface IDataSourceConfigs {
   dataDir: string;

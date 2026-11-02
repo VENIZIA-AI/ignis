@@ -22,12 +22,12 @@ tags: [architecture, connectors, drizzle, sqlite, libsql, relational]
 falsifies that tier: every seam `connectors/relational` declares abstract now has two
 implementations, not one.
 
-Reach it at `@venizia/ignis/sqlite`, and the driver at `@venizia/ignis/sqlite/libsql`.
+Reach it at `@venizia/ignis-connectors/sqlite`, and the driver at `@venizia/ignis-connectors/sqlite/libsql`.
 
 ```typescript
 import { datasource } from '@venizia/ignis';
-import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
-import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';
+import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
+import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
 import { createClient } from '@libsql/client';
 
 @datasource({ driver: LibSqlDriver })

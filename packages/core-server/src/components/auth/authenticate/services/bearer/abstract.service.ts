@@ -1,4 +1,4 @@
-import type { AESAlgorithmType, IPayloadCipher } from '@venizia/ignis-helpers';
+import type { AESAlgorithmType } from '@venizia/ignis-helpers';
 import { AES } from '@venizia/ignis-helpers';
 import type { ValueOrPromise } from '@venizia/ignis-helpers/common';
 import { HTTP } from '@venizia/ignis-helpers/common';
@@ -28,7 +28,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     'iat',
   ]);
 
-  protected aes: IPayloadCipher | null = null;
+  protected aes: AES | null = null;
   protected applicationSecret: string | null = null;
   protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
@@ -40,11 +40,9 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
     fieldCodecs?: IPayloadFieldCodec[];
-    /** Overrides the cipher. Pass `LegacyAES` to keep reading tokens issued before the PBKDF2 envelope; `aesAlgorithm` is then the cipher's own concern and is ignored here. */
-    cipher?: IPayloadCipher;
     sign?: IJWTSignOptions;
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, cipher, sign } = opts;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs, sign } = opts;
 
     this.signOptions = sign ?? null;
 
@@ -58,7 +56,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
       return;
     }
 
-    this.aes = cipher ?? AES.withAlgorithm(aesAlgorithm);
+    this.aes = AES.withAlgorithm(aesAlgorithm);
     this.applicationSecret = applicationSecret;
   }
 

@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, resolve } from 'node:path';
 import { AsyncStyleCommand } from './async-style';
+import { ConnectorImportsCommand } from './connector-imports';
 import { ConstClassesCommand } from './const-classes';
 import { DropRedundantCastsCommand } from './drop-redundant-casts';
 import { CodemodFiles } from './files';
@@ -71,9 +72,13 @@ export class CodemodCommand {
       return NamespaceFunctionsCommand.run({ root: opts.root, args: rest });
     }
 
+    if (name === 'connector-imports') {
+      return ConnectorImportsCommand.run({ root: opts.root, args: rest });
+    }
+
     if (args.includes(CodemodFlags.HELP) || args.includes(CodemodFlags.HELP_SHORT)) {
       console.log(
-        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}\n\n${NamespaceFunctionsCommand.USAGE}`,
+        `${USAGE}\n\n${DropRedundantCastsCommand.USAGE}\n\n${ConstClassesCommand.USAGE}\n\n${AsyncStyleCommand.USAGE}\n\n${NamespaceFunctionsCommand.USAGE}\n\n${ConnectorImportsCommand.USAGE}`,
       );
       return 0;
     }

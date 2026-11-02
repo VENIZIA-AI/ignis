@@ -4,8 +4,8 @@ import {
   PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
-import { authenticatedRole, authUid } from '@venizia/ignis/postgres/supabase';
+} from '@venizia/ignis-connectors/postgres';
+import { authenticatedRole, authUid } from '@venizia/ignis-connectors/postgres/supabase';
 import { sql } from 'drizzle-orm';
 import { boolean, index, pgPolicy, pgSchema, text, uuid } from 'drizzle-orm/pg-core';
 

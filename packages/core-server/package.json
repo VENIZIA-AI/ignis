@@ -100,50 +100,6 @@
       "types": "./dist/esm/index.d.ts",
       "default": "./dist/esm/index.js"
     },
-    "./postgres": {
-      "types": "./dist/esm/connectors/postgres/index.d.ts",
-      "default": "./dist/esm/connectors/postgres/index.js"
-    },
-    "./relational": {
-      "types": "./dist/esm/connectors/relational/index.d.ts",
-      "default": "./dist/esm/connectors/relational/index.js"
-    },
-    "./postgres/node-postgres": {
-      "types": "./dist/esm/connectors/postgres/drivers/node-postgres.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/node-postgres.js"
-    },
-    "./postgres/postgres-js": {
-      "types": "./dist/esm/connectors/postgres/drivers/postgres-js.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/postgres-js.js"
-    },
-    "./postgres/pglite": {
-      "types": "./dist/esm/connectors/postgres/drivers/pglite.d.ts",
-      "default": "./dist/esm/connectors/postgres/drivers/pglite.js"
-    },
-    "./postgres/supabase": {
-      "types": "./dist/esm/connectors/postgres/supabase/index.d.ts",
-      "default": "./dist/esm/connectors/postgres/supabase/index.js"
-    },
-    "./sqlite": {
-      "types": "./dist/esm/connectors/sqlite/index.d.ts",
-      "default": "./dist/esm/connectors/sqlite/index.js"
-    },
-    "./sqlite/libsql": {
-      "types": "./dist/esm/connectors/sqlite/drivers/libsql.d.ts",
-      "default": "./dist/esm/connectors/sqlite/drivers/libsql.js"
-    },
-    "./search": {
-      "types": "./dist/esm/connectors/search/index.d.ts",
-      "default": "./dist/esm/connectors/search/index.js"
-    },
-    "./search/controllers": {
-      "types": "./dist/esm/connectors/search/controllers/index.d.ts",
-      "default": "./dist/esm/connectors/search/controllers/index.js"
-    },
-    "./meilisearch": {
-      "types": "./dist/esm/connectors/meilisearch/index.d.ts",
-      "default": "./dist/esm/connectors/meilisearch/index.js"
-    },
     "./socket-io": {
       "types": "./dist/esm/components/socket-io/index.d.ts",
       "default": "./dist/esm/components/socket-io/index.js"
@@ -163,14 +119,6 @@
     "./websocket": {
       "types": "./dist/esm/components/websocket/index.d.ts",
       "default": "./dist/esm/components/websocket/index.js"
-    },
-    "./typesense": {
-      "types": "./dist/esm/connectors/typesense/index.d.ts",
-      "default": "./dist/esm/connectors/typesense/index.js"
-    },
-    "./typesense/controllers": {
-      "types": "./dist/esm/connectors/typesense/controllers/index.d.ts",
-      "default": "./dist/esm/connectors/typesense/controllers/index.js"
     },
     "./testing": {
       "types": "./dist/esm/testing/index.d.ts",
@@ -219,10 +167,8 @@
     "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@aws-sdk/client-sesv2": "^3.1154.0",
     "@connectrpc/connect": "^2.2.0",
-    "@electric-sql/pglite": "^0.5.10",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.3",
-    "@libsql/client": "^0.17.4",
     "@scalar/hono-api-reference": "^0.12.13",
     "@socket.io/bun-engine": "^0.1.2",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -234,13 +180,9 @@
     "hono": "^4.13.13",
     "jose": "^6.2.13",
     "mailgun.js": "^14.1.0",
-    "meilisearch": "^0.62.0",
     "nodemailer": "^10.1.7",
-    "pg": "^8.23.1",
-    "postgres": "^3.4.9",
     "socket.io": "^4.8.4",
-    "socket.io-client": "^4.8.4",
-    "typesense": "^3.2.0"
+    "socket.io-client": "^4.8.4"
   },
   "peerDependenciesMeta": {
     "@aws-sdk/client-sesv2": {
@@ -249,13 +191,7 @@
     "@connectrpc/connect": {
       "optional": true
     },
-    "@electric-sql/pglite": {
-      "optional": true
-    },
     "@hono/swagger-ui": {
-      "optional": true
-    },
-    "@libsql/client": {
       "optional": true
     },
     "@scalar/hono-api-reference": {
@@ -279,25 +215,13 @@
     "mailgun.js": {
       "optional": true
     },
-    "meilisearch": {
-      "optional": true
-    },
     "nodemailer": {
-      "optional": true
-    },
-    "pg": {
-      "optional": true
-    },
-    "postgres": {
       "optional": true
     },
     "socket.io": {
       "optional": true
     },
     "socket.io-client": {
-      "optional": true
-    },
-    "typesense": {
       "optional": true
     }
   },

@@ -15,7 +15,7 @@ IGNIS can load configuration and credentials from a vault instead of reading `pr
 
 Secrets reach your app through two paths:
 
-- **Hydrate** - at boot, IGNIS fetches secrets and merges them into `process.env` / `Envs`. Existing code that reads `process.env.APP_ENV_*` keeps working with no change.
+- **Hydrate** - at boot, IGNIS fetches secrets and merges them into `process.env` / `applicationEnvironment`. Existing code that reads `process.env.APP_ENV_*` keeps working with no change.
 - **Provider** - the resolved provider is bound in the container at `@app/config`. Inject it wherever you need on-demand reads, dynamic credentials, or rotation.
 
 You configure both in one place: a `registerSecrets()` override on your application class.
@@ -44,7 +44,7 @@ export class Application extends BaseApplication {
         // or: { method: VaultAuthMethods.KUBERNETES, role: 'my-app' }
       },
 
-      // Static KV v2 secrets -> merged into Envs once at boot.
+      // Static KV v2 secrets -> merged into applicationEnvironment once at boot.
       hydrate: [
         { path: 'secret/data/myapp/config' },                    // keys land as-is
         { path: 'secret/data/myapp/db', prefix: 'APP_ENV_DB_' }, // optional prefix - any name YOUR code reads
@@ -82,7 +82,7 @@ export class Application extends BaseApplication {
     return {
       provider: SecretProviders.DOTENV_VAULT,
       config: { path: '.env.vault', dotenvKey: process.env.DOTENV_KEY },
-      hydrate: [{ path: 'ignored' }], // decrypts the file and merges it into Envs
+      hydrate: [{ path: 'ignored' }], // decrypts the file and merges it into applicationEnvironment
     };
   }
 }
@@ -104,7 +104,7 @@ override registerSecrets() {
 
 ## Addressing and Merging
 
-Each `hydrate` entry resolves a path to a flat key-value object that is merged into `Envs` and `process.env`:
+Each `hydrate` entry resolves a path to a flat key-value object that is merged into `applicationEnvironment` and `process.env`:
 
 - **Convention** - store the keys in the vault already named `APP_ENV_...` and they merge as-is, no mapping needed.
 - **`prefix`** - prepend a string to every merged key.

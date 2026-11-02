@@ -1,7 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { User, type userTable } from '@/models/entities';
 import { repository } from '@venizia/ignis';
-import { PersistableRepository } from '@venizia/ignis/postgres';
+import { PersistableRepository } from '@venizia/ignis-connectors/postgres';
 
 /** `password` and `secret` are hidden properties, so no read or write here returns them. */
 @repository({ model: User, dataSource: PostgresDataSource })

@@ -54,8 +54,6 @@ const decrypted = await aes.decrypt({ message: encrypted, secret });
 
 The shipped salt is public and identical in every deployment, so it defeats a bare dictionary attack but not a table precomputed against that value. Pass your own `kdfSalt` for per-deployment isolation. Derived keys are memoised per secret, salt, iteration count and length, so repeated calls do not repeat the 100,000 rounds.
 
-The pad-or-truncate behaviour that predates this lives on `LegacyAES.normalizeSecretKeyLegacy` and nowhere else. It exists so data already written in the old envelope stays readable.
-
 **Class comparison**
 
 | Class | Base class | Secret type | Async | Best for |

@@ -93,8 +93,8 @@ import {
   PostgresIdEnricher,
   PostgresTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 // 1. Define the Drizzle table for 'Todo'
@@ -177,7 +177,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -264,7 +264,7 @@ Create `src/repositories/todo.repository.ts`:
 import { Todo, type todoTable } from '@/models/todo.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 // Both 'model' and 'dataSource' are required for schema auto-discovery
 @repository({ model: Todo, dataSource: PostgresDataSource })

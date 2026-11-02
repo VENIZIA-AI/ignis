@@ -91,8 +91,8 @@ import {
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar } from 'drizzle-orm/pg-core';
 
 export const categoryTable = pgTable('Category', {
@@ -130,8 +130,8 @@ import {
   PostgresTzEnricher,
   ModelFactory,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, decimal, integer, boolean } from 'drizzle-orm/pg-core';
 import { categoryTable } from './category.model';
 
@@ -174,8 +174,8 @@ import {
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
@@ -231,8 +231,8 @@ import {
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, varchar, decimal, integer, jsonb } from 'drizzle-orm/pg-core';
 import { productTable } from './product.model';
 
@@ -305,7 +305,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -363,7 +363,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 import { Product, type productTable } from '@/models/product.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: Product, dataSource: PostgresDataSource })
 export class ProductRepository extends DefaultCRUDRepository<typeof productTable> {}
@@ -376,7 +376,7 @@ export class ProductRepository extends DefaultCRUDRepository<typeof productTable
 import { Category, type categoryTable } from '@/models/category.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: Category, dataSource: PostgresDataSource })
 export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTable> {}
@@ -389,7 +389,7 @@ export class CategoryRepository extends DefaultCRUDRepository<typeof categoryTab
 import { Cart, CartItem, type cartTable, type cartItemTable } from '@/models/cart.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: CartItem, dataSource: PostgresDataSource })
 export class CartItemRepository extends DefaultCRUDRepository<typeof cartItemTable> {}
@@ -444,7 +444,7 @@ export class CartRepository extends DefaultCRUDRepository<typeof cartTable> {
 import { Order, OrderItem, type orderTable, type orderItemTable } from '@/models/order.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: OrderItem, dataSource: PostgresDataSource })
 export class OrderItemRepository extends DefaultCRUDRepository<typeof orderItemTable> {}

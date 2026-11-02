@@ -1,7 +1,7 @@
 import { SupabaseDataSource } from '@/datasources/supabase.datasource';
 import { Note, type noteTable } from '@/models/note.model';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 /**
  * An ordinary repository. Nothing here knows about RLS - the rows it is allowed to see are decided by

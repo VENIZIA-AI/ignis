@@ -151,15 +151,15 @@ interface IDataSourceCapabilities {
 
 ```
 AbstractDataSource                 (@venizia/ignis-kernel)
-└── AbstractRelationalDataSource   (@venizia/ignis/relational) - driver seam
-    └── BaseRelationalDataSource   (@venizia/ignis/relational) - discovery, transactions
-        ├── AbstractPostgresDataSource (@venizia/ignis/postgres) - dialect, executor
-        │   └── BasePostgresDataSource (@venizia/ignis/postgres) - BEGIN, isolation levels
-        └── AbstractSqliteDataSource   (@venizia/ignis/sqlite)
-            └── BaseSqliteDataSource   (@venizia/ignis/sqlite)
+└── AbstractRelationalDataSource   (@venizia/ignis-connectors/relational) - driver seam
+    └── BaseRelationalDataSource   (@venizia/ignis-connectors/relational) - discovery, transactions
+        ├── AbstractPostgresDataSource (@venizia/ignis-connectors/postgres) - dialect, executor
+        │   └── BasePostgresDataSource (@venizia/ignis-connectors/postgres) - BEGIN, isolation levels
+        └── AbstractSqliteDataSource   (@venizia/ignis-connectors/sqlite)
+            └── BaseSqliteDataSource   (@venizia/ignis-connectors/sqlite)
 ```
 
-None of these is an alias of another. `@venizia/ignis/postgres` does not re-export the two neutral names, so `import { BaseRelationalDataSource } from '@venizia/ignis/postgres'` does not resolve - use `@venizia/ignis/relational`.
+None of these is an alias of another. `@venizia/ignis-connectors/postgres` does not re-export the two neutral names, so `import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres'` does not resolve - use `@venizia/ignis-connectors/relational`.
 
 ### `AbstractRelationalDataSource`
 
@@ -217,7 +217,7 @@ The fourth generic, `Client`, is what lets a postgres-js datasource declare `Cli
 > [!NOTE] Driver seam
 > - **Class, not a string.** `@datasource({ driver })` names the driver **class** (`NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver`, `LibSqlDriver`). A driver-name string cannot carry the client package into the app's bundle - only a real class reference can.
 > - **`configure()` only assigns `this.client`.** The protected `wireDriverFromMetadata()` (called internally by `getConnector()`/`resolveDriver()`) instantiates the named class over it and builds `this.connector`, lazily and idempotently.
-> - **Where the drivers live.** Every client package is an optional peer dependency. The concrete drivers live at `@venizia/ignis/postgres/node-postgres`, `@venizia/ignis/postgres/postgres-js`, `@venizia/ignis/postgres/pglite` and `@venizia/ignis/sqlite/libsql`, with Supabase support at `@venizia/ignis/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
+> - **Where the drivers live.** Every client package is an optional peer dependency. The concrete drivers live at `@venizia/ignis-connectors/postgres/node-postgres`, `@venizia/ignis-connectors/postgres/postgres-js`, `@venizia/ignis-connectors/postgres/pglite` and `@venizia/ignis-connectors/sqlite/libsql`, with Supabase support at `@venizia/ignis-connectors/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
 ### `BaseRelationalDataSource`
 
@@ -266,7 +266,7 @@ abstract class BasePostgresDataSource<
 `AbstractPostgresDataSource` supplies `getQueryDialect()` and `getQueryExecutor()` as process-wide singletons, and pins `TConnector` to a Drizzle `PgDatabase`. `BasePostgresDataSource` supplies `buildBeginStatement()` and attaches `isolationLevel` to the transaction handle, validating the level before it reaches the SQL string.
 
 > [!TIP] Naming
-> `BasePostgresDataSource` is the class to extend for Postgres. `import { BaseDataSource } from '@venizia/ignis'` (or `@venizia/ignis/postgres`) resolves to the exact same class via a re-export in `connectors/postgres/datasources/index.ts`, so existing code is unaffected. `BaseRelationalDataSource` is a **different, wider** class and is not published on the postgres subpath.
+> `BasePostgresDataSource` is the class to extend for Postgres. `import { BaseDataSource } from '@venizia/ignis'` (or `@venizia/ignis-connectors/postgres`) resolves to the exact same class via a re-export in `connectors/postgres/datasources/index.ts`, so existing code is unaffected. `BaseRelationalDataSource` is a **different, wider** class and is not published on the postgres subpath.
 
 #### Key features
 
@@ -312,8 +312,8 @@ This means tables and relations never need to be manually merged in the datasour
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
 
@@ -378,8 +378,8 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof Config
 
 ```typescript
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 import { User, userTable, userRelations } from '@/models/user.model';
 import { Configuration, configurationTable, configurationRelations } from '@/models/configuration.model';
@@ -502,10 +502,10 @@ Four concrete drivers ship today, all satisfying `IRelationalDriver` and all pro
 
 | Driver | Subpath | Package | Notes |
 |---|---|---|---|
-| `NodePostgresDriver` | `@venizia/ignis/postgres/node-postgres` | `pg` | Rejects a client without `connect()` **and** `totalCount` (pool accounting) - catches a bare `pg.Client` |
-| `PostgresJsDriver` | `@venizia/ignis/postgres/postgres-js` | `postgres` | Rejects a client without `reserve()` **and** `unsafe()` - catches a `pg.Pool` passed to the wrong driver |
-| `PGliteDriver` | `@venizia/ignis/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process, reporting PostgreSQL 18.x, so the dialect works unchanged. One session, so `acquire()` hands out a one-slot pool |
-| `LibSqlDriver` | `@venizia/ignis/sqlite/libsql` | `@libsql/client` | Covers `:memory:`, a local file, remote Turso and embedded replicas. Async result kind, so it never blocks the event loop. Also a one-slot pool |
+| `NodePostgresDriver` | `@venizia/ignis-connectors/postgres/node-postgres` | `pg` | Rejects a client without `connect()` **and** `totalCount` (pool accounting) - catches a bare `pg.Client` |
+| `PostgresJsDriver` | `@venizia/ignis-connectors/postgres/postgres-js` | `postgres` | Rejects a client without `reserve()` **and** `unsafe()` - catches a `pg.Pool` passed to the wrong driver |
+| `PGliteDriver` | `@venizia/ignis-connectors/postgres/pglite` | `@electric-sql/pglite` | Postgres compiled to WASM, in-process, reporting PostgreSQL 18.x, so the dialect works unchanged. One session, so `acquire()` hands out a one-slot pool |
+| `LibSqlDriver` | `@venizia/ignis-connectors/sqlite/libsql` | `@libsql/client` | Covers `:memory:`, a local file, remote Turso and embedded replicas. Async result kind, so it never blocks the event loop. Also a one-slot pool |
 
 - **PGlite and libsql hold one session.** A `createConnector()` write runs **inside** any open transaction and dies with its `ROLLBACK`. Under concurrency, write through `acquire()`. Both drivers time an unreleased slot out after 30 seconds, turning a leaked transaction into a named error instead of a hung process.
 - **Driver asymmetry, deliberate.** After a failed `COMMIT`, `pg` can destroy the poisoned connection (`release(err)`). postgres-js has no destroy semantics - `ReservedSql.release()` takes no argument - so it returns the connection to the pool regardless.
@@ -623,7 +623,7 @@ interface IDatabaseTransaction<Schema extends TAnyDataSourceSchema = TAnyDataSou
 ### Isolation levels
 
 ```typescript
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 
 IsolationLevels.READ_COMMITTED   // 'READ COMMITTED' - default, prevents dirty reads
 IsolationLevels.REPEATABLE_READ  // 'REPEATABLE READ' - consistent reads within the transaction
@@ -639,7 +639,7 @@ IsolationLevels.isValid('INVALID');        // false
 ### Usage example
 
 ```typescript
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 import { userTable, profileTable } from '@/schemas';
 
 const transaction = await postgresDataSource.beginTransaction({

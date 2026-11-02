@@ -2,9 +2,6 @@ import type { TConstValue } from '@/common';
 
 export const DEFAULT_CIPHER_BITS = 256;
 
-/** Legacy padEnd key-stretching char, no longer used - keys now derive via PBKDF2 (`DEFAULT_KDF_*`). Kept only so existing imports do not break. */
-export const DEFAULT_PAD_END = (0x00).toString();
-
 /**
  * Public and identical across every deployment, so it stops a bare dictionary attack but not a
  * table precomputed against this value - pass `kdfSalt` for per-deployment isolation. Never

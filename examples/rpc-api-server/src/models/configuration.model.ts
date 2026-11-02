@@ -4,7 +4,7 @@ import {
   PostgresUserAuditEnricher,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const configurationTable = pgTable('configurations', {

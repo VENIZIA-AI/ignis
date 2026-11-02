@@ -310,8 +310,8 @@ DataSources automatically discover their schema from the repositories that bind 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BaseRelationalDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {

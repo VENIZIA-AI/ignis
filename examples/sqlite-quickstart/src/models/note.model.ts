@@ -6,7 +6,7 @@ import {
   ModelFactory,
   one,
   type TEntityObject,
-} from '@venizia/ignis/sqlite';
+} from '@venizia/ignis-connectors/sqlite';
 import { type AnySQLiteColumn, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // SQLite has no `jsonb` or `timestamptz` storage class, so both become text columns.

@@ -1,6 +1,7 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 // `node:crypto` is the REFERENCE here only: it writes the stored envelopes the service must still read.
 import C from 'node:crypto';
+import { AES } from '@venizia/ignis-helpers';
 import { decodeJwt, SignJWT } from 'jose';
 import type { IJWSTokenServiceOptions, IJWTTokenPayload } from '@/components/auth';
 import { JWSTokenService } from '@/components/auth';
@@ -134,31 +135,21 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
     );
   });
 
-  test('a cipher that answers at once (a string, not a promise) is still accepted', async () => {
-    const service = buildService({
-      cipher: {
-        encrypt: (opts) => Buffer.from(opts.message).toString('base64'),
-        decrypt: (opts) => Buffer.from(opts.message, 'base64').toString(),
-      },
-    });
-    const token = await service.generate({ payload: { userId: 9, roles: [] } });
+  test('an encryption that fails makes generate reject, and no token comes out', async () => {
+    const encrypt = spyOn(AES.prototype, 'encrypt');
 
-    const result3 = await service.verify({ type: 'Bearer', token });
-    expect(result3.userId).toBe(9);
-  });
+    try {
+      encrypt.mockRejectedValue(new Error('cipher unavailable'));
+      const service = buildService();
 
-  test('a cipher that fails makes generate reject, and no token comes out', async () => {
-    const service = buildService({
-      cipher: {
-        encrypt: () => Promise.reject(new Error('cipher unavailable')),
-        decrypt: () => Promise.reject(new Error('cipher unavailable')),
-      },
-    });
+      const message = await rejectionMessage({
+        promise: service.generate({ payload: { userId: 1, roles: [] } }),
+      });
 
-    const result4 = await rejectionMessage({
-      promise: service.generate({ payload: { userId: 1, roles: [] } }),
-    });
-    expect(result4).toContain('cipher unavailable');
+      expect(message).toContain('cipher unavailable');
+    } finally {
+      encrypt.mockRestore();
+    }
   });
 
   test('a tampered claim is refused before any decryption', async () => {

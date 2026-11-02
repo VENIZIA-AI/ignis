@@ -14,8 +14,8 @@ The smallest real model: a Drizzle table, and an entity class built from it with
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -57,7 +57,7 @@ Enrichers return column definitions - spread them into the table. `PostgresIdEnr
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, PostgresTzEnricher, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, PostgresTzEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const articleTable = pgTable('Article', {
@@ -76,8 +76,8 @@ Point each relation at a **table**, never at another entity class. `one` reads i
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 

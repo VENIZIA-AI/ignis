@@ -111,4 +111,3 @@ const resolveApplicationEnvironment = (): ApplicationEnvironment => {
 export const applicationEnvironment = resolveApplicationEnvironment();
 
 export const AppEnvs = applicationEnvironment;
-export const Envs = applicationEnvironment;

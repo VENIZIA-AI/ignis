@@ -45,7 +45,7 @@ while every concrete connector chain stays in `@venizia/ignis`. The public impor
 ## The relational chain
 
 The five-class chain lives in `connectors/relational` - the engine-neutral SQL tier, reachable at the
-`@venizia/ignis/relational` sub-path - not in `connectors/postgres`. `connectors/postgres` extends it
+`@venizia/ignis-connectors/relational` sub-path - not in `connectors/postgres`. `connectors/postgres` extends it
 one-for-one: five thin subclasses that add no behavior and only rebind the two engine-facing type
 parameters. Full account, including the two ports a datasource supplies (`IRelationalQueryDialect`,
 `IRelationalQueryExecutor`) and what stays genuinely Postgres-only:

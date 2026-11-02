@@ -260,7 +260,7 @@ Declare the table, then build the class from it. The full contract is in [`Model
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis/postgres';
+import { generateIdColumnDefs, ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -279,7 +279,7 @@ Define schema and relations as static properties. Repositories auto-resolve them
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { BaseEntity, model, generateIdColumnDefs, RelationTypes } from '@venizia/ignis';
-import type { TRelationConfig } from '@venizia/ignis/postgres';
+import type { TRelationConfig } from '@venizia/ignis-connectors/postgres';
 import { Comment } from './comment.model';
 
 export const userTable = pgTable('User', {
@@ -329,8 +329,8 @@ Builds an entity class from a drizzle table, so the table name, the id and the r
 `Source ->` [`packages/connectors/src/relational/core/models/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/connectors/src/relational/core/models/factory.ts)
 
 ```typescript
-import { many, ModelFactory, one } from '@venizia/ignis/postgres';
-import type { TDefinedEntityClass, TEntityObject } from '@venizia/ignis/postgres';
+import { many, ModelFactory, one } from '@venizia/ignis-connectors/postgres';
+import type { TDefinedEntityClass, TEntityObject } from '@venizia/ignis-connectors/postgres';
 ```
 
 ```typescript
@@ -342,7 +342,7 @@ class ModelFactory {
 }
 ```
 
-It ships from `@venizia/ignis/postgres` and from `@venizia/ignis-connectors/relational`, `/postgres` and `/sqlite`.
+It ships from `@venizia/ignis-connectors/postgres` and from `@venizia/ignis-connectors/relational`, `/postgres` and `/sqlite`.
 
 ### Options
 
@@ -1075,7 +1075,7 @@ const entity = new User();
 entity.getIdType(); // 'string' | 'number'
 
 // PostgreSQL connector - standalone utility inspecting a raw Drizzle schema
-import { RelationalEntityUtility } from '@venizia/ignis/postgres';
+import { RelationalEntityUtility } from '@venizia/ignis-connectors/postgres';
 RelationalEntityUtility.getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
 ```
 

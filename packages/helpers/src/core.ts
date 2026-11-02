@@ -58,7 +58,7 @@ export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utilit
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
 // `ECDH` is the one crypto algorithm that is browser-pure: it runs over `crypto.subtle`, `btoa` and `atob`. It and its
-// base class come by leaf path, never the algorithms barrel, which also carries `AES`, `LegacyAES` and `RSA`
+// base class come by leaf path, never the algorithms barrel, which also carries `AES` and `RSA`
 // (server code: they use `Buffer`, and `AES` reads files with `node:fs`).
 export { AbstractCryptoAlgorithm } from './modules/crypto/algorithms/abstract.algorithm';
 export { ECDH } from './modules/crypto/algorithms/ecdh.algorithm';
@@ -73,5 +73,4 @@ export type {
 // themselves part of this pure surface.
 export { AESAlgorithms } from './modules/crypto/algorithms/aes.constants';
 export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constants';
-export type { IPayloadCipher } from './modules/crypto/common/types';
 export type { IRedisHelper } from './modules/redis/common/interfaces';

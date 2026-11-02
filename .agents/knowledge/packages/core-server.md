@@ -119,11 +119,11 @@ The engine-neutral bases live in the kernel; every engine-specific implementatio
 on top of it, and `search` (engine-neutral) with `typesense` and `meilisearch` on top of it. The root
 barrel re-exports only the `postgres` connector, because it never value-imports a client library;
 `relational`, `sqlite`, `search`, `typesense` and `meilisearch` are sub-path exports only
-(`@venizia/ignis/relational`, `/sqlite`, `/search`, `/typesense`, `/meilisearch`), which is what keeps
+(`@venizia/ignis-connectors/relational`, `/sqlite`, `/search`, `/typesense`, `/meilisearch`), which is what keeps
 their client packages optional peers. A datasource's driver is named by passing the driver CLASS to
 `@datasource({ driver })`, not a string - a class reference is what actually pulls an optional peer
 into a consumer's bundle. `/search` and `/typesense` no longer carry the search controllers - they
-come from `@venizia/ignis/search/controllers` or `/typesense/controllers` - and `RecursiveTreeSql`
+come from `@venizia/ignis-connectors/search/controllers` or `/typesense/controllers` - and `RecursiveTreeSql`
 moved from `kernel` to `connectors`; the root still exports it through the postgres alias (see
 [connectors](/packages/connectors.md)). DataSources auto-discover their schema from every `@repository` binding that
 references them; no manual schema wiring is needed.

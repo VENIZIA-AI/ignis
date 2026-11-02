@@ -15,8 +15,8 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`, `AESAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`, `RSAAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`, `ECDHAlgorithmType`, `IECDHEncryptedPayload`, `IECDHExtraOptions`
-- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`, `IPayloadCipher`
-- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_PAD_END`, `DEFAULT_KDF_SALT`, `DEFAULT_KDF_ITERATIONS`, `DEFAULT_KDF_DIGEST`, `MINIMUM_KDF_SALT_BYTES`, `MINIMUM_RSA_MODULUS_BITS`, `HashAlgorithms`, `HashOutputEncodings`
+- [`packages/helpers/src/modules/crypto/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/types.ts) - `ICryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/common/constants.ts) - `DEFAULT_CIPHER_BITS`, `DEFAULT_KDF_SALT`, `DEFAULT_KDF_ITERATIONS`, `DEFAULT_KDF_DIGEST`, `MINIMUM_KDF_SALT_BYTES`, `MINIMUM_RSA_MODULUS_BITS`, `HashAlgorithms`, `HashOutputEncodings`
 - [`packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/hash.algorithm.ts) - `Hash`
 
 ## Quick Reference
@@ -32,7 +32,7 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 
 ```typescript
 // Algorithm classes
-import { AES, LegacyAES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
+import { AES, RSA, ECDH, Hash } from '@venizia/ignis-helpers';
 
 // Hash const-classes
 import { HashAlgorithms, HashOutputEncodings } from '@venizia/ignis-helpers';
@@ -56,7 +56,6 @@ import type {
   IECDHEncryptedPayload,
   IECDHExtraOptions,
   ICryptoAlgorithm,
-  IPayloadCipher,
 } from '@venizia/ignis-helpers';
 ```
 
@@ -163,7 +162,7 @@ The secret is run through `normalizeSecretKey` to the algorithm's key size (32 b
 The version byte is `0x01`. The key id is the entry `decrypt` looks up in a keyring - `'0'` when `secret` is a bare string.
 
 > [!WARNING] This envelope is not the pre-PBKDF2 one
-> Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it. Read that data with [`LegacyAES`](#legacyaes) instead.
+> Ciphertext written before this format started with the raw IV and derived its key by padding the secret. `decrypt` rejects it on its version byte; re-encrypt that data with the key you still hold.
 
 ```typescript
 import C from 'node:crypto';
@@ -240,45 +239,6 @@ Rotating means prepending a new entry, not re-encrypting the estate. Drop an old
 |---|---|---|
 | `'my-secret'` | that string | `'0'` |
 | `[{ id, secret }, ...]` | the FIRST entry | that entry's `id` |
-
-### LegacyAES
-
-`Source ->` [`packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes-legacy.algorithm.ts)
-
-`LegacyAES` reproduces the pre-PBKDF2 behaviour exactly: the key is the secret padded with `'0'` (or truncated) to the algorithm's key size, and the output is `IV [+ GCM auth tag] + ciphertext` with no version header.
-
-Reach for it when you hold data written by an earlier IGNIS and do not want to re-encrypt it. The API mirrors `AES`, minus the keyring - `secret` is a plain string. Like `AES`, its `encrypt`, `decrypt`, `encryptFile` and `decryptFile` return a Promise.
-
-```typescript
-import { LegacyAES } from '@venizia/ignis-helpers';
-
-const legacy = LegacyAES.withAlgorithm('aes-256-cbc');
-const plaintext = await legacy.decrypt({ message: rowWrittenBeforeTheUpgrade, secret: APPLICATION_SECRET });
-```
-
-The two formats never cross-decrypt, by design. `AES` rejects a legacy envelope on its version byte; `LegacyAES` fails the auth tag on a new one. Nothing falls back silently in either direction.
-
-### IPayloadCipher - choosing the cipher a component uses
-
-A component that encrypts on your behalf takes `IPayloadCipher`, the string-in/string-out slice both classes satisfy. A cipher may answer at once with a string or with a Promise of one; `AES` and `LegacyAES` answer with a Promise:
-
-```typescript
-export interface IPayloadCipher {
-  encrypt(opts: { message: string; secret: string }): string | Promise<string>;
-  decrypt(opts: { message: string; secret: string }): string | Promise<string>;
-}
-```
-
-The bearer-token services accept it as `cipher`. An application holding tokens issued before the envelope change keeps them readable by handing over the legacy cipher instead of invalidating every session:
-
-```typescript
-new JWSTokenService({
-  jwtSecret,
-  getTokenExpiresFn,
-  applicationSecret,
-  cipher: LegacyAES.withAlgorithm('aes-256-cbc'), // omit it and you get AES
-});
-```
 
 ## RSA
 

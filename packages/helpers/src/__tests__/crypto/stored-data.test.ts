@@ -2,14 +2,13 @@ import { describe, expect, spyOn, test } from 'bun:test';
 // `node:crypto` is the REFERENCE here only: it proves what the old implementation read and wrote.
 import C from 'node:crypto';
 import { AES, type AESAlgorithmType } from '../../modules/crypto/algorithms/aes.algorithm';
-import { LegacyAES } from '../../modules/crypto/algorithms/aes-legacy.algorithm';
 import { RSA } from '../../modules/crypto/algorithms/rsa.algorithm';
 import fixtures from './fixtures/stored-ciphertexts.json';
 import { Rejection } from './rejection';
 
 /**
  * Known-answer fixtures recorded with the synchronous `node:crypto` implementation, before `AES`,
- * `LegacyAES`, `RSA` and the PBKDF2 key derivation moved to `crypto.subtle`. Whatever is already
+ * `RSA` and the PBKDF2 key derivation moved to `crypto.subtle`. Whatever is already
  * stored must still read, and the new code must still write the same bytes for the same input.
  */
 
@@ -24,9 +23,6 @@ type TAesFixture = {
 };
 
 const aesFixtures = fixtures.aes as TAesFixture[];
-const legacyFixtures = fixtures.legacy as Array<
-  Omit<TAesFixture, 'kdf' | 'secret'> & { secret: string }
->;
 
 describe('AES: what is stored still reads, and the same input writes the same bytes', () => {
   for (const fixture of aesFixtures) {
@@ -131,36 +127,6 @@ describe('AES: what is stored still reads, and the same input writes the same by
         Buffer.concat([decipher.update(stored.subarray(cursor)), decipher.final()]).toString(),
       ).toBe(message);
     }
-  });
-});
-
-describe('LegacyAES: what is stored still reads, and the same input writes the same bytes', () => {
-  for (const fixture of legacyFixtures) {
-    test(fixture.name, async () => {
-      const cipher = LegacyAES.withAlgorithm(fixture.algorithm);
-
-      const result = await cipher.decrypt({ message: fixture.stored, secret: fixture.secret });
-      expect(result).toBe(fixture.message);
-      const result2 = await cipher.encrypt({
-        message: fixture.message,
-        secret: fixture.secret,
-        opts: { iv: Buffer.from(fixture.ivHex, 'hex') },
-      });
-      expect(result2).toBe(fixture.stored);
-    });
-  }
-
-  test('a secret whose UTF-8 bytes are not 32 long is refused, never run as a shorter AES key', async () => {
-    // 20 characters of 2 bytes each slice to 20 characters (40 bytes): not a 256-bit key.
-    const cipher = LegacyAES.withAlgorithm('aes-256-cbc');
-
-    const result3 = await Rejection.messageOf({
-      promise: cipher.encrypt({ message: 'x', secret: 'é'.repeat(20) }),
-    });
-    expect(result3).toBeString();
-    // 8 ASCII characters pad to 32 bytes, so this one is fine.
-    const result4 = await cipher.encrypt({ message: 'x', secret: 'abcdefgh' });
-    expect(result4).toBeString();
   });
 });
 

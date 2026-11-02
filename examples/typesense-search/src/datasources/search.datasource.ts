@@ -1,5 +1,5 @@
 import { datasource } from '@venizia/ignis';
-import { TypesenseDataSource } from '@venizia/ignis/typesense';
+import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
 import { ParseUtility } from '@venizia/ignis-helpers';
 
 // Matches examples/typesense-search/docker-compose.yml, which maps host port 18108 to the

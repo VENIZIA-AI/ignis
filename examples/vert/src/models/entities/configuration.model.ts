@@ -7,7 +7,7 @@ import {
   ModelFactory,
   one,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 

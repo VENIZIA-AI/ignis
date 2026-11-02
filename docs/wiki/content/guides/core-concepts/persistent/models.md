@@ -11,8 +11,8 @@ import {
   PostgresIdEnricher,
   PostgresTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -47,7 +47,7 @@ import {
   PostgresUserAuditEnricher,
   ModelFactory,
   one,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
@@ -160,7 +160,7 @@ Protect sensitive data by configuring properties that are **never returned** thr
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -240,7 +240,7 @@ Declare your model's authorization principal directly in `@model` settings. The 
 
 ```typescript
 import { AuthorizationActions, model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const articleTable = pgTable('Article', {
@@ -302,8 +302,8 @@ Feed that list to whatever builds your `drizzle-kit` schema file. `examples/vert
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const myModelTable = pgTable('MyModel', {
