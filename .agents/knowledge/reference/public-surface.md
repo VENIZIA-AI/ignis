@@ -12,7 +12,7 @@ generated:
 
 ## dev-configs
 
-### `@venizia/dev-configs` (55)
+### `@venizia/dev-configs` (53)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -30,7 +30,6 @@ generated:
 - `houseConfigs` const
 - `houseEslintPlugin` const
 - `IOxlintPresetOptions` interface
-- `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
 - `LintIgnore` class
@@ -52,7 +51,6 @@ generated:
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
-- `ReactEslintConfigs` class
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
@@ -74,7 +72,7 @@ generated:
 
 - `BunCompiler` class
 
-### `@venizia/dev-configs/linters` (54)
+### `@venizia/dev-configs/linters` (52)
 
 - `AstNode` class
 - `AstNodeTypes` class
@@ -91,7 +89,6 @@ generated:
 - `houseConfigs` const
 - `houseEslintPlugin` const
 - `IOxlintPresetOptions` interface
-- `IReactEslintPlugins` interface
 - `IRestrictedImportPath` interface
 - `IRestrictedProperty` interface
 - `LintIgnore` class
@@ -113,7 +110,6 @@ generated:
 - `PreferNullishCoalescingRule` class
 - `PromiseChainSupport` class
 - `reactAsyncStyleConfigs` const
-- `ReactEslintConfigs` class
 - `reactHouseConfigs` const
 - `reactNamingConventionConfigs` const
 - `ReactOxlintConfigs` class
@@ -215,7 +211,7 @@ generated:
 
 ## inversion
 
-### `@venizia/ignis-inversion` (73)
+### `@venizia/ignis-inversion` (72)
 
 - `AbstractContainer` class
 - `AnyType` type
@@ -256,7 +252,6 @@ generated:
 - `ObjectUtility` class
 - `ResolverUtility` class
 - `TAbstractConstructor` type
-- `TApplicationError` type
 - `TAsyncResolver` type
 - `TBindingKey` type
 - `TBindingProvider` type
@@ -293,7 +288,7 @@ generated:
 
 ## filter
 
-### `@venizia/ignis-filter` (23)
+### `@venizia/ignis-filter` (18)
 
 - `QueryOperators` class
 - `Sorts` class
@@ -304,22 +299,17 @@ generated:
 - `TIsoTimestamp` type
 - `TJsonColumnKey` type
 - `TJsonPathKey` type
-- `TLimit` type
-- `TOffset` type
-- `TOrderBy` type
 - `TOrderEntry` type
 - `TParsedOrderEntry` type
-- `TQueryOperator` type
 - `TRow` type
 - `TSelectedRow` type
-- `TSkip` type
 - `TSortDirection` type
 - `TSqlFragment` type
 - `TWhere` type
 - `TWhereOperators` type
 - `TWhereValue` type
 
-### `@venizia/ignis-filter/schemas` (12)
+### `@venizia/ignis-filter/schemas` (11)
 
 - `FieldsSchema` const
 - `FilterSchema` const
@@ -329,7 +319,6 @@ generated:
 - `OrderBySchema` const
 - `QuerySchemaFactory` class
 - `SkipSchema` const
-- `TQuerySchemas` type
 - `TSchemaDecorator` type
 - `TSchemaMetadata` type
 - `WhereSchema` const
@@ -1236,7 +1225,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (417)
+### `@venizia/ignis-kernel` (410)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1390,7 +1379,6 @@ generated:
 - `IEventHandlerRetryOptions` interface
 - `IExtraOptions` interface
 - `IGrpcControllerMetadata` interface
-- `IInjectMetadata` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
@@ -1413,7 +1401,6 @@ generated:
 - `InjectableUtility` class
 - `IPayloadFieldCodec` interface
 - `IPersistableRepository` interface
-- `IPropertyMetadata` interface
 - `IProvideMetadata` interface
 - `IProvider` interface
 - `IQueryHandlerOptions` interface
@@ -1595,21 +1582,17 @@ generated:
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
 - `TJWTTokenServiceOptions` type
-- `TLimit` type
 - `TLockConfig` type
 - `TLockOptions` type
 - `TLockStrength` type
 - `TMixinOpts` type
 - `TModelClass` type
 - `TModelType` type
-- `TOffset` type
-- `TOrderBy` type
 - `TOrderEntry` type
 - `TOrigin` type
 - `TParsedOrderEntry` type
 - `TPlannedGrantRow` type
 - `TPolicyDomainInput` type
-- `TQueryOperator` type
 - `TQueryOperatorHandlers` type
 - `trackableHeaders` const
 - `TRegistryDescriptor` type
@@ -1642,7 +1625,6 @@ generated:
 - `TServiceCallerEntry` type
 - `TSignInRequest` type
 - `TSignUpRequest` type
-- `TSkip` type
 - `TSortDirection` type
 - `TSqlFragment` type
 - `TSubsetGrantMetadata` type
@@ -2077,7 +2059,7 @@ generated:
 - `SupabaseRls` class
 - `TPoolerMode` type
 
-### `@venizia/ignis-connectors/sqlite` (72)
+### `@venizia/ignis-connectors/sqlite` (71)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -2096,7 +2078,6 @@ generated:
 - `ISqliteExtraOptions` interface
 - `ISqliteTransaction` interface
 - `ISqliteTransactionOptions` interface
-- `isSqliteTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `many` const
@@ -2361,7 +2342,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1013)
+### `@venizia/ignis` (1005)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2394,7 +2375,6 @@ generated:
 - `api` const
 - `ApiReferenceBindingKeys` class
 - `ApiReferenceComponent` class
-- `App` class
 - `AppEnvs` const
 - `applicationEnvironment` const
 - `ApplicationEnvironment` class
@@ -2690,7 +2670,6 @@ generated:
 - `IHfLogFlusherOptions` interface
 - `IHfQueueNode` interface
 - `IIdGeneratorOptions` interface
-- `IInjectMetadata` interface
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
@@ -2742,7 +2721,6 @@ generated:
 - `IPostgresDataSource` interface
 - `IPostPolicy` interface
 - `IPrintOptions` interface
-- `IPropertyMetadata` interface
 - `IProvideMetadata` interface
 - `IProvider` interface
 - `IQueryHandlerOptions` interface
@@ -3196,7 +3174,6 @@ generated:
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
 - `TJWTTokenServiceOptions` type
-- `TLimit` type
 - `TLockConfig` type
 - `TLockOptions` type
 - `TLockStrength` type
@@ -3212,11 +3189,9 @@ generated:
 - `TNullable` type
 - `TNumberConstValue` type
 - `TObjectFromFieldMappings` type
-- `TOffset` type
 - `TOnVisit` type
 - `TOnVisitAsync` type
 - `TOptions` type
-- `TOrderBy` type
 - `TOrderEntry` type
 - `TOrigin` type
 - `TParsedOrderEntry` type
@@ -3231,7 +3206,6 @@ generated:
 - `TPrimaryKey` type
 - `TPrincipalEnricherOptions` type
 - `TPrincipalPolicyRow` type
-- `TQueryOperator` type
 - `TQueryOperatorHandlers` type
 - `TQueryStringNestedMode` type
 - `TQueryStringNullishMode` type
@@ -3295,7 +3269,6 @@ generated:
 - `TServiceCallerEntry` type
 - `TSignInRequest` type
 - `TSignUpRequest` type
-- `TSkip` type
 - `TSoftDeletableTableSchema` type
 - `TSortDirection` type
 - `TSqlFragment` type
@@ -3564,7 +3537,7 @@ generated:
 - `SupabaseRls` class
 - `TPoolerMode` type
 
-### `@venizia/ignis/sqlite` (72)
+### `@venizia/ignis/sqlite` (71)
 
 - `AbstractSqliteDataSource` class
 - `BaseSqliteDataSource` class
@@ -3583,7 +3556,6 @@ generated:
 - `ISqliteExtraOptions` interface
 - `ISqliteTransaction` interface
 - `ISqliteTransactionOptions` interface
-- `isSqliteTransaction` const
 - `IStatementResult` interface
 - `ITransformedUpdateData` interface
 - `many` const

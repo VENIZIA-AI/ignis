@@ -122,5 +122,3 @@ export const isApplicationError = (error: unknown): error is ApplicationError =>
     typeof normalized.text === 'string'
   );
 };
-
-export type TApplicationError = ApplicationError;

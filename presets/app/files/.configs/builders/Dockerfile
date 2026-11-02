@@ -5,7 +5,7 @@
 # The whole project is the build context (trimmed by the root .dockerignore), because the preset
 # cannot know which workspace packages the app imports. List them by hand for better layer caching.
 
-FROM docker.io/oven/bun:1.4.3-alpine AS base
+FROM docker.io/oven/bun:1.4.4-alpine AS base
 
 # A private npm mirror, if the build has no access to the public registry.
 ARG BUN_CONFIG_REGISTRY=

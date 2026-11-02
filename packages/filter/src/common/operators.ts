@@ -1,4 +1,4 @@
-import { getError, type TConstValue } from '@venizia/ignis-inversion';
+import { getError } from '@venizia/ignis-inversion';
 import type { TParsedOrderEntry, TSortDirection } from './types';
 
 // Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported operators throw at translation time rather than being removed from this list.
@@ -238,5 +238,3 @@ export class QueryOperators {
     return this.SCHEME_SET.has(orgType);
   }
 }
-
-export type TQueryOperator = TConstValue<typeof QueryOperators>;

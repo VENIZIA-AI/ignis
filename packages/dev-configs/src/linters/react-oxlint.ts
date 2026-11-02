@@ -8,10 +8,9 @@ import type { IOxlintPresetOptions } from './oxlint';
 const SOURCE_FILES = ['**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'];
 
 /**
- * The oxlint counterpart of `ReactEslintConfigs`: `BrowserOxlintConfigs` (the base rules plus the
- * secure-context ban) plus the React, hooks and accessibility rules and `consistent-type-imports`.
- * oxlint runs these plugins natively, so nothing is passed in. `react/no-deprecated` has no oxlint
- * port and is left out.
+ * The React preset: `BrowserOxlintConfigs` (the base rules plus the secure-context ban) plus the React,
+ * hooks and accessibility rules and `consistent-type-imports`. oxlint runs these plugins natively,
+ * so nothing is passed in. `react/no-deprecated` has no oxlint port and is left out.
  *
  * Nothing in the base is relaxed - frontend code meets the backend's standard - and
  * `exhaustive-deps` is an error. Takes the same options as `OxlintConfigs`.
@@ -36,7 +35,7 @@ export class ReactOxlintConfigs {
         {
           files: JSX_FILES,
           rules: {
-            // Correctness rules from react's recommended set, as in ReactEslintConfigs.
+            // Correctness rules from react's recommended set.
             'react/display-name': 'error',
             'react/jsx-boolean-value': 'error',
             'react/jsx-key': 'error',
