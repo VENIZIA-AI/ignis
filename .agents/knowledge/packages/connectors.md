@@ -163,6 +163,13 @@ the call site. It imports no driver: `scripts/checks/purity/manifest.ts` measure
 sub-path (`connectors/testing [import] 44.4 KB`), even though nothing ships it to a browser on
 purpose - it exists for `bun test`, not for an application bundle.
 
+The three doubles are generic over the connector, `TransactionDouble<TConnector = never>`. The optional
+`connector` option makes the `connector` getter return it, typed `TConnector` (inferred from the value, or
+named: `new PostgresTransactionDouble<TRelationalConnector>(...)`); without it the getter throws and is
+`never`, as before. `onCommit` and `onRollback` run awaited when the end statement is reached: after the
+count goes up, before `commitError`/`rollbackError`; a throw from a hook fails the end. PGlite has no double
+of its own: its connector is the Postgres `TRelationalConnector`, so `PostgresTransactionDouble` is its double.
+
 ## The 15 published sub-paths
 
 Every peer is optional in `peerDependenciesMeta`; a sub-path needs what it imports. Measured on
