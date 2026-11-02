@@ -21,9 +21,12 @@ import './home.css';
 import './footer.css';
 import './topbar.css';
 import './docs-shell.css';
+import './docs-blocks.css';
 import './changelog.css';
+import AtAGlance from './AtAGlance.vue';
 import ChangelogIndex from './ChangelogIndex.vue';
 import SiteLayout from './SiteLayout.vue';
+import WhereToStart from './WhereToStart.vue';
 import HomeLanding from '../HomeLanding.vue';
 import { HOME, SITE } from '../home-content';
 
@@ -33,5 +36,7 @@ export default {
   enhanceApp({ app }) {
     app.component('HomeLanding', HomeLanding);
     app.component('ChangelogIndex', ChangelogIndex);
+    app.component('AtAGlance', AtAGlance);
+    app.component('WhereToStart', WhereToStart);
   },
 } satisfies Theme;

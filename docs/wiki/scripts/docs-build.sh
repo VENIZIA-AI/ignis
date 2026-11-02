@@ -22,8 +22,9 @@ if [ "$status" -ne 0 ]; then
   exit "$status"
 fi
 
-# After vitepress: the built home page must hold its footer and canvases, no output line may carry a
-# server render error (scripts/checks/wiki-build.ts).
-bun ../../scripts/checks/wiki-build.ts "$LOG"
+# After vitepress: the shared build check reads the output and the built pages (a server render error
+# in the log; the home page's hero, footer, canvases and top bar; the style sheets; an inner page with
+# no footer). Only `--check --log` here: without `--check` it would build again.
+bun site/.vitepress/theme/shared/build-check.ts --check --log "$LOG"
 
 echo "DONE | Build completed successfully!"
