@@ -1,5 +1,5 @@
 {
-  "fingerprint": "cd5b208271d4e4a48ff7c00a20cc924159c016c93b668772aa70b6e3e73f9626",
+  "fingerprint": "a74e2ec203fbe49fef2d70e9616bcb23ff185ad18f47a41446fb28da1779fe86",
   "files": {
     "AtAGlance.vue": "82a497e03e3214a0aabca18d2dcf581bd2e9379c4d13594d0df48ce74f398991",
     "ChangelogEntryHead.vue": "f39ba1e011c369954e9a1cdf64dc0f3eefc965365e0e5a4fc99182753db70a2a",
@@ -18,8 +18,8 @@
     "assets/ardor-logo.svg": "370cc37bed3b3fbbce546a24e5c04b0037ad5e1ef20cb17e78f3df93ceca93e7",
     "assets/ignis-logo.svg": "5457a4bd3cf5bdbfd0ff5f3f47a5ddbffbd4645381f2813237bc7de07c443e39",
     "assets/vulcan-logo.svg": "9f712481c19058885c89cf9eb91becbf44d212e32e7aa892ab40ed4a1b005e40",
-    "base.css": "975a04d4c0ed1e85178ed5f7445567a2822ab55810162dfec8c016cd8f41e1a5",
-    "build-check.ts": "f998fa731998b51410dcba00dc4029c771a671781ea98ed3581f9dd6b837173d",
+    "base.css": "4928454f81f5489982fd9badc1b63ebf2a0d15731db1c846c8f543dfe3e3faea",
+    "build-check.ts": "898862b6b7ec16f039adc18d43db95b02c6bfceb50d1517d744fea4319e2abcd",
     "changelog-entries.ts": "601e1878dd5e5b6d73d8f7e8ae09b4d86d1d2a4d08069714b03312b7a2014f9f",
     "changelog-feed.ts": "65f4c38ac8e1525decf6208f621b2bbac90b98b3428e02f07a4ae674e5c6dc24",
     "changelog-loader.ts": "8c090caed3c345328b1247007e12e07d57f1671e8b9815e8aaa0eb522dbeea7b",
@@ -47,7 +47,7 @@
     "theme-switch.css": "cbf2c2b3a7be26b5e7cfa632a9cd005f01efa36242be8f7684f0460d4c0285f7",
     "toggle-appearance.ts": "77ea0c377f0d7ba8cecd26580a6e79a5b173c1bc140c80516ddf67f94395c04c",
     "tokens.css": "e244e478721015cc052765846e2bfee35de5f6f81ee9f39bfb22fb1154029bc3",
-    "topbar.css": "a49f76431cb3e862c16479bb0b79a516bacaffc0bd3aa544fc8c337cf5033240",
+    "topbar.css": "d1612e86f0b588e8068bc8d761628345a3608ddd74b66aaf82a78335ac664340",
     "useBarState.ts": "9f1b085b25c23418d562689ea4907c69e30cba39dbc54263b95986235c573364",
     "useDust.ts": "5be17dbe6d3c288f0b796f66248187c59c69169c0b3a170e6feacb1737ff020e",
     "useReveal.ts": "85ae4377440194d728f18545aeb2e51790e5c4eb674a511092a35ec974b0157b",

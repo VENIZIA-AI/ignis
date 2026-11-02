@@ -16,7 +16,9 @@
  *     draw one each) or fewer than two `.btn` links in the hero, or its top bar lacks the brand or the
  *     venizia.ai link, or has the old ecosystem switcher;
  *   - the built style sheets lack the button's arrow (the `--arrow-ne` mask on `.btn::after`, and the 40 px
- *     `.btn`) or hold the static dot pattern that the dust replaced;
+ *     `.btn`), hold the static dot pattern that the dust replaced, or lack what keeps the page from
+ *     scrolling sideways at 320 px (the body without the default 320 px minimum width, the brand name
+ *     hidden below 400 px);
  *   - a built inner page has a footer (inner pages have none) or lacks the top bar.
  *
  * A hydration warning itself appears only in a browser; the server HTML checked here is its cause.
@@ -60,6 +62,10 @@ const BUTTON = /<a\b[^>]*class="btn\b/g;
 const BUTTON_ARROW = /\.vh \.btn::?after\s*\{[^}]*var\(--arrow-ne\)/;
 /** A `.btn` rule with its own `height: 40px` declaration, not `min-height` or `line-height`. */
 const BUTTON_HEIGHT = /\.vh \.btn\s*\{(?:[^}]*;)?\s*height:\s*40px/;
+/** The body without the default theme's `min-width: 320px`: a 320 px window with a classic scrollbar scrolls sideways with it. */
+const BODY_NO_MINIMUM = /html body\s*\{[^}]*min-width:\s*0/;
+/** Below 400 px the brand's name and divider give way to the search and menu buttons. */
+const NARROW_BRAND = /max-width:\s*399px\)\s*\{[^}]*\.brand-name[^}]*display:\s*none/;
 /** The static dot pattern the dust replaced: a radial gradient of dots on a pixel grid. */
 const DOT_PATTERN = /radial-gradient\(circle at [\d.]+px [\d.]+px/;
 
@@ -168,6 +174,16 @@ export class BuildCheck {
 
     if (!BUTTON_HEIGHT.test(opts.css)) {
       problems.push('the built style sheets have no 40 px high .btn (the Figma button)');
+    }
+
+    if (!BODY_NO_MINIMUM.test(opts.css)) {
+      problems.push(
+        'the built style sheets keep the body at least 320 px wide (no `html body { min-width: 0 }`)',
+      );
+    }
+
+    if (!NARROW_BRAND.test(opts.css)) {
+      problems.push('the built style sheets do not hide the brand name below 400 px');
     }
 
     if (DOT_PATTERN.test(opts.css)) {

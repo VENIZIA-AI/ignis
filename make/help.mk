@@ -62,7 +62,6 @@ help:
 	@$(HELP_ROW) "surface-check" "Gate: the public surface equals the snapshot."
 	@$(HELP_ROW) "atlas-releases" "Print the releases atlas computes from the git tags."
 	@$(HELP_ROW) "atlas-symbols" "Print the symbols atlas reads from the built .d.ts."
-	@$(HELP_ROW) "changelogs-migrate" "Write a packages: list into every changelog that declares none."
 	@$(HELP_ROW) "wiki-links-check" "Gate: every source path the wiki and knowledge bundle name exists."
 	@$(HELP_ROW) "wiki-anchors-check" "Gate: every wiki '#fragment' link resolves. Needs a build (make docs)."
 	@$(HELP_ROW) "vulcan-sync" "Write the gitignored agent adapters (CLAUDE.md, .claude/) with VULCAN."

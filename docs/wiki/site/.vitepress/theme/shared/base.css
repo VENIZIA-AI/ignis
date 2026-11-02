@@ -1,6 +1,12 @@
 /* The rules every wiki shares: the same selector and the same declarations in the style.css of VULCAN, IGNIS and ARDOR.
  * Product-only rules stay in each wiki's style.css; edit this file in VULCAN, never in a copy. */
 
+/* the default theme keeps the body at least 320 px wide, so a window 320 px wide with a classic scrollbar (15 px)
+   scrolls sideways, and one narrower still more */
+html body {
+  min-width: 0;
+}
+
 .content-container {
   max-width: 100% !important;
 }
