@@ -105,7 +105,8 @@ describe('devz codemod --write without a path', () => {
     test('--check with no path still checks the tree', async () => {
       commit({ 'src/a.test.ts': INLINE });
 
-      expect(await run(['async-style', '--check'])).toBe(1);
+      const code1 = await run(['async-style', '--check']);
+      expect(code1).toBe(1);
     });
 
     test('--all together with a path is a contradiction', async () => {
@@ -132,14 +133,17 @@ describe('devz codemod --write without a path', () => {
     test('--write with a path, and --write --all, are accepted', async () => {
       commit({ 'src/a.ts': UNION });
 
-      expect(await run(['const-classes', '--write', 'src'])).not.toBe(2);
-      expect(await run(['const-classes', '--write', '--all'])).not.toBe(2);
+      const code2 = await run(['const-classes', '--write', 'src']);
+      expect(code2).not.toBe(2);
+      const code3 = await run(['const-classes', '--write', '--all']);
+      expect(code3).not.toBe(2);
     });
 
     test('a dry run with no path is not refused', async () => {
       commit({ 'src/a.ts': UNION });
 
-      expect(await run(['const-classes'])).not.toBe(2);
+      const code4 = await run(['const-classes']);
+      expect(code4).not.toBe(2);
     });
   });
 
@@ -158,13 +162,15 @@ describe('devz codemod --write without a path', () => {
     test('--all together with a path is a contradiction', async () => {
       commit({ 'src/a.ts': UNION });
 
-      expect(await run(['drop-redundant-casts', '--write', '--all', 'src'])).toBe(2);
+      const code5 = await run(['drop-redundant-casts', '--write', '--all', 'src']);
+      expect(code5).toBe(2);
     });
 
     test('a dry run with no path is not refused', async () => {
       commit({ 'src/a.ts': UNION });
 
-      expect(await run(['drop-redundant-casts'])).not.toBe(2);
+      const code6 = await run(['drop-redundant-casts']);
+      expect(code6).not.toBe(2);
     });
   });
 
