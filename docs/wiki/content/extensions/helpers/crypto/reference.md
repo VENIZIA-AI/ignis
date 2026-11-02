@@ -25,7 +25,7 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 | `AES` | `BaseCryptoAlgorithm` | `TAESSecret` - `string \| IAESKeyringEntry[]` | No | Node `node:crypto` |
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | No | Node `node:crypto` |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Web Crypto (`crypto.subtle`) |
-| `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Node `node:crypto` |
+| `Hash` | `BaseHelper` | `string` (HMAC only - `digest` takes none) | No | Bun (`Bun.CryptoHasher`) |
 
 ### Import paths
 

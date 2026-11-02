@@ -1,5 +1,4 @@
 import { getError } from '@venizia/ignis-helpers/core';
-import { createHmac, timingSafeEqual } from 'node:crypto';
 import { StaticAssetErrors } from './errors';
 
 /** What a commit token binds. Business fields are deliberately absent - which order or tenant an upload belongs to is the application's, and a token the framework signs is the wrong place to put its authorization. */
@@ -16,7 +15,7 @@ export class AssetCommitToken {
   }
 
   private static sign(opts: { body: string; secretKey: string }): string {
-    return createHmac('sha256', opts.secretKey).update(opts.body).digest('base64url');
+    return new Bun.CryptoHasher('sha256', opts.secretKey).update(opts.body).digest('base64url');
   }
 
   /** Signs `{ bucket, key, expiresAt }` so the commit route can trust the key it is handed. */
@@ -43,7 +42,7 @@ export class AssetCommitToken {
     const given = Buffer.from(signature);
 
     // Length-checked first: `timingSafeEqual` throws on a length mismatch instead of answering false.
-    if (expected.length !== given.length || !timingSafeEqual(expected, given)) {
+    if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) {
       throw getError(StaticAssetErrors.INVALID_COMMIT_TOKEN);
     }
 

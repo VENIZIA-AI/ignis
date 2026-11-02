@@ -368,8 +368,8 @@ await executor.setProcessor(
 
 | Generator | Implements | Behavior |
 |-----------|-----------|----------|
-| `NumericCodeGenerator` | `IVerificationCodeGenerator` | `crypto.randomInt(0, 10^length)`, zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
-| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `crypto.randomBytes(bytes).toString('base64url')` -- 32 bytes produces a 43-character string, URL-safe, no padding |
+| `NumericCodeGenerator` | `IVerificationCodeGenerator` | a uniform random integer in `[0, 10^length)` from `crypto.getRandomValues` (rejection sampling, so no code is likelier), zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
+| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `bytes` random bytes from `crypto.getRandomValues`, as base64url -- 32 bytes produces a 43-character string, URL-safe, no padding |
 | `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators via `@inject`, producing a full `IVerificationData` with separate expiries |
 
 `DefaultVerificationDataGenerator.generateVerificationData()` returns:
