@@ -521,7 +521,7 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 
 | Method | Returns | Notes |
 |---|---|---|
-| `hash({ password, cost? })` | `Promise<string>` | A bcrypt hash (`$2b$`, 60 characters). `cost` is an integer from 4 to 31, default 10. An empty or non-string password and a cost out of range throw. A hash written for a password longer than 72 bytes is read by Bun only, not by the `bcrypt` package |
+| `hash({ password, algorithm?, cost? })` | `Promise<string>` | `algorithm` is `'argon2id'` (default, the default parameters of `Bun.password`, `$argon2id$`) or `'bcrypt'` (`$2b$`, 60 characters). `cost` is for bcrypt only: an integer from 4 to 31, default 10. An empty or non-string password, an unknown algorithm, a cost with argon2id and a cost out of range throw. A bcrypt hash written for a password longer than 72 bytes is read by Bun only, not by the `bcrypt` package |
 | `verify({ password, hash })` | `Promise<boolean>` | Reads any bcrypt hash, and an argon2 hash. An empty or non-string password or hash is `false`. A stored value that is not a password hash throws with status 500. A bcrypt hash is retried with the first 72 bytes of a longer password, the way the `bcrypt` package reads it: for legacy hashes only, a hash written by `hash` never needs it |
 
 ## API Summary
@@ -546,7 +546,7 @@ const sha256Hmac = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({
 | `Hash.withAlgorithm(algorithm)` | `Hash` | `Hash` | Get the memoized instance for an algorithm |
 | `digest(opts)` | `Hash` | `string` | Plain digest, no secret |
 | `hmac(opts)` | `Hash` | `string` | Keyed HMAC, secret required |
-| `CredentialHelper.hash(opts)` | `CredentialHelper` | `Promise<string>` | A bcrypt password hash over `Bun.password` |
+| `CredentialHelper.hash(opts)` | `CredentialHelper` | `Promise<string>` | An argon2id (default) or bcrypt password hash over `Bun.password` |
 | `CredentialHelper.verify(opts)` | `CredentialHelper` | `Promise<boolean>` | Check a password against a stored hash |
 
 ## Troubleshooting

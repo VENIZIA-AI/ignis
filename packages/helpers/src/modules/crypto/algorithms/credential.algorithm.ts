@@ -1,5 +1,10 @@
 import { HTTP } from '@/common/constants';
 import { getError } from '@/modules/error';
+import {
+  CredentialAlgorithms,
+  DEFAULT_CREDENTIAL_ALGORITHM,
+  type TCredentialAlgorithm,
+} from '../common';
 
 /** The bcrypt versions the `bcrypt` package writes. */
 const BCRYPT_PREFIX = /^\$2[aby]\$/;
@@ -11,13 +16,15 @@ const MAX_COST = 31;
 const DEFAULT_COST = 10;
 
 /**
- * Storing and checking a credential (a password) over `Bun.password`, with the stored format of the
- * `bcrypt` package: `hash` writes a bcrypt hash (`$2b$`, 60 characters), and `verify` reads every existing
- * bcrypt hash, so a stored password is never rehashed or migrated. Needs Bun: it throws on another runtime.
+ * Storing and checking a credential (a password) over `Bun.password`. `hash` writes an argon2id hash with
+ * Bun's default parameters unless `algorithm: 'bcrypt'` asks for bcrypt (`$2b$`, 60 characters, the stored
+ * format of the `bcrypt` package). `verify` reads every existing bcrypt and argon2 hash, whichever
+ * algorithm `hash` wrote, so a stored password is never rehashed or migrated. Needs Bun: it throws on
+ * another runtime.
  *
- * Passwords longer than 72 bytes are where Bun and the `bcrypt` package differ. The package keeps only the
- * first 72 bytes; Bun keeps all of them, by hashing a longer password before bcrypt sees it. Two things
- * follow, and they are the whole truth about "the same format":
+ * Passwords longer than 72 bytes are where Bun and the `bcrypt` package differ, and it only matters for
+ * bcrypt. The package keeps only the first 72 bytes; Bun keeps all of them, by hashing a longer password
+ * before bcrypt sees it. Two things follow, and they are the whole truth about "the same format":
  *
  * - A hash `hash` writes for a password longer than 72 bytes is read by Bun only. The `bcrypt` package
  *   cannot verify it, so rolling back to that package, or another service reading the same column, locks
@@ -29,9 +36,17 @@ const DEFAULT_COST = 10;
  *   password followed by anything, the way bcrypt itself always has.
  */
 export class CredentialHelper {
-  /** A bcrypt hash of `password`; `cost` (4 to 31, default 10) is the work factor, `2 ** cost` rounds. */
-  static async hash(opts: { password: string; cost?: number }): Promise<string> {
-    const { password, cost = DEFAULT_COST } = opts;
+  /**
+   * A hash of `password`: argon2id by default (Bun's default parameters), bcrypt with `algorithm: 'bcrypt'`.
+   * For bcrypt, `cost` (4 to 31, default 10) is the work factor, `2 ** cost` rounds. `cost` with argon2id
+   * is refused rather than ignored: a caller who tuned a cost is told the default changed.
+   */
+  static async hash(opts: {
+    password: string;
+    algorithm?: TCredentialAlgorithm;
+    cost?: number;
+  }): Promise<string> {
+    const { password, algorithm = DEFAULT_CREDENTIAL_ALGORITHM, cost } = opts;
 
     CredentialHelper.assertBun({ caller: 'hash' });
 
@@ -41,13 +56,31 @@ export class CredentialHelper {
       });
     }
 
-    if (!Number.isInteger(cost) || cost < MIN_COST || cost > MAX_COST) {
+    if (typeof algorithm !== 'string' || !CredentialAlgorithms.isValid(algorithm)) {
       throw getError({
-        message: `[CredentialHelper.hash] Invalid cost | Expected an integer from ${MIN_COST} to ${MAX_COST} | Got: ${cost}`,
+        message: `[CredentialHelper.hash] Invalid algorithm | Expected one of ${[...CredentialAlgorithms.SCHEME_SET].join(', ')} | Got: ${String(algorithm)}`,
       });
     }
 
-    return Bun.password.hash(password, { algorithm: 'bcrypt', cost });
+    if (algorithm === CredentialAlgorithms.ARGON2ID) {
+      if (cost !== undefined && cost !== null) {
+        throw getError({
+          message: `[CredentialHelper.hash] Invalid cost | cost applies to bcrypt only | Pass algorithm: 'bcrypt' to keep a bcrypt cost, or drop cost for argon2id`,
+        });
+      }
+
+      return Bun.password.hash(password, { algorithm: 'argon2id' });
+    }
+
+    const bcryptCost = cost ?? DEFAULT_COST;
+
+    if (!Number.isInteger(bcryptCost) || bcryptCost < MIN_COST || bcryptCost > MAX_COST) {
+      throw getError({
+        message: `[CredentialHelper.hash] Invalid cost | Expected an integer from ${MIN_COST} to ${MAX_COST} | Got: ${bcryptCost}`,
+      });
+    }
+
+    return Bun.password.hash(password, { algorithm: 'bcrypt', cost: bcryptCost });
   }
 
   /**

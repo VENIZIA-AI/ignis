@@ -336,7 +336,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (419)
+### `@venizia/ignis-helpers` (422)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -380,11 +380,13 @@ generated:
 - `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
+- `CredentialAlgorithms` class
 - `CredentialHelper` class
 - `D_STROKE_REPLACEMENTS` const
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
+- `DEFAULT_CREDENTIAL_ALGORITHM` const
 - `DEFAULT_HASH_OUTPUT_ENCODING` const
 - `DEFAULT_KDF_DIGEST` const
 - `DEFAULT_KDF_ITERATIONS` const
@@ -636,6 +638,7 @@ generated:
 - `TContentType` type
 - `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
+- `TCredentialAlgorithm` type
 - `TDurationUnit` type
 - `TemporalDurationStyles` class
 - `TemporalHelper` class
@@ -2358,7 +2361,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1010)
+### `@venizia/ignis` (1013)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2503,6 +2506,7 @@ generated:
 - `CoreErrorCodes` class
 - `countableHeaders` const
 - `CountSchema` const
+- `CredentialAlgorithms` class
 - `CredentialHelper` class
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
@@ -2513,6 +2517,7 @@ generated:
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
 - `DEFAULT_CIPHER_BITS` const
+- `DEFAULT_CREDENTIAL_ALGORITHM` const
 - `DEFAULT_HASH_OUTPUT_ENCODING` const
 - `DEFAULT_KDF_DIGEST` const
 - `DEFAULT_KDF_ITERATIONS` const
@@ -3099,6 +3104,7 @@ generated:
 - `TCountResponse` type
 - `TcpClientStates` class
 - `TCreateRedisHelperOptions` type
+- `TCredentialAlgorithm` type
 - `TCustomGrantMetadata` type
 - `TCustomGrantRow` type
 - `TCustomizableRouteConfig` type

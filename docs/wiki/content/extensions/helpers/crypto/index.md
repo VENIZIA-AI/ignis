@@ -64,7 +64,7 @@ The pad-or-truncate behaviour that predates this lives on `LegacyAES.normalizeSe
 | `RSA` | `BaseCryptoAlgorithm` | `string` (base64 DER key) | Yes | Public-key encryption, small payloads |
 | `ECDH` | `AbstractCryptoAlgorithm` | `CryptoKey` | Yes | Session key exchange with forward secrecy |
 | `Hash` | `BaseHelper` | `string` (HMAC only, no secret for a plain digest) | No | Digests and HMACs - no `decrypt`, a digest cannot be reversed |
-| `CredentialHelper` | none (static methods) | none | Yes | Storing and checking passwords: bcrypt over `Bun.password` |
+| `CredentialHelper` | none (static methods) | none | Yes | Storing and checking passwords: argon2id or bcrypt over `Bun.password` |
 
 `AES` supports two modes selected at construction: `aes-256-cbc` (plain block cipher) and `aes-256-gcm` (authenticated - detects tampering). Everything on this page uses the default options.
 
@@ -133,16 +133,19 @@ const token = Hash.withAlgorithm(HashAlgorithms.SHA256).hmac({ message: 'payload
 
 ### Store and check a password
 
-`CredentialHelper` writes a bcrypt hash (`$2b$`, 60 characters, cost 10 unless you pass `cost`, 4 to 31) and reads every existing bcrypt hash, including the ones the `bcrypt` package wrote, so no stored password is rehashed. It needs Bun. Never use `Hash` for a password: a digest is fast, a password hash is slow on purpose.
+`CredentialHelper` writes an argon2id hash (`$argon2id$`, the default parameters of `Bun.password`). Pass `algorithm: 'bcrypt'` to write bcrypt instead (`$2b$`, 60 characters, cost 10 unless you pass `cost`, 4 to 31; `cost` with argon2id throws). It reads every existing bcrypt and argon2 hash, including the ones the `bcrypt` package wrote, so no stored password is rehashed. It needs Bun. Never use `Hash` for a password: a digest is fast, a password hash is slow on purpose.
 
 ```typescript
 import { CredentialHelper } from '@venizia/ignis-helpers';
 
 const stored = await CredentialHelper.hash({ password: 'hunter2' });
 const ok = await CredentialHelper.verify({ password: 'hunter2', hash: stored });
+
+// keep writing bcrypt
+const legacy = await CredentialHelper.hash({ password: 'hunter2', algorithm: 'bcrypt' });
 ```
 
-A password longer than 72 bytes needs care, because the `bcrypt` package keeps only its first 72 bytes and Bun keeps all of it:
+A bcrypt hash of a password longer than 72 bytes needs care (argon2id has no such limit), because the `bcrypt` package keeps only its first 72 bytes and Bun keeps all of it:
 
 - **Reading old hashes.** `verify` retries a bcrypt hash with the first 72 bytes, so a user whose long password was hashed by the package can still sign in. This retry is for those legacy hashes: a hash that `hash` wrote is read on the first attempt and never depends on it. The price is that a hash of a password of exactly 72 bytes also accepts that password followed by anything, the way bcrypt always has.
 - **Rolling back.** A hash that `hash` writes for a password longer than 72 bytes is read by Bun only. The `bcrypt` package cannot verify it, so going back to that package, or another service reading the same column, locks those users out. Up to 72 bytes the two read each other's hashes.

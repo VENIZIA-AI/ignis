@@ -703,7 +703,7 @@ class UserService extends BaseService {
   }
 
   async create(data: CreateUserDto) {
-    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialHelper` (bcrypt over
+    // Business logic. Passwords want a slow, salted KDF, so this is `CredentialHelper` (argon2id over
     // `Bun.password`), not the digest helper - `Hash` is for message digests and HMACs, never for credentials.
     const hashedPassword = await CredentialHelper.hash({ password: data.password });
 

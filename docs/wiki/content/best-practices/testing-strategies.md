@@ -196,7 +196,7 @@ describe('UserService', () => {
 
       const createCall = (mockRepository.create as ReturnType<typeof mock>).mock.calls[0][0];
       expect(createCall.data.password).not.toBe('secret123');
-      expect(createCall.data.password).toMatch(/^\$2[aby]?\$/); // bcrypt hash
+      expect(createCall.data.password).toMatch(/^\$argon2id\$/); // argon2id hash
     });
   });
 
