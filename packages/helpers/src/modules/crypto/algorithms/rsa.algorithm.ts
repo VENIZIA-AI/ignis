@@ -11,7 +11,7 @@ interface IRSAExtraOptions {
 export type RSAAlgorithmType = 'rsa';
 
 /**
- * OAEP with SHA-1 for both the label hash and MGF1, and the public exponent 65537: what `node:crypto`'s
+ * OAEP with SHA-1 for both the label hash and MGF1, and the public exponent 65537: what Node's
  * `publicEncrypt`/`privateDecrypt` and `generateKeyPairSync('rsa')` used by default, so keys and
  * ciphertext written by earlier releases still work. Do not change them: every ciphertext stored under
  * them would stop decrypting.
@@ -82,12 +82,12 @@ export class RSA extends BaseCryptoAlgorithm<
         false,
         ['encrypt'],
       );
-      const rs = await crypto.subtle.encrypt(
+      const cipherBytes = await crypto.subtle.encrypt(
         { name: OAEP.name },
         key,
         Buffer.from(message, inputEncoding.message),
       );
-      return Buffer.from(rs).toString(outputEncoding);
+      return Buffer.from(cipherBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;
@@ -117,12 +117,12 @@ export class RSA extends BaseCryptoAlgorithm<
         false,
         ['decrypt'],
       );
-      const rs = await crypto.subtle.decrypt(
+      const plainBytes = await crypto.subtle.decrypt(
         { name: OAEP.name },
         key,
         Buffer.from(message, inputEncoding.message),
       );
-      return Buffer.from(rs).toString(outputEncoding);
+      return Buffer.from(plainBytes).toString(outputEncoding);
     } catch (error) {
       if (doThrow) {
         throw error;

@@ -2,6 +2,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import { AES, LegacyAES } from '@/modules/crypto/algorithms';
+import { Rejection } from './rejection';
 
 const SECRET_32 = 'abcdefghijklmnopqrstuvwxyz012345'; // exactly 32 chars
 const SECRET_SHORT = 'short';
@@ -66,14 +67,18 @@ describe('LegacyAES (backward-compat)', () => {
       const legacy = LegacyAES.withAlgorithm('aes-256-gcm');
       const modern = AES.withAlgorithm('aes-256-gcm');
       const enc = await legacy.encrypt({ message: 'old data', secret: SECRET_32 });
-      await expect(modern.decrypt({ message: enc, secret: SECRET_32 })).rejects.toThrow();
+      expect(
+        await Rejection.messageOf({ promise: modern.decrypt({ message: enc, secret: SECRET_32 }) }),
+      ).toBeString();
     });
 
     test('LTC-008: LegacyAES cannot decrypt new AES ciphertext', async () => {
       const legacy = LegacyAES.withAlgorithm('aes-256-gcm');
       const modern = AES.withAlgorithm('aes-256-gcm');
       const enc = await modern.encrypt({ message: 'new data', secret: SECRET_32 });
-      await expect(legacy.decrypt({ message: enc, secret: SECRET_32 })).rejects.toThrow();
+      expect(
+        await Rejection.messageOf({ promise: legacy.decrypt({ message: enc, secret: SECRET_32 }) }),
+      ).toBeString();
     });
   });
 });

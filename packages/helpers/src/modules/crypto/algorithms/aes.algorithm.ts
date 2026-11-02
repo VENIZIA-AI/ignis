@@ -82,7 +82,7 @@ export class AES extends BaseCryptoAlgorithm<
     const length = this.getAlgorithmKeySize();
 
     if (!Array.isArray(secret)) {
-      return await this.normalizeSecretKey({ secret, length, kdfSalt, kdfIterations });
+      return this.normalizeSecretKey({ secret, length, kdfSalt, kdfIterations });
     }
 
     const entry = secret.find((e) => e.id === id);
@@ -99,7 +99,7 @@ export class AES extends BaseCryptoAlgorithm<
       });
     }
 
-    return await this.normalizeSecretKey({
+    return this.normalizeSecretKey({
       secret: entry.secret,
       length,
       kdfSalt,
@@ -127,6 +127,13 @@ export class AES extends BaseCryptoAlgorithm<
       const idBuffer = Buffer.from(id, 'utf-8');
       if (idBuffer.length > 0xff) {
         throw getError({ message: '[AES][encrypt] Key id too long (max 255 bytes)' });
+      }
+
+      // `decrypt` reads exactly DEFAULT_LENGTH bytes of IV from the envelope, so any other length would write a ciphertext nothing can read.
+      if (iv.length !== DEFAULT_LENGTH) {
+        throw getError({
+          message: `[AES][encrypt] The IV must be ${DEFAULT_LENGTH} bytes, got ${iv.length}`,
+        });
       }
 
       const { cipherText, authTag } = await AesEngine.seal({
@@ -164,7 +171,7 @@ export class AES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    return await this.encrypt({ message: fileContent, secret });
+    return this.encrypt({ message: fileContent, secret });
   }
 
   async decrypt(opts: {
@@ -232,6 +239,6 @@ export class AES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    return await this.decrypt({ message: fileContent, secret });
+    return this.decrypt({ message: fileContent, secret });
   }
 }

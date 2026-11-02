@@ -5,6 +5,7 @@ import { AES, type AESAlgorithmType } from '../../modules/crypto/algorithms/aes.
 import { LegacyAES } from '../../modules/crypto/algorithms/aes-legacy.algorithm';
 import { RSA } from '../../modules/crypto/algorithms/rsa.algorithm';
 import fixtures from './fixtures/stored-ciphertexts.json';
+import { Rejection } from './rejection';
 
 /**
  * Known-answer fixtures recorded with the synchronous `node:crypto` implementation, before `AES`,
@@ -59,9 +60,11 @@ describe('AES: what is stored still reads, and the same input writes the same by
   });
 
   test('a plain empty secret is refused on encrypt, as before', async () => {
-    await expect(
-      AES.withAlgorithm('aes-256-cbc').encrypt({ message: 'x', secret: '' }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: AES.withAlgorithm('aes-256-cbc').encrypt({ message: 'x', secret: '' }),
+      }),
+    ).toBeString();
   });
 
   test('a flipped bit in a GCM ciphertext is refused, and doThrow: false hands the message back', async () => {
@@ -74,9 +77,11 @@ describe('AES: what is stored still reads, and the same input writes the same by
     const tampered = bytes.toString('base64');
     const cipher = AES.withAlgorithm('aes-256-gcm');
 
-    await expect(
-      cipher.decrypt({ message: tampered, secret: fixture.secret as string }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: cipher.decrypt({ message: tampered, secret: fixture.secret as string }),
+      }),
+    ).toBeString();
     expect(
       await cipher.decrypt({
         message: tampered,
@@ -92,9 +97,14 @@ describe('AES: what is stored still reads, and the same input writes the same by
       throw new Error('the gcm fixture is missing');
     }
 
-    await expect(
-      AES.withAlgorithm('aes-256-gcm').decrypt({ message: fixture.stored, secret: 'wrong secret' }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: AES.withAlgorithm('aes-256-gcm').decrypt({
+          message: fixture.stored,
+          secret: 'wrong secret',
+        }),
+      }),
+    ).toBeString();
   });
 
   test('the envelope of a ciphertext written now is read by node:crypto (the reference)', async () => {
@@ -147,7 +157,9 @@ describe('LegacyAES: what is stored still reads, and the same input writes the s
     // 20 characters of 2 bytes each slice to 20 characters (40 bytes): not a 256-bit key.
     const cipher = LegacyAES.withAlgorithm('aes-256-cbc');
 
-    await expect(cipher.encrypt({ message: 'x', secret: 'é'.repeat(20) })).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({ promise: cipher.encrypt({ message: 'x', secret: 'é'.repeat(20) }) }),
+    ).toBeString();
     // 8 ASCII characters pad to 32 bytes, so this one is fine.
     expect(await cipher.encrypt({ message: 'x', secret: 'abcdefgh' })).toBeString();
   });
@@ -190,25 +202,31 @@ describe('PBKDF2 key derivation: the same key bytes as the synchronous implement
     const cipher = AES.withAlgorithm('aes-256-cbc');
     const secret = `failing-secret-${crypto.randomUUID()}`;
 
-    await expect(
-      cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
-    ).rejects.toThrow();
-    await expect(
-      cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+      }),
+    ).toBeString();
+    expect(
+      await Rejection.messageOf({
+        promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+      }),
+    ).toBeString();
     expect(
       (await cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 10 })).length,
     ).toBe(32);
   });
 
   test('a salt under 16 bytes is refused', async () => {
-    await expect(
-      AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({
-        secret: 's',
-        length: 32,
-        kdfSalt: 'short',
+    expect(
+      await Rejection.messageOf({
+        promise: AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({
+          secret: 's',
+          length: 32,
+          kdfSalt: 'short',
+        }),
       }),
-    ).rejects.toThrow(/at least 16 bytes/);
+    ).toMatch(/at least 16 bytes/);
   });
 });
 
@@ -267,18 +285,20 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
   });
 
   test('a modulus under 2048 bits is refused', async () => {
-    await expect(rsa.generateDERKeyPair({ modulus: 1024 })).rejects.toThrow(
-      /below the 2048-bit minimum/,
-    );
+    expect(
+      await Rejection.messageOf({ promise: rsa.generateDERKeyPair({ modulus: 1024 }) }),
+    ).toMatch(/below the 2048-bit minimum/);
   });
 
   test('a wrong key or a damaged ciphertext is refused, and doThrow: false hands the message back', async () => {
     const other = await rsa.generateDERKeyPair();
     const stored = fixtures.rsa.stored[0]?.stored ?? '';
 
-    await expect(
-      rsa.decrypt({ message: stored, secret: other.privateKey.toString('base64') }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: rsa.decrypt({ message: stored, secret: other.privateKey.toString('base64') }),
+      }),
+    ).toBeString();
     expect(
       await rsa.decrypt({
         message: stored,

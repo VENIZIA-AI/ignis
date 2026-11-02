@@ -17,6 +17,17 @@ const buildService = (overrides: Partial<IJWSTokenServiceOptions> = {}) => {
   } as IJWSTokenServiceOptions);
 };
 
+/** The message an async call rejected with, or `undefined` when it resolved (`await expect(...).rejects` is typed as a plain value, which `await-thenable` refuses). */
+const rejectionMessage = async (opts: { promise: Promise<unknown> }): Promise<string | undefined> => {
+  try {
+    await opts.promise;
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  return undefined;
+};
+
 /** The envelope the synchronous implementation wrote: [version 1][idLen][id][iv 16][tag 16, gcm only][cipher]. */
 const sealWithReference = (opts: { message: string; algorithm: 'aes-256-cbc' | 'aes-256-gcm' }) => {
   const key = C.pbkdf2Sync(APPLICATION_SECRET, 'ignis-kdf-salt-v1', 100_000, 32, 'sha256');
@@ -142,9 +153,9 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
       },
     });
 
-    await expect(service.generate({ payload: { userId: 1, roles: [] } })).rejects.toThrow(
-      'cipher unavailable',
-    );
+    expect(
+      await rejectionMessage({ promise: service.generate({ payload: { userId: 1, roles: [] } }) }),
+    ).toContain('cipher unavailable');
   });
 
   test('a tampered claim is refused before any decryption', async () => {
@@ -153,6 +164,8 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
     const [header, body, signature] = token.split('.');
     const forged = `${header}.${body?.slice(0, -2)}AA.${signature}`;
 
-    await expect(service.verify({ type: 'Bearer', token: forged })).rejects.toThrow();
+    expect(
+      await rejectionMessage({ promise: service.verify({ type: 'Bearer', token: forged }) }),
+    ).toBeString();
   });
 });

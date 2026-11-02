@@ -94,7 +94,7 @@ export class AesEngine {
       });
     }
 
-    return await crypto.subtle.importKey(
+    return crypto.subtle.importKey(
       'raw',
       key as TBytes,
       { name: AesEngine.getName({ algorithm }) },
@@ -110,14 +110,19 @@ export class AesEngine {
   private static getParams(opts: { algorithm: AESAlgorithmType; iv: Uint8Array }): TCipherParams {
     const { algorithm, iv } = opts;
 
+    if (algorithm === AESAlgorithms.AES_256_GCM) {
+      // GCM takes an IV of any length from 1 byte (12 is the usual one). `LegacyAES` read such data before, so it still does.
+      if (iv.length === 0) {
+        throw getError({ message: '[AesEngine][getParams] The GCM IV must not be empty' });
+      }
+
+      return { name: 'AES-GCM', iv: iv as TBytes, tagLength: TAG_BITS };
+    }
+
     if (iv.length !== IV_BYTES) {
       throw getError({
         message: `[AesEngine][getParams] Invalid IV length ${iv.length} bytes, expected ${IV_BYTES}`,
       });
-    }
-
-    if (algorithm === AESAlgorithms.AES_256_GCM) {
-      return { name: 'AES-GCM', iv: iv as TBytes, tagLength: TAG_BITS };
     }
 
     return { name: 'AES-CBC', iv: iv as TBytes };

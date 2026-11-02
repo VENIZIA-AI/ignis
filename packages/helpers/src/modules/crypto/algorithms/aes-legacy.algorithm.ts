@@ -89,7 +89,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    return await this.encrypt({ message: fileContent, secret });
+    return this.encrypt({ message: fileContent, secret });
   }
 
   async decrypt(opts: {
@@ -142,7 +142,7 @@ export class LegacyAES extends BaseCryptoAlgorithm<
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    return await this.decrypt({ message: fileContent, secret });
+    return this.decrypt({ message: fileContent, secret });
   }
 
   private normalizeSecretKeyLegacy(opts: { secret: string; length: number; padEnd?: string }) {

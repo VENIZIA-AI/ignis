@@ -11,6 +11,8 @@ import { AbstractCryptoAlgorithm } from './abstract.algorithm';
 
 export { AbstractCryptoAlgorithm } from './abstract.algorithm';
 
+const MAXIMUM_KDF_ITERATIONS = 2 ** 31 - 1;
+
 /** The Web Crypto name of each digest `DEFAULT_KDF_DIGEST` may hold. */
 const KDF_HASH_NAMES: Record<string, string> = { sha256: 'SHA-256' };
 
@@ -72,9 +74,16 @@ export abstract class BaseCryptoAlgorithm<
 
     const salt = kdfSalt ?? DEFAULT_KDF_SALT;
     const iterations = kdfIterations ?? DEFAULT_KDF_ITERATIONS;
+
+    // `pbkdf2Sync` refused anything but an integer from 1 up to 2^31 - 1; Web Crypto would round a fraction down and take up to 2^32 - 1.
+    if (!Number.isInteger(iterations) || iterations < 1 || iterations > MAXIMUM_KDF_ITERATIONS) {
+      throw getError({
+        message: `[BaseCryptoAlgorithm][normalizeSecretKey] kdfIterations must be an integer from 1 to ${MAXIMUM_KDF_ITERATIONS}, got ${iterations}`,
+      });
+    }
     const cacheKey = `${DEFAULT_KDF_DIGEST}:${iterations}:${length}:${salt}:${secret}`;
 
-    return await this.deriveOnce({
+    return this.deriveOnce({
       cacheKey,
       derive: () => this.derivePbkdf2({ secret, salt, iterations, length }),
     });

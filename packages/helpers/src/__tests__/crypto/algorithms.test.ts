@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { AES, RSA, ECDH } from '@/modules/crypto/algorithms';
 import type { IECDHEncryptedPayload } from '@/modules/crypto/algorithms';
+import { Rejection } from './rejection';
 
 const SECRET_32 = 'abcdefghijklmnopqrstuvwxyz012345'; // exactly 32 chars
 const SECRET_SHORT = 'short';
@@ -155,9 +156,11 @@ describe('Crypto Algorithms', () => {
       // padding, so the cipher returns garbage instead of throwing (measured 76 of 20000 runs).
       // The two contract tests therefore fail on a malformed message, which always fails.
       test('TC-018: decrypt of a malformed message throws by default', async () => {
-        await expect(
-          aes.decrypt({ message: 'not-a-ciphertext', secret: SECRET_32 }),
-        ).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: aes.decrypt({ message: 'not-a-ciphertext', secret: SECRET_32 }),
+          }),
+        ).toBeString();
       });
 
       test('TC-019: decrypt of a malformed message with doThrow=false returns the input', async () => {
@@ -277,7 +280,9 @@ describe('Crypto Algorithms', () => {
         buf[buf.length - 1] ^= 0xff;
         const tampered = buf.toString('base64');
 
-        await expect(aes.decrypt({ message: tampered, secret: SECRET_32 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({ promise: aes.decrypt({ message: tampered, secret: SECRET_32 }) }),
+        ).toBeString();
       });
 
       test('TC-030: same plaintext produces different ciphertext (random IV)', async () => {
@@ -289,7 +294,11 @@ describe('Crypto Algorithms', () => {
 
       test('TC-031: decrypt with wrong secret should throw', async () => {
         const encrypted = await aes.encrypt({ message: 'GCM secret', secret: SECRET_32 });
-        await expect(aes.decrypt({ message: encrypted, secret: 'wrong-key' })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: aes.decrypt({ message: encrypted, secret: 'wrong-key' }),
+          }),
+        ).toBeString();
       });
 
       test('TC-032: decrypt wrong secret with doThrow=false returns original', async () => {
@@ -372,7 +381,9 @@ describe('Crypto Algorithms', () => {
       test('TC-R03: a keyring missing the ciphertext key id throws', async () => {
         const aes = AES.withAlgorithm('aes-256-gcm');
         const enc = await aes.encrypt({ message: 'orphan', secret: [OLD] }); // tagged id "1"
-        await expect(aes.decrypt({ message: enc, secret: [NEW] })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({ promise: aes.decrypt({ message: enc, secret: [NEW] }) }),
+        ).toBeString();
       });
 
       test('TC-R04: a bare string secret still works (single-key mode)', async () => {
@@ -388,7 +399,9 @@ describe('Crypto Algorithms', () => {
         const gcm = AES.withAlgorithm('aes-256-gcm');
 
         const encrypted = await cbc.encrypt({ message: 'cross test', secret: SECRET_32 });
-        await expect(gcm.decrypt({ message: encrypted, secret: SECRET_32 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({ promise: gcm.decrypt({ message: encrypted, secret: SECRET_32 }) }),
+        ).toBeString();
       });
 
       test('TC-038: GCM ciphertext cannot be decrypted by CBC', async () => {
@@ -396,7 +409,9 @@ describe('Crypto Algorithms', () => {
         const gcm = AES.withAlgorithm('aes-256-gcm');
 
         const encrypted = await gcm.encrypt({ message: 'cross test', secret: SECRET_32 });
-        await expect(cbc.decrypt({ message: encrypted, secret: SECRET_32 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({ promise: cbc.decrypt({ message: encrypted, secret: SECRET_32 }) }),
+        ).toBeString();
       });
     });
 
@@ -487,7 +502,9 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-046: a modulus below 2048 is rejected, not generated', async () => {
-        await expect(rsa.generateDERKeyPair({ modulus: 1024 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({ promise: rsa.generateDERKeyPair({ modulus: 1024 }) }),
+        ).toBeString();
       });
 
       test('TC-046b: the rejection names the size and the floor, so a caller can act on it', async () => {
@@ -558,7 +575,11 @@ describe('Crypto Algorithms', () => {
         const wrongPrivKey = otherKeys.privateKey.toString('base64');
 
         const encrypted = await rsa.encrypt({ message: 'wrong key test', secret: pubKeyB64 });
-        await expect(rsa.decrypt({ message: encrypted, secret: wrongPrivKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: rsa.decrypt({ message: encrypted, secret: wrongPrivKey }),
+          }),
+        ).toBeString();
       });
 
       test('TC-053: decrypt with wrong key and doThrow=false returns original', async () => {
@@ -584,9 +605,11 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-055: encrypt with invalid key and doThrow=true (default) throws', async () => {
-        await expect(
-          rsa.encrypt({ message: 'bad key', secret: 'not-a-real-key' }),
-        ).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: rsa.encrypt({ message: 'bad key', secret: 'not-a-real-key' }),
+          }),
+        ).toBeString();
       });
 
       test('TC-056: encrypt/decrypt with hex encoding', async () => {
@@ -681,7 +704,11 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-065: importPublicKey with invalid base64 should throw', async () => {
-        await expect(ecdh.importPublicKey({ rawKeyB64: 'not-valid-key' })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.importPublicKey({ rawKeyB64: 'not-valid-key' }),
+          }),
+        ).toBeString();
       });
     });
 
@@ -787,7 +814,11 @@ describe('Crypto Algorithms', () => {
         });
 
         const encrypted = await ecdh.encrypt({ message: 'wrong key test', secret: sharedKey });
-        await expect(ecdh.decrypt({ message: encrypted, secret: wrongKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: encrypted, secret: wrongKey }),
+          }),
+        ).toBeString();
       });
 
       test('TC-072: decrypt tampered ciphertext should throw', async () => {
@@ -801,7 +832,11 @@ describe('Crypto Algorithms', () => {
           ct: ctBuf.toString('base64'),
         };
 
-        await expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: tampered, secret: sharedKey }),
+          }),
+        ).toBeString();
       });
 
       test('TC-073: encrypt/decrypt empty string', async () => {
@@ -898,7 +933,11 @@ describe('Crypto Algorithms', () => {
 
         // Encrypt with key1, try decrypt with key2 - should fail (different hkdfInfo)
         const encrypted = await ecdh1.encrypt({ message: 'hkdf test', secret: key1 });
-        await expect(ecdh2.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh2.decrypt({ message: encrypted, secret: key2 }),
+          }),
+        ).toBeString();
 
         // But key1 and bobKey1 (same hkdfInfo + same salt) should work
         const decrypted = await ecdh1.decrypt({ message: encrypted, secret: bobKey1 });
@@ -929,7 +968,11 @@ describe('Crypto Algorithms', () => {
         const encrypted = await ecdh.encrypt({ message: 'secret for bob', secret: aliceKey });
 
         // Eve cannot decrypt
-        await expect(ecdh.decrypt({ message: encrypted, secret: eveKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: encrypted, secret: eveKey }),
+          }),
+        ).toBeString();
       });
     });
 
@@ -981,7 +1024,11 @@ describe('Crypto Algorithms', () => {
         });
 
         const encrypted = await ecdh.encrypt({ message: 'salt isolation', secret: key1 });
-        await expect(ecdh.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: encrypted, secret: key2 }),
+          }),
+        ).toBeString();
       });
     });
 
@@ -1021,7 +1068,11 @@ describe('Crypto Algorithms', () => {
           secret: sharedKey,
           opts: { additionalData: 'context-A' },
         });
-        await expect(ecdh.decrypt({ message: encrypted, secret: sharedKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: encrypted, secret: sharedKey }),
+          }),
+        ).toBeString();
       });
 
       test('TC-084: decrypt with wrong AAD throws', async () => {
@@ -1030,13 +1081,15 @@ describe('Crypto Algorithms', () => {
           secret: sharedKey,
           opts: { additionalData: 'context-A' },
         });
-        await expect(
-          ecdh.decrypt({
-            message: encrypted,
-            secret: sharedKey,
-            opts: { additionalData: 'context-B' },
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({
+              message: encrypted,
+              secret: sharedKey,
+              opts: { additionalData: 'context-B' },
+            }),
           }),
-        ).rejects.toThrow();
+        ).toBeString();
       });
     });
 
@@ -1057,9 +1110,11 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-085: importPublicKey with malformed base64 throws validation error', async () => {
-        await expect(ecdh.importPublicKey({ rawKeyB64: '!!invalid!!' })).rejects.toThrow(
-          'Invalid base64',
-        );
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.importPublicKey({ rawKeyB64: '!!invalid!!' }),
+          }),
+        ).toContain('Invalid base64');
       });
 
       test('TC-086: tampered IV causes decrypt to throw', async () => {
@@ -1072,7 +1127,11 @@ describe('Crypto Algorithms', () => {
           ct: encrypted.ct,
         };
 
-        await expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
+        expect(
+          await Rejection.messageOf({
+            promise: ecdh.decrypt({ message: tampered, secret: sharedKey }),
+          }),
+        ).toBeString();
       });
     });
   });
@@ -1183,11 +1242,15 @@ describe('kdfSalt / kdfIterations (per-deployment KDF override)', () => {
     });
     expect(decrypted).toBe('isolated payload');
 
-    await expect(
-      aes.decrypt({ message: encrypted, secret: SECRET, opts: { kdfSalt: CUSTOM_SALT_B } }),
-    ).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({
+        promise: aes.decrypt({ message: encrypted, secret: SECRET, opts: { kdfSalt: CUSTOM_SALT_B } }),
+      }),
+    ).toBeString();
     // Omitting kdfSalt on decrypt falls back to the shipped default, which is also the wrong key here.
-    await expect(aes.decrypt({ message: encrypted, secret: SECRET })).rejects.toThrow();
+    expect(
+      await Rejection.messageOf({ promise: aes.decrypt({ message: encrypted, secret: SECRET }) }),
+    ).toBeString();
   });
 
   test('KDF-005: a different kdfIterations value derives a different key', async () => {
@@ -1203,16 +1266,20 @@ describe('kdfSalt / kdfIterations (per-deployment KDF override)', () => {
 
   test('KDF-006: an empty kdfSalt is refused, not silently accepted', async () => {
     const aes = AES.withAlgorithm('aes-256-cbc');
-    await expect(
-      aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: '' } }),
-    ).rejects.toThrow(/kdfSalt/);
+    expect(
+      await Rejection.messageOf({
+        promise: aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: '' } }),
+      }),
+    ).toMatch(/kdfSalt/);
   });
 
   test('KDF-007: a kdfSalt shorter than the 16-byte minimum is refused', async () => {
     const aes = AES.withAlgorithm('aes-256-cbc');
-    await expect(
-      aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: 'short-salt' } }),
-    ).rejects.toThrow(/kdfSalt/);
+    expect(
+      await Rejection.messageOf({
+        promise: aes.encrypt({ message: 'x', secret: SECRET, opts: { kdfSalt: 'short-salt' } }),
+      }),
+    ).toMatch(/kdfSalt/);
   });
 
   test('KDF-008: a kdfSalt at exactly the 16-byte minimum is accepted', async () => {
