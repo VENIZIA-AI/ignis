@@ -74,6 +74,10 @@ Method parameters are bivariant in TypeScript, so a search repository can drop a
 | `deleteAll` | the whole options object is optional | same rule, plus `deleteAll()` with no argument must refuse rather than truncate |
 | `updateAll` / `deleteAll` | return `data: null`, no `shouldReturn` overloads | no engine here has RETURNING, and no extra read is bolted on |
 
+## Big collections: streaming export, per-call timeout, import errors
+
+`TypesenseConnector.streamDocuments` reads `documents().exportStream()` and yields NDJSON lines through `TypesenseInternal.toLines`, which holds one chunk and one partial line (one streaming `TextDecoder`, so a multi-byte character split between chunks is read whole); `exportDocuments` still builds one string. `TypesenseInternal.toExportParams` writes `filter_by`, `include_fields` and `exclude_fields` for both. `typesense-js` has one timeout per client (`connectionTimeoutSeconds`) and no per-call one, so `timeoutMs` (`ITypesenseCallOptions`) runs the call on a second client built by `createClient` (the connector option; the default builds a `Client` from `nodes`, `apiKey`, `numRetries`) - an injected `client` needs `createClient` too. `importDocuments` always passes `throwOnFail: false` to `typesense-js`; its own opt-in `throwOnFail: true` throws `422` after the last batch with the counts in `extra.details` and the per-row responses on `error.responses` (off `extra`, which goes on the wire). `findDocument` is `getDocument` with the not-found tolerance of `getAlias` (answers `null`); `updateByFilter` refuses an empty `document` before the engine.
+
 ## Related
 
 - [DataSource Hierarchy](/architecture/datasource-hierarchy.md)

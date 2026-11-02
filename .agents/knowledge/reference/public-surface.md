@@ -2196,7 +2196,7 @@ generated:
 - `SearchControllerFactory` class
 - `TSearchScopeResolver` type
 
-### `@venizia/ignis-connectors/typesense` (75)
+### `@venizia/ignis-connectors/typesense` (76)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
@@ -2225,6 +2225,7 @@ generated:
 - `ISearchSynonymScoped` interface
 - `ISearchSynonymSetScoped` interface
 - `ISynonym` interface
+- `ITypesenseCallOptions` interface
 - `ITypesenseClientLike` interface
 - `ITypesenseConnectorOptions` interface
 - `ITypesenseDataSourceSettings` interface

@@ -41,6 +41,60 @@ export class TypesenseInternal {
     return this.messageOf({ error }).includes(phrase);
   }
 
+  /** The wire parameters of an export: `filter_by`, `include_fields` and `exclude_fields`, each only when given. */
+  static toExportParams(opts: {
+    filterBy?: string;
+    includeFields?: string[];
+    excludeFields?: string[];
+  }): Record<string, unknown> {
+    const { filterBy, includeFields, excludeFields } = opts;
+    const params: Record<string, unknown> = {};
+
+    if (filterBy) {
+      params['filter_by'] = filterBy;
+    }
+
+    if (includeFields && includeFields.length > 0) {
+      params['include_fields'] = includeFields.join(',');
+    }
+
+    if (excludeFields && excludeFields.length > 0) {
+      params['exclude_fields'] = excludeFields.join(',');
+    }
+
+    return params;
+  }
+
+  /**
+   * NDJSON lines out of a stream of chunks (text or bytes): a line may span chunks, and a multi-byte character may
+   * too, so bytes go through one streaming decoder. Blank lines are dropped; a last line without a newline is yielded.
+   */
+  static async *toLines(opts: {
+    source: AsyncIterable<string | Uint8Array>;
+  }): AsyncGenerator<string, void, undefined> {
+    const decoder = new TextDecoder();
+    let pending = '';
+
+    for await (const chunk of opts.source) {
+      pending += typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+
+      let newline = pending.indexOf('\n');
+      while (newline >= 0) {
+        const line = pending.slice(0, newline);
+        pending = pending.slice(newline + 1);
+        if (line.trim() !== '') {
+          yield line;
+        }
+        newline = pending.indexOf('\n');
+      }
+    }
+
+    pending += decoder.decode();
+    if (pending.trim() !== '') {
+      yield pending;
+    }
+  }
+
   static isAlreadyExistsError(opts: { error: unknown }): boolean {
     const { error } = opts;
     return this.classify({

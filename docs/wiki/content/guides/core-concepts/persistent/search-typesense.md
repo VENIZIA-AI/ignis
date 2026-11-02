@@ -471,6 +471,41 @@ const ScopedSearchController = SearchControllerFactory.defineSearchController({
 
 A scope is a `where` ANDed into a filter, so the three inputs that carry the engine's own filter string cannot take one. A scoped controller therefore refuses `mode: 'raw'` and `engineParams` (`400`), and `defineSearchController` throws unless `routes.multiSearch.enabled` is `false`.
 
+## Big collections: streaming export, timeouts and import errors
+
+These are methods of the connector (`dataSource.getConnector()`), not of the repository.
+
+**Stream an export instead of building one string.** `exportDocuments` returns the whole export as one string, which breaks past the string limit (a collection of a few GB). `streamDocuments` is an async iterable of NDJSON lines, one document per line without its newline, read as the engine sends them; memory stays at one chunk and one partial line, so you can write to disk as it arrives:
+
+```typescript
+const connector = dataSource.getConnector();
+const file = Bun.file('products.ndjson').writer();
+
+for await (const line of connector.streamDocuments({
+  collection: 'products',
+  excludeFields: ['embedding'],
+  timeoutMs: 30 * 60 * 1000,
+})) {
+  file.write(`${line}\n`);
+}
+
+await file.end();
+```
+
+A failure before the first line throws as `exportDocuments` does; one in the middle throws from the loop, after the lines you already have.
+
+**`excludeFields` next to `includeFields`.** Both `exportDocuments` and `streamDocuments` take `filterBy`, `includeFields` and `excludeFields`. A copy job drops its vector fields with `excludeFields: ['embedding']`. `search()` already takes `excludeFields` (and the model's `hiddenProperties` are added to it).
+
+**A timeout for one call.** The client has one timeout (`connectionTimeoutSeconds`, 5 s by default). `timeoutMs` (a positive integer of milliseconds) overrides it for one call of `exportDocuments`, `streamDocuments`, `importDocuments`, `getCollection`, `createCollection` and `patchCollectionSchema`. It is how long to wait for the engine's answer (an import answers once the batch is processed; a schema change once it is applied) and then the longest silence on the connection: it is not a deadline for the whole transfer, so a download that keeps arriving never trips it. `typesense-js` has no timeout per call, so the connector runs that call on a second client with the timeout set; when you give the connector your own `client`, also pass `createClient` in its options, or a call with `timeoutMs` is refused.
+
+**A stream whose reader pauses.** A stream you stop reading is a connection that falls silent, and the engine's socket is closed after `timeoutMs` of it. If you import each batch while you read, the import must finish within the stream's `timeoutMs`; otherwise spool the stream to a file first and import from the file. A copy of a collection is `getCollection`, `createCollection`, `streamDocuments` to a file, then `importDocuments` from it.
+
+**Fail on a partial import.** `importDocuments` returns rejected rows in `count.fail` and `responses` and does not throw. Pass `throwOnFail: true` to get a `422` after the last batch instead, with the counts in `extra.details` and every per-row response on the error's `responses` (they hold the rejected documents, so they are not in `extra`, which goes on the wire).
+
+**A missing document as `null`.** `getDocument` throws `404 core.search_engine.not_found`. `findDocument({ collection, id })` (also `document.find`) returns `null` for a missing document, the way `getAlias` does, and throws for any other failure. A missing collection is a 404 too, so a mistyped collection name also answers `null`.
+
+**`updateByFilter` refuses an empty `document`** with a `400` before it calls the engine.
+
 ## Transactions and Locking
 
 The typesense connector has no transaction or row-level-locking model. Passing a `transaction` or `lock` option to any repository method throws:
