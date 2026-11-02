@@ -35,7 +35,7 @@ interface IPackageState {
   localVersion: string;
   publishedVersion: string | null;
   changedFiles: number;
-  /** The workspace packages this one ships as dependencies or peer dependencies (npm names). */
+  /** The workspace packages this one ships as dependencies or peer dependencies, or bakes into its presets (npm names). */
   dependsOn: string[];
 }
 
@@ -132,6 +132,17 @@ const countChangedSinceRelease = async (opts: { name: string }): Promise<number>
   return files.size;
 };
 
+/** The parsed `presets/<kind>/preset.json` templates (`scripts/preset/vulcan-preset.ts` builds the shipped presets from them). */
+const readPresetTemplates = async (): Promise<unknown[]> => {
+  const templates: unknown[] = [];
+
+  for await (const path of new Bun.Glob('presets/*/preset.json').scan({ cwd: '.' })) {
+    templates.push(await readJson(path));
+  }
+
+  return templates;
+};
+
 const collectState = async (opts: {
   names: readonly string[];
   distTag: string;
@@ -155,8 +166,9 @@ const collectState = async (opts: {
         distTag: opts.distTag,
       }),
       changedFiles: await countChangedSinceRelease({ name }),
-      // Only what is published counts: `dependencies` and `peerDependencies`, never `devDependencies`.
-      dependsOn: Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
+      // What is published counts: `dependencies` and `peerDependencies`, and the workspace packages the preset
+      // templates of a package that ships presets name (their versions are baked in at release); `ReleasePlan.dependsOn`.
+      dependsOn: ReleasePlan.dependsOn({ manifest, presets: await readPresetTemplates() }),
     });
   }
 
