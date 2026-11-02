@@ -30,7 +30,7 @@ const decrypted = aes.decrypt({ message: encrypted, secret });
 ## How it works
 
 - **One factory pattern.** Every algorithm class exposes a static `withAlgorithm()` that returns an instance. The constructors are public too, so `new AES({ algorithm: 'aes-256-gcm' })` works. Prefer the factory; it is what the rest of the framework calls.
-- **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets. It skips the string-normalization helpers entirely.
+- **`ECDH` extends the neutral `AbstractCryptoAlgorithm` directly.** It uses `CryptoKey` objects from the Web Crypto API (`crypto.subtle`), not string secrets. It skips the string-normalization helpers entirely. It needs no `node:crypto`, so a browser imports it from `@venizia/ignis-helpers/core` and talks to a server `ECDH` in the same wire format.
 - **Options objects, throw-by-default.** Every `encrypt`/`decrypt` takes `{ message, secret, opts? }`. On internal error, each throws by default. Pass `opts.doThrow: false` to get the original input back unchanged instead.
 
 **`AES` and `RSA` share `BaseCryptoAlgorithm`**, which adds two helpers:
@@ -168,7 +168,8 @@ const bob = await ecdh.generateKeyPair();
 
 **Files:**
 
-- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `AbstractCryptoAlgorithm`, `BaseCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts) - `AbstractCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `BaseCryptoAlgorithm`
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`

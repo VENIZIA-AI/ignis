@@ -1,5 +1,4 @@
 import C from 'node:crypto';
-import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { ParseUtility } from '@/utilities';
 import {
@@ -7,47 +6,13 @@ import {
   DEFAULT_KDF_DIGEST,
   DEFAULT_KDF_ITERATIONS,
   DEFAULT_KDF_SALT,
-  type ICryptoAlgorithm,
   MINIMUM_KDF_SALT_BYTES,
 } from '../common';
+import { AbstractCryptoAlgorithm } from './abstract.algorithm';
+
+export { AbstractCryptoAlgorithm } from './abstract.algorithm';
 
 const DERIVED_KEY_CACHE = new Map<string, Buffer>();
-
-export abstract class AbstractCryptoAlgorithm<
-  AlgorithmType extends string,
-  EncryptInputType = unknown,
-  DecryptInputType = unknown,
-  SecretKeyType = unknown,
-  EncryptReturnType = unknown,
-  DecryptReturnType = unknown,
-  ExtraOptions = unknown,
->
-  extends BaseHelper
-  implements
-    ICryptoAlgorithm<
-      AlgorithmType,
-      EncryptInputType,
-      DecryptInputType,
-      SecretKeyType,
-      EncryptReturnType,
-      DecryptReturnType,
-      ExtraOptions
-    >
-{
-  algorithm: AlgorithmType;
-
-  abstract encrypt(opts: {
-    message: EncryptInputType;
-    secret: SecretKeyType;
-    opts?: ExtraOptions;
-  }): EncryptReturnType;
-
-  abstract decrypt(opts: {
-    message: DecryptInputType;
-    secret: SecretKeyType;
-    opts?: ExtraOptions;
-  }): DecryptReturnType;
-}
 
 export abstract class BaseCryptoAlgorithm<
   AlgorithmType extends string,

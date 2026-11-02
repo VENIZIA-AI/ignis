@@ -820,8 +820,9 @@ generated:
 - `ValueOptionalExcept` type
 - `ValueOrPromise` type
 
-### `@venizia/ignis-helpers/core` (153)
+### `@venizia/ignis-helpers/core` (158)
 
+- `AbstractCryptoAlgorithm` class
 - `AbstractNetworkFetchableHelper` class
 - `AbstractPoolHelper` class
 - `AbstractTemporalHelper` class
@@ -840,6 +841,8 @@ generated:
 - `DEFAULT_UID_DELIMITER` const
 - `DEFAULT_UID_LENGTH` const
 - `DEFAULT_UID_MAX_ATTEMPTS` const
+- `ECDH` class
+- `ECDHAlgorithmType` type
 - `EnvironmentNames` class
 - `ErrorLogLevels` class
 - `ErrorScopes` class
@@ -851,6 +854,8 @@ generated:
 - `IBuildOptions` interface
 - `IDayjsFactory` interface
 - `IDayjsInstance` interface
+- `IECDHEncryptedPayload` interface
+- `IECDHExtraOptions` interface
 - `IErrorKeyRegistry` interface
 - `IFetchable` interface
 - `IHeightWhereOptions` interface

@@ -1,5 +1,5 @@
 import { getError } from '@/modules/error';
-import { AbstractCryptoAlgorithm } from './base.algorithm';
+import { AbstractCryptoAlgorithm } from './abstract.algorithm';
 
 const CURVE = { name: 'ECDH', namedCurve: 'P-256' } as const;
 const CIPHER = 'AES-GCM' as const;
@@ -8,6 +8,7 @@ const IV_BYTES = 12;
 const DEFAULT_HKDF_INFO = 'ignis-ecdh-p256-aes-256-gcm-v1';
 const SALT_BYTES = 32;
 const TAG_BITS = 128;
+const BASE64_CHUNK = 0x8000;
 
 export type ECDHAlgorithmType = 'ecdh-p256';
 
@@ -20,7 +21,11 @@ export interface IECDHExtraOptions {
   additionalData?: string;
 }
 
-/** ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption. */
+/**
+ * ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption. It runs in a browser or a Worker as
+ * well as on the server: `crypto.subtle`, `btoa` and `atob` only, no `Buffer` and no `node:*`, so it rides
+ * `@venizia/ignis-helpers/core`. Server and client both use this class and speak one wire format.
+ */
 export class ECDH extends AbstractCryptoAlgorithm<
   ECDHAlgorithmType,
   string,
@@ -140,14 +145,22 @@ export class ECDH extends AbstractCryptoAlgorithm<
 
   private static toBase64(data: ArrayBuffer | Uint8Array): string {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-    return Buffer.from(bytes).toString('base64');
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += BASE64_CHUNK) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + BASE64_CHUNK));
+    }
+    return btoa(binary);
   }
 
   private static fromBase64(base64: string): ArrayBuffer {
     if (!base64.length || base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
       throw getError({ message: '[ECDH.fromBase64] Invalid base64 input' });
     }
-    const buf = Buffer.from(base64, 'base64');
-    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
   }
 }

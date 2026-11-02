@@ -118,10 +118,11 @@ No published IGNIS or ARDOR package imports the helpers root. `@venizia/ignis-ke
 |---|---|
 | `import { ... } from '@venizia/ignis-helpers'` | `/core`, `/common`, `/uuid`, `/temporal`, `/socket-io/client` |
 | `import { ... } from '@venizia/ignis'` | The kernel, inversion, filter and worker packages |
-| `Hash`, AES, RSA or ECDH from the helpers root | A WebCrypto call in your own code (the IGNIS crypto classes are synchronous and need `node:crypto`) |
+| `Hash`, AES or RSA from the helpers root | A WebCrypto call in your own code (these classes are synchronous and need `node:crypto`) |
+| `ECDH` from the helpers root | `ECDH` from `@venizia/ignis-helpers/core`: same class, same wire format as the server, no `node:crypto` |
 | `vite-plugin-node-polyfills` | Fix the import |
 
-IGNIS has no WebCrypto crypto helpers yet. The classes in `@venizia/ignis-helpers` are synchronous and Buffer-based, and WebCrypto is asynchronous, so they cannot share one interface.
+`ECDH` is the one crypto class that runs in a browser: it is built on WebCrypto (`crypto.subtle`, `btoa`, `atob`), so a page and a server speak one wire format with one class. `Hash`, `AES` and `RSA` are synchronous and Buffer-based, and WebCrypto is asynchronous, so they cannot share one interface and stay server-side.
 
 ## What was checked
 

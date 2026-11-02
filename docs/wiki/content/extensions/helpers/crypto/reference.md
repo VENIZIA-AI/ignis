@@ -10,7 +10,8 @@ Exhaustive reference for `AES`, `RSA`, `ECDH`, the shared `AbstractCryptoAlgorit
 
 **Files:**
 
-- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `AbstractCryptoAlgorithm`, `BaseCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/abstract.algorithm.ts) - `AbstractCryptoAlgorithm`
+- [`packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/base.algorithm.ts) - `BaseCryptoAlgorithm`
 - [`packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/aes.algorithm.ts) - `AES`, `AESAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/rsa.algorithm.ts) - `RSA`, `RSAAlgorithmType`
 - [`packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts) - `ECDH`, `ECDHAlgorithmType`, `IECDHEncryptedPayload`, `IECDHExtraOptions`
@@ -98,7 +99,7 @@ interface ICryptoAlgorithm<
 }
 ```
 
-`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract. It adds no behavior of its own. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
+`AbstractCryptoAlgorithm` extends `BaseHelper` and declares `encrypt`/`decrypt` as abstract. It adds no behavior of its own, and it lives in its own file with no `node:*` import, so a browser-pure class can extend it (`ECDH` does). It is still exported from `base.algorithm.ts` and from the package root, and also from `@venizia/ignis-helpers/core`. `BaseCryptoAlgorithm` is the concrete base for string-secret algorithms:
 
 | Member | Signature | Description |
 |--------|-----------|--------------|
@@ -355,6 +356,8 @@ const decrypted = rsa.decrypt({
 `Source ->` [`ecdh.algorithm.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/crypto/algorithms/ecdh.algorithm.ts)
 
 `ECDH` implements ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption, entirely on the Web Crypto API (`crypto.subtle`). Every method is `async`.
+
+It also runs in a browser or a Worker: base64 is `btoa`/`atob`, with no `Buffer` and no `node:*`, so import it from `@venizia/ignis-helpers/core` and a page and a server speak one wire format with one class. The wire format is the same as before: a raw public key, a 32-byte salt, a 12-byte IV and a 128-bit tag, all base64.
 
 ```typescript
 const ecdh = ECDH.withAlgorithm(); // curve is always 'ecdh-p256'
