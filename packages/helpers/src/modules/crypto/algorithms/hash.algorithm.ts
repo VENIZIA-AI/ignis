@@ -1,4 +1,3 @@
-import C from 'node:crypto';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import {
@@ -65,7 +64,7 @@ export class Hash extends BaseHelper {
   }): string {
     const { message } = opts;
     const { outputEncoding = DEFAULT_HASH_OUTPUT_ENCODING } = opts.opts ?? {};
-    const hash = C.createHash(this.algorithm);
+    const hash = new Bun.CryptoHasher(this.algorithm);
 
     for (const part of Array.isArray(message) ? message : [message]) {
       hash.update(part);
@@ -89,6 +88,6 @@ export class Hash extends BaseHelper {
       });
     }
 
-    return C.createHmac(this.algorithm, secret).update(message).digest(outputEncoding);
+    return new Bun.CryptoHasher(this.algorithm, secret).update(message).digest(outputEncoding);
   }
 }
