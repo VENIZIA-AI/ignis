@@ -15,6 +15,14 @@ export class AssetCommitToken {
   }
 
   private static sign(opts: { body: string; secretKey: string }): string {
+    // `Bun.CryptoHasher` given no key answers a plain SHA-256 instead of throwing, which anyone can compute: a
+    // missing secret must stop here, as `createHmac` did, or a forged token would pass.
+    if (typeof opts.secretKey !== 'string') {
+      throw getError({
+        message: '[AssetCommitToken][sign] Invalid secretKey | Expected a string',
+      });
+    }
+
     return new Bun.CryptoHasher('sha256', opts.secretKey).update(opts.body).digest('base64url');
   }
 

@@ -16,8 +16,8 @@ const BIN_KEY = new Uint8Array([255, 254, 0, 128, 127, 1]);
 const LONG_KEY = 'x'.repeat(200);
 
 interface IRow {
-  a: THashAlgorithm;
-  e: THashOutputEncoding;
+  algorithm: THashAlgorithm;
+  encoding: THashOutputEncoding;
   digestAbc: string;
   digestParts: string;
   digestUnicode: string;
@@ -30,8 +30,8 @@ interface IRow {
 
 const ROWS: ReadonlyArray<IRow> = [
   {
-    a: 'md5',
-    e: 'hex',
+    algorithm: 'md5',
+    encoding: 'hex',
     digestAbc: '900150983cd24fb0d6963f7d28e17f72',
     digestParts: '6b51b23a8cfaf3051dfc0babc5488d0f',
     digestUnicode: '8b3c4ce7c0701e889e9143ef6242b732',
@@ -42,8 +42,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'eb705611381433fdfe96ffc83f709df5',
   },
   {
-    a: 'md5',
-    e: 'base64',
+    algorithm: 'md5',
+    encoding: 'base64',
     digestAbc: 'kAFQmDzST7DWlj99KOF/cg==',
     digestParts: 'a1GyOoz68wUd/AurxUiNDw==',
     digestUnicode: 'izxM58BwHoiekUPvYkK3Mg==',
@@ -54,8 +54,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: '63BWETgUM/3+lv/IP3Cd9Q==',
   },
   {
-    a: 'md5',
-    e: 'base64url',
+    algorithm: 'md5',
+    encoding: 'base64url',
     digestAbc: 'kAFQmDzST7DWlj99KOF_cg',
     digestParts: 'a1GyOoz68wUd_AurxUiNDw',
     digestUnicode: 'izxM58BwHoiekUPvYkK3Mg',
@@ -66,8 +66,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: '63BWETgUM_3-lv_IP3Cd9Q',
   },
   {
-    a: 'sha1',
-    e: 'hex',
+    algorithm: 'sha1',
+    encoding: 'hex',
     digestAbc: 'a9993e364706816aba3e25717850c26c9cd0d89d',
     digestParts: 'f2ba8f84ab5c1bce84a7b441cb1959cfc7093b7f',
     digestUnicode: 'b78a383e23d1c9e124ac78b7587c4537ac9cf716',
@@ -78,8 +78,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'ed9aec33244bbab11325535fa3a85f0e4d0d0530',
   },
   {
-    a: 'sha1',
-    e: 'base64',
+    algorithm: 'sha1',
+    encoding: 'base64',
     digestAbc: 'qZk+NkcGgWq6PiVxeFDCbJzQ2J0=',
     digestParts: '8rqPhKtcG86Ep7RByxlZz8cJO38=',
     digestUnicode: 't4o4PiPRyeEkrHi3WHxFN6yc9xY=',
@@ -90,8 +90,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: '7ZrsMyRLurETJVNfo6hfDk0NBTA=',
   },
   {
-    a: 'sha1',
-    e: 'base64url',
+    algorithm: 'sha1',
+    encoding: 'base64url',
     digestAbc: 'qZk-NkcGgWq6PiVxeFDCbJzQ2J0',
     digestParts: '8rqPhKtcG86Ep7RByxlZz8cJO38',
     digestUnicode: 't4o4PiPRyeEkrHi3WHxFN6yc9xY',
@@ -102,8 +102,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: '7ZrsMyRLurETJVNfo6hfDk0NBTA',
   },
   {
-    a: 'sha256',
-    e: 'hex',
+    algorithm: 'sha256',
+    encoding: 'hex',
     digestAbc: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
     digestParts: 'c1cf6e465077930e88dc5136641d402f72a229ddd996f627d60e9639eaba35a6',
     digestUnicode: '48c7147b39a08ca54bca13b6c76d30e31a2023fc8ca4bc4c9708491495fa48c2',
@@ -114,8 +114,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: '528bc8be992cf7a8389372c4fd7fba973ac59451b3a353c9701e228b09e5e1c5',
   },
   {
-    a: 'sha256',
-    e: 'base64',
+    algorithm: 'sha256',
+    encoding: 'base64',
     digestAbc: 'ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=',
     digestParts: 'wc9uRlB3kw6I3FE2ZB1AL3KiKd3ZlvYn1g6WOeq6NaY=',
     digestUnicode: 'SMcUezmgjKVLyhO2x20w4xogI/yMpLxMlwhJFJX6SMI=',
@@ -126,8 +126,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'UovIvpks96g4k3LE/X+6lzrFlFGzo1PJcB4iiwnl4cU=',
   },
   {
-    a: 'sha256',
-    e: 'base64url',
+    algorithm: 'sha256',
+    encoding: 'base64url',
     digestAbc: 'ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0',
     digestParts: 'wc9uRlB3kw6I3FE2ZB1AL3KiKd3ZlvYn1g6WOeq6NaY',
     digestUnicode: 'SMcUezmgjKVLyhO2x20w4xogI_yMpLxMlwhJFJX6SMI',
@@ -138,8 +138,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'UovIvpks96g4k3LE_X-6lzrFlFGzo1PJcB4iiwnl4cU',
   },
   {
-    a: 'sha384',
-    e: 'hex',
+    algorithm: 'sha384',
+    encoding: 'hex',
     digestAbc:
       'cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7',
     digestParts:
@@ -158,8 +158,8 @@ const ROWS: ReadonlyArray<IRow> = [
       '2dd7edda72fe8565921e8ff654ae1b8e52e73056fab9ea3a6d3caf2468e3f5d98e8f2306e8442f8a7a8c7b0afbd16cd3',
   },
   {
-    a: 'sha384',
-    e: 'base64',
+    algorithm: 'sha384',
+    encoding: 'base64',
     digestAbc: 'ywB1P0WjXou1oD1pmsZQBycsMqsO3tFjGotgWkP/W+2AhgcroefMI1i67KE0yCWn',
     digestParts: 'kSd0Hy6K0NaOcL9RhKWwnWFuD6Mr/fm5JIliMx8gLJV7dsVNemazSjEwUDq4Z4/z',
     digestUnicode: 'mrxM7HF1gIUZY1oETQxVQ3YY0RvlHffEFei6NnGGIqcFiehVkF00W22MZr1yVEvO',
@@ -170,8 +170,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'Ldft2nL+hWWSHo/2VK4bjlLnMFb6ueo6bTyvJGjj9dmOjyMG6EQvinqMewr70WzT',
   },
   {
-    a: 'sha384',
-    e: 'base64url',
+    algorithm: 'sha384',
+    encoding: 'base64url',
     digestAbc: 'ywB1P0WjXou1oD1pmsZQBycsMqsO3tFjGotgWkP_W-2AhgcroefMI1i67KE0yCWn',
     digestParts: 'kSd0Hy6K0NaOcL9RhKWwnWFuD6Mr_fm5JIliMx8gLJV7dsVNemazSjEwUDq4Z4_z',
     digestUnicode: 'mrxM7HF1gIUZY1oETQxVQ3YY0RvlHffEFei6NnGGIqcFiehVkF00W22MZr1yVEvO',
@@ -182,8 +182,8 @@ const ROWS: ReadonlyArray<IRow> = [
     hmacBytesMsg: 'Ldft2nL-hWWSHo_2VK4bjlLnMFb6ueo6bTyvJGjj9dmOjyMG6EQvinqMewr70WzT',
   },
   {
-    a: 'sha512',
-    e: 'hex',
+    algorithm: 'sha512',
+    encoding: 'hex',
     digestAbc:
       'ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f',
     digestParts:
@@ -202,8 +202,8 @@ const ROWS: ReadonlyArray<IRow> = [
       'ea31e5ee310e88d558b7a4cd32f75575f4e8e4b436cae1f5d4cdf15003613bcda6dbe66fa4d7247b4d5c5bbcb22b19a28a8fdd4e958e46d53be4406a20690b42',
   },
   {
-    a: 'sha512',
-    e: 'base64',
+    algorithm: 'sha512',
+    encoding: 'base64',
     digestAbc:
       '3a81oZNherrMQXNJriBBMRLm+k6JqX6iCp7u5ktV05ohkpkqJ0/BqDa6PCOj/uu9RU1EI2Q86A4qmslPpUyknw==',
     digestParts:
@@ -222,8 +222,8 @@ const ROWS: ReadonlyArray<IRow> = [
       '6jHl7jEOiNVYt6TNMvdVdfTo5LQ2yuH11M3xUANhO82m2+ZvpNcke01cW7yyKxmiio/dTpWORtU75EBqIGkLQg==',
   },
   {
-    a: 'sha512',
-    e: 'base64url',
+    algorithm: 'sha512',
+    encoding: 'base64url',
     digestAbc:
       '3a81oZNherrMQXNJriBBMRLm-k6JqX6iCp7u5ktV05ohkpkqJ0_BqDa6PCOj_uu9RU1EI2Q86A4qmslPpUyknw',
     digestParts:
@@ -245,14 +245,16 @@ const ROWS: ReadonlyArray<IRow> = [
 
 describe('Hash gives the same text as the node:crypto implementation did', () => {
   test('the table covers every accepted algorithm and encoding', () => {
-    expect(new Set(ROWS.map((row) => row.a))).toEqual(HashAlgorithms.SCHEME_SET);
-    expect(new Set(ROWS.map((row) => row.e))).toEqual(HashOutputEncodings.SCHEME_SET);
+    expect(new Set<string>(ROWS.map((row) => row.algorithm))).toEqual(HashAlgorithms.SCHEME_SET);
+    expect(new Set<string>(ROWS.map((row) => row.encoding))).toEqual(
+      HashOutputEncodings.SCHEME_SET,
+    );
   });
 
   for (const row of ROWS) {
-    describe(`${row.a} / ${row.e}`, () => {
-      const hash = Hash.withAlgorithm(row.a);
-      const outputEncoding = row.e;
+    describe(`${row.algorithm} / ${row.encoding}`, () => {
+      const hash = Hash.withAlgorithm(row.algorithm);
+      const outputEncoding = row.encoding;
 
       test('digest of text, of the empty text and of unicode', () => {
         expect(hash.digest({ message: 'abc', opts: { outputEncoding } })).toBe(row.digestAbc);

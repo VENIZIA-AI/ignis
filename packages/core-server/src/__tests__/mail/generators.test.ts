@@ -3,7 +3,7 @@ import { MailMimeUtility } from '@/components/mail/utilities';
 import { NumericCodeGenerator } from '@/components/mail/services/generators/numeric-code';
 import { RandomTokenGenerator } from '@/components/mail/services/generators/random-token';
 
-/** The values of \`crypto.getRandomValues\` the next calls return, one array of bytes per call; real bytes after that. */
+/** The values of `crypto.getRandomValues` the next calls return, one array of bytes per call; real bytes after that. */
 const realGetRandomValues = crypto.getRandomValues.bind(crypto);
 const scriptDraws = (draws: ReadonlyArray<ReadonlyArray<number>>): { calls: () => number } => {
   let call = 0;
@@ -72,6 +72,17 @@ describe('NumericCodeGenerator', () => {
     expect(draws.calls()).toBe(1);
   });
 
+  test('a draw exactly at the limit is refused, the one below it is not', () => {
+    // max 10: the limit is 2 ** 48 - 6, so that value is in the biased tail and is drawn again.
+    const limit = 2 ** 48 - 6;
+    const toBytes = (value: number) =>
+      [...new Uint8Array(new BigUint64Array([BigInt(value)]).buffer)].slice(0, 6).reverse();
+    const draws = scriptDraws([toBytes(limit), toBytes(limit - 1)]);
+
+    expect(generator.generateCode(1)).toBe(String((limit - 1) % 10));
+    expect(draws.calls()).toBe(2);
+  });
+
   test('every digit comes up about equally often (chi-square, 9 degrees of freedom)', () => {
     const counts = new Array<number>(10).fill(0);
     const draws = 30_000;
@@ -109,6 +120,12 @@ describe('RandomTokenGenerator', () => {
 
   test('two tokens differ', () => {
     expect(generator.generateToken(16)).not.toBe(generator.generateToken(16));
+  });
+
+  test('a size that is not a non-negative integer is refused, not turned into an empty token', () => {
+    for (const size of [Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5, undefined, null, '8']) {
+      expect(() => generator.generateToken(size as unknown as number)).toThrow();
+    }
   });
 
   test('no bytes is the empty text', () => {

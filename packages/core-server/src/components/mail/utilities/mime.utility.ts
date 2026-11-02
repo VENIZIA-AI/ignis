@@ -20,8 +20,8 @@ const MAX_HEADER_HARD_LIMIT = 990;
 const ENCODED_WORD_MAX_LENGTH = 75;
 
 /** `bytes` random bytes as lowercase hex, from the platform CSPRNG. */
-function randomHex(bytes: number): string {
-  return Buffer.from(crypto.getRandomValues(new Uint8Array(bytes))).toString('hex');
+function generateRandomHex(opts: { bytes: number }): string {
+  return Buffer.from(crypto.getRandomValues(new Uint8Array(opts.bytes))).toString('hex');
 }
 
 function isAscii(value: string): boolean {
@@ -259,7 +259,7 @@ function buildHeaders(message: IMailMessage): string[] {
   // so an omission here is an omission on the wire (some receiving MTAs reject a `Date`-less
   // message outright, and a missing `Message-ID` breaks threading and dedup).
   headers.push(`Date: ${new Date().toUTCString()}`);
-  headers.push(`Message-ID: <${randomHex(16)}@${extractDomain(message.from)}>`);
+  headers.push(`Message-ID: <${generateRandomHex({ bytes: 16 })}@${extractDomain(message.from)}>`);
   headers.push('MIME-Version: 1.0');
 
   if (message.headers) {
@@ -358,7 +358,7 @@ async function attachmentPart(attachment: IMailAttachment, boundary: string): Pr
 
 /** Every boundary is generated the same way - a fixed prefix plus random hex - so no two nested multipart sections in one message can ever collide. */
 function newBoundary(label: string): string {
-  return `----=_${label}_${randomHex(12)}`;
+  return `----=_${label}_${generateRandomHex({ bytes: 12 })}`;
 }
 
 export class MailMimeUtility {

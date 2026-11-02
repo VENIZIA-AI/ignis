@@ -12,7 +12,7 @@ export class NumericCodeGenerator extends BaseHelper implements IVerificationCod
 
   generateCode(length: number): string {
     const max = Math.pow(10, length);
-    const code = NumericCodeGenerator.randomBelow(max);
+    const code = NumericCodeGenerator.getRandomBelow({ max });
     return code.toString().padStart(length, '0');
   }
 
@@ -20,7 +20,9 @@ export class NumericCodeGenerator extends BaseHelper implements IVerificationCod
    * A uniform integer in `[0, max)`. A draw at or above the largest multiple of `max` is thrown away and drawn
    * again, so no code is likelier than another (`value % max` alone favours the low codes).
    */
-  private static randomBelow(max: number): number {
+  private static getRandomBelow(opts: { max: number }): number {
+    const { max } = opts;
+
     if (!Number.isSafeInteger(max) || max <= 0 || max > DRAW_RANGE) {
       throw getError({
         message: `[NumericCodeGenerator][generateCode] Invalid length | 10 ** length must be an integer from 1 to ${DRAW_RANGE} | Got: ${max}`,

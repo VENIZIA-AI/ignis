@@ -1,8 +1,5 @@
-import { BaseHelper } from '@venizia/ignis-helpers/core';
+import { BaseHelper, getError } from '@venizia/ignis-helpers/core';
 import type { IVerificationTokenGenerator } from '../../common';
-
-/** `crypto.getRandomValues` fills at most this many bytes per call. */
-const MAX_FILL_BYTES = 65_536;
 
 export class RandomTokenGenerator extends BaseHelper implements IVerificationTokenGenerator {
   constructor() {
@@ -10,10 +7,13 @@ export class RandomTokenGenerator extends BaseHelper implements IVerificationTok
   }
 
   generateToken(bytes: number): string {
-    const buffer = new Uint8Array(bytes);
-    for (let offset = 0; offset < buffer.length; offset += MAX_FILL_BYTES) {
-      crypto.getRandomValues(buffer.subarray(offset, offset + MAX_FILL_BYTES));
+    // `new Uint8Array(NaN)` is empty: without this check a misconfigured size would give an empty token.
+    if (!Number.isSafeInteger(bytes) || bytes < 0) {
+      throw getError({
+        message: `[RandomTokenGenerator][generateToken] Invalid bytes | Expected a non-negative integer | Got: ${bytes}`,
+      });
     }
-    return Buffer.from(buffer).toString('base64url');
+
+    return Buffer.from(crypto.getRandomValues(new Uint8Array(bytes))).toString('base64url');
   }
 }
