@@ -34,7 +34,7 @@ on:
         default: 'docs'
       ref:
         type: string
-        description: 'atlas-index only: a tag or a branch whose commit to publish instead of the one this run starts on (empty = this run's own commit)'
+        description: 'atlas-index only: a tag or a branch whose commit to publish instead of the one this run starts on (empty = the commit this run started on)'
         required: false
         default: ''
 
