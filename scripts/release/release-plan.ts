@@ -4,7 +4,7 @@ export interface IPlanPackage {
   name: string;
   /** The npm name. */
   packageName: string;
-  /** The npm names of the workspace packages it ships as dependencies or peer dependencies. */
+  /** The npm names of the workspace packages it ships as dependencies or peer dependencies, or (a package that ships presets) bakes into its presets. */
   dependsOn: ReadonlyArray<string>;
   /** Source files changed since its own last release; `Infinity` when it never had one. */
   changedFiles: number;
@@ -20,28 +20,46 @@ export interface IPlannedPackage {
 export interface IPlanManifest {
   dependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
-  devDependencies?: Record<string, string>;
-  /** A package that ships presets (`vulcan.presets`) has its packed `devDependencies` read as the preset's catalog. */
+  /** A package that ships presets (`vulcan.presets`) bakes the versions of the tools its templates name into them. */
   vulcan?: { presets?: Record<string, string> };
 }
 
 export class ReleasePlan {
   /**
-   * The npm names a package must be released after: what it ships as `dependencies` or `peerDependencies`, and, when
-   * it ships presets, its `devDependencies` too. A project made from a preset reads the packed `devDependencies` of
-   * the package that holds it as its version catalog (`bun pm pack` replaces `workspace:*` there with the workspace
-   * version at pack time, as it does in `dependencies`), so a preset package published before a tool it lists is
-   * bumped keeps handing out the old tool. For any other package a `devDependency` is never published and never counts.
+   * The npm names a package must be released after: what it ships as `dependencies` or `peerDependencies`, and, when it
+   * ships presets, the workspace packages its preset templates name. A project made from a preset reads
+   * `dist/presets/<kind>/preset.json`, which `scripts/preset/vulcan-preset.ts` builds from `presets/<kind>/preset.json`
+   * and in which every `workspace:*` becomes the workspace version at build time. A preset package published before a
+   * tool its templates name is bumped therefore keeps handing out the old tool (`@venizia/ignis` 0.4.7-3 did, with a
+   * boot that threw under Node). `presets` are the parsed templates; a package that ships none depends on its
+   * `dependencies` and `peerDependencies` only, and a `devDependency` is never published and never counts.
    */
-  static dependsOn(opts: { manifest: IPlanManifest }): string[] {
-    const { manifest } = opts;
+  static dependsOn(opts: { manifest: IPlanManifest; presets?: ReadonlyArray<unknown> }): string[] {
+    const { manifest, presets = [] } = opts;
     const shipsPresets = Object.keys(manifest.vulcan?.presets ?? {}).length > 0;
 
-    return Object.keys({
-      ...manifest.dependencies,
-      ...manifest.peerDependencies,
-      ...(shipsPresets ? manifest.devDependencies : {}),
-    });
+    return [
+      ...new Set([
+        ...Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies }),
+        ...(shipsPresets
+          ? presets.flatMap((preset) => ReleasePlan.workspaceNames({ value: preset }))
+          : []),
+      ]),
+    ];
+  }
+
+  /** Every package name a preset template gives as `workspace:*` (or another `workspace:` range), in any dependency block. */
+  static workspaceNames(opts: { value: unknown }): string[] {
+    const { value } = opts;
+    if (typeof value !== 'object' || value === null) {
+      return [];
+    }
+
+    return Object.entries(value).flatMap(([key, child]) =>
+      typeof child === 'string' && child.startsWith('workspace:')
+        ? [key]
+        : ReleasePlan.workspaceNames({ value: child }),
+    );
   }
 
   /**

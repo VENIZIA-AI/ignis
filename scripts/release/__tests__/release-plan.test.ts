@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { type IPlanPackage, ReleasePlan } from '../release-plan';
 
@@ -18,6 +17,13 @@ const ORDER = [
 
 const REPO = resolve(import.meta.dir, '..', '..', '..');
 
+/** The real preset templates `scripts/preset/vulcan-preset.ts` builds the shipped presets from. */
+const PRESET_TEMPLATES: unknown[] = readdirSync(join(REPO, 'presets'), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => join(REPO, 'presets', entry.name, 'preset.json'))
+  .filter((path) => existsSync(path))
+  .map((path) => JSON.parse(readFileSync(path, 'utf8')));
+
 /** The real workspace manifests, in release order, with the given packages marked as changed. */
 const workspace = (changed: string[]): IPlanPackage[] => {
   return ORDER.map((name) => {
@@ -26,7 +32,7 @@ const workspace = (changed: string[]): IPlanPackage[] => {
     return {
       name,
       packageName: manifest.name,
-      dependsOn: ReleasePlan.dependsOn({ manifest }),
+      dependsOn: ReleasePlan.dependsOn({ manifest, presets: PRESET_TEMPLATES }),
       changedFiles: changed.includes(name) ? 3 : 0,
     };
   });
@@ -155,10 +161,10 @@ describe('ReleasePlan.planFullSweep - the real workspace', () => {
   });
 });
 
-describe('ReleasePlan - a package that ships presets is released with the tools its packed devDependencies list', () => {
-  // `@venizia/ignis` (core-server) has `@venizia/ignis-boot` and `@venizia/dev-configs` as devDependencies, and the
-  // preset of a new project reads them as its catalog. 0.4.7-3 went out with a boot that threw under Node and the
-  // 0.4.7-4 plan released only dev-configs and boot, so a fresh project still got the broken boot.
+describe('ReleasePlan - a package that ships presets is released with the tools its preset templates name', () => {
+  // `@venizia/ignis` (core-server) builds `dist/presets` from `presets/*/preset.json`, where `workspace:*` becomes the
+  // workspace version at build time. 0.4.7-3 went out with a boot that threw under Node and the 0.4.7-4 plan released
+  // only dev-configs and boot, so a fresh project still got the broken boot.
   test('boot changed: core-server is released too, for boot', () => {
     const planned = ReleasePlan.planFullSweep({ packages: workspace(['boot']) });
     const coreServer = planned.find((entry) => entry.name === 'core-server');
@@ -173,61 +179,86 @@ describe('ReleasePlan - a package that ships presets is released with the tools 
     expect(coreServer?.cascadedFrom).toContain('@venizia/dev-configs');
   });
 
-  test('the real core-server manifest ships presets and lists both tools', () => {
+  test('every workspace package a real preset template names is a dependency of core-server, except core-server itself', () => {
     const manifest = JSON.parse(
       readFileSync(join(REPO, 'packages', 'core-server', 'package.json'), 'utf8'),
     );
-    const dependsOn = ReleasePlan.dependsOn({ manifest });
+    const named = PRESET_TEMPLATES.flatMap((template) =>
+      ReleasePlan.workspaceNames({ value: template }),
+    );
+    const dependsOn = ReleasePlan.dependsOn({ manifest, presets: PRESET_TEMPLATES });
 
     expect(Object.keys(manifest.vulcan.presets).length).toBeGreaterThan(0);
-    expect(dependsOn).toContain('@venizia/ignis-boot');
-    expect(dependsOn).toContain('@venizia/dev-configs');
+    expect(named).toContain('@venizia/ignis-boot');
+    expect(named).toContain('@venizia/dev-configs');
+    for (const name of named.filter((candidate) => candidate !== manifest.name)) {
+      expect(dependsOn).toContain(name);
+    }
   });
 
-  test('a package with no presets keeps its devDependencies out', () => {
+  test('a tool added to a preset template and nowhere else still makes the preset package follow it', () => {
     const dependsOn = ReleasePlan.dependsOn({
-      manifest: {
-        dependencies: { '@x/a': '1.0.0' },
-        peerDependencies: { '@x/b': '^1.0.0' },
-        devDependencies: { '@x/tool': 'workspace:*' },
-      },
+      manifest: { vulcan: { presets: { app: './preset.json' } } },
+      presets: [{ devDependencies: { '@x/new-tool': 'workspace:*', typescript: 'catalog:' } }],
+    });
+
+    expect(dependsOn).toEqual(['@x/new-tool']);
+  });
+
+  test('a package that ships no presets ignores the templates and its devDependencies', () => {
+    const dependsOn = ReleasePlan.dependsOn({
+      manifest: { dependencies: { '@x/a': '1.0.0' }, peerDependencies: { '@x/b': '^1.0.0' } },
+      presets: [{ devDependencies: { '@x/tool': 'workspace:*' } }],
     });
 
     expect(dependsOn).toEqual(['@x/a', '@x/b']);
   });
 
-  test('a package with presets takes its devDependencies in, once each', () => {
-    const dependsOn = ReleasePlan.dependsOn({
-      manifest: {
-        dependencies: { '@x/a': '1.0.0' },
-        devDependencies: { '@x/a': 'workspace:*', '@x/tool': 'workspace:*' },
-        vulcan: { presets: { app: './dist/presets/app/preset.json' } },
-      },
-    });
+  test('an empty or missing presets block means no presets', () => {
+    const template = [{ devDependencies: { '@x/tool': 'workspace:*' } }];
 
-    expect(dependsOn.sort()).toEqual(['@x/a', '@x/tool']);
+    expect(
+      ReleasePlan.dependsOn({ manifest: { vulcan: { presets: {} } }, presets: template }),
+    ).toEqual([]);
+    expect(ReleasePlan.dependsOn({ manifest: { vulcan: {} }, presets: template })).toEqual([]);
+    expect(ReleasePlan.dependsOn({ manifest: {}, presets: template })).toEqual([]);
   });
 
-  test('a synthetic preset package is cascaded from a tool it only lists as a devDependency', () => {
+  test('a name in the dependencies and in a template is listed once; nested blocks and non-workspace ranges are read right', () => {
+    const dependsOn = ReleasePlan.dependsOn({
+      manifest: { dependencies: { '@x/a': '1.0.0' }, vulcan: { presets: { app: './p.json' } } },
+      presets: [
+        {
+          dependencies: { '@x/a': 'workspace:*' },
+          peerDependencies: { '@x/b': 'workspace:^' },
+          scripts: { test: 'bun test' },
+        },
+        { nested: { devDependencies: { '@x/c': 'workspace:*', '@x/d': '^1.0.0' } } },
+        null,
+        'text',
+      ],
+    });
+
+    expect(dependsOn.sort()).toEqual(['@x/a', '@x/b', '@x/c']);
+  });
+
+  test('a synthetic preset package is cascaded from a tool its template names, a plain one is not', () => {
+    const template = [{ devDependencies: { '@x/tool': 'workspace:*' } }];
     const packages: IPlanPackage[] = [
       { name: 'tool', packageName: '@x/tool', dependsOn: [], changedFiles: 4 },
       {
         name: 'app',
         packageName: '@x/app',
         dependsOn: ReleasePlan.dependsOn({
-          manifest: {
-            devDependencies: { '@x/tool': 'workspace:*' },
-            vulcan: { presets: { app: './preset.json' } },
-          },
+          manifest: { vulcan: { presets: { app: './preset.json' } } },
+          presets: template,
         }),
         changedFiles: 0,
       },
       {
         name: 'plain',
         packageName: '@x/plain',
-        dependsOn: ReleasePlan.dependsOn({
-          manifest: { devDependencies: { '@x/tool': 'workspace:*' } },
-        }),
+        dependsOn: ReleasePlan.dependsOn({ manifest: {}, presets: template }),
         changedFiles: 0,
       },
     ];
@@ -236,35 +267,5 @@ describe('ReleasePlan - a package that ships presets is released with the tools 
       { name: 'tool' },
       { name: 'app', cascadedFrom: ['@x/tool'] },
     ]);
-  });
-});
-
-describe('the packed manifest of a preset package takes its devDependency versions from the workspace at pack time', () => {
-  test('bun pm pack of core-server writes the workspace versions of boot and dev-configs, not workspace:*', () => {
-    const destination = mkdtempSync(join(tmpdir(), 'ignis-plan-pack-'));
-    try {
-      const packed = Bun.spawnSync({
-        cmd: ['bun', 'pm', 'pack', '--destination', destination, '--ignore-scripts', '--quiet'],
-        cwd: join(REPO, 'packages', 'core-server'),
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      expect(packed.exitCode).toBe(0);
-
-      const tarball = readdirSync(destination).find((file) => file.endsWith('.tgz')) ?? '';
-      const extracted = Bun.spawnSync({
-        cmd: ['tar', '-xzOf', join(destination, tarball), 'package/package.json'],
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const packedManifest = JSON.parse(extracted.stdout.toString());
-      const versionOf = (name: string) =>
-        JSON.parse(readFileSync(join(REPO, 'packages', name, 'package.json'), 'utf8')).version;
-
-      expect(packedManifest.devDependencies['@venizia/ignis-boot']).toBe(versionOf('boot'));
-      expect(packedManifest.devDependencies['@venizia/dev-configs']).toBe(versionOf('dev-configs'));
-    } finally {
-      rmSync(destination, { recursive: true, force: true });
-    }
   });
 });

@@ -1,6 +1,6 @@
 ---
 title: The release plan re-releases @venizia/ignis when a tool of its preset changes
-description: "@venizia/ignis is now released whenever @venizia/ignis-boot or @venizia/dev-configs is, so a project made from the IGNIS preset gets the fixed tool."
+description: "@venizia/ignis is now released whenever a tool its presets name (@venizia/ignis-boot, @venizia/dev-configs) is, so a project made from the IGNIS preset gets the fixed tool."
 packages: ['@venizia/ignis']
 ---
 
@@ -14,9 +14,9 @@ packages: ['@venizia/ignis']
 
 ## What changed
 
-- **The preset reads the packed `devDependencies` of `@venizia/ignis`.** When IGNIS packs, the workspace version of each tool is written into them, so the version a new project gets is the one `@venizia/ignis` was packed with.
-- **0.4.7-3 showed the gap.** `@venizia/ignis` 0.4.7-3 pinned a `@venizia/ignis-boot` that threw `Bun is not defined` under Node. The next release plan counted only `dependencies`, so it released boot and dev-configs and left `@venizia/ignis` behind: a new project still got the broken boot.
-- **The plan now counts those `devDependencies`.** A package that ships presets is released after every tool its packed `devDependencies` list. No other package changes: for them a `devDependency` is never published.
+- **The preset carries the tool versions it was built with.** A new project reads the presets inside `@venizia/ignis`, and each preset names its tools (`@venizia/ignis-boot`, `@venizia/dev-configs`, ...) at the workspace version of the build that made it.
+- **0.4.7-3 showed the gap.** `@venizia/ignis` 0.4.7-3 carried a `@venizia/ignis-boot` that threw `Bun is not defined` under Node. The next release plan counted only `dependencies`, so it released boot and dev-configs and left `@venizia/ignis` behind: a new project still got the broken boot.
+- **The plan now follows the preset templates.** A package that ships presets is released after every workspace package its preset templates name. No other package changes.
 
 ## Who is affected
 
