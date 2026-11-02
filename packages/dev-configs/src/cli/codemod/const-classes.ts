@@ -488,7 +488,6 @@ export class ConstClasses {
     const { className, typeName, members } = opts;
     const quote = (value: string) => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
     const lines = [
-      `/** The values of \`${typeName}\`. */`,
       `export class ${className} {`,
       ...members.map(({ value, key }) => `  static readonly ${key} = ${quote(value)};`),
       '',
