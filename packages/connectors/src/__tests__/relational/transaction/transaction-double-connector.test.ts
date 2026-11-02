@@ -27,7 +27,7 @@ const CONNECTOR_UNAVAILABLE =
 /** A stub that stands for the real connector, the way a unit test passes it. */
 const stubOf = <TConnector>(): TConnector => ({ stub: true }) as unknown as TConnector;
 
-const readConnector = (double: { connector: unknown }): unknown => double.connector;
+const readConnector = (opts: { double: { connector: unknown } }): unknown => opts.double.connector;
 
 describe('the connector option', () => {
   test('each double returns the connector it was given, the same reference every read', () => {
@@ -58,7 +58,13 @@ describe('the connector option', () => {
       new TransactionDouble({ connector: undefined }),
       new PostgresTransactionDouble({ commitError: getError({ message: 'x' }) }),
     ]) {
-      expect(() => readConnector(double)).toThrow(CONNECTOR_UNAVAILABLE);
+      expect(() => readConnector({ double })).toThrow(CONNECTOR_UNAVAILABLE);
+    }
+  });
+
+  test('only `undefined` means "no connector": null, 0 and an empty string are returned as given', () => {
+    for (const value of [null, 0, '']) {
+      expect(new TransactionDouble({ connector: value }).connector).toBe(value);
     }
   });
 
@@ -95,7 +101,7 @@ describe('the connector type', () => {
     // @ts-expect-error a stub that is not the connector type does not fit `TRelationalConnector`
     const refused = new PostgresTransactionDouble<TRelationalConnector>({ connector: { stub: 1 } });
 
-    expect(readConnector(refused)).toEqual({ stub: 1 });
+    expect(readConnector({ double: refused })).toEqual({ stub: 1 });
   });
 });
 
@@ -181,6 +187,68 @@ describe('onCommit and onRollback', () => {
     expect(message).toContain('deadlock');
     expect(double.state).toBe(TransactionStates.FAILED);
     expect(double.commitCount).toBe(1);
+  });
+
+  test('onRollback runs after the count goes up, and before rollbackError is thrown', async () => {
+    const order: string[] = [];
+    const double: TransactionDouble = new TransactionDouble({
+      rollbackError: getError({ message: 'rollback refused' }),
+      onRollback: () => {
+        order.push(`hook at ${double.rollbackCount}`);
+      },
+    });
+
+    const message = await messageOf({ task: double.rollback() });
+
+    expect(order).toEqual(['hook at 1']);
+    expect(message).toContain('rollback refused');
+    expect(double.state).toBe(TransactionStates.FAILED);
+  });
+
+  test('a hook sees the state the end settles on: COMMITTED, then FAILED when it throws', async () => {
+    const seen: string[] = [];
+    const committed: TransactionDouble = new TransactionDouble({
+      onCommit: () => {
+        seen.push(committed.state);
+      },
+    });
+    const refused: TransactionDouble = new TransactionDouble({
+      onCommit: () => {
+        seen.push(refused.state);
+        throw getError({ message: 'hook refused' });
+      },
+    });
+
+    await committed.commit();
+    await messageOf({ task: refused.commit() });
+    seen.push(refused.state);
+
+    expect(seen).toEqual([
+      TransactionStates.COMMITTED,
+      TransactionStates.COMMITTED,
+      TransactionStates.FAILED,
+    ]);
+  });
+
+  test('a hook that throws takes the place of commitError, and rollback() after the failure skips its hook', async () => {
+    let rolledBack = 0;
+    const double = new PostgresTransactionDouble({
+      commitError: getError({ message: 'deadlock' }),
+      onCommit: () => {
+        throw getError({ message: 'hook refused' });
+      },
+      onRollback: () => {
+        rolledBack++;
+      },
+    });
+
+    const message = await messageOf({ task: double.commit() });
+    await double.rollback();
+
+    expect(message).toContain('hook refused');
+    expect(message).not.toContain('deadlock');
+    expect(rolledBack).toBe(0);
+    expect(double.rollbackCount).toBe(0);
   });
 
   test('a throw from a hook fails the end like commitError does', async () => {

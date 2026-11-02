@@ -651,7 +651,9 @@ const double = new PostgresTransactionDouble({
 
 `onCommit` and `onRollback` run, and are awaited, when a commit or rollback reaches the end statement:
 after the count goes up, before `commitError` or `rollbackError` is thrown. A hook that throws fails the
-end the way an injected error does. A second end the double refuses does not call the hook again.
+end the way an injected error does, and its error is the one thrown, in place of `commitError`. A hook reads
+`state` as the end settles it (`COMMITTED` or `ROLLED_BACK`, then `FAILED` if the hook throws). A second end the
+double refuses, such as `rollback()` after a failed commit, does not call the hook again.
 `SqliteTransactionDouble` takes the same options. PGlite has no double of its own: its connector is the
 same Postgres connector type, so `PostgresTransactionDouble` is the PGlite double.
 

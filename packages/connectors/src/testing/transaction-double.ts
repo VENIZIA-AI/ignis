@@ -13,7 +13,10 @@ import type { TSqliteBeginMode } from '@/relational/sqlite/datasources/common/ty
 import { SqliteBeginModes } from '@/relational/sqlite/datasources/common/types';
 import { getError } from '@venizia/ignis-helpers/core';
 
-/** A hook a test passes to see an end statement; it may be async, and a throw from it fails the end like `commitError`. */
+/**
+ * A hook a test passes to see an end statement; it may be async. It reads `state` as the end settles it
+ * (COMMITTED or ROLLED_BACK). A throw from it fails the end, and its error is thrown in place of `commitError`/`rollbackError`.
+ */
 export type TTransactionDoubleHook = () => void | Promise<void>;
 
 export interface ITransactionDoubleOptions<TConnector = never> {
