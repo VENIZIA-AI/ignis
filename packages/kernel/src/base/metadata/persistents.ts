@@ -30,10 +30,6 @@ export const model = (input: IModelMetadata = {}): ClassDecorator => {
       metadata: input,
     });
 
-    ModelMetadataUtility.assertNoRemovedModelSettings({
-      model: target.name,
-      settings: metadata.settings,
-    });
     const { settings } = metadata;
 
     const defaultLimit = settings?.query?.limit?.default;

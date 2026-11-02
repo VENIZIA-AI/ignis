@@ -453,7 +453,6 @@ describe('devz codemod const-classes - the command', () => {
     logs.length = 0;
     const result2 = await CodemodCommand.run({ root, args: ['--help'] });
     expect(result2).toBe(0);
-    expect(logs.join('\n')).toContain('devz codemod model-settings');
     expect(logs.join('\n')).toContain('devz codemod drop-redundant-casts');
     expect(logs.join('\n')).toContain('devz codemod const-classes');
   });

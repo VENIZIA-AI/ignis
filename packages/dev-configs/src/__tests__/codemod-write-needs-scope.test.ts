@@ -7,7 +7,7 @@ import { CodemodCommand } from '../cli/codemod';
 /**
  * `--write` with no path used to rewrite every source file under the working directory. For the codemods that
  * rewrite broadly (a style sweep, a type rewrite) that is how 134 clean files changed from one command typed
- * without a path. They now need a path or an explicit `--all`. `model-settings` and `namespace-functions` keep
+ * without a path. They now need a path or an explicit `--all`. `namespace-functions` and `connector-imports` keep
  * their default: their documented upgrade step is the bare `--write`, and they touch only a file that holds the
  * old text.
  */
@@ -175,17 +175,6 @@ describe('devz codemod --write without a path', () => {
   });
 
   describe('the codemods whose documented step is the bare --write', () => {
-    test('model-settings rewrites with no path', async () => {
-      const model =
-        "@model({ type: 'entity', settings: { defaultLimit: 20 } })\nclass Product {}\n";
-      commit({ 'src/a.ts': model });
-
-      const code = await run(['model-settings', '--write']);
-
-      expect(code).toBe(0);
-      expect(read('src/a.ts')).not.toBe(model);
-    });
-
     test('namespace-functions rewrites with no path', async () => {
       const source =
         "import { isMailTransport } from '@venizia/ignis/mail';\nexport const ok = isMailTransport({});\n";
