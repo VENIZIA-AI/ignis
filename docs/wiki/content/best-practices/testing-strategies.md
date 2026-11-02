@@ -626,12 +626,36 @@ Inject `commitError` (or `rollbackError`) to test a failed commit or rollback:
 const double = new PostgresTransactionDouble({ commitError: getError({ message: 'deadlock' }) });
 ```
 
-The double never touches a database. Its `connector` getter throws - a repository method that
-reaches for `transaction.connector` must be stubbed too, because the double has none to give:
+The double never touches a database. Without a `connector` option its getter throws - a repository
+method that reaches for `transaction.connector` must be stubbed too, because the double has none to give:
 
 ```
 [TransactionDouble] connector is not available - stub the repository method that reached the database
 ```
+
+A service that runs queries on `transaction.connector` can use the double when you give it a connector.
+The getter returns that value, typed as the connector type; without one it stays `never`. Pass the stub
+as the real connector type, or name the type:
+
+```typescript
+import type { TRelationalConnector } from '@venizia/ignis-connectors/postgres';
+
+const connector = { execute: mock(async () => ({ rows: [] })) };
+const double = new PostgresTransactionDouble({
+  connector: connector as unknown as TRelationalConnector,
+  onCommit: () => events.push('committed'),
+  onRollback: () => events.push('rolled back'),
+});
+// double.connector is a TRelationalConnector, the same object as `connector`
+```
+
+`onCommit` and `onRollback` run, and are awaited, when a commit or rollback reaches the end statement:
+after the count goes up, before `commitError` or `rollbackError` is thrown. A hook that throws fails the
+end the way an injected error does, and its error is the one thrown, in place of `commitError`. A hook reads
+`state` as the end settles it (`COMMITTED` or `ROLLED_BACK`, then `FAILED` if the hook throws). A second end the
+double refuses, such as `rollback()` after a failed commit, does not call the hook again.
+`SqliteTransactionDouble` takes the same options. PGlite has no double of its own: its connector is the
+same Postgres connector type, so `PostgresTransactionDouble` is the PGlite double.
 
 `SqliteTransactionDouble` carries `beginMode` the same way `PostgresTransactionDouble` carries
 `isolationLevel` - both default to what the real `BEGIN` would have used.
