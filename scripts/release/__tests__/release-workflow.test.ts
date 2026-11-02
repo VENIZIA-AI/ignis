@@ -1251,6 +1251,134 @@ describe('one mutation per guard: removing the guard from a copy fails the check
         },
       ],
     },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '      fail-fast: false\n      max-parallel: 1\n',
+          replace: '      fail-fast: true\n      max-parallel: 1\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '        package: ${{ fromJSON(needs.plan.outputs.matrix).package }}\n',
+          replace: '        package: ${{ fromJSON(needs.plan.outputs.matrix).other }}\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 0\n",
+          replace:
+            "# The tags the publish job pushed are fetched with the whole history; the commit to build is the tag's, not this one.\n      - name: Checkout\n        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3\n        with:\n          ref: ${{ github.sha }}\n          fetch-depth: 1\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '          IFS=\',\' read -ra PAIRS <<< "$TARGETS"\n',
+          replace:
+            '          IFS=\',\' read -ra PAIRS <<< "$TARGETS"\n          echo "${{ github.sha }}" > /dev/null\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '          IFS=\',\' read -ra PAIRS <<< "$TARGETS"\n',
+          replace:
+            '          IFS=\',\' read -ra PAIRS <<< "$TARGETS"\n          echo "NODE_OPTIONS=--require=x" >> "$GITHUB_ENV"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n',
+          replace:
+            '          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n          EXTRA: value\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n',
+          replace:
+            '          ATLAS_INDEX_KEY: ${{ secrets.ATLAS_INDEX_KEY }}\n\n      - name: After the key\n        run: echo done\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          replace:
+            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ secrets['ATLAS_INDEX_KEY'] }}\n        run: bun install\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          replace:
+            "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        env:\n          K: ${{ toJSON(secrets) }}\n        run: bun install\n",
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: "      # The action runs the project's installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install\n",
+          replace:
+            '      # The action runs the project\'s installed atlas (`vulcan x atlas index publish`).\n      - name: Install\n        run: bun install && echo "PATH=/x" >> "$GITHUB_PATH"\n',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    permissions:\n      contents: write\n    # Each run uploads',
+          replace:
+            '    env:\n      X: value\n    permissions:\n      contents: write\n    # Each run uploads',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '    permissions:\n      contents: write\n    # Each run uploads',
+          replace:
+            '    container: ubuntu:latest\n    permissions:\n      contents: write\n    # Each run uploads',
+        },
+      ],
+    },
+    {
+      guard: ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
+      edits: [
+        {
+          find: '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n',
+          replace:
+            '  BUILD_MODE: ${{ github.event.inputs.build_mode }}\n  OTHER: ${{ SECRETS.ATLAS_INDEX_KEY }}\n',
+        },
+      ],
+    },
   ];
 
   test('the table names every guard', () => {
@@ -1498,7 +1626,8 @@ describe('the atlas pair of each release tag', () => {
       /uses: (VENIZIA-AI\/vulcan\/\.github\/actions\/atlas-index@[0-9a-f]{40}) # (\S+)/
         .exec(text)
         ?.slice(1, 3);
-    // action.yml at that commit declares exactly `key-env` and `ref`; the release job passes `ref` only.
+    // Recorded from action.yml at that commit (read by hand): it declares exactly `key-env` and `ref`; the release job
+    // passes `ref` only. A bump of the pin is a deliberate pull request that re-reads it.
     const declared = ['key-env', 'ref'];
 
     expect(pin(WORKFLOW)).toBeDefined();

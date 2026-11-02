@@ -432,7 +432,7 @@ jobs:
           HEADLINE: ${{ needs.plan.outputs.headline }}
 
   # ---------------------------------------------------------------------------------------------
-  # PUBLISH - needs every gate and the approval of a stable, and is the only job with write access.
+  # PUBLISH - needs every gate and the approval of a stable, and is the only job with the npm publish identity (`id-token`); `atlas-index` below also writes, `contents` only.
   # It holds no registry token: npm trusted publishing signs in with the job's own identity.
   # ---------------------------------------------------------------------------------------------
   publish:

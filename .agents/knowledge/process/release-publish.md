@@ -13,7 +13,7 @@ tags: [process, release, ci]
 - [Before a chain release](#before-a-chain-release)
 - [What atlas reads after a release](#what-atlas-reads-after-a-release)
 - [The VULCAN preset](#the-vulcan-preset)
-- [The five jobs and their guards](#the-five-jobs-and-their-guards)
+- [The six jobs and their guards](#the-six-jobs-and-their-guards)
 - [Trusted publishing (no npm token)](#trusted-publishing-no-npm-token)
 - [The GitHub Release of a run](#the-github-release-of-a-run)
 - [The prebuilt atlas index of this repository](#the-prebuilt-atlas-index-of-this-repository)
@@ -89,10 +89,10 @@ atlas-releases` and `make atlas-symbols` print what it sees (both come from
 
 `@venizia/ignis` ships a data-only VULCAN preset (`vulcan.presets.app`, `vulcan.presets.lib` and `vulcan.presets.shared` in its `package.json`), so `vulcan init --preset ignis` creates a working monorepo. It has three kinds: `presets/app` (`vulcan add --preset ignis --app <name>`, derived from `examples/5-mins-qs`), `presets/lib` (`--lib <name>`, a library other IGNIS apps import: `exports` to `src`, `@venizia/ignis` as a peer, no `server:dev` or `compile`) and `presets/shared` (`--shared <name>`, needs a VULCAN with `--shared`, 0.4.9-0 or later). The shared kind is a side-neutral package that backend and frontend apps both import; it is not the lib kind and never replaces it. It depends on no IGNIS or ARDOR package: `@venizia/dev-configs` is the one `@venizia/*` name it may list, as a devDependency, and a test (`scripts/preset/__tests__/shared-preset.test.ts`) fails on any other. Its tsconfig extends nothing from dev-configs (no decorators, no DOM, no Bun API in `src`). Each is `preset.json` with `workspace:*` / `catalog:` markers plus `files/`; the lib and the shared kind also get the app's `.configs/` lint and format files and its lint and clean scripts at build time. `scripts/preset/vulcan-preset.ts` (`make preset-build`) resolves the markers to the exact workspace versions and the root-catalog ranges and writes `dist/presets/app`, `dist/presets/lib` and `dist/presets/shared`, named by `vulcan.presets.app`, `vulcan.presets.lib` and `vulcan.presets.shared`; an older VULCAN ignores the `shared` key; the release loop runs it after the `core-server` bump, so the preset names the release it ships in. `make preset-smoke` (`scripts/preset/preset-smoke.ts`) packs the workspace, creates an app from the packed preset in a temp folder and runs its typecheck, lint and test, then `vulcan doctor` and `okf check`, and calls `GET /api/hello`; it gates the `core-server` release before the bump, and CI runs it after the build. `bun pm pack` drops every `__tests__` folder, so the preset keeps its smoke test at `src/smoke.test.ts`.
 
-## The five jobs and their guards
+## The six jobs and their guards
 
 The workflow takes a `plan` (`name@version,...`: the package folders and the version each has now), a `build_mode`
-(default `prerelease`) and an `issue`, and runs five jobs. `plan` holds no secret and no environment: it validates the
+(default `prerelease`) and an `issue`, and runs six jobs (the sixth, `atlas-index`, is described under [the prebuilt atlas index](#the-prebuilt-atlas-index-of-this-repository)). `plan` holds no secret and no environment: it validates the
 input (known names, semver, no duplicate), orders it in dependency order, refuses a ref that is not the branch of the kind
 (`GITHUB_REF`; see [Two kinds of release](#two-kinds-of-release)) and a stable plan that is not the scope of the mode, and
 outputs the plan, the `kind`, the `branch`, a `headline` (`<n> packages, up to <highest target>`) and the `targets`; every
@@ -108,7 +108,7 @@ approves a run that fails a gate, names the environment `release-approval` (revi
 permission and runs one echo; the click is the approval, its name carries the `headline`, and nothing waits for a second
 one. `publish` `needs` all four and runs after `approve` succeeded, or after it was skipped because the plan says
 prerelease and `plan`, `test` and `scripts` succeeded, under `!cancelled()` (the guard evaluates the written `if` over its
-cases). It is the only job with `contents: write` and `id-token: write`, names the environment `npm-release` (no
+cases). It is the only job with `id-token: write`, and the only one with `contents: write` besides `atlas-index` (which has nothing else), names the environment `npm-release` (no
 reviewers), has a `timeout-minutes` (nine publishes, each followed by a wait of up to fifteen minutes), builds once and
 runs the loop (`scripts/release/release-run.ts run`, with `TARGET_BRANCH` from the plan). A stable first refuses to start
 when `main` is not the dispatched commit or `develop` is not the `develop_sha` the trial read, before any step changes a
@@ -124,8 +124,8 @@ versions, the Node setup does not cache, and every action is pinned by a full co
 `scripts/release/release-workflow.ts` reads the workflow and the loop and names every guard that is missing;
 `scripts/release/__tests__/release-workflow.test.ts` removes each guard from a copy, one at a time, and
 expects the check to name it (listed in `scripts/checks/controls.json`). Change a guard on purpose, and its
-mutation in that test, in the same pull request. There are 38. The ones for trusted publishing are `no-npm-token` (no
-`secrets.` reference and no npm token name in the workflow or in the loop), `environment-on-publish`, `oidc-on-publish-only`,
+mutation in that test, in the same pull request. There are 39. The ones for trusted publishing are `no-npm-token` (no
+`secrets` reference, in any spelling, and no npm token name in the workflow or in the loop, except the one `ATLAS_INDEX_KEY` line that `atlas-index-job-confined` pins), `environment-on-publish`, `oidc-on-publish-only`,
 `node-exact-no-cache`, `npm-exact-and-asserted` and `publish-tarball-with-provenance` (`bun publish` appears nowhere, the loop
 packs with `bun pm pack`, publishes with `npm publish` and `--provenance`). The ones for the shape of one run are
 `one-plan-input`, `default-mode-prerelease`, `plan-job-first`, `matrix-over-plan`, `build-once`, `publish-runs-the-loop`,

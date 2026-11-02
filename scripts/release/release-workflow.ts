@@ -150,6 +150,26 @@ const ATLAS_CONDITION =
 const ATLAS_STEP_CONDITION = "${{ steps.tag.outputs.tag != '' }}";
 const ATLAS_MATRIX = '${{ fromJSON(needs.plan.outputs.matrix).package }}';
 const ATLAS_REF = '${{ steps.tag.outputs.tag }}';
+/** The keys the job may have: no `env`, `environment`, `container`, `services`, `defaults` or `concurrency` to change what its steps run in. */
+const ATLAS_JOB_KEYS = [
+  'name',
+  'needs',
+  'if',
+  'runs-on',
+  'continue-on-error',
+  'timeout-minutes',
+  'permissions',
+  'strategy',
+  'steps',
+];
+/** The steps in order, and no other: a step that writes `$GITHUB_ENV` or `$GITHUB_PATH` would steer what runs with the key. */
+const ATLAS_STEP_NAMES = [
+  'Checkout',
+  'Setup Bun',
+  'Install',
+  'Name the tag',
+  'Publish the atlas index of the tag',
+];
 const STABLE_CONDITION = "${{ needs.plan.outputs.kind == 'stable' }}";
 const APPROVAL_ENVIRONMENT = 'release-approval';
 const MOVED_BRANCHES_STEP = 'Refuse a stable when a branch moved since the plan';
@@ -186,6 +206,8 @@ const FULL_COMMIT = /@[0-9a-f]{40}$/;
 const RELEASE_ENVIRONMENT = 'npm-release';
 const NPM_TOKEN_NAMES = ['NPM_ACCESS_TOKEN', 'NPM_CONFIG_TOKEN', 'NODE_AUTH_TOKEN'];
 const SECRET_REFERENCE = 'secrets.';
+/** Any way to name the `secrets` context in an expression: `secrets.X`, `secrets['X']`, `toJSON(secrets)`, any case. */
+const SECRET_CONTEXT = /\bsecrets\b/i;
 const EXACT_NPM = /npm install (?:--global|-g) npm@(\d+\.\d+\.\d+)(?:\s|$)/;
 /** The first npm that moves a dist-tag over OIDC; publishing needs 11.5.1. */
 const MINIMUM_NPM = '11.21.0';
@@ -310,26 +332,31 @@ export class ReleaseWorkflowCheck {
     }
 
     const atlas = jobs[ATLAS_JOB];
-    const atlasSecretSteps = stepsOf(atlas).filter((step) =>
-      JSON.stringify(step).includes(SECRET_REFERENCE),
-    );
+    const atlasSteps = stepsOf(atlas);
+    const atlasSecretSteps = atlasSteps.filter((step) => SECRET_CONTEXT.test(JSON.stringify(step)));
     const atlasKeyStep = atlasSecretSteps[0];
-    const atlasCheckout = stepsOf(atlas).find((step) => step.uses?.startsWith('actions/checkout@'));
-    const atlasTagStep = stepsOf(atlas).find((step) => step.id === 'tag');
+    const atlasCheckout = atlasSteps.find((step) => step.uses?.startsWith('actions/checkout@'));
+    const atlasBun = atlasSteps.find((step) => step.uses?.startsWith('oven-sh/setup-bun@'));
+    const atlasInstall = atlasSteps.find((step) => step.name === 'Install');
+    const atlasTagStep = atlasSteps.find((step) => step.id === 'tag');
     const atlasConfined =
       atlas !== undefined &&
+      Object.keys(atlas).every((key) => ATLAS_JOB_KEYS.includes(key)) &&
       [...needsOf(atlas)].sort().join(',') === [PLAN_JOB, PUBLISH_JOB].join(',') &&
       atlas.if === ATLAS_CONDITION &&
       JSON.stringify(atlas.permissions) === JSON.stringify({ contents: 'write' }) &&
-      atlas.environment === undefined &&
       atlas['continue-on-error'] === true &&
       atlas.strategy?.['fail-fast'] === false &&
       atlas.strategy?.['max-parallel'] === 1 &&
       JSON.stringify(atlas.strategy?.matrix) === JSON.stringify({ package: ATLAS_MATRIX }) &&
+      atlasSteps.map((step) => step.name).join(' | ') === ATLAS_STEP_NAMES.join(' | ') &&
       atlasCheckout?.with?.['fetch-depth'] === 0 &&
       atlasCheckout?.with?.['persist-credentials'] === false &&
+      atlasBun !== undefined &&
+      atlasInstall?.run === 'bun install' &&
+      Object.keys(atlasInstall).sort().join(',') === 'name,run' &&
       atlasTagStep !== undefined &&
-      !(atlasTagStep.run ?? '').includes('${{') &&
+      !/\$\{\{|GITHUB_ENV|GITHUB_PATH/.test(atlasTagStep.run ?? '') &&
       atlasSecretSteps.length === 1 &&
       atlasKeyStep?.uses?.startsWith(ATLAS_ACTION) === true &&
       FULL_COMMIT.test(atlasKeyStep.uses ?? '') &&
@@ -337,7 +364,8 @@ export class ReleaseWorkflowCheck {
       JSON.stringify(atlasKeyStep.env) ===
         JSON.stringify({ ATLAS_INDEX_KEY: '${{ secrets.ATLAS_INDEX_KEY }}' }) &&
       JSON.stringify(atlasKeyStep.with) === JSON.stringify({ ref: ATLAS_REF }) &&
-      withoutComments(text).split(SECRET_REFERENCE).length === 2;
+      withoutComments(text).split(SECRET_REFERENCE).length === 2 &&
+      (withoutComments(text).match(new RegExp(SECRET_CONTEXT.source, 'gi')) ?? []).length === 1;
     if (!atlasConfined) {
       violate(
         ReleaseWorkflowGuards.ATLAS_INDEX_JOB_CONFINED,
@@ -430,9 +458,11 @@ export class ReleaseWorkflowCheck {
     for (const { label, lines } of tokenScans) {
       for (const [index, line] of lines.entries()) {
         const allowed = label === 'the workflow' && line.trim() === ATLAS_KEY_LINE;
+        const named =
+          label === 'the workflow' && SECRET_CONTEXT.test(line) ? SECRET_REFERENCE : undefined;
         const leaked = allowed
           ? undefined
-          : [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name));
+          : (named ?? [SECRET_REFERENCE, ...NPM_TOKEN_NAMES].find((name) => line.includes(name)));
         if (leaked !== undefined) {
           violate(
             ReleaseWorkflowGuards.NO_NPM_TOKEN,
