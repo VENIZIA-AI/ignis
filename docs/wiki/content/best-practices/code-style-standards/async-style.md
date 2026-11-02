@@ -146,7 +146,7 @@ To fix an existing codebase, run the codemod. It applies the safe fixes of `no-i
 
 ```bash
 devz codemod async-style packages/my-package          # dry run
-devz codemod async-style packages/my-package --write  # commit your work first
+devz codemod async-style packages/my-package --write  # commit your work first; --write needs a path, or --all for the whole tree
 ```
 
 The ESLint setup these rules extend is in [Tooling](./tooling).

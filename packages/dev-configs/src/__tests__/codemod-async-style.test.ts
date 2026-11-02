@@ -130,7 +130,7 @@ describe('devz codemod async-style', () => {
     write('src/a.test.ts', INLINE);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.test.ts')).toBe(INLINE_FIXED);
     expect(logs.join('\n')).toContain('changed  src/a.test.ts  (1 fix(es))');
@@ -143,7 +143,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_AWAIT);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_AWAIT_FIXED);
   });
@@ -152,7 +152,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', RETURN_IN_TRY);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(RETURN_IN_TRY_FIXED);
   });
@@ -161,7 +161,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', TERNARY);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(TERNARY);
     expect(warnings.join('\n')).toContain('src/a.ts:2:');
@@ -175,7 +175,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', `${INLINE}${TERNARY}`);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(`${INLINE_FIXED}${TERNARY}`);
     expect(warnings.join('\n')).toContain('src/a.ts:6:');
@@ -186,7 +186,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', CHAIN);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(CHAIN_FIXED);
     expect(logs.join('\n')).toContain('changed  src/a.ts  (1 fix(es))');
@@ -200,7 +200,7 @@ describe('devz codemod async-style', () => {
     write('src/b.ts', silentFallback);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toBe(CHAIN_NOT_FIXABLE);
     expect(read('src/b.ts')).toContain('} catch {\n    user = null;\n  }');
@@ -224,12 +224,12 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', CHAIN);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     commit();
     logs.length = 0;
 
-    const result2 = await code(['--write']);
+    const result2 = await code(['--write', '--all']);
     expect(result2).toBe(0);
     expect(read('src/a.ts')).toBe(CHAIN_FIXED);
     expect(logs.join('\n')).toContain('0 file(s) changed, 0 fix(es) applied, 0 left unfixed');
@@ -277,12 +277,12 @@ describe('devz codemod async-style', () => {
     write('src/b.ts', RETURN_IN_TRY);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     commit();
     logs.length = 0;
 
-    const result2 = await code(['--write']);
+    const result2 = await code(['--write', '--all']);
     expect(result2).toBe(0);
     expect(logs.join('\n')).toContain(
       'devz codemod async-style: 0 file(s) changed, 0 fix(es) applied, 0 left unfixed',
@@ -303,7 +303,7 @@ describe('devz codemod async-style', () => {
     execFileSync('git', ['add', 'src/c.ts'], { cwd: root });
     write('src/d.ts', RETURN_AWAIT);
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(1);
     expect(read('src/a.ts')).toBe(`${RETURN_AWAIT}// edited\n`);
     expect(read('src/c.ts')).toBe(RETURN_AWAIT);
@@ -350,7 +350,7 @@ describe('devz codemod async-style', () => {
     write('src/c.tsx', RETURN_AWAIT);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.mts')).toBe(RETURN_AWAIT_FIXED);
     expect(read('src/b.cts')).toBe(RETURN_AWAIT_FIXED);
@@ -384,7 +384,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', source);
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(read('src/a.ts')).toContain(directive);
     expect(read('src/a.ts')).toContain('return f();');
@@ -394,7 +394,7 @@ describe('devz codemod async-style', () => {
     write('src/a.ts', 'export const run = async () => { await ;\n');
     commit();
 
-    const result = await code(['--write']);
+    const result = await code(['--write', '--all']);
     expect(result).toBe(0);
     expect(warnings.join('\n')).toContain('src/a.ts:');
     expect(warnings.join('\n')).toContain('parse error');

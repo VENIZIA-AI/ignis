@@ -633,6 +633,7 @@ the value in upper snake case. The dry run prints every proposal.
 
   --write              write the changed files (without it, nothing is written)
   --check              dry run that exits 1 while a union can be converted or is left untouched (for CI)
+  --all                with --write and no path: rewrite every source file under the working directory (--write needs a path or --all)
   --map <file>         a JSON file of overrides, keyed by the id the dry run prints
   --emit-map <file>    write the proposals as a mapping file to edit, then pass it with --map
   --import-from <m>    where TConstValue is imported from (default ${DEFAULT_IMPORT_FROM})
@@ -650,6 +651,7 @@ const USAGE_ERROR_CODE = 2;
 class ConstClassFlags {
   static readonly WRITE = '--write';
   static readonly CHECK = '--check';
+  static readonly ALL = '--all';
   static readonly MAP = '--map';
   static readonly EMIT_MAP = '--emit-map';
   static readonly IMPORT_FROM = '--import-from';
@@ -660,6 +662,7 @@ class ConstClassFlags {
   static readonly SCHEME_SET = new Set<string>([
     this.WRITE,
     this.CHECK,
+    this.ALL,
     this.MAP,
     this.EMIT_MAP,
     this.IMPORT_FROM,
@@ -728,6 +731,17 @@ export class ConstClassesCommand {
 
     const isWrite = flags.includes(ConstClassFlags.WRITE);
     const isCheck = flags.includes(ConstClassFlags.CHECK);
+
+    const refusal = CodemodFiles.refusal({
+      command: 'const-classes',
+      isWrite,
+      isAll: flags.includes(ConstClassFlags.ALL),
+      paths,
+    });
+    if (refusal) {
+      console.error(`${refusal}\n${USAGE}`);
+      return USAGE_ERROR_CODE;
+    }
     const includeTests = flags.includes(ConstClassFlags.INCLUDE_TESTS);
 
     if (isWrite && isCheck) {
