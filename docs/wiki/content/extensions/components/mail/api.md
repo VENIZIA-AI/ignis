@@ -644,7 +644,7 @@ private isCustomOptions(options: TMailOptions): options is ICustomMailOptions
 
 A guard that does not match throws `Invalid <Provider> configuration` (`INVALID_CONFIGURATION`, 500) - `Invalid Amazon SES configuration` for this one.
 
-For `custom`, an additional `isMailTransport()` utility check reports specifically which of `send`/`verify` is missing.
+For `custom`, an additional `MailTypeUtility.isTransport()` check reports specifically which of `send`/`verify` is missing.
 
 ```typescript
 interface IMailTransport {
@@ -861,8 +861,10 @@ interface IInternalQueueMailExecutorOpts {
 
 ```typescript
 // type.utility.ts
-function isMailTransport(value: AnyType): value is IMailTransport;
-function isValidMailOptions(options: AnyType): options is TMailOptions;
+class MailTypeUtility {
+  static isTransport(value: AnyType): value is IMailTransport;
+  static isValidOptions(options: AnyType): options is TMailOptions;
+}
 
 // verification.utility.ts
 class MailVerificationUtility {
@@ -880,10 +882,10 @@ class MailMimeUtility {
 }
 ```
 
-The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` and `isValidMailOptions` stay functions: a type guard needs its positional parameter to narrow.
+The old function names of these methods are removed; `devz codemod namespace-functions` moves a call written with one to the class form. `isMailTransport` is now `MailTypeUtility.isTransport` and `isValidMailOptions` is now `MailTypeUtility.isValidOptions`. Both keep a positional parameter, because a type guard narrows its own parameter.
 
-- `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
-- `isValidMailOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
+- `MailTypeUtility.isTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
+- `MailTypeUtility.isValidOptions()` checks that `provider` is a string and `config` is truthy. It does not validate the shape of `config` against the specific provider.
 
 **Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core-server/src/components/mail/utilities)
 
