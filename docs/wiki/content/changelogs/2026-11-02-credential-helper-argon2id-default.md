@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-helpers']
 
 ## What changed
 
-- **New option `algorithm`.** `hash({ password, algorithm?, cost? })` takes `'argon2id'` or `'bcrypt'`. The default is `'argon2id'`, with the default parameters of `Bun.password` (`m=65536, t=2, p=1`). The output starts with `$argon2id$`. Before, it always started with `$2b$10$`.
+- **New option `algorithm`.** `hash({ password, algorithm?, cost? })` takes `'argon2id'` or `'bcrypt'`. The default is `'argon2id'`, with the default parameters of `Bun.password` (`m=65536, t=2, p=1`). The output starts with `$argon2id$`. Before, it always started with `$2b$`.
 - **Why.** `Bun.password.hash` writes argon2id by default. An application that already stores argon2id and adopted `hash` would have moved every new and reset password to the weaker bcrypt, mixed into one column.
 - **`cost` is for bcrypt only.** It is an integer from 4 to 31, default 10. Passing `cost` with argon2id, by default or by name, throws an error that says to pass `algorithm: 'bcrypt'`. It is not ignored. An unknown `algorithm` throws too.
 - **`verify` is unchanged.** It reads bcrypt (including the 72-byte retry for hashes the `bcrypt` package wrote) and argon2 hashes. Hashes already stored keep working and nothing is rehashed.

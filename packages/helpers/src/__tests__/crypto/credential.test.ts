@@ -86,6 +86,29 @@ describe('CredentialHelper.hash - argon2id by default', () => {
     expect(byName).toBe(byDefault);
   });
 
+  test.each([0, -1, Number.NaN])('a cost of %p with argon2id is refused too', async (cost) => {
+    const message = await Rejection.messageOf({
+      promise: CredentialHelper.hash({ password: 'hunter2', cost }),
+    });
+
+    expect(message).toContain('cost applies to bcrypt only');
+  });
+
+  test('a cost of null or undefined is "no cost": argon2id and bcrypt both take their defaults', async () => {
+    const argon = await CredentialHelper.hash({
+      password: 'hunter2',
+      cost: null as unknown as undefined,
+    });
+    const bcrypt = await CredentialHelper.hash({
+      password: 'hunter2',
+      algorithm: 'bcrypt',
+      cost: null as unknown as undefined,
+    });
+
+    expect(argon).toStartWith('$argon2id$');
+    expect(bcrypt).toStartWith('$2b$10$');
+  });
+
   test.each(['scrypt', 'argon2i', 'BCRYPT', '', null, 7])(
     'an algorithm of %p is refused',
     async (algorithm) => {

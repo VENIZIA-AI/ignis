@@ -22,9 +22,9 @@ const DEFAULT_COST = 10;
  * algorithm `hash` wrote, so a stored password is never rehashed or migrated. Needs Bun: it throws on
  * another runtime.
  *
- * Passwords longer than 72 bytes are where Bun and the `bcrypt` package differ, and it only matters for bcrypt. The package keeps only the
- * first 72 bytes; Bun keeps all of them, by hashing a longer password before bcrypt sees it. Two things
- * follow, and they are the whole truth about "the same format":
+ * Passwords longer than 72 bytes are where Bun and the `bcrypt` package differ, and it only matters for
+ * bcrypt. The package keeps only the first 72 bytes; Bun keeps all of them, by hashing a longer password
+ * before bcrypt sees it. Two things follow, and they are the whole truth about "the same format":
  *
  * - A hash `hash` writes for a password longer than 72 bytes is read by Bun only. The `bcrypt` package
  *   cannot verify it, so rolling back to that package, or another service reading the same column, locks
