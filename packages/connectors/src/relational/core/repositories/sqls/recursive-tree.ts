@@ -49,6 +49,15 @@ export interface IRecursiveTreeOptions {
    * what is meant) and an empty list is refused, because it would silently return nothing.
    */
   rootId?: string | ReadonlyArray<string>;
+
+  /**
+   * `'all'` makes every row a root of the walk, narrowed only by `filter` and `anchorFilter`. Use it when the
+   * closure of every row is wanted, not the tree under one root. Cannot be combined with `rootId`. A row shows up
+   * once per root that reaches it: in a DOWN walk a node at depth 3 below the top is returned four times (as its own
+   * root and under each of its three ancestors), each time with its own `depth`; select `depth = 0` to get
+   * each row once. Works for both directions; an UP walk then returns every row with all of its ancestors.
+   */
+  start?: 'all';
   direction: TRecursiveTreeDirection;
 
   /**
@@ -118,6 +127,7 @@ export class RecursiveTreeSql {
       name,
       table,
       rootId,
+      start,
       direction,
       maxDepth,
       idColumn = 'id',
@@ -195,6 +205,7 @@ export class RecursiveTreeSql {
 
     const rootCondition = RecursiveTreeSql.compileRootCondition({
       rootId,
+      start,
       direction,
       idIdentifier,
       parentIdentifier,
@@ -221,14 +232,33 @@ export class RecursiveTreeSql {
     return sql`WITH RECURSIVE ${cteIdentifier} AS (${baseCase} UNION ALL ${recursiveCase})`;
   }
 
-  /** The anchor's root match: one id keeps the SQL it always had; several ids are an IN list; none is every row without a parent. */
+  /** The anchor's root match: one id keeps the SQL it always had; several ids are an IN list; none is every row without a parent; `start: 'all'` is every row. */
   private static compileRootCondition(opts: {
     rootId?: string | ReadonlyArray<string>;
+    start?: 'all';
     direction: TRecursiveTreeDirection;
     idIdentifier: Name;
     parentIdentifier: Name;
   }): SQL {
-    const { rootId, direction, idIdentifier, parentIdentifier } = opts;
+    const { rootId, start, direction, idIdentifier, parentIdentifier } = opts;
+
+    if (start !== undefined) {
+      if (start !== 'all') {
+        throw getError({
+          message: `[RecursiveTreeSql.walk] Invalid 'start' | Expected 'all' or no value | Got: ${String(start)}`,
+        });
+      }
+
+      if (rootId !== undefined) {
+        throw getError({
+          message:
+            "[RecursiveTreeSql.walk] Invalid 'start' | 'all' makes every row a root, so it cannot be combined with 'rootId'",
+        });
+      }
+
+      // true for every row; `1 = 1` rather than TRUE because it reads the same on Postgres and on every SQLite version
+      return sql`1 = 1`;
+    }
 
     if (rootId === undefined) {
       if (direction === RecursiveTreeDirections.UP) {

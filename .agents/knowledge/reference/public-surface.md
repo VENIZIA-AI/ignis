@@ -336,7 +336,7 @@ generated:
 
 ## helpers
 
-### `@venizia/ignis-helpers` (418)
+### `@venizia/ignis-helpers` (419)
 
 - `AbstractCryptoAlgorithm` class
 - `AbstractLogger` class
@@ -380,6 +380,7 @@ generated:
 - `ContentDispositionTypes` class
 - `ContentTypes` class
 - `ContentTypeTable` class
+- `CredentialHelper` class
 - `D_STROKE_REPLACEMENTS` const
 - `DataTypes` class
 - `DayjsTemporalAdapter` class
@@ -2352,7 +2353,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1009)
+### `@venizia/ignis` (1010)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2497,6 +2498,7 @@ generated:
 - `CoreErrorCodes` class
 - `countableHeaders` const
 - `CountSchema` const
+- `CredentialHelper` class
 - `CustomGrantExpander` class
 - `D_STROKE_REPLACEMENTS` const
 - `DATA_SOURCE_BRAND` const

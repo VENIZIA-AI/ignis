@@ -35,9 +35,9 @@ tags: [process, test, bun]
    `make purity` / `make purity-<package>` is not a `bun test` run either - it is a standalone Bun
    script (`devz check purity`, from `@venizia/dev-configs`) that bundles each manifest entry with `bun build
    --target=browser` and inspects the metafile, so it reads `dist/` and needs a build first. CI runs
-   it right after the lint step - but CI itself is `workflow_dispatch` only now, so nothing runs it
-   on a push or a pull request, and no hook does either. Running the purity gate and the test suite before
-   committing is on you.
+   it right after the lint step, on every pull request to `develop` and `main` and on a manual dispatch,
+   never on a push; no hook runs it. Running the purity gate and the test suite before committing is
+   still on you, because a red pull request check costs a round trip.
 7. A test never writes outside the repository. The root `Makefile` exports `TMPDIR` as the gitignored
    `.agents/local/tmp`, so `os.tmpdir()` and `mkdtemp` land there under every `make` target; remove
    what the test makes in `afterEach`/`afterAll`. Never write a literal `/tmp/...` path. A bare
