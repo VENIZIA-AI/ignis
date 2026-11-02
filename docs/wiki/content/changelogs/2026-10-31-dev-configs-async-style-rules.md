@@ -1,6 +1,6 @@
 ---
 title: dev-configs Adds Opt-In Async Style Lint Rules and a Codemod
-description: "@venizia/dev-configs adds four lint rules for await, return and React hooks, off until you spread asyncStyleConfigs, and devz codemod async-style to fix a codebase."
+description: "@venizia/dev-configs adds four lint rules for await, return and React hooks, off until you spread asyncStyleConfigs (the two await rules) or reactAsyncStyleConfigs (the two hook rules), and devz codemod async-style to fix a codebase."
 packages: ['@venizia/dev-configs']
 ---
 
@@ -10,15 +10,15 @@ packages: ['@venizia/dev-configs']
 
 <Badge type="tip" text="New Feature" />
 
-**In one line.** After updating `@venizia/dev-configs` you can turn on four rules that keep `await` on its own line, stop `return await`, and keep async functions out of React hooks; nothing changes until you spread the new config arrays.
+**In one line.** After updating `@venizia/dev-configs` you can turn on four rules that keep `await` on its own line, stop `return await`, and keep async functions out of React hooks; nothing changes until you spread the new config arrays: `asyncStyleConfigs` for the two await rules, `reactAsyncStyleConfigs` for the two hook rules.
 
 ## What changed
 
 - **`venizia/no-inline-await`.** `await` is a whole statement or the whole initializer of a declaration, never inside a call, a ternary, a template literal or an assignment. Test files follow it too.
 - **`venizia/no-return-await`.** `return await f()` becomes `return f()`; inside `try`, `catch` or `finally` it becomes `const result = await f(); return result;`.
-- **`venizia/no-async-hook-callback`.** No `use...` call receives an async function.
+- **`venizia/no-async-hook-callback`.** No `use...` call receives an async function: not as an argument, and not nested in an object or array argument either (`useMutation({ mutationFn: async () => {} })` is reported). A sync callback that builds an async function inside is left alone.
 - **`venizia/effect-cleanup-consistency`.** An effect callback returns nothing on every path or a cleanup on every path.
-- **`devz codemod async-style`.** Applies the fixes of the first two rules across a codebase (a dry run unless `--write`; `--check` exits 1 when anything is left) and lists what it cannot fix, with file and line.
+- **`devz codemod async-style`.** Applies the fixes of the first two rules across a codebase (a dry run unless `--write`; `--check` exits 1 when anything is left) and lists what it cannot fix, with file and line. With `--write` it refuses a file that has local changes (modified, staged or untracked) and prints `refused <file> has local changes`: commit or stash it, then run again.
 
 ## How to turn them on
 
@@ -29,7 +29,7 @@ import { asyncStyleConfigs, houseConfigs } from '@venizia/dev-configs/linters';
 export default [...houseConfigs, ...asyncStyleConfigs];
 ```
 
-A React project spreads `reactHouseConfigs` and `reactAsyncStyleConfigs`. The rules are at `error`. A later release will include them in `houseConfigs` and `reactHouseConfigs`; the two new exports will stay as aliases.
+`asyncStyleConfigs` holds `no-inline-await` and `no-return-await`; the two hook rules are not in it. A React project spreads `reactHouseConfigs` and `reactAsyncStyleConfigs`, which holds `no-async-hook-callback` and `effect-cleanup-consistency`, and spreads `asyncStyleConfigs` as well when it also wants the two await rules. The rules are at `error`. A later release will include them in `houseConfigs` and `reactHouseConfigs`; the two new exports will stay as aliases.
 
 ## Who is affected
 

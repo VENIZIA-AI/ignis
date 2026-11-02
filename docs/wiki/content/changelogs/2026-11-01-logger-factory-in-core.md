@@ -17,6 +17,7 @@ packages: ['@venizia/ignis-helpers', '@venizia/ignis', '@venizia/dev-configs']
 - **Import `LoggerFactory` and `ConsoleLogger` from `@venizia/ignis-helpers/core`.** The factory imports nothing from node. Browser bundles can use it directly. The default provider is the console.
 - **Omit `LoggerFactory.use` in compiled binaries.** `@venizia/ignis` automatically selects Winston during `initialize()`. It skips this selection if your app already picked a provider. The console remains active if `winston` is not installed.
 - **Call `LoggerFactory.use({ provider, level })` to set the provider and the level.** Use a `LogLevels` value for the level. The level applies to every provider in the same way.
+- **Pass the scope to `ConsoleLogger.get` as a string.** `ConsoleLogger.get({ scope: 'x' })` becomes `ConsoleLogger.get('x')`, and it returns a `ConsoleLogger` where it returned an `ILogger`. The codemod does not rewrite it: a direct call with the old object does not type-check, so the typecheck finds each one. `ConsoleLogger` was already public from the package root, so this changes code that calls it directly.
 - **Check `LoggerDebugGate.isOpen()` instead of `SHOULD_LOG_DEBUG`.** `SHOULD_LOG_DEBUG` is removed. It only recorded a snapshot when the module loaded. Loggers now check the live gate directly. You can update that live gate with `LoggerFactory.use({ level })`. Nothing inside IGNIS read the old constant.
 - **Stop using removed symbols.** The update removes `ApplicationLogger`, `LoggerSlot`, `LoggerResolver`, `ResolvedLogger` and `TLoggerResolver`. It also removes the warning about logging to the console with no provider installed.
 
@@ -71,6 +72,7 @@ To upgrade:
 - **Pass valid `LogLevels` values.** The factory ignores any value outside `LogLevels`. Typos or uppercase strings from environment variables change nothing. Invalid values never enable debug logging.
 - **Write custom providers without custom debug gates.** The factory filters out `debug` messages while the gate is closed. Custom providers do not need their own gate logic.
 - **Use helper methods when needed.** Call `LoggerFactory.useUnlessChosen({ provider })` to set a fallback provider. `@venizia/ignis` uses this method for Winston. You can also inspect or clear state with `isChosen()` and `reset()`.
+- **Read the startup warning when Winston is installed but broken.** If `winston` is installed and `initialize()` cannot load it for any reason other than "not installed", `@venizia/ignis` prints one `console.warn` line and the console stays the logger: `[ServerLoggerStartup] Winston could not be loaded, so the console stays the logger | cause: <message>`. Fix the install (a broken package or a version mismatch) to get Winston files back. A missing `winston` stays silent.
 - **Rely on shared state across duplicate bundles.** The chosen provider and level live in `globalThis` slots. Two copies of `@venizia/ignis-helpers` in the same bundle share the same configuration.
 - **Configure scripts that import only helpers.** These scripts default to the console. Call `LoggerFactory.use({ provider })` with `PinoLogger` or `WinstonLogger` if you need another provider.
 
