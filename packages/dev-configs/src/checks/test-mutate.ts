@@ -62,9 +62,6 @@ const TEST_TIMEOUT_MILLISECONDS = 300_000;
 // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
 const replayError = (message: string): Error => new Error(message);
 
-const checksum = (bytes: Buffer): string =>
-  new Bun.CryptoHasher('sha256').update(bytes).digest('hex');
-
 /** The nearest folder at or above the test file that holds a `package.json`: where `bun test` runs. */
 const packageDirectoryOf = (opts: { root: string; file: string }): string => {
   let current = dirname(join(opts.root, opts.file));
@@ -115,7 +112,7 @@ const runIsRed = (opts: { root: string; file: string; name?: string }): boolean 
   return result.status !== 0 || failed > 0;
 };
 
-/** Applies `mutant`, runs `action`, and puts the file back byte for byte, verified by checksum. */
+/** Applies `mutant`, runs `action`, and puts the file back byte for byte, verified byte for byte. */
 const withMutant = <T>(opts: {
   root: string;
   mutant: IMutant;
@@ -143,7 +140,6 @@ const withMutant = <T>(opts: {
   }
 
   writeFileSync(backup, original);
-  const expected = checksum(original);
 
   let outcome: { value: T } | { error: unknown };
 
@@ -160,7 +156,7 @@ const withMutant = <T>(opts: {
   // Restored whatever the action did, and checked, before its result or error is passed on.
   writeFileSync(path, original);
 
-  if (checksum(readFileSync(path)) !== expected) {
+  if (!readFileSync(path).equals(original)) {
     throw replayError(
       `[test-mutate][${opts.id}] ${opts.mutant.file} was not restored | the backup is ${backup}`,
     );
@@ -175,7 +171,7 @@ const withMutant = <T>(opts: {
   return outcome.value;
 };
 
-/** Applies every edit of `mutant`, runs `action`, and puts each file back byte for byte, verified by checksum. */
+/** Applies every edit of `mutant`, runs `action`, and puts each file back byte for byte, verified byte for byte. */
 const withMutants = <T>(opts: {
   root: string;
   mutant: IMutant | IMutant[];
