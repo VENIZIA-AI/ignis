@@ -10,14 +10,14 @@ generated:
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**45 helper classes across 18 modules, 10 utilities.**
+**46 helper classes across 18 modules, 10 utilities.**
 
 ## Modules
 
 | Module | Classes |
 |---|---|
 | `cron/` | `CronHelper` |
-| `crypto/` | _(see source)_ |
+| `crypto/` | `CredentialHelper` |
 | `env/` | _(see source)_ |
 | `error/` | _(see source)_ |
 | `logger/` | _(see source)_ |
