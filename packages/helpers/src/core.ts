@@ -57,8 +57,18 @@ export { PerformanceUtility } from './utilities/performance.utility';
 export { FormBodyUtility, RequestBodyErrors } from './utilities/form-body.utility';
 export { ProjectRootRegistry } from './utilities/project-root.utility';
 
+// `ECDH` is the one crypto algorithm that is browser-pure: it runs over `crypto.subtle`, `btoa` and `atob`. It and its
+// base class come by leaf path, never the algorithms barrel, which also carries `AES` and `RSA` (`node:crypto`).
+export { AbstractCryptoAlgorithm } from './modules/crypto/algorithms/abstract.algorithm';
+export { ECDH } from './modules/crypto/algorithms/ecdh.algorithm';
+export type {
+  ECDHAlgorithmType,
+  IECDHEncryptedPayload,
+  IECDHExtraOptions,
+} from './modules/crypto/algorithms/ecdh.algorithm';
+
 // Type-only: erased at compile time, so re-exporting these carries no runtime/bundle cost even
-// though the concrete classes they describe (crypto algorithms, the ioredis-backed helper) are not
+// though the concrete classes they describe (the other crypto algorithms, the ioredis-backed helper) are not
 // themselves part of this pure surface.
 export { AESAlgorithms } from './modules/crypto/algorithms/aes.constants';
 export type { AESAlgorithmType } from './modules/crypto/algorithms/aes.constants';
