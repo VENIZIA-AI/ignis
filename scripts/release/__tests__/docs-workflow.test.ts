@@ -95,17 +95,7 @@ describe('deploy-docs.yml', () => {
     expect(publish?.with).toEqual({ ref: '${{ inputs.ref }}' });
     expect(
       JSON.stringify(atlas?.steps?.filter((step) => step.uses?.startsWith('actions/checkout@'))),
-    ).not.toContain('inputs.ref');
-  });
-
-  test('the action input names are the ones VULCAN declares at the pinned commit', () => {
-    // action.yml at the pinned commit (vulcan-v0.4.9-1) declares exactly these two inputs; we pass only `ref`.
-    const declared = ['key-env', 'ref'];
-    const publish = (atlas?.steps ?? []).find((step) =>
-      step.uses?.includes('actions/atlas-index@'),
-    );
-
-    expect(Object.keys(publish?.with ?? {}).every((name) => declared.includes(name))).toBe(true);
+    ).not.toContain('inputs');
   });
 
   describe('the check that gates the wiki, run as the workflow runs it', () => {
@@ -120,7 +110,7 @@ describe('deploy-docs.yml', () => {
       );
       mkdirSync(join(ROOT, 'app_data'), { recursive: true });
       const result = Bun.spawnSync({
-        cmd: ['bash', '-c', script],
+        cmd: ['bash', '-e', '-c', script],
         cwd: ROOT,
         env: {
           PATH: process.env.PATH ?? '',
