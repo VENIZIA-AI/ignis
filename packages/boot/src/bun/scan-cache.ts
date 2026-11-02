@@ -7,7 +7,6 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
 import { ArtifactStereotypes, type IScannedArtifact } from '../generator/common';
 
@@ -17,7 +16,7 @@ export class ArtifactScanCache {
 
   static location(opts: { root: string }): string {
     const root = resolve(opts.root);
-    const key = createHash('sha1').update(root).digest('hex').slice(0, 16);
+    const key = new Bun.CryptoHasher('sha1').update(root).digest('hex').slice(0, 16);
     return join(dirname(root), 'node_modules', '.cache', 'ignis-artifacts', `${key}.json`);
   }
 
@@ -52,7 +51,7 @@ export class ArtifactScanCache {
       entries.push(`${file}:${stats.size}:${stats.mtimeMs}`);
     }
 
-    return createHash('sha1')
+    return new Bun.CryptoHasher('sha1')
       .update(`${ArtifactScanCache.VERSION}\n${entries.join('\n')}`)
       .digest('hex');
   }

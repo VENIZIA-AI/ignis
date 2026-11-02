@@ -79,3 +79,13 @@ describe('a source start with a warm cache', () => {
     expect(run()).toContain('names=AlphaService,BetaRepository typescript=false');
   });
 });
+
+describe('the cache file name', () => {
+  test('is the first 16 hex characters of the sha1 of the resolved root, as the node:crypto version wrote it', () => {
+    const location = ArtifactScanCache.location({ root: '/srv/app/src' });
+
+    expect(location).toBe(
+      join('/srv/app', 'node_modules', '.cache', 'ignis-artifacts', '4e6b364ede78a70d.json'),
+    );
+  });
+});

@@ -67,3 +67,37 @@ describe('the commit token', () => {
     ).toThrow(/expired/i);
   });
 });
+
+describe('the commit token needs a secret', () => {
+  test('a missing secret throws on build and on read, so no unkeyed signature is ever accepted', () => {
+    const body = Buffer.from(JSON.stringify(PAYLOAD)).toString('base64url');
+    const unkeyed = new Bun.CryptoHasher('sha256').update(body).digest('base64url');
+    const forged = `${body}.${unkeyed}`;
+
+    for (const secretKey of [undefined, null]) {
+      expect(() =>
+        AssetCommitToken.build({ payload: PAYLOAD, secretKey: secretKey as unknown as string }),
+      ).toThrow();
+      expect(() =>
+        AssetCommitToken.read({ token: forged, secretKey: secretKey as unknown as string }),
+      ).toThrow();
+    }
+  });
+});
+
+describe('the commit token keeps its format', () => {
+  test('a token signed by the node:crypto implementation reads back, and a fresh one is the same text', () => {
+    const KNOWN = {
+      payload: { bucket: 'b', key: 'k/1', expiresAt: 4102444800000 },
+      token:
+        'eyJidWNrZXQiOiJiIiwia2V5Ijoiay8xIiwiZXhwaXJlc0F0Ijo0MTAyNDQ0ODAwMDAwfQ.rDqsHgFcNylg-VS8Mbq_RWkg7eKER5YsqFU8pdJprpg',
+    };
+
+    expect(AssetCommitToken.read({ token: KNOWN.token, secretKey: 'secret-key', now: 0 })).toEqual(
+      KNOWN.payload,
+    );
+    expect(AssetCommitToken.build({ payload: KNOWN.payload, secretKey: 'secret-key' })).toBe(
+      KNOWN.token,
+    );
+  });
+});

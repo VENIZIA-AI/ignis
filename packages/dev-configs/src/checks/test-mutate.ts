@@ -1,5 +1,4 @@
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
@@ -63,7 +62,8 @@ const TEST_TIMEOUT_MILLISECONDS = 300_000;
 // eslint-disable-next-line venizia/no-new-error -- getError would be a dev-configs -> inversion cycle
 const replayError = (message: string): Error => new Error(message);
 
-const checksum = (bytes: Buffer): string => createHash('sha256').update(bytes).digest('hex');
+const checksum = (bytes: Buffer): string =>
+  new Bun.CryptoHasher('sha256').update(bytes).digest('hex');
 
 /** The nearest folder at or above the test file that holds a `package.json`: where `bun test` runs. */
 const packageDirectoryOf = (opts: { root: string; file: string }): string => {

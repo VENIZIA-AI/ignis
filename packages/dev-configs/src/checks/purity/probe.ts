@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { mkdir, rm } from 'node:fs/promises';
 import { builtinModules } from 'node:module';
 import { join } from 'node:path';
@@ -270,7 +269,7 @@ export class PurityProbe {
   }): Promise<IPurityResult> {
     const { entry, cwd, external = [], scratchDir = join(cwd, PURITY_SCRATCH_DIR) } = opts;
     await mkdir(scratchDir, { recursive: true });
-    const metafilePath = join(scratchDir, `purity-${randomUUID()}.json`);
+    const metafilePath = join(scratchDir, `purity-${crypto.randomUUID()}.json`);
 
     // `--env=disable`: Bun inlines `process.env.NODE_ENV` as a compile-time string constant by
     // default, regardless of whether the read is reachable. That erases the very read this probe
