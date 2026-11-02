@@ -8,7 +8,7 @@ import {
   AuthorizationPolicyVariants,
   BindingNamespaces,
 } from '@venizia/ignis';
-import { applicationEnvironment, getError } from '@venizia/ignis-helpers';
+import { applicationEnvironment, getError, LoggerFactory } from '@venizia/ignis-helpers';
 import { UuidV7Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -63,7 +63,11 @@ const isListening = async (opts: { port: number }) => {
     socket.end();
     return true;
   } catch (error) {
-    console.info(`[smoke] nothing listens on port ${opts.port}: ${(error as Error).message}`);
+    LoggerFactory.getLogger(['smoke']).info(
+      'nothing listens on port %d | Error: %s',
+      opts.port,
+      (error as Error).message,
+    );
     return false;
   }
 };

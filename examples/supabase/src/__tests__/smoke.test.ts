@@ -5,7 +5,7 @@
 // `describe.skipIf` without a top-level await (this package stays CommonJS, like every other
 // example).
 import AutoArtifacts from '@venizia/ignis-boot/auto';
-import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { applicationEnvironment, LoggerFactory } from '@venizia/ignis-helpers';
 import { UuidV4Generator } from '@venizia/ignis-helpers/uuid';
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import postgres from 'postgres';
@@ -30,7 +30,10 @@ const isDatabaseReachable = async (opts: { url: string }): Promise<boolean> => {
     await client`select 1`;
     return true;
   } catch (error) {
-    console.warn('[smoke] Database unreachable, RLS suite skipped | Error:', error);
+    LoggerFactory.getLogger(['smoke']).warn(
+      'Database unreachable, RLS suite skipped | Error: %o',
+      error,
+    );
     return false;
   } finally {
     await client.end({ timeout: 1 });
