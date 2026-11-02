@@ -208,9 +208,10 @@ neutral search symbols through `/search` there.
 
 ## `core` re-exports it, and the two roots carry different symbols
 
-`packages/core-server/src/connectors/` is now 14 alias barrels, one per sub-path, each a single
-`export * from '@venizia/ignis-connectors/<sub-path>'`. That keeps every `@venizia/ignis/<sub-path>`
-specifier resolving for published consumers.
+`packages/core-server/src/connectors/` holds one alias barrel, the root of `@venizia/ignis`. The per-sub-path
+barrels (`@venizia/ignis/postgres`, `/sqlite`, `/search`, `/typesense`, ...) are removed: an app imports a
+sub-path from `@venizia/ignis-connectors/<sub-path>` and lists `@venizia/ignis-connectors` as a direct
+dependency. `devz codemod connector-imports` rewrites the specifiers.
 
 The root alias is the one that is not mechanical. `packages/core-server/src/connectors/index.ts` re-exports
 `@venizia/ignis-connectors/postgres`, not the connectors root:
@@ -235,7 +236,7 @@ So the two package roots deliberately differ. Measured against `dist/`: the conn
 `BaseRelationalEntity` with a hand-written table on a static `schema` is the original, and 192 consumer
 models use it - it is not going anywhere. `ModelFactory.defineEntity({ table, relations? })`
 (`relational/core/models/factory.ts`, exported by `./relational`, `./postgres`, `./sqlite` and
-`@venizia/ignis/postgres`) is the second, TABLE FIRST: the table is a plain drizzle table
+`@venizia/ignis-connectors/postgres`) is the second, TABLE FIRST: the table is a plain drizzle table
 (`pgTable`, `pgSchema(...).table`, `sqliteTable`), usually with
 `...PostgresIdEnricher.generateColumnDefs({ id: { dataType: 'string' } })` for a UUID v7 id, exported so drizzle-kit
 sees it (measured: "No schema changes" on `examples/pglite-quickstart`). `TABLE_NAME` is
@@ -628,7 +629,7 @@ catch rather than prove it absent.
 ## Gotchas
 
 - The neutral relational tier gained a `core` segment during the connectors lift: `relational/repositories` is now `relational/core/repositories`.
-- `@venizia/ignis/postgres` and `@venizia/ignis-connectors/postgres` resolve to the same module.
+- `@venizia/ignis-connectors/postgres` and `@venizia/ignis-connectors/postgres` resolve to the same module.
   Application code should keep importing from `@venizia/ignis`; install this package directly only
   for the browser case.
 - `drizzle-orm` and `drizzle-zod` are optional peers, yet the relational tier value-imports

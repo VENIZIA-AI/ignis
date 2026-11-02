@@ -17,7 +17,7 @@ const jwtSecret = applicationEnvironment.get<string>('APP_ENV_JWT_SECRET');
 const timeout = applicationEnvironment.get<number>('APP_ENV_TIMEOUT', { defaultValue: 5000 });
 ```
 
-The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `Envs` is an exported alias for the same instance.
+The singleton is created once at module load. It reads only keys that start with `APP_ENV` (the default prefix) from `process.env`. `AppEnvs` is an exported alias for the same instance.
 
 ## How it works
 

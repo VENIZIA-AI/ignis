@@ -50,8 +50,8 @@ import {
   PostgresIdEnricher,
   PostgresTzEnricher,
   ModelFactory,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('User', {
@@ -81,8 +81,8 @@ import {
   ModelFactory,
   many,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
@@ -146,8 +146,8 @@ import {
   PostgresTzEnricher,
   ModelFactory,
   one,
-} from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 import { roomTable } from './room.model';
@@ -228,7 +228,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -286,7 +286,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 import { User, type userTable } from '@/models/user.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
@@ -299,7 +299,7 @@ export class UserRepository extends DefaultCRUDRepository<typeof userTable> {}
 import { Room, RoomMember, type roomTable, type roomMemberTable } from '@/models/room.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: RoomMember, dataSource: PostgresDataSource })
 export class RoomMemberRepository extends DefaultCRUDRepository<typeof roomMemberTable> {}
@@ -370,7 +370,7 @@ export class RoomRepository extends DefaultCRUDRepository<typeof roomTable> {
 import { Message, DirectMessage, type messageTable, type directMessageTable } from '@/models/message.model';
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { inject, repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 
 @repository({ model: DirectMessage, dataSource: PostgresDataSource })
 export class DirectMessageRepository extends DefaultCRUDRepository<typeof directMessageTable> {}

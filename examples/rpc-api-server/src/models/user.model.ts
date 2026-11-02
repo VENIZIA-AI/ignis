@@ -1,5 +1,9 @@
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory, type TEntityObject } from '@venizia/ignis/postgres';
+import {
+  PostgresIdEnricher,
+  ModelFactory,
+  type TEntityObject,
+} from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 // No controller exposes this table: only `AuthenticationService` reads it, so the hash never

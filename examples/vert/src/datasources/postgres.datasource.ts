@@ -1,7 +1,7 @@
 import { EnvironmentKeys } from '@/common';
 import { datasource, type ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
 

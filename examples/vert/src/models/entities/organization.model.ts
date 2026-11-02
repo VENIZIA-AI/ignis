@@ -4,7 +4,7 @@ import {
   PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 /** The authorization domain: a user's role assignments are scoped to one organization. */

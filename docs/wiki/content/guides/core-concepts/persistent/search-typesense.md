@@ -1,9 +1,9 @@
 # Search & Typesense
 
-IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector. Documents replace Drizzle tables, and the query surface is intentionally narrower - search engines are not relational databases.
+IGNIS ships a **typesense connector** under `@venizia/ignis-connectors/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector. Documents replace Drizzle tables, and the query surface is intentionally narrower - search engines are not relational databases.
 
 > [!IMPORTANT] Subpath-only import
-> `typesense` is an **optional peer dependency**. Unlike `postgres`, the typesense connector is not re-exported from the `@venizia/ignis` root barrel, so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis/typesense`:
+> `typesense` is an **optional peer dependency**. Unlike `postgres`, the typesense connector is not re-exported from the `@venizia/ignis` root barrel, so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis-connectors/typesense`:
 >
 > ```typescript
 > import {
@@ -11,7 +11,7 @@ IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-
 >   BaseSearchEntity,
 >   SearchCollectionFactory,
 >   field,
-> } from '@venizia/ignis/typesense';
+> } from '@venizia/ignis-connectors/typesense';
 > ```
 >
 > See [Connectors](/references/base/connectors) for the full dual-door export model.
@@ -28,7 +28,7 @@ import {
   SearchCollectionFactory,
   field,
   TSearchDocument,
-} from '@venizia/ignis/typesense';
+} from '@venizia/ignis-connectors/typesense';
 
 @model({
   settings: {
@@ -134,7 +134,7 @@ The `model` config is camelCase and maps to Typesense's snake_case `model_config
 **Client-provided vectors** - you compute the embedding yourself and send it with each document. Declare `dimensions` and a distance metric instead of `embed`:
 
 ```typescript
-import { VectorDistances } from '@venizia/ignis/typesense';
+import { VectorDistances } from '@venizia/ignis-connectors/typesense';
 
 field.vector('embedding', { dimensions: 384, distance: VectorDistances.COSINE });
 // VectorDistances: COSINE ('cosine'), INNER_PRODUCT ('ip'), L2 ('l2')
@@ -178,7 +178,7 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 ```typescript
 // src/datasources/search.datasource.ts
 import { datasource } from '@venizia/ignis';
-import { TypesenseDataSource } from '@venizia/ignis/typesense';
+import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
 import { applicationEnvironment, ParseUtility } from '@venizia/ignis-helpers';
 
 @datasource()
@@ -234,7 +234,7 @@ AbstractRepository (engine-neutral)
 import { SearchDataSource } from '@/datasources/search.datasource';
 import { ArticleDocument, TArticleDocument } from '@/models/entities';
 import { repository } from '@venizia/ignis';
-import { DefaultSearchRepository } from '@venizia/ignis/typesense';
+import { DefaultSearchRepository } from '@venizia/ignis-connectors/typesense';
 
 @repository({ model: ArticleDocument, dataSource: SearchDataSource })
 export class ArticleRepository extends DefaultSearchRepository<TArticleDocument> {
@@ -418,7 +418,7 @@ Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`,
 import { ArticleDocument } from '@/models/entities';
 import { ArticleRepository } from '@/repositories';
 import { controller } from '@venizia/ignis';
-import { SearchControllerFactory } from '@venizia/ignis/typesense/controllers';
+import { SearchControllerFactory } from '@venizia/ignis-connectors/typesense/controllers';
 
 const BaseSearchController = SearchControllerFactory.defineSearchController({
   entity: ArticleDocument,
@@ -433,7 +433,7 @@ export class ArticleSearchController extends BaseSearchController {}
 
 The subclass needs no constructor. The factory injects the repository bound under `repository.name`, the same way `defineCrudController` does. To inject a different repository, declare your own constructor with `@inject` on its first parameter - that wins.
 
-Import the factory from `@venizia/ignis/typesense/controllers` (or `@venizia/ignis/search/controllers`), never from `@venizia/ignis/typesense`. That entry loads without `hono`, so it carries no controller.
+Import the factory from `@venizia/ignis-connectors/typesense/controllers` (or `@venizia/ignis-connectors/search/controllers`), never from `@venizia/ignis-connectors/typesense`. That entry loads without `hono`, so it carries no controller.
 
 It registers `POST /search` (request body is the mode-discriminated schema, so validation and OpenAPI come for free, and the handler dispatches to `repository.search`). It also registers `POST /multi-search`, which dispatches to `dataSource.multiSearch`. For anything the factory does not cover, write a custom `BaseRestController` calling `repository.search()` or `getClient()` directly.
 

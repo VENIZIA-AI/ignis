@@ -136,7 +136,7 @@ class UserService extends BaseService {
 
 ```typescript
 import { repository } from '@venizia/ignis';
-import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
+import { DefaultCRUDRepository } from '@venizia/ignis-connectors/postgres';
 import { User, type userTable } from '../models';
 import { PostgresDataSource } from '../datasources';
 
@@ -160,8 +160,8 @@ class UserRepository extends DefaultCRUDRepository<typeof userTable> {
 
 ```typescript
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis/postgres';
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, ModelFactory } from '@venizia/ignis-connectors/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 export const userTable = pgTable('users', {

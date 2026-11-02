@@ -52,7 +52,7 @@ A model built with `ModelFactory.defineEntity` declares its relations keyed by n
 ```typescript
 // src/models/user.model.ts
 import { model } from '@venizia/ignis';
-import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, many, ModelFactory, one } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
@@ -93,7 +93,7 @@ A class-based model declares a static `relations` resolver instead, returning an
 ```typescript
 // src/models/user.model.ts
 import { model, RelationTypes } from '@venizia/ignis';
-import { BaseEntity, TRelationConfig } from '@venizia/ignis/postgres';
+import { BaseEntity, TRelationConfig } from '@venizia/ignis-connectors/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 import { Post } from './post.model';
 
@@ -309,7 +309,7 @@ async function getUser(id: string, includePosts: boolean) {
 For a model built with `defineEntity`, `TEntityObject<typeof User>` is the row plus every declared relation, each optional:
 
 ```typescript
-import type { TEntityObject } from '@venizia/ignis/postgres';
+import type { TEntityObject } from '@venizia/ignis-connectors/postgres';
 
 const user = await userRepository.findOne<TEntityObject<typeof User>>({
   filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },

@@ -165,8 +165,8 @@ APP_ENV_POSTGRES_DATABASE=my_app_prod
 
 ```typescript
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BaseDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BaseDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -206,7 +206,7 @@ export class PostgresDataSource extends BaseDataSource<IDataSourceConfigs> {
 ```
 
 > [!NOTE]
-> `BaseDataSource` from `@venizia/ignis/postgres` is the alias for `BasePostgresDataSource`. Both
+> `BaseDataSource` from `@venizia/ignis-connectors/postgres` is the alias for `BasePostgresDataSource`. Both
 > names resolve to the same class on that subpath.
 
 

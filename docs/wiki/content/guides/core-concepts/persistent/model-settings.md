@@ -11,7 +11,7 @@ difficulty: intermediate
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -42,7 +42,7 @@ That one declaration hides the cost price from every result, hides soft-deleted 
 
 ```typescript
 // src/models/product.table.ts
-import { PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher, PostgresTzEnricher } from '@venizia/ignis-connectors/postgres';
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const productTable = pgTable('Product', {
@@ -110,7 +110,7 @@ Settings are grouped by what they do. `query` shapes what a query returns. `acce
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({ settings: { hiddenProperties: ['costPrice'] } })
@@ -128,7 +128,7 @@ Use it for values a client must never receive: cost prices, password hashes, int
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({
@@ -175,7 +175,7 @@ export const findIncludingDeleted = (opts: { repository: ProductRepository }) =>
 ```typescript
 // src/models/product.model.ts
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId, isPlatformAdmin } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -213,7 +213,7 @@ Keep `'deny'`. `'allow'` is declared once for the whole model, so it also unscop
 // src/models/product.model.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -265,7 +265,7 @@ The guard reads the allowed values from the resolved `where`: an equality, `eq`,
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -288,7 +288,7 @@ Some tables hold rows that belong to no merchant. Say `TaxType`: the platform de
 
 ```typescript
 // src/models/tax-type.table.ts
-import { PostgresIdEnricher } from '@venizia/ignis/postgres';
+import { PostgresIdEnricher } from '@venizia/ignis-connectors/postgres';
 import { integer, pgTable, text } from 'drizzle-orm/pg-core';
 
 export const taxTypeTable = pgTable('TaxType', {
@@ -302,7 +302,7 @@ export const taxTypeTable = pgTable('TaxType', {
 ```typescript
 // src/models/tax-type.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantIds } from '@/utilities/merchant';
 import { taxTypeTable } from './tax-type.table';
 
@@ -339,7 +339,7 @@ By default the guard checks every column the resolved scope constrains, and find
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 
@@ -383,7 +383,7 @@ At boot, `ScopeFilterUtility.assertScopeFilterSupported` refuses an `access` on 
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({
@@ -409,7 +409,7 @@ Without `query.limit` the framework defaults apply: 10 rows by default and a cei
 ```typescript
 // src/models/product.model.ts
 import { model } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { productTable } from './product.table';
 
 @model({ settings: { authorize: { principal: 'Product' } } })
@@ -452,7 +452,7 @@ The full `Product`, and `TaxType` for the shared rows:
 // src/models/product.model.ts
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { model, ScopeFilters } from '@venizia/ignis';
-import { ModelFactory } from '@venizia/ignis/postgres';
+import { ModelFactory } from '@venizia/ignis-connectors/postgres';
 import { currentMerchantId } from '@/utilities/merchant';
 import { productTable } from './product.table';
 

@@ -64,7 +64,7 @@ try {
 Pass `isolationLevel` to control how the transaction sees concurrent changes:
 
 ```typescript
-import { IsolationLevels } from '@venizia/ignis/postgres';
+import { IsolationLevels } from '@venizia/ignis-connectors/postgres';
 
 const tx = await repository.beginTransaction({
   isolationLevel: IsolationLevels.SERIALIZABLE,
@@ -501,7 +501,7 @@ Each engine binding extends its own neutral rung, never the engine's previous ru
 
 A binding rebinds `ExtraOptions` (to `IDatabaseExtraOptions` for Postgres, `ISqliteExtraOptions` for SQLite) and `TDataSource` (to `IPostgresDataSource` / `ISqliteDataSource`). Nothing else changes, so `options.transaction.connector` needs no cast.
 
-Code samples throughout the docs use the Postgres names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis/postgres` code most commonly imports today. The neutral classes are importable from `@venizia/ignis/relational`; they are **not** re-exported from `@venizia/ignis` or `@venizia/ignis/postgres`.
+Code samples throughout the docs use the Postgres names (`DefaultCRUDRepository`, `ReadableRepository`), since that is what `@venizia/ignis-connectors/postgres` code most commonly imports today. The neutral classes are importable from `@venizia/ignis-connectors/relational`; they are **not** re-exported from `@venizia/ignis` or `@venizia/ignis-connectors/postgres`.
 
 ```typescript
 @repository({ model: AuditLog, dataSource: PostgresDataSource })

@@ -132,6 +132,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
@@ -156,6 +157,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
@@ -232,6 +234,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
@@ -255,6 +258,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "drizzle-orm": "catalog:",
         "hono": "catalog:",
@@ -279,6 +283,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "hono": "catalog:",
         "typesense": "catalog:",
@@ -301,6 +306,7 @@
         "@scalar/hono-api-reference": "catalog:",
         "@venizia/ignis": "workspace:*",
         "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "dotenv-flow": "catalog:",
         "drizzle-orm": "catalog:",
@@ -345,7 +351,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.4.7-2",
+      "version": "0.4.7-5",
       "bin": {
         "ignis-artifacts": "./dist/esm/clis/artifacts.js",
       },
@@ -368,7 +374,7 @@
     },
     "packages/connectors": {
       "name": "@venizia/ignis-connectors",
-      "version": "0.4.7-2",
+      "version": "0.4.7-4",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -413,7 +419,7 @@
     },
     "packages/core-server": {
       "name": "@venizia/ignis",
-      "version": "0.4.7-2",
+      "version": "0.4.7-5",
       "dependencies": {
         "@venizia/ignis-connectors": "workspace:*",
         "@venizia/ignis-filter": "workspace:*",
@@ -448,10 +454,8 @@
         "@asteasolutions/zod-to-openapi": "^9.1.0",
         "@aws-sdk/client-sesv2": "^3.1154.0",
         "@connectrpc/connect": "^2.2.0",
-        "@electric-sql/pglite": "^0.5.10",
         "@hono/swagger-ui": "^0.6.1",
         "@hono/zod-openapi": "^1.6.3",
-        "@libsql/client": "^0.17.4",
         "@scalar/hono-api-reference": "^0.12.13",
         "@socket.io/bun-engine": "^0.1.2",
         "@socket.io/redis-adapter": "^8.3.0",
@@ -463,20 +467,14 @@
         "hono": "^4.13.13",
         "jose": "^6.2.13",
         "mailgun.js": "^14.1.0",
-        "meilisearch": "^0.62.0",
         "nodemailer": "^10.1.7",
-        "pg": "^8.23.1",
-        "postgres": "^3.4.9",
         "socket.io": "^4.8.4",
         "socket.io-client": "^4.8.4",
-        "typesense": "^3.2.0",
       },
       "optionalPeers": [
         "@aws-sdk/client-sesv2",
         "@connectrpc/connect",
-        "@electric-sql/pglite",
         "@hono/swagger-ui",
-        "@libsql/client",
         "@scalar/hono-api-reference",
         "@socket.io/bun-engine",
         "@socket.io/redis-adapter",
@@ -484,18 +482,14 @@
         "bullmq",
         "casbin",
         "mailgun.js",
-        "meilisearch",
         "nodemailer",
-        "pg",
-        "postgres",
         "socket.io",
         "socket.io-client",
-        "typesense",
       ],
     },
     "packages/core-worker": {
       "name": "@venizia/ignis-worker",
-      "version": "0.4.7-2",
+      "version": "0.4.7-4",
       "dependencies": {
         "@venizia/ignis-helpers": "workspace:*",
         "@venizia/ignis-inversion": "workspace:*",
@@ -518,7 +512,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.4.7-2",
+      "version": "0.4.7-4",
       "bin": {
         "devz": "./dist/cli/index.js",
       },
@@ -567,7 +561,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.4.7-2",
+      "version": "0.4.7-4",
       "dependencies": {
         "@venizia/ignis-inversion": "workspace:*",
         "reflect-metadata": "catalog:",
@@ -666,7 +660,7 @@
     },
     "packages/kernel": {
       "name": "@venizia/ignis-kernel",
-      "version": "0.4.7-2",
+      "version": "0.4.7-4",
       "dependencies": {
         "@venizia/ignis-filter": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
@@ -1306,7 +1300,6 @@
 
     "@tanstack/react-query": ["@tanstack/react-query@5.104.5", "", { "dependencies": { "@tanstack/query-core": "5.104.5" }, "peerDependencies": { "@types/react": "^18 || ^19", "react": "^18 || ^19" }, "optionalPeers": ["@types/react"] }, "sha512-RORgFe052U+93weaNuqg7qHq7vNVNzXN/VrXqD4bbAuQCWUqOl2lV5Ui9flWk5CVvMyL/Bh27QWhzwH0aaOx9g=="],
 
-
     "@types/bun": ["@types/bun@1.4.3", "", { "dependencies": { "bun-types": "1.4.3" } }, "sha512-N67Pqy8JXbAY/j0tNraS3V5mubGvc6rrrNDmDCtZLlFzccbUJPDb0tvgUBC5q4m8ybkP93Jcn1QB+RYQ6PvBhw=="],
 
     "@types/cors": ["@types/cors@2.8.19", "", { "dependencies": { "@types/node": "*" } }, "sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg=="],
@@ -1548,7 +1541,6 @@
     "base64-js": ["base64-js@1.5.1", "", {}, "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA=="],
 
     "baseline-browser-mapping": ["baseline-browser-mapping@2.11.30", "", { "bin": { "baseline-browser-mapping": "dist/cli.cjs" } }, "sha512-YJs6Pz17RMNv8HoyKREtCY38E3BV1nPkWVmIb+XN1uHC1Vqt3KZCH/uJH9ZKRoiKb/icZ6tvehyee6RZNbFfRA=="],
-
 
     "binary-extensions": ["binary-extensions@2.3.0", "", {}, "sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw=="],
 
@@ -2177,10 +2169,6 @@
     "negotiator": ["negotiator@0.6.3", "", {}, "sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg=="],
 
     "node-abort-controller": ["node-abort-controller@3.1.1", "", {}, "sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ=="],
-
-    "node-addon-api": ["node-addon-api@8.9.2", "", {}, "sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg=="],
-
-    "node-gyp-build": ["node-gyp-build@4.8.4", "", { "bin": { "node-gyp-build": "bin.js", "node-gyp-build-optional": "optional.js", "node-gyp-build-test": "build-test.js" } }, "sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ=="],
 
     "node-gyp-build-optional-packages": ["node-gyp-build-optional-packages@5.2.2", "", { "dependencies": { "detect-libc": "^2.0.1" }, "bin": { "node-gyp-build-optional-packages": "bin.js", "node-gyp-build-optional-packages-optional": "optional.js", "node-gyp-build-optional-packages-test": "build-test.js" } }, "sha512-s+w+rBWnpTMwSFbaE0UXsRlg7hU4FjekKU4eyAih5T8nJuNZT1nNsskXpxmeqSK9UzkBl6UgRlnKc8hz8IEqOw=="],
 

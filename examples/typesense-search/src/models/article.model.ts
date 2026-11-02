@@ -4,7 +4,7 @@ import {
   SearchCollectionFactory,
   field,
   type TSearchDocument,
-} from '@venizia/ignis/typesense';
+} from '@venizia/ignis-connectors/typesense';
 
 // A search collection replaces a Drizzle pgTable: `field.*` declares the wire shape instead of
 // column builders. `id` is auto-prepended, so it is never listed here.

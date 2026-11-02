@@ -6,10 +6,10 @@ IGNIS talks to PostgreSQL through a **driver seam**. `IRelationalDriver` owns co
 - **postgres-js** (`postgres`) - required for Supabase's transaction pooler, and a faster option anywhere else
 - **PGlite** (`@electric-sql/pglite`) - Postgres compiled to WebAssembly, running in your own process. It has one session and its own constraints, so it gets [its own page](./pglite)
 
-Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies the **driver**, not the SQL dialect. The `@venizia/ignis/postgres/supabase` submodule adds the two things Supabase deployments actually need - pooler presets and an RLS auth-context helper.
+Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies the **driver**, not the SQL dialect. The `@venizia/ignis-connectors/postgres/supabase` submodule adds the two things Supabase deployments actually need - pooler presets and an RLS auth-context helper.
 
 > [!IMPORTANT] Every database client is optional
-> `pg` and `postgres` are both **optional peer dependencies**. The `@venizia/ignis/postgres` module pulls in neither - only the driver class you import and name in `@datasource({ driver })` reaches your bundle. Install the one your app uses:
+> `pg` and `postgres` are both **optional peer dependencies**. The `@venizia/ignis-connectors/postgres` module pulls in neither - only the driver class you import and name in `@datasource({ driver })` reaches your bundle. Install the one your app uses:
 >
 > ```bash
 > bun add pg                      # node-postgres
@@ -21,12 +21,12 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 
 | Import | Contents | Loads |
 | :--- | :--- | :--- |
-| `@venizia/ignis/relational` | `IRelationalDriver`, `IRelationalConnection`, `IStatementResult` - the engine-neutral seam | no client library |
-| `@venizia/ignis/postgres` | `BasePostgresDataSource`, `TRelationalDriver`, `TRelationalConnection`, repository hierarchy | no client library |
-| `@venizia/ignis/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
-| `@venizia/ignis/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
-| `@venizia/ignis/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
-| `@venizia/ignis/postgres/supabase` | `PoolerModes`, `SupabasePooler`, `SupabaseRls`, Supabase role re-exports | `drizzle-orm/supabase` |
+| `@venizia/ignis-connectors/relational` | `IRelationalDriver`, `IRelationalConnection`, `IStatementResult` - the engine-neutral seam | no client library |
+| `@venizia/ignis-connectors/postgres` | `BasePostgresDataSource`, `TRelationalDriver`, `TRelationalConnection`, repository hierarchy | no client library |
+| `@venizia/ignis-connectors/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
+| `@venizia/ignis-connectors/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
+| `@venizia/ignis-connectors/postgres/pglite` | `PGliteDriver` | `@electric-sql/pglite` |
+| `@venizia/ignis-connectors/postgres/supabase` | `PoolerModes`, `SupabasePooler`, `SupabaseRls`, Supabase role re-exports | `drizzle-orm/supabase` |
 
 ## Naming the Driver Class
 
@@ -34,8 +34,8 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 
 ```typescript
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 import { Pool } from 'pg';
 
 @datasource({ driver: NodePostgresDriver })
@@ -51,7 +51,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 `getClient()` hands `this.client` back as the raw-client escape hatch. A datasource that sets neither `this.client` nor a driver (via `useDriver()`, below) throws `No driver and no client` on first use.
 
 > [!IMPORTANT] Why a class, not a name
-> A driver-name string cannot carry `pg` or `postgres` into your bundle - it is just text. A dynamic `import('./node-postgres.js')` keyed off that string would defer *execution*, not *packaging*. Every bundler statically resolves a literal specifier and packages whatever it points to. A build that only used node-postgres would still fail with `Could not resolve: "postgres"`. The failure fires the moment postgres-js's import appears anywhere in the module graph reachable at build time. Naming the class instead makes the driver module a real value reference - the one thing a bundler is forced to keep. That's what lets `pg` and `postgres` stay genuinely optional peers. A bare side-effect import (`import '@venizia/ignis/postgres/node-postgres'`) would not work either. `@venizia/ignis` declares `sideEffects: false`, so a bundler is free to drop an import whose exports go unused.
+> A driver-name string cannot carry `pg` or `postgres` into your bundle - it is just text. A dynamic `import('./node-postgres.js')` keyed off that string would defer *execution*, not *packaging*. Every bundler statically resolves a literal specifier and packages whatever it points to. A build that only used node-postgres would still fail with `Could not resolve: "postgres"`. The failure fires the moment postgres-js's import appears anywhere in the module graph reachable at build time. Naming the class instead makes the driver module a real value reference - the one thing a bundler is forced to keep. That's what lets `pg` and `postgres` stay genuinely optional peers. A bare side-effect import (`import '@venizia/ignis-connectors/postgres/node-postgres'`) would not work either. `@venizia/ignis` declares `sideEffects: false`, so a bundler is free to drop an import whose exports go unused.
 >
 > Two tests pin this from different angles. `packages/connectors/src/__tests__/postgres/no-eager-driver-import.test.ts` proves no barrel **loads** a driver package in a fresh process (the runtime module graph). `packages/connectors/src/__tests__/postgres/bundle/optional-peers.test.ts` proves no barrel gets a driver package **packaged** by a real bundler.
 
@@ -61,8 +61,8 @@ Same shape, different class:
 
 ```typescript
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
 import postgres from 'postgres';
 import type { Sql } from 'postgres';
 
@@ -158,9 +158,9 @@ The transaction pooler (Supavisor) rebinds the backend per transaction, so a ser
 
 ```typescript
 import { datasource } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
-import { SupabasePooler, PoolerModes } from '@venizia/ignis/postgres/supabase';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { PostgresJsDriver } from '@venizia/ignis-connectors/postgres/postgres-js';
+import { SupabasePooler, PoolerModes } from '@venizia/ignis-connectors/postgres/supabase';
 import postgres from 'postgres';
 
 @datasource({ driver: PostgresJsDriver })
@@ -180,7 +180,7 @@ export class SupabaseDataSource extends BasePostgresDataSource<IDataSourceConfig
 `SupabaseRls.withAuthContext` sets the Supabase auth context for the remainder of **one transaction**, so `auth.uid()` resolves inside RLS policies:
 
 ```typescript
-import { SupabaseRls } from '@venizia/ignis/postgres/supabase';
+import { SupabaseRls } from '@venizia/ignis-connectors/postgres/supabase';
 
 const transaction = await this.dataSource.beginTransaction();
 try {

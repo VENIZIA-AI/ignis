@@ -4,7 +4,7 @@ import {
   PostgresTzEnricher,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 /** Casbin reads its policies from here: role assignments and permission grants, each in a domain. */

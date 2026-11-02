@@ -31,6 +31,16 @@ const mappingModule: { CONNECTORS_MAPPINGS: ReadonlyArray<IMapping> } = await im
 );
 const { CONNECTORS_MAPPINGS } = mappingModule;
 
+/**
+ * The connector sub-paths `@venizia/ignis` no longer publishes. An entry still lists them as modules: the codemod
+ * reads code written before the removal, where an old name was imported from `@venizia/ignis/<sub-path>`.
+ */
+const connectorImportsModule: { ConnectorSpecifiers: { SUBPATHS: ReadonlyArray<string> } } =
+  await import(join(REPOSITORY_ROOT, 'packages/dev-configs/src/cli/codemod/connector-imports.ts'));
+const REMOVED_CORE_SERVER_SUBPATHS = connectorImportsModule.ConnectorSpecifiers.SUBPATHS.map(
+  (subpath) => `./${subpath}`,
+);
+
 const PACKAGE_SPECIFIER = '@venizia/ignis-connectors';
 const CORE_SERVER_SPECIFIER = '@venizia/ignis';
 
@@ -77,7 +87,7 @@ describe('the mapping table of this package', () => {
     expect(CONNECTORS_MAPPINGS.length).toBeGreaterThan(0);
 
     const packageSubpaths = readExportsMap('connectors');
-    const coreServerSubpaths = readExportsMap('core-server');
+    const coreServerSubpaths = [...readExportsMap('core-server'), ...REMOVED_CORE_SERVER_SUBPATHS];
 
     for (const mapping of CONNECTORS_MAPPINGS) {
       expect(mapping.modules.length).toBeGreaterThan(0);

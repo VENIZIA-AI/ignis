@@ -1,8 +1,8 @@
 import { createClient, type Client } from '@libsql/client';
 import { datasource, type TAnyDataSourceSchema } from '@venizia/ignis';
 import { ParseUtility } from '@venizia/ignis-helpers';
-import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
-import { LibSqlDriver } from '@venizia/ignis/sqlite/libsql';
+import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
+import { LibSqlDriver } from '@venizia/ignis-connectors/sqlite/libsql';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import { mkdirSync } from 'node:fs';

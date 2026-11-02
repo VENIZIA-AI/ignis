@@ -24,7 +24,6 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
       fieldCodecs: this.options.fieldCodecs,
-      cipher: this.options.cipher,
     });
   }
 

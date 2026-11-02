@@ -9,7 +9,7 @@ difficulty: intermediate
 The Secrets helper family reads configuration and credentials from a backend, behind one `ISecretsHelper` interface. Swap the provider, and the calling code stays the same.
 
 > [!TIP] In an application, you rarely build a provider by hand
-> An IGNIS app enables secrets by overriding `registerSecrets()` on its application class. The framework then builds the provider, hydrates static secrets into `Envs`, and wires rotation for you. See the [Secrets & Vault deep dive](/references/base/secrets) and the [guide](/guides/core-concepts/secrets-vault). This page documents the provider family itself.
+> An IGNIS app enables secrets by overriding `registerSecrets()` on its application class. The framework then builds the provider, hydrates static secrets into `applicationEnvironment`, and wires rotation for you. See the [Secrets & Vault deep dive](/references/base/secrets) and the [guide](/guides/core-concepts/secrets-vault). This page documents the provider family itself.
 
 ## In one example
 

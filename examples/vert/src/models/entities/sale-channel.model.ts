@@ -5,7 +5,7 @@ import {
   many,
   ModelFactory,
   type TEntityObject,
-} from '@venizia/ignis/postgres';
+} from '@venizia/ignis-connectors/postgres';
 import { boolean, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { saleChannelProductTable } from './sale-channel-product.model';
 

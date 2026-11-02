@@ -13,7 +13,7 @@ type TCipherParams =
   | { name: 'AES-GCM'; iv: TBytes; tagLength: number };
 
 /**
- * AES-CBC and AES-GCM over `crypto.subtle`, shared by `AES` and `LegacyAES`. It keeps the layout of the
+ * AES-CBC and AES-GCM over `crypto.subtle`, used by `AES`. It keeps the layout of the
  * synchronous implementation it replaced, so what is already stored still reads: CBC pads with PKCS#7,
  * and GCM takes a 16-byte IV and a 16-byte tag. Web Crypto returns GCM output as `cipherText || tag`;
  * the stored envelopes put the tag BEFORE the cipher text, so `seal` and `open` split and join them here
@@ -109,7 +109,7 @@ export class AesEngine {
     const { algorithm, iv } = opts;
 
     if (algorithm === AESAlgorithms.AES_256_GCM) {
-      // GCM takes an IV of any length from 1 byte (12 is the usual one). `LegacyAES` read such data before, so it still does.
+      // The engine itself takes a GCM IV of any length from 1 byte, as the synchronous implementation did; `AES` always passes 16.
       if (iv.length === 0) {
         throw getError({ message: '[AesEngine][getParams] The GCM IV must not be empty' });
       }

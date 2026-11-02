@@ -19,7 +19,7 @@ boot, so there is no separate migrate step. Browse the API at `http://localhost:
 | File | What it does |
 |---|---|
 | `src/models/note.model.ts` | The table, its four RLS policies, and `owner_id default auth.uid()` |
-| `src/datasources/supabase.datasource.ts` | `postgres-js` instead of `pg`; pooler-mode presets from `@venizia/ignis/postgres/supabase` |
+| `src/datasources/supabase.datasource.ts` | `postgres-js` instead of `pg`; pooler-mode presets from `@venizia/ignis-connectors/postgres/supabase` |
 | `src/services/note.service.ts` | `SupabaseRls.withAuthContext` - opens a transaction, stamps the caller's claims into it, then issues an ordinary repository call |
 | `src/controllers/note.controller.ts` | Reads the verified token as claims and hands them to the service; no `where owner_id = ...` anywhere |
 | `src/token.ts` | Mints a test token with the app's own secret, standing in for a token Supabase Auth would issue |

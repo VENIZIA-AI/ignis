@@ -1,27 +1,25 @@
 ---
-title: "AES, LegacyAES and RSA are async, and run over Web Crypto"
-description: "AES, LegacyAES and RSA methods now run over Web Crypto and return promises."
+title: "AES and RSA are async, and run over Web Crypto"
+description: "AES and RSA methods now run over Web Crypto and return promises."
 packages: ['@venizia/ignis-helpers', '@venizia/ignis']
 ---
 
 # Changelog - 2026-11-02
 
-## AES, LegacyAES and RSA are async, and run over Web Crypto
+## AES and RSA are async, and run over Web Crypto
 
 <Badge type="warning" text="Breaking Change" />
 
-**In one line.** Add `await` to calls to `AES`, `LegacyAES`, and `RSA` methods because they now run over the Web Crypto API and return promises.
+**In one line.** Add `await` to calls to `AES` and `RSA` methods because they now run over the Web Crypto API and return promises.
 
 ## What changed
 
-`AES`, `LegacyAES`, and `RSA` from `@venizia/ignis-helpers` no longer import `node:crypto`.
+`AES` and `RSA` from `@venizia/ignis-helpers` no longer import `node:crypto`.
 They run over the Web Crypto API (`crypto.subtle`).
 Their methods return a Promise: `encrypt`, `decrypt`, `encryptFile`, `decryptFile`, `RSA.generateDERKeyPair`, and `normalizeSecretKey`.
 The `normalizeSecretKey` method on the base class now returns `Promise<Buffer>`.
 In `@venizia/ignis`, the bearer token services (JWS and JWKS) await the cipher.
 The methods `encryptPayload` and `decryptPayload` on the abstract bearer token service now return `Promise<Record<string, any>>` and `Promise<IJWTTokenPayload>`.
-The `IPayloadCipher` interface methods `encrypt` and `decrypt` now return `string | Promise<string>`.
-A custom cipher that answers with a plain string still works.
 `generate` and `verify` were already async and need no change.
 `AES` and `RSA` are still not exported from `@venizia/ignis-helpers/core`.
 
@@ -39,7 +37,6 @@ Input validation is stricter now.
 An AES key that is not exactly 32 bytes is refused.
 `AES.encrypt` refuses an `iv` option that is not 16 bytes.
 A CBC IV must be 16 bytes.
-`LegacyAES` with aes-256-gcm still accepts any IV length of 1 byte or more.
 A GCM auth tag that is not 16 bytes is refused before decrypting.
 The `kdfIterations` setting must be an integer from 1 to 2147483647.
 
@@ -50,7 +47,7 @@ A failed decryption now rejects with `OperationError: The operation failed for a
 
 ## Who is affected
 
-You are affected if you call methods on `AES`, `LegacyAES`, or `RSA`.
+You are affected if you call methods on `AES` or `RSA`.
 You are affected if you call or override `encryptPayload` or `decryptPayload` on the abstract bearer token service.
 You are affected if you subclass `BaseCryptoAlgorithm` and call `normalizeSecretKey`.
 You are affected if your code or tests match the exact error message of a failed decryption.
@@ -58,7 +55,7 @@ You are affected if your code or tests match the exact error message of a failed
 ## Breaking changes
 
 > [!WARNING]
-> Calls to `AES`, `LegacyAES`, and `RSA` methods now return a Promise instead of a synchronous value. You must await them.
+> Calls to `AES` and `RSA` methods now return a Promise instead of a synchronous value. You must await them.
 
 **Before:**
 ```typescript
@@ -73,7 +70,7 @@ const { publicKey, privateKey } = await rsa.generateDERKeyPair();
 ```
 
 To upgrade:
-1. Add `await` at every call to `AES`, `LegacyAES`, and `RSA` methods.
+1. Add `await` at every call to `AES` and `RSA` methods.
 2. Mark the functions that contain those calls as `async`.
 3. Use `await` inside `try` blocks when catching decryption errors.
 4. Update any error message checks in code or tests from the old Node errors to `OperationError: The operation failed for an operation-specific reason`.

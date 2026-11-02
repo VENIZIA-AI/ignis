@@ -68,12 +68,6 @@ export const INSTALL_CLAIMS: IInstallClaim[] = [
   {
     package: 'core-server',
     requires: {
-      './postgres/node-postgres': ['pg'],
-      './postgres/postgres-js': ['postgres'],
-      './postgres/pglite': ['@electric-sql/pglite'],
-      './sqlite/libsql': ['@libsql/client'],
-      './meilisearch': ['meilisearch'],
-      './typesense': ['typesense'],
       './socket-io': ['socket.io', '@socket.io/redis-adapter', '@socket.io/redis-emitter'],
     },
   },

@@ -15,8 +15,8 @@ end-to-end evidence that the lift worked.
 
 ## What it demonstrates
 
-- **Two connectors, one tier** - imports come from `@venizia/ignis/sqlite` and
-  `@venizia/ignis/sqlite/libsql`, never from `@venizia/ignis/postgres`. The repository is still an
+- **Two connectors, one tier** - imports come from `@venizia/ignis-connectors/sqlite` and
+  `@venizia/ignis-connectors/sqlite/libsql`, never from `@venizia/ignis-connectors/postgres`. The repository is still an
   empty class under `@repository({ model, dataSource })`, and the controller is the unmodified
   `ControllerFactory.defineCrudController` output, because both live above the engine boundary. The
   model has the same shape as PGlite's: `notes` and `comments` tables, `Comment.note` a `one()`

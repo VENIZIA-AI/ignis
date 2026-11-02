@@ -17,8 +17,8 @@ The neutral `AbstractDataSource` has no SQL, no pool, no Drizzle. The relational
 ```typescript
 import { Pool } from 'pg';
 import { datasource } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 
 interface IDataSourceConfigs {
   host: string;
@@ -57,32 +57,32 @@ A Typesense datasource follows the same shape but extends the search connector's
 
 | Tier | Adds | `getCapabilities()` |
 |---|---|---|
-| **relational** (`@venizia/ignis/relational`) | Drizzle `connector`, driver seam, SQL-shaped `TWhere`/`TFilter`, the `FilterBuilder`, real transactions | `{ transactions: true }` on `BaseRelationalDataSource` |
-| **search** (`@venizia/ignis/search`) | Collections, one shared search query-dialect, no SQL and no transactions | inherited neutral default |
+| **relational** (`@venizia/ignis-connectors/relational`) | Drizzle `connector`, driver seam, SQL-shaped `TWhere`/`TFilter`, the `FilterBuilder`, real transactions | `{ transactions: true }` on `BaseRelationalDataSource` |
+| **search** (`@venizia/ignis-connectors/search`) | Collections, one shared search query-dialect, no SQL and no transactions | inherited neutral default |
 
 - **Engine branches bind a tier to a client.** Each one subclasses the tier and supplies the dialect, the executor and the driver:
 
 | Engine | Subpath | Tier | Supplies |
 |---|---|---|---|
-| **postgres** | `@venizia/ignis/postgres` | relational | `PostgresQueryDialect`, `PostgresQueryExecutor`, `BEGIN ... ISOLATION LEVEL`, three drivers |
-| **sqlite** | `@venizia/ignis/sqlite` | relational | `SqliteQueryDialect`, `SqliteQueryExecutor`, the libsql driver, `SqliteBeginModes` locking modes |
-| **typesense** | `@venizia/ignis/typesense` | search | The typesense client and its collection schema |
-| **meilisearch** | `@venizia/ignis/meilisearch` | search | The meilisearch client and its index schema |
+| **postgres** | `@venizia/ignis-connectors/postgres` | relational | `PostgresQueryDialect`, `PostgresQueryExecutor`, `BEGIN ... ISOLATION LEVEL`, three drivers |
+| **sqlite** | `@venizia/ignis-connectors/sqlite` | relational | `SqliteQueryDialect`, `SqliteQueryExecutor`, the libsql driver, `SqliteBeginModes` locking modes |
+| **typesense** | `@venizia/ignis-connectors/typesense` | search | The typesense client and its collection schema |
+| **meilisearch** | `@venizia/ignis-connectors/meilisearch` | search | The meilisearch client and its index schema |
 
 - **`@datasource({ driver })` picks the concrete client, within an engine.** A relational datasource takes a driver **class** (`NodePostgresDriver`, `PostgresJsDriver`, `PGliteDriver`, `LibSqlDriver`), never a driver-name string. A bundler packages values, not text, so a string would leave the peer dependency uninstalled.
-- **All engine clients stay optional peer dependencies.** Importing `@venizia/ignis/postgres` alone loads zero client libraries.
-- **Search controllers ship on their own subpath.** `@venizia/ignis/search`, `/typesense` and `/meilisearch` carry no controller, so they load without `hono` or `drizzle-orm`. Import `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) from `@venizia/ignis/search/controllers` or `@venizia/ignis/typesense/controllers`.
-- **Only postgres is reachable from the root barrel.** `@venizia/ignis` re-exports `@venizia/ignis/postgres` for backward compatibility. Every other engine, and both neutral tiers, are subpath-only. An app that never touches search never pulls a search client into its bundle.
+- **All engine clients stay optional peer dependencies.** Importing `@venizia/ignis-connectors/postgres` alone loads zero client libraries.
+- **Search controllers ship on their own subpath.** `@venizia/ignis-connectors/search`, `/typesense` and `/meilisearch` carry no controller, so they load without `hono` or `drizzle-orm`. Import `AbstractSearchController`, `SearchControllerFactory` (with `defineRouteConfigs`) from `@venizia/ignis-connectors/search/controllers` or `@venizia/ignis-connectors/typesense/controllers`.
+- **Only postgres is reachable from the root barrel.** `@venizia/ignis` re-exports `@venizia/ignis-connectors/postgres` for backward compatibility. Every other engine, and both neutral tiers, are subpath-only. An app that never touches search never pulls a search client into its bundle.
 
 **Neutral names and engine names**
 
-| Layer | Neutral (`@venizia/ignis/relational`) | Postgres (`@venizia/ignis/postgres`) | Relationship |
+| Layer | Neutral (`@venizia/ignis-connectors/relational`) | Postgres (`@venizia/ignis-connectors/postgres`) | Relationship |
 |---|---|---|---|
 | DataSource | `BaseRelationalDataSource` | `BasePostgresDataSource` | Subclass - adds the Postgres dialect, executor and BEGIN statement |
 | Entity | `BaseRelationalEntity` | `BasePostgresEntity`, `BaseEntity` | **Alias** - one class, re-exported under two extra names |
 | Repository | `RelationalBaseRepository` | `PostgresBaseRepository` | Subclass - rebinds `ExtraOptions` and `TDataSource` |
 
-Only the Entity row is an alias. The other two are distinct classes, and the neutral names are deliberately **not** re-exported from the engine subpaths, so one name never denotes two classes. `import { RelationalBaseRepository } from '@venizia/ignis'` and `import { BaseRelationalDataSource } from '@venizia/ignis/postgres'` both fail to resolve; both live at `@venizia/ignis/relational`.
+Only the Entity row is an alias. The other two are distinct classes, and the neutral names are deliberately **not** re-exported from the engine subpaths, so one name never denotes two classes. `import { RelationalBaseRepository } from '@venizia/ignis'` and `import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres'` both fail to resolve; both live at `@venizia/ignis-connectors/relational`.
 
 `BaseDataSource` is a genuine alias within the postgres subpath: it re-exports `BasePostgresDataSource` under its historical name.
 
@@ -90,20 +90,20 @@ Only the Entity row is an alias. The other two are distinct classes, and the neu
 
 ### Pick an engine
 
-Import the connector for the engine you need - `@venizia/ignis/postgres` or `@venizia/ignis/sqlite` for a relational database with transactions, `@venizia/ignis/typesense` or `@venizia/ignis/meilisearch` for document search. The root `@venizia/ignis` barrel re-exports postgres for backward compatibility; every other engine is subpath-only:
+Import the connector for the engine you need - `@venizia/ignis-connectors/postgres` or `@venizia/ignis-connectors/sqlite` for a relational database with transactions, `@venizia/ignis-connectors/typesense` or `@venizia/ignis-connectors/meilisearch` for document search. The root `@venizia/ignis` barrel re-exports postgres for backward compatibility; every other engine is subpath-only:
 
 ```typescript
 // Postgres: available at the root or the subpath - same class either way
 import { BaseDataSource } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { BasePostgresDataSource } from '@venizia/ignis-connectors/postgres';
 
 // SQLite and the search engines: subpath only, never at the root
-import { BaseSqliteDataSource } from '@venizia/ignis/sqlite';
-import { TypesenseDataSource } from '@venizia/ignis/typesense';
-import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
+import { BaseSqliteDataSource } from '@venizia/ignis-connectors/sqlite';
+import { TypesenseDataSource } from '@venizia/ignis-connectors/typesense';
+import { MeilisearchDataSource } from '@venizia/ignis-connectors/meilisearch';
 
 // The engine-neutral relational tier, when you write code for both SQL engines
-import { BaseRelationalDataSource, DefaultRelationalRepository } from '@venizia/ignis/relational';
+import { BaseRelationalDataSource, DefaultRelationalRepository } from '@venizia/ignis-connectors/relational';
 ```
 
 ### Know what lives in the kernel vs a tier vs an engine
@@ -117,7 +117,7 @@ import { BaseRelationalDataSource, DefaultRelationalRepository } from '@venizia/
 
 - **Mirror the shape.** Under `packages/connectors/src/<tier>/<engine>/`, add a `datasources/` extending the tier's base datasource and a `repositories/core/` binding each rung of the tier's ladder. Add a `models/` extending the tier's entity too, if the engine needs entity definitions.
 - **Override transactions only if supported.** Override `getCapabilities()` and `beginTransaction()` only if the engine truly supports transactions - otherwise inherit the neutral `NotSupported` default.
-- **Export as a subpath.** Add the connector to `package.json` `exports` as `./<engine>` in both `@venizia/ignis-connectors` and `@venizia/ignis`. If its driver is an optional peer dependency, keep it out of the root barrel and register it as a subpath-only export instead, mirroring sqlite, typesense and meilisearch.
+- **Export as a subpath.** Add the connector to `package.json` `exports` as `./<engine>` in `@venizia/ignis-connectors`. If its driver is an optional peer dependency, keep it out of the root barrel and register it as a subpath-only export instead, mirroring sqlite, typesense and meilisearch.
 - **Do not re-export the tier's names.** Publishing `BaseRelationalDataSource` from your engine subpath would put two different classes behind one name.
 
 ## See also

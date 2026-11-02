@@ -130,8 +130,8 @@ entry and name its class in `@datasource({ driver })`.
 ## Where it sits
 
 Depends on `@venizia/ignis-kernel`, `@venizia/ignis-filter`, `@venizia/ignis-helpers` and
-`@venizia/ignis-inversion`. Used by `@venizia/ignis`, which re-exports every sub-path under the same
-name (`@venizia/ignis/postgres`, ...) except `/http`. Its root re-exports `/postgres`.
+`@venizia/ignis-inversion`. Used by `@venizia/ignis`, whose root re-exports `/postgres`. Every other sub-path is imported from this
+package, so an app that uses one lists `@venizia/ignis-connectors` as a dependency.
 
 ## Links
 

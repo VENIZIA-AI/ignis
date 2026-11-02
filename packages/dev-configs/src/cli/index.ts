@@ -16,6 +16,7 @@ Commands:
   codemod const-classes [paths...]              turn a string-literal union into a const class (dry run unless --write)
   codemod async-style [paths...]                apply the async-style lint fixers and list the rest (dry run unless --write)
   codemod namespace-functions [paths...]        move calls of a function that moved into a class to the class form (dry run unless --write)
+  codemod connector-imports [paths...]          move @venizia/ignis/<connector sub-path> imports to @venizia/ignis-connectors (dry run unless --write)
 
 Run \`devz clean --help\` or \`devz codemod --help\` for a command's options.`;
 

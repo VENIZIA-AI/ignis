@@ -218,8 +218,8 @@ Connection pooling significantly improves performance by reusing database connec
 ```typescript
 import { Pool } from 'pg';
 import { datasource } from '@venizia/ignis';
-import { BaseRelationalDataSource } from '@venizia/ignis/postgres';
-import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+import { BaseRelationalDataSource } from '@venizia/ignis-connectors/postgres';
+import { NodePostgresDriver } from '@venizia/ignis-connectors/postgres/node-postgres';
 
 // IDataSourceConfigs: your settings interface (host/port/user/password/database)
 @datasource({ driver: NodePostgresDriver })
