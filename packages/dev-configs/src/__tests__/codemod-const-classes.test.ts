@@ -25,7 +25,6 @@ describe('ConstClasses.convert - an exported type alias', () => {
       [
         IMPORT,
         '',
-        '/** The values of `TMode`. */',
         'export class Modes {',
         "  static readonly READ = 'read';",
         "  static readonly WRITE = 'write';",
@@ -46,6 +45,19 @@ describe('ConstClasses.convert - an exported type alias', () => {
       className: 'Modes',
       typeName: 'TMode',
     });
+  });
+
+  test('writes no comment of its own above the class, for an alias with a comment or without', () => {
+    const bare = convert("export type TMode = 'read' | 'write';\n");
+    const documented = convert(
+      "/** How a file is opened. */\nexport type TMode = 'read' | 'write';\n",
+    );
+
+    expect(bare.output).not.toContain('/**');
+    expect(bare.output).not.toContain('The values of');
+    // the only comment is the author's own, and it stays with the alias
+    expect(documented.output.match(/\/\*\*/g)).toHaveLength(1);
+    expect(documented.output).not.toContain('The values of');
   });
 
   test('keeps a null or undefined member next to the class type', () => {
