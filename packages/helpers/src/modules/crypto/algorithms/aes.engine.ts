@@ -28,13 +28,12 @@ export class AesEngine {
   }): Promise<{ cipherText: Uint8Array; authTag: Uint8Array | null }> {
     const { algorithm, key, iv, plain } = opts;
     const cryptoKey = await AesEngine.importKey({ algorithm, key, usage: 'encrypt' });
-    const sealed = new Uint8Array(
-      await crypto.subtle.encrypt(
-        AesEngine.getParams({ algorithm, iv }),
-        cryptoKey,
-        plain as TBytes,
-      ),
+    const encrypted = await crypto.subtle.encrypt(
+      AesEngine.getParams({ algorithm, iv }),
+      cryptoKey,
+      plain as TBytes,
     );
+    const sealed = new Uint8Array(encrypted);
 
     if (algorithm === AESAlgorithms.AES_256_GCM) {
       return {
@@ -70,13 +69,12 @@ export class AesEngine {
       input.set(authTag, cipherText.length);
     }
 
-    return new Uint8Array(
-      await crypto.subtle.decrypt(
-        AesEngine.getParams({ algorithm, iv }),
-        cryptoKey,
-        input as TBytes,
-      ),
+    const decrypted = await crypto.subtle.decrypt(
+      AesEngine.getParams({ algorithm, iv }),
+      cryptoKey,
+      input as TBytes,
     );
+    return new Uint8Array(decrypted);
   }
 
   /** The key must be exactly the size the algorithm names: Web Crypto would otherwise run a 16 or 24 byte key as AES-128 or AES-192. */

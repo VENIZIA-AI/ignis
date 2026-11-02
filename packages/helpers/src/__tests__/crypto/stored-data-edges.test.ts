@@ -17,12 +17,14 @@ describe('LegacyAES: the layouts the synchronous implementation accepted', () =>
     const stored = Buffer.concat([iv, cipher.getAuthTag(), body]).toString('base64');
     const legacy = LegacyAES.withAlgorithm('aes-256-gcm');
 
-    expect(await legacy.decrypt({ message: stored, secret: LEGACY_SECRET, opts: { iv } })).toBe(
-      'twelve byte iv',
-    );
-    expect(
-      await legacy.encrypt({ message: 'twelve byte iv', secret: LEGACY_SECRET, opts: { iv } }),
-    ).toBe(stored);
+    const result = await legacy.decrypt({ message: stored, secret: LEGACY_SECRET, opts: { iv } });
+    expect(result).toBe('twelve byte iv');
+    const result2 = await legacy.encrypt({
+      message: 'twelve byte iv',
+      secret: LEGACY_SECRET,
+      opts: { iv },
+    });
+    expect(result2).toBe(stored);
   });
 
   test('a CBC IV that is not 16 bytes is refused, as it was', async () => {

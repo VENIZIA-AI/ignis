@@ -36,7 +36,8 @@ describe('LegacyAES (backward-compat)', () => {
         const plaintext = 'legacy payload 🔐 với unicode';
         const encrypted = await aes.encrypt({ message: plaintext, secret: SECRET_32 });
         expect(encrypted).not.toBe(plaintext);
-        expect(await aes.decrypt({ message: encrypted, secret: SECRET_32 })).toBe(plaintext);
+        const result2 = await aes.decrypt({ message: encrypted, secret: SECRET_32 });
+        expect(result2).toBe(plaintext);
       });
     }
 
@@ -45,7 +46,8 @@ describe('LegacyAES (backward-compat)', () => {
       const secrets = [SECRET_SHORT, SECRET_LONG];
       for (const secret of secrets) {
         const encrypted = await aes.encrypt({ message: 'x', secret });
-        expect(await aes.decrypt({ message: encrypted, secret })).toBe('x');
+        const result3 = await aes.decrypt({ message: encrypted, secret });
+        expect(result3).toBe('x');
       }
     });
 
@@ -67,18 +69,20 @@ describe('LegacyAES (backward-compat)', () => {
       const legacy = LegacyAES.withAlgorithm('aes-256-gcm');
       const modern = AES.withAlgorithm('aes-256-gcm');
       const enc = await legacy.encrypt({ message: 'old data', secret: SECRET_32 });
-      expect(
-        await Rejection.messageOf({ promise: modern.decrypt({ message: enc, secret: SECRET_32 }) }),
-      ).toBeString();
+      const result4 = await Rejection.messageOf({
+        promise: modern.decrypt({ message: enc, secret: SECRET_32 }),
+      });
+      expect(result4).toBeString();
     });
 
     test('LTC-008: LegacyAES cannot decrypt new AES ciphertext', async () => {
       const legacy = LegacyAES.withAlgorithm('aes-256-gcm');
       const modern = AES.withAlgorithm('aes-256-gcm');
       const enc = await modern.encrypt({ message: 'new data', secret: SECRET_32 });
-      expect(
-        await Rejection.messageOf({ promise: legacy.decrypt({ message: enc, secret: SECRET_32 }) }),
-      ).toBeString();
+      const result5 = await Rejection.messageOf({
+        promise: legacy.decrypt({ message: enc, secret: SECRET_32 }),
+      });
+      expect(result5).toBeString();
     });
   });
 });

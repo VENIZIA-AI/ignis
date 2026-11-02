@@ -56,10 +56,10 @@ export class RSA extends BaseCryptoAlgorithm<
       ['encrypt', 'decrypt'],
     );
 
-    return {
-      publicKey: Buffer.from(await crypto.subtle.exportKey('spki', keys.publicKey)),
-      privateKey: Buffer.from(await crypto.subtle.exportKey('pkcs8', keys.privateKey)),
-    };
+    const publicKey = await crypto.subtle.exportKey('spki', keys.publicKey);
+    const privateKey = await crypto.subtle.exportKey('pkcs8', keys.privateKey);
+
+    return { publicKey: Buffer.from(publicKey), privateKey: Buffer.from(privateKey) };
   }
 
   async encrypt(opts: {

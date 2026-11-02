@@ -185,10 +185,11 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
 
       const serialized = this.serializeField({ key, value });
 
-      rs[encryptedKey] = await this.aes.encrypt({
+      const encryptedValue = await this.aes.encrypt({
         message: serialized,
         secret: this.applicationSecret,
       });
+      rs[encryptedKey] = encryptedValue;
     }
 
     return rs;

@@ -55,7 +55,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       this.jwtSecret,
       this.options.verify,
     );
-    return await this.decryptPayload({ result: decodedToken });
+    return this.decryptPayload({ result: decodedToken });
   }
 
   override async getSigner(opts: {

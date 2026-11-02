@@ -188,7 +188,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     await this.ensureInitialized();
     const { jwtVerify } = await JoseLoader.load();
     const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!, this.options.verify);
-    return await this.decryptPayload({ result });
+    return this.decryptPayload({ result });
   }
 
   override async getSigner(opts: {

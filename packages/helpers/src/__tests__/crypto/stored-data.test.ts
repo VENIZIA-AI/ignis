@@ -34,9 +34,12 @@ describe('AES: what is stored still reads, and the same input writes the same by
       const cipher = AES.withAlgorithm(fixture.algorithm);
       const kdf = fixture.kdf ?? {};
 
-      expect(
-        await cipher.decrypt({ message: fixture.stored, secret: fixture.secret, opts: kdf }),
-      ).toBe(fixture.message);
+      const result = await cipher.decrypt({
+        message: fixture.stored,
+        secret: fixture.secret,
+        opts: kdf,
+      });
+      expect(result).toBe(fixture.message);
 
       const rewritten = await cipher.encrypt({
         message: fixture.message,
@@ -54,17 +57,18 @@ describe('AES: what is stored still reads, and the same input writes the same by
     }
     const reversed = [...(fixture.secret as Array<{ id: string; secret: string }>)].reverse();
 
-    expect(
-      await AES.withAlgorithm('aes-256-gcm').decrypt({ message: fixture.stored, secret: reversed }),
-    ).toBe(fixture.message);
+    const result2 = await AES.withAlgorithm('aes-256-gcm').decrypt({
+      message: fixture.stored,
+      secret: reversed,
+    });
+    expect(result2).toBe(fixture.message);
   });
 
   test('a plain empty secret is refused on encrypt, as before', async () => {
-    expect(
-      await Rejection.messageOf({
-        promise: AES.withAlgorithm('aes-256-cbc').encrypt({ message: 'x', secret: '' }),
-      }),
-    ).toBeString();
+    const result3 = await Rejection.messageOf({
+      promise: AES.withAlgorithm('aes-256-cbc').encrypt({ message: 'x', secret: '' }),
+    });
+    expect(result3).toBeString();
   });
 
   test('a flipped bit in a GCM ciphertext is refused, and doThrow: false hands the message back', async () => {
@@ -77,18 +81,16 @@ describe('AES: what is stored still reads, and the same input writes the same by
     const tampered = bytes.toString('base64');
     const cipher = AES.withAlgorithm('aes-256-gcm');
 
-    expect(
-      await Rejection.messageOf({
-        promise: cipher.decrypt({ message: tampered, secret: fixture.secret as string }),
-      }),
-    ).toBeString();
-    expect(
-      await cipher.decrypt({
-        message: tampered,
-        secret: fixture.secret as string,
-        opts: { doThrow: false },
-      }),
-    ).toBe(tampered);
+    const result4 = await Rejection.messageOf({
+      promise: cipher.decrypt({ message: tampered, secret: fixture.secret as string }),
+    });
+    expect(result4).toBeString();
+    const result5 = await cipher.decrypt({
+      message: tampered,
+      secret: fixture.secret as string,
+      opts: { doThrow: false },
+    });
+    expect(result5).toBe(tampered);
   });
 
   test('a wrong secret never returns the plaintext', async () => {
@@ -97,14 +99,13 @@ describe('AES: what is stored still reads, and the same input writes the same by
       throw new Error('the gcm fixture is missing');
     }
 
-    expect(
-      await Rejection.messageOf({
-        promise: AES.withAlgorithm('aes-256-gcm').decrypt({
-          message: fixture.stored,
-          secret: 'wrong secret',
-        }),
+    const result6 = await Rejection.messageOf({
+      promise: AES.withAlgorithm('aes-256-gcm').decrypt({
+        message: fixture.stored,
+        secret: 'wrong secret',
       }),
-    ).toBeString();
+    });
+    expect(result6).toBeString();
   });
 
   test('the envelope of a ciphertext written now is read by node:crypto (the reference)', async () => {
@@ -112,10 +113,8 @@ describe('AES: what is stored still reads, and the same input writes the same by
     const message = 'read by the reference implementation';
 
     for (const algorithm of ['aes-256-cbc', 'aes-256-gcm'] as const) {
-      const stored = Buffer.from(
-        await AES.withAlgorithm(algorithm).encrypt({ message, secret }),
-        'base64',
-      );
+      const result7 = await AES.withAlgorithm(algorithm).encrypt({ message, secret });
+      const stored = Buffer.from(result7, 'base64');
       const idLength = stored[1] ?? 0;
       const ivStart = 2 + idLength;
       const iv = stored.subarray(ivStart, ivStart + 16);
@@ -140,16 +139,14 @@ describe('LegacyAES: what is stored still reads, and the same input writes the s
     test(fixture.name, async () => {
       const cipher = LegacyAES.withAlgorithm(fixture.algorithm);
 
-      expect(await cipher.decrypt({ message: fixture.stored, secret: fixture.secret })).toBe(
-        fixture.message,
-      );
-      expect(
-        await cipher.encrypt({
-          message: fixture.message,
-          secret: fixture.secret,
-          opts: { iv: Buffer.from(fixture.ivHex, 'hex') },
-        }),
-      ).toBe(fixture.stored);
+      const result = await cipher.decrypt({ message: fixture.stored, secret: fixture.secret });
+      expect(result).toBe(fixture.message);
+      const result2 = await cipher.encrypt({
+        message: fixture.message,
+        secret: fixture.secret,
+        opts: { iv: Buffer.from(fixture.ivHex, 'hex') },
+      });
+      expect(result2).toBe(fixture.stored);
     });
   }
 
@@ -157,11 +154,13 @@ describe('LegacyAES: what is stored still reads, and the same input writes the s
     // 20 characters of 2 bytes each slice to 20 characters (40 bytes): not a 256-bit key.
     const cipher = LegacyAES.withAlgorithm('aes-256-cbc');
 
-    expect(
-      await Rejection.messageOf({ promise: cipher.encrypt({ message: 'x', secret: 'é'.repeat(20) }) }),
-    ).toBeString();
+    const result3 = await Rejection.messageOf({
+      promise: cipher.encrypt({ message: 'x', secret: 'é'.repeat(20) }),
+    });
+    expect(result3).toBeString();
     // 8 ASCII characters pad to 32 bytes, so this one is fine.
-    expect(await cipher.encrypt({ message: 'x', secret: 'abcdefgh' })).toBeString();
+    const result4 = await cipher.encrypt({ message: 'x', secret: 'abcdefgh' });
+    expect(result4).toBeString();
   });
 });
 
@@ -202,31 +201,27 @@ describe('PBKDF2 key derivation: the same key bytes as the synchronous implement
     const cipher = AES.withAlgorithm('aes-256-cbc');
     const secret = `failing-secret-${crypto.randomUUID()}`;
 
-    expect(
-      await Rejection.messageOf({
-        promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
-      }),
-    ).toBeString();
-    expect(
-      await Rejection.messageOf({
-        promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
-      }),
-    ).toBeString();
-    expect(
-      (await cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 10 })).length,
-    ).toBe(32);
+    const result = await Rejection.messageOf({
+      promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+    });
+    expect(result).toBeString();
+    const result2 = await Rejection.messageOf({
+      promise: cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 0 }),
+    });
+    expect(result2).toBeString();
+    const result3 = await cipher.normalizeSecretKey({ secret, length: 32, kdfIterations: 10 });
+    expect(result3.length).toBe(32);
   });
 
   test('a salt under 16 bytes is refused', async () => {
-    expect(
-      await Rejection.messageOf({
-        promise: AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({
-          secret: 's',
-          length: 32,
-          kdfSalt: 'short',
-        }),
+    const result4 = await Rejection.messageOf({
+      promise: AES.withAlgorithm('aes-256-cbc').normalizeSecretKey({
+        secret: 's',
+        length: 32,
+        kdfSalt: 'short',
       }),
-    ).toMatch(/at least 16 bytes/);
+    });
+    expect(result4).toMatch(/at least 16 bytes/);
   });
 });
 
@@ -236,9 +231,8 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
 
   for (const stored of fixtures.rsa.stored) {
     test(`decrypts the ciphertext stored for "${stored.name}"`, async () => {
-      expect(await rsa.decrypt({ message: stored.stored, secret: privateKey })).toBe(
-        stored.message,
-      );
+      const result = await rsa.decrypt({ message: stored.stored, secret: privateKey });
+      expect(result).toBe(stored.message);
     });
   }
 
@@ -260,7 +254,8 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
       Buffer.from(message),
     ).toString('base64');
 
-    expect(await rsa.decrypt({ message: encrypted, secret: privateKey })).toBe(message);
+    const result2 = await rsa.decrypt({ message: encrypted, secret: privateKey });
+    expect(result2).toBe(message);
   });
 
   test('a generated pair is DER (spki, pkcs8), 2048 bits, and works both ways with the reference', async () => {
@@ -276,35 +271,33 @@ describe('RSA: keys and ciphertext of the synchronous implementation still work'
       secret: pair.publicKey.toString('base64'),
     });
     expect(C.privateDecrypt(priv, Buffer.from(encrypted, 'base64')).toString()).toBe('round trip');
-    expect(
-      await rsa.decrypt({
-        message: C.publicEncrypt(pub, Buffer.from('other way')).toString('base64'),
-        secret: pair.privateKey.toString('base64'),
-      }),
-    ).toBe('other way');
+    const result3 = await rsa.decrypt({
+      message: C.publicEncrypt(pub, Buffer.from('other way')).toString('base64'),
+      secret: pair.privateKey.toString('base64'),
+    });
+    expect(result3).toBe('other way');
   });
 
   test('a modulus under 2048 bits is refused', async () => {
-    expect(
-      await Rejection.messageOf({ promise: rsa.generateDERKeyPair({ modulus: 1024 }) }),
-    ).toMatch(/below the 2048-bit minimum/);
+    const result4 = await Rejection.messageOf({
+      promise: rsa.generateDERKeyPair({ modulus: 1024 }),
+    });
+    expect(result4).toMatch(/below the 2048-bit minimum/);
   });
 
   test('a wrong key or a damaged ciphertext is refused, and doThrow: false hands the message back', async () => {
     const other = await rsa.generateDERKeyPair();
     const stored = fixtures.rsa.stored[0]?.stored ?? '';
 
-    expect(
-      await Rejection.messageOf({
-        promise: rsa.decrypt({ message: stored, secret: other.privateKey.toString('base64') }),
-      }),
-    ).toBeString();
-    expect(
-      await rsa.decrypt({
-        message: stored,
-        secret: other.privateKey.toString('base64'),
-        opts: { doThrow: false },
-      }),
-    ).toBe(stored);
+    const result5 = await Rejection.messageOf({
+      promise: rsa.decrypt({ message: stored, secret: other.privateKey.toString('base64') }),
+    });
+    expect(result5).toBeString();
+    const result6 = await rsa.decrypt({
+      message: stored,
+      secret: other.privateKey.toString('base64'),
+      opts: { doThrow: false },
+    });
+    expect(result6).toBe(stored);
   });
 });

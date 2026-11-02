@@ -51,7 +51,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
       this.jwksVerifier!,
       this.options.verify,
     );
-    return await this.decryptPayload({ result });
+    return this.decryptPayload({ result });
   }
 
   override async getSigner(_opts: {

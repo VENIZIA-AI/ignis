@@ -18,7 +18,9 @@ const buildService = (overrides: Partial<IJWSTokenServiceOptions> = {}) => {
 };
 
 /** The message an async call rejected with, or `undefined` when it resolved (`await expect(...).rejects` is typed as a plain value, which `await-thenable` refuses). */
-const rejectionMessage = async (opts: { promise: Promise<unknown> }): Promise<string | undefined> => {
+const rejectionMessage = async (opts: {
+  promise: Promise<unknown>;
+}): Promise<string | undefined> => {
   try {
     await opts.promise;
   } catch (error) {
@@ -57,7 +59,7 @@ const signStoredToken = async (opts: { algorithm: 'aes-256-cbc' | 'aes-256-gcm' 
     }),
   };
 
-  return await new SignJWT(claims)
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1h')
@@ -108,11 +110,10 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
 
     const wire = await encrypted;
     expect(Object.keys(wire).every((name) => name !== 'userId')).toBe(true);
-    expect(
-      await service.decryptPayload({
-        result: { payload: wire, protectedHeader: { alg: 'HS256' } } as never,
-      }),
-    ).toEqual(payload);
+    const result2 = await service.decryptPayload({
+      result: { payload: wire, protectedHeader: { alg: 'HS256' } } as never,
+    });
+    expect(result2).toEqual(payload);
   });
 
   test('many tokens issued and verified at once, from a cold key cache, all round-trip', async () => {
@@ -142,7 +143,8 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
     });
     const token = await service.generate({ payload: { userId: 9, roles: [] } });
 
-    expect((await service.verify({ type: 'Bearer', token })).userId).toBe(9);
+    const result3 = await service.verify({ type: 'Bearer', token });
+    expect(result3.userId).toBe(9);
   });
 
   test('a cipher that fails makes generate reject, and no token comes out', async () => {
@@ -153,9 +155,10 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
       },
     });
 
-    expect(
-      await rejectionMessage({ promise: service.generate({ payload: { userId: 1, roles: [] } }) }),
-    ).toContain('cipher unavailable');
+    const result4 = await rejectionMessage({
+      promise: service.generate({ payload: { userId: 1, roles: [] } }),
+    });
+    expect(result4).toContain('cipher unavailable');
   });
 
   test('a tampered claim is refused before any decryption', async () => {
@@ -164,8 +167,9 @@ describe('bearer token service - encryption is awaited, never leaked as a Promis
     const [header, body, signature] = token.split('.');
     const forged = `${header}.${body?.slice(0, -2)}AA.${signature}`;
 
-    expect(
-      await rejectionMessage({ promise: service.verify({ type: 'Bearer', token: forged }) }),
-    ).toBeString();
+    const result5 = await rejectionMessage({
+      promise: service.verify({ type: 'Bearer', token: forged }),
+    });
+    expect(result5).toBeString();
   });
 });
