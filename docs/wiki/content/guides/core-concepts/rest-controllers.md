@@ -20,6 +20,9 @@ export class UserController extends BaseRestController {
     super({ scope: UserController.name });
   }
 
+  // binding() is abstract: leave it empty when every route uses a decorator.
+  override binding() {}
+
   @get({
     configs: {
       path: '/',
@@ -35,7 +38,7 @@ export class UserController extends BaseRestController {
 }
 ```
 
-Notice that the `binding()` method is no longer needed when using decorators. The path is resolved from the `@controller` decorator metadata first, then falls back to the constructor `path` option.
+Notice that `binding()` stays empty when every route uses a decorator, because the base class declares it abstract. The path is resolved from the `@controller` decorator metadata first, then falls back to the constructor `path` option.
 
 ## Controller Lifecycle
 

@@ -2,13 +2,13 @@ import { BindingNamespaces } from '@/common/bindings';
 import type {
   IArtifactRegistrationOptions,
   IDataSourceMetadata,
-  IInjectMetadata,
   IModelMetadata,
   IResolvedRepositoryMetadata,
   TRepositoryMetadata,
 } from '@/helpers/inversion';
 import { ArtifactTypes, BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
 import { ClassResolver, ResolverUtility } from '@venizia/ignis-helpers/common';
+import type { IInjectMetadata } from '@venizia/ignis-inversion';
 import { getError } from '@venizia/ignis-helpers/core';
 import type { IDataSource } from '../datasources';
 import { isDataSourceClass } from '../datasources';

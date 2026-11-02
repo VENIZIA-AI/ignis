@@ -17,8 +17,8 @@ const UNLISTED = [
   /^extensions\/(components|helpers)\/template\//,
   /^index$/,
   /^changelogs\/\d{4}-\d{2}-\d{2}-/,
-  // The author skeleton and the one plan page, reached from the changelog index, not from a menu.
-  /^changelogs\/(template|planned-schema-migrator)$/,
+  // The author skeleton, reached from no menu.
+  /^changelogs\/template$/,
 ];
 
 const config = await Bun.file(CONFIG).text();

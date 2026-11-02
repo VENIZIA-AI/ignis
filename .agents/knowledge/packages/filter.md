@@ -19,7 +19,7 @@ tags: [packages, filter, query, isomorphic, browser]
 
 `@venizia/ignis-filter` carries the filter vocabulary every connector translates from: the
 `{ where, order, limit, offset, skip, fields, include }` shape (`TFilter`, `TWhere`, `TFields`,
-`TInclusion`, and the scalar members), the operator set (`QueryOperators`, `TQueryOperator`) and the
+`TInclusion`, and the scalar members), the operator set (`QueryOperators`) and the
 sort direction constants (`Sorts`). It was extracted from the repository base that now lives in
 `kernel/src/base/repositories/` so the vocabulary can be shared with a browser data layer.
 

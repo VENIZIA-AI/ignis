@@ -56,7 +56,7 @@ The commit is required: the root `.dockerignore` leaves `.git` out, so the [buil
 
 | Stage | What it does |
 |---|---|
-| `builder` | `oven/bun:1.4.3-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
+| `builder` | `oven/bun:1.4.4-alpine`: copies the whole project, `bun install --frozen-lockfile --ignore-scripts`, then `bun run compile` for `bun-linux-<arch>-musl` |
 | `production` | `alpine:3.21` with the binary, `libstdc++` and `libgcc`, run as a non-root user on the app's port |
 
 | Build argument | Meaning |

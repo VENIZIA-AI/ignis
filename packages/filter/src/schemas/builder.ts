@@ -193,5 +193,3 @@ export class QuerySchemaFactory {
     };
   }
 }
-
-export type TQuerySchemas = ReturnType<typeof QuerySchemaFactory.build>;
