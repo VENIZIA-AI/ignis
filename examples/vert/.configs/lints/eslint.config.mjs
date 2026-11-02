@@ -1,4 +1,4 @@
-import { houseConfigs } from '@venizia/dev-configs/linters';
+import { asyncStyleConfigs, houseConfigs } from '@venizia/dev-configs/linters';
 
 // oxlint (.configs/oxlint.config.mts) runs every other rule; ESLint runs the naming convention and the house rules.
-export default [{ ignores: ['scripts/'] }, ...houseConfigs];
+export default [{ ignores: ['scripts/'] }, ...houseConfigs, ...asyncStyleConfigs];

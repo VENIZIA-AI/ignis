@@ -48,7 +48,8 @@ describe('grpc-test', () => {
     const response = await fetch(`${baseUrl}/status`);
     expect(response.status).toBe(200);
 
-    const body = StatusResponse.parse(await response.json());
+    const payload = await response.json();
+    const body = StatusResponse.parse(payload);
     expect(body.status).toBe('ok');
   });
 

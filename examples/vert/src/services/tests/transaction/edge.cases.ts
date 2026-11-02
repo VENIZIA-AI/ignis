@@ -255,11 +255,15 @@ export class EdgeCases extends BaseTestCases {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
       this.context.logger.error('[CASE 20] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

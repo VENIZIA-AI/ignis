@@ -141,7 +141,8 @@ describe('websocket-test', () => {
           body: JSON.stringify({ message: 'hello lobby' }),
         });
         expect(response.status).toBe(200);
-        expect(MessageResponse.parse(await response.json())).toEqual({
+        const payload = await response.json();
+        expect(MessageResponse.parse(payload)).toEqual({
           sent: true,
           room: WebSocketDefaults.ROOM,
         });

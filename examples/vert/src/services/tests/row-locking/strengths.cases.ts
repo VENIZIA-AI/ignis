@@ -45,7 +45,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 1] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { code } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { code } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -91,7 +95,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 2] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { group } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { group } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -130,7 +138,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 3] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { code } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { code } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -169,7 +181,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 4] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { code } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { code } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -208,7 +224,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 5] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { code } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { code } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 
@@ -247,7 +267,11 @@ export class StrengthsCases extends BaseTestCases {
     } catch (error) {
       await transaction.rollback();
       this.context.logger.error('[CASE 6] FAILED with error: %o', error);
-      await repo.deleteAll({ where: { code } }).catch(() => {});
+      try {
+        await repo.deleteAll({ where: { code } });
+      } catch (cleanupError) {
+        this.context.logger.error('Cleanup failed: %s', (cleanupError as Error).message);
+      }
     }
   }
 }

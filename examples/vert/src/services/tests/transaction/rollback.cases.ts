@@ -129,8 +129,8 @@ export class RollbackCases extends BaseTestCases {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch {
-        /* ignore */
+      } catch (rollbackError) {
+        this.context.logger.error('Rollback failed: %s', (rollbackError as Error).message);
       }
       this.context.logger.error('[CASE 16] FAILED with error: %o', error);
     }
