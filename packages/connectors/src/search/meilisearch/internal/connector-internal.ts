@@ -1,5 +1,5 @@
 import { RecordUtility } from '@/common/internal';
-import type { ISearchResult } from '@/search/core';
+import type { ISearchFacetCount, ISearchResult } from '@/search/core';
 import { HTTP, type AnyType } from '@venizia/ignis-helpers/common';
 import { type Meilisearch } from 'meilisearch';
 import type { IMeilisearchClientLike } from '../common';
@@ -91,6 +91,45 @@ export class MeilisearchInternal {
     return document as TDocument;
   }
 
+  /** Maps `facetDistribution` (`{ field: { value: count } }`) and `facetStats` (`{ field: { min, max } }`) onto one `ISearchFacetCount` per field; a count that is not a number is dropped. */
+  static mapFacets(opts: { distribution: Record<string, unknown>; stats?: unknown }) {
+    const { distribution, stats } = opts;
+    const facets: ISearchFacetCount[] = [];
+
+    for (const [fieldName, values] of Object.entries(distribution)) {
+      if (!RecordUtility.isRecord(values)) {
+        continue;
+      }
+
+      const counts: ISearchFacetCount['counts'] = [];
+      for (const [value, count] of Object.entries(values)) {
+        if (typeof count === 'number') {
+          counts.push({ value, count });
+        }
+      }
+
+      const facet: ISearchFacetCount = { fieldName, counts };
+      const fieldStats = RecordUtility.isRecord(stats) ? stats[fieldName] : undefined;
+
+      if (RecordUtility.isRecord(fieldStats)) {
+        const facetStats: NonNullable<ISearchFacetCount['stats']> = {};
+        if (typeof fieldStats['min'] === 'number') {
+          facetStats.min = fieldStats['min'];
+        }
+        if (typeof fieldStats['max'] === 'number') {
+          facetStats.max = fieldStats['max'];
+        }
+        if (Object.keys(facetStats).length > 0) {
+          facet.stats = facetStats;
+        }
+      }
+
+      facets.push(facet);
+    }
+
+    return facets;
+  }
+
   /** Maps a Meilisearch response onto `ISearchResult`: exhaustive `totalHits` preferred over approximate `estimatedTotalHits` (`isFoundExact` says which), wire keys read via bracket access, never identifiers. */
   static mapSearchResult<TDocument extends object>(opts: {
     raw: unknown;
@@ -115,7 +154,10 @@ export class MeilisearchInternal {
     }
 
     if (RecordUtility.isRecord(raw['facetDistribution'])) {
-      result.facetCounts = [raw['facetDistribution']];
+      result.facetCounts = MeilisearchInternal.mapFacets({
+        distribution: raw['facetDistribution'],
+        stats: raw['facetStats'],
+      });
     }
 
     if (Array.isArray(raw['hits'])) {

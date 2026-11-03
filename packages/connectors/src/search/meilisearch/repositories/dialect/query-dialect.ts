@@ -306,6 +306,11 @@ export class MeilisearchQueryDialect extends BaseHelper implements ISearchQueryD
       searchQuery.highlightFields = input.highlightFields.join(',');
     }
 
+    // Meilisearch highlights only the attributes it is told to, so no highlight means naming none.
+    if (input.mode === SearchModes.KEYWORD && input.highlight === false) {
+      delete searchQuery.highlightFields;
+    }
+
     if (input.highlightStartTag !== undefined) {
       searchQuery.highlightStartTag = input.highlightStartTag;
     }

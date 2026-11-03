@@ -1702,7 +1702,7 @@ generated:
 
 ## connectors
 
-### `@venizia/ignis-connectors` (127)
+### `@venizia/ignis-connectors` (130)
 
 - `AbstractDriverDataSource` class
 - `AbstractRelationalDataSource` class
@@ -1747,6 +1747,9 @@ generated:
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
 - `ISearchEmbedModelConfig` interface
+- `ISearchFacetCount` interface
+- `ISearchFacetStats` interface
+- `ISearchFacetValue` interface
 - `ISearchFieldDefinition` interface
 - `ISearchQuery` interface
 - `ISearchQueryDialect` interface
@@ -2134,7 +2137,7 @@ generated:
 - `LibSqlDriver` class
 - `TLibSqlDriverOptions` type
 
-### `@venizia/ignis-connectors/search` (52)
+### `@venizia/ignis-connectors/search` (55)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
@@ -2154,6 +2157,9 @@ generated:
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
 - `ISearchEmbedModelConfig` interface
+- `ISearchFacetCount` interface
+- `ISearchFacetStats` interface
+- `ISearchFacetValue` interface
 - `ISearchFieldDefinition` interface
 - `ISearchQuery` interface
 - `ISearchQueryDialect` interface
@@ -2197,7 +2203,7 @@ generated:
 - `SearchControllerFactory` class
 - `TSearchScopeResolver` type
 
-### `@venizia/ignis-connectors/typesense` (76)
+### `@venizia/ignis-connectors/typesense` (82)
 
 - `AbstractSearchDataSource` class
 - `BaseSearchConnector` class
@@ -2218,6 +2224,9 @@ generated:
 - `ISearchDocumentScoped` interface
 - `ISearchEmbedConfig` interface
 - `ISearchEmbedModelConfig` interface
+- `ISearchFacetCount` interface
+- `ISearchFacetStats` interface
+- `ISearchFacetValue` interface
 - `ISearchFieldDefinition` interface
 - `ISearchQuery` interface
 - `ISearchQueryDialect` interface
@@ -2232,6 +2241,7 @@ generated:
 - `ITypesenseDataSourceSettings` interface
 - `ITypesenseNode` interface
 - `ITypesenseSearchQuery` interface
+- `ITypesenseTuning` interface
 - `IUnionSearchResult` interface
 - `MultiSearchEntrySchema` const
 - `MultiSearchInputSchema` const
@@ -2266,6 +2276,8 @@ generated:
 - `TSearchSchema` type
 - `TTypesenseDirtyValue` type
 - `TTypesenseImportAction` type
+- `TTypesenseOperationMode` type
+- `TTypesenseTextMatchType` type
 - `TVectorDistance` type
 - `TypesenseBaseRepository` class
 - `TypesenseCollectionCompiler` class

@@ -199,7 +199,9 @@ describe('search() - merge semantics', () => {
     });
 
     // Concatenating would report every count twice over.
-    expect(result.facetCounts).toEqual([facet]);
+    expect(result.facetCounts).toEqual([
+      { fieldName: 'brand', counts: [{ value: 'nike', count: 7 }] },
+    ]);
   });
 });
 

@@ -89,6 +89,73 @@ const CAN_EXPRESS: Record<string, boolean> = {
   [QueryOperators.OR]: true,
 };
 
+/** camelCase `ITypesenseTuning` field -> Typesense wire name, and how its value is checked and shaped. The snake_case strings are values only, never identifiers. */
+class TuningWireKeys {
+  /** Fields that must be a non-negative integer. */
+  private static readonly INTEGER_FIELDS = new Set([
+    'numTypos',
+    'dropTokensThreshold',
+    'typoTokensThreshold',
+    'cacheTtl',
+  ]);
+
+  /** Fields Typesense takes as one comma-joined string when given per `queryBy` field. */
+  private static readonly LIST_FIELDS = new Set(['numTypos', 'infix']);
+
+  private static readonly WIRE_BY_FIELD: Record<string, string> = {
+    numTypos: 'num_typos',
+    dropTokensThreshold: 'drop_tokens_threshold',
+    typoTokensThreshold: 'typo_tokens_threshold',
+    infix: 'infix',
+    prioritizeExactMatch: 'prioritize_exact_match',
+    prioritizeTokenPosition: 'prioritize_token_position',
+    prioritizeNumMatchingFields: 'prioritize_num_matching_fields',
+    textMatchType: 'text_match_type',
+    rerankHybridMatches: 'rerank_hybrid_matches',
+    useCache: 'use_cache',
+    cacheTtl: 'cache_ttl',
+  };
+
+  private static readonly FIELD_BY_WIRE: Record<string, string> = Object.fromEntries(
+    Object.entries(TuningWireKeys.WIRE_BY_FIELD).map(([field, wire]) => [wire, field]),
+  );
+
+  /** The camelCase field a key names, whether it is spelled camelCase or as the wire name; undefined for any other key. */
+  static fieldOf(key: string): string | undefined {
+    if (Object.hasOwn(TuningWireKeys.WIRE_BY_FIELD, key)) {
+      return key;
+    }
+
+    return Object.hasOwn(TuningWireKeys.FIELD_BY_WIRE, key)
+      ? TuningWireKeys.FIELD_BY_WIRE[key]
+      : undefined;
+  }
+
+  /** The wire entry of one tuning key, in either spelling; throws before a request when a numeric value is not a non-negative integer. */
+  static toWireEntry(opts: { key: string; value: unknown }): [string, unknown] {
+    const { key, value } = opts;
+    const field = TuningWireKeys.fieldOf(key) ?? key;
+    const wireKey = TuningWireKeys.WIRE_BY_FIELD[field] ?? field;
+
+    if (TuningWireKeys.INTEGER_FIELDS.has(field)) {
+      const values = Array.isArray(value) && field === 'numTypos' ? value : [value];
+      const isInvalid = values.some((item) => !Number.isInteger(item) || (item as number) < 0);
+
+      if (isInvalid || values.length === 0) {
+        throw getError({
+          message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a non-negative integer | Got: ${JSON.stringify(value)}`,
+        });
+      }
+    }
+
+    if (TuningWireKeys.LIST_FIELDS.has(field) && Array.isArray(value)) {
+      return [wireKey, value.join(',')];
+    }
+
+    return [wireKey, value];
+  }
+}
+
 /** camelCase `ISearchQuery` field -> Typesense wire (snake_case) field; the snake_case strings are values only, never identifiers. */
 class SearchWireKeys {
   static readonly QUERY = { from: 'query', to: 'q' };
@@ -234,6 +301,22 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     delete rest.matchNone;
 
     const wire: Record<string, unknown> = {};
+    const tuned = new Map<string, string>();
+
+    // One param may be given once, in either spelling: two spellings would leave the winner to the order they were written in.
+    const setTuning = (key: string, value: unknown) => {
+      const [wireKey, wireValue] = TuningWireKeys.toWireEntry({ key, value });
+      const earlier = tuned.get(wireKey);
+
+      if (earlier !== undefined) {
+        throw getError({
+          message: `[TypesenseQueryDialect][toWireParams] '${earlier}' and '${key}' both set '${wireKey}' | Give it once`,
+        });
+      }
+
+      tuned.set(wireKey, key);
+      wire[wireKey] = wireValue;
+    };
 
     const restEntries = Object.entries(rest);
     for (const [key, value] of restEntries) {
@@ -241,10 +324,29 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         continue;
       }
 
+      if (TuningWireKeys.fieldOf(key) !== undefined) {
+        setTuning(key, value);
+        continue;
+      }
+
       wire[SearchWireKeys.wireKey(key)] = value;
     }
 
-    return engineParams ? { ...wire, ...engineParams } : wire;
+    if (!engineParams) {
+      return wire;
+    }
+
+    // engineParams keys are wire names, passed verbatim; the camelCase tuning names are also accepted and mapped, so a caller can type them with ITypesenseTuning.
+    for (const [key, value] of Object.entries(engineParams)) {
+      if (TuningWireKeys.fieldOf(key) !== undefined) {
+        setTuning(key, value);
+        continue;
+      }
+
+      wire[key] = value;
+    }
+
+    return wire;
   }
 
   /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`; everything engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
@@ -303,6 +405,11 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     }
 
     this.applyCommonParams({ query: searchQuery, input });
+
+    // Applied after the common params so that turning highlighting off wins over highlightFields.
+    if (input.mode === SearchModes.KEYWORD && input.highlight === false) {
+      searchQuery.highlightFields = 'none';
+    }
   }
 
   /** Builds Typesense's `<field>:([v1, v2, ...], k: N, alpha: A)` vector-search clause; an omitted `nearVector` emits an empty `[]`, Typesense's server-side auto-embed path, rather than requiring the caller to already hold a vector. */

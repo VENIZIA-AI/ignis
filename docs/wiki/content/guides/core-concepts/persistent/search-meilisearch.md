@@ -173,6 +173,8 @@ The guarantee is upheld one layer up: `SearchBaseRepository` strips hidden field
 
 The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`.
 
+**Facets come back as `ISearchFacetCount[]`, the same shape as Typesense.** `facetCounts` holds one entry per field, built from Meilisearch's `facetDistribution` (`{ fieldName, counts: [{ value, count }] }`), with `stats: { min, max }` for a numeric field from `facetStats`. `repository.facets({ facetBy })` and `repository.searchCount()` work here too; `maxFacetValues` and `facetQuery` throw, because Meilisearch sets the first in an index setting and searches facet values on its own route. `suggest()` works, and `highlight: false` adds nothing, because Meilisearch highlights only the fields you name.
+
 **`multiSearch` batches but does not merge.** `union: true` throws. Meilisearch merges results through its `federation` option, which this connector does not model, so `getCapabilities()` honestly reports `union: false`.
 
 **Result grouping does not exist.** `groupBy`, `groupLimit` and `groupMissingValues` all throw. Meilisearch's `distinct` search param deduplicates on one attribute; it does not group hits. Reach the raw client if that is what you want.
