@@ -373,6 +373,44 @@ await repository.search({
 
 A keyword search also takes `highlight: false`, which returns no highlight markup (Typesense `highlight_fields: none`) and wins over `highlightFields`.
 
+### Vietnamese and other diacritics
+
+A query typed without diacritics can miss text that has them. Typesense documents the fold only for a field with no `locale`, which it treats as English: "diacritics (accent marks) are automatically removed from European accented characters". A field with a non-English `locale` keeps its diacritics, so a `locale` is not the fix. It also sits outside the `field` DSL, which takes no `locale`.
+
+The letters outside that fold are the ones to check on your own data. For Vietnamese, a collection indexed as English was measured to fold `à`, `á`, `ê` and `đ` but not `ơ`, `ư` or the dotted and hooked vowels (`ạ`, `ả`, `ị`, `ọ`, `ở`, `ứ`): `sữa` found 325 documents and `sua` found 1. Typesense's docs do not list the letters, so treat that as a measurement, not a guarantee, and repeat it on your version.
+
+The recipe is a folded shadow field. Strip the diacritics when you write the document, store the result in a second field and put both in `queryBy`:
+
+```typescript
+class Diacritics {
+  static fold(text: string): string {
+    return text
+      .normalize('NFD')
+      .replace(/\p{M}+/gu, '') // the combining marks, horns included
+      .replaceAll('đ', 'd')
+      .replaceAll('Đ', 'D')
+      .normalize('NFC');
+  }
+}
+
+// in the collection: field.string('title', { searchable: true }), field.string('titleFolded', { searchable: true })
+await repository.create({
+  data: { title: 'Sữa tươi', titleFolded: Diacritics.fold('Sữa tươi') }, // 'Sua tuoi'
+});
+
+await repository.search({
+  mode: 'keyword',
+  query: 'sua',
+  queryBy: ['title', 'titleFolded'],
+  queryByWeights: [2, 1], // an exact accented match ranks first
+});
+```
+
+`đ` has no decomposition, so it is replaced by hand; every other letter above decomposes into a base letter and combining marks. A query typed with diacritics still matches `title`, so the query needs no folding. Two things to know:
+
+- **Leave the shadow field visible.** `search()` refuses a field the model hides (`hiddenProperties`) in `queryBy`, so hiding `titleFolded` would block it. Choose the fields you return with `filter.fields` (`includeFields` in `suggest()`) instead.
+- **Index it from the same write.** A folded field that is not updated with `title` goes stale; compute it in the one place that writes the document, and fold again when you re-import.
+
 ### Count a search with `searchCount()`
 
 `count({ where })` counts by filter only, and it is always exact. `searchCount()` counts what a text query matches:
