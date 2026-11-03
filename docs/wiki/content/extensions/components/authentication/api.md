@@ -292,9 +292,11 @@ interface IAuthUser {
   [extra: string | symbol]: any;
 }
 
+type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
+
 interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
-  roles: { id: IdType; identifier: string; priority: number }[];
+  roles?: TJWTTokenRole[];
   clientId?: string;
   provider?: string;
   email?: string;
@@ -302,6 +304,8 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   [extra: string | symbol]: any;
 }
 ```
+
+`roles` may be absent. A token signed without it verifies without it, and authorization reads its roles as none. Check it before you read it: `payload.roles ?? []`.
 
 > [!TIP]
 > `IAuthUser` is intentionally minimal. Your `IAuthService` can return extra fields (roles, email, provider) - they pass through JWT generation and are available on `Authentication.CURRENT_USER` after authentication.
@@ -342,7 +346,7 @@ interface IPayloadFieldCodec<T = unknown> {
 
 ```typescript
 class AuthenticationFieldCodecs {
-  static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']>;
+  static readonly ROLES_CODEC: IPayloadFieldCodec<TJWTTokenRole[]>;
   static build<T>(opts: { key: string; serialize; deserialize }): IPayloadFieldCodec<T>;
 }
 ```

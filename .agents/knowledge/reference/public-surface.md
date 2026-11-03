@@ -1220,7 +1220,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (410)
+### `@venizia/ignis-kernel` (411)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1576,6 +1576,7 @@ generated:
 - `TJWKSKeyFormat` type
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
+- `TJWTTokenRole` type
 - `TJWTTokenServiceOptions` type
 - `TLockConfig` type
 - `TLockOptions` type
@@ -2339,7 +2340,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1001)
+### `@venizia/ignis` (1002)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -3166,6 +3167,7 @@ generated:
 - `TJWKSKeyFormat` type
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
+- `TJWTTokenRole` type
 - `TJWTTokenServiceOptions` type
 - `TLockConfig` type
 - `TLockOptions` type
