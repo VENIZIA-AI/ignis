@@ -117,7 +117,7 @@ Combines `IRedisSingleHelperProps`, `IRedisHelperCallbacks` and `IRedisModuleOpt
 | `host` | `string` | Yes | - | Redis server hostname |
 | `port` | `string \| number` | Yes | - | Redis server port |
 | `user` | `string` | No | - | Accepted by the type but not read by the constructor - has no effect. Set auth via `password` only. |
-| `password` | `string` | Yes | - | Redis `requirepass` value |
+| `password` | `string` | No | - | Redis `requirepass` value. Omit it for a Redis with no password. |
 | `database` | `number` | No | `0` | Redis database index (0-15) |
 | `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
 | `maxRetry` | `number` | No | `0` | Reconnect attempts before giving up. `0` (default) = no reconnect; `-1` = reconnect forever |
