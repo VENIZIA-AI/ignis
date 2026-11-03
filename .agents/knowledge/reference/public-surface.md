@@ -1220,7 +1220,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (410)
+### `@venizia/ignis-kernel` (412)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1377,6 +1377,7 @@ generated:
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
+- `IJWTGeneratePayload` interface
 - `IJWTIssueClaims` interface
 - `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface
@@ -1576,6 +1577,7 @@ generated:
 - `TJWKSKeyFormat` type
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
+- `TJWTTokenRole` type
 - `TJWTTokenServiceOptions` type
 - `TLockConfig` type
 - `TLockOptions` type
@@ -2339,7 +2341,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1001)
+### `@venizia/ignis` (1003)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2668,6 +2670,7 @@ generated:
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
+- `IJWTGeneratePayload` interface
 - `IJWTIssueClaims` interface
 - `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface
@@ -3166,6 +3169,7 @@ generated:
 - `TJWKSKeyFormat` type
 - `TJWKSMode` type
 - `TJWKSTokenServiceOptions` type
+- `TJWTTokenRole` type
 - `TJWTTokenServiceOptions` type
 - `TLockConfig` type
 - `TLockOptions` type
