@@ -353,7 +353,7 @@ await repository.search({
 
 `engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
 
-Sorting is not a tuning knob: it is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each declared sortable). `suggest()` takes no `order`, so its documents come back in relevance order.
+Sorting is not a tuning knob: it is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each one the collection declares; a string field also needs `sortable: true`, which Typesense checks). `suggest()` takes no `order`, so its documents come back in relevance order.
 
 `searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
