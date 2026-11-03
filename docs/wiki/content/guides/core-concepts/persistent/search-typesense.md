@@ -223,7 +223,8 @@ Mirrors the PostgreSQL connector's ladder, but for documents instead of rows:
 AbstractRepository (engine-neutral)
   -> SearchBaseRepository (narrows dataSource/entity to AbstractSearchDataSource/BaseSearchEntity)
        also exported as TypesenseBaseRepository
-    -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>())
+    -> ReadableSearchRepository (count, existsWith, find, findOne, findById, search<TResult>(),
+                                 searchCount, facets, suggest)
       -> PersistableSearchRepository (create, createAll, updateById, updateAll,
                                       deleteById, deleteAll, import)
         -> DefaultSearchRepository (convenience alias, adds nothing)
@@ -245,6 +246,8 @@ export class ArticleRepository extends DefaultSearchRepository<TArticleDocument>
 ```
 
 `find()`/`findOne()`/`findById()`/`count()`/`existsWith()` accept the same `TFilter`/`TWhere` shape as PostgreSQL repositories. The `TypesenseQueryDialect` translates `where` into Typesense's `filter_by` syntax, `order` into `sort_by` (max 3 fields - a Typesense limit), `limit`/`skip` into `per_page`/`page`, and `fields` into `include_fields`. `filter.include` is **not supported** and throws - there is no relation model for documents.
+
+One repository per collection is the intended shape: the repository knows its model, its default filter and its hidden fields. When the collection is only known at runtime, such as a registry that picks it by name, call the connector instead. Its methods take `collection`: `dataSource.getConnector().search({ collection, params })`. The connector applies no model, so no default filter and no hidden fields.
 
 Search engines index asynchronously, so a document can be missing right after a write. `find()`/`findOne()`/`findById()` accept the same `options.retry` as PostgreSQL - re-read until the document shows up:
 
@@ -333,16 +336,22 @@ await repository.search({
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
-Typesense-specific tuning (`num_typos`, `prefix`, `infix`, `use_cache`, `cache_ttl`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `prioritize_exact_match`, `drop_tokens_threshold`, `preset`) goes through `engineParams`, passed verbatim to the engine with WIRE names. The neutral input schema no longer carries knobs only one engine understands:
+Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Eleven of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache` and `cacheTtl`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers; anything else throws before a request. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
 
 ```typescript
+import type { ITypesenseTuning } from '@venizia/ignis-connectors/typesense';
+
+const tuning: ITypesenseTuning = { numTypos: 1, infix: 'fallback' };
+
 await repository.search({
   mode: 'keyword',
   query: 'shoes',
   queryBy: ['name'],
-  engineParams: { num_typos: 1, prefix: false, preset: 'listing' },
+  engineParams: { ...tuning, preset: 'listing' },
 });
 ```
+
+`engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
 
 ```typescript
 await repository.search({
@@ -357,6 +366,55 @@ await repository.search({
 ```
 
 `mode` values are also available as the `SearchModes` const (`SearchModes.KEYWORD`/`SEMANTIC`/`HYBRID`/`RAW`) if you prefer named constants over string literals.
+
+A keyword search also takes `highlight: false`, which returns no highlight markup (Typesense `highlight_fields: none`) and wins over `highlightFields`.
+
+### Count a search with `searchCount()`
+
+`count({ where })` counts by filter only, and it is always exact. `searchCount()` counts what a text query matches:
+
+```typescript
+const { count, isFoundExact } = await articleRepository.searchCount({
+  query: 'renewable',
+  queryBy: ['title', 'content'], // omit it to use the model's defaultQueryBy
+  where: { published: true },
+});
+```
+
+It is a search with a page of 0, so `count` is the engine's `found`. When the engine stops early (`search_cutoff`), `isFoundExact` is `false` and `count` is an estimate. A `where` that matches nothing answers `{ count: 0, isFoundExact: true }` without calling the engine, and so does a collection that does not exist yet.
+
+### Facets without hits with `facets()`
+
+`facets()` returns the counts of one or more fields and no documents:
+
+```typescript
+const { facets, found } = await articleRepository.facets({
+  facetBy: ['category', 'author'],
+  query: 'renewable', // optional, '*' when omitted
+  queryBy: ['title'],
+  where: { published: true },
+  maxFacetValues: 20, // values per field
+  facetQuery: 'category:ener', // narrow one field's values by a prefix
+});
+```
+
+`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
+
+### Autocomplete with `suggest()`
+
+`suggest()` is the call behind a search box: the documents that match what the user has typed so far.
+
+```typescript
+const articles = await articleRepository.suggest({
+  query: 'renew',
+  queryBy: ['title'], // omit it to use the model's defaultQueryBy
+  limit: 5, // 8 when omitted
+  includeFields: ['id', 'title'],
+  where: { published: true },
+});
+```
+
+It is a keyword search, never semantic, with highlighting off and a small page. The last word matches as a prefix, which both engines do by default. A blank `query` answers `[]` without calling the engine. `limit` must be a positive integer and stays under the model's `maxLimit`.
 
 ### The result envelope
 
@@ -373,13 +431,22 @@ interface ISearchResult<TDocument extends object = object> {
     highlight?: unknown;
     highlights?: unknown[];
     score?: number;
+    rankFusionScore?: number;
+    vectorDistance?: number;
   }>;
-  facetCounts?: unknown[];
+  facetCounts?: ISearchFacetCount[];
   groupedHits?: unknown[];
+}
+
+interface ISearchFacetCount {
+  fieldName: string;
+  counts: Array<{ value: string; count: number; highlighted?: string }>;
+  sampled?: boolean;
+  stats?: { avg?: number; max?: number; min?: number; sum?: number; totalValues?: number };
 }
 ```
 
-`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`.
+`isFoundExact` is required, and it is the field to read before trusting `found`. There is no `textMatch` field; the per-hit relevance number is `score`, and it is the keyword match score in every mode, hybrid included. A hybrid or vector hit also carries `rankFusionScore` and `vectorDistance`. Facet `value` is always a string, numbers included; `stats` is set only for a numeric field.
 
 ## Cross-Collection Multi-Search
 

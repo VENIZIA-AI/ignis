@@ -18,11 +18,35 @@ export interface ISearchConnectorCallbacks {
   onError?: (opts: { name: string; error: unknown }) => void;
 }
 
-/** Search-response envelope, read without a boundary cast. `score` scales are unrelated across engines - never compare or threshold one against another; `isFoundExact` is false when `found` is approximate. */
+/** One value of a facet: how many matching documents carry it. `value` is always a string, numbers included, as the engine sends it. */
+export interface ISearchFacetValue {
+  value: string;
+  count: number;
+  highlighted?: string;
+}
+
+/** Numeric statistics an engine reports for a numeric facet field; only the members the engine returned are set. */
+export interface ISearchFacetStats {
+  avg?: number;
+  max?: number;
+  min?: number;
+  sum?: number;
+  totalValues?: number;
+}
+
+/** The counts of one faceted field. `sampled` is set when the engine counted a sample of the matches instead of all of them. */
+export interface ISearchFacetCount {
+  fieldName: string;
+  counts: ISearchFacetValue[];
+  sampled?: boolean;
+  stats?: ISearchFacetStats;
+}
+
+/** Search-response envelope, read without a boundary cast. `score` scales are unrelated across engines - never compare or threshold one against another; `isFoundExact` is false when `found` is approximate. A hit's `score` is the keyword match score in every mode, hybrid included; `rankFusionScore` and `vectorDistance` are the hybrid and vector scores, set only by an engine that reports them. */
 export interface ISearchResult<
   DocumentType extends object = object,
   HighlightType = unknown,
-  FacetCountType = unknown,
+  FacetCountType = ISearchFacetCount,
   GroupedHitType = unknown,
 > {
   found: number;
@@ -34,6 +58,8 @@ export interface ISearchResult<
     highlight?: HighlightType;
     highlights?: HighlightType[];
     score?: number;
+    rankFusionScore?: number;
+    vectorDistance?: number;
   }>;
   facetCounts?: FacetCountType[];
   groupedHits?: GroupedHitType[];

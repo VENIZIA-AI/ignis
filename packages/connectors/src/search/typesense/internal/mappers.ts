@@ -1,5 +1,5 @@
 import { RecordUtility } from '@/common/internal';
-import type { ISearchResult } from '@/search/core';
+import type { ISearchFacetCount, ISearchFacetStats, ISearchResult } from '@/search/core';
 import type { ISynonym } from '@/search/core/models';
 import { TypesensePayloadReader } from './guards';
 
@@ -12,6 +12,8 @@ export class TypesenseMapper {
     highlight?: unknown;
     highlights?: unknown[];
     score?: number;
+    rankFusionScore?: number;
+    vectorDistance?: number;
   } {
     const { hit } = opts;
 
@@ -24,6 +26,8 @@ export class TypesenseMapper {
       highlight?: unknown;
       highlights?: unknown[];
       score?: number;
+      rankFusionScore?: number;
+      vectorDistance?: number;
     } = {
       document: hit['document'] as TDocument,
     };
@@ -40,7 +44,73 @@ export class TypesenseMapper {
       mapped.score = hit['text_match'];
     }
 
+    if (typeof hit['vector_distance'] === 'number') {
+      mapped.vectorDistance = hit['vector_distance'];
+    }
+
+    const hybridInfo = hit['hybrid_search_info'];
+    if (RecordUtility.isRecord(hybridInfo) && typeof hybridInfo['rank_fusion_score'] === 'number') {
+      mapped.rankFusionScore = hybridInfo['rank_fusion_score'];
+    }
+
     return mapped;
+  }
+
+  /** Maps one raw `facet_counts` entry onto `ISearchFacetCount`; an entry without a field name is dropped, as is a count without a `value` and a `count`. Wire names are read by bracket access only. */
+  static mapFacetCount(opts: { raw: unknown }): ISearchFacetCount | null {
+    const { raw } = opts;
+
+    if (!RecordUtility.isRecord(raw) || typeof raw['field_name'] !== 'string') {
+      return null;
+    }
+
+    const counts: ISearchFacetCount['counts'] = [];
+    const rawCounts = Array.isArray(raw['counts']) ? raw['counts'] : [];
+
+    for (const entry of rawCounts) {
+      if (
+        !RecordUtility.isRecord(entry) ||
+        typeof entry['value'] !== 'string' ||
+        typeof entry['count'] !== 'number'
+      ) {
+        continue;
+      }
+
+      const facetValue: ISearchFacetCount['counts'][number] = {
+        value: entry['value'],
+        count: entry['count'],
+      };
+      if (typeof entry['highlighted'] === 'string') {
+        facetValue.highlighted = entry['highlighted'];
+      }
+      counts.push(facetValue);
+    }
+
+    const facet: ISearchFacetCount = { fieldName: raw['field_name'], counts };
+
+    if (typeof raw['sampled'] === 'boolean') {
+      facet.sampled = raw['sampled'];
+    }
+
+    if (RecordUtility.isRecord(raw['stats'])) {
+      const rawStats = raw['stats'];
+      const stats: ISearchFacetStats = {};
+
+      for (const key of ['avg', 'max', 'min', 'sum'] as const) {
+        if (typeof rawStats[key] === 'number') {
+          stats[key] = rawStats[key];
+        }
+      }
+      if (typeof rawStats['total_values'] === 'number') {
+        stats.totalValues = rawStats['total_values'];
+      }
+
+      if (Object.keys(stats).length > 0) {
+        facet.stats = stats;
+      }
+    }
+
+    return facet;
   }
 
   /** Maps a raw Typesense search response onto the camelCase `ISearchResult`; snake_case wire fields (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access, never as identifiers, and absent fields are omitted rather than mapped as `undefined`. */
@@ -68,7 +138,9 @@ export class TypesenseMapper {
       result.searchTimeMs = raw['search_time_ms'];
     }
     if (Array.isArray(raw['facet_counts'])) {
-      result.facetCounts = raw['facet_counts'];
+      result.facetCounts = raw['facet_counts']
+        .map((entry) => TypesenseMapper.mapFacetCount({ raw: entry }))
+        .filter((facet): facet is ISearchFacetCount => facet !== null);
     }
     if (Array.isArray(raw['grouped_hits'])) {
       result.groupedHits = raw['grouped_hits'];

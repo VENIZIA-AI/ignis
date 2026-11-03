@@ -65,6 +65,8 @@ const KeywordSearchSchema = z
     mode: z.literal(SearchModes.KEYWORD),
     query: z.string().optional(),
     queryBy: z.array(z.string()).optional(),
+    /** `false` returns no highlight markup. It wins over `highlightFields`. */
+    highlight: z.boolean().optional(),
     filter: SearchFilterSchema,
     ...commonSearchParamsShape,
   })

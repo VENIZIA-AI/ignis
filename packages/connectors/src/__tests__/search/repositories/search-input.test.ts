@@ -78,3 +78,36 @@ describe('SearchInputSchema', () => {
     }
   });
 });
+
+describe('SearchInputSchema - keyword highlight', () => {
+  test('a keyword payload takes a highlight boolean', () => {
+    const result = SearchInputSchema.safeParse({
+      mode: SearchModes.KEYWORD,
+      query: 'sho',
+      highlight: false,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success && result.data.mode === SearchModes.KEYWORD) {
+      expect(result.data.highlight).toBe(false);
+    }
+  });
+
+  test('highlight is keyword-only: it is not read on a semantic payload', () => {
+    const result = SearchInputSchema.safeParse({
+      mode: SearchModes.SEMANTIC,
+      vectorField: 'embedding',
+      nearVector: [0.1],
+      highlight: false,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.success && 'highlight' in result.data).toBe(false);
+  });
+
+  test('a non-boolean highlight fails', () => {
+    expect(
+      SearchInputSchema.safeParse({ mode: SearchModes.KEYWORD, highlight: 'no' }).success,
+    ).toBe(false);
+  });
+});

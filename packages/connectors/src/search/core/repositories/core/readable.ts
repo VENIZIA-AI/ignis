@@ -14,7 +14,8 @@ import type {
 } from '@venizia/ignis-kernel';
 import { DataRangeUtility, DEFAULT_LIMIT } from '@venizia/ignis-kernel/repository';
 import type { IdType } from '@venizia/ignis-kernel';
-import type { ISearchResult } from '@/search/core';
+import { getError } from '@venizia/ignis-helpers/core';
+import type { ISearchFacetCount, ISearchResult } from '@/search/core';
 import type { TSearchInput } from '@/search/core/repositories/common';
 import { SearchModes } from '@/search/core/repositories/common';
 import type { AbstractSearchDataSource } from '@/search/core/datasources';
@@ -22,6 +23,9 @@ import { SearchBaseRepository } from './base';
 
 /** The match-everything term. `build()` already seeds `query` with it, so a filter-only listing reaches the engine as `q: '*'` - naming fields for a term that ignores fields would mean nothing. */
 const WILDCARD_QUERY = '*';
+
+/** The page size of `suggest()` when the caller gives none. */
+const SUGGEST_DEFAULT_LIMIT = 8;
 
 /** The inputs the dialect translates - `raw` has already returned by the time these are resolved, and `applySearchInput` accepts only this narrowed union. */
 type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
@@ -218,6 +222,104 @@ export class ReadableSearchRepository<
         document: this.omitHiddenFields(hit.document),
       })),
     };
+  }
+
+  /** The count of a text search: how many documents match `query` and `where`. Unlike `count()`, which asks the document endpoint for an exact filter-only total, this goes through search, so `isFoundExact` says whether the engine stopped early and `count` is an estimate. */
+  async searchCount(opts: {
+    query: string;
+    queryBy?: string[];
+    where?: TWhere;
+    options?: IExtraOptions;
+  }): Promise<{ count: number; isFoundExact: boolean }> {
+    const { query, queryBy, where, options } = opts;
+
+    const result = await this.search({
+      mode: SearchModes.KEYWORD,
+      query,
+      queryBy,
+      filter: { where, limit: 0 },
+      options,
+    });
+
+    return { count: result.found, isFoundExact: result.isFoundExact };
+  }
+
+  /** Facet counts without hits, over the documents that match `query` (all of them when omitted) and `where`. `maxFacetValues` and `facetQuery` are for engines that take them; the others refuse them. */
+  async facets(opts: {
+    facetBy: string[];
+    query?: string;
+    queryBy?: string[];
+    where?: TWhere;
+    maxFacetValues?: number;
+    facetQuery?: string;
+    options?: IExtraOptions;
+  }): Promise<{ facets: ISearchFacetCount[]; found: number; isFoundExact: boolean }> {
+    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, options } = opts;
+
+    if (facetBy.length === 0 || facetBy.some((name) => name.trim().length === 0)) {
+      throw getError({
+        message: `[${this.constructor.name}][facets] Invalid facetBy | Expected at least one non-empty field name | Got: ${JSON.stringify(facetBy)}`,
+      });
+    }
+
+    if (
+      maxFacetValues !== undefined &&
+      (!Number.isInteger(maxFacetValues) || maxFacetValues <= 0)
+    ) {
+      throw getError({
+        message: `[${this.constructor.name}][facets] Invalid maxFacetValues | Expected a positive integer | Got: ${String(maxFacetValues)}`,
+      });
+    }
+
+    const result = await this.search({
+      mode: SearchModes.KEYWORD,
+      query: query ?? WILDCARD_QUERY,
+      queryBy,
+      facetBy,
+      facetQuery,
+      maxFacetValues,
+      filter: { where, limit: 0 },
+      options,
+    });
+
+    return {
+      facets: result.facetCounts ?? [],
+      found: result.found,
+      isFoundExact: result.isFoundExact,
+    };
+  }
+
+  /** Autocomplete: documents whose fields match `query` as typed so far. A keyword search with highlighting off and a small page (`limit`, 8 by default); the last word matches as a prefix, which both engines do by default. A blank `query` answers an empty list without asking the engine. */
+  async suggest<R extends object = TDocument>(opts: {
+    query: string;
+    queryBy?: string[];
+    limit?: number;
+    includeFields?: string[];
+    where?: TWhere;
+    options?: IExtraOptions;
+  }): Promise<R[]> {
+    const { query, queryBy, limit = SUGGEST_DEFAULT_LIMIT, includeFields, where, options } = opts;
+
+    if (!Number.isInteger(limit) || limit <= 0) {
+      throw getError({
+        message: `[${this.constructor.name}][suggest] Invalid limit | Expected a positive integer | Got: ${String(limit)}`,
+      });
+    }
+
+    if (query.trim().length === 0) {
+      return [];
+    }
+
+    const result = await this.search<R>({
+      mode: SearchModes.KEYWORD,
+      query,
+      queryBy,
+      highlight: false,
+      filter: { where, fields: includeFields, limit },
+      options,
+    });
+
+    return (result.hits ?? []).map((hit) => hit.document);
   }
 
   protected withDefaultQueryBy(opts: {

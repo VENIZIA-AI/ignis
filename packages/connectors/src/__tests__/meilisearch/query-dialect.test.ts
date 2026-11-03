@@ -185,3 +185,22 @@ describe('MeilisearchQueryDialect.applySearchInput', () => {
     ).not.toThrow();
   });
 });
+
+describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
+  const dialect = new MeilisearchQueryDialect();
+
+  const apply = (input: { highlight?: boolean }) => {
+    const query = dialect.build({});
+    dialect.applySearchInput({
+      query,
+      input: { mode: SearchModes.KEYWORD, query: 'sho', ...input },
+    });
+    return dialect.toWireParams({ query });
+  };
+
+  test('highlight: false adds nothing: Meilisearch highlights only the fields it is told to', () => {
+    const wire = apply({ highlight: false });
+
+    expect(wire['attributesToHighlight']).toBeUndefined();
+  });
+});
