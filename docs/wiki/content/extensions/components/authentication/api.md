@@ -284,7 +284,7 @@ type TRouteAuthenticateConfig =
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
-### IAuthUser / IJWTTokenPayload
+### IAuthUser / IJWTGeneratePayload / IJWTTokenPayload
 
 ```typescript
 interface IAuthUser {
@@ -292,16 +292,26 @@ interface IAuthUser {
   [extra: string | symbol]: any;
 }
 
-interface IJWTTokenPayload extends JWTPayload, IAuthUser {
+type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
+
+// What generate() signs: roles may be left out.
+interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
   userId: IdType;
-  roles: { id: IdType; identifier: string; priority: number }[];
+  roles?: TJWTTokenRole[];
   clientId?: string;
   provider?: string;
   email?: string;
   name?: string;
   [extra: string | symbol]: any;
 }
+
+// What verify() returns.
+interface IJWTTokenPayload extends IJWTGeneratePayload {
+  roles: TJWTTokenRole[];
+}
 ```
+
+A token signed without `roles` verifies without them, and authorization reads its roles as none. Check `roles` before reading it if your app signs some tokens without it.
 
 > [!TIP]
 > `IAuthUser` is intentionally minimal. Your `IAuthService` can return extra fields (roles, email, provider) - they pass through JWT generation and are available on `Authentication.CURRENT_USER` after authentication.

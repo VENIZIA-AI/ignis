@@ -3,6 +3,7 @@ import { getError } from '@venizia/ignis-helpers/core';
 import {
   AuthenticateBindingKeys,
   type IJWKSVerifierOptions,
+  type IJWTGeneratePayload,
   type IJWTTokenPayload,
   inject,
   type TGetTokenExpiresFn,
@@ -54,7 +55,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
   }
 
   override async getSigner(_opts: {
-    payload: IJWTTokenPayload;
+    payload: IJWTGeneratePayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
   }): Promise<SignJWT> {
     throw getError({

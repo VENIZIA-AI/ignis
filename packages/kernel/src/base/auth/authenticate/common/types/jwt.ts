@@ -125,9 +125,16 @@ export type TJWTTokenServiceOptions =
   | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
   | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
 
-export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
+/** One role as a token carries it. */
+export type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
+
+/**
+ * What `generate` signs. `roles` may be left out: a token without it is signed as is, and
+ * authorization reads its roles as none.
+ */
+export interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
   userId: IdType;
-  roles: { id: IdType; identifier: string; priority: number }[];
+  roles?: TJWTTokenRole[];
 
   clientId?: string;
   provider?: string;
@@ -135,6 +142,10 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   name?: string;
 
   [extra: string | symbol]: any;
+}
+
+export interface IJWTTokenPayload extends IJWTGeneratePayload {
+  roles: TJWTTokenRole[];
 }
 
 export interface IPayloadFieldCodec<T = unknown> {

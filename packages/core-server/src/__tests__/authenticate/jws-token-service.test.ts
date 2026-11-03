@@ -241,3 +241,18 @@ describe('JWSTokenService - payload encryption', () => {
     expect(caught !== undefined || verified?.userId !== 42).toBe(true);
   });
 });
+
+describe('JWSTokenService - a payload without roles', () => {
+  test('generate signs a token with no roles claim, in the clear and encrypted', async () => {
+    for (const service of [
+      buildService(),
+      buildService({ applicationSecret: APPLICATION_SECRET }),
+    ]) {
+      const token = await service.generate({ payload: { userId: 42 } });
+      const verified = await service.verify({ type: 'Bearer', token });
+
+      expect(verified.userId).toBe(42);
+      expect(verified.roles).toBeUndefined();
+    }
+  });
+});

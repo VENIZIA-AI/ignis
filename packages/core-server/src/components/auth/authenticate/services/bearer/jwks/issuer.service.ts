@@ -4,6 +4,7 @@ import {
   AuthenticateBindingKeys,
   type IJWKSIssuerOptions,
   type IJWTIssueClaims,
+  type IJWTGeneratePayload,
   type IJWTTokenPayload,
   inject,
   JWKSKeyDrivers,
@@ -191,7 +192,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   }
 
   override async getSigner(opts: {
-    payload: IJWTTokenPayload;
+    payload: IJWTGeneratePayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
     claims?: IJWTIssueClaims;
   }) {
