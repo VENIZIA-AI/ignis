@@ -22,7 +22,7 @@ Every option, binding key, class, and method the Authentication component expose
 |---|---|
 | See how the pieces fit together | [Architecture](#architecture) |
 | Look up a binding key or option field | [Binding keys](#binding-keys), [Option interfaces](#option-interfaces) |
-| Check what `IAuthUser` / `IAuthService` require | [IAuthUser / IJWTTokenPayload](#iauthuser-ijwttokenpayload), [IAuthService](#iauthservice) |
+| Check what `IAuthUser` / `IAuthService` require | [IAuthUser / IJWTGeneratePayload / IJWTTokenPayload](#iauthuser-ijwtgeneratepayload-ijwttokenpayload), [IAuthService](#iauthservice) |
 | Understand the JWS/JWKS/Basic class hierarchy | [Service class hierarchy](#service-class-hierarchy) |
 | Register or resolve a strategy programmatically | [Strategy registry](#strategy-registry) |
 | See exactly what the built-in `/auth` controller builds | [Controller factory](#controller-factory) |
