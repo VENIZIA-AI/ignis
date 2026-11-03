@@ -46,6 +46,8 @@ Each row links the entry with the details.
 | Behavior change | A search engine 400, 404, 409 or 422 throws the matching 4xx with the engine message, where it threw a 503; transport failures, 5xx, 401, 403, 408 and 429 stay a 503 | [A search engine 4xx is not an outage](/changelogs/2026-11-03-search-engine-4xx-is-not-an-outage) |
 | Behavior change | `@venizia/ignis` no longer declares `pg`, `postgres`, `@electric-sql/pglite`, `@libsql/client`, `meilisearch` and `typesense` as optional peers; `@venizia/ignis-connectors` declares them | [Driver peers move to the connectors](/changelogs/2026-11-03-ignis-optional-peers-moved-to-connectors) |
 | Behavior change | `TypesenseConnector.updateByFilter` throws a 400 for an empty `document`; an `ITypesenseClientLike` you wrote yourself needs `documents().exportStream` | [Typesense streaming export and call timeouts](/changelogs/2026-11-03-typesense-streaming-export-and-call-timeouts) |
+| Breaking (types) | `IJWTTokenPayload.roles` is optional (`roles?: TJWTTokenRole[]`); `bun check` flags every read of `roles` that does not check for it. Nothing changes at run time | [roles is optional on the JWT payload](/changelogs/2026-11-03-jwt-roles-optional) |
+| Behavior change | `ISearchResult.facetCounts` is typed (`ISearchFacetCount[]`) and camelCase: Typesense `field_name` and `stats.total_values` become `fieldName` and `stats.totalValues`, and Meilisearch gives one entry per field where it gave one raw record. `search()` also refuses a field the model hides in `facetBy`, `facetQuery`, `queryBy`, `groupBy` and the highlight fields, with a 400 | [Search count, facets and suggest](/changelogs/2026-11-03-search-count-facets-and-suggest) |
 | Behavior change | `devz codemod const-classes` writes no comment above the class it creates | [const-classes writes no comment](/changelogs/2026-11-03-const-classes-writes-no-comment) |
 | Fix | The Vite plugin runs under Node again; the artifact scan cache uses a pure hash, so the first build after the update misses the cache once | [Vite plugin runs under Node again](/changelogs/2026-11-02-vite-plugin-runs-under-node-again) |
 | Feature | `ECDH` can be imported from `@venizia/ignis-helpers/core`, so a browser and a server share one class | [ECDH in the browser](/changelogs/2026-11-02-ecdh-in-the-browser) |
@@ -57,6 +59,8 @@ Each row links the entry with the details.
 | Feature | `TypesenseConnector.findDocument` answers `null` for a missing document | [findDocument](/changelogs/2026-11-03-typesense-find-document) |
 | Feature | `TypesenseConnector.importDocuments` takes an opt-in `throwOnFail` that throws a 422 after the last batch | [Import throwOnFail](/changelogs/2026-11-03-typesense-import-throw-on-fail) |
 | Feature | `TransactionDouble`, `PostgresTransactionDouble` and `SqliteTransactionDouble` take `connector`, `onCommit` and `onRollback` | [The transaction doubles take a connector](/changelogs/2026-11-03-transaction-doubles-take-a-connector) |
+| Feature | The search repository has `searchCount`, `facets` and `suggest`; Typesense tuning has typed camelCase names (`ITypesenseTuning`); a hybrid hit carries `rankFusionScore` and `vectorDistance` | [Search count, facets and suggest](/changelogs/2026-11-03-search-count-facets-and-suggest) |
+| Feature | `password` on `IRedisSingleHelperProps` is optional | [RedisSingleHelper takes no password](/changelogs/2026-11-03-redis-single-password-is-optional) |
 
 ## Upgrade checklist
 
@@ -76,6 +80,8 @@ Do these in order.
 12. **Check what matches a search engine 503.** A retry policy, alert or `catch` that matches `core.search_engine.dependency_unavailable` for a request the engine rejected now sees a 400, 404, 409 or 422. Retry only 5xx.
 13. **List your database or search driver in your own `dependencies`.** `@venizia/ignis` no longer declares `pg`, `postgres`, `@electric-sql/pglite`, `@libsql/client`, `meilisearch` and `typesense` as peers; `@venizia/ignis-connectors` does ([details](/changelogs/2026-11-03-ignis-optional-peers-moved-to-connectors)).
 14. **Wrote your own `ITypesenseClientLike`?** Add `exportStream` to its `documents()`, and pass `createClient` if you set `timeoutMs`.
+15. **Run `bun check` and handle a missing `roles`.** Where code reads `roles` from a verified token or from `Authentication.CURRENT_USER`, write `payload.roles ?? []`; type a roles codec as `IPayloadFieldCodec<TJWTTokenRole[]>`; delete a cast that only hid the missing field ([details](/changelogs/2026-11-03-jwt-roles-optional)).
+16. **Read `facetCounts` anywhere?** Rename `field_name` to `fieldName` and `stats.total_values` to `stats.totalValues`; on Meilisearch, read one entry per field (`counts: [{ value, count }]`) instead of `facetCounts[0]`. Then check that no `search()` call names a hidden field in `facetBy`, `facetQuery`, `queryBy`, `groupBy` or the highlight fields: it now throws a 400 ([details](/changelogs/2026-11-03-search-count-facets-and-suggest)).
 
 ## Who is affected
 
@@ -84,4 +90,6 @@ Do these in order.
 - **Callers of `Hash` or builders of a commit token under Node, in Vite or in a browser.** Step 6.
 - **Owners of `@model` classes and of search-engine error handling.** Steps 11 and 12.
 - **Apps that use a database or search driver, or wrote a Typesense client of their own.** Steps 13 and 14.
+- **Code that reads `roles` from a JWT payload.** Step 15.
+- **Code that reads `facetCounts` or facets on a hidden field.** Step 16.
 - **Everyone else.** Update the packages together and run the codemod.

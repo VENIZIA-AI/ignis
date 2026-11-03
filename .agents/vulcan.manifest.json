@@ -150,5 +150,12 @@
     "index": {
       "keys": ["sdcWZqtQ/X7Rb7IExhpLzX/YFQoPscMPQSEdGcGc77Q="]
     }
+  },
+  "commit": {
+    "message": {
+      "agent": {
+        "signature": "deny"
+      }
+    }
   }
 }
