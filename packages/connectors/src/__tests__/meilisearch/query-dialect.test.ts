@@ -189,7 +189,7 @@ describe('MeilisearchQueryDialect.applySearchInput', () => {
 describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
   const dialect = new MeilisearchQueryDialect();
 
-  const apply = (input: { highlight?: boolean }) => {
+  const apply = (input: { highlight?: boolean; highlightFields?: string[] }) => {
     const query = dialect.build({});
     dialect.applySearchInput({
       query,
@@ -202,5 +202,17 @@ describe('MeilisearchQueryDialect.applySearchInput - keyword highlight', () => {
     const wire = apply({ highlight: false });
 
     expect(wire['attributesToHighlight']).toBeUndefined();
+  });
+
+  test('highlight: false wins over highlightFields', () => {
+    const wire = apply({ highlight: false, highlightFields: ['title'] });
+
+    expect(wire['attributesToHighlight']).toBeUndefined();
+  });
+
+  test('highlightFields alone still reach the wire', () => {
+    const wire = apply({ highlightFields: ['title'] });
+
+    expect(wire['attributesToHighlight']).toEqual(['title']);
   });
 });

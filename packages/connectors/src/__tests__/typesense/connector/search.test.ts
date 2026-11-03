@@ -228,4 +228,38 @@ describe('TypesenseConnector search', () => {
     const ms = fake.calls.find((c) => c.op === 'multiSearch.perform');
     expect((ms!.args[2] as { abortSignal: AbortSignal }).abortSignal).toBe(abortController.signal);
   });
+
+  test('use_cache and cache_ttl travel as multi-search common params, not in the per-search body', async () => {
+    const { helper, fake } = makeHelper({ searchResult: { found: 0, hits: [] } });
+
+    await helper.search({
+      collection: 'products',
+      params: { q: 'shoe', ['use_cache']: true, ['cache_ttl']: 30 } as never,
+    });
+
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
+    const [request, common] = (call?.args ?? []) as [{ searches: unknown[] }, unknown];
+    expect(request.searches).toEqual([{ q: 'shoe', collection: 'products' }]);
+    expect(common).toEqual({ ['use_cache']: true, ['cache_ttl']: 30 });
+  });
+
+  test('a page split into windows keeps use_cache in the common params only', async () => {
+    const { helper, fake } = makeHelper({ searchResult: { found: 0, hits: [] } });
+
+    await helper.search({
+      collection: 'products',
+      params: { q: '*', ['per_page']: 500, ['use_cache']: true } as never,
+    });
+
+    const call = fake.calls.find((c) => c.op === 'multiSearch.perform');
+    const [request, common] = (call?.args ?? []) as [
+      { searches: Array<Record<string, unknown>> },
+      unknown,
+    ];
+    expect(request.searches.length).toBeGreaterThan(1);
+    for (const entry of request.searches) {
+      expect(entry).not.toHaveProperty('use_cache');
+    }
+    expect(common).toEqual({ ['use_cache']: true });
+  });
 });

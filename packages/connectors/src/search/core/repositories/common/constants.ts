@@ -56,7 +56,7 @@ const commonSearchParamsShape = {
 
   queryByWeights: z.array(z.number()).optional(),
 
-  /** Escape hatch for engine-specific tuning: keys are the engine's OWN wire names (`num_typos`, not `numTypos`), merged verbatim and unvalidated after every neutral param. */
+  /** Escape hatch for engine-specific tuning, merged after every neutral param. Keys are the engine's own wire names, passed verbatim; an engine may also accept camelCase names for its documented tuning (Typesense: `ITypesenseTuning`). */
   engineParams: z.record(z.string(), z.unknown()).optional(),
 };
 

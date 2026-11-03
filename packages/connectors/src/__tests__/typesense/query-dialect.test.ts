@@ -818,4 +818,55 @@ describe('TypesenseQueryDialect.toWireParams - tuning inside engineParams', () =
       dialect.toWireParams({ query: { query: 'sho', engineParams: { numTypos: undefined } } }),
     ).toThrow(/numTypos/);
   });
+
+  test.each([
+    ['num_typos', -1],
+    ['drop_tokens_threshold', 1.5],
+    ['typo_tokens_threshold', Number.NaN],
+    ['cache_ttl', '60'],
+  ])('the wire name %s is checked like its camelCase name', (key, bad) => {
+    const dialect = new TypesenseQueryDialect();
+
+    expect(() =>
+      dialect.toWireParams({ query: { query: 'sho', engineParams: { [key]: bad } } }),
+    ).toThrow(new RegExp(key));
+  });
+
+  test('a wire name that is valid passes through unchanged', () => {
+    const dialect = new TypesenseQueryDialect();
+    const wire = dialect.toWireParams({
+      query: { query: 'sho', engineParams: { ['num_typos']: 0, ['cache_ttl']: 60 } },
+    });
+
+    expect(wire['num_typos']).toBe(0);
+    expect(wire['cache_ttl']).toBe(60);
+  });
+
+  test('two spellings of one param are refused, whichever pair is given', () => {
+    const dialect = new TypesenseQueryDialect();
+
+    expect(() =>
+      dialect.toWireParams({
+        query: { query: 'sho', engineParams: { numTypos: 1, ['num_typos']: 2 } },
+      }),
+    ).toThrow(/both set/);
+    expect(() =>
+      dialect.toWireParams({
+        query: {
+          query: 'sho',
+          numTypos: 1,
+          engineParams: { ['num_typos']: 2 },
+        } as ITypesenseSearchQuery,
+      }),
+    ).toThrow(/both set/);
+    expect(() =>
+      dialect.toWireParams({
+        query: {
+          query: 'sho',
+          numTypos: 1,
+          engineParams: { numTypos: 2 },
+        } as ITypesenseSearchQuery,
+      }),
+    ).toThrow(/both set/);
+  });
 });

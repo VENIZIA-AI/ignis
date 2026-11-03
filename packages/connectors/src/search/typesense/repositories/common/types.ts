@@ -28,7 +28,7 @@ export interface ITypesenseTuning {
   cacheTtl?: number;
 }
 
-/** Typesense-only search params written by `TypesenseQueryDialect`, mapped to snake_case wire by `toWireParams`; engine-specific tuning travels through `engineParams` under the engine's own wire names, so it needs no typed field here. */
+/** Typesense-only search params written by `TypesenseQueryDialect`, mapped to snake_case wire by `toWireParams`; tuning not typed here travels through `engineParams` under the engine's own wire names. */
 export interface ITypesenseSearchQuery extends ISearchQuery, ITypesenseTuning {
   /** Typesense's `<field>:([v1, v2], k: N, alpha: A)` vector-search clause. */
   vectorQuery?: string;

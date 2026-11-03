@@ -4,6 +4,26 @@ import { EntryOutcomes, type TEntryClassification } from './outcomes';
 
 // Typesense-specific error classification only; engine-agnostic plumbing lives in SearchConnectorInternal.
 export class TypesenseInternal {
+  /** Typesense reads the server-side cache switches from the `/multi_search` query string, not from a search's body: `typesense-js` sends its own `use_cache` there too. */
+  private static readonly CACHE_PARAMS = new Set(['use_cache', 'cache_ttl']);
+
+  /** Splits a search's wire params into the cache switches (multi-search common params) and the rest (the per-search body). */
+  static splitCacheParams(opts: { params: Record<string, unknown> }) {
+    const common: Record<string, unknown> = {};
+    const body: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(opts.params)) {
+      if (TypesenseInternal.CACHE_PARAMS.has(key)) {
+        common[key] = value;
+        continue;
+      }
+
+      body[key] = value;
+    }
+
+    return { common, body };
+  }
+
   private static asHttpLike(opts: { error: unknown }): IHttpLikeError {
     const { error } = opts;
 

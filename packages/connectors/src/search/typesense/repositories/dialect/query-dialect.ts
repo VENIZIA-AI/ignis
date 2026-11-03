@@ -116,13 +116,25 @@ class TuningWireKeys {
     cacheTtl: 'cache_ttl',
   };
 
-  static isTuningField(field: string): boolean {
-    return Object.hasOwn(TuningWireKeys.WIRE_BY_FIELD, field);
+  private static readonly FIELD_BY_WIRE: Record<string, string> = Object.fromEntries(
+    Object.entries(TuningWireKeys.WIRE_BY_FIELD).map(([field, wire]) => [wire, field]),
+  );
+
+  /** The camelCase field a key names, whether it is spelled camelCase or as the wire name; undefined for any other key. */
+  static fieldOf(key: string): string | undefined {
+    if (Object.hasOwn(TuningWireKeys.WIRE_BY_FIELD, key)) {
+      return key;
+    }
+
+    return Object.hasOwn(TuningWireKeys.FIELD_BY_WIRE, key)
+      ? TuningWireKeys.FIELD_BY_WIRE[key]
+      : undefined;
   }
 
-  /** The wire entry of one tuning field; throws before a request when a numeric value is not a non-negative integer. */
-  static toWireEntry(opts: { field: string; value: unknown }): [string, unknown] {
-    const { field, value } = opts;
+  /** The wire entry of one tuning key, in either spelling; throws before a request when a numeric value is not a non-negative integer. */
+  static toWireEntry(opts: { key: string; value: unknown }): [string, unknown] {
+    const { key, value } = opts;
+    const field = TuningWireKeys.fieldOf(key) ?? key;
     const wireKey = TuningWireKeys.WIRE_BY_FIELD[field] ?? field;
 
     if (TuningWireKeys.INTEGER_FIELDS.has(field)) {
@@ -131,7 +143,7 @@ class TuningWireKeys {
 
       if (isInvalid || values.length === 0) {
         throw getError({
-          message: `[TypesenseQueryDialect][toWireParams] Invalid '${field}' | Expected a non-negative integer | Got: ${JSON.stringify(value)}`,
+          message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a non-negative integer | Got: ${JSON.stringify(value)}`,
         });
       }
     }
@@ -289,6 +301,22 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
     delete rest.matchNone;
 
     const wire: Record<string, unknown> = {};
+    const tuned = new Map<string, string>();
+
+    // One param may be given once, in either spelling: two spellings would leave the winner to the order they were written in.
+    const setTuning = (key: string, value: unknown) => {
+      const [wireKey, wireValue] = TuningWireKeys.toWireEntry({ key, value });
+      const earlier = tuned.get(wireKey);
+
+      if (earlier !== undefined) {
+        throw getError({
+          message: `[TypesenseQueryDialect][toWireParams] '${earlier}' and '${key}' both set '${wireKey}' | Give it once`,
+        });
+      }
+
+      tuned.set(wireKey, key);
+      wire[wireKey] = wireValue;
+    };
 
     const restEntries = Object.entries(rest);
     for (const [key, value] of restEntries) {
@@ -296,9 +324,8 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
         continue;
       }
 
-      if (TuningWireKeys.isTuningField(key)) {
-        const [wireKey, wireValue] = TuningWireKeys.toWireEntry({ field: key, value });
-        wire[wireKey] = wireValue;
+      if (TuningWireKeys.fieldOf(key) !== undefined) {
+        setTuning(key, value);
         continue;
       }
 
@@ -311,9 +338,8 @@ export class TypesenseQueryDialect extends BaseHelper implements ISearchQueryDia
 
     // engineParams keys are wire names, passed verbatim; the camelCase tuning names are also accepted and mapped, so a caller can type them with ITypesenseTuning.
     for (const [key, value] of Object.entries(engineParams)) {
-      if (TuningWireKeys.isTuningField(key)) {
-        const [wireKey, wireValue] = TuningWireKeys.toWireEntry({ field: key, value });
-        wire[wireKey] = wireValue;
+      if (TuningWireKeys.fieldOf(key) !== undefined) {
+        setTuning(key, value);
         continue;
       }
 

@@ -240,4 +240,48 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
   });
+
+  describe('hidden fields', () => {
+    test('facets refuses a hidden field in facetBy, before any request', async () => {
+      const result8 = await failureOf(() => repository.facets({ facetBy: ['status', 'secret'] }));
+      expect(result8).toMatch(/secret/);
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    });
+
+    test('facets refuses a hidden field named by facetQuery', async () => {
+      const result9 = await failureOf(() =>
+        repository.facets({ facetBy: ['status'], facetQuery: 'secret:ab' }),
+      );
+      expect(result9).toMatch(/secret/);
+    });
+
+    test('a hidden field is refused in queryBy on every call that takes one', async () => {
+      const queryBy = ['title', 'secret'];
+
+      const result10 = await failureOf(() => repository.searchCount({ query: 'x', queryBy }));
+      expect(result10).toMatch(/secret/);
+      const result11 = await failureOf(() => repository.suggest({ query: 'x', queryBy }));
+      expect(result11).toMatch(/secret/);
+      const result12 = await failureOf(() =>
+        repository.facets({ facetBy: ['status'], query: 'x', queryBy }),
+      );
+      expect(result12).toMatch(/secret/);
+      const result13 = await failureOf(() =>
+        repository.search({ mode: 'keyword', query: 'x', queryBy }),
+      );
+      expect(result13).toMatch(/secret/);
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    });
+
+    test('a visible field is not refused', async () => {
+      await repository.facets({
+        facetBy: ['status'],
+        facetQuery: 'status:ac',
+        queryBy: ['title'],
+        query: 'x',
+      });
+
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(1);
+    });
+  });
 });

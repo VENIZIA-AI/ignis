@@ -201,7 +201,9 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    this.queryDialect.applySearchInput({ query, input: this.withDefaultQueryBy({ input: opts }) });
+    const input = this.withDefaultQueryBy({ input: opts });
+    this.assertNoHiddenFieldsNamed({ input });
+    this.queryDialect.applySearchInput({ query, input });
 
     // Same short-circuit as find(): an absorbing filter cannot be expressed to the engine, and
     // omitting it would search everything.
@@ -320,6 +322,39 @@ export class ReadableSearchRepository<
     });
 
     return (result.hits ?? []).map((hit) => hit.document);
+  }
+
+  /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery` and as `queryBy`. */
+  protected assertNoHiddenFieldsNamed(opts: { input: TTranslatableSearchInput }): void {
+    const { input } = opts;
+
+    if (this.hiddenFields.length === 0) {
+      return;
+    }
+
+    const named: Array<{ param: string; field: string }> = [];
+
+    for (const field of input.facetBy ?? []) {
+      named.push({ param: 'facetBy', field });
+    }
+
+    if (input.facetQuery !== undefined) {
+      named.push({ param: 'facetQuery', field: input.facetQuery.split(':')[0]?.trim() ?? '' });
+    }
+
+    if ('queryBy' in input) {
+      for (const field of input.queryBy ?? []) {
+        named.push({ param: 'queryBy', field });
+      }
+    }
+
+    const hidden = named.find(({ field }) => this.hiddenFields.includes(field));
+
+    if (hidden) {
+      throw getError({
+        message: `[${this.constructor.name}][search] '${hidden.param}' names a hidden field | field: '${hidden.field}' | hidden fields never leave the repository, so they cannot be counted, matched or faceted`,
+      });
+    }
   }
 
   protected withDefaultQueryBy(opts: {

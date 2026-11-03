@@ -336,7 +336,7 @@ await repository.search({
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
-Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Eleven of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache` and `cacheTtl`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers; anything else throws before a request. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
+Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Eleven of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache` and `cacheTtl`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers, under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
 
 ```typescript
 import type { ITypesenseTuning } from '@venizia/ignis-connectors/typesense';
@@ -398,7 +398,7 @@ const { facets, found } = await articleRepository.facets({
 });
 ```
 
-`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
+`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`hiddenProperties`) cannot be named in `facetBy`, in `facetQuery` or in `queryBy`, here or in `search()`, because a count or a match on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
 
 ### Autocomplete with `suggest()`
 

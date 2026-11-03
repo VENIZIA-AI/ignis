@@ -1024,7 +1024,10 @@ export class TypesenseConnector extends BaseSearchConnector {
     this.assertNonEmpty({ value: collection, name: 'collection', method: this.search.name });
     const logger = this.logger.for(this.search.name);
 
-    const paramsRecord = params as unknown as Record<string, unknown>;
+    const { common, body } = TypesenseInternal.splitCacheParams({
+      params: params as unknown as Record<string, unknown>,
+    });
+    const paramsRecord = body;
     const requested = TypesenseSearchWindows.readRequestedPage({ params: paramsRecord });
     const windows = requested
       ? TypesenseSearchWindows.toSearchWindows(requested)
@@ -1034,11 +1037,12 @@ export class TypesenseConnector extends BaseSearchConnector {
       this.assertSplittablePage({ paramsRecord, requested, windows, collection });
     }
 
-    // A single window passes the caller's params through UNCHANGED - `mode: 'raw'` reaches the
-    // engine byte-identical, and only a page the engine would have rejected outright gets rewritten.
+    // A single window passes the caller's params through unchanged but for the cache switches, which
+    // go to the common params - `mode: 'raw'` reaches the engine otherwise byte-identical, and only a
+    // page the engine would have rejected outright gets rewritten.
     const entries =
       windows.length === 1
-        ? [{ ...params, collection }]
+        ? [{ ...body, collection } as { collection: string } & Partial<TSearchParams>]
         : windows.map((window) => {
             // Each window carries its own offset/limit, so the caller's page keys are left out.
             const rest = Object.fromEntries(
@@ -1056,7 +1060,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     const result2 = await this.executeMultiSearch({
       method: this.search.name,
       entries,
-      commonParams: {},
+      commonParams: common as Partial<TSearchParams>,
       options,
     });
     const response = result2 as IMultiSearchResult<T>;
