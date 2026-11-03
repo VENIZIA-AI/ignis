@@ -809,13 +809,17 @@ describe('TypesenseQueryDialect.toWireParams - typed tuning', () => {
     'maxCandidates must be a positive integer, as a field and inside engineParams: %p',
     (bad) => {
       expect(() =>
-        dialect.toWireParams({ query: { query: 'sho', maxCandidates: bad } as ITypesenseSearchQuery }),
+        dialect.toWireParams({
+          query: { query: 'sho', maxCandidates: bad } as ITypesenseSearchQuery,
+        }),
       ).toThrow(/maxCandidates/);
       expect(() =>
         dialect.toWireParams({ query: { query: 'sho', engineParams: { maxCandidates: bad } } }),
       ).toThrow(/maxCandidates/);
       expect(() =>
-        dialect.toWireParams({ query: { query: 'sho', engineParams: { ['max_candidates']: bad } } }),
+        dialect.toWireParams({
+          query: { query: 'sho', engineParams: { ['max_candidates']: bad } },
+        }),
       ).toThrow(/max_candidates|maxCandidates/);
     },
   );

@@ -259,7 +259,8 @@ export class ReadableSearchRepository<
     engineParams?: Record<string, unknown>;
     options?: IExtraOptions;
   }): Promise<{ facets: ISearchFacetCount[]; found: number; isFoundExact: boolean }> {
-    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, engineParams, options } = opts;
+    const { facetBy, query, queryBy, where, maxFacetValues, facetQuery, engineParams, options } =
+      opts;
 
     if (facetBy.length === 0 || facetBy.some((name) => name.trim().length === 0)) {
       throw getError({
