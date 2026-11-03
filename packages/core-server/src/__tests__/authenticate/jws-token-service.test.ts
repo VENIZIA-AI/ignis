@@ -61,7 +61,7 @@ describe('JWSTokenService - generate', () => {
 
     expect(verified.userId).toBe(payload.userId);
     expect(verified.roles).toEqual(payload.roles);
-    expect(verified.roles[0].identifier).toBe('admin');
+    expect(verified.roles?.[0]?.identifier).toBe('admin');
   });
 
   test('the token carries iat/nbf/exp, and exp honours getTokenExpiresFn', async () => {
@@ -239,5 +239,20 @@ describe('JWSTokenService - payload encryption', () => {
 
     // Decrypt may throw or yield junk; what must never happen is a foreign secret recovering the plaintext.
     expect(caught !== undefined || verified?.userId !== 42).toBe(true);
+  });
+});
+
+describe('JWSTokenService - a payload without roles', () => {
+  test('generate signs a token with no roles claim, in the clear and encrypted', async () => {
+    for (const service of [
+      buildService(),
+      buildService({ applicationSecret: APPLICATION_SECRET }),
+    ]) {
+      const token = await service.generate({ payload: { userId: 42 } });
+      const verified = await service.verify({ type: 'Bearer', token });
+
+      expect(verified.userId).toBe(42);
+      expect(verified.roles).toBeUndefined();
+    }
   });
 });
