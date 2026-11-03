@@ -336,7 +336,7 @@ await repository.search({
 
 All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary. That covers faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
 
-Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Eleven of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache` and `cacheTtl`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers, under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
+Typesense-specific tuning goes through `engineParams`, because the neutral input schema carries no knob that only one engine understands. Twelve of those knobs have a camelCase name, typed by `ITypesenseTuning`: `numTypos`, `dropTokensThreshold`, `typoTokensThreshold`, `infix`, `prioritizeExactMatch`, `prioritizeTokenPosition`, `prioritizeNumMatchingFields`, `textMatchType`, `rerankHybridMatches`, `useCache`, `cacheTtl` and `maxCandidates`. A list sets `numTypos` or `infix` per `queryBy` field. The numeric ones must be non-negative integers (`maxCandidates` a positive one), under either spelling; anything else throws before a request, and so does giving one param twice (`numTypos` and `num_typos`). `useCache` and `cacheTtl` are sent as multi-search query parameters, where Typesense reads them. Every other knob (`prefix`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `preset`, ...) keeps its wire name, and wire names are passed verbatim:
 
 ```typescript
 import type { ITypesenseTuning } from '@venizia/ignis-connectors/typesense';
@@ -352,6 +352,10 @@ await repository.search({
 ```
 
 `engineParams` is still the one door to the engine's own parameters, so a scoped search controller refuses it, the camelCase names included.
+
+Sorting is not a tuning knob: it is `filter.order` in the neutral input, and the dialect sends it as `sort_by` (at most three fields, each declared sortable). It works the same in `search()` and in `suggest()`.
+
+`searchCount()`, `facets()` and `suggest()` take the same `engineParams`, checked and sent the same way, so they match what a `search()` with that tuning matches. Without it, a count, a facet or a suggestion can differ from the search beside it (an accented query that finds unaccented names in `search()` finds none in `suggest()`). Repository methods are not routes, so the scoped-controller refusal is unchanged: a search controller's routes call `search()` and `multiSearch()` only, and a scoped one still answers `400` to `engineParams` on `/search`.
 
 ```typescript
 await repository.search({

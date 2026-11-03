@@ -310,4 +310,79 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(1);
     });
   });
+
+  describe('tuning through engineParams', () => {
+    const tuning = { numTypos: 0, useCache: true, cacheTtl: 30, maxCandidates: 4 };
+
+    const expectTuning = (wire: Record<string, unknown>) => {
+      expect(wire['num_typos']).toBe(0);
+      expect(wire['use_cache']).toBe(true);
+      expect(wire['cache_ttl']).toBe(30);
+      expect(wire['max_candidates']).toBe(4);
+      expect(wire).not.toHaveProperty('numTypos');
+    };
+
+    test('searchCount sends the tuning the way search does', async () => {
+      await repository.searchCount({ query: 'cafe', queryBy: ['title'], engineParams: tuning });
+
+      expectTuning(wireOf(dataSource));
+    });
+
+    test('facets sends the tuning the way search does', async () => {
+      await repository.facets({ facetBy: ['status'], query: 'cafe', engineParams: tuning });
+
+      expectTuning(wireOf(dataSource));
+    });
+
+    test('suggest sends the tuning the way search does', async () => {
+      await repository.suggest({ query: 'cafe', queryBy: ['title'], engineParams: tuning });
+
+      expectTuning(wireOf(dataSource));
+    });
+
+    test('a wire-named key passes verbatim next to the camelCase names', async () => {
+      await repository.suggest({
+        query: 'cafe',
+        queryBy: ['title'],
+        engineParams: { ['pinned_hits']: '1:1', numTypos: 1 },
+      });
+
+      expect(wireOf(dataSource)['pinned_hits']).toBe('1:1');
+      expect(wireOf(dataSource)['num_typos']).toBe(1);
+    });
+
+    test('an invalid tuning value is refused before any request, on all three', async () => {
+      const bad = { numTypos: -1 };
+      const runs = [
+        () => repository.searchCount({ query: 'x', queryBy: ['title'], engineParams: bad }),
+        () => repository.facets({ facetBy: ['status'], engineParams: bad }),
+        () => repository.suggest({ query: 'x', queryBy: ['title'], engineParams: bad }),
+      ];
+
+      for (const run of runs) {
+        expect(await failureOf(run)).toMatch(/numTypos/);
+      }
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    });
+
+    test('no engineParams leaves the wire untuned', async () => {
+      await repository.suggest({ query: 'cafe', queryBy: ['title'] });
+
+      expect(wireOf(dataSource)).not.toHaveProperty('num_typos');
+      expect(wireOf(dataSource)).not.toHaveProperty('use_cache');
+    });
+  });
+
+  describe('sort reaches the wire', () => {
+    test('search sends filter.order as sort_by', async () => {
+      await repository.search({
+        mode: 'keyword',
+        query: 'x',
+        queryBy: ['title'],
+        filter: { order: ['status DESC', 'name'] },
+      });
+
+      expect(wireOf(dataSource)['sort_by']).toBe('status:desc,name:asc');
+    });
+  });
 });

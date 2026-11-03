@@ -171,7 +171,7 @@ The guarantee is upheld one layer up: `SearchBaseRepository` strips hidden field
 
 **Engine-specific knobs never reach the neutral schema.** The neutral search input carries only fields every engine supports. Typesense-only tuning (`num_typos`, `pinned_hits`, `preset`, ...) travels through `engineParams` with wire names and is passed verbatim to the engine. Sending it to a Meilisearch datasource is a caller error.
 
-The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`.
+The dialect still raises a named error for known-foreign knobs arriving via untyped input. Use `engineParams` (or `mode: 'raw'`) for Meilisearch-native tuning such as `rankingScoreThreshold`. `searchCount()`, `facets()` and `suggest()` take `engineParams` too, passed the same way.
 
 **Facets come back as `ISearchFacetCount[]`, the same shape as Typesense.** `facetCounts` holds one entry per field, built from Meilisearch's `facetDistribution` (`{ fieldName, counts: [{ value, count }] }`), with `stats: { min, max }` for a numeric field from `facetStats`. `repository.facets({ facetBy })` and `repository.searchCount()` work here too; `maxFacetValues` and `facetQuery` throw, because Meilisearch sets the first in an index setting and searches facet values on its own route. `suggest()` works, and `highlight: false` adds nothing, because Meilisearch highlights only the fields you name.
 
