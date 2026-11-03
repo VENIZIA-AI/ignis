@@ -1012,7 +1012,7 @@ export class ChatApp extends BaseApplication {
       name: 'chat-redis',
       host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
       port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-      password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
+      password: process.env.APP_ENV_REDIS_PASSWORD,
       autoConnect: false,
     });
 
@@ -1527,7 +1527,7 @@ this.redisHelper = new RedisSingleHelper({
   name: 'chat-redis',
   host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
   port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
-  password: process.env.APP_ENV_REDIS_PASSWORD ?? '',
+  password: process.env.APP_ENV_REDIS_PASSWORD,
   autoConnect: false,
 });
 
