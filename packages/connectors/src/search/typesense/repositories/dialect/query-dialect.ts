@@ -99,6 +99,9 @@ class TuningWireKeys {
     'cacheTtl',
   ]);
 
+  /** Fields that must be a positive integer. */
+  private static readonly POSITIVE_INTEGER_FIELDS = new Set(['maxCandidates']);
+
   /** Fields Typesense takes as one comma-joined string when given per `queryBy` field. */
   private static readonly LIST_FIELDS = new Set(['numTypos', 'infix']);
 
@@ -114,6 +117,7 @@ class TuningWireKeys {
     rerankHybridMatches: 'rerank_hybrid_matches',
     useCache: 'use_cache',
     cacheTtl: 'cache_ttl',
+    maxCandidates: 'max_candidates',
   };
 
   private static readonly FIELD_BY_WIRE: Record<string, string> = Object.fromEntries(
@@ -146,6 +150,15 @@ class TuningWireKeys {
           message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a non-negative integer | Got: ${JSON.stringify(value)}`,
         });
       }
+    }
+
+    if (
+      TuningWireKeys.POSITIVE_INTEGER_FIELDS.has(field) &&
+      (!Number.isInteger(value) || (value as number) <= 0)
+    ) {
+      throw getError({
+        message: `[TypesenseQueryDialect][toWireParams] Invalid '${key}' | Expected a positive integer | Got: ${JSON.stringify(value)}`,
+      });
     }
 
     if (TuningWireKeys.LIST_FIELDS.has(field) && Array.isArray(value)) {

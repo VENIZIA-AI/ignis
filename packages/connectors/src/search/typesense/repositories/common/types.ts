@@ -9,7 +9,7 @@ export type TTypesenseTextMatchType = 'max_score' | 'max_weight' | 'sum_score';
 /**
  * Typesense tuning params in camelCase, mapped to the wire names by `TypesenseQueryDialect` (`numTypos` -> `num_typos`).
  * They are accepted as fields of `ITypesenseSearchQuery` and as keys of `engineParams`, next to wire-named keys, which still pass verbatim.
- * The numeric ones must be non-negative integers; anything else is a 400 before a request.
+ * The numeric ones must be non-negative integers (`maxCandidates`: positive); anything else is a 400 before a request.
  */
 export interface ITypesenseTuning {
   /** Typos allowed per match; a list sets it per `queryBy` field. */
@@ -26,6 +26,8 @@ export interface ITypesenseTuning {
   useCache?: boolean;
   /** Seconds a cached result is served. */
   cacheTtl?: number;
+  /** How many candidate documents Typesense considers for a typo or prefix match; a positive integer. */
+  maxCandidates?: number;
 }
 
 /** Typesense-only search params written by `TypesenseQueryDialect`, mapped to snake_case wire by `toWireParams`; tuning not typed here travels through `engineParams` under the engine's own wire names. */

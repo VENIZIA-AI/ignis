@@ -737,6 +737,7 @@ describe('TypesenseQueryDialect.toWireParams - typed tuning', () => {
         rerankHybridMatches: true,
         useCache: true,
         cacheTtl: 120,
+        maxCandidates: 8,
       } as ITypesenseSearchQuery,
     });
 
@@ -753,6 +754,7 @@ describe('TypesenseQueryDialect.toWireParams - typed tuning', () => {
       ['rerank_hybrid_matches']: true,
       ['use_cache']: true,
       ['cache_ttl']: 120,
+      ['max_candidates']: 8,
     });
   });
 
@@ -800,6 +802,21 @@ describe('TypesenseQueryDialect.toWireParams - typed tuning', () => {
           dialect.toWireParams({ query: { query: 'sho', engineParams: { [key]: bad } } }),
         ).toThrow(new RegExp(key));
       }
+    },
+  );
+
+  test.each([0, -1, 1.5, Number.NaN, '8'])(
+    'maxCandidates must be a positive integer, as a field and inside engineParams: %p',
+    (bad) => {
+      expect(() =>
+        dialect.toWireParams({ query: { query: 'sho', maxCandidates: bad } as ITypesenseSearchQuery }),
+      ).toThrow(/maxCandidates/);
+      expect(() =>
+        dialect.toWireParams({ query: { query: 'sho', engineParams: { maxCandidates: bad } } }),
+      ).toThrow(/maxCandidates/);
+      expect(() =>
+        dialect.toWireParams({ query: { query: 'sho', engineParams: { ['max_candidates']: bad } } }),
+      ).toThrow(/max_candidates|maxCandidates/);
     },
   );
 
