@@ -22,7 +22,7 @@ Every option, binding key, class, and method the Authentication component expose
 |---|---|
 | See how the pieces fit together | [Architecture](#architecture) |
 | Look up a binding key or option field | [Binding keys](#binding-keys), [Option interfaces](#option-interfaces) |
-| Check what `IAuthUser` / `IAuthService` require | [IAuthUser / IJWTGeneratePayload / IJWTTokenPayload](#iauthuser-ijwtgeneratepayload-ijwttokenpayload), [IAuthService](#iauthservice) |
+| Check what `IAuthUser` / `IAuthService` require | [IAuthUser / IJWTTokenPayload](#iauthuser-ijwttokenpayload), [IAuthService](#iauthservice) |
 | Understand the JWS/JWKS/Basic class hierarchy | [Service class hierarchy](#service-class-hierarchy) |
 | Register or resolve a strategy programmatically | [Strategy registry](#strategy-registry) |
 | See exactly what the built-in `/auth` controller builds | [Controller factory](#controller-factory) |
@@ -284,7 +284,7 @@ type TRouteAuthenticateConfig =
 | `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
 | `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
 
-### IAuthUser / IJWTGeneratePayload / IJWTTokenPayload
+### IAuthUser / IJWTTokenPayload
 
 ```typescript
 interface IAuthUser {
@@ -294,8 +294,7 @@ interface IAuthUser {
 
 type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
 
-// What generate() signs: roles may be left out.
-interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
+interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
   roles?: TJWTTokenRole[];
   clientId?: string;
@@ -304,14 +303,9 @@ interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
   name?: string;
   [extra: string | symbol]: any;
 }
-
-// What verify() returns.
-interface IJWTTokenPayload extends IJWTGeneratePayload {
-  roles: TJWTTokenRole[];
-}
 ```
 
-A token signed without `roles` verifies without them, and authorization reads its roles as none. Check `roles` before reading it if your app signs some tokens without it.
+`roles` may be absent. A token signed without it verifies without it, and authorization reads its roles as none. Check it before you read it: `payload.roles ?? []`.
 
 > [!TIP]
 > `IAuthUser` is intentionally minimal. Your `IAuthService` can return extra fields (roles, email, provider) - they pass through JWT generation and are available on `Authentication.CURRENT_USER` after authentication.
@@ -352,7 +346,7 @@ interface IPayloadFieldCodec<T = unknown> {
 
 ```typescript
 class AuthenticationFieldCodecs {
-  static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']>;
+  static readonly ROLES_CODEC: IPayloadFieldCodec<TJWTTokenRole[]>;
   static build<T>(opts: { key: string; serialize; deserialize }): IPayloadFieldCodec<T>;
 }
 ```

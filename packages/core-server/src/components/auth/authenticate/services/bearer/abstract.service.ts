@@ -6,7 +6,6 @@ import { getError } from '@venizia/ignis-helpers/core';
 import type {
   IJWTIssueClaims,
   IJWTSignOptions,
-  IJWTGeneratePayload,
   IJWTTokenPayload,
   IPayloadFieldCodec,
   TContext,
@@ -116,7 +115,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   }
 
   async generate(opts: {
-    payload: IJWTGeneratePayload;
+    payload: IJWTTokenPayload;
     getTokenExpiresFn?: TGetTokenExpiresFn;
     /** Per-token registered claims. The supported way to vary `aud` / `sub`; the payload is not. */
     claims?: IJWTIssueClaims;
@@ -156,7 +155,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return JSON.stringify(value);
   }
 
-  async encryptPayload(payload: IJWTGeneratePayload): Promise<Record<string, any>> {
+  async encryptPayload(payload: IJWTTokenPayload): Promise<Record<string, any>> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
     }
@@ -298,7 +297,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   protected abstract doVerify(token: string): Promise<IJWTTokenPayload>;
 
   abstract getSigner(opts: {
-    payload: IJWTGeneratePayload;
+    payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
     claims?: IJWTIssueClaims;
   }): Promise<SignJWT>;

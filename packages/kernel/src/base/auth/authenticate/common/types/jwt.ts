@@ -129,10 +129,10 @@ export type TJWTTokenServiceOptions =
 export type TJWTTokenRole = { id: IdType; identifier: string; priority: number };
 
 /**
- * What `generate` signs. `roles` may be left out: a token without it is signed as is, and
- * authorization reads its roles as none.
+ * What a token carries. `roles` may be absent: `generate` signs a payload without it as is, `verify`
+ * returns it without `roles`, and authorization reads its roles as none. Check it before you read it.
  */
-export interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
+export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
   roles?: TJWTTokenRole[];
 
@@ -142,10 +142,6 @@ export interface IJWTGeneratePayload extends JWTPayload, IAuthUser {
   name?: string;
 
   [extra: string | symbol]: any;
-}
-
-export interface IJWTTokenPayload extends IJWTGeneratePayload {
-  roles: TJWTTokenRole[];
 }
 
 export interface IPayloadFieldCodec<T = unknown> {

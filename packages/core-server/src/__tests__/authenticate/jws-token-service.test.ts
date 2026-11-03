@@ -61,7 +61,7 @@ describe('JWSTokenService - generate', () => {
 
     expect(verified.userId).toBe(payload.userId);
     expect(verified.roles).toEqual(payload.roles);
-    expect(verified.roles[0].identifier).toBe('admin');
+    expect(verified.roles?.[0]?.identifier).toBe('admin');
   });
 
   test('the token carries iat/nbf/exp, and exp honours getTokenExpiresFn', async () => {

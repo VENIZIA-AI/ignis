@@ -1220,7 +1220,7 @@ generated:
 
 ## kernel
 
-### `@venizia/ignis-kernel` (412)
+### `@venizia/ignis-kernel` (411)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -1377,7 +1377,6 @@ generated:
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
-- `IJWTGeneratePayload` interface
 - `IJWTIssueClaims` interface
 - `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface
@@ -2341,7 +2340,7 @@ generated:
 
 ## core-server
 
-### `@venizia/ignis` (1003)
+### `@venizia/ignis` (1002)
 
 - `AbstractApplication` class
 - `AbstractAuthRegistry` class
@@ -2670,7 +2669,6 @@ generated:
 - `IJWKSIssuerOptions` interface
 - `IJWKSVerifierOptions` interface
 - `IJWSTokenServiceOptions` interface
-- `IJWTGeneratePayload` interface
 - `IJWTIssueClaims` interface
 - `IJWTSignOptions` interface
 - `IJWTTokenPayload` interface

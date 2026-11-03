@@ -1,8 +1,8 @@
 import { ParseUtility } from '@venizia/ignis-helpers/core';
-import type { IJWTTokenPayload, IPayloadFieldCodec } from './types';
+import type { IPayloadFieldCodec, TJWTTokenRole } from './types';
 
 export class AuthenticationFieldCodecs {
-  static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']> = {
+  static readonly ROLES_CODEC: IPayloadFieldCodec<TJWTTokenRole[]> = {
     key: 'roles',
     serialize(opts) {
       return JSON.stringify(opts.value.map((el) => `${el.id}|${el.identifier}|${el.priority}`));
