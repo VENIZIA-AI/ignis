@@ -273,6 +273,32 @@ describe('ReadableSearchRepository - searchCount, facets and suggest', () => {
       expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
     });
 
+    test('a hidden field is refused in groupBy, highlightFields and highlightFullFields', async () => {
+      for (const param of ['groupBy', 'highlightFields', 'highlightFullFields']) {
+        const result14 = await failureOf(() =>
+          repository.search({
+            mode: 'keyword',
+            query: 'x',
+            [param]: ['title', 'secret'],
+          } as never),
+        );
+        expect(result14).toMatch(new RegExp(param));
+      }
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(0);
+    });
+
+    test('visible groupBy and highlight fields are not refused', async () => {
+      await repository.search({
+        mode: 'keyword',
+        query: 'x',
+        groupBy: ['status'],
+        highlightFields: ['title'],
+        highlightFullFields: ['title'],
+      });
+
+      expect(dataSource.fakeConnector.searchCalls).toHaveLength(1);
+    });
+
     test('a visible field is not refused', async () => {
       await repository.facets({
         facetBy: ['status'],

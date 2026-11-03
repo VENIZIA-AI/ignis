@@ -43,7 +43,7 @@ On Typesense, each entry used to be the engine's snake_case object. It is now ca
 
 `counts[].value`, `count` and `highlighted` keep their names. `value` is always a string.
 
-`search()`, `searchCount()`, `facets()` and `suggest()` also refuse a field the model hides (`hiddenProperties`) as `facetBy`, in `facetQuery` or as `queryBy`, with a 400. Before this change `search({ facetBy: ['hiddenField'] })` returned its value counts.
+`search()`, `searchCount()`, `facets()` and `suggest()` also refuse a field the model hides (`hiddenProperties`) as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` or in `highlightFields` / `highlightFullFields`, with a 400. Before this change `search({ facetBy: ['hiddenField'] })` returned its value counts.
 
 ## Details
 

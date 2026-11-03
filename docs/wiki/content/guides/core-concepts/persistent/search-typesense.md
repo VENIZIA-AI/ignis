@@ -398,7 +398,7 @@ const { facets, found } = await articleRepository.facets({
 });
 ```
 
-`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`hiddenProperties`) cannot be named in `facetBy`, in `facetQuery` or in `queryBy`, here or in `search()`, because a count or a match on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
+`facetBy` must name at least one field and `maxFacetValues` must be a positive integer; either breach throws before a request. A field the model hides (`hiddenProperties`) cannot be named in `facetBy`, in `facetQuery`, in `queryBy`, in `groupBy` or in `highlightFields` / `highlightFullFields`, here or in `search()`, because a count, a match, a group key or a highlight on it would tell the caller what it holds. `facets` is empty when the engine returned none. Meilisearch refuses `maxFacetValues` and `facetQuery`.
 
 ### Autocomplete with `suggest()`
 

@@ -324,7 +324,7 @@ export class ReadableSearchRepository<
     return (result.hits ?? []).map((hit) => hit.document);
   }
 
-  /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery` and as `queryBy`. */
+  /** Documents lose their hidden fields on the way out, but a facet count or a match on one would still tell the caller what the field holds; so they are refused as `facetBy`, in `facetQuery`, as `queryBy`, as `groupBy` and in the highlight fields (a group key and a highlight snippet carry the value too). */
   protected assertNoHiddenFieldsNamed(opts: { input: TTranslatableSearchInput }): void {
     const { input } = opts;
 
@@ -334,8 +334,10 @@ export class ReadableSearchRepository<
 
     const named: Array<{ param: string; field: string }> = [];
 
-    for (const field of input.facetBy ?? []) {
-      named.push({ param: 'facetBy', field });
+    for (const param of ['facetBy', 'groupBy', 'highlightFields', 'highlightFullFields'] as const) {
+      for (const field of input[param] ?? []) {
+        named.push({ param, field });
+      }
     }
 
     if (input.facetQuery !== undefined) {
