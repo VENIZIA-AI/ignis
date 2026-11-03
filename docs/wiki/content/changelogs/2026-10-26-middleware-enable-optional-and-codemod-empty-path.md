@@ -6,6 +6,9 @@ packages: ['@venizia/ignis-kernel', '@venizia/dev-configs']
 
 # Changelog - 2026-10-26
 
+> [!NOTE]
+> `devz codemod model-settings`, named on this page, was removed in `@venizia/dev-configs` 0.4.7-5; on that release or later it exits 2 as an unknown codemod. Run it from an earlier release, or move the keys by hand with the table in [the old @model keys are removed](/changelogs/2026-11-03-old-model-settings-keys-are-removed).
+
 ## enable is optional on middleware options, and devz codemod names a path it cannot read
 
 <Badge type="info" text="Bug Fix" /> <Badge type="tip" text="Enhancement" />

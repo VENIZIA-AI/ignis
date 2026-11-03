@@ -14,7 +14,7 @@ packages: ['@venizia/ignis-connectors', '@venizia/ignis']
 
 ## What changed
 
-- **An engine 4xx is the caller's mistake and is thrown as one.** `updateDocument({ patch: {} })` against Typesense answered 400, and the connector reported a 503 with the 400 only in `cause`. The same input now throws a 400 whose message carries the engine's text.
+- **An engine 4xx is the caller's mistake and is thrown as one.** `updateDocument({ collection, id, document: {} })` against Typesense answered 400, and the connector reported a 503 with the 400 only in `cause`. The same input now throws a 400 whose message carries the engine's text.
   - **400 and 422** throw an error with that status and the engine message. There is no new error code.
   - **404** that the verb does not tolerate throws `404 core.search_engine.not_found`. Verbs that already treated a missing document or collection as a result (`deleteDocument`, `getAlias`, `search` on an unprovisioned collection, ...) are unchanged.
   - **409** throws `409 core.search_engine.already_exists`.

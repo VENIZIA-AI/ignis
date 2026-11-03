@@ -933,7 +933,7 @@ export class TypesenseConnector extends BaseSearchConnector {
   /**
    * The export as a stream of NDJSON lines, one document per line without its newline, read as the engine sends
    * them. Memory stays bounded by one chunk and one partial line, so a collection of any size can be written to disk
-   * as it arrives, where `exportDocuments` builds the whole export as one string (about 512 MB at most).
+   * as it arrives, where `exportDocuments` builds the whole export as one string (at most 2^31 - 1 characters on Bun, about 2 GiB of ASCII text).
    *
    * ```typescript
    * for await (const line of connector.streamDocuments({ collection: 'products', timeoutMs: 600_000 })) {

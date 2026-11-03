@@ -1,7 +1,7 @@
 ---
 title: The connector sub-paths of @venizia/ignis are removed, and one codemod moves your imports
 description: "@venizia/ignis/postgres, /relational, /sqlite, /search, /typesense, /meilisearch and their driver and controller sub-paths are removed; import them from @venizia/ignis-connectors, which your app must list as a dependency, and run devz codemod connector-imports."
-packages: ['@venizia/ignis', '@venizia/dev-configs']
+packages: ['@venizia/ignis', '@venizia/ignis-connectors', '@venizia/dev-configs']
 ---
 
 # Changelog - 2026-11-02
